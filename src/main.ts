@@ -13,6 +13,9 @@ if (started) {
 const CONFIG_DIR = path.join(app.getPath('home'), '.config', 'mk-browser');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
 
+// Command-line override for browse folder (takes precedence over config file)
+let commandLineFolder: string | null = null;
+
 interface AppConfig {
   browseFolder: string;
 }
@@ -81,9 +84,13 @@ const createWindow = () => {
 
 // IPC Handlers
 function setupIpcHandlers(): void {
-  // Get the configured browse folder
+  // Get the configured browse folder (command-line override takes precedence)
   ipcMain.handle('get-config', (): AppConfig => {
-    return loadConfig();
+    const config = loadConfig();
+    if (commandLineFolder) {
+      config.browseFolder = commandLineFolder;
+    }
+    return config;
   });
 
   // Save configuration
@@ -171,11 +178,55 @@ function setupIpcHandlers(): void {
   });
 }
 
+// Handle command-line arguments to set initial browse folder
+async function handleCommandLineArgs(): Promise<void> {
+  // process.argv structure:
+  // [0] = electron executable
+  // [1] = main.js (or . in dev mode)
+  // [2+] = user arguments
+
+  // Debug: log all arguments received
+  console.log('=== Command Line Arguments Debug ===');
+  console.log('Full process.argv:', process.argv);
+
+  const args = process.argv.slice(2);
+  console.log('Args after slice(2):', args);
+
+  // Filter out flags and electron-specific arguments, find first path-like argument
+  const folderPath = args.find(arg => !arg.startsWith('-') && arg !== '.');
+  console.log('Detected folder path:', folderPath ?? '(none)');
+
+  if (folderPath) {
+    try {
+      const stat = await fs.promises.stat(folderPath);
+      if (stat.isDirectory()) {
+        // Resolve to absolute path
+        const absolutePath = path.resolve(folderPath);
+
+        // Store in memory for immediate use (overrides config file)
+        commandLineFolder = absolutePath;
+
+        // Also update and save config file for persistence
+        const config = loadConfig();
+        config.browseFolder = absolutePath;
+        saveConfig(config);
+
+        console.log(`Opening folder from command line: ${absolutePath}`);
+      } else {
+        console.warn(`Command-line argument is not a directory: ${folderPath}`);
+      }
+    } catch (error) {
+      console.warn(`Command-line folder does not exist: ${folderPath}`);
+    }
+  }
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', () => {
+app.on('ready', async () => {
   setupIpcHandlers();
+  await handleCommandLineArgs();
   createWindow();
 });
 
