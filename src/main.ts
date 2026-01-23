@@ -1,5 +1,7 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
+import fs from 'node:fs';
+import * as yaml from 'js-yaml';
 import started from 'electron-squirrel-startup';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -7,13 +9,58 @@ if (started) {
   app.quit();
 }
 
+// Config file location (Linux standard: ~/.config/mk-browser/config.yaml)
+const CONFIG_DIR = path.join(app.getPath('home'), '.config', 'mk-browser');
+const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
+
+interface AppConfig {
+  browseFolder: string;
+}
+
+function ensureConfigDir(): void {
+  if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  }
+}
+
+function loadConfig(): AppConfig {
+  ensureConfigDir();
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const content = fs.readFileSync(CONFIG_FILE, 'utf-8');
+      const config = yaml.load(content) as AppConfig;
+      return config || { browseFolder: '' };
+    }
+  } catch {
+    // If config is corrupted, return default
+  }
+  return { browseFolder: '' };
+}
+
+function saveConfig(config: AppConfig): void {
+  ensureConfigDir();
+  const content = yaml.dump(config);
+  fs.writeFileSync(CONFIG_FILE, content, 'utf-8');
+}
+
+// File/folder types for the renderer
+interface FileEntry {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  isMarkdown: boolean;
+  content?: string; // Only populated for markdown files
+}
+
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
     },
   });
 
@@ -26,14 +73,111 @@ const createWindow = () => {
     );
   }
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // Open the DevTools in development
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    mainWindow.webContents.openDevTools();
+  }
 };
+
+// IPC Handlers
+function setupIpcHandlers(): void {
+  // Get the configured browse folder
+  ipcMain.handle('get-config', (): AppConfig => {
+    return loadConfig();
+  });
+
+  // Save configuration
+  ipcMain.handle('save-config', (_event, config: AppConfig): void => {
+    saveConfig(config);
+  });
+
+  // Open folder selection dialog
+  ipcMain.handle('select-folder', async (): Promise<string | null> => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory'],
+      title: 'Select a folder to browse',
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      return result.filePaths[0];
+    }
+    return null;
+  });
+
+  // Read directory contents
+  ipcMain.handle('read-directory', async (_event, dirPath: string): Promise<FileEntry[]> => {
+    try {
+      const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+      const fileEntries: FileEntry[] = [];
+
+      for (const entry of entries) {
+        // Skip hidden files/folders (starting with .)
+        if (entry.name.startsWith('.')) continue;
+
+        const fullPath = path.join(dirPath, entry.name);
+        const isDirectory = entry.isDirectory();
+        const isMarkdown = !isDirectory && entry.name.toLowerCase().endsWith('.md');
+
+        const fileEntry: FileEntry = {
+          name: entry.name,
+          path: fullPath,
+          isDirectory,
+          isMarkdown,
+        };
+
+        // Read markdown content inline
+        if (isMarkdown) {
+          try {
+            fileEntry.content = await fs.promises.readFile(fullPath, 'utf-8');
+          } catch {
+            fileEntry.content = '*Error reading file*';
+          }
+        }
+
+        fileEntries.push(fileEntry);
+      }
+
+      // Sort: directories first, then files, alphabetically within each group
+      fileEntries.sort((a, b) => {
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      return fileEntries;
+    } catch (error) {
+      console.error('Error reading directory:', error);
+      return [];
+    }
+  });
+
+  // Read a single file's content
+  ipcMain.handle('read-file', async (_event, filePath: string): Promise<string> => {
+    try {
+      return await fs.promises.readFile(filePath, 'utf-8');
+    } catch (error) {
+      console.error('Error reading file:', error);
+      return '';
+    }
+  });
+
+  // Check if path exists and is directory
+  ipcMain.handle('path-exists', async (_event, checkPath: string): Promise<boolean> => {
+    try {
+      const stat = await fs.promises.stat(checkPath);
+      return stat.isDirectory();
+    } catch {
+      return false;
+    }
+  });
+}
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', () => {
+  setupIpcHandlers();
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -51,6 +195,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
