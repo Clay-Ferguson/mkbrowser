@@ -180,3 +180,7 @@ Follow this pattern (example from [main.ts](../src/main.ts#L90-L98)):
    ```typescript
    const result = await window.electronAPI.myMethod(arg);
    ```
+
+## React Global State Management
+
+see file: `<project>/docs/global-state.md`
