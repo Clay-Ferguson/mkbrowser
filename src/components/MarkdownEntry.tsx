@@ -2,19 +2,23 @@ import { useEffect, useState, useRef } from 'react';
 import Markdown from 'react-markdown';
 import type { FileEntry } from '../global';
 import { useItem, setItemContent, setItemEditing, setItemRenaming, isCacheValid } from '../store';
+import ConfirmDialog from './ConfirmDialog';
 
 interface MarkdownEntryProps {
   entry: FileEntry;
   onRename: () => void;
+  onDelete: () => void;
 }
 
-function MarkdownEntry({ entry, onRename }: MarkdownEntryProps) {
+function MarkdownEntry({ entry, onRename, onDelete }: MarkdownEntryProps) {
   const item = useItem(entry.path);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [newName, setNewName] = useState(entry.name);
   const [renameSaving, setRenameSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = item?.editing ?? false;
@@ -124,6 +128,27 @@ function MarkdownEntry({ entry, onRename }: MarkdownEntryProps) {
     }
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      const success = await window.electronAPI.deleteFile(entry.path);
+      if (success) {
+        onDelete();
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+  };
+
   return (
     <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3 bg-slate-800/50 border-b border-slate-700">
@@ -173,6 +198,16 @@ function MarkdownEntry({ entry, onRename }: MarkdownEntryProps) {
               </svg>
             </button>
             <button
+              onClick={handleDeleteClick}
+              disabled={deleting}
+              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-50"
+              title="Delete"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+            <button
               onClick={handleEditClick}
               className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
               title="Edit content"
@@ -200,6 +235,13 @@ function MarkdownEntry({ entry, onRename }: MarkdownEntryProps) {
           </article>
         )}
       </div>
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          message={`Are you sure you want to delete "${entry.name}"?`}
+          onConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+        />
+      )}
     </div>
   );
 }

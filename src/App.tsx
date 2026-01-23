@@ -208,11 +208,11 @@ function App() {
             {entries.map((entry) => (
               <div key={entry.path}>
                 {entry.isDirectory ? (
-                  <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} />
+                  <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} />
                 ) : entry.isMarkdown ? (
-                  <MarkdownEntry entry={entry} onRename={refreshDirectory} />
+                  <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
                 ) : (
-                  <FileEntryComponent entry={entry} onRename={refreshDirectory} />
+                  <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
                 )}
               </div>
             ))}

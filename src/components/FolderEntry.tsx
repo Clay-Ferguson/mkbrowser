@@ -1,17 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
 import type { FileEntry } from '../global';
 import { useItem, setItemRenaming } from '../store';
+import ConfirmDialog from './ConfirmDialog';
 
 interface FolderEntryProps {
   entry: FileEntry;
   onNavigate: (path: string) => void;
   onRename: () => void;
+  onDelete: () => void;
 }
 
-function FolderEntry({ entry, onNavigate, onRename }: FolderEntryProps) {
+function FolderEntry({ entry, onNavigate, onRename, onDelete }: FolderEntryProps) {
   const item = useItem(entry.path);
   const [newName, setNewName] = useState(entry.name);
   const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isRenaming = item?.renaming ?? false;
@@ -70,6 +74,28 @@ function FolderEntry({ entry, onNavigate, onRename }: FolderEntryProps) {
     e.stopPropagation();
   };
 
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    setShowDeleteConfirm(false);
+    setDeleting(true);
+    try {
+      const success = await window.electronAPI.deleteFile(entry.path);
+      if (success) {
+        onDelete();
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+  };
+
   return (
     <div
       onClick={() => !isRenaming && onNavigate(entry.path)}
@@ -106,10 +132,27 @@ function FolderEntry({ entry, onNavigate, onRename }: FolderEntryProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
           </button>
+          <button
+            onClick={handleDeleteClick}
+            disabled={deleting}
+            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors flex-shrink-0 disabled:opacity-50"
+            title="Delete"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
           <svg className="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </>
+      )}
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          message={`Are you sure you want to delete the folder "${entry.name}" and all its contents?`}
+          onConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+        />
       )}
     </div>
   );

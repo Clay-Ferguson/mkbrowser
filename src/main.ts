@@ -205,6 +205,17 @@ function setupIpcHandlers(): void {
       return false;
     }
   });
+
+  // Delete a file or folder
+  ipcMain.handle('delete-file', async (_event, filePath: string): Promise<boolean> => {
+    try {
+      await fs.promises.rm(filePath, { recursive: true });
+      return true;
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      return false;
+    }
+  });
 }
 
 // Handle command-line arguments to set initial browse folder
