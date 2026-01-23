@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import Markdown from 'react-markdown';
 import type { FileEntry } from './global';
+import FolderEntry from './components/FolderEntry';
+import MarkdownEntry from './components/MarkdownEntry';
+import FileEntryComponent from './components/FileEntry';
 
 function App() {
   const [currentPath, setCurrentPath] = useState<string>('');
@@ -186,42 +188,11 @@ function App() {
             {entries.map((entry) => (
               <div key={entry.path}>
                 {entry.isDirectory ? (
-                  // Folder row
-                  <button
-                    onClick={() => navigateTo(entry.path)}
-                    className="w-full flex items-center gap-3 px-4 py-3 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-750 hover:border-slate-600 transition-colors text-left"
-                  >
-                    <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                    </svg>
-                    <span className="text-slate-200 font-medium truncate">{entry.name}</span>
-                    <svg className="w-4 h-4 text-slate-500 ml-auto flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
+                  <FolderEntry entry={entry} onNavigate={navigateTo} />
                 ) : entry.isMarkdown ? (
-                  // Markdown file card
-                  <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-                    <div className="flex items-center gap-3 px-4 py-3 bg-slate-800/50 border-b border-slate-700">
-                      <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span className="text-slate-300 font-medium truncate">{entry.name}</span>
-                    </div>
-                    <div className="px-6 py-4">
-                      <article className="prose prose-invert prose-sm max-w-none">
-                        <Markdown>{entry.content || ''}</Markdown>
-                      </article>
-                    </div>
-                  </div>
+                  <MarkdownEntry entry={entry} />
                 ) : (
-                  // Regular file row
-                  <div className="flex items-center gap-3 px-4 py-3 bg-slate-800 rounded-lg border border-slate-700">
-                    <svg className="w-5 h-5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-slate-400 truncate">{entry.name}</span>
-                  </div>
+                  <FileEntryComponent entry={entry} />
                 )}
               </div>
             ))}
