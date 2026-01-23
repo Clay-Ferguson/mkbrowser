@@ -36,6 +36,11 @@ export interface ItemData {
    * Multiple files can be edited simultaneously.
    */
   editing?: boolean;
+
+  /**
+   * Whether the file/folder is currently being renamed.
+   */
+  renaming?: boolean;
 }
 
 /**

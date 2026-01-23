@@ -36,35 +36,44 @@ function App() {
     loadConfig();
   }, []);
 
-  // Load directory when path changes
-  useEffect(() => {
+  // Load directory contents
+  const loadDirectory = useCallback(async (showLoading = true) => {
     if (!currentPath) return;
 
-    const loadDirectory = async () => {
+    if (showLoading) {
       setLoading(true);
-      setError(null);
-      try {
-        const files = await window.electronAPI.readDirectory(currentPath);
-        setEntries(files);
+    }
+    setError(null);
+    try {
+      const files = await window.electronAPI.readDirectory(currentPath);
+      setEntries(files);
 
-        // Update global store with all items from this directory
-        upsertItems(
-          files.map((file) => ({
-            path: file.path,
-            name: file.name,
-            isDirectory: file.isDirectory,
-            modifiedTime: file.modifiedTime,
-          }))
-        );
-      } catch (err) {
-        setError('Failed to read directory');
-        setEntries([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadDirectory();
+      // Update global store with all items from this directory
+      upsertItems(
+        files.map((file) => ({
+          path: file.path,
+          name: file.name,
+          isDirectory: file.isDirectory,
+          modifiedTime: file.modifiedTime,
+        }))
+      );
+    } catch (err) {
+      setError('Failed to read directory');
+      setEntries([]);
+    } finally {
+      setLoading(false);
+    }
   }, [currentPath]);
+
+  // Load directory when path changes
+  useEffect(() => {
+    loadDirectory();
+  }, [loadDirectory]);
+
+  // Refresh directory without showing loading indicator (used after rename)
+  const refreshDirectory = useCallback(() => {
+    loadDirectory(false);
+  }, [loadDirectory]);
 
   // Handle folder selection
   const handleSelectFolder = useCallback(async () => {
@@ -199,11 +208,11 @@ function App() {
             {entries.map((entry) => (
               <div key={entry.path}>
                 {entry.isDirectory ? (
-                  <FolderEntry entry={entry} onNavigate={navigateTo} />
+                  <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} />
                 ) : entry.isMarkdown ? (
-                  <MarkdownEntry entry={entry} />
+                  <MarkdownEntry entry={entry} onRename={refreshDirectory} />
                 ) : (
-                  <FileEntryComponent entry={entry} />
+                  <FileEntryComponent entry={entry} onRename={refreshDirectory} />
                 )}
               </div>
             ))}

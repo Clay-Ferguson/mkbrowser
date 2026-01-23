@@ -20,6 +20,7 @@ export interface ElectronAPI {
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<boolean>;
+  renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
 }
 
 declare global {

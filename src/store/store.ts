@@ -219,6 +219,23 @@ export function setItemEditing(path: string, editing: boolean): void {
   emitChange();
 }
 
+/**
+ * Set the renaming state of an item
+ */
+export function setItemRenaming(path: string, renaming: boolean): void {
+  const existing = state.items.get(path);
+  if (!existing) return;
+
+  const newItems = new Map(state.items);
+  newItems.set(path, {
+    ...existing,
+    renaming,
+  });
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
 // ============================================================================
 // Hooks - React hooks for subscribing to state
 // ============================================================================

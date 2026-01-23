@@ -194,6 +194,17 @@ function setupIpcHandlers(): void {
       return false;
     }
   });
+
+  // Rename a file or folder
+  ipcMain.handle('rename-file', async (_event, oldPath: string, newPath: string): Promise<boolean> => {
+    try {
+      await fs.promises.rename(oldPath, newPath);
+      return true;
+    } catch (error) {
+      console.error('Error renaming file:', error);
+      return false;
+    }
+  });
 }
 
 // Handle command-line arguments to set initial browse folder

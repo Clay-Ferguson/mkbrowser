@@ -1,19 +1,38 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Markdown from 'react-markdown';
 import type { FileEntry } from '../global';
-import { useItem, setItemContent, setItemEditing, isCacheValid } from '../store';
+import { useItem, setItemContent, setItemEditing, setItemRenaming, isCacheValid } from '../store';
 
 interface MarkdownEntryProps {
   entry: FileEntry;
+  onRename: () => void;
 }
 
-function MarkdownEntry({ entry }: MarkdownEntryProps) {
+function MarkdownEntry({ entry, onRename }: MarkdownEntryProps) {
   const item = useItem(entry.path);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editContent, setEditContent] = useState('');
+  const [newName, setNewName] = useState(entry.name);
+  const [renameSaving, setRenameSaving] = useState(false);
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = item?.editing ?? false;
+  const isRenaming = item?.renaming ?? false;
+
+  // Focus rename input when entering rename mode
+  useEffect(() => {
+    if (isRenaming && renameInputRef.current) {
+      renameInputRef.current.focus();
+      // Select filename without extension
+      const dotIndex = entry.name.lastIndexOf('.');
+      if (dotIndex > 0) {
+        renameInputRef.current.setSelectionRange(0, dotIndex);
+      } else {
+        renameInputRef.current.select();
+      }
+    }
+  }, [isRenaming, entry.name]);
 
   // Load content if not cached or cache is stale
   useEffect(() => {
@@ -64,13 +83,67 @@ function MarkdownEntry({ entry }: MarkdownEntryProps) {
     }
   };
 
+  const handleRenameClick = () => {
+    setNewName(entry.name);
+    setItemRenaming(entry.path, true);
+  };
+
+  const handleRenameCancel = () => {
+    setNewName(entry.name);
+    setItemRenaming(entry.path, false);
+  };
+
+  const handleRenameSave = async () => {
+    const trimmedName = newName.trim();
+    if (!trimmedName || trimmedName === entry.name) {
+      handleRenameCancel();
+      return;
+    }
+
+    setRenameSaving(true);
+    try {
+      const dirPath = entry.path.substring(0, entry.path.lastIndexOf('/'));
+      const newPath = `${dirPath}/${trimmedName}`;
+      const success = await window.electronAPI.renameFile(entry.path, newPath);
+      if (success) {
+        setItemRenaming(entry.path, false);
+        onRename();
+      }
+    } finally {
+      setRenameSaving(false);
+    }
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleRenameSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleRenameCancel();
+    }
+  };
+
   return (
     <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3 bg-slate-800/50 border-b border-slate-700">
         <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        <span className="text-slate-300 font-medium truncate flex-1">{entry.name}</span>
+        {isRenaming ? (
+          <input
+            ref={renameInputRef}
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={handleRenameKeyDown}
+            onBlur={handleRenameSave}
+            disabled={renameSaving}
+            className="flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm font-medium"
+          />
+        ) : (
+          <span className="text-slate-300 font-medium truncate flex-1">{entry.name}</span>
+        )}
         {isEditing ? (
           <div className="flex items-center gap-2">
             <button
@@ -88,16 +161,27 @@ function MarkdownEntry({ entry }: MarkdownEntryProps) {
               {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
-        ) : (
-          <button
-            onClick={handleEditClick}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
-            title="Edit"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </button>
+        ) : !isRenaming && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleRenameClick}
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+              title="Rename"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <button
+              onClick={handleEditClick}
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+              title="Edit content"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+              </svg>
+            </button>
+          </div>
         )}
       </div>
       <div className="px-6 py-4">
