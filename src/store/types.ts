@@ -1,0 +1,62 @@
+/**
+ * Represents a file or folder item that has been encountered during browsing.
+ * Items are stored in a Map keyed by their full file path.
+ */
+export interface ItemData {
+  /** Full path to the file or folder (serves as the unique key) */
+  path: string;
+
+  /** File name (without path) */
+  name: string;
+
+  /** Whether this is a directory */
+  isDirectory: boolean;
+
+  /** Last modified timestamp from the file system (milliseconds since epoch) */
+  modifiedTime: number;
+
+  /** Whether this item is selected (for checkbox selection, defaults to false) */
+  isSelected: boolean;
+
+  /**
+   * Cached content for markdown files.
+   * Only populated for .md files when they are displayed.
+   * Used to avoid re-reading files that haven't changed.
+   */
+  content?: string;
+
+  /**
+   * The modifiedTime at which the content was cached.
+   * Used to determine if the cached content is still valid.
+   */
+  contentCachedAt?: number;
+}
+
+/**
+ * Global application state
+ */
+export interface AppState {
+  /**
+   * Collection of all items (files/folders) encountered during browsing.
+   * Keyed by full file path for fast lookup.
+   */
+  items: Map<string, ItemData>;
+}
+
+/**
+ * Creates a new ItemData with default values
+ */
+export function createItemData(
+  path: string,
+  name: string,
+  isDirectory: boolean,
+  modifiedTime: number
+): ItemData {
+  return {
+    path,
+    name,
+    isDirectory,
+    modifiedTime,
+    isSelected: false,
+  };
+}

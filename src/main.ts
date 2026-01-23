@@ -52,6 +52,8 @@ interface FileEntry {
   path: string;
   isDirectory: boolean;
   isMarkdown: boolean;
+  /** Last modified timestamp in milliseconds since epoch */
+  modifiedTime: number;
   content?: string; // Only populated for markdown files
 }
 
@@ -124,21 +126,26 @@ function setupIpcHandlers(): void {
         const isDirectory = entry.isDirectory();
         const isMarkdown = !isDirectory && entry.name.toLowerCase().endsWith('.md');
 
+        // Get file stats for modification time
+        let modifiedTime = 0;
+        try {
+          const stat = await fs.promises.stat(fullPath);
+          modifiedTime = stat.mtimeMs;
+        } catch {
+          // If stat fails, use current time
+          modifiedTime = Date.now();
+        }
+
         const fileEntry: FileEntry = {
           name: entry.name,
           path: fullPath,
           isDirectory,
           isMarkdown,
+          modifiedTime,
         };
 
-        // Read markdown content inline
-        if (isMarkdown) {
-          try {
-            fileEntry.content = await fs.promises.readFile(fullPath, 'utf-8');
-          } catch {
-            fileEntry.content = '*Error reading file*';
-          }
-        }
+        // Note: We no longer read markdown content here.
+        // Content will be loaded on-demand with caching in the renderer.
 
         fileEntries.push(fileEntry);
       }

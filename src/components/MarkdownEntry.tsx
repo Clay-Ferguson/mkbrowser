@@ -1,11 +1,41 @@
+import { useEffect, useState } from 'react';
 import Markdown from 'react-markdown';
 import type { FileEntry } from '../global';
+import { useItem, setItemContent, isCacheValid } from '../store';
 
 interface MarkdownEntryProps {
   entry: FileEntry;
 }
 
 function MarkdownEntry({ entry }: MarkdownEntryProps) {
+  const item = useItem(entry.path);
+  const [loading, setLoading] = useState(false);
+
+  // Load content if not cached or cache is stale
+  useEffect(() => {
+    const loadContent = async () => {
+      // Check if we have valid cached content
+      if (isCacheValid(entry.path)) {
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const content = await window.electronAPI.readFile(entry.path);
+        setItemContent(entry.path, content);
+      } catch (err) {
+        setItemContent(entry.path, '*Error reading file*');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContent();
+  }, [entry.path, entry.modifiedTime]);
+
+  // Get content from cache or show loading state
+  const content = item?.content;
+
   return (
     <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3 bg-slate-800/50 border-b border-slate-700">
@@ -15,9 +45,13 @@ function MarkdownEntry({ entry }: MarkdownEntryProps) {
         <span className="text-slate-300 font-medium truncate">{entry.name}</span>
       </div>
       <div className="px-6 py-4">
-        <article className="prose prose-invert prose-sm max-w-none">
-          <Markdown>{entry.content || ''}</Markdown>
-        </article>
+        {loading && !content ? (
+          <div className="text-slate-400 text-sm">Loading...</div>
+        ) : (
+          <article className="prose prose-invert prose-sm max-w-none">
+            <Markdown>{content || ''}</Markdown>
+          </article>
+        )}
       </div>
     </div>
   );

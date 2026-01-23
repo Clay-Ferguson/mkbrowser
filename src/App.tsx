@@ -3,6 +3,7 @@ import type { FileEntry } from './global';
 import FolderEntry from './components/FolderEntry';
 import MarkdownEntry from './components/MarkdownEntry';
 import FileEntryComponent from './components/FileEntry';
+import { upsertItems } from './store';
 
 function App() {
   const [currentPath, setCurrentPath] = useState<string>('');
@@ -45,6 +46,16 @@ function App() {
       try {
         const files = await window.electronAPI.readDirectory(currentPath);
         setEntries(files);
+
+        // Update global store with all items from this directory
+        upsertItems(
+          files.map((file) => ({
+            path: file.path,
+            name: file.name,
+            isDirectory: file.isDirectory,
+            modifiedTime: file.modifiedTime,
+          }))
+        );
       } catch (err) {
         setError('Failed to read directory');
         setEntries([]);

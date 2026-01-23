@@ -7,6 +7,8 @@ export interface FileEntry {
   path: string;
   isDirectory: boolean;
   isMarkdown: boolean;
+  /** Last modified timestamp in milliseconds since epoch */
+  modifiedTime: number;
   content?: string;
 }
 
