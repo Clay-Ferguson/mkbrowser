@@ -36,6 +36,7 @@ interface ItemData {
   isSelected: boolean;    // Selection state for checkboxes (default: false)
   content?: string;       // Cached content for markdown files
   contentCachedAt?: number; // Timestamp when content was cached
+  editing?: boolean;      // Whether file is currently being edited
 }
 ```
 
@@ -98,6 +99,14 @@ Explicitly set the `isSelected` state of an item.
 
 ```typescript
 setItemSelected(path: string, isSelected: boolean): void
+```
+
+### setItemEditing
+
+Set the `editing` state of an item. Used by the in-place markdown editing feature. See [editing-flow.md](./editing-flow.md) for details.
+
+```typescript
+setItemEditing(path: string, editing: boolean): void
 ```
 
 ### getItem
@@ -249,10 +258,11 @@ function SelectableItem({ path }: { path: string }) {
 
 | File | Changes |
 |------|---------|
-| `src/global.d.ts` | Added `modifiedTime: number` to `FileEntry` interface |
-| `src/main.ts` | Added `stat.mtimeMs` retrieval for each file/folder; removed inline markdown reading |
+| `src/global.d.ts` | Added `modifiedTime: number` to `FileEntry` interface; added `writeFile` to `ElectronAPI` |
+| `src/main.ts` | Added `stat.mtimeMs` retrieval for each file/folder; removed inline markdown reading; added `write-file` IPC handler |
+| `src/preload.ts` | Added `writeFile` to exposed API |
 | `src/App.tsx` | Added `upsertItems()` call after directory load |
-| `src/components/MarkdownEntry.tsx` | Integrated with store for content caching |
+| `src/components/MarkdownEntry.tsx` | Integrated with store for content caching; added in-place editing UI |
 
 ## Design Decisions
 

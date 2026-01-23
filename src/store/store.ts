@@ -202,6 +202,23 @@ export function isCacheValid(path: string): boolean {
   return item.contentCachedAt >= item.modifiedTime;
 }
 
+/**
+ * Set the editing state of an item
+ */
+export function setItemEditing(path: string, editing: boolean): void {
+  const existing = state.items.get(path);
+  if (!existing) return;
+
+  const newItems = new Map(state.items);
+  newItems.set(path, {
+    ...existing,
+    editing,
+  });
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
 // ============================================================================
 // Hooks - React hooks for subscribing to state
 // ============================================================================

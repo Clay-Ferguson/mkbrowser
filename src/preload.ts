@@ -20,6 +20,7 @@ export interface ElectronAPI {
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
+  writeFile: (filePath: string, content: string) => Promise<boolean>;
 }
 
 // Expose protected methods to the renderer process
@@ -30,4 +31,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
   pathExists: (checkPath: string) => ipcRenderer.invoke('path-exists', checkPath),
+  writeFile: (filePath: string, content: string) => ipcRenderer.invoke('write-file', filePath, content),
 } as ElectronAPI);

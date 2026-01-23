@@ -30,6 +30,12 @@ export interface ItemData {
    * Used to determine if the cached content is still valid.
    */
   contentCachedAt?: number;
+
+  /**
+   * Whether the file is currently being edited.
+   * Multiple files can be edited simultaneously.
+   */
+  editing?: boolean;
 }
 
 /**

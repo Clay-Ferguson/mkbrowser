@@ -19,6 +19,7 @@ export interface ElectronAPI {
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
+  writeFile: (filePath: string, content: string) => Promise<boolean>;
 }
 
 declare global {

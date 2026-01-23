@@ -8,6 +8,7 @@ export {
   setItemContent,
   toggleItemSelected,
   setItemSelected,
+  setItemEditing,
   getItem,
   isCacheValid,
   // Hooks

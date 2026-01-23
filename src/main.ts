@@ -183,6 +183,17 @@ function setupIpcHandlers(): void {
       return false;
     }
   });
+
+  // Write content to a file
+  ipcMain.handle('write-file', async (_event, filePath: string, content: string): Promise<boolean> => {
+    try {
+      await fs.promises.writeFile(filePath, content, 'utf-8');
+      return true;
+    } catch (error) {
+      console.error('Error writing file:', error);
+      return false;
+    }
+  });
 }
 
 // Handle command-line arguments to set initial browse folder

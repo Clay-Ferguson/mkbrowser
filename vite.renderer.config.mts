@@ -5,4 +5,10 @@ import tailwindcss from '@tailwindcss/vite';
 // https://vitejs.dev/config
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    watch: {
+      // Ignore data folders to prevent HMR reloads when editing markdown files
+      ignored: ['**/demo-data/**'],
+    },
+  },
 });
