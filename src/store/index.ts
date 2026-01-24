@@ -15,6 +15,7 @@ export {
   clearAllSelections,
   clearAllCutItems,
   cutSelectedItems,
+  deleteItems,
   getItem,
   isCacheValid,
   // Hooks

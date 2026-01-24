@@ -284,6 +284,28 @@ export function clearAllCutItems(): void {
 }
 
 /**
+ * Delete multiple items from the store by their paths
+ */
+export function deleteItems(paths: string[]): void {
+  if (paths.length === 0) return;
+
+  const newItems = new Map(state.items);
+  let hasChanges = false;
+
+  for (const path of paths) {
+    if (newItems.has(path)) {
+      newItems.delete(path);
+      hasChanges = true;
+    }
+  }
+
+  if (!hasChanges) return;
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
+/**
  * Get an item by path (direct access, not a hook)
  */
 export function getItem(path: string): ItemData | undefined {

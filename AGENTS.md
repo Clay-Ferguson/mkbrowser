@@ -1,186 +1,90 @@
-# MkBrowser - AI Coding Agent Instructions
+# MkBrowser - AI Coding Instructions
 
 ## Project Overview
 
-MkBrowser is an Electron desktop app that functions as a hybrid file explorer and inline Markdown browser. It displays a single folder's contents at a time, rendering `.md` files **directly inline** within the file list—not in a separate preview pane.
+MkBrowser is an Electron desktop app (Electron 40 + Vite + TypeScript + React 19 + Tailwind CSS 4) that functions as a file explorer with **inline Markdown rendering**—not a separate preview pane. It displays one folder level at a time.
 
-**Tech Stack:** Electron 40 + Vite + TypeScript + React 19 + Tailwind CSS 4 (with Typography plugin)
+## Critical Architecture: Three-Process Electron Model
 
-## Architecture & Key Patterns
+**⚠️ Never perform file operations directly in renderer code.**
 
-### Three-Process Electron Model (Critical!)
+| Process | File | Environment | Purpose |
+|---------|------|-------------|---------|
+| Main | [src/main.ts](../src/main.ts) | Node.js | File system ops, IPC handlers, window management |
+| Preload | [src/preload.ts](../src/preload.ts) | Bridge | Exposes `window.electronAPI` via `contextBridge` |
+| Renderer | [src/App.tsx](../src/App.tsx) | Browser | React UI, NO direct Node.js access |
 
-This app follows standard Electron architecture with strict process separation:
-
-1. **Main Process** ([src/main.ts](../src/main.ts)): Node.js environment handling file system operations, window management, and IPC handlers
-2. **Preload Script** ([src/preload.ts](../src/preload.ts)): Security bridge exposing `window.electronAPI` to renderer via `contextBridge`
-3. **Renderer Process** ([src/App.tsx](../src/App.tsx)): React UI running in browser context with NO direct Node.js access
-
-**⚠️ Never attempt file operations directly in renderer code.** All `fs` operations MUST go through IPC handlers in [main.ts](../src/main.ts) and be exposed via [preload.ts](../src/preload.ts).
-
-### Core Data Flow Pattern
-
+**Data Flow Pattern:**
 ```
-User clicks folder → App.tsx calls window.electronAPI.readDirectory(path) 
-→ Preload forwards to ipcRenderer.invoke('read-directory') 
-→ Main process IPC handler reads fs and returns FileEntry[] 
-→ React renders entries with inline markdown content
+Renderer → window.electronAPI.method() → ipcRenderer.invoke('channel') 
+→ Main process handler → fs operations → returns data to renderer
 ```
 
-The `FileEntry` interface (in [src/global.d.ts](../src/global.d.ts)) includes a `content?: string` field that is **pre-populated** in the main process for `.md` files—no lazy loading.
+## Adding New IPC Handlers
 
-### Configuration Management
+1. Add handler in [src/main.ts](../src/main.ts) `setupIpcHandlers()`:
+   ```typescript
+   ipcMain.handle('my-channel', async (_event, arg: string): Promise<ReturnType> => { ... });
+   ```
+2. Expose in [src/preload.ts](../src/preload.ts)
+3. Update `ElectronAPI` interface in [src/global.d.ts](../src/global.d.ts)
 
-- Config stored at `~/.config/mk-browser/config.yaml` (Linux standard location)
-- Uses `js-yaml` library to parse/serialize
-- Current schema: `{ browseFolder: string }`
-- Config dir created automatically via `ensureConfigDir()` in [main.ts](../src/main.ts)
+## State Management: useSyncExternalStore
+
+Uses React's `useSyncExternalStore` (no Redux/Context). See [src/store/](../src/store/).
+
+- **Types**: [src/store/types.ts](../src/store/types.ts) - `ItemData`, `AppState`
+- **Actions & hooks**: [src/store/store.ts](../src/store/store.ts) - `upsertItem`, `setItemExpanded`, `useItems`, `useItem`
+- Items stored in `Map<path, ItemData>` for O(1) lookup
 
 ## Developer Workflow
 
-### Running the App
-
 ```bash
-# Development mode (REQUIRED on Linux to disable sandbox)
+# Development (Linux REQUIRES this to avoid sandbox errors)
 yarn start:linux
 
-# Standard Electron Forge commands (Windows/Mac)
+# Standard (Windows/Mac)
 yarn start
+
+# Build .deb package
+./build.sh && ./install.sh
 ```
 
-The `ELECTRON_DISABLE_SANDBOX=1` flag in `start:linux` is **essential** on Linux. Without it, the app may crash with sandbox errors.
+## Tailwind CSS 4 Patterns
 
-### Building & Packaging
+Uses CSS-first config in [src/index.css](../src/index.css) (no `tailwind.config.js`).
 
-```bash
-# Create distributable packages (.deb for Ubuntu)
-./build.sh   # Wrapper for 'yarn make'
-
-# Install the built .deb package
-./install.sh
-```
-
-Build output goes to `./out/make/deb/x64/`. The [forge.config.ts](../forge.config.ts) is configured to **only build .deb packages** (not rpm/zip/squirrel).
-
-### DevTools
-
-DevTools automatically open in development mode (see [main.ts](../src/main.ts#L71-L73)):
-
-```typescript
-if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-  mainWindow.webContents.openDevTools();
-}
-```
-
-## Styling & UI Conventions
-
-### Tailwind CSS 4 + Typography
-
-This project uses **Tailwind v4** (new CSS-first config in [src/index.css](../src/index.css)):
-
-```css
-@import "tailwindcss";
-@plugin "@tailwindcss/typography";
-```
-
-No `tailwind.config.js` file exists—everything is defined via `@theme` directives in index.css.
-
-**For Markdown rendering:** Always wrap `<Markdown>` components with:
-
+**Markdown rendering** - always use:
 ```tsx
 <article className="prose prose-invert prose-sm max-w-none">
   <Markdown>{content}</Markdown>
 </article>
 ```
 
-- `prose-invert`: Dark mode optimized (entire app uses slate-900/slate-800 palette)
-- `prose-sm`: Slightly smaller text for inline display
-- `max-w-none`: Override default max-width to fill card container
+**Color palette**: Dark theme with slate-900/slate-800. Folders: amber-500. Markdown: blue-400.
 
-### Component Visual Patterns
+## Key Implementation Details
 
-Refer to [App.tsx](../src/App.tsx#L203-L228) for the established patterns:
+- **Hidden files filtered**: Files starting with `.` are skipped in `read-directory` handler
+- **Sorting**: Directories first, then alphabetical within each group
+- **Config location**: `~/.config/mk-browser/config.yaml` (uses `js-yaml`)
+- **Content caching**: `ItemData.content` + `contentCachedAt` to avoid re-reading unchanged files
 
-- **Folders**: Amber-500 folder icon, hover effect (`hover:bg-slate-750`), clickable rows
-- **Markdown files**: Blue-400 file icon + card container with border, rendered content below filename
-- **Regular files**: Slate-500 generic file icon, static row (no interaction)
-- **Empty state**: Centered icon + message ("This folder is empty")
+## Component Patterns
 
-## Project-Specific Gotchas
+- [src/components/FolderEntry.tsx](../src/components/FolderEntry.tsx) - Clickable folder rows
+- [src/components/MarkdownEntry.tsx](../src/components/MarkdownEntry.tsx) - Expandable cards with inline content + editing
+- [src/components/FileEntry.tsx](../src/components/FileEntry.tsx) - Static non-markdown files
 
-### Hidden Files Are Filtered
-
-The `read-directory` IPC handler skips files/folders starting with `.` ([main.ts](../src/main.ts#L114)):
-
-```typescript
-if (entry.name.startsWith('.')) continue;
-```
-
-This is intentional to reduce clutter. If you need to show hidden files, add a config option to toggle this behavior.
-
-### Sorting Logic
-
-Entries are sorted **directories first, then files**, alphabetically within each group ([main.ts](../src/main.ts#L139-L143)):
-
-```typescript
-fileEntries.sort((a, b) => {
-  if (a.isDirectory && !b.isDirectory) return -1;
-  if (!a.isDirectory && b.isDirectory) return 1;
-  return a.name.localeCompare(b.name);
-});
-```
-
-### No Tree View / Multi-Level Navigation
-
-Unlike traditional file explorers, this app shows **one level at a time**. Navigation works via:
-
-- Clicking folder rows to "drill down" (`navigateTo`)
-- Back button to go up one level (`navigateUp`)
-- Breadcrumb displays relative path from root
-
-See [PROJECT_BRIEFING.md](../PROJECT_BRIEFING.md) for the original design rationale.
-
-## Type Definitions & Global State
-
-All shared types are in [src/global.d.ts](../src/global.d.ts):
-- `AppConfig`: Config file schema
-- `FileEntry`: File/folder metadata structure
-- `ElectronAPI`: Full API surface exposed to renderer
-
-The `window.electronAPI` global is available in all renderer code after preload injection.
-
-## Vite Configuration Split
-
-Electron Forge uses **three separate Vite configs**:
-- [vite.main.config.ts](../vite.main.config.ts): Main process build
-- [vite.preload.config.ts](../vite.preload.config.ts): Preload script build
-- [vite.renderer.config.mts](../vite.renderer.config.mts): Renderer React app (includes React + Tailwind plugins)
-
-Only modify the renderer config for UI library changes.
-
-## Adding New IPC Handlers
-
-Follow this pattern (example from [main.ts](../src/main.ts#L90-L98)):
-
-1. Add handler in `setupIpcHandlers()`:
-   ```typescript
-   ipcMain.handle('my-channel', async (_event, arg: string): Promise<ReturnType> => {
-     // Your logic here
-   });
-   ```
-
-2. Expose in [preload.ts](../src/preload.ts):
-   ```typescript
-   myMethod: (arg: string) => ipcRenderer.invoke('my-channel', arg),
-   ```
-
-3. Update `ElectronAPI` interface in [global.d.ts](../src/global.d.ts)
-
-4. Call from renderer:
-   ```typescript
-   const result = await window.electronAPI.myMethod(arg);
-   ```
+---- 
 
 ## React Global State Management
 
 see file: `<project>/docs/global-state.md`
+
+## Mutiple-Select
+
+We have a checkbox displaying in the header for each file or folder this application displays, to allow user to select one or more, for the purpose of cut-and-paste feature as well as for file/folder delete functions. The `Edit` Menu on the Main application menu is where the multiple-select functions are run from. 
+
+An item will appear with it's checkbox checked if the 'ItemData' property named 'isSelected' is set to true.
+

@@ -4,14 +4,18 @@ import FolderEntry from './components/FolderEntry';
 import MarkdownEntry from './components/MarkdownEntry';
 import FileEntryComponent from './components/FileEntry';
 import CreateFileDialog from './components/CreateFileDialog';
+import AlertDialog from './components/AlertDialog';
+import ConfirmDialog from './components/ConfirmDialog';
 import {
   clearAllSelections,
   clearAllCutItems,
   cutSelectedItems,
+  deleteItems,
   upsertItems,
   setItemEditing,
   setItemExpanded,
   useItems,
+  type ItemData,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
 
@@ -22,6 +26,7 @@ function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const items = useItems();
 
   // Load initial configuration
@@ -118,6 +123,31 @@ function App() {
     loadDirectory(false);
   }, [loadDirectory]);
 
+  const findPasteDuplicates = useCallback(async (cutItems: ItemData[]) => {
+    if (!currentPath) return [] as string[];
+
+    const duplicateNames = await Promise.all(
+      cutItems.map(async (item) => {
+        const destinationPath = `${currentPath}/${item.name}`;
+        const exists = await window.electronAPI.pathExists(destinationPath);
+        return exists ? item.name : null;
+      })
+    );
+
+    return duplicateNames.filter((name): name is string => Boolean(name));
+  }, [currentPath]);
+
+  const findCutItemsFromDifferentFolders = useCallback((cutItems: ItemData[]) => {
+    if (cutItems.length === 0) return [] as string[];
+
+    const getParentPath = (path: string) => path.substring(0, path.lastIndexOf('/'));
+    const baseFolder = getParentPath(cutItems[0].path);
+
+    return cutItems
+      .filter((item) => getParentPath(item.path) !== baseFolder)
+      .map((item) => item.name);
+  }, []);
+
   const pasteCutItems = useCallback(async () => {
     if (!currentPath) return;
 
@@ -125,6 +155,25 @@ function App() {
     if (cutItems.length === 0) return;
 
     setError(null);
+
+    const getParentPath = (path: string) => path.substring(0, path.lastIndexOf('/'));
+    const sourceFolder = getParentPath(cutItems[0].path);
+    if (sourceFolder === currentPath) {
+      setError('Cannot paste. Cut items are already in this folder.');
+      return;
+    }
+
+    const crossFolderItems = findCutItemsFromDifferentFolders(cutItems);
+    if (crossFolderItems.length > 0) {
+      setError(`Cannot paste. Cut items must come from the same folder: ${crossFolderItems.join(', ')}`);
+      return;
+    }
+
+    const duplicates = await findPasteDuplicates(cutItems);
+    if (duplicates.length > 0) {
+      setError(`Cannot paste. These items already exist: ${duplicates.join(', ')}`);
+      return;
+    }
 
     for (const item of cutItems) {
       const destinationPath = `${currentPath}/${item.name}`;
@@ -137,7 +186,7 @@ function App() {
 
     clearAllCutItems();
     refreshDirectory();
-  }, [currentPath, items, refreshDirectory]);
+  }, [currentPath, items, refreshDirectory, findPasteDuplicates, findCutItemsFromDifferentFolders]);
 
   // Listen for Paste menu action
   useEffect(() => {
@@ -149,6 +198,50 @@ function App() {
       unsubscribe();
     };
   }, [pasteCutItems]);
+
+  // Get selected items for delete operation
+  const getSelectedItems = useCallback(() => {
+    return Array.from(items.values()).filter((item) => item.isSelected);
+  }, [items]);
+
+  // Perform the actual delete of selected items
+  const performDelete = useCallback(async () => {
+    const selectedItems = getSelectedItems();
+    if (selectedItems.length === 0) return;
+
+    setShowDeleteConfirm(false);
+
+    // Delete each selected item from the filesystem
+    const pathsToDelete: string[] = [];
+    for (const item of selectedItems) {
+      const success = await window.electronAPI.deleteFile(item.path);
+      if (success) {
+        pathsToDelete.push(item.path);
+      } else {
+        setError(`Failed to delete ${item.name}`);
+      }
+    }
+
+    // Remove successfully deleted items from the store
+    if (pathsToDelete.length > 0) {
+      deleteItems(pathsToDelete);
+      refreshDirectory();
+    }
+  }, [getSelectedItems, refreshDirectory]);
+
+  // Listen for Delete menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onDeleteRequested(() => {
+      const selectedItems = getSelectedItems();
+      if (selectedItems.length > 0) {
+        setShowDeleteConfirm(true);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [getSelectedItems]);
 
   // Handle folder selection
   const handleSelectFolder = useCallback(async () => {
@@ -231,6 +324,13 @@ function App() {
             Select Folder
           </button>
         </div>
+
+        {error && (
+          <AlertDialog
+            message={error}
+            onClose={() => setError(null)}
+          />
+        )}
       </div>
     );
   }
@@ -292,13 +392,7 @@ function App() {
           </div>
         )}
 
-        {error && (
-          <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg">
-            {error}
-          </div>
-        )}
-
-        {!loading && !error && entries.filter((entry) => !items.get(entry.path)?.isCut).length === 0 && (
+        {!loading && entries.filter((entry) => !items.get(entry.path)?.isCut).length === 0 && (
           <div className="text-center py-12">
             <svg className="w-12 h-12 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -307,7 +401,7 @@ function App() {
           </div>
         )}
 
-        {!loading && !error && entries.filter((entry) => !items.get(entry.path)?.isCut).length > 0 && (
+        {!loading && entries.filter((entry) => !items.get(entry.path)?.isCut).length > 0 && (
           <div className="space-y-2">
             {entries.filter((entry) => !items.get(entry.path)?.isCut).map((entry) => (
               <div key={entry.path}>
@@ -328,6 +422,21 @@ function App() {
         <CreateFileDialog
           onCreate={handleCreateFile}
           onCancel={handleCancelCreate}
+        />
+      )}
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          message={`Are you sure you want to delete ${getSelectedItems().length} selected item(s)? This cannot be undone.`}
+          onConfirm={() => void performDelete()}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
+      {error && (
+        <AlertDialog
+          message={error}
+          onClose={() => setError(null)}
         />
       )}
     </div>

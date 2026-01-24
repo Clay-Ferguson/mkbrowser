@@ -159,6 +159,14 @@ function setupApplicationMenu(): void {
           mainWindow?.webContents.send('paste-items');
         },
       },
+      { type: 'separator' },
+      {
+        label: 'Delete',
+        accelerator: 'Delete',
+        click: () => {
+          mainWindow?.webContents.send('delete-items');
+        },
+      },
     ],
   });
 
@@ -256,11 +264,11 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Check if path exists and is directory
+  // Check if path exists
   ipcMain.handle('path-exists', async (_event, checkPath: string): Promise<boolean> => {
     try {
-      const stat = await fs.promises.stat(checkPath);
-      return stat.isDirectory();
+      await fs.promises.stat(checkPath);
+      return true;
     } catch {
       return false;
     }
