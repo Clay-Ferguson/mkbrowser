@@ -1,8 +1,10 @@
 import {
   setCurrentView,
   setFontSize,
+  setSortOrder,
   useSettings,
   type FontSize,
+  type SortOrder,
 } from '../store';
 
 interface FontSizeOption {
@@ -15,6 +17,17 @@ const fontSizeOptions: FontSizeOption[] = [
   { value: 'medium', label: 'Medium' },
   { value: 'large', label: 'Large' },
   { value: 'xlarge', label: 'Extra Large' },
+];
+
+interface SortOrderOption {
+  value: SortOrder;
+  label: string;
+}
+
+const sortOrderOptions: SortOrderOption[] = [
+  { value: 'alphabetical', label: 'Alphabetical' },
+  { value: 'created', label: 'Created Time' },
+  { value: 'modified', label: 'Modified Time' },
 ];
 
 interface SettingsViewProps {
@@ -32,6 +45,12 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
 
   const handleFontSizeChange = (fontSize: FontSize) => {
     setFontSize(fontSize);
+    // Trigger save to persist the setting
+    onSaveSettings();
+  };
+
+  const handleSortOrderChange = (sortOrder: SortOrder) => {
+    setSortOrder(sortOrder);
     // Trigger save to persist the setting
     onSaveSettings();
   };
@@ -78,6 +97,28 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                 className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
               >
                 {fontSizeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </section>
+
+          {/* Sort Order Setting */}
+          <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-100 mb-2">Sort Order</h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Choose how files and folders are ordered in the browser.
+            </p>
+
+            <div className="flex items-center gap-4">
+              <select
+                value={settings.sortOrder}
+                onChange={(e) => handleSortOrderChange(e.target.value as SortOrder)}
+                className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+              >
+                {sortOrderOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

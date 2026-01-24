@@ -1,7 +1,10 @@
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 
+export type SortOrder = 'alphabetical' | 'created' | 'modified';
+
 export interface AppSettings {
   fontSize: FontSize;
+  sortOrder: SortOrder;
 }
 
 export interface AppConfig {
@@ -16,6 +19,8 @@ export interface FileEntry {
   isMarkdown: boolean;
   /** Last modified timestamp in milliseconds since epoch */
   modifiedTime: number;
+  /** Created timestamp in milliseconds since epoch */
+  createdTime: number;
   content?: string;
 }
 

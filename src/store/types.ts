@@ -15,6 +15,9 @@ export interface ItemData {
   /** Last modified timestamp from the file system (milliseconds since epoch) */
   modifiedTime: number;
 
+  /** Created timestamp from the file system (milliseconds since epoch) */
+  createdTime: number;
+
   /** Whether this item is selected (for checkbox selection, defaults to false) */
   isSelected: boolean;
 
@@ -69,11 +72,18 @@ export interface SearchResultItem {
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 
 /**
+ * Available sort order options for file/folder listing
+ */
+export type SortOrder = 'alphabetical' | 'created' | 'modified';
+
+/**
  * Application settings that are persisted to config file
  */
 export interface AppSettings {
   /** Font size for the application UI */
   fontSize: FontSize;
+  /** Sort order for file/folder listing */
+  sortOrder: SortOrder;
 }
 
 /**
@@ -140,7 +150,8 @@ export function createItemData(
   path: string,
   name: string,
   isDirectory: boolean,
-  modifiedTime: number
+  modifiedTime: number,
+  createdTime: number = modifiedTime
 ): ItemData {
   const isMarkdownFile = !isDirectory && name.toLowerCase().endsWith('.md');
   const isImage = !isDirectory && isImageFile(name);
@@ -150,6 +161,7 @@ export function createItemData(
     name,
     isDirectory,
     modifiedTime,
+    createdTime,
     isSelected: false,
     isCut: false,
     isExpanded: isMarkdownFile || isImage,

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, ItemData, SearchResultItem } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ItemData, SearchResultItem } from './types';
 import { createItemData } from './types';
 
 /**
@@ -7,6 +7,7 @@ import { createItemData } from './types';
  */
 const defaultSettings: AppSettings = {
   fontSize: 'medium',
+  sortOrder: 'alphabetical',
 };
 
 /**
@@ -128,7 +129,8 @@ export function upsertItem(
   path: string,
   name: string,
   isDirectory: boolean,
-  modifiedTime: number
+  modifiedTime: number,
+  createdTime: number = modifiedTime
 ): void {
   const existing = state.items.get(path);
 
@@ -142,6 +144,7 @@ export function upsertItem(
       name,
       isDirectory,
       modifiedTime,
+      createdTime,
     };
 
     // If the file has been modified since we cached content, invalidate cache
@@ -153,7 +156,7 @@ export function upsertItem(
     newItems.set(path, updatedItem);
   } else {
     // New item
-    newItems.set(path, createItemData(path, name, isDirectory, modifiedTime));
+    newItems.set(path, createItemData(path, name, isDirectory, modifiedTime, createdTime));
   }
 
   state = { ...state, items: newItems };
@@ -164,12 +167,13 @@ export function upsertItem(
  * Batch upsert multiple items at once (more efficient for directory loads)
  */
 export function upsertItems(
-  items: Array<{ path: string; name: string; isDirectory: boolean; modifiedTime: number }>
+  items: Array<{ path: string; name: string; isDirectory: boolean; modifiedTime: number; createdTime?: number }>
 ): void {
   const newItems = new Map(state.items);
 
   for (const item of items) {
     const existing = newItems.get(item.path);
+    const createdTime = item.createdTime ?? item.modifiedTime;
 
     if (existing) {
       const updatedItem: ItemData = {
@@ -177,6 +181,7 @@ export function upsertItems(
         name: item.name,
         isDirectory: item.isDirectory,
         modifiedTime: item.modifiedTime,
+        createdTime,
       };
 
       if (existing.contentCachedAt && item.modifiedTime > existing.contentCachedAt) {
@@ -186,7 +191,7 @@ export function upsertItems(
 
       newItems.set(item.path, updatedItem);
     } else {
-      newItems.set(item.path, createItemData(item.path, item.name, item.isDirectory, item.modifiedTime));
+      newItems.set(item.path, createItemData(item.path, item.name, item.isDirectory, item.modifiedTime, createdTime));
     }
   }
 
@@ -517,6 +522,17 @@ export function setFontSize(fontSize: FontSize): void {
   state = {
     ...state,
     settings: { ...state.settings, fontSize },
+  };
+  emitChange();
+}
+
+/**
+ * Update the sort order setting
+ */
+export function setSortOrder(sortOrder: SortOrder): void {
+  state = {
+    ...state,
+    settings: { ...state.settings, sortOrder },
   };
   emitChange();
 }

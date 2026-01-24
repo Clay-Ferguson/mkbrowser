@@ -1,4 +1,4 @@
-export type { AppState, AppView, AppSettings, FontSize, ItemData, SearchResultItem } from './types';
+export type { AppState, AppView, AppSettings, FontSize, SortOrder, ItemData, SearchResultItem } from './types';
 export { createItemData } from './types';
 
 export {
@@ -27,6 +27,7 @@ export {
   clearSearchResults,
   setSettings,
   setFontSize,
+  setSortOrder,
   getSettings,
   // Hooks
   useAppState,

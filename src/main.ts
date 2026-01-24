@@ -23,9 +23,11 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
 let commandLineFolder: string | null = null;
 
 type FontSize = 'small' | 'medium' | 'large';
+type SortOrder = 'alphabetical' | 'created' | 'modified';
 
 interface AppSettings {
   fontSize: FontSize;
+  sortOrder: SortOrder;
 }
 
 interface AppConfig {
@@ -35,6 +37,7 @@ interface AppConfig {
 
 const defaultSettings: AppSettings = {
   fontSize: 'medium',
+  sortOrder: 'alphabetical',
 };
 
 function ensureConfigDir(): void {
@@ -77,6 +80,8 @@ interface FileEntry {
   isMarkdown: boolean;
   /** Last modified timestamp in milliseconds since epoch */
   modifiedTime: number;
+  /** Created timestamp in milliseconds since epoch */
+  createdTime: number;
   content?: string; // Only populated for markdown files
 }
 
@@ -282,14 +287,17 @@ function setupIpcHandlers(): void {
         const isDirectory = entry.isDirectory();
         const isMarkdown = !isDirectory && entry.name.toLowerCase().endsWith('.md');
 
-        // Get file stats for modification time
+        // Get file stats for modification and creation time
         let modifiedTime = 0;
+        let createdTime = 0;
         try {
           const stat = await fs.promises.stat(fullPath);
           modifiedTime = stat.mtimeMs;
+          createdTime = stat.birthtimeMs;
         } catch {
           // If stat fails, use current time
           modifiedTime = Date.now();
+          createdTime = Date.now();
         }
 
         const fileEntry: FileEntry = {
@@ -298,6 +306,7 @@ function setupIpcHandlers(): void {
           isDirectory,
           isMarkdown,
           modifiedTime,
+          createdTime,
         };
 
         // Note: We no longer read markdown content here.
@@ -307,6 +316,7 @@ function setupIpcHandlers(): void {
       }
 
       // Sort: directories first, then files, alphabetically within each group
+      // (The renderer will re-sort based on user's sort preference)
       fileEntries.sort((a, b) => {
         if (a.isDirectory && !b.isDirectory) return -1;
         if (!a.isDirectory && b.isDirectory) return 1;

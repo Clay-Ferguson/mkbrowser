@@ -41,8 +41,35 @@ import {
   usePendingScrollToFile,
   useSettings,
   type ItemData,
+  type SortOrder,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
+
+/**
+ * Sort entries based on the selected sort order.
+ * Directories are always sorted first, then files, with the chosen sort within each group.
+ */
+function sortEntries(entries: FileEntry[], sortOrder: SortOrder): FileEntry[] {
+  return [...entries].sort((a, b) => {
+    // Directories always come first
+    if (a.isDirectory && !b.isDirectory) return -1;
+    if (!a.isDirectory && b.isDirectory) return 1;
+
+    // Within the same type, apply the chosen sort order
+    switch (sortOrder) {
+      case 'alphabetical':
+        return a.name.localeCompare(b.name);
+      case 'created':
+        // Newer files first (descending)
+        return b.createdTime - a.createdTime;
+      case 'modified':
+        // More recently modified first (descending)
+        return b.modifiedTime - a.modifiedTime;
+      default:
+        return a.name.localeCompare(b.name);
+    }
+  });
+}
 
 function App() {
   const [rootPath, setRootPath] = useState<string>('');
@@ -146,6 +173,7 @@ function App() {
           name: file.name,
           isDirectory: file.isDirectory,
           modifiedTime: file.modifiedTime,
+          createdTime: file.createdTime,
         }))
       );
     } catch (err) {
@@ -688,8 +716,9 @@ function App() {
           <div className="space-y-2">
             {(() => {
               const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
-              const allImages = visibleEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
-              return visibleEntries.map((entry) => (
+              const sortedEntries = sortEntries(visibleEntries, settings.sortOrder);
+              const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
+              return sortedEntries.map((entry) => (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
                     <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} />
