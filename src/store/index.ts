@@ -21,6 +21,8 @@ export {
   setCurrentView,
   setCurrentPath,
   navigateToBrowserPath,
+  clearPendingScrollToFile,
+  setPendingScrollToFile,
   setSearchResults,
   clearSearchResults,
   // Hooks
@@ -29,6 +31,7 @@ export {
   useItem,
   useCurrentView,
   useCurrentPath,
+  usePendingScrollToFile,
   useSearchResults,
   useSearchQuery,
   useSearchFolder,

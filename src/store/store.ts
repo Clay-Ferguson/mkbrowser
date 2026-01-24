@@ -9,6 +9,7 @@ const initialState: AppState = {
   items: new Map(),
   currentPath: '',
   currentView: 'browser', // browser | search-results
+  pendingScrollToFile: null,
   searchQuery: '',
   searchFolder: '',
   searchResults: [],
@@ -69,6 +70,13 @@ function getCurrentViewSnapshot(): AppView {
  */
 function getCurrentPathSnapshot(): string {
   return state.currentPath;
+}
+
+/**
+ * Get snapshot of the pending scroll to file
+ */
+function getPendingScrollToFileSnapshot(): string | null {
+  return state.pendingScrollToFile;
 }
 
 /**
@@ -417,11 +425,35 @@ export function setCurrentPath(path: string): void {
 }
 
 /**
- * Navigate to a path and switch to browser view in a single state update
+ * Navigate to a path and switch to browser view in a single state update.
+ * Optionally set a file to scroll to after render completes.
  */
-export function navigateToBrowserPath(path: string): void {
-  if (state.currentPath === path && state.currentView === 'browser') return;
-  state = { ...state, currentPath: path, currentView: 'browser' };
+export function navigateToBrowserPath(path: string, scrollToFile?: string): void {
+  const newState: Partial<AppState> = {
+    currentPath: path,
+    currentView: 'browser',
+  };
+  if (scrollToFile !== undefined) {
+    newState.pendingScrollToFile = scrollToFile;
+  }
+  state = { ...state, ...newState };
+  emitChange();
+}
+
+/**
+ * Clear the pending scroll to file (call after scrolling completes)
+ */
+export function clearPendingScrollToFile(): void {
+  if (state.pendingScrollToFile === null) return;
+  state = { ...state, pendingScrollToFile: null };
+  emitChange();
+}
+
+/**
+ * Set a file to scroll into view after render completes
+ */
+export function setPendingScrollToFile(fileName: string): void {
+  state = { ...state, pendingScrollToFile: fileName };
   emitChange();
 }
 
@@ -494,6 +526,13 @@ export function useCurrentView(): AppView {
  */
 export function useCurrentPath(): string {
   return useSyncExternalStore(subscribe, getCurrentPathSnapshot);
+}
+
+/**
+ * Hook to subscribe to pending scroll to file
+ */
+export function usePendingScrollToFile(): string | null {
+  return useSyncExternalStore(subscribe, getPendingScrollToFileSnapshot);
 }
 
 /**

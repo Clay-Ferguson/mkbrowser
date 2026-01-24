@@ -84,6 +84,12 @@ export interface AppState {
   currentView: AppView;
 
   /**
+   * File name to scroll into view after navigation completes.
+   * Set when navigating from search results, cleared after scrolling.
+   */
+  pendingScrollToFile: string | null;
+
+  /**
    * The search query that produced the current search results
    */
   searchQuery: string;

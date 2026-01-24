@@ -20,10 +20,13 @@ import {
   setCurrentView,
   setCurrentPath,
   navigateToBrowserPath,
+  clearPendingScrollToFile,
+  setPendingScrollToFile,
   setSearchResults,
   useItems,
   useCurrentView,
   useCurrentPath,
+  usePendingScrollToFile,
   type ItemData,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
@@ -40,6 +43,7 @@ function App() {
   const items = useItems();
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
+  const pendingScrollToFile = usePendingScrollToFile();
 
   // Load initial configuration
   useEffect(() => {
@@ -140,6 +144,17 @@ function App() {
       clearAllSelections();
     }
   }, [currentPath]);
+
+  // Handle pending scroll after directory loads
+  useEffect(() => {
+    if (!loading && pendingScrollToFile) {
+      // Short timeout just for DOM to settle after React render
+      setTimeout(() => {
+        scrollItemIntoView(pendingScrollToFile);
+        clearPendingScrollToFile();
+      }, 100);
+    }
+  }, [loading, pendingScrollToFile]);
 
   // Refresh directory without showing loading indicator (used after rename)
   const refreshDirectory = useCallback(() => {
@@ -286,15 +301,16 @@ function App() {
     const success = await window.electronAPI.writeFile(filePath, '');
     if (success) {
       setShowCreateDialog(false);
+      setPendingScrollToFile(fileName);
       refreshDirectory();
-      setTimeout(() => {
-        scrollItemIntoView(fileName);
-        const isMarkdown = fileName.toLowerCase().endsWith('.md');
-        if (isMarkdown) {
+      // Set editing mode after scroll completes
+      const isMarkdown = fileName.toLowerCase().endsWith('.md');
+      if (isMarkdown) {
+        setTimeout(() => {
           setItemExpanded(filePath, true);
           setItemEditing(filePath, true);
-        }
-      }, 1500);
+        }, 200);
+      }
     } else {
       setShowCreateDialog(false);
       setError('Failed to create file');
@@ -315,10 +331,8 @@ function App() {
     const success = await window.electronAPI.createFolder(folderPath);
     if (success) {
       setShowCreateFolderDialog(false);
+      setPendingScrollToFile(folderName);
       refreshDirectory();
-      setTimeout(() => {
-        scrollItemIntoView(folderName);
-      }, 1500);
     } else {
       setShowCreateFolderDialog(false);
       setError('Failed to create folder');
@@ -335,10 +349,7 @@ function App() {
   }, []);
 
   const handleNavigateToSearchResult = useCallback((folderPath: string, fileName: string) => {
-    navigateToBrowserPath(folderPath);
-    setTimeout(() => {
-      scrollItemIntoView(fileName);
-    }, 1000);
+    navigateToBrowserPath(folderPath, fileName);
   }, []);
 
   const handleSearch = useCallback(async (query: string) => {
