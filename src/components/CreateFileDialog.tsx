@@ -16,7 +16,8 @@ function CreateFileDialog({ onCreate, onCancel }: CreateFileDialogProps) {
   const handleCreate = () => {
     const trimmedName = fileName.trim();
     if (!trimmedName) return;
-    onCreate(trimmedName);
+    const normalizedName = trimmedName.includes('.') ? trimmedName : `${trimmedName}.md`;
+    onCreate(normalizedName);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
