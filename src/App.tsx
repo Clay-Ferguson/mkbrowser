@@ -4,7 +4,7 @@ import FolderEntry from './components/FolderEntry';
 import MarkdownEntry from './components/MarkdownEntry';
 import FileEntryComponent from './components/FileEntry';
 import CreateFileDialog from './components/CreateFileDialog';
-import { upsertItems } from './store';
+import { upsertItems, setItemEditing, setItemExpanded } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
 
 function App() {
@@ -114,7 +114,11 @@ function App() {
       refreshDirectory();
       setTimeout(() => {
         scrollItemIntoView(fileName);
-        // TODO: Start editing now, as if the edit icon was clicked.
+        const isMarkdown = fileName.toLowerCase().endsWith('.md');
+        if (isMarkdown) {
+          setItemExpanded(filePath, true);
+          setItemEditing(filePath, true);
+        }
       }, 1500);
     } else {
       setShowCreateDialog(false);
