@@ -19,6 +19,7 @@ export interface ElectronAPI {
   selectFolder: () => Promise<string | null>;
   onFolderSelected: (callback: (folderPath: string) => void) => () => void;
   onCutRequested: (callback: () => void) => () => void;
+  onPasteRequested: (callback: () => void) => () => void;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
@@ -48,6 +49,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('cut-items', handler);
     return () => {
       ipcRenderer.removeListener('cut-items', handler);
+    };
+  },
+  onPasteRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('paste-items', handler);
+    return () => {
+      ipcRenderer.removeListener('paste-items', handler);
     };
   },
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),

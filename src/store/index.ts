@@ -13,6 +13,7 @@ export {
   setItemEditing,
   setItemRenaming,
   clearAllSelections,
+  clearAllCutItems,
   cutSelectedItems,
   getItem,
   isCacheValid,

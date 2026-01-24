@@ -262,6 +262,28 @@ export function cutSelectedItems(): void {
 }
 
 /**
+ * Clear cut state for all items
+ */
+export function clearAllCutItems(): void {
+  if (state.items.size === 0) return;
+
+  const newItems = new Map(state.items);
+  let hasChanges = false;
+
+  for (const [path, item] of newItems) {
+    if (item.isCut) {
+      newItems.set(path, { ...item, isCut: false });
+      hasChanges = true;
+    }
+  }
+
+  if (!hasChanges) return;
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
+/**
  * Get an item by path (direct access, not a hook)
  */
 export function getItem(path: string): ItemData | undefined {

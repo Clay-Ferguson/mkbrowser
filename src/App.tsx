@@ -6,6 +6,7 @@ import FileEntryComponent from './components/FileEntry';
 import CreateFileDialog from './components/CreateFileDialog';
 import {
   clearAllSelections,
+  clearAllCutItems,
   cutSelectedItems,
   upsertItems,
   setItemEditing,
@@ -116,6 +117,38 @@ function App() {
   const refreshDirectory = useCallback(() => {
     loadDirectory(false);
   }, [loadDirectory]);
+
+  const pasteCutItems = useCallback(async () => {
+    if (!currentPath) return;
+
+    const cutItems = Array.from(items.values()).filter((item) => item.isCut);
+    if (cutItems.length === 0) return;
+
+    setError(null);
+
+    for (const item of cutItems) {
+      const destinationPath = `${currentPath}/${item.name}`;
+      const success = await window.electronAPI.renameFile(item.path, destinationPath);
+      if (!success) {
+        setError(`Failed to move ${item.name}`);
+        return;
+      }
+    }
+
+    clearAllCutItems();
+    refreshDirectory();
+  }, [currentPath, items, refreshDirectory]);
+
+  // Listen for Paste menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onPasteRequested(() => {
+      void pasteCutItems();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [pasteCutItems]);
 
   // Handle folder selection
   const handleSelectFolder = useCallback(async () => {

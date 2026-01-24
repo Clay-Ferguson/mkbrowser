@@ -152,6 +152,13 @@ function setupApplicationMenu(): void {
           mainWindow?.webContents.send('cut-items');
         },
       },
+      {
+        label: 'Paste',
+        accelerator: 'CmdOrCtrl+V',
+        click: () => {
+          mainWindow?.webContents.send('paste-items');
+        },
+      },
     ],
   });
 

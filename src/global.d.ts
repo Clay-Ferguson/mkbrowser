@@ -18,6 +18,7 @@ export interface ElectronAPI {
   selectFolder: () => Promise<string | null>;
   onFolderSelected: (callback: (folderPath: string) => void) => () => void;
   onCutRequested: (callback: () => void) => () => void;
+  onPasteRequested: (callback: () => void) => () => void;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
