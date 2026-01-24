@@ -32,6 +32,7 @@ export interface ElectronAPI {
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<boolean>;
+  writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<boolean>;
@@ -92,6 +93,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
   pathExists: (checkPath: string) => ipcRenderer.invoke('path-exists', checkPath),
   writeFile: (filePath: string, content: string) => ipcRenderer.invoke('write-file', filePath, content),
+  writeFileBinary: (filePath: string, base64Data: string) => ipcRenderer.invoke('write-file-binary', filePath, base64Data),
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),

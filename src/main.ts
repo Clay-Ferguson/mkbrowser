@@ -327,6 +327,18 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Write binary content to a file (for images)
+  ipcMain.handle('write-file-binary', async (_event, filePath: string, base64Data: string): Promise<boolean> => {
+    try {
+      const buffer = Buffer.from(base64Data, 'base64');
+      await fs.promises.writeFile(filePath, buffer);
+      return true;
+    } catch (error) {
+      console.error('Error writing binary file:', error);
+      return false;
+    }
+  });
+
   // Rename a file or folder
   ipcMain.handle('rename-file', async (_event, oldPath: string, newPath: string): Promise<boolean> => {
     try {

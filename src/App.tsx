@@ -374,6 +374,106 @@ function App() {
     setShowSearchDialog(false);
   }, []);
 
+  // Generate timestamp-based filename
+  const generateTimestampFilename = useCallback((extension: string) => {
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}--${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+    return `${timestamp}${extension}`;
+  }, []);
+
+  // Paste from clipboard handler
+  const handlePasteFromClipboard = useCallback(async () => {
+    if (!currentPath) return;
+
+    try {
+      // Try to read clipboard items (modern Clipboard API)
+      const clipboardItems = await navigator.clipboard.read();
+      
+      for (const item of clipboardItems) {
+        // Check for image types first
+        const imageType = item.types.find(type => type.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const arrayBuffer = await blob.arrayBuffer();
+          const base64 = btoa(
+            new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+          );
+          
+          // Determine extension from MIME type (clipboard images are typically PNG)
+          let ext = '.png';
+          if (imageType === 'image/jpeg') ext = '.jpg';
+          else if (imageType === 'image/gif') ext = '.gif';
+          else if (imageType === 'image/webp') ext = '.webp';
+          
+          const fileName = generateTimestampFilename(ext);
+          const filePath = `${currentPath}/${fileName}`;
+          
+          const success = await window.electronAPI.writeFileBinary(filePath, base64);
+          if (success) {
+            setPendingScrollToFile(fileName);
+            refreshDirectory();
+            // Set expanded after refresh
+            setTimeout(() => {
+              setItemExpanded(filePath, true);
+            }, 200);
+          } else {
+            setError('Failed to paste image from clipboard');
+          }
+          return;
+        }
+        
+        // Check for text
+        if (item.types.includes('text/plain')) {
+          const blob = await item.getType('text/plain');
+          const text = await blob.text();
+          
+          const fileName = generateTimestampFilename('.md');
+          const filePath = `${currentPath}/${fileName}`;
+          
+          const success = await window.electronAPI.writeFile(filePath, text);
+          if (success) {
+            setPendingScrollToFile(fileName);
+            refreshDirectory();
+            // Set expanded after refresh
+            setTimeout(() => {
+              setItemExpanded(filePath, true);
+            }, 200);
+          } else {
+            setError('Failed to paste text from clipboard');
+          }
+          return;
+        }
+      }
+      
+      setError('Clipboard is empty or contains unsupported content');
+    } catch (err) {
+      // Fallback to older clipboard API for text
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          const fileName = generateTimestampFilename('.md');
+          const filePath = `${currentPath}/${fileName}`;
+          
+          const success = await window.electronAPI.writeFile(filePath, text);
+          if (success) {
+            setPendingScrollToFile(fileName);
+            refreshDirectory();
+            setTimeout(() => {
+              setItemExpanded(filePath, true);
+            }, 200);
+          } else {
+            setError('Failed to paste text from clipboard');
+          }
+        } else {
+          setError('Clipboard is empty');
+        }
+      } catch {
+        setError('Unable to read clipboard. Please ensure clipboard access is allowed.');
+      }
+    }
+  }, [currentPath, generateTimestampFilename, refreshDirectory]);
+
   // Navigate to a subdirectory
   const navigateTo = useCallback((path: string) => {
     setCurrentPath(path);
@@ -506,6 +606,17 @@ function App() {
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+
+            {/* Paste from clipboard button */}
+            <button
+              onClick={handlePasteFromClipboard}
+              className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+              title="Paste from clipboard"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </button>
 
