@@ -240,6 +240,28 @@ export function clearAllSelections(): void {
 }
 
 /**
+ * Mark all selected items as cut and clear their selection
+ */
+export function cutSelectedItems(): void {
+  if (state.items.size === 0) return;
+
+  const newItems = new Map(state.items);
+  let hasChanges = false;
+
+  for (const [path, item] of newItems) {
+    if (item.isSelected) {
+      newItems.set(path, { ...item, isSelected: false, isCut: true });
+      hasChanges = true;
+    }
+  }
+
+  if (!hasChanges) return;
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
+/**
  * Get an item by path (direct access, not a hook)
  */
 export function getItem(path: string): ItemData | undefined {

@@ -143,6 +143,18 @@ function setupApplicationMenu(): void {
     ],
   });
 
+  template.push({
+    label: 'Edit',
+    submenu: [
+      {
+        label: 'Cut',
+        click: () => {
+          mainWindow?.webContents.send('cut-items');
+        },
+      },
+    ],
+  });
+
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 }

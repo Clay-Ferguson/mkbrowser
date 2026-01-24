@@ -4,7 +4,14 @@ import FolderEntry from './components/FolderEntry';
 import MarkdownEntry from './components/MarkdownEntry';
 import FileEntryComponent from './components/FileEntry';
 import CreateFileDialog from './components/CreateFileDialog';
-import { clearAllSelections, upsertItems, setItemEditing, setItemExpanded } from './store';
+import {
+  clearAllSelections,
+  cutSelectedItems,
+  upsertItems,
+  setItemEditing,
+  setItemExpanded,
+  useItems,
+} from './store';
 import { scrollItemIntoView } from './utils/entryDom';
 
 function App() {
@@ -14,6 +21,7 @@ function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
+  const items = useItems();
 
   // Load initial configuration
   useEffect(() => {
@@ -45,6 +53,17 @@ function App() {
       setRootPath(folderPath);
       setCurrentPath(folderPath);
       setError(null);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Listen for Cut menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onCutRequested(() => {
+      cutSelectedItems();
     });
 
     return () => {
@@ -246,7 +265,7 @@ function App() {
           </div>
         )}
 
-        {!loading && !error && entries.length === 0 && (
+        {!loading && !error && entries.filter((entry) => !items.get(entry.path)?.isCut).length === 0 && (
           <div className="text-center py-12">
             <svg className="w-12 h-12 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -255,9 +274,9 @@ function App() {
           </div>
         )}
 
-        {!loading && !error && entries.length > 0 && (
+        {!loading && !error && entries.filter((entry) => !items.get(entry.path)?.isCut).length > 0 && (
           <div className="space-y-2">
-            {entries.map((entry) => (
+            {entries.filter((entry) => !items.get(entry.path)?.isCut).map((entry) => (
               <div key={entry.path}>
                 {entry.isDirectory ? (
                   <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} />

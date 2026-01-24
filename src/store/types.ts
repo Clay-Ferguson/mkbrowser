@@ -18,6 +18,9 @@ export interface ItemData {
   /** Whether this item is selected (for checkbox selection, defaults to false) */
   isSelected: boolean;
 
+  /** Whether this item has been cut (hidden from view) */
+  isCut: boolean;
+
   /** Whether the file's content is currently expanded (visible) */
   isExpanded: boolean;
 
@@ -74,6 +77,7 @@ export function createItemData(
     isDirectory,
     modifiedTime,
     isSelected: false,
+    isCut: false,
     isExpanded: isMarkdownFile,
   };
 }
