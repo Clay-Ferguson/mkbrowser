@@ -27,6 +27,7 @@ export interface ElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<boolean>;
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
+  createFolder: (folderPath: string) => Promise<boolean>;
 }
 
 // Expose protected methods to the renderer process
@@ -76,4 +77,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeFile: (filePath: string, content: string) => ipcRenderer.invoke('write-file', filePath, content),
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
+  createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
 } as ElectronAPI);

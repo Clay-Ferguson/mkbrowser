@@ -306,6 +306,17 @@ function setupIpcHandlers(): void {
       return false;
     }
   });
+
+  // Create a new folder
+  ipcMain.handle('create-folder', async (_event, folderPath: string): Promise<boolean> => {
+    try {
+      await fs.promises.mkdir(folderPath);
+      return true;
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      return false;
+    }
+  });
 }
 
 // Handle command-line arguments to set initial browse folder

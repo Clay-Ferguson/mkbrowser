@@ -4,6 +4,7 @@ import FolderEntry from './components/FolderEntry';
 import MarkdownEntry from './components/MarkdownEntry';
 import FileEntryComponent from './components/FileEntry';
 import CreateFileDialog from './components/CreateFileDialog';
+import CreateFolderDialog from './components/CreateFolderDialog';
 import AlertDialog from './components/AlertDialog';
 import ConfirmDialog from './components/ConfirmDialog';
 import {
@@ -26,6 +27,7 @@ function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
+  const [showCreateFolderDialog, setShowCreateFolderDialog] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const items = useItems();
 
@@ -282,6 +284,30 @@ function App() {
     setShowCreateDialog(false);
   }, []);
 
+  const handleOpenCreateFolderDialog = useCallback(() => {
+    setShowCreateFolderDialog(true);
+  }, []);
+
+  const handleCreateFolder = useCallback(async (folderName: string) => {
+    if (!currentPath) return;
+    const folderPath = `${currentPath}/${folderName}`;
+    const success = await window.electronAPI.createFolder(folderPath);
+    if (success) {
+      setShowCreateFolderDialog(false);
+      refreshDirectory();
+      setTimeout(() => {
+        scrollItemIntoView(folderName);
+      }, 1500);
+    } else {
+      setShowCreateFolderDialog(false);
+      setError('Failed to create folder');
+    }
+  }, [currentPath, refreshDirectory]);
+
+  const handleCancelCreateFolder = useCallback(() => {
+    setShowCreateFolderDialog(false);
+  }, []);
+
   // Navigate to a subdirectory
   const navigateTo = useCallback((path: string) => {
     setCurrentPath(path);
@@ -380,6 +406,17 @@ function App() {
               </svg>
             </button>
 
+            {/* Create folder button */}
+            <button
+              onClick={handleOpenCreateFolderDialog}
+              className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+              title="Create folder"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+            </button>
+
           </div>
         </div>
       </header>
@@ -422,6 +459,13 @@ function App() {
         <CreateFileDialog
           onCreate={handleCreateFile}
           onCancel={handleCancelCreate}
+        />
+      )}
+
+      {showCreateFolderDialog && (
+        <CreateFolderDialog
+          onCreate={handleCreateFolder}
+          onCancel={handleCancelCreateFolder}
         />
       )}
 

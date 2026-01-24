@@ -26,6 +26,7 @@ export interface ElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<boolean>;
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
+  createFolder: (folderPath: string) => Promise<boolean>;
 }
 
 declare global {
