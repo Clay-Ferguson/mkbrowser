@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { FileEntry as FileEntryType } from '../global';
 import { buildEntryHeaderId } from '../utils/entryDom';
-import { useItem, setItemRenaming, toggleItemExpanded } from '../store';
+import { useItem, setItemRenaming, setItemSelected, toggleItemExpanded } from '../store';
 import ConfirmDialog from './ConfirmDialog';
 
 interface FileEntryProps {
@@ -20,6 +20,7 @@ function FileEntry({ entry, onRename, onDelete }: FileEntryProps) {
 
   const isRenaming = item?.renaming ?? false;
   const isExpanded = item?.isExpanded ?? false;
+  const isSelected = item?.isSelected ?? false;
 
   // Focus input when entering rename mode
   useEffect(() => {
@@ -103,6 +104,13 @@ function FileEntry({ entry, onRename, onDelete }: FileEntryProps) {
 
   return (
     <div className="flex items-center gap-3 px-4 py-3 bg-slate-800 rounded-lg border border-slate-700">
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={(e) => setItemSelected(entry.path, e.target.checked)}
+        className="h-5 w-5 accent-blue-500 flex-shrink-0"
+        aria-label={`Select ${entry.name}`}
+      />
       <svg className="w-5 h-5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
       </svg>

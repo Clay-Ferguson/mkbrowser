@@ -12,6 +12,7 @@ export {
   setItemExpanded,
   setItemEditing,
   setItemRenaming,
+  clearAllSelections,
   getItem,
   isCacheValid,
   // Hooks

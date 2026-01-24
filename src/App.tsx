@@ -4,7 +4,7 @@ import FolderEntry from './components/FolderEntry';
 import MarkdownEntry from './components/MarkdownEntry';
 import FileEntryComponent from './components/FileEntry';
 import CreateFileDialog from './components/CreateFileDialog';
-import { upsertItems, setItemEditing, setItemExpanded } from './store';
+import { clearAllSelections, upsertItems, setItemEditing, setItemExpanded } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
 
 function App() {
@@ -85,6 +85,13 @@ function App() {
   useEffect(() => {
     loadDirectory();
   }, [loadDirectory]);
+
+  // Clear selection whenever navigating to a different folder
+  useEffect(() => {
+    if (currentPath) {
+      clearAllSelections();
+    }
+  }, [currentPath]);
 
   // Refresh directory without showing loading indicator (used after rename)
   const refreshDirectory = useCallback(() => {

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { FileEntry } from '../global';
 import { buildEntryHeaderId } from '../utils/entryDom';
-import { useItem, setItemRenaming } from '../store';
+import { useItem, setItemRenaming, setItemSelected } from '../store';
 import ConfirmDialog from './ConfirmDialog';
 
 interface FolderEntryProps {
@@ -20,6 +20,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete }: FolderEntryProps
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isRenaming = item?.renaming ?? false;
+  const isSelected = item?.isSelected ?? false;
 
   // Focus input when entering rename mode
   useEffect(() => {
@@ -75,6 +76,10 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete }: FolderEntryProps
     e.stopPropagation();
   };
 
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowDeleteConfirm(true);
@@ -102,6 +107,14 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete }: FolderEntryProps
       onClick={() => !isRenaming && onNavigate(entry.path)}
       className="w-full flex items-center gap-3 px-4 py-3 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-750 hover:border-slate-600 transition-colors text-left cursor-pointer"
     >
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={(e) => setItemSelected(entry.path, e.target.checked)}
+        onClick={handleCheckboxClick}
+        className="h-5 w-5 accent-blue-500 flex-shrink-0"
+        aria-label={`Select ${entry.name}`}
+      />
       <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
         <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
       </svg>
