@@ -50,6 +50,20 @@ export interface ItemData {
 }
 
 /**
+ * Represents which view/panel is currently displayed
+ */
+export type AppView = 'browser' | 'search-results';
+
+/**
+ * Search result from the file search
+ */
+export interface SearchResultItem {
+  path: string;
+  relativePath: string;
+  matchCount: number;
+}
+
+/**
  * Global application state
  */
 export interface AppState {
@@ -58,6 +72,26 @@ export interface AppState {
    * Keyed by full file path for fast lookup.
    */
   items: Map<string, ItemData>;
+
+  /**
+   * Current view being displayed
+   */
+  currentView: AppView;
+
+  /**
+   * The search query that produced the current search results
+   */
+  searchQuery: string;
+
+  /**
+   * The folder path where the search was performed
+   */
+  searchFolder: string;
+
+  /**
+   * Search results from the most recent search
+   */
+  searchResults: SearchResultItem[];
 }
 
 /**

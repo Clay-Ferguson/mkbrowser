@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import * as yaml from 'js-yaml';
 import started from 'electron-squirrel-startup';
+import { fdir } from 'fdir';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -55,6 +56,13 @@ interface FileEntry {
   /** Last modified timestamp in milliseconds since epoch */
   modifiedTime: number;
   content?: string; // Only populated for markdown files
+}
+
+// Search result type
+interface SearchResult {
+  path: string;
+  relativePath: string;
+  matchCount: number;
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -315,6 +323,73 @@ function setupIpcHandlers(): void {
     } catch (error) {
       console.error('Error creating folder:', error);
       return false;
+    }
+  });
+
+  // Search folder recursively for text in .md and .txt files
+  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string): Promise<SearchResult[]> => {
+    try {
+      console.log(`\n=== Search Started ===`);
+      console.log(`Folder: ${folderPath}`);
+      console.log(`Query: "${query}"`);
+
+      // Use fdir to crawl directory and find .md and .txt files
+      const api = new fdir()
+        .withFullPaths()
+        .filter((filePath) => {
+          const ext = path.extname(filePath).toLowerCase();
+          return ext === '.md' || ext === '.txt';
+        })
+        .crawl(folderPath);
+
+      const files = await api.withPromise();
+      console.log(`Found ${files.length} .md/.txt files to search`);
+
+      const results: SearchResult[] = [];
+      const queryLower = query.toLowerCase();
+
+      for (const filePath of files) {
+        try {
+          const content = await fs.promises.readFile(filePath, 'utf-8');
+          const contentLower = content.toLowerCase();
+          
+          // Count occurrences (case-insensitive)
+          let matchCount = 0;
+          let searchIndex = 0;
+          while ((searchIndex = contentLower.indexOf(queryLower, searchIndex)) !== -1) {
+            matchCount++;
+            searchIndex += queryLower.length;
+          }
+
+          if (matchCount > 0) {
+            // Get relative path for cleaner display
+            const relativePath = path.relative(folderPath, filePath);
+            results.push({
+              path: filePath,
+              relativePath,
+              matchCount,
+            });
+          }
+        } catch (readError) {
+          // Skip files that can't be read
+          console.warn(`Could not read file: ${filePath}`);
+        }
+      }
+
+      // Sort by match count (descending)
+      results.sort((a, b) => b.matchCount - a.matchCount);
+
+      console.log(`\n=== Search Results ===`);
+      console.log(`Total files with matches: ${results.length}`);
+      for (const result of results) {
+        console.log(`  ${result.relativePath}: ${result.matchCount} match(es)`);
+      }
+      console.log(`=== Search Complete ===\n`);
+
+      return results;
+    } catch (error) {
+      console.error('Error searching folder:', error);
+      return [];
     }
   });
 }

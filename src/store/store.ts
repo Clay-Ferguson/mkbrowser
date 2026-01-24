@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, ItemData } from './types';
+import type { AppState, AppView, ItemData, SearchResultItem } from './types';
 import { createItemData } from './types';
 
 /**
@@ -7,6 +7,10 @@ import { createItemData } from './types';
  */
 const initialState: AppState = {
   items: new Map(),
+  currentView: 'browser',
+  searchQuery: '',
+  searchFolder: '',
+  searchResults: [],
 };
 
 /**
@@ -50,6 +54,34 @@ function getSnapshot(): AppState {
  */
 function getItemsSnapshot(): Map<string, ItemData> {
   return state.items;
+}
+
+/**
+ * Get snapshot of the current view
+ */
+function getCurrentViewSnapshot(): AppView {
+  return state.currentView;
+}
+
+/**
+ * Get snapshot of search results
+ */
+function getSearchResultsSnapshot(): SearchResultItem[] {
+  return state.searchResults;
+}
+
+/**
+ * Get snapshot of search query
+ */
+function getSearchQuerySnapshot(): string {
+  return state.searchQuery;
+}
+
+/**
+ * Get snapshot of search folder
+ */
+function getSearchFolderSnapshot(): string {
+  return state.searchFolder;
 }
 
 // ============================================================================
@@ -358,6 +390,45 @@ export function setItemRenaming(path: string, renaming: boolean): void {
   emitChange();
 }
 
+/**
+ * Set the current view
+ */
+export function setCurrentView(view: AppView): void {
+  if (state.currentView === view) return;
+  state = { ...state, currentView: view };
+  emitChange();
+}
+
+/**
+ * Set search results along with the query and folder they came from
+ */
+export function setSearchResults(
+  results: SearchResultItem[],
+  query: string,
+  folder: string
+): void {
+  state = {
+    ...state,
+    searchResults: results,
+    searchQuery: query,
+    searchFolder: folder,
+  };
+  emitChange();
+}
+
+/**
+ * Clear search results
+ */
+export function clearSearchResults(): void {
+  state = {
+    ...state,
+    searchResults: [],
+    searchQuery: '',
+    searchFolder: '',
+  };
+  emitChange();
+}
+
 // ============================================================================
 // Hooks - React hooks for subscribing to state
 // ============================================================================
@@ -383,4 +454,32 @@ export function useItems(): Map<string, ItemData> {
 export function useItem(path: string): ItemData | undefined {
   const items = useSyncExternalStore(subscribe, getItemsSnapshot);
   return items.get(path);
+}
+
+/**
+ * Hook to subscribe to the current view
+ */
+export function useCurrentView(): AppView {
+  return useSyncExternalStore(subscribe, getCurrentViewSnapshot);
+}
+
+/**
+ * Hook to subscribe to search results
+ */
+export function useSearchResults(): SearchResultItem[] {
+  return useSyncExternalStore(subscribe, getSearchResultsSnapshot);
+}
+
+/**
+ * Hook to subscribe to search query
+ */
+export function useSearchQuery(): string {
+  return useSyncExternalStore(subscribe, getSearchQuerySnapshot);
+}
+
+/**
+ * Hook to subscribe to search folder
+ */
+export function useSearchFolder(): string {
+  return useSyncExternalStore(subscribe, getSearchFolderSnapshot);
 }

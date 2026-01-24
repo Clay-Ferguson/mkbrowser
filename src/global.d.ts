@@ -12,6 +12,12 @@ export interface FileEntry {
   content?: string;
 }
 
+export interface SearchResult {
+  path: string;
+  relativePath: string;
+  matchCount: number;
+}
+
 export interface ElectronAPI {
   getConfig: () => Promise<AppConfig>;
   saveConfig: (config: AppConfig) => Promise<void>;
@@ -27,6 +33,7 @@ export interface ElectronAPI {
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<boolean>;
+  searchFolder: (folderPath: string, query: string) => Promise<SearchResult[]>;
 }
 
 declare global {

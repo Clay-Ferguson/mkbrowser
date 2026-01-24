@@ -13,6 +13,12 @@ export interface FileEntry {
   content?: string;
 }
 
+export interface SearchResult {
+  path: string;
+  relativePath: string;
+  matchCount: number;
+}
+
 export interface ElectronAPI {
   getConfig: () => Promise<AppConfig>;
   saveConfig: (config: AppConfig) => Promise<void>;
@@ -28,6 +34,7 @@ export interface ElectronAPI {
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<boolean>;
+  searchFolder: (folderPath: string, query: string) => Promise<SearchResult[]>;
 }
 
 // Expose protected methods to the renderer process
@@ -78,4 +85,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
+  searchFolder: (folderPath: string, query: string) => ipcRenderer.invoke('search-folder', folderPath, query),
 } as ElectronAPI);

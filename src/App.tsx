@@ -7,6 +7,8 @@ import CreateFileDialog from './components/CreateFileDialog';
 import CreateFolderDialog from './components/CreateFolderDialog';
 import AlertDialog from './components/AlertDialog';
 import ConfirmDialog from './components/ConfirmDialog';
+import SearchDialog from './components/SearchDialog';
+import SearchResultsView from './components/SearchResultsView';
 import {
   clearAllSelections,
   clearAllCutItems,
@@ -15,7 +17,10 @@ import {
   upsertItems,
   setItemEditing,
   setItemExpanded,
+  setCurrentView,
+  setSearchResults,
   useItems,
+  useCurrentView,
   type ItemData,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
@@ -29,7 +34,9 @@ function App() {
   const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  const [showSearchDialog, setShowSearchDialog] = useState<boolean>(false);
   const items = useItems();
+  const currentView = useCurrentView();
 
   // Load initial configuration
   useEffect(() => {
@@ -308,6 +315,24 @@ function App() {
     setShowCreateFolderDialog(false);
   }, []);
 
+  // Search handlers
+  const handleOpenSearchDialog = useCallback(() => {
+    setShowSearchDialog(true);
+  }, []);
+
+  const handleSearch = useCallback(async (query: string) => {
+    if (!currentPath) return;
+    setShowSearchDialog(false);
+    
+    const results = await window.electronAPI.searchFolder(currentPath, query);
+    setSearchResults(results, query, currentPath);
+    setCurrentView('search-results');
+  }, [currentPath]);
+
+  const handleCancelSearch = useCallback(() => {
+    setShowSearchDialog(false);
+  }, []);
+
   // Navigate to a subdirectory
   const navigateTo = useCallback((path: string) => {
     setCurrentPath(path);
@@ -358,6 +383,21 @@ function App() {
           />
         )}
       </div>
+    );
+  }
+
+  // Show search results view when in search-results mode
+  if (currentView === 'search-results') {
+    return (
+      <>
+        <SearchResultsView />
+        {error && (
+          <AlertDialog
+            message={error}
+            onClose={() => setError(null)}
+          />
+        )}
+      </>
     );
   }
 
@@ -417,6 +457,17 @@ function App() {
               </svg>
             </button>
 
+            {/* Search button */}
+            <button
+              onClick={handleOpenSearchDialog}
+              className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+              title="Search in folder"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+
           </div>
         </div>
       </header>
@@ -466,6 +517,13 @@ function App() {
         <CreateFolderDialog
           onCreate={handleCreateFolder}
           onCancel={handleCancelCreateFolder}
+        />
+      )}
+
+      {showSearchDialog && (
+        <SearchDialog
+          onSearch={handleSearch}
+          onCancel={handleCancelSearch}
         />
       )}
 

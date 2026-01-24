@@ -1,4 +1,4 @@
-export type { AppState, ItemData } from './types';
+export type { AppState, AppView, ItemData, SearchResultItem } from './types';
 export { createItemData } from './types';
 
 export {
@@ -18,8 +18,15 @@ export {
   deleteItems,
   getItem,
   isCacheValid,
+  setCurrentView,
+  setSearchResults,
+  clearSearchResults,
   // Hooks
   useAppState,
   useItems,
   useItem,
+  useCurrentView,
+  useSearchResults,
+  useSearchQuery,
+  useSearchFolder,
 } from './store';
