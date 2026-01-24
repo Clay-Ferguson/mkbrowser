@@ -26,8 +26,10 @@ interface SortOrderOption {
 
 const sortOrderOptions: SortOrderOption[] = [
   { value: 'alphabetical', label: 'Alphabetical' },
-  { value: 'created', label: 'Created Time' },
-  { value: 'modified', label: 'Modified Time' },
+  { value: 'created-chron', label: 'Created Time (chron)' },
+  { value: 'created-reverse', label: 'Created Time (reverse-chron)' },
+  { value: 'modified-chron', label: 'Modified Time (chron)' },
+  { value: 'modified-reverse', label: 'Modified Time (reverse-chron)' },
 ];
 
 interface SettingsViewProps {

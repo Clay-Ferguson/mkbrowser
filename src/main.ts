@@ -23,7 +23,7 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
 let commandLineFolder: string | null = null;
 
 type FontSize = 'small' | 'medium' | 'large';
-type SortOrder = 'alphabetical' | 'created' | 'modified';
+type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 
 interface AppSettings {
   fontSize: FontSize;

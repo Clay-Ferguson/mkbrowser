@@ -74,7 +74,7 @@ export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 /**
  * Available sort order options for file/folder listing
  */
-export type SortOrder = 'alphabetical' | 'created' | 'modified';
+export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 
 /**
  * Application settings that are persisted to config file

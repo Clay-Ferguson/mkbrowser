@@ -1,6 +1,6 @@
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 
-export type SortOrder = 'alphabetical' | 'created' | 'modified';
+export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 
 export interface AppSettings {
   fontSize: FontSize;

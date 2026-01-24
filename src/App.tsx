@@ -59,10 +59,16 @@ function sortEntries(entries: FileEntry[], sortOrder: SortOrder): FileEntry[] {
     switch (sortOrder) {
       case 'alphabetical':
         return a.name.localeCompare(b.name);
-      case 'created':
+      case 'created-chron':
+        // Older files first (ascending)
+        return a.createdTime - b.createdTime;
+      case 'created-reverse':
         // Newer files first (descending)
         return b.createdTime - a.createdTime;
-      case 'modified':
+      case 'modified-chron':
+        // Older modifications first (ascending)
+        return a.modifiedTime - b.modifiedTime;
+      case 'modified-reverse':
         // More recently modified first (descending)
         return b.modifiedTime - a.modifiedTime;
       default:
