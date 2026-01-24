@@ -193,7 +193,7 @@ function setupApplicationMenu(): void {
   });
 
   template.push({
-    label: 'View',
+    label: 'Page',
     submenu: [
       {
         label: 'Browser',
