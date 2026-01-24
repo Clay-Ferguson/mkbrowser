@@ -50,7 +50,7 @@ export interface ItemData {
 }
 
 /**
- * Represents which view/panel is currently displayed
+ * Represents which application page (aka view or panel) is currently displayed
  */
 export type AppView = 'browser' | 'search-results';
 
