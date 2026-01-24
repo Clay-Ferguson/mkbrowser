@@ -5,6 +5,8 @@ export type FontSize = 'small' | 'medium' | 'large';
 
 export interface AppSettings {
   fontSize: FontSize;
+  sortOrder: 'alphabetical' | 'ordinal';
+  foldersOnTop: boolean;
 }
 
 export interface AppConfig {

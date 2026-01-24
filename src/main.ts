@@ -29,6 +29,7 @@ type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modifie
 interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
+  foldersOnTop: boolean;
 }
 
 interface AppConfig {
