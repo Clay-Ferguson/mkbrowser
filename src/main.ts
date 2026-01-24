@@ -430,17 +430,20 @@ function setupIpcHandlers(): void {
 
 // Handle command-line arguments to set initial browse folder
 async function handleCommandLineArgs(): Promise<void> {
-  // process.argv structure:
-  // [0] = electron executable
-  // [1] = main.js (or . in dev mode)
-  // [2+] = user arguments
+  // process.argv structure differs between dev and production:
+  // Development: [electron, main.js, ...userArgs] - use slice(2)
+  // Production:  [executable, ...userArgs] - use slice(1)
+  //
+  // In packaged apps, app.isPackaged is true and there's no separate main.js argument
 
   // Debug: log all arguments received
   console.log('=== Command Line Arguments Debug ===');
   console.log('Full process.argv:', process.argv);
+  console.log('app.isPackaged:', app.isPackaged);
 
-  const args = process.argv.slice(2);
-  console.log('Args after slice(2):', args);
+  // In packaged apps, user args start at index 1; in dev mode, they start at index 2
+  const args = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
+  console.log('User args:', args);
 
   // Filter out flags and electron-specific arguments, find first path-like argument
   const folderPath = args.find(arg => !arg.startsWith('-') && arg !== '.');
