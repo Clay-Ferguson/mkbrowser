@@ -5,13 +5,25 @@ import {
   useSearchFolder,
 } from '../store';
 
-function SearchResultsView() {
+interface SearchResultsViewProps {
+  onNavigateToResult: (folderPath: string, fileName: string) => void;
+}
+
+function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const searchResults = useSearchResults();
   const searchQuery = useSearchQuery();
   const searchFolder = useSearchFolder();
 
   const handleBack = () => {
     setCurrentView('browser');
+  };
+
+  const handleResultClick = (resultPath: string) => {
+    // Extract the parent folder and file name from the result path
+    const lastSlashIndex = resultPath.lastIndexOf('/');
+    const folderPath = resultPath.substring(0, lastSlashIndex);
+    const fileName = resultPath.substring(lastSlashIndex + 1);
+    onNavigateToResult(folderPath, fileName);
   };
 
   // Get the folder name for display
@@ -67,7 +79,8 @@ function SearchResultsView() {
             {searchResults.map((result) => (
               <div
                 key={result.path}
-                className="bg-slate-800 rounded-lg border border-slate-700 p-4 hover:border-slate-600 transition-colors"
+                onClick={() => handleResultClick(result.path)}
+                className="bg-slate-800 rounded-lg border border-slate-700 p-4 hover:border-slate-600 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   {/* File icon */}

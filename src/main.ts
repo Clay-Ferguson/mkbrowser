@@ -178,6 +178,26 @@ function setupApplicationMenu(): void {
     ],
   });
 
+  template.push({
+    label: 'View',
+    submenu: [
+      {
+        label: 'Browser',
+        accelerator: 'CmdOrCtrl+1',
+        click: () => {
+          mainWindow?.webContents.send('view-changed', 'browser');
+        },
+      },
+      {
+        label: 'Search Results',
+        accelerator: 'CmdOrCtrl+2',
+        click: () => {
+          mainWindow?.webContents.send('view-changed', 'search-results');
+        },
+      },
+    ],
+  });
+
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 }

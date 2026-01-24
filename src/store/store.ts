@@ -7,7 +7,7 @@ import { createItemData } from './types';
  */
 const initialState: AppState = {
   items: new Map(),
-  currentView: 'browser',
+  currentView: 'browser', // browser | search-results
   searchQuery: '',
   searchFolder: '',
   searchResults: [],

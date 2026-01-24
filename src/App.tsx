@@ -86,6 +86,17 @@ function App() {
     };
   }, []);
 
+  // Listen for View menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onViewChanged((view) => {
+      setCurrentView(view);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // Load directory contents
   const loadDirectory = useCallback(async (showLoading = true) => {
     if (!currentPath) return;
@@ -320,6 +331,14 @@ function App() {
     setShowSearchDialog(true);
   }, []);
 
+  const handleNavigateToSearchResult = useCallback((folderPath: string, fileName: string) => {
+    setCurrentPath(folderPath);
+    setCurrentView('browser');
+    setTimeout(() => {
+      scrollItemIntoView(fileName);
+    }, 1000);
+  }, []);
+
   const handleSearch = useCallback(async (query: string) => {
     if (!currentPath) return;
     setShowSearchDialog(false);
@@ -390,7 +409,7 @@ function App() {
   if (currentView === 'search-results') {
     return (
       <>
-        <SearchResultsView />
+        <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
         {error && (
           <AlertDialog
             message={error}
