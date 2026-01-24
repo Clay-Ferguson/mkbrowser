@@ -67,18 +67,7 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 w-full max-w-2xl mx-4 shadow-xl">
         <h2 className="text-lg font-semibold text-slate-100 mb-3">Search in folder</h2>
-        
-        {/* Advanced checkbox */}
-        <label className="flex items-center gap-2 mb-4 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isAdvanced}
-            onChange={(e) => setIsAdvanced(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-          />
-          <span className="text-sm text-slate-300">Advanced</span>
-        </label>
-
+      
         <label className="block text-sm text-slate-400 mb-2">
           {isAdvanced ? 'JavaScript expression' : 'Search text'}
         </label>
@@ -94,6 +83,18 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
           placeholder={isAdvanced ? 'contains("ABC") || contains("DEF")' : 'Enter search text...'}
           style={{ minHeight: '80px' }}
         />
+
+        {/* Advanced checkbox */}
+        <label className="flex items-center gap-2 mb-4 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isAdvanced}
+            onChange={(e) => setIsAdvanced(e.target.checked)}
+            className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+          />
+          <span className="text-sm text-slate-300">Advanced</span>
+        </label>
+
         {error ? (
           <p className="text-xs text-red-400 mt-2">{error}</p>
         ) : (
