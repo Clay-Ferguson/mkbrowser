@@ -59,7 +59,7 @@ export interface ElectronAPI {
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<boolean>;
-  searchFolder: (folderPath: string, query: string) => Promise<SearchResult[]>;
+  searchFolder: (folderPath: string, query: string, isAdvanced?: boolean) => Promise<SearchResult[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
 }
 
@@ -130,6 +130,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
-  searchFolder: (folderPath: string, query: string) => ipcRenderer.invoke('search-folder', folderPath, query),
+  searchFolder: (folderPath: string, query: string, isAdvanced?: boolean) => ipcRenderer.invoke('search-folder', folderPath, query, isAdvanced),
   renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),
 } as ElectronAPI);

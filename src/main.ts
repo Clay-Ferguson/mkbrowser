@@ -474,11 +474,12 @@ function setupIpcHandlers(): void {
   });
 
   // Search folder recursively for text in .md and .txt files
-  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string): Promise<SearchResult[]> => {
+  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, isAdvanced = false): Promise<SearchResult[]> => {
     try {
       console.log(`\n=== Search Started ===`);
       console.log(`Folder: ${folderPath}`);
       console.log(`Query: "${query}"`);
+      console.log(`Advanced mode: ${isAdvanced}`);
 
       // Use fdir to crawl directory and find .md and .txt files
       const api = new fdir()
@@ -493,22 +494,78 @@ function setupIpcHandlers(): void {
       console.log(`Found ${files.length} .md/.txt files to search`);
 
       const results: SearchResult[] = [];
-      const queryLower = query.toLowerCase();
-
-      for (const filePath of files) {
-        try {
-          const content = await fs.promises.readFile(filePath, 'utf-8');
+      
+      // Create the predicate function based on search mode
+      let matchPredicate: (content: string) => { matches: boolean; matchCount: number };
+      
+      if (isAdvanced) {
+        // Advanced mode: evaluate user's JavaScript expression
+        // Create a 'contains' function that will be injected into the expression's scope
+        matchPredicate = (content: string) => {
           const contentLower = content.toLowerCase();
+          let matchCount = 0;
           
-          // Count occurrences (case-insensitive)
+          // console.log(`[DEBUG] Advanced predicate called, content length: ${content.length}`);
+          // console.log(`[DEBUG] Content preview (first 100 chars): "${content.substring(0, 100).replace(/\n/g, '\\n')}"`);
+          
+          // The 'contains' function checks if content contains the given text (case-insensitive)
+          // and increments matchCount for each call that returns true
+          const contains = (searchText: string): boolean => {
+            const searchLower = searchText.toLowerCase();
+            const found = contentLower.includes(searchLower);
+            // console.log(`[DEBUG] contains("${searchText}") called -> searchLower="${searchLower}", found=${found}`);
+            if (found) {
+              // Count occurrences for matchCount
+              let count = 0;
+              let idx = 0;
+              while ((idx = contentLower.indexOf(searchLower, idx)) !== -1) {
+                count++;
+                idx += searchLower.length;
+              }
+              matchCount += count;
+              // console.log(`[DEBUG] contains("${searchText}") matched ${count} times`);
+              return true;
+            }
+            return false;
+          };
+          
+          try {
+            // Create a function that evaluates the user's expression with 'contains' in scope
+            const expressionCode = `return (${query});`;
+            // console.log(`[DEBUG] Creating eval function with code: "${expressionCode}"`);
+            const evalFunction = new Function('contains', expressionCode);
+            // console.log(`[DEBUG] Eval function created successfully`);
+            const rawResult = evalFunction(contains);
+            // console.log(`[DEBUG] Eval function returned: ${rawResult} (type: ${typeof rawResult})`);
+            const matches = Boolean(rawResult);
+            // console.log(`[DEBUG] Final matches=${matches}, matchCount=${matches ? Math.max(matchCount, 1) : 0}`);
+            return { matches, matchCount: matches ? Math.max(matchCount, 1) : 0 };
+          } catch (evalError) {
+            console.warn(`[DEBUG] Error evaluating expression: ${evalError}`);
+            return { matches: false, matchCount: 0 };
+          }
+        };
+      } else {
+        // Simple mode: case-insensitive text search
+        const queryLower = query.toLowerCase();
+        matchPredicate = (content: string) => {
+          const contentLower = content.toLowerCase();
           let matchCount = 0;
           let searchIndex = 0;
           while ((searchIndex = contentLower.indexOf(queryLower, searchIndex)) !== -1) {
             matchCount++;
             searchIndex += queryLower.length;
           }
+          return { matches: matchCount > 0, matchCount };
+        };
+      }
 
-          if (matchCount > 0) {
+      for (const filePath of files) {
+        try {
+          const content = await fs.promises.readFile(filePath, 'utf-8');
+          const { matches, matchCount } = matchPredicate(content);
+
+          if (matches) {
             // Get relative path for cleaner display
             const relativePath = path.relative(folderPath, filePath);
             results.push({

@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 
+export interface SearchOptions {
+  query: string;
+  isAdvanced: boolean;
+}
+
 interface SearchDialogProps {
-  onSearch: (query: string) => void;
+  onSearch: (options: SearchOptions) => void;
   onCancel: () => void;
 }
 
 function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAdvanced, setIsAdvanced] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -16,7 +23,20 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
   const handleSearch = () => {
     const trimmedQuery = searchQuery.trim();
     if (!trimmedQuery) return;
-    onSearch(trimmedQuery);
+    
+    // Validate advanced search requires contains() predicate
+    if (isAdvanced && !trimmedQuery.includes('contains(')) {
+      setError('Advanced search requires a contains() predicate expression');
+      return;
+    }
+    
+    setError(null);
+    onSearch({ query: trimmedQuery, isAdvanced });
+  };
+
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    if (error) setError(null); // Clear error when user types
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -33,19 +53,43 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 w-full max-w-md mx-4 shadow-xl">
         <h2 className="text-lg font-semibold text-slate-100 mb-3">Search in folder</h2>
-        <label className="block text-sm text-slate-400 mb-2">Search text</label>
+        
+        {/* Advanced checkbox */}
+        <label className="flex items-center gap-2 mb-4 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isAdvanced}
+            onChange={(e) => setIsAdvanced(e.target.checked)}
+            className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+          />
+          <span className="text-sm text-slate-300">Advanced</span>
+        </label>
+
+        <label className="block text-sm text-slate-400 mb-2">
+          {isAdvanced ? 'JavaScript expression' : 'Search text'}
+        </label>
         <input
           ref={inputRef}
           type="text"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={handleQueryChange}
           onKeyDown={handleKeyDown}
-          className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
-          placeholder="Enter search text..."
+          className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm font-mono ${
+            error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
+          }`}
+          placeholder={isAdvanced ? 'contains("ABC") || contains("DEF")' : 'Enter search text...'}
         />
-        <p className="text-xs text-slate-500 mt-2">
-          Searches .md and .txt files recursively (case-insensitive)
-        </p>
+        {error ? (
+          <p className="text-xs text-red-400 mt-2">{error}</p>
+        ) : (
+          <p className="text-xs text-slate-500 mt-2">
+            {isAdvanced ? (
+              <>Uses <code className="bg-slate-700 px-1 rounded">contains("text")</code> function. Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
+            ) : (
+              'Searches .md and .txt files recursively (case-insensitive)'
+            )}
+          </p>
+        )}
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onCancel}

@@ -16,7 +16,7 @@ import CreateFileDialog from './components/CreateFileDialog';
 import CreateFolderDialog from './components/CreateFolderDialog';
 import AlertDialog from './components/AlertDialog';
 import ConfirmDialog from './components/ConfirmDialog';
-import SearchDialog from './components/SearchDialog';
+import SearchDialog, { type SearchOptions } from './components/SearchDialog';
 import SearchResultsView from './components/SearchResultsView';
 import SettingsView from './components/SettingsView';
 import {
@@ -485,12 +485,12 @@ function App() {
     navigateToBrowserPath(folderPath, fileName);
   }, []);
 
-  const handleSearch = useCallback(async (query: string) => {
+  const handleSearch = useCallback(async (options: SearchOptions) => {
     if (!currentPath) return;
     setShowSearchDialog(false);
     
-    const results = await window.electronAPI.searchFolder(currentPath, query);
-    setSearchResults(results, query, currentPath);
+    const results = await window.electronAPI.searchFolder(currentPath, options.query, options.isAdvanced);
+    setSearchResults(results, options.query, currentPath);
     setCurrentView('search-results');
   }, [currentPath]);
 
