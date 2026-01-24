@@ -273,7 +273,7 @@ function MarkdownEntry({ entry, onRename, onDelete }: MarkdownEntryProps) {
               placeholder="Enter markdown content..."
             />
           ) : (
-            <article className="prose prose-invert prose-sm max-w-none">
+            <article className="prose prose-invert prose-base max-w-none">
               <Markdown>{content || ''}</Markdown>
             </article>
           )}

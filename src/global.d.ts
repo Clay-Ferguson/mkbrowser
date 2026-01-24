@@ -1,4 +1,4 @@
-export type FontSize = 'small' | 'medium' | 'large';
+export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 
 export interface AppSettings {
   fontSize: FontSize;

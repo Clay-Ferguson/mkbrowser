@@ -8,14 +8,13 @@ import {
 interface FontSizeOption {
   value: FontSize;
   label: string;
-  description: string;
 }
 
 const fontSizeOptions: FontSizeOption[] = [
-  { value: 'small', label: 'Small', description: '14px base font' },
-  { value: 'medium', label: 'Medium', description: '16px base font (default)' },
-  { value: 'large', label: 'Large', description: '18px base font' },
-  { value: 'xlarge', label: 'Extra Large', description: '20px base font' },
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+  { value: 'xlarge', label: 'Extra Large' },
 ];
 
 interface SettingsViewProps {
@@ -25,13 +24,7 @@ interface SettingsViewProps {
 function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const settings = useSettings();
 
-  // Font size CSS class mapping
-  const fontSizeClass = {
-    small: 'text-sm',
-    medium: 'text-base',
-    large: 'text-lg',
-    xlarge: 'text-xl',
-  }[settings.fontSize];
+  // Font size is now applied globally via data-font-size attribute on html element
 
   const handleBack = () => {
     setCurrentView('browser');
@@ -44,7 +37,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   };
 
   return (
-    <div className={`min-h-screen bg-slate-900 ${fontSizeClass}`}>
+    <div className="min-h-screen bg-slate-900">
       {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
@@ -90,9 +83,6 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                   </option>
                 ))}
               </select>
-              <span className="text-sm text-slate-400">
-                {fontSizeOptions.find((opt) => opt.value === settings.fontSize)?.description}
-              </span>
             </div>
           </section>
         </div>

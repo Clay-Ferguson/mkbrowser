@@ -8,3 +8,17 @@
 html, body, #root {
   background-color: #0f172a; /* slate-900 */
 }
+
+/* Font size settings - controlled via data-font-size attribute on html element */
+html[data-font-size="small"] {
+  font-size: 14px;
+}
+html[data-font-size="medium"] {
+  font-size: 16px;
+}
+html[data-font-size="large"] {
+  font-size: 18px;
+}
+html[data-font-size="xlarge"] {
+  font-size: 20px;
+}
