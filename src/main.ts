@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, type MenuItemConstructorOptions } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import * as yaml from 'js-yaml';
@@ -57,9 +57,11 @@ interface FileEntry {
   content?: string; // Only populated for markdown files
 }
 
+let mainWindow: BrowserWindow | null = null;
+
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
@@ -79,10 +81,71 @@ const createWindow = () => {
   }
 
   // Open the DevTools in development
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL && mainWindow) {
     mainWindow.webContents.openDevTools();
   }
 };
+
+async function openFolderFromMenu(): Promise<void> {
+  if (!mainWindow) return;
+
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+    title: 'Select a folder to browse',
+  });
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    const folderPath = result.filePaths[0];
+
+    // Command-line override should not block menu-based selection
+    commandLineFolder = null;
+
+    const config = loadConfig();
+    config.browseFolder = folderPath;
+    saveConfig(config);
+
+    mainWindow.webContents.send('folder-selected', folderPath);
+  }
+}
+
+function setupApplicationMenu(): void {
+  const template: MenuItemConstructorOptions[] = [];
+
+  if (process.platform === 'darwin') {
+    template.push({
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    });
+  }
+
+  template.push({
+    label: 'File',
+    submenu: [
+      {
+        label: 'Open Folder',
+        accelerator: 'CmdOrCtrl+O',
+        click: () => {
+          void openFolderFromMenu();
+        },
+      },
+      { type: 'separator' },
+      { role: process.platform === 'darwin' ? 'close' : 'quit' },
+    ],
+  });
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
 
 // IPC Handlers
 function setupIpcHandlers(): void {
@@ -268,6 +331,7 @@ app.on('ready', async () => {
   setupIpcHandlers();
   await handleCommandLineArgs();
   createWindow();
+  setupApplicationMenu();
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

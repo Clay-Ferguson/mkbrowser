@@ -36,6 +36,19 @@ function App() {
     loadConfig();
   }, []);
 
+  // Listen for folder changes from the application menu
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onFolderSelected((folderPath) => {
+      setRootPath(folderPath);
+      setCurrentPath(folderPath);
+      setError(null);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // Load directory contents
   const loadDirectory = useCallback(async (showLoading = true) => {
     if (!currentPath) return;
