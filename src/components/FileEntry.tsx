@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { FileEntry as FileEntryType } from '../global';
+import { buildEntryHeaderId } from '../utils/entryDom';
 import { useItem, setItemRenaming, toggleItemExpanded } from '../store';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -109,6 +110,7 @@ function FileEntry({ entry, onRename, onDelete }: FileEntryProps) {
         <input
           ref={inputRef}
           type="text"
+          id={buildEntryHeaderId(entry.name)}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -117,7 +119,7 @@ function FileEntry({ entry, onRename, onDelete }: FileEntryProps) {
           className="flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
         />
       ) : (
-        <span className="text-slate-400 truncate flex-1">{entry.name}</span>
+        <span id={buildEntryHeaderId(entry.name)} className="text-slate-400 truncate flex-1">{entry.name}</span>
       )}
       <button
         onClick={handleToggleExpanded}

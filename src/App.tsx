@@ -5,6 +5,7 @@ import MarkdownEntry from './components/MarkdownEntry';
 import FileEntryComponent from './components/FileEntry';
 import CreateFileDialog from './components/CreateFileDialog';
 import { upsertItems } from './store';
+import { scrollItemIntoView } from './utils/entryDom';
 
 function App() {
   const [currentPath, setCurrentPath] = useState<string>('');
@@ -111,6 +112,9 @@ function App() {
     if (success) {
       setShowCreateDialog(false);
       refreshDirectory();
+      setTimeout(() => {
+        scrollItemIntoView(fileName);
+      }, 1500);
     } else {
       setShowCreateDialog(false);
       setError('Failed to create file');

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Markdown from 'react-markdown';
 import type { FileEntry } from '../global';
+import { buildEntryHeaderId } from '../utils/entryDom';
 import {
   useItem,
   setItemContent,
@@ -177,6 +178,7 @@ function MarkdownEntry({ entry, onRename, onDelete }: MarkdownEntryProps) {
           <input
             ref={renameInputRef}
             type="text"
+            id={buildEntryHeaderId(entry.name)}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={handleRenameKeyDown}
@@ -185,7 +187,7 @@ function MarkdownEntry({ entry, onRename, onDelete }: MarkdownEntryProps) {
             className="flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm font-medium"
           />
         ) : (
-          <span className="text-slate-300 font-medium truncate flex-1">{entry.name}</span>
+          <span id={buildEntryHeaderId(entry.name)} className="text-slate-300 font-medium truncate flex-1">{entry.name}</span>
         )}
         <button
           onClick={handleToggleExpanded}

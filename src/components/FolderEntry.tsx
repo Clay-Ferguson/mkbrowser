@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { FileEntry } from '../global';
+import { buildEntryHeaderId } from '../utils/entryDom';
 import { useItem, setItemRenaming } from '../store';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -108,6 +109,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete }: FolderEntryProps
         <input
           ref={inputRef}
           type="text"
+          id={buildEntryHeaderId(entry.name)}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -117,7 +119,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete }: FolderEntryProps
           className="flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm font-medium"
         />
       ) : (
-        <span className="text-slate-200 font-medium truncate flex-1">{entry.name}</span>
+        <span id={buildEntryHeaderId(entry.name)} className="text-slate-200 font-medium truncate flex-1">{entry.name}</span>
       )}
       {isRenaming ? (
         <div className="flex-shrink-0" />
