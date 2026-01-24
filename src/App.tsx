@@ -3,6 +3,7 @@ import type { FileEntry } from './global';
 import FolderEntry from './components/FolderEntry';
 import MarkdownEntry from './components/MarkdownEntry';
 import FileEntryComponent from './components/FileEntry';
+import CreateFileDialog from './components/CreateFileDialog';
 import { upsertItems } from './store';
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
 
   // Load initial configuration
   useEffect(() => {
@@ -98,6 +100,27 @@ function App() {
     }
   }, []);
 
+  const handleOpenCreateDialog = useCallback(() => {
+    setShowCreateDialog(true);
+  }, []);
+
+  const handleCreateFile = useCallback(async (fileName: string) => {
+    if (!currentPath) return;
+    const filePath = `${currentPath}/${fileName}`;
+    const success = await window.electronAPI.writeFile(filePath, '');
+    if (success) {
+      setShowCreateDialog(false);
+      refreshDirectory();
+    } else {
+      setShowCreateDialog(false);
+      setError('Failed to create file');
+    }
+  }, [currentPath, refreshDirectory]);
+
+  const handleCancelCreate = useCallback(() => {
+    setShowCreateDialog(false);
+  }, []);
+
   // Navigate to a subdirectory
   const navigateTo = useCallback((path: string) => {
     setCurrentPath(path);
@@ -178,6 +201,17 @@ function App() {
               </div>
             </div>
 
+            {/* Create file button */}
+            <button
+              onClick={handleOpenCreateDialog}
+              className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+              title="Create file"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+
           </div>
         </div>
       </header>
@@ -221,6 +255,13 @@ function App() {
           </div>
         )}
       </main>
+
+      {showCreateDialog && (
+        <CreateFileDialog
+          onCreate={handleCreateFile}
+          onCancel={handleCancelCreate}
+        />
+      )}
     </div>
   );
 }
