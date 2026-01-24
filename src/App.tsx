@@ -18,6 +18,7 @@ import AlertDialog from './components/AlertDialog';
 import ConfirmDialog from './components/ConfirmDialog';
 import SearchDialog from './components/SearchDialog';
 import SearchResultsView from './components/SearchResultsView';
+import SettingsView from './components/SettingsView';
 import {
   clearAllSelections,
   clearAllCutItems,
@@ -32,10 +33,13 @@ import {
   clearPendingScrollToFile,
   setPendingScrollToFile,
   setSearchResults,
+  setSettings,
+  getSettings,
   useItems,
   useCurrentView,
   useCurrentPath,
   usePendingScrollToFile,
+  useSettings,
   type ItemData,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
@@ -53,12 +57,24 @@ function App() {
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
   const pendingScrollToFile = usePendingScrollToFile();
+  const settings = useSettings();
+
+  // Font size CSS class mapping
+  const fontSizeClass = {
+    small: 'text-sm',
+    medium: 'text-base',
+    large: 'text-lg',
+  }[settings.fontSize];
 
   // Load initial configuration
   useEffect(() => {
     const loadConfig = async () => {
       try {
         const config = await window.electronAPI.getConfig();
+        // Load settings from config into store (only once at startup)
+        if (config.settings) {
+          setSettings(config.settings);
+        }
         if (config.browseFolder) {
           const exists = await window.electronAPI.pathExists(config.browseFolder);
           if (exists) {
@@ -374,6 +390,20 @@ function App() {
     setShowSearchDialog(false);
   }, []);
 
+  // Save settings to config file
+  const handleSaveSettings = useCallback(async () => {
+    try {
+      const currentSettings = getSettings();
+      const config = await window.electronAPI.getConfig();
+      await window.electronAPI.saveConfig({
+        ...config,
+        settings: currentSettings,
+      });
+    } catch (err) {
+      setError('Failed to save settings');
+    }
+  }, []);
+
   // Generate timestamp-based filename
   const generateTimestampFilename = useCallback((extension: string) => {
     const now = new Date();
@@ -498,7 +528,7 @@ function App() {
   // Folder selection prompt (first run or no folder configured)
   if (!currentPath && !loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-8">
+      <div className={`min-h-screen bg-slate-900 flex items-center justify-center p-8 ${fontSizeClass}`}>
         <div className="bg-slate-800 rounded-lg shadow-lg p-8 max-w-md w-full text-center border border-slate-700">
           <div className="mb-6">
             <svg className="w-16 h-16 mx-auto text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -542,8 +572,23 @@ function App() {
     );
   }
 
+  // Show settings view when in settings mode
+  if (currentView === 'settings') {
+    return (
+      <>
+        <SettingsView onSaveSettings={handleSaveSettings} />
+        {error && (
+          <AlertDialog
+            message={error}
+            onClose={() => setError(null)}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className={`min-h-screen bg-slate-900 ${fontSizeClass}`}>
       {/* Header with navigation */}
       <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">

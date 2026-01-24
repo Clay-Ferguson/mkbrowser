@@ -1,6 +1,13 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, ItemData, SearchResultItem } from './types';
+import type { AppState, AppView, AppSettings, FontSize, ItemData, SearchResultItem } from './types';
 import { createItemData } from './types';
+
+/**
+ * Default settings
+ */
+const defaultSettings: AppSettings = {
+  fontSize: 'medium',
+};
 
 /**
  * Initial state
@@ -8,11 +15,12 @@ import { createItemData } from './types';
 const initialState: AppState = {
   items: new Map(),
   currentPath: '',
-  currentView: 'browser', // browser | search-results
+  currentView: 'browser', // browser | search-results | settings
   pendingScrollToFile: null,
   searchQuery: '',
   searchFolder: '',
   searchResults: [],
+  settings: defaultSettings,
 };
 
 /**
@@ -98,6 +106,13 @@ function getSearchQuerySnapshot(): string {
  */
 function getSearchFolderSnapshot(): string {
   return state.searchFolder;
+}
+
+/**
+ * Get snapshot of settings
+ */
+function getSettingsSnapshot(): AppSettings {
+  return state.settings;
 }
 
 // ============================================================================
@@ -487,6 +502,32 @@ export function clearSearchResults(): void {
   emitChange();
 }
 
+/**
+ * Update application settings
+ */
+export function setSettings(settings: AppSettings): void {
+  state = { ...state, settings };
+  emitChange();
+}
+
+/**
+ * Update the font size setting
+ */
+export function setFontSize(fontSize: FontSize): void {
+  state = {
+    ...state,
+    settings: { ...state.settings, fontSize },
+  };
+  emitChange();
+}
+
+/**
+ * Get current settings (non-reactive, for use outside React)
+ */
+export function getSettings(): AppSettings {
+  return state.settings;
+}
+
 // ============================================================================
 // Hooks - React hooks for subscribing to state
 // ============================================================================
@@ -554,4 +595,11 @@ export function useSearchQuery(): string {
  */
 export function useSearchFolder(): string {
   return useSyncExternalStore(subscribe, getSearchFolderSnapshot);
+}
+
+/**
+ * Hook to subscribe to settings
+ */
+export function useSettings(): AppSettings {
+  return useSyncExternalStore(subscribe, getSettingsSnapshot);
 }

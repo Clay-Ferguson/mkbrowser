@@ -52,7 +52,7 @@ export interface ItemData {
 /**
  * Represents which application page (aka view or panel) is currently displayed
  */
-export type AppView = 'browser' | 'search-results';
+export type AppView = 'browser' | 'search-results' | 'settings';
 
 /**
  * Search result from the file search
@@ -61,6 +61,19 @@ export interface SearchResultItem {
   path: string;
   relativePath: string;
   matchCount: number;
+}
+
+/**
+ * Available font size options for the application
+ */
+export type FontSize = 'small' | 'medium' | 'large';
+
+/**
+ * Application settings that are persisted to config file
+ */
+export interface AppSettings {
+  /** Font size for the application UI */
+  fontSize: FontSize;
 }
 
 /**
@@ -103,6 +116,11 @@ export interface AppState {
    * Search results from the most recent search
    */
   searchResults: SearchResultItem[];
+
+  /**
+   * Application settings (persisted to config file)
+   */
+  settings: AppSettings;
 }
 
 /**

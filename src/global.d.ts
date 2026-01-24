@@ -1,5 +1,12 @@
+export type FontSize = 'small' | 'medium' | 'large';
+
+export interface AppSettings {
+  fontSize: FontSize;
+}
+
 export interface AppConfig {
   browseFolder: string;
+  settings?: AppSettings;
 }
 
 export interface FileEntry {
@@ -26,7 +33,7 @@ export interface ElectronAPI {
   onCutRequested: (callback: () => void) => () => void;
   onPasteRequested: (callback: () => void) => () => void;
   onDeleteRequested: (callback: () => void) => () => void;
-  onViewChanged: (callback: (view: 'browser' | 'search-results') => void) => () => void;
+  onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;

@@ -1,4 +1,4 @@
-export type { AppState, AppView, ItemData, SearchResultItem } from './types';
+export type { AppState, AppView, AppSettings, FontSize, ItemData, SearchResultItem } from './types';
 export { createItemData } from './types';
 
 export {
@@ -25,6 +25,9 @@ export {
   setPendingScrollToFile,
   setSearchResults,
   clearSearchResults,
+  setSettings,
+  setFontSize,
+  getSettings,
   // Hooks
   useAppState,
   useItems,
@@ -35,4 +38,5 @@ export {
   useSearchResults,
   useSearchQuery,
   useSearchFolder,
+  useSettings,
 } from './store';

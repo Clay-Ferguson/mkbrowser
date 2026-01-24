@@ -3,6 +3,7 @@ import {
   useSearchResults,
   useSearchQuery,
   useSearchFolder,
+  useSettings,
 } from '../store';
 
 interface SearchResultsViewProps {
@@ -13,6 +14,14 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const searchResults = useSearchResults();
   const searchQuery = useSearchQuery();
   const searchFolder = useSearchFolder();
+  const settings = useSettings();
+
+  // Font size CSS class mapping
+  const fontSizeClass = {
+    small: 'text-sm',
+    medium: 'text-base',
+    large: 'text-lg',
+  }[settings.fontSize];
 
   const handleBack = () => {
     setCurrentView('browser');
@@ -30,7 +39,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const folderName = searchFolder.split('/').pop() || searchFolder;
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className={`min-h-screen bg-slate-900 ${fontSizeClass}`}>
       {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">

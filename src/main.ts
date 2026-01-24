@@ -22,9 +22,20 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
 // Command-line override for browse folder (takes precedence over config file)
 let commandLineFolder: string | null = null;
 
+type FontSize = 'small' | 'medium' | 'large';
+
+interface AppSettings {
+  fontSize: FontSize;
+}
+
 interface AppConfig {
   browseFolder: string;
+  settings?: AppSettings;
 }
+
+const defaultSettings: AppSettings = {
+  fontSize: 'medium',
+};
 
 function ensureConfigDir(): void {
   if (!fs.existsSync(CONFIG_DIR)) {
@@ -38,12 +49,18 @@ function loadConfig(): AppConfig {
     if (fs.existsSync(CONFIG_FILE)) {
       const content = fs.readFileSync(CONFIG_FILE, 'utf-8');
       const config = yaml.load(content) as AppConfig;
-      return config || { browseFolder: '' };
+      if (config) {
+        // Ensure settings has defaults merged in
+        return {
+          ...config,
+          settings: { ...defaultSettings, ...config.settings },
+        };
+      }
     }
   } catch {
     // If config is corrupted, return default
   }
-  return { browseFolder: '' };
+  return { browseFolder: '', settings: defaultSettings };
 }
 
 function saveConfig(config: AppConfig): void {
@@ -207,6 +224,13 @@ function setupApplicationMenu(): void {
         accelerator: 'CmdOrCtrl+2',
         click: () => {
           mainWindow?.webContents.send('view-changed', 'search-results');
+        },
+      },
+      {
+        label: 'Settings',
+        accelerator: 'CmdOrCtrl+,',
+        click: () => {
+          mainWindow?.webContents.send('view-changed', 'settings');
         },
       },
     ],
