@@ -101,6 +101,8 @@ function App() {
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [showSearchDialog, setShowSearchDialog] = useState<boolean>(false);
+  const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
+  const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
   const items = useItems();
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
@@ -405,6 +407,12 @@ function App() {
   }, []);
 
   const handleOpenCreateDialog = useCallback(() => {
+    setCreateFileDefaultName('');
+    setShowCreateDialog(true);
+  }, []);
+
+  const handleOpenCreateFileBelow = useCallback((defaultName: string) => {
+    setCreateFileDefaultName(defaultName);
     setShowCreateDialog(true);
   }, []);
 
@@ -414,6 +422,7 @@ function App() {
     const success = await window.electronAPI.writeFile(filePath, '');
     if (success) {
       setShowCreateDialog(false);
+      setCreateFileDefaultName('');
       setPendingScrollToFile(fileName);
       refreshDirectory();
       // Set editing mode after scroll completes
@@ -426,15 +435,23 @@ function App() {
       }
     } else {
       setShowCreateDialog(false);
+      setCreateFileDefaultName('');
       setError('Failed to create file');
     }
   }, [currentPath, refreshDirectory]);
 
   const handleCancelCreate = useCallback(() => {
     setShowCreateDialog(false);
+    setCreateFileDefaultName('');
   }, []);
 
   const handleOpenCreateFolderDialog = useCallback(() => {
+    setCreateFolderDefaultName('');
+    setShowCreateFolderDialog(true);
+  }, []);
+
+  const handleOpenCreateFolderBelow = useCallback((defaultName: string) => {
+    setCreateFolderDefaultName(defaultName);
     setShowCreateFolderDialog(true);
   }, []);
 
@@ -444,16 +461,19 @@ function App() {
     const success = await window.electronAPI.createFolder(folderPath);
     if (success) {
       setShowCreateFolderDialog(false);
+      setCreateFolderDefaultName('');
       setPendingScrollToFile(folderName);
       refreshDirectory();
     } else {
       setShowCreateFolderDialog(false);
+      setCreateFolderDefaultName('');
       setError('Failed to create folder');
     }
   }, [currentPath, refreshDirectory]);
 
   const handleCancelCreateFolder = useCallback(() => {
     setShowCreateFolderDialog(false);
+    setCreateFolderDefaultName('');
   }, []);
 
   // Search handlers
@@ -783,13 +803,13 @@ function App() {
               return sortedEntries.map((entry) => (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} />
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
                   ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
+                    <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
                   ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={refreshDirectory} />
+                    <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
                   ) : (
-                    <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
+                    <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
                   )}
                 </div>
               ));
@@ -800,6 +820,7 @@ function App() {
 
       {showCreateDialog && (
         <CreateFileDialog
+          defaultName={createFileDefaultName}
           onCreate={handleCreateFile}
           onCancel={handleCancelCreate}
         />
@@ -807,6 +828,7 @@ function App() {
 
       {showCreateFolderDialog && (
         <CreateFolderDialog
+          defaultName={createFolderDefaultName}
           onCreate={handleCreateFolder}
           onCancel={handleCancelCreateFolder}
         />

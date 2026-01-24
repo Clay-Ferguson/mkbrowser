@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { FileEntry } from '../global';
 import { buildEntryHeaderId } from '../utils/entryDom';
 import { useItem, setItemRenaming, setItemSelected } from '../store';
+import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../utils/ordinals';
 import ConfirmDialog from './ConfirmDialog';
 
 interface FolderEntryProps {
@@ -9,9 +10,11 @@ interface FolderEntryProps {
   onNavigate: (path: string) => void;
   onRename: () => void;
   onDelete: () => void;
+  onInsertFileBelow: (defaultName: string) => void;
+  onInsertFolderBelow: (defaultName: string) => void;
 }
 
-function FolderEntry({ entry, onNavigate, onRename, onDelete }: FolderEntryProps) {
+function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow }: FolderEntryProps) {
   const item = useItem(entry.path);
   const [newName, setNewName] = useState(entry.name);
   const [saving, setSaving] = useState(false);
@@ -21,6 +24,8 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete }: FolderEntryProps
 
   const isRenaming = item?.renaming ?? false;
   const isSelected = item?.isSelected ?? false;
+  const showInsertIcons = hasOrdinalPrefix(entry.name);
+  const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(entry.name) : null;
 
   // Focus input when entering rename mode
   useEffect(() => {
@@ -102,6 +107,20 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete }: FolderEntryProps
     setShowDeleteConfirm(false);
   };
 
+  const handleInsertFileBelow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (nextOrdinalPrefix) {
+      onInsertFileBelow(nextOrdinalPrefix);
+    }
+  };
+
+  const handleInsertFolderBelow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (nextOrdinalPrefix) {
+      onInsertFolderBelow(nextOrdinalPrefix);
+    }
+  };
+
   return (
     <div
       onClick={() => !isRenaming && onNavigate(entry.path)}
@@ -138,6 +157,28 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete }: FolderEntryProps
         <div className="flex-shrink-0" />
       ) : (
         <>
+          {showInsertIcons && (
+            <>
+              <button
+                onClick={handleInsertFileBelow}
+                className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors flex-shrink-0"
+                title="Insert file below"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </button>
+              <button
+                onClick={handleInsertFolderBelow}
+                className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-700 rounded transition-colors flex-shrink-0"
+                title="Insert folder below"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                </svg>
+              </button>
+            </>
+          )}
           <button
             onClick={handleRenameClick}
             className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors flex-shrink-0"

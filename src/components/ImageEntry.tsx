@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { FileEntry as FileEntryType } from '../global';
 import { buildEntryHeaderId } from '../utils/entryDom';
 import { useItem, setItemRenaming, setItemSelected, toggleItemExpanded } from '../store';
+import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../utils/ordinals';
 import ConfirmDialog from './ConfirmDialog';
 import AlertDialog from './AlertDialog';
 
@@ -10,9 +11,11 @@ interface ImageEntryProps {
   allImages: FileEntryType[];
   onRename: () => void;
   onDelete: () => void;
+  onInsertFileBelow: (defaultName: string) => void;
+  onInsertFolderBelow: (defaultName: string) => void;
 }
 
-function ImageEntry({ entry, allImages, onRename, onDelete }: ImageEntryProps) {
+function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow }: ImageEntryProps) {
   console.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
   
   const item = useItem(entry.path);
@@ -28,6 +31,8 @@ function ImageEntry({ entry, allImages, onRename, onDelete }: ImageEntryProps) {
   const isRenaming = item?.renaming ?? false;
   const isExpanded = item?.isExpanded ?? true;  // Default to expanded for images
   const isSelected = item?.isSelected ?? false;
+  const showInsertIcons = hasOrdinalPrefix(entry.name);
+  const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(entry.name) : null;
 
   console.log('[ImageEntry] State:', { isRenaming, isExpanded, isSelected });
 
@@ -142,6 +147,18 @@ function ImageEntry({ entry, allImages, onRename, onDelete }: ImageEntryProps) {
     toggleItemExpanded(entry.path);
   };
 
+  const handleInsertFileBelow = () => {
+    if (nextOrdinalPrefix) {
+      onInsertFileBelow(nextOrdinalPrefix);
+    }
+  };
+
+  const handleInsertFolderBelow = () => {
+    if (nextOrdinalPrefix) {
+      onInsertFolderBelow(nextOrdinalPrefix);
+    }
+  };
+
   // Convert file path to local-file:// URL for the image src
   const imageUrl = `local-file://${entry.path}`;
   console.log('[ImageEntry] Image URL:', imageUrl);
@@ -191,6 +208,28 @@ function ImageEntry({ entry, allImages, onRename, onDelete }: ImageEntryProps) {
         </button>
         {!isRenaming && (
           <>
+            {showInsertIcons && (
+              <>
+                <button
+                  onClick={handleInsertFileBelow}
+                  className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors"
+                  title="Insert file below"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleInsertFolderBelow}
+                  className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-700 rounded transition-colors"
+                  title="Insert folder below"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                  </svg>
+                </button>
+              </>
+            )}
             <button
               onClick={handleRenameClick}
               className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 interface CreateFolderDialogProps {
+  defaultName?: string;
   onCreate: (folderName: string) => void;
   onCancel: () => void;
 }
 
-function CreateFolderDialog({ onCreate, onCancel }: CreateFolderDialogProps) {
-  const [folderName, setFolderName] = useState('');
+function CreateFolderDialog({ defaultName = '', onCreate, onCancel }: CreateFolderDialogProps) {
+  const [folderName, setFolderName] = useState(defaultName);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

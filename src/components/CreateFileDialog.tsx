@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 interface CreateFileDialogProps {
+  defaultName?: string;
   onCreate: (fileName: string) => void;
   onCancel: () => void;
 }
 
-function CreateFileDialog({ onCreate, onCancel }: CreateFileDialogProps) {
-  const [fileName, setFileName] = useState('');
+function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDialogProps) {
+  const [fileName, setFileName] = useState(defaultName);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

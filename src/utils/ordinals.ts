@@ -11,6 +11,9 @@
 /** Regex to match an existing ordinal prefix (e.g., "00010_") */
 const ORDINAL_PREFIX_REGEX = /^\d{5}_/;
 
+/** Regex to extract the ordinal number from a prefix */
+const ORDINAL_NUMBER_REGEX = /^(\d{5})_/;
+
 /**
  * Strip an existing ordinal prefix from a filename if present.
  * @param name The filename that may contain an ordinal prefix
@@ -27,6 +30,28 @@ export function stripOrdinalPrefix(name: string): string {
  */
 export function hasOrdinalPrefix(name: string): boolean {
   return ORDINAL_PREFIX_REGEX.test(name);
+}
+
+/**
+ * Extract the ordinal number from a filename.
+ * @param name The filename to extract from
+ * @returns The ordinal number, or null if no ordinal prefix exists
+ */
+export function extractOrdinal(name: string): number | null {
+  const match = name.match(ORDINAL_NUMBER_REGEX);
+  if (!match) return null;
+  return parseInt(match[1], 10);
+}
+
+/**
+ * Get the next ordinal prefix for inserting a new item below the given item.
+ * @param name The filename of the current item
+ * @returns The next ordinal prefix (e.g., "00011_"), or null if no ordinal prefix exists
+ */
+export function getNextOrdinalPrefix(name: string): string | null {
+  const ordinal = extractOrdinal(name);
+  if (ordinal === null) return null;
+  return formatOrdinalPrefix(ordinal + 1);
 }
 
 /**
