@@ -37,9 +37,9 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
     const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
     if (!cleanedQuery) return;
     
-    // Validate advanced search requires contains() predicate
-    if (isAdvanced && !cleanedQuery.includes('contains(')) {
-      setError('Advanced search requires a contains() predicate expression');
+    // Validate advanced search requires $() predicate
+    if (isAdvanced && !cleanedQuery.includes('$(')) {
+      setError('Advanced search requires a $() predicate expression');
       return;
     }
     
@@ -80,7 +80,7 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
           className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm font-mono resize-none ${
             error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
           }`}
-          placeholder={isAdvanced ? 'contains("ABC") || contains("DEF")' : 'Enter search text...'}
+          placeholder={isAdvanced ? '$("ABC") || $("DEF")' : 'Enter search text...'}
           style={{ minHeight: '80px' }}
         />
 
@@ -100,7 +100,7 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
         ) : (
           <p className="text-xs text-slate-500 mt-2">
             {isAdvanced ? (
-              <>Uses <code className="bg-slate-700 px-1 rounded">contains("text")</code> function. Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
+              <>Uses <code className="bg-slate-700 px-1 rounded">$("text")</code> function. Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
             ) : (
               <>Searches .md and .txt files recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
             )}
