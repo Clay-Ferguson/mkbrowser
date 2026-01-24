@@ -7,6 +7,7 @@ import { createItemData } from './types';
  */
 const initialState: AppState = {
   items: new Map(),
+  currentPath: '',
   currentView: 'browser', // browser | search-results
   searchQuery: '',
   searchFolder: '',
@@ -61,6 +62,13 @@ function getItemsSnapshot(): Map<string, ItemData> {
  */
 function getCurrentViewSnapshot(): AppView {
   return state.currentView;
+}
+
+/**
+ * Get snapshot of the current path
+ */
+function getCurrentPathSnapshot(): string {
+  return state.currentPath;
 }
 
 /**
@@ -400,6 +408,24 @@ export function setCurrentView(view: AppView): void {
 }
 
 /**
+ * Set the current path being browsed
+ */
+export function setCurrentPath(path: string): void {
+  if (state.currentPath === path) return;
+  state = { ...state, currentPath: path };
+  emitChange();
+}
+
+/**
+ * Navigate to a path and switch to browser view in a single state update
+ */
+export function navigateToBrowserPath(path: string): void {
+  if (state.currentPath === path && state.currentView === 'browser') return;
+  state = { ...state, currentPath: path, currentView: 'browser' };
+  emitChange();
+}
+
+/**
  * Set search results along with the query and folder they came from
  */
 export function setSearchResults(
@@ -461,6 +487,13 @@ export function useItem(path: string): ItemData | undefined {
  */
 export function useCurrentView(): AppView {
   return useSyncExternalStore(subscribe, getCurrentViewSnapshot);
+}
+
+/**
+ * Hook to subscribe to the current path
+ */
+export function useCurrentPath(): string {
+  return useSyncExternalStore(subscribe, getCurrentPathSnapshot);
 }
 
 /**

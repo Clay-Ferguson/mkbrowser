@@ -18,15 +18,17 @@ import {
   setItemEditing,
   setItemExpanded,
   setCurrentView,
+  setCurrentPath,
+  navigateToBrowserPath,
   setSearchResults,
   useItems,
   useCurrentView,
+  useCurrentPath,
   type ItemData,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
 
 function App() {
-  const [currentPath, setCurrentPath] = useState<string>('');
   const [rootPath, setRootPath] = useState<string>('');
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -37,6 +39,7 @@ function App() {
   const [showSearchDialog, setShowSearchDialog] = useState<boolean>(false);
   const items = useItems();
   const currentView = useCurrentView();
+  const currentPath = useCurrentPath();
 
   // Load initial configuration
   useEffect(() => {
@@ -332,8 +335,7 @@ function App() {
   }, []);
 
   const handleNavigateToSearchResult = useCallback((folderPath: string, fileName: string) => {
-    setCurrentPath(folderPath);
-    setCurrentView('browser');
+    navigateToBrowserPath(folderPath);
     setTimeout(() => {
       scrollItemIntoView(fileName);
     }, 1000);

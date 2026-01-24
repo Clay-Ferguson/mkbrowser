@@ -19,6 +19,8 @@ export {
   getItem,
   isCacheValid,
   setCurrentView,
+  setCurrentPath,
+  navigateToBrowserPath,
   setSearchResults,
   clearSearchResults,
   // Hooks
@@ -26,6 +28,7 @@ export {
   useItems,
   useItem,
   useCurrentView,
+  useCurrentPath,
   useSearchResults,
   useSearchQuery,
   useSearchFolder,

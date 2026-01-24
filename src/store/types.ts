@@ -74,6 +74,11 @@ export interface AppState {
   items: Map<string, ItemData>;
 
   /**
+   * Current path being browsed
+   */
+  currentPath: string;
+
+  /**
    * Current view being displayed
    */
   currentView: AppView;
