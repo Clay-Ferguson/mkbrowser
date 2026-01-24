@@ -18,6 +18,7 @@ function ImageEntry({ entry, onRename, onDelete }: ImageEntryProps) {
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isRenaming = item?.renaming ?? false;
@@ -39,6 +40,20 @@ function ImageEntry({ entry, onRename, onDelete }: ImageEntryProps) {
       }
     }
   }, [isRenaming, entry.name]);
+
+  // Handle Escape key to close fullscreen overlay
+  useEffect(() => {
+    if (!isFullscreen) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsFullscreen(false);
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   const handleRenameClick = () => {
     setNewName(entry.name);
@@ -185,12 +200,41 @@ function ImageEntry({ entry, onRename, onDelete }: ImageEntryProps) {
             <img
               src={imageUrl}
               alt={entry.name}
-              className="max-w-full max-h-96 object-contain rounded"
+              className="max-w-full max-h-96 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
               loading="lazy"
+              onClick={() => setIsFullscreen(true)}
+              title="Click to view fullscreen"
               onLoad={() => console.log('[ImageEntry] Image loaded successfully:', imageUrl)}
               onError={(e) => console.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
             />
           </div>
+        </div>
+      )}
+
+      {/* Fullscreen overlay */}
+      {isFullscreen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          onClick={() => setIsFullscreen(false)}
+        >
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsFullscreen(false);
+            }}
+            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            title="Close (Esc)"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={imageUrl}
+            alt={entry.name}
+            className="max-w-[95vw] max-h-[95vh] object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 
