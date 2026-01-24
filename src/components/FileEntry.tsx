@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { FileEntry as FileEntryType } from '../global';
-import { useItem, setItemRenaming } from '../store';
+import { useItem, setItemRenaming, toggleItemExpanded } from '../store';
 import ConfirmDialog from './ConfirmDialog';
 
 interface FileEntryProps {
@@ -18,6 +18,7 @@ function FileEntry({ entry, onRename, onDelete }: FileEntryProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isRenaming = item?.renaming ?? false;
+  const isExpanded = item?.isExpanded ?? false;
 
   // Focus input when entering rename mode
   useEffect(() => {
@@ -95,6 +96,10 @@ function FileEntry({ entry, onRename, onDelete }: FileEntryProps) {
     setShowDeleteConfirm(false);
   };
 
+  const handleToggleExpanded = () => {
+    toggleItemExpanded(entry.path);
+  };
+
   return (
     <div className="flex items-center gap-3 px-4 py-3 bg-slate-800 rounded-lg border border-slate-700">
       <svg className="w-5 h-5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,6 +119,19 @@ function FileEntry({ entry, onRename, onDelete }: FileEntryProps) {
       ) : (
         <span className="text-slate-400 truncate flex-1">{entry.name}</span>
       )}
+      <button
+        onClick={handleToggleExpanded}
+        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+        title={isExpanded ? 'Collapse content' : 'Expand content'}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {isExpanded ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          )}
+        </svg>
+      </button>
       {!isRenaming && (
         <>
           <button

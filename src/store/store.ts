@@ -167,6 +167,40 @@ export function toggleItemSelected(path: string): void {
 }
 
 /**
+ * Toggle the expanded state of an item
+ */
+export function toggleItemExpanded(path: string): void {
+  const existing = state.items.get(path);
+  if (!existing) return;
+
+  const newItems = new Map(state.items);
+  newItems.set(path, {
+    ...existing,
+    isExpanded: !existing.isExpanded,
+  });
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
+/**
+ * Set the expanded state of an item explicitly
+ */
+export function setItemExpanded(path: string, isExpanded: boolean): void {
+  const existing = state.items.get(path);
+  if (!existing) return;
+
+  const newItems = new Map(state.items);
+  newItems.set(path, {
+    ...existing,
+    isExpanded,
+  });
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
+/**
  * Set the selected state of an item explicitly
  */
 export function setItemSelected(path: string, isSelected: boolean): void {

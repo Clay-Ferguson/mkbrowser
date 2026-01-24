@@ -1,7 +1,15 @@
 import { useEffect, useState, useRef } from 'react';
 import Markdown from 'react-markdown';
 import type { FileEntry } from '../global';
-import { useItem, setItemContent, setItemEditing, setItemRenaming, isCacheValid } from '../store';
+import {
+  useItem,
+  setItemContent,
+  setItemEditing,
+  setItemRenaming,
+  setItemExpanded,
+  toggleItemExpanded,
+  isCacheValid,
+} from '../store';
 import ConfirmDialog from './ConfirmDialog';
 
 interface MarkdownEntryProps {
@@ -23,6 +31,7 @@ function MarkdownEntry({ entry, onRename, onDelete }: MarkdownEntryProps) {
 
   const isEditing = item?.editing ?? false;
   const isRenaming = item?.renaming ?? false;
+  const isExpanded = item?.isExpanded ?? true;
 
   // Focus rename input when entering rename mode
   useEffect(() => {
@@ -41,6 +50,10 @@ function MarkdownEntry({ entry, onRename, onDelete }: MarkdownEntryProps) {
   // Load content if not cached or cache is stale
   useEffect(() => {
     const loadContent = async () => {
+      if (!isExpanded) {
+        return;
+      }
+
       // Check if we have valid cached content
       if (isCacheValid(entry.path)) {
         return;
@@ -58,13 +71,14 @@ function MarkdownEntry({ entry, onRename, onDelete }: MarkdownEntryProps) {
     };
 
     loadContent();
-  }, [entry.path, entry.modifiedTime]);
+  }, [entry.path, entry.modifiedTime, isExpanded]);
 
   // Get content from cache or show loading state
   const content = item?.content ?? '';
 
   const handleEditClick = () => {
     setEditContent(content);
+    setItemExpanded(entry.path, true);
     setItemEditing(entry.path, true);
   };
 
@@ -149,6 +163,10 @@ function MarkdownEntry({ entry, onRename, onDelete }: MarkdownEntryProps) {
     setShowDeleteConfirm(false);
   };
 
+  const handleToggleExpanded = () => {
+    toggleItemExpanded(entry.path);
+  };
+
   return (
     <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3 bg-slate-800/50 border-b border-slate-700">
@@ -169,6 +187,19 @@ function MarkdownEntry({ entry, onRename, onDelete }: MarkdownEntryProps) {
         ) : (
           <span className="text-slate-300 font-medium truncate flex-1">{entry.name}</span>
         )}
+        <button
+          onClick={handleToggleExpanded}
+          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+          title={isExpanded ? 'Collapse content' : 'Expand content'}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {isExpanded ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            )}
+          </svg>
+        </button>
         {isEditing ? (
           <div className="flex items-center gap-2">
             <button
@@ -219,22 +250,24 @@ function MarkdownEntry({ entry, onRename, onDelete }: MarkdownEntryProps) {
           </div>
         )}
       </div>
-      <div className="px-6 py-4">
-        {loading && !content ? (
-          <div className="text-slate-400 text-sm">Loading...</div>
-        ) : isEditing ? (
-          <textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            className="w-full h-64 bg-slate-900 text-slate-200 font-mono text-sm p-3 rounded border border-slate-600 focus:border-blue-500 focus:outline-none resize-y"
-            placeholder="Enter markdown content..."
-          />
-        ) : (
-          <article className="prose prose-invert prose-sm max-w-none">
-            <Markdown>{content || ''}</Markdown>
-          </article>
-        )}
-      </div>
+      {isExpanded && (
+        <div className="px-6 py-4">
+          {loading && !content ? (
+            <div className="text-slate-400 text-sm">Loading...</div>
+          ) : isEditing ? (
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full h-64 bg-slate-900 text-slate-200 font-mono text-sm p-3 rounded border border-slate-600 focus:border-blue-500 focus:outline-none resize-y"
+              placeholder="Enter markdown content..."
+            />
+          ) : (
+            <article className="prose prose-invert prose-sm max-w-none">
+              <Markdown>{content || ''}</Markdown>
+            </article>
+          )}
+        </div>
+      )}
       {showDeleteConfirm && (
         <ConfirmDialog
           message={`Are you sure you want to delete "${entry.name}"?`}

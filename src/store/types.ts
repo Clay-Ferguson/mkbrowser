@@ -18,6 +18,9 @@ export interface ItemData {
   /** Whether this item is selected (for checkbox selection, defaults to false) */
   isSelected: boolean;
 
+  /** Whether the file's content is currently expanded (visible) */
+  isExpanded: boolean;
+
   /**
    * Cached content for markdown files.
    * Only populated for .md files when they are displayed.
@@ -63,11 +66,14 @@ export function createItemData(
   isDirectory: boolean,
   modifiedTime: number
 ): ItemData {
+  const isMarkdownFile = !isDirectory && name.toLowerCase().endsWith('.md');
+
   return {
     path,
     name,
     isDirectory,
     modifiedTime,
     isSelected: false,
+    isExpanded: isMarkdownFile,
   };
 }

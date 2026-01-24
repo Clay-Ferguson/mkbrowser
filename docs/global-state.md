@@ -34,6 +34,7 @@ interface ItemData {
   isDirectory: boolean;   // Whether this is a directory
   modifiedTime: number;   // Last modified timestamp (ms since epoch)
   isSelected: boolean;    // Selection state for checkboxes (default: false)
+  isExpanded: boolean;    // Whether the file's content is expanded (visible)
   content?: string;       // Cached content for markdown files
   contentCachedAt?: number; // Timestamp when content was cached
   editing?: boolean;      // Whether file is currently being edited
