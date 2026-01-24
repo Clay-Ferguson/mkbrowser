@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, type MenuItemConstructorOptions } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import * as yaml from 'js-yaml';
@@ -9,6 +9,11 @@ import { fdir } from 'fdir';
 if (started) {
   app.quit();
 }
+
+// Register custom protocol for serving local files (must be done before app ready)
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'local-file', privileges: { bypassCSP: true, stream: true, supportFetchAPI: true } }
+]);
 
 // Config file location (Linux standard: ~/.config/mk-browser/config.yaml)
 const CONFIG_DIR = path.join(app.getPath('home'), '.config', 'mk-browser');
@@ -66,6 +71,15 @@ interface SearchResult {
 }
 
 let mainWindow: BrowserWindow | null = null;
+
+// Setup the local-file protocol handler
+function setupLocalFileProtocol(): void {
+  protocol.handle('local-file', (request) => {
+    // URL format: local-file:///absolute/path/to/file
+    const filePath = decodeURIComponent(request.url.slice('local-file://'.length));
+    return net.fetch(`file://${filePath}`);
+  });
+}
 
 const createWindow = () => {
   // Create the browser window.
@@ -461,6 +475,7 @@ async function handleCommandLineArgs(): Promise<void> {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
+  setupLocalFileProtocol();
   setupIpcHandlers();
   await handleCommandLineArgs();
   createWindow();

@@ -3,6 +3,15 @@ import type { FileEntry } from './global';
 import FolderEntry from './components/FolderEntry';
 import MarkdownEntry from './components/MarkdownEntry';
 import FileEntryComponent from './components/FileEntry';
+import ImageEntry from './components/ImageEntry';
+
+// Common image file extensions
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);
+
+function isImageFile(fileName: string): boolean {
+  const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
+  return IMAGE_EXTENSIONS.has(ext);
+}
 import CreateFileDialog from './components/CreateFileDialog';
 import CreateFolderDialog from './components/CreateFolderDialog';
 import AlertDialog from './components/AlertDialog';
@@ -529,6 +538,8 @@ function App() {
                   <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} />
                 ) : entry.isMarkdown ? (
                   <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
+                ) : isImageFile(entry.name) ? (
+                  <ImageEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
                 ) : (
                   <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
                 )}
