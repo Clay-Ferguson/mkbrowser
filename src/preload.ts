@@ -26,6 +26,19 @@ export interface SearchResult {
   matchCount: number;
 }
 
+export interface RenameOperation {
+  oldPath: string;
+  newPath: string;
+  oldName: string;
+  newName: string;
+}
+
+export interface RenumberResult {
+  success: boolean;
+  error?: string;
+  operations?: RenameOperation[];
+}
+
 export interface ElectronAPI {
   getConfig: () => Promise<AppConfig>;
   saveConfig: (config: AppConfig) => Promise<void>;
@@ -34,6 +47,7 @@ export interface ElectronAPI {
   onCutRequested: (callback: () => void) => () => void;
   onPasteRequested: (callback: () => void) => () => void;
   onDeleteRequested: (callback: () => void) => () => void;
+  onRenumberRequested: (callback: () => void) => () => void;
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
@@ -44,6 +58,7 @@ export interface ElectronAPI {
   deleteFile: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<boolean>;
   searchFolder: (folderPath: string, query: string) => Promise<SearchResult[]>;
+  renumberFiles: (dirPath: string) => Promise<RenumberResult>;
 }
 
 // Expose protected methods to the renderer process
@@ -87,6 +102,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('delete-items', handler);
     };
   },
+  onRenumberRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('renumber-files', handler);
+    return () => {
+      ipcRenderer.removeListener('renumber-files', handler);
+    };
+  },
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => {
     const handler = (_event: IpcRendererEvent, view: 'browser' | 'search-results' | 'settings') => {
       callback(view);
@@ -105,4 +129,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
   searchFolder: (folderPath: string, query: string) => ipcRenderer.invoke('search-folder', folderPath, query),
+  renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),
 } as ElectronAPI);

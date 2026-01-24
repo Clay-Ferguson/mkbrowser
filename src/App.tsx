@@ -353,6 +353,47 @@ function App() {
     };
   }, [getSelectedItems]);
 
+  // Handle renumbering files in the current directory
+  const handleRenumberFiles = useCallback(async () => {
+    if (!currentPath) return;
+    
+    setError(null);
+    const result = await window.electronAPI.renumberFiles(currentPath);
+    
+    if (!result.success) {
+      setError(result.error || 'Failed to renumber files');
+      return;
+    }
+    
+    // Update settings to alphabetical sort order so the numbering is visible
+    setSettings({ ...settings, sortOrder: 'alphabetical' });
+    
+    // Save the updated settings to config
+    try {
+      const config = await window.electronAPI.getConfig();
+      await window.electronAPI.saveConfig({
+        ...config,
+        settings: { ...settings, sortOrder: 'alphabetical' },
+      });
+    } catch {
+      // Non-critical - settings will still be applied in memory
+    }
+    
+    // Refresh the directory to show the renamed files
+    refreshDirectory();
+  }, [currentPath, settings, refreshDirectory]);
+
+  // Listen for Re-Number Files menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onRenumberRequested(() => {
+      void handleRenumberFiles();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [handleRenumberFiles]);
+
   // Handle folder selection
   const handleSelectFolder = useCallback(async () => {
     const folder = await window.electronAPI.selectFolder();

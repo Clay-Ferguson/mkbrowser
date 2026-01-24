@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import * as yaml from 'js-yaml';
 import started from 'electron-squirrel-startup';
 import { fdir } from 'fdir';
+import { stripOrdinalPrefix, formatOrdinalPrefix, calculateRenameOperations, type RenameOperation } from './utils/ordinals';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -242,6 +243,18 @@ function setupApplicationMenu(): void {
     ],
   });
 
+  template.push({
+    label: 'Tools',
+    submenu: [
+      {
+        label: 'Re-Number Files',
+        click: () => {
+          mainWindow?.webContents.send('renumber-files');
+        },
+      },
+    ],
+  });
+
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 }
@@ -404,6 +417,58 @@ function setupIpcHandlers(): void {
     } catch (error) {
       console.error('Error creating folder:', error);
       return false;
+    }
+  });
+
+  // Re-number files in a directory with ordinal prefixes
+  ipcMain.handle('renumber-files', async (_event, dirPath: string): Promise<{ success: boolean; error?: string; operations?: RenameOperation[] }> => {
+    try {
+      // Read all entries in the directory
+      const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+      
+      // Filter out hidden files and create items array
+      const items: Array<{ name: string; path: string }> = [];
+      for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue;
+        items.push({
+          name: entry.name,
+          path: path.join(dirPath, entry.name),
+        });
+      }
+
+      // Sort alphabetically (case-insensitive), mixing files and folders together
+      items.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+      // Calculate rename operations
+      const operations = calculateRenameOperations(items, dirPath);
+
+      if (operations.length === 0) {
+        return { success: true, operations: [] };
+      }
+
+      // Perform renames - we need to be careful about order to avoid conflicts
+      // First, rename to temporary names, then to final names
+      const tempSuffix = `_temp_${Date.now()}`;
+      
+      // Step 1: Rename all to temporary names
+      for (const op of operations) {
+        const tempPath = op.oldPath + tempSuffix;
+        await fs.promises.rename(op.oldPath, tempPath);
+      }
+
+      // Step 2: Rename from temporary to final names
+      for (const op of operations) {
+        const tempPath = op.oldPath + tempSuffix;
+        await fs.promises.rename(tempPath, op.newPath);
+      }
+
+      return { success: true, operations };
+    } catch (error) {
+      console.error('Error renumbering files:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+      };
     }
   });
 
