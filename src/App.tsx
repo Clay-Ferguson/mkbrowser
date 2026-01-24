@@ -114,6 +114,7 @@ function App() {
       refreshDirectory();
       setTimeout(() => {
         scrollItemIntoView(fileName);
+        // TODO: Start editing now, as if the edit icon was clicked.
       }, 1500);
     } else {
       setShowCreateDialog(false);
