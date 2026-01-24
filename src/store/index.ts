@@ -28,6 +28,7 @@ export {
   setSettings,
   setFontSize,
   setSortOrder,
+  setFoldersOnTop,
   getSettings,
   // Hooks
   useAppState,

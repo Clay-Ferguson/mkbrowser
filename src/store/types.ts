@@ -84,6 +84,8 @@ export interface AppSettings {
   fontSize: FontSize;
   /** Sort order for file/folder listing */
   sortOrder: SortOrder;
+  /** Whether to display folders above files */
+  foldersOnTop: boolean;
 }
 
 /**

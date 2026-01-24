@@ -46,35 +46,50 @@ import {
 import { scrollItemIntoView } from './utils/entryDom';
 
 /**
- * Sort entries based on the selected sort order.
- * Directories are always sorted first, then files, with the chosen sort within each group.
+ * Apply sort comparison based on the selected sort order.
  */
-function sortEntries(entries: FileEntry[], sortOrder: SortOrder): FileEntry[] {
-  return [...entries].sort((a, b) => {
-    // Directories always come first
-    if (a.isDirectory && !b.isDirectory) return -1;
-    if (!a.isDirectory && b.isDirectory) return 1;
+function compareByOrder(a: FileEntry, b: FileEntry, sortOrder: SortOrder): number {
+  switch (sortOrder) {
+    case 'alphabetical':
+      return a.name.localeCompare(b.name);
+    case 'created-chron':
+      // Older files first (ascending)
+      return a.createdTime - b.createdTime;
+    case 'created-reverse':
+      // Newer files first (descending)
+      return b.createdTime - a.createdTime;
+    case 'modified-chron':
+      // Older modifications first (ascending)
+      return a.modifiedTime - b.modifiedTime;
+    case 'modified-reverse':
+      // More recently modified first (descending)
+      return b.modifiedTime - a.modifiedTime;
+    default:
+      return a.name.localeCompare(b.name);
+  }
+}
 
-    // Within the same type, apply the chosen sort order
-    switch (sortOrder) {
-      case 'alphabetical':
-        return a.name.localeCompare(b.name);
-      case 'created-chron':
-        // Older files first (ascending)
-        return a.createdTime - b.createdTime;
-      case 'created-reverse':
-        // Newer files first (descending)
-        return b.createdTime - a.createdTime;
-      case 'modified-chron':
-        // Older modifications first (ascending)
-        return a.modifiedTime - b.modifiedTime;
-      case 'modified-reverse':
-        // More recently modified first (descending)
-        return b.modifiedTime - a.modifiedTime;
-      default:
-        return a.name.localeCompare(b.name);
-    }
-  });
+/**
+ * Sort entries based on the selected sort order and foldersOnTop preference.
+ * When foldersOnTop is true, directories are sorted first, then files.
+ * When false, all items are sorted together.
+ */
+function sortEntries(entries: FileEntry[], sortOrder: SortOrder, foldersOnTop: boolean): FileEntry[] {
+  if (foldersOnTop) {
+    // Separate folders and files
+    const folders = entries.filter(e => e.isDirectory);
+    const files = entries.filter(e => !e.isDirectory);
+
+    // Sort each list independently
+    folders.sort((a, b) => compareByOrder(a, b, sortOrder));
+    files.sort((a, b) => compareByOrder(a, b, sortOrder));
+
+    // Merge: folders first, then files
+    return [...folders, ...files];
+  } else {
+    // Sort all items together
+    return [...entries].sort((a, b) => compareByOrder(a, b, sortOrder));
+  }
 }
 
 function App() {
@@ -722,7 +737,7 @@ function App() {
           <div className="space-y-2">
             {(() => {
               const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
-              const sortedEntries = sortEntries(visibleEntries, settings.sortOrder);
+              const sortedEntries = sortEntries(visibleEntries, settings.sortOrder, settings.foldersOnTop);
               const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
               return sortedEntries.map((entry) => (
                 <div key={entry.path}>

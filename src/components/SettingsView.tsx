@@ -2,6 +2,7 @@ import {
   setCurrentView,
   setFontSize,
   setSortOrder,
+  setFoldersOnTop,
   useSettings,
   type FontSize,
   type SortOrder,
@@ -53,6 +54,12 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
 
   const handleSortOrderChange = (sortOrder: SortOrder) => {
     setSortOrder(sortOrder);
+    // Trigger save to persist the setting
+    onSaveSettings();
+  };
+
+  const handleFoldersOnTopChange = (foldersOnTop: boolean) => {
+    setFoldersOnTop(foldersOnTop);
     // Trigger save to persist the setting
     onSaveSettings();
   };
@@ -114,7 +121,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               Choose how files and folders are ordered in the browser.
             </p>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 mb-4">
               <select
                 value={settings.sortOrder}
                 onChange={(e) => handleSortOrderChange(e.target.value as SortOrder)}
@@ -127,6 +134,19 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                 ))}
               </select>
             </div>
+
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.foldersOnTop}
+                onChange={(e) => handleFoldersOnTopChange(e.target.checked)}
+                className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-slate-200">Folders on Top</span>
+            </label>
+            <p className="text-sm text-slate-400 mt-2 ml-8">
+              When enabled, folders are displayed above files in the listing.
+            </p>
           </section>
         </div>
       </main>

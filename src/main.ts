@@ -38,6 +38,7 @@ interface AppConfig {
 const defaultSettings: AppSettings = {
   fontSize: 'medium',
   sortOrder: 'alphabetical',
+  foldersOnTop: true,
 };
 
 function ensureConfigDir(): void {

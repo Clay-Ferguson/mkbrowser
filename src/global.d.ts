@@ -5,6 +5,7 @@ export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | '
 export interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
+  foldersOnTop: boolean;
 }
 
 export interface AppConfig {

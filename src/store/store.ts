@@ -8,6 +8,7 @@ import { createItemData } from './types';
 const defaultSettings: AppSettings = {
   fontSize: 'medium',
   sortOrder: 'alphabetical',
+  foldersOnTop: true,
 };
 
 /**
@@ -533,6 +534,17 @@ export function setSortOrder(sortOrder: SortOrder): void {
   state = {
     ...state,
     settings: { ...state.settings, sortOrder },
+  };
+  emitChange();
+}
+
+/**
+ * Update the folders on top setting
+ */
+export function setFoldersOnTop(foldersOnTop: boolean): void {
+  state = {
+    ...state,
+    settings: { ...state.settings, foldersOnTop },
   };
   emitChange();
 }
