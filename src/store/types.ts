@@ -106,6 +106,16 @@ export interface AppState {
 }
 
 /**
+ * Common image file extensions
+ */
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);
+
+function isImageFile(fileName: string): boolean {
+  const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
+  return IMAGE_EXTENSIONS.has(ext);
+}
+
+/**
  * Creates a new ItemData with default values
  */
 export function createItemData(
@@ -115,6 +125,7 @@ export function createItemData(
   modifiedTime: number
 ): ItemData {
   const isMarkdownFile = !isDirectory && name.toLowerCase().endsWith('.md');
+  const isImage = !isDirectory && isImageFile(name);
 
   return {
     path,
@@ -123,6 +134,6 @@ export function createItemData(
     modifiedTime,
     isSelected: false,
     isCut: false,
-    isExpanded: isMarkdownFile,
+    isExpanded: isMarkdownFile || isImage,
   };
 }
