@@ -500,7 +500,7 @@ function setupIpcHandlers(): void {
       
       if (isAdvanced) {
         // Advanced mode: evaluate user's JavaScript expression
-        // Create a 'contains' function that will be injected into the expression's scope
+        // Create a '$' function that will be injected into the expression's scope
         matchPredicate = (content: string) => {
           const contentLower = content.toLowerCase();
           let matchCount = 0;
@@ -508,12 +508,12 @@ function setupIpcHandlers(): void {
           // console.log(`[DEBUG] Advanced predicate called, content length: ${content.length}`);
           // console.log(`[DEBUG] Content preview (first 100 chars): "${content.substring(0, 100).replace(/\n/g, '\\n')}"`);
           
-          // The 'contains' function checks if content contains the given text (case-insensitive)
+          // The '$' function checks if content contains the given text (case-insensitive)
           // and increments matchCount for each call that returns true
-          const contains = (searchText: string): boolean => {
+          const $ = (searchText: string): boolean => {
             const searchLower = searchText.toLowerCase();
             const found = contentLower.includes(searchLower);
-            // console.log(`[DEBUG] contains("${searchText}") called -> searchLower="${searchLower}", found=${found}`);
+            // console.log(`[DEBUG] $("${searchText}") called -> searchLower="${searchLower}", found=${found}`);
             if (found) {
               // Count occurrences for matchCount
               let count = 0;
@@ -523,19 +523,19 @@ function setupIpcHandlers(): void {
                 idx += searchLower.length;
               }
               matchCount += count;
-              // console.log(`[DEBUG] contains("${searchText}") matched ${count} times`);
+              // console.log(`[DEBUG] $("${searchText}") matched ${count} times`);
               return true;
             }
             return false;
           };
           
           try {
-            // Create a function that evaluates the user's expression with 'contains' in scope
+            // Create a function that evaluates the user's expression with '$' in scope
             const expressionCode = `return (${query});`;
             // console.log(`[DEBUG] Creating eval function with code: "${expressionCode}"`);
-            const evalFunction = new Function('contains', expressionCode);
+            const evalFunction = new Function('$', expressionCode);
             // console.log(`[DEBUG] Eval function created successfully`);
-            const rawResult = evalFunction(contains);
+            const rawResult = evalFunction($);
             // console.log(`[DEBUG] Eval function returned: ${rawResult} (type: ${typeof rawResult})`);
             const matches = Boolean(rawResult);
             // console.log(`[DEBUG] Final matches=${matches}, matchCount=${matches ? Math.max(matchCount, 1) : 0}`);
