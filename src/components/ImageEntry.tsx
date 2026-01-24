@@ -3,14 +3,16 @@ import type { FileEntry as FileEntryType } from '../global';
 import { buildEntryHeaderId } from '../utils/entryDom';
 import { useItem, setItemRenaming, setItemSelected, toggleItemExpanded } from '../store';
 import ConfirmDialog from './ConfirmDialog';
+import AlertDialog from './AlertDialog';
 
 interface ImageEntryProps {
   entry: FileEntryType;
+  allImages: FileEntryType[];
   onRename: () => void;
   onDelete: () => void;
 }
 
-function ImageEntry({ entry, onRename, onDelete }: ImageEntryProps) {
+function ImageEntry({ entry, allImages, onRename, onDelete }: ImageEntryProps) {
   console.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
   
   const item = useItem(entry.path);
@@ -19,6 +21,8 @@ function ImageEntry({ entry, onRename, onDelete }: ImageEntryProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenImagePath, setFullscreenImagePath] = useState(entry.path);
+  const [showEndAlert, setShowEndAlert] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isRenaming = item?.renaming ?? false;
@@ -48,12 +52,29 @@ function ImageEntry({ entry, onRename, onDelete }: ImageEntryProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsFullscreen(false);
+        setFullscreenImagePath(entry.path); // Reset to this entry's image
       }
     };
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen]);
+  }, [isFullscreen, entry.path]);
+
+  // Get the current image being displayed in fullscreen
+  const currentFullscreenImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
+  const fullscreenImageUrl = `local-file://${fullscreenImagePath}`;
+
+  // Handle next image navigation
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
+    if (currentIndex === -1 || currentIndex >= allImages.length - 1) {
+      // At the end of images
+      setShowEndAlert(true);
+    } else {
+      setFullscreenImagePath(allImages[currentIndex + 1].path);
+    }
+  };
 
   const handleRenameClick = () => {
     setNewName(entry.name);
@@ -215,12 +236,27 @@ function ImageEntry({ entry, onRename, onDelete }: ImageEntryProps) {
       {isFullscreen && (
         <div 
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-          onClick={() => setIsFullscreen(false)}
+          onClick={() => {
+            setIsFullscreen(false);
+            setFullscreenImagePath(entry.path);
+          }}
         >
+          {/* Next image button */}
+          <button
+            onClick={handleNextImage}
+            className="absolute top-4 right-16 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            title="Next image"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          {/* Close button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               setIsFullscreen(false);
+              setFullscreenImagePath(entry.path);
             }}
             className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
             title="Close (Esc)"
@@ -230,12 +266,21 @@ function ImageEntry({ entry, onRename, onDelete }: ImageEntryProps) {
             </svg>
           </button>
           <img
-            src={imageUrl}
-            alt={entry.name}
+            src={fullscreenImageUrl}
+            alt={currentFullscreenImage.name}
             className="max-w-[95vw] max-h-[95vh] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
+      )}
+
+      {/* End of images alert */}
+      {showEndAlert && (
+        <AlertDialog
+          title="End of Images"
+          message="You have reached the end of the images in this folder."
+          onClose={() => setShowEndAlert(false)}
+        />
       )}
 
       {showDeleteConfirm && (

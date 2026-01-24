@@ -532,19 +532,23 @@ function App() {
 
         {!loading && entries.filter((entry) => !items.get(entry.path)?.isCut).length > 0 && (
           <div className="space-y-2">
-            {entries.filter((entry) => !items.get(entry.path)?.isCut).map((entry) => (
-              <div key={entry.path}>
-                {entry.isDirectory ? (
-                  <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} />
-                ) : entry.isMarkdown ? (
-                  <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
-                ) : isImageFile(entry.name) ? (
-                  <ImageEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
-                ) : (
-                  <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
-                )}
-              </div>
-            ))}
+            {(() => {
+              const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
+              const allImages = visibleEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
+              return visibleEntries.map((entry) => (
+                <div key={entry.path}>
+                  {entry.isDirectory ? (
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} />
+                  ) : entry.isMarkdown ? (
+                    <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
+                  ) : isImageFile(entry.name) ? (
+                    <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={refreshDirectory} />
+                  ) : (
+                    <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} />
+                  )}
+                </div>
+              ));
+            })()}
           </div>
         )}
       </main>
