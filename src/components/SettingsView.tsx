@@ -15,6 +15,7 @@ const fontSizeOptions: FontSizeOption[] = [
   { value: 'small', label: 'Small', description: '14px base font' },
   { value: 'medium', label: 'Medium', description: '16px base font (default)' },
   { value: 'large', label: 'Large', description: '18px base font' },
+  { value: 'xlarge', label: 'Extra Large', description: '20px base font' },
 ];
 
 interface SettingsViewProps {
@@ -29,6 +30,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
     small: 'text-sm',
     medium: 'text-base',
     large: 'text-lg',
+    xlarge: 'text-xl',
   }[settings.fontSize];
 
   const handleBack = () => {
@@ -76,30 +78,21 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               Choose the base font size for the application interface.
             </p>
 
-            <div className="space-y-2">
-              {fontSizeOptions.map((option) => (
-                <label
-                  key={option.value}
-                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    settings.fontSize === option.value
-                      ? 'border-blue-500 bg-blue-500/10'
-                      : 'border-slate-600 hover:border-slate-500 hover:bg-slate-700/50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="fontSize"
-                    value={option.value}
-                    checked={settings.fontSize === option.value}
-                    onChange={() => handleFontSizeChange(option.value)}
-                    className="w-4 h-4 text-blue-500 bg-slate-700 border-slate-500 focus:ring-blue-500 focus:ring-2"
-                  />
-                  <div className="flex-1">
-                    <div className="text-slate-200 font-medium">{option.label}</div>
-                    <div className="text-sm text-slate-400">{option.description}</div>
-                  </div>
-                </label>
-              ))}
+            <div className="flex items-center gap-4">
+              <select
+                value={settings.fontSize}
+                onChange={(e) => handleFontSizeChange(e.target.value as FontSize)}
+                className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+              >
+                {fontSizeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <span className="text-sm text-slate-400">
+                {fontSizeOptions.find((opt) => opt.value === settings.fontSize)?.description}
+              </span>
             </div>
           </section>
         </div>

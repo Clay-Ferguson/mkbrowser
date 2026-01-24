@@ -66,7 +66,7 @@ export interface SearchResultItem {
 /**
  * Available font size options for the application
  */
-export type FontSize = 'small' | 'medium' | 'large';
+export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 
 /**
  * Application settings that are persisted to config file
