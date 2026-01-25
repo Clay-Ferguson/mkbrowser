@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
+export type SearchMode = 'content' | 'filenames';
+
 export interface SearchOptions {
   query: string;
   isAdvanced: boolean;
+  searchMode: SearchMode;
 }
 
 interface SearchDialogProps {
@@ -13,6 +16,7 @@ interface SearchDialogProps {
 function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAdvanced, setIsAdvanced] = useState(false);
+  const [searchMode, setSearchMode] = useState<SearchMode>('content');
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -44,7 +48,7 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
     }
     
     setError(null);
-    onSearch({ query: cleanedQuery, isAdvanced });
+    onSearch({ query: cleanedQuery, isAdvanced, searchMode });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -84,6 +88,30 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
           style={{ minHeight: '80px' }}
         />
 
+        {/* Search mode radio buttons */}
+        <div className="flex items-center gap-6 mb-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="searchMode"
+              checked={searchMode === 'content'}
+              onChange={() => setSearchMode('content')}
+              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+            />
+            <span className="text-sm text-slate-300">Search File Contents</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="searchMode"
+              checked={searchMode === 'filenames'}
+              onChange={() => setSearchMode('filenames')}
+              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+            />
+            <span className="text-sm text-slate-300">Search File Names</span>
+          </label>
+        </div>
+
         {/* Advanced checkbox */}
         <label className="flex items-center gap-2 mb-4 cursor-pointer">
           <input
@@ -101,6 +129,8 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
           <p className="text-xs text-slate-500 mt-2">
             {isAdvanced ? (
               <>Uses <code className="bg-slate-700 px-1 rounded">$("text")</code> function. Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
+            ) : searchMode === 'filenames' ? (
+              <>Searches file and folder names recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
             ) : (
               <>Searches .md and .txt files recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
             )}

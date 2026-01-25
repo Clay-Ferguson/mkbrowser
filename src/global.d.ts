@@ -63,7 +63,7 @@ export interface ElectronAPI {
   deleteFile: (filePath: string) => Promise<boolean>;
   openExternal: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<boolean>;
-  searchFolder: (folderPath: string, query: string, isAdvanced?: boolean) => Promise<SearchResult[]>;
+  searchFolder: (folderPath: string, query: string, isAdvanced?: boolean, searchMode?: 'content' | 'filenames') => Promise<SearchResult[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
 }
 

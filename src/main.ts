@@ -484,109 +484,140 @@ function setupIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, isAdvanced = false): Promise<SearchResult[]> => {
+  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, isAdvanced = false, searchMode: 'content' | 'filenames' = 'content'): Promise<SearchResult[]> => {
     try {
       console.log(`\n=== Search Started ===`);
       console.log(`Folder: ${folderPath}`);
       console.log(`Query: "${query}"`);
       console.log(`Advanced mode: ${isAdvanced}`);
-
-      // Use fdir to crawl directory and find .md and .txt files
-      const api = new fdir()
-        .withFullPaths()
-        .filter((filePath) => {
-          const ext = path.extname(filePath).toLowerCase();
-          return ext === '.md' || ext === '.txt';
-        })
-        .crawl(folderPath);
-
-      const files = await api.withPromise();
-      console.log(`Found ${files.length} .md/.txt files to search`);
+      console.log(`Search mode: ${searchMode}`);
 
       const results: SearchResult[] = [];
       
       // Create the predicate function based on search mode
-      let matchPredicate: (content: string) => { matches: boolean; matchCount: number };
-      
-      if (isAdvanced) {
-        // Advanced mode: evaluate user's JavaScript expression
-        // Create a '$' function that will be injected into the expression's scope
-        matchPredicate = (content: string) => {
-          const contentLower = content.toLowerCase();
-          let matchCount = 0;
-          
-          // console.log(`[DEBUG] Advanced predicate called, content length: ${content.length}`);
-          // console.log(`[DEBUG] Content preview (first 100 chars): "${content.substring(0, 100).replace(/\n/g, '\\n')}"`);
-          
-          // The '$' function checks if content contains the given text (case-insensitive)
-          // and increments matchCount for each call that returns true
-          const $ = (searchText: string): boolean => {
-            const searchLower = searchText.toLowerCase();
-            const found = contentLower.includes(searchLower);
-            // console.log(`[DEBUG] $("${searchText}") called -> searchLower="${searchLower}", found=${found}`);
-            if (found) {
-              // Count occurrences for matchCount
-              let count = 0;
-              let idx = 0;
-              while ((idx = contentLower.indexOf(searchLower, idx)) !== -1) {
-                count++;
-                idx += searchLower.length;
+      const createMatchPredicate = (queryStr: string, advancedMode: boolean): (content: string) => { matches: boolean; matchCount: number } => {
+        if (advancedMode) {
+          // Advanced mode: evaluate user's JavaScript expression
+          // Create a '$' function that will be injected into the expression's scope
+          return (content: string) => {
+            const contentLower = content.toLowerCase();
+            let matchCount = 0;
+            
+            // The '$' function checks if content contains the given text (case-insensitive)
+            // and increments matchCount for each call that returns true
+            const $ = (searchText: string): boolean => {
+              const searchLower = searchText.toLowerCase();
+              const found = contentLower.includes(searchLower);
+              if (found) {
+                // Count occurrences for matchCount
+                let count = 0;
+                let idx = 0;
+                while ((idx = contentLower.indexOf(searchLower, idx)) !== -1) {
+                  count++;
+                  idx += searchLower.length;
+                }
+                matchCount += count;
+                return true;
               }
-              matchCount += count;
-              // console.log(`[DEBUG] $("${searchText}") matched ${count} times`);
-              return true;
+              return false;
+            };
+            
+            try {
+              // Create a function that evaluates the user's expression with '$' in scope
+              const expressionCode = `return (${queryStr});`;
+              const evalFunction = new Function('$', expressionCode);
+              const rawResult = evalFunction($);
+              const matches = Boolean(rawResult);
+              return { matches, matchCount: matches ? Math.max(matchCount, 1) : 0 };
+            } catch (evalError) {
+              console.warn(`[DEBUG] Error evaluating expression: ${evalError}`);
+              return { matches: false, matchCount: 0 };
             }
-            return false;
           };
-          
-          try {
-            // Create a function that evaluates the user's expression with '$' in scope
-            const expressionCode = `return (${query});`;
-            // console.log(`[DEBUG] Creating eval function with code: "${expressionCode}"`);
-            const evalFunction = new Function('$', expressionCode);
-            // console.log(`[DEBUG] Eval function created successfully`);
-            const rawResult = evalFunction($);
-            // console.log(`[DEBUG] Eval function returned: ${rawResult} (type: ${typeof rawResult})`);
-            const matches = Boolean(rawResult);
-            // console.log(`[DEBUG] Final matches=${matches}, matchCount=${matches ? Math.max(matchCount, 1) : 0}`);
-            return { matches, matchCount: matches ? Math.max(matchCount, 1) : 0 };
-          } catch (evalError) {
-            console.warn(`[DEBUG] Error evaluating expression: ${evalError}`);
-            return { matches: false, matchCount: 0 };
-          }
-        };
-      } else {
-        // Simple mode: case-insensitive text search
-        const queryLower = query.toLowerCase();
-        matchPredicate = (content: string) => {
-          const contentLower = content.toLowerCase();
-          let matchCount = 0;
-          let searchIndex = 0;
-          while ((searchIndex = contentLower.indexOf(queryLower, searchIndex)) !== -1) {
-            matchCount++;
-            searchIndex += queryLower.length;
-          }
-          return { matches: matchCount > 0, matchCount };
-        };
-      }
+        } else {
+          // Simple mode: case-insensitive text search
+          const queryLower = queryStr.toLowerCase();
+          return (content: string) => {
+            const contentLower = content.toLowerCase();
+            let matchCount = 0;
+            let searchIndex = 0;
+            while ((searchIndex = contentLower.indexOf(queryLower, searchIndex)) !== -1) {
+              matchCount++;
+              searchIndex += queryLower.length;
+            }
+            return { matches: matchCount > 0, matchCount };
+          };
+        }
+      };
 
-      for (const filePath of files) {
-        try {
-          const content = await fs.promises.readFile(filePath, 'utf-8');
-          const { matches, matchCount } = matchPredicate(content);
+      const matchPredicate = createMatchPredicate(query, isAdvanced);
+
+      if (searchMode === 'filenames') {
+        // Search file and folder names - crawl all entries (files AND directories)
+        const filesApi = new fdir()
+          .withFullPaths()
+          .crawl(folderPath);
+
+        const dirsApi = new fdir()
+          .withFullPaths()
+          .onlyDirs()
+          .crawl(folderPath);
+
+        const [files, dirs] = await Promise.all([
+          filesApi.withPromise(),
+          dirsApi.withPromise()
+        ]);
+
+        // Combine files and directories (excluding the root folder itself)
+        const allEntries = [...files, ...dirs.filter(d => d !== folderPath)];
+        console.log(`Found ${allEntries.length} entries (files + folders) to search`);
+
+        for (const entryPath of allEntries) {
+          // Get just the filename/foldername (not the full path)
+          const entryName = path.basename(entryPath);
+          const { matches, matchCount } = matchPredicate(entryName);
 
           if (matches) {
             // Get relative path for cleaner display
-            const relativePath = path.relative(folderPath, filePath);
+            const relativePath = path.relative(folderPath, entryPath);
             results.push({
-              path: filePath,
+              path: entryPath,
               relativePath,
               matchCount,
             });
           }
-        } catch (readError) {
-          // Skip files that can't be read
-          console.warn(`Could not read file: ${filePath}`);
+        }
+      } else {
+        // Search file contents - only .md and .txt files
+        const api = new fdir()
+          .withFullPaths()
+          .filter((filePath) => {
+            const ext = path.extname(filePath).toLowerCase();
+            return ext === '.md' || ext === '.txt';
+          })
+          .crawl(folderPath);
+
+        const files = await api.withPromise();
+        console.log(`Found ${files.length} .md/.txt files to search`);
+
+        for (const filePath of files) {
+          try {
+            const content = await fs.promises.readFile(filePath, 'utf-8');
+            const { matches, matchCount } = matchPredicate(content);
+
+            if (matches) {
+              // Get relative path for cleaner display
+              const relativePath = path.relative(folderPath, filePath);
+              results.push({
+                path: filePath,
+                relativePath,
+                matchCount,
+              });
+            }
+          } catch (readError) {
+            // Skip files that can't be read
+            console.warn(`Could not read file: ${filePath}`);
+          }
         }
       }
 
