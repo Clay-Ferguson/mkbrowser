@@ -147,7 +147,7 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
         <span
           id={buildEntryHeaderId(entry.name)}
           onClick={handleToggleExpanded}
-          className="text-slate-400 truncate flex-1 cursor-pointer hover:underline"
+          className="text-slate-400 truncate flex-1 cursor-pointer no-underline"
           title={isExpanded ? 'Collapse content' : 'Expand content'}
         >
           {entry.name}

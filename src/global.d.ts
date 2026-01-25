@@ -6,6 +6,7 @@ export interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
   foldersOnTop: boolean;
+  ignoredPaths: string;
 }
 
 export interface AppConfig {

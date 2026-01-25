@@ -3,6 +3,7 @@ import {
   setFontSize,
   setSortOrder,
   setFoldersOnTop,
+  setIgnoredPaths,
   useSettings,
   type FontSize,
   type SortOrder,
@@ -60,6 +61,12 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
 
   const handleFoldersOnTopChange = (foldersOnTop: boolean) => {
     setFoldersOnTop(foldersOnTop);
+    // Trigger save to persist the setting
+    onSaveSettings();
+  };
+
+  const handleIgnoredPathsChange = (ignoredPaths: string) => {
+    setIgnoredPaths(ignoredPaths);
     // Trigger save to persist the setting
     onSaveSettings();
   };
@@ -147,6 +154,22 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
             <p className="text-sm text-slate-400 mt-2 ml-8">
               When enabled, folders are displayed above files in the listing.
             </p>
+          </section>
+
+          {/* Ignored Paths Setting */}
+          <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-100 mb-2">Files to Ignore</h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Enter folder or file names to exclude from search results, one per line.
+            </p>
+
+            <textarea
+              value={settings.ignoredPaths}
+              onChange={(e) => handleIgnoredPathsChange(e.target.value)}
+              placeholder="node_modules&#10;.git&#10;dist"
+              rows={6}
+              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
+            />
           </section>
         </div>
       </main>

@@ -30,6 +30,7 @@ interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
   foldersOnTop: boolean;
+  ignoredPaths: string;
 }
 
 interface AppConfig {
@@ -41,6 +42,7 @@ const defaultSettings: AppSettings = {
   fontSize: 'medium',
   sortOrder: 'alphabetical',
   foldersOnTop: true,
+  ignoredPaths: '',
 };
 
 function ensureConfigDir(): void {

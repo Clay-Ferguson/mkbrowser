@@ -194,7 +194,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
           <span
             id={buildEntryHeaderId(entry.name)}
             onClick={handleToggleExpanded}
-            className="text-green-400 truncate flex-1 cursor-pointer hover:underline"
+            className="text-green-400 truncate flex-1 cursor-pointer no-underline"
             title={isExpanded ? 'Collapse image' : 'Expand image'}
           >
             {entry.name}

@@ -32,6 +32,7 @@ export {
   setFontSize,
   setSortOrder,
   setFoldersOnTop,
+  setIgnoredPaths,
   getSettings,
   // Hooks
   useAppState,

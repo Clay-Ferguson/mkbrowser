@@ -9,6 +9,7 @@ const defaultSettings: AppSettings = {
   fontSize: 'medium',
   sortOrder: 'alphabetical',
   foldersOnTop: true,
+  ignoredPaths: '',
 };
 
 /**
@@ -613,6 +614,17 @@ export function setFoldersOnTop(foldersOnTop: boolean): void {
   state = {
     ...state,
     settings: { ...state.settings, foldersOnTop },
+  };
+  emitChange();
+}
+
+/**
+ * Update the ignored paths setting
+ */
+export function setIgnoredPaths(ignoredPaths: string): void {
+  state = {
+    ...state,
+    settings: { ...state.settings, ignoredPaths },
   };
   emitChange();
 }

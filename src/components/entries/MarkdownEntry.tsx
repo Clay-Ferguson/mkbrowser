@@ -216,7 +216,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
           <span
             id={buildEntryHeaderId(entry.name)}
             onClick={handleToggleExpanded}
-            className="text-slate-300 font-medium truncate flex-1 cursor-pointer hover:underline"
+            className="text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline"
             title={isExpanded ? 'Collapse content' : 'Expand content'}
           >
             {entry.name}

@@ -86,6 +86,8 @@ export interface AppSettings {
   sortOrder: SortOrder;
   /** Whether to display folders above files */
   foldersOnTop: boolean;
+  /** Newline-separated list of folder/file names to ignore in search */
+  ignoredPaths: string;
 }
 
 /**
