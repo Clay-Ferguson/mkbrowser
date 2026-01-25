@@ -48,6 +48,7 @@ import {
   useCurrentPath,
   usePendingScrollToFile,
   useSettings,
+  useExpansionCounts,
   type ItemData,
   type SortOrder,
 } from './store';
@@ -116,6 +117,11 @@ function App() {
   const currentPath = useCurrentPath();
   const pendingScrollToFile = usePendingScrollToFile();
   const settings = useSettings();
+  const expansionCounts = useExpansionCounts();
+
+  // Determine visibility of expand/collapse buttons
+  const showExpandAll = expansionCounts.totalCount > 0 && expansionCounts.expandedCount < expansionCounts.totalCount;
+  const showCollapseAll = expansionCounts.totalCount > 0 && expansionCounts.collapsedCount < expansionCounts.totalCount;
 
   // Apply font size globally via data attribute on html element
   useEffect(() => {
@@ -816,26 +822,30 @@ function App() {
               </button>
 
               {/* Expand all button */}
-              <button
-                onClick={expandAllItems}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Expand all"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+              {showExpandAll && (
+                <button
+                  onClick={expandAllItems}
+                  className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                  title="Expand all"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              )}
 
               {/* Collapse all button */}
-              <button
-                onClick={collapseAllItems}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Collapse all"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                </svg>
-              </button>
+              {showCollapseAll && (
+                <button
+                  onClick={collapseAllItems}
+                  className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                  title="Collapse all"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                </button>
+              )}
 
               {/* Refresh button */}
               <button

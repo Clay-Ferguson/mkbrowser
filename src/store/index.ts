@@ -1,4 +1,5 @@
 export type { AppState, AppView, AppSettings, FontSize, SortOrder, ItemData, SearchResultItem } from './types';
+export type { ExpansionCounts } from './store';
 export { createItemData } from './types';
 
 export {
@@ -34,6 +35,7 @@ export {
   setFoldersOnTop,
   setIgnoredPaths,
   getSettings,
+  getExpansionCounts,
   // Hooks
   useAppState,
   useItems,
@@ -45,4 +47,5 @@ export {
   useSearchQuery,
   useSearchFolder,
   useSettings,
+  useExpansionCounts,
 } from './store';

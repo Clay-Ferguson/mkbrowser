@@ -378,6 +378,79 @@ export function collapseAllItems(): void {
 }
 
 /**
+ * Expansion counts for items in a given directory
+ */
+export interface ExpansionCounts {
+  expandedCount: number;
+  collapsedCount: number;
+  totalCount: number;
+}
+
+/**
+ * Get expansion counts for items in a specific directory path.
+ * Only counts items that are direct children of the given path and are not cut.
+ */
+export function getExpansionCounts(directoryPath: string): ExpansionCounts {
+  let expandedCount = 0;
+  let collapsedCount = 0;
+
+  for (const [itemPath, item] of state.items) {
+    // Skip cut items (they're not visible)
+    if (item.isCut) continue;
+
+    // Check if this item is a direct child of the directory
+    const parentPath = itemPath.substring(0, itemPath.lastIndexOf('/'));
+    if (parentPath !== directoryPath) continue;
+
+    if (item.isExpanded) {
+      expandedCount++;
+    } else {
+      collapsedCount++;
+    }
+  }
+
+  return {
+    expandedCount,
+    collapsedCount,
+    totalCount: expandedCount + collapsedCount,
+  };
+}
+
+/**
+ * Cached expansion counts to avoid creating new objects on every snapshot call
+ */
+let cachedExpansionCounts: ExpansionCounts = { expandedCount: 0, collapsedCount: 0, totalCount: 0 };
+let cachedExpansionCountsPath: string = '';
+
+/**
+ * Get snapshot of expansion counts for the current path.
+ * Returns a cached object to maintain referential equality when values haven't changed.
+ */
+function getExpansionCountsSnapshot(): ExpansionCounts {
+  const counts = getExpansionCounts(state.currentPath);
+  
+  // Only return a new object if values actually changed
+  if (
+    cachedExpansionCountsPath !== state.currentPath ||
+    cachedExpansionCounts.expandedCount !== counts.expandedCount ||
+    cachedExpansionCounts.collapsedCount !== counts.collapsedCount ||
+    cachedExpansionCounts.totalCount !== counts.totalCount
+  ) {
+    cachedExpansionCounts = counts;
+    cachedExpansionCountsPath = state.currentPath;
+  }
+  
+  return cachedExpansionCounts;
+}
+
+/**
+ * Hook to subscribe to expansion counts for the current path
+ */
+export function useExpansionCounts(): ExpansionCounts {
+  return useSyncExternalStore(subscribe, getExpansionCountsSnapshot);
+}
+
+/**
  * Mark all selected items as cut and clear their selection
  */
 export function cutSelectedItems(): void {
