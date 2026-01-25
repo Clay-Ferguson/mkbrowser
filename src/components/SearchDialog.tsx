@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
 export type SearchMode = 'content' | 'filenames';
+export type SearchType = 'literal' | 'wildcard' | 'advanced';
 
 export interface SearchOptions {
   query: string;
-  isAdvanced: boolean;
+  searchType: SearchType;
   searchMode: SearchMode;
 }
 
@@ -15,7 +16,7 @@ interface SearchDialogProps {
 
 function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAdvanced, setIsAdvanced] = useState(false);
+  const [searchType, setSearchType] = useState<SearchType>('literal');
   const [searchMode, setSearchMode] = useState<SearchMode>('content');
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -42,13 +43,13 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
     if (!cleanedQuery) return;
     
     // Validate advanced search requires $() predicate
-    if (isAdvanced && !cleanedQuery.includes('$(')) {
+    if (searchType === 'advanced' && !cleanedQuery.includes('$(')) {
       setError('Advanced search requires a $() predicate expression');
       return;
     }
     
     setError(null);
-    onSearch({ query: cleanedQuery, isAdvanced, searchMode });
+    onSearch({ query: cleanedQuery, searchType, searchMode });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -73,7 +74,7 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
         <h2 className="text-lg font-semibold text-slate-100 mb-3">Search in folder</h2>
       
         <label className="block text-sm text-slate-400 mb-2">
-          {isAdvanced ? 'JavaScript expression' : 'Search text'}
+          {searchType === 'advanced' ? 'JavaScript expression' : searchType === 'wildcard' ? 'Search text (use * as wildcard)' : 'Search text'}
         </label>
         <textarea
           ref={textareaRef}
@@ -84,7 +85,7 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
           className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm font-mono resize-none ${
             error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
           }`}
-          placeholder={isAdvanced ? '$("ABC") || $("DEF")' : 'Enter search text...'}
+          placeholder={searchType === 'advanced' ? '$(\'ABC\') || $(\'DEF\')' : searchType === 'wildcard' ? 'intro*duction' : 'Enter search text...'}
           style={{ minHeight: '80px' }}
         />
 
@@ -123,8 +124,8 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
               <input
                 type="radio"
                 name="searchType"
-                checked={!isAdvanced}
-                onChange={() => setIsAdvanced(false)}
+                checked={searchType === 'literal'}
+                onChange={() => setSearchType('literal')}
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
               />
               <span className="text-sm text-slate-300">Literal</span>
@@ -133,8 +134,18 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
               <input
                 type="radio"
                 name="searchType"
-                checked={isAdvanced}
-                onChange={() => setIsAdvanced(true)}
+                checked={searchType === 'wildcard'}
+                onChange={() => setSearchType('wildcard')}
+                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+              />
+              <span className="text-sm text-slate-300">Wild Card</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="searchType"
+                checked={searchType === 'advanced'}
+                onChange={() => setSearchType('advanced')}
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
               />
               <span className="text-sm text-slate-300">Advanced</span>
@@ -146,8 +157,10 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
           <p className="text-xs text-red-400 mt-2">{error}</p>
         ) : (
           <p className="text-xs text-slate-500 mt-2">
-            {isAdvanced ? (
+            {searchType === 'advanced' ? (
               <>Uses <code className="bg-slate-700 px-1 rounded">$("text")</code> function. Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
+            ) : searchType === 'wildcard' ? (
+              <>Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters. Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
             ) : searchMode === 'filenames' ? (
               <>Searches file and folder names recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
             ) : (

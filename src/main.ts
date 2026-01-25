@@ -484,19 +484,33 @@ function setupIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, isAdvanced = false, searchMode: 'content' | 'filenames' = 'content'): Promise<SearchResult[]> => {
+  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content'): Promise<SearchResult[]> => {
     try {
       console.log(`\n=== Search Started ===`);
       console.log(`Folder: ${folderPath}`);
       console.log(`Query: "${query}"`);
-      console.log(`Advanced mode: ${isAdvanced}`);
+      console.log(`Search type: ${searchType}`);
       console.log(`Search mode: ${searchMode}`);
 
       const results: SearchResult[] = [];
       
-      // Create the predicate function based on search mode
-      const createMatchPredicate = (queryStr: string, advancedMode: boolean): (content: string) => { matches: boolean; matchCount: number } => {
-        if (advancedMode) {
+      // Helper to escape regex special characters (except *)
+      const escapeRegexExceptWildcard = (str: string): string => {
+        // Escape all regex special chars except *
+        return str.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+      };
+
+      // Helper to convert wildcard pattern to regex
+      const wildcardToRegex = (pattern: string): RegExp => {
+        // Escape special regex chars, then convert * to .*
+        const escaped = escapeRegexExceptWildcard(pattern);
+        const regexPattern = escaped.replace(/\*/g, '.*');
+        return new RegExp(regexPattern, 'i'); // case-insensitive
+      };
+      
+      // Create the predicate function based on search type
+      const createMatchPredicate = (queryStr: string, type: 'literal' | 'wildcard' | 'advanced'): (content: string) => { matches: boolean; matchCount: number } => {
+        if (type === 'advanced') {
           // Advanced mode: evaluate user's JavaScript expression
           // Create a '$' function that will be injected into the expression's scope
           return (content: string) => {
@@ -534,8 +548,20 @@ function setupIpcHandlers(): void {
               return { matches: false, matchCount: 0 };
             }
           };
+        } else if (type === 'wildcard') {
+          // Wildcard mode: convert * to regex .*
+          const regex = wildcardToRegex(queryStr);
+          return (content: string) => {
+            const matches = regex.test(content);
+            if (matches) {
+              // Count matches by finding all occurrences
+              const allMatches = content.match(new RegExp(regex.source, 'gi'));
+              return { matches: true, matchCount: allMatches ? allMatches.length : 1 };
+            }
+            return { matches: false, matchCount: 0 };
+          };
         } else {
-          // Simple mode: case-insensitive text search
+          // Literal mode: case-insensitive text search
           const queryLower = queryStr.toLowerCase();
           return (content: string) => {
             const contentLower = content.toLowerCase();
@@ -550,7 +576,7 @@ function setupIpcHandlers(): void {
         }
       };
 
-      const matchPredicate = createMatchPredicate(query, isAdvanced);
+      const matchPredicate = createMatchPredicate(query, searchType);
 
       if (searchMode === 'filenames') {
         // Search file and folder names - crawl all entries (files AND directories)

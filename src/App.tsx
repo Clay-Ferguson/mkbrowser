@@ -491,7 +491,7 @@ function App() {
     if (!currentPath) return;
     setShowSearchDialog(false);
     
-    const results = await window.electronAPI.searchFolder(currentPath, options.query, options.isAdvanced, options.searchMode);
+    const results = await window.electronAPI.searchFolder(currentPath, options.query, options.searchType, options.searchMode);
     setSearchResults(results, options.query, currentPath);
     setCurrentView('search-results');
   }, [currentPath]);
