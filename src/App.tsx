@@ -4,6 +4,7 @@ import FolderEntry from './components/entries/FolderEntry';
 import MarkdownEntry from './components/entries/MarkdownEntry';
 import FileEntryComponent from './components/entries/FileEntry';
 import ImageEntry from './components/entries/ImageEntry';
+import TextEntry from './components/entries/TextEntry';
 
 // Common image file extensions
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);
@@ -11,6 +12,10 @@ const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.sv
 function isImageFile(fileName: string): boolean {
   const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
   return IMAGE_EXTENSIONS.has(ext);
+}
+
+function isTextFile(fileName: string): boolean {
+  return fileName.toLowerCase().endsWith('.txt');
 }
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
@@ -877,6 +882,8 @@ function App() {
                     <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
                   ) : isImageFile(entry.name) ? (
                     <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
+                  ) : isTextFile(entry.name) ? (
+                    <TextEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
                   ) : (
                     <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
                   )}
