@@ -16,7 +16,7 @@ import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import AlertDialog from './components/dialogs/AlertDialog';
 import ConfirmDialog from './components/dialogs/ConfirmDialog';
-import SearchDialog, { type SearchOptions } from './components/SearchDialog';
+import SearchDialog, { type SearchOptions } from './components/dialogs/SearchDialog';
 import SearchResultsView from './components/SearchResultsView';
 import SettingsView from './components/SettingsView';
 import {
