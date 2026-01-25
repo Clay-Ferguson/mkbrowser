@@ -22,3 +22,52 @@ html[data-font-size="large"] {
 html[data-font-size="xlarge"] {
   font-size: 20px;
 }
+
+/* Custom prose typography adjustments:
+   - Headings are scaled down to prevent them from becoming too large
+   - Body text is scaled up slightly for better readability
+   These ratios work well across all font size settings */
+.prose {
+  /* Increase base paragraph/body text size */
+  --tw-prose-body: theme(colors.slate.300);
+  font-size: 1.05em;
+  line-height: 1.75;
+}
+
+.prose p,
+.prose li,
+.prose blockquote {
+  font-size: 1.05em;
+}
+
+/* Scale down all headings proportionally */
+.prose h1 {
+  font-size: 1.65em;
+  margin-top: 0;
+  margin-bottom: 0.6em;
+}
+
+.prose h2 {
+  font-size: 1.35em;
+  margin-top: 1.2em;
+  margin-bottom: 0.5em;
+}
+
+.prose h3 {
+  font-size: 1.15em;
+  margin-top: 1em;
+  margin-bottom: 0.4em;
+}
+
+.prose h4 {
+  font-size: 1.05em;
+  margin-top: 0.9em;
+  margin-bottom: 0.3em;
+}
+
+.prose h5,
+.prose h6 {
+  font-size: 1em;
+  margin-top: 0.8em;
+  margin-bottom: 0.3em;
+}
