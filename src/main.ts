@@ -109,9 +109,14 @@ function setupLocalFileProtocol(): void {
 }
 
 const createWindow = () => {
-  // Load app icon
-  const iconPath = path.join(__dirname, '../../icon.png');
+  // Load app icon - handle both development and production paths
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'icon-256.png')
+    : path.join(app.getAppPath(), 'icon-256.png');
+  
+  console.log('Icon path:', iconPath, 'Exists:', fs.existsSync(iconPath));
   const icon = nativeImage.createFromPath(iconPath);
+  console.log('Icon isEmpty:', icon.isEmpty());
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
