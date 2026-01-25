@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, nativeImage, type MenuItemConstructorOptions } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import * as yaml from 'js-yaml';
@@ -107,10 +107,15 @@ function setupLocalFileProtocol(): void {
 }
 
 const createWindow = () => {
+  // Load app icon
+  const iconPath = path.join(__dirname, '../../icon.png');
+  const icon = nativeImage.createFromPath(iconPath);
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: icon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
