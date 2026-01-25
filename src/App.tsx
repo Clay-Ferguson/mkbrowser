@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FileEntry } from './global';
-import FolderEntry from './components/FolderEntry';
-import MarkdownEntry from './components/MarkdownEntry';
-import FileEntryComponent from './components/FileEntry';
-import ImageEntry from './components/ImageEntry';
+import FolderEntry from './components/entries/FolderEntry';
+import MarkdownEntry from './components/entries/MarkdownEntry';
+import FileEntryComponent from './components/entries/FileEntry';
+import ImageEntry from './components/entries/ImageEntry';
 
 // Common image file extensions
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);
@@ -17,8 +17,8 @@ import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import AlertDialog from './components/dialogs/AlertDialog';
 import ConfirmDialog from './components/dialogs/ConfirmDialog';
 import SearchDialog, { type SearchOptions } from './components/dialogs/SearchDialog';
-import SearchResultsView from './components/SearchResultsView';
-import SettingsView from './components/SettingsView';
+import SearchResultsView from './components/views/SearchResultsView';
+import SettingsView from './components/views/SettingsView';
 import {
   clearAllSelections,
   selectItemsByPaths,

@@ -4,7 +4,7 @@ import {
   useSearchQuery,
   useSearchFolder,
   useSettings,
-} from '../store';
+} from '../../store';
 
 interface SearchResultsViewProps {
   onNavigateToResult: (folderPath: string, fileName: string) => void;

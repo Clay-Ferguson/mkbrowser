@@ -6,7 +6,7 @@ import {
   useSettings,
   type FontSize,
   type SortOrder,
-} from '../store';
+} from '../../store';
 
 interface FontSizeOption {
   value: FontSize;

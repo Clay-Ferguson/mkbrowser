@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Markdown from 'react-markdown';
-import type { FileEntry } from '../global';
-import { buildEntryHeaderId } from '../utils/entryDom';
+import type { FileEntry } from '../../global';
+import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
   useItem,
   setItemContent,
@@ -11,9 +11,9 @@ import {
   setItemExpanded,
   toggleItemExpanded,
   isCacheValid,
-} from '../store';
-import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../utils/ordinals';
-import ConfirmDialog from './dialogs/ConfirmDialog';
+} from '../../store';
+import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
+import ConfirmDialog from '../dialogs/ConfirmDialog';
 
 interface MarkdownEntryProps {
   entry: FileEntry;
