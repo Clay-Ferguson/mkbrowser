@@ -21,6 +21,8 @@ import SearchResultsView from './components/SearchResultsView';
 import SettingsView from './components/SettingsView';
 import {
   clearAllSelections,
+  expandAllItems,
+  collapseAllItems,
   clearAllCutItems,
   cutSelectedItems,
   deleteItems,
@@ -770,6 +772,28 @@ function App() {
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </button>
+
+            {/* Expand all button */}
+            <button
+              onClick={expandAllItems}
+              className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+              title="Expand all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {/* Collapse all button */}
+            <button
+              onClick={collapseAllItems}
+              className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+              title="Collapse all"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
             </button>
 

@@ -309,6 +309,50 @@ export function clearAllSelections(): void {
 }
 
 /**
+ * Expand all items (set isExpanded to true for all)
+ */
+export function expandAllItems(): void {
+  if (state.items.size === 0) return;
+
+  const newItems = new Map(state.items);
+  let hasChanges = false;
+
+  for (const [path, item] of newItems) {
+    if (!item.isExpanded) {
+      newItems.set(path, { ...item, isExpanded: true });
+      hasChanges = true;
+    }
+  }
+
+  if (!hasChanges) return;
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
+/**
+ * Collapse all items (set isExpanded to false for all)
+ */
+export function collapseAllItems(): void {
+  if (state.items.size === 0) return;
+
+  const newItems = new Map(state.items);
+  let hasChanges = false;
+
+  for (const [path, item] of newItems) {
+    if (item.isExpanded) {
+      newItems.set(path, { ...item, isExpanded: false });
+      hasChanges = true;
+    }
+  }
+
+  if (!hasChanges) return;
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
+/**
  * Mark all selected items as cut and clear their selection
  */
 export function cutSelectedItems(): void {
