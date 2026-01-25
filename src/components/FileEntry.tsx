@@ -144,21 +144,15 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
           className="flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
         />
       ) : (
-        <span id={buildEntryHeaderId(entry.name)} className="text-slate-400 truncate flex-1">{entry.name}</span>
+        <span
+          id={buildEntryHeaderId(entry.name)}
+          onClick={handleToggleExpanded}
+          className="text-slate-400 truncate flex-1 cursor-pointer hover:underline"
+          title={isExpanded ? 'Collapse content' : 'Expand content'}
+        >
+          {entry.name}
+        </span>
       )}
-      <button
-        onClick={handleToggleExpanded}
-        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
-        title={isExpanded ? 'Collapse content' : 'Expand content'}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          {isExpanded ? (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-          ) : (
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          )}
-        </svg>
-      </button>
       {!isRenaming && (
         <>
           {showInsertIcons && (
