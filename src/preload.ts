@@ -155,4 +155,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames') => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode),
   renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
+  onExportRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('export-requested', handler);
+    return () => {
+      ipcRenderer.removeListener('export-requested', handler);
+    };
+  },
+  selectExportFolder: () => ipcRenderer.invoke('select-export-folder'),
+  exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => 
+    ipcRenderer.invoke('export-folder-contents', sourceFolder, outputFolder, outputFileName, includeSubfolders, includeFilenames, includeDividers),
 } as ElectronAPI);

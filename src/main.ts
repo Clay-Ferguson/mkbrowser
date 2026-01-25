@@ -280,6 +280,13 @@ function setupApplicationMenu(): void {
           mainWindow?.webContents.send('renumber-files');
         },
       },
+      { type: 'separator' },
+      {
+        label: 'Export...',
+        click: () => {
+          mainWindow?.webContents.send('export-requested');
+        },
+      },
     ],
   });
 
@@ -711,6 +718,133 @@ function setupIpcHandlers(): void {
     } catch (error) {
       console.error('Error searching folder:', error);
       return [];
+    }
+  });
+
+  // Select folder for export output
+  ipcMain.handle('select-export-folder', async (): Promise<string | null> => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Select export output folder',
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      return result.filePaths[0];
+    }
+    return null;
+  });
+
+  // Export folder contents to a single markdown file
+  ipcMain.handle('export-folder-contents', async (
+    _event,
+    sourceFolder: string,
+    outputFolder: string,
+    outputFileName: string,
+    includeSubfolders: boolean,
+    includeFilenames: boolean,
+    includeDividers: boolean
+  ): Promise<{ success: boolean; outputPath?: string; error?: string }> => {
+    try {
+      // Helper function to get text files from a single directory (sorted alphabetically)
+      const getTextFilesFromDir = async (dirPath: string): Promise<Array<{ name: string; path: string }>> => {
+        const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+        const textFiles: Array<{ name: string; path: string }> = [];
+        
+        for (const entry of entries) {
+          if (entry.name.startsWith('.')) continue;
+          if (entry.isDirectory()) continue;
+          
+          const lowerName = entry.name.toLowerCase();
+          if (lowerName.endsWith('.md') || lowerName.endsWith('.txt')) {
+            textFiles.push({
+              name: entry.name,
+              path: path.join(dirPath, entry.name),
+            });
+          }
+        }
+        
+        // Sort alphabetically by name
+        textFiles.sort((a, b) => a.name.localeCompare(b.name));
+        return textFiles;
+      };
+
+      // Helper function to get subdirectories (sorted alphabetically)
+      const getSubdirs = async (dirPath: string): Promise<Array<{ name: string; path: string }>> => {
+        const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+        const subdirs: Array<{ name: string; path: string }> = [];
+        
+        for (const entry of entries) {
+          if (entry.name.startsWith('.')) continue;
+          if (entry.isDirectory()) {
+            subdirs.push({
+              name: entry.name,
+              path: path.join(dirPath, entry.name),
+            });
+          }
+        }
+        
+        // Sort alphabetically by name
+        subdirs.sort((a, b) => a.name.localeCompare(b.name));
+        return subdirs;
+      };
+
+      // Recursive function to process a folder and its subfolders
+      const processFolder = async (folderPath: string, relativePath: string): Promise<string[]> => {
+        const parts: string[] = [];
+        
+        // Get and process files in this folder (sorted alphabetically)
+        const textFiles = await getTextFilesFromDir(folderPath);
+        for (const file of textFiles) {
+          const content = await fs.promises.readFile(file.path, 'utf-8');
+          if (includeFilenames) {
+            const fileLabel = relativePath ? `${relativePath}/${file.name}` : file.name;
+            parts.push(`File: ${fileLabel}\n\n${content}`);
+          } else {
+            parts.push(content);
+          }
+        }
+        
+        // If including subfolders, recursively process them (sorted alphabetically)
+        if (includeSubfolders) {
+          const subdirs = await getSubdirs(folderPath);
+          for (const subdir of subdirs) {
+            const subRelativePath = relativePath ? `${relativePath}/${subdir.name}` : subdir.name;
+            const subParts = await processFolder(subdir.path, subRelativePath);
+            parts.push(...subParts);
+          }
+        }
+        
+        return parts;
+      };
+
+      // Process the source folder
+      const allParts = await processFolder(sourceFolder, '');
+
+      if (allParts.length === 0) {
+        return {
+          success: false,
+          error: includeSubfolders 
+            ? 'No markdown or text files found in the folder or its subfolders.'
+            : 'No markdown or text files found in the current folder.',
+        };
+      }
+
+      const separator = includeDividers ? '\n\n---\n\n' : '\n\n';
+      const concatenatedContent = allParts.join(separator);
+
+      // Write the output file
+      const outputPath = path.join(outputFolder, outputFileName);
+      await fs.promises.writeFile(outputPath, concatenatedContent, 'utf-8');
+
+      return {
+        success: true,
+        outputPath,
+      };
+    } catch (error) {
+      console.error('Error exporting folder contents:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+      };
     }
   });
 }

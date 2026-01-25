@@ -22,6 +22,7 @@ import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import AlertDialog from './components/dialogs/AlertDialog';
 import ConfirmDialog from './components/dialogs/ConfirmDialog';
 import SearchDialog, { type SearchOptions } from './components/dialogs/SearchDialog';
+import ExportDialog from './components/dialogs/ExportDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
 import {
@@ -110,6 +111,7 @@ function App() {
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [showSearchDialog, setShowSearchDialog] = useState<boolean>(false);
+  const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
   const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
   const items = useItems();
@@ -443,6 +445,48 @@ function App() {
       unsubscribe();
     };
   }, [handleRenumberFiles]);
+
+  // Listen for Export menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onExportRequested(() => {
+      setShowExportDialog(true);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Generate default export filename from current folder name
+  const generateExportFileName = useCallback(() => {
+    if (!currentPath) return 'export.md';
+    const folderName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+    return `${folderName}-export.md`;
+  }, [currentPath]);
+
+  // Handle export
+  const handleExport = useCallback(async (outputFolder: string, fileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => {
+    if (!currentPath) return;
+    
+    setShowExportDialog(false);
+    setError(null);
+
+    const result = await window.electronAPI.exportFolderContents(currentPath, outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers);
+    
+    if (!result.success) {
+      setError(result.error || 'Failed to export folder contents');
+      return;
+    }
+
+    // Open the exported file with the system default viewer
+    if (result.outputPath) {
+      await window.electronAPI.openExternal(result.outputPath);
+    }
+  }, [currentPath]);
+
+  const handleCancelExport = useCallback(() => {
+    setShowExportDialog(false);
+  }, []);
 
   // Handle folder selection
   const handleSelectFolder = useCallback(async () => {
@@ -925,6 +969,15 @@ function App() {
         <SearchDialog
           onSearch={handleSearch}
           onCancel={handleCancelSearch}
+        />
+      )}
+
+      {showExportDialog && currentPath && (
+        <ExportDialog
+          defaultFolder={currentPath}
+          defaultFileName={generateExportFileName()}
+          onExport={handleExport}
+          onCancel={handleCancelExport}
         />
       )}
 
