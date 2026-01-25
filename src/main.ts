@@ -513,11 +513,11 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content'): Promise<SearchResult[]> => {
     try {
-      console.log(`\n=== Search Started ===`);
-      console.log(`Folder: ${folderPath}`);
-      console.log(`Query: "${query}"`);
-      console.log(`Search type: ${searchType}`);
-      console.log(`Search mode: ${searchMode}`);
+      // console.log(`\n=== Search Started ===`);
+      // console.log(`Folder: ${folderPath}`);
+      // console.log(`Query: "${query}"`);
+      // console.log(`Search type: ${searchType}`);
+      // console.log(`Search mode: ${searchMode}`);
 
       const results: SearchResult[] = [];
       
@@ -529,9 +529,9 @@ function setupIpcHandlers(): void {
 
       // Helper to convert wildcard pattern to regex
       const wildcardToRegex = (pattern: string): RegExp => {
-        // Escape special regex chars, then convert * to .*
+        // Escape special regex chars, then convert * to .{0,25} (max 25 chars)
         const escaped = escapeRegexExceptWildcard(pattern);
-        const regexPattern = escaped.replace(/\*/g, '.*');
+        const regexPattern = escaped.replace(/\*/g, '.{0,25}');
         return new RegExp(regexPattern, 'i'); // case-insensitive
       };
       

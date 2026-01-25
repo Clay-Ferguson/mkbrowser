@@ -74,7 +74,7 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
         <h2 className="text-lg font-semibold text-slate-100 mb-3">Search in folder</h2>
       
         <label className="block text-sm text-slate-400 mb-2">
-          {searchType === 'advanced' ? 'JavaScript expression' : searchType === 'wildcard' ? 'Search text (use * as wildcard)' : 'Search text'}
+          {searchType === 'advanced' ? 'JavaScript expression' : searchType === 'wildcard' ? 'Search text (use * as wildcard, matches up to 25 characters)' : 'Search text'}
         </label>
         <textarea
           ref={textareaRef}
