@@ -388,7 +388,8 @@ export interface ExpansionCounts {
 
 /**
  * Get expansion counts for items in a specific directory path.
- * Only counts items that are direct children of the given path and are not cut.
+ * Only counts items that are direct children of the given path, are not cut,
+ * and are not directories (since folders aren't expandable).
  */
 export function getExpansionCounts(directoryPath: string): ExpansionCounts {
   let expandedCount = 0;
@@ -397,6 +398,9 @@ export function getExpansionCounts(directoryPath: string): ExpansionCounts {
   for (const [itemPath, item] of state.items) {
     // Skip cut items (they're not visible)
     if (item.isCut) continue;
+
+    // Skip directories (they aren't expandable)
+    if (item.isDirectory) continue;
 
     // Check if this item is a direct child of the directory
     const parentPath = itemPath.substring(0, itemPath.lastIndexOf('/'));
