@@ -467,9 +467,10 @@ function App() {
       setCreateFileDefaultName('');
       setPendingScrollToFile(fileName);
       refreshDirectory();
-      // Set editing mode after scroll completes
+      // Set editing mode after scroll completes for editable file types
       const isMarkdown = fileName.toLowerCase().endsWith('.md');
-      if (isMarkdown) {
+      const isText = fileName.toLowerCase().endsWith('.txt');
+      if (isMarkdown || isText) {
         setTimeout(() => {
           setItemExpanded(filePath, true);
           setItemEditing(filePath, true);
