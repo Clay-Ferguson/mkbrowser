@@ -89,52 +89,58 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
         />
 
         {/* Search mode radio buttons */}
-        <div className="flex items-center gap-6 mb-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="searchMode"
-              checked={searchMode === 'content'}
-              onChange={() => setSearchMode('content')}
-              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-            />
-            <span className="text-sm text-slate-300">Search File Contents</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="searchMode"
-              checked={searchMode === 'filenames'}
-              onChange={() => setSearchMode('filenames')}
-              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-            />
-            <span className="text-sm text-slate-300">Search File Names</span>
-          </label>
-        </div>
+        <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
+          <legend className="text-xs text-slate-400 px-2">Search Target</legend>
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="searchMode"
+                checked={searchMode === 'content'}
+                onChange={() => setSearchMode('content')}
+                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+              />
+              <span className="text-sm text-slate-300">File Contents</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="searchMode"
+                checked={searchMode === 'filenames'}
+                onChange={() => setSearchMode('filenames')}
+                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+              />
+              <span className="text-sm text-slate-300">File Names</span>
+            </label>
+          </div>
+        </fieldset>
 
         {/* Search type radio buttons */}
-        <div className="flex items-center gap-6 mb-4">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="searchType"
-              checked={!isAdvanced}
-              onChange={() => setIsAdvanced(false)}
-              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-            />
-            <span className="text-sm text-slate-300">Literal</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="searchType"
-              checked={isAdvanced}
-              onChange={() => setIsAdvanced(true)}
-              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-            />
-            <span className="text-sm text-slate-300">Advanced</span>
-          </label>
-        </div>
+        <fieldset className="border border-slate-600 rounded-md p-3 mb-4">
+          <legend className="text-xs text-slate-400 px-2">Search Mode</legend>
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="searchType"
+                checked={!isAdvanced}
+                onChange={() => setIsAdvanced(false)}
+                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+              />
+              <span className="text-sm text-slate-300">Literal</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="searchType"
+                checked={isAdvanced}
+                onChange={() => setIsAdvanced(true)}
+                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+              />
+              <span className="text-sm text-slate-300">Advanced</span>
+            </label>
+          </div>
+        </fieldset>
 
         {error ? (
           <p className="text-xs text-red-400 mt-2">{error}</p>
