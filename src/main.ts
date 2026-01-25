@@ -522,6 +522,19 @@ function setupIpcHandlers(): void {
       // console.log(`Search mode: ${searchMode}`);
 
       const results: SearchResult[] = [];
+
+      // Load ignored paths from config
+      const config = loadConfig();
+      const ignoredPathsRaw = config.settings?.ignoredPaths ?? '';
+      const ignoredPaths = ignoredPathsRaw
+        .split('\n')
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+      
+      // Create exclude predicate for fdir (returns true to exclude)
+      const shouldExcludeDir = (dirName: string): boolean => {
+        return ignoredPaths.includes(dirName);
+      };
       
       // Helper to escape regex special characters (except *)
       const escapeRegexExceptWildcard = (str: string): string => {
@@ -611,10 +624,12 @@ function setupIpcHandlers(): void {
         // Search file and folder names - crawl all entries (files AND directories)
         const filesApi = new fdir()
           .withFullPaths()
+          .exclude((dirName) => shouldExcludeDir(dirName))
           .crawl(folderPath);
 
         const dirsApi = new fdir()
           .withFullPaths()
+          .exclude((dirName) => shouldExcludeDir(dirName))
           .onlyDirs()
           .crawl(folderPath);
 
@@ -646,6 +661,7 @@ function setupIpcHandlers(): void {
         // Search file contents - only .md and .txt files
         const api = new fdir()
           .withFullPaths()
+          .exclude((dirName) => shouldExcludeDir(dirName))
           .filter((filePath) => {
             const ext = path.extname(filePath).toLowerCase();
             return ext === '.md' || ext === '.txt';
