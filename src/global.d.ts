@@ -67,6 +67,7 @@ export interface ElectronAPI {
   createFolder: (folderPath: string) => Promise<boolean>;
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames') => Promise<SearchResult[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
+  setWindowTitle: (title: string) => Promise<void>;
 }
 
 declare global {

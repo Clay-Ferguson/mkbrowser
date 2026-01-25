@@ -117,6 +117,15 @@ function App() {
     document.documentElement.setAttribute('data-font-size', settings.fontSize);
   }, [settings.fontSize]);
 
+  // Update window title when rootPath changes
+  useEffect(() => {
+    if (rootPath) {
+      window.electronAPI.setWindowTitle(`MkBrowser: ${rootPath}`);
+    } else {
+      window.electronAPI.setWindowTitle('MkBrowser');
+    }
+  }, [rootPath]);
+
   // Load initial configuration
   useEffect(() => {
     const loadConfig = async () => {
@@ -747,11 +756,8 @@ function App() {
 
             {/* Breadcrumb / path display */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-slate-500 truncate" title={rootPath}>
-                  {rootPath.split('/').pop()}
-                </span>
-                <span className="text-slate-200 font-medium truncate">
+              <div className="flex items-center text-sm">
+                <span className="text-slate-200 font-medium truncate" title={currentPath}>
                   {getRelativePath()}
                 </span>
               </div>

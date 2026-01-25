@@ -154,4 +154,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames') => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode),
   renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),
+  setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
 } as ElectronAPI);

@@ -291,6 +291,13 @@ function setupIpcHandlers(): void {
     saveConfig(config);
   });
 
+  // Set window title
+  ipcMain.handle('set-window-title', (_event, title: string): void => {
+    if (mainWindow) {
+      mainWindow.setTitle(title);
+    }
+  });
+
   // Open folder selection dialog
   ipcMain.handle('select-folder', async (): Promise<string | null> => {
     const result = await dialog.showOpenDialog({
