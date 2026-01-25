@@ -13,7 +13,7 @@ import {
   isCacheValid,
 } from '../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../utils/ordinals';
-import ConfirmDialog from './ConfirmDialog';
+import ConfirmDialog from './dialogs/ConfirmDialog';
 
 interface MarkdownEntryProps {
   entry: FileEntry;

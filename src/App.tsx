@@ -12,10 +12,10 @@ function isImageFile(fileName: string): boolean {
   const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
   return IMAGE_EXTENSIONS.has(ext);
 }
-import CreateFileDialog from './components/CreateFileDialog';
-import CreateFolderDialog from './components/CreateFolderDialog';
-import AlertDialog from './components/AlertDialog';
-import ConfirmDialog from './components/ConfirmDialog';
+import CreateFileDialog from './components/dialogs/CreateFileDialog';
+import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
+import AlertDialog from './components/dialogs/AlertDialog';
+import ConfirmDialog from './components/dialogs/ConfirmDialog';
 import SearchDialog, { type SearchOptions } from './components/SearchDialog';
 import SearchResultsView from './components/SearchResultsView';
 import SettingsView from './components/SettingsView';

@@ -3,7 +3,7 @@ import type { FileEntry } from '../global';
 import { buildEntryHeaderId } from '../utils/entryDom';
 import { useItem, setItemRenaming, setItemSelected } from '../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../utils/ordinals';
-import ConfirmDialog from './ConfirmDialog';
+import ConfirmDialog from './dialogs/ConfirmDialog';
 
 interface FolderEntryProps {
   entry: FileEntry;

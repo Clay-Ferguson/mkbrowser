@@ -3,8 +3,8 @@ import type { FileEntry as FileEntryType } from '../global';
 import { buildEntryHeaderId } from '../utils/entryDom';
 import { useItem, setItemRenaming, setItemSelected, toggleItemExpanded } from '../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../utils/ordinals';
-import ConfirmDialog from './ConfirmDialog';
-import AlertDialog from './AlertDialog';
+import ConfirmDialog from './dialogs/ConfirmDialog';
+import AlertDialog from './dialogs/AlertDialog';
 
 interface ImageEntryProps {
   entry: FileEntryType;
