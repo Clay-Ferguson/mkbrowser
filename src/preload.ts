@@ -49,6 +49,8 @@ export interface ElectronAPI {
   onCutRequested: (callback: () => void) => () => void;
   onPasteRequested: (callback: () => void) => () => void;
   onDeleteRequested: (callback: () => void) => () => void;
+  onSelectAllRequested: (callback: () => void) => () => void;
+  onUnselectAllRequested: (callback: () => void) => () => void;
   onRenumberRequested: (callback: () => void) => () => void;
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
@@ -103,6 +105,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('delete-items', handler);
     return () => {
       ipcRenderer.removeListener('delete-items', handler);
+    };
+  },
+  onSelectAllRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('select-all-items', handler);
+    return () => {
+      ipcRenderer.removeListener('select-all-items', handler);
+    };
+  },
+  onUnselectAllRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('unselect-all-items', handler);
+    return () => {
+      ipcRenderer.removeListener('unselect-all-items', handler);
     };
   },
   onRenumberRequested: (callback: () => void) => {

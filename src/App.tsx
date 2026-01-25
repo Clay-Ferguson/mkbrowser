@@ -21,6 +21,7 @@ import SearchResultsView from './components/SearchResultsView';
 import SettingsView from './components/SettingsView';
 import {
   clearAllSelections,
+  selectItemsByPaths,
   expandAllItems,
   collapseAllItems,
   clearAllCutItems,
@@ -356,6 +357,31 @@ function App() {
       unsubscribe();
     };
   }, [getSelectedItems]);
+
+  // Listen for Select All menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onSelectAllRequested(() => {
+      // Select all items in the current folder view
+      const currentFolderPaths = entries.map((entry) => entry.path);
+      selectItemsByPaths(currentFolderPaths);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [entries]);
+
+  // Listen for Unselect All menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onUnselectAllRequested(() => {
+      // Unselect all items across all cached data (broader scope for safety)
+      clearAllSelections();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Handle renumbering files in the current directory
   const handleRenumberFiles = useCallback(async () => {

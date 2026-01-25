@@ -52,6 +52,8 @@ export interface ElectronAPI {
   onCutRequested: (callback: () => void) => () => void;
   onPasteRequested: (callback: () => void) => () => void;
   onDeleteRequested: (callback: () => void) => () => void;
+  onSelectAllRequested: (callback: () => void) => () => void;
+  onUnselectAllRequested: (callback: () => void) => () => void;
   onRenumberRequested: (callback: () => void) => () => void;
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;

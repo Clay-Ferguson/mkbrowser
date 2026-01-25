@@ -309,6 +309,30 @@ export function clearAllSelections(): void {
 }
 
 /**
+ * Select all items whose paths are in the provided array
+ * (used for Select All in the current folder view)
+ */
+export function selectItemsByPaths(paths: string[]): void {
+  if (state.items.size === 0 || paths.length === 0) return;
+
+  const pathSet = new Set(paths);
+  const newItems = new Map(state.items);
+  let hasChanges = false;
+
+  for (const [path, item] of newItems) {
+    if (pathSet.has(path) && !item.isSelected) {
+      newItems.set(path, { ...item, isSelected: true });
+      hasChanges = true;
+    }
+  }
+
+  if (!hasChanges) return;
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
+/**
  * Expand all items (set isExpanded to true for all)
  */
 export function expandAllItems(): void {

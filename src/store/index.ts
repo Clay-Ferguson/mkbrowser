@@ -13,6 +13,7 @@ export {
   setItemEditing,
   setItemRenaming,
   clearAllSelections,
+  selectItemsByPaths,
   expandAllItems,
   collapseAllItems,
   clearAllCutItems,

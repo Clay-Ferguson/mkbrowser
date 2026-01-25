@@ -214,6 +214,21 @@ function setupApplicationMenu(): void {
           mainWindow?.webContents.send('delete-items');
         },
       },
+      { type: 'separator' },
+      {
+        label: 'Select All',
+        accelerator: 'CmdOrCtrl+A',
+        click: () => {
+          mainWindow?.webContents.send('select-all-items');
+        },
+      },
+      {
+        label: 'Unselect All',
+        accelerator: 'CmdOrCtrl+Shift+A',
+        click: () => {
+          mainWindow?.webContents.send('unselect-all-items');
+        },
+      },
     ],
   });
 
