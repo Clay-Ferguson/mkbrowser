@@ -21,6 +21,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     small: 'text-sm',
     medium: 'text-base',
     large: 'text-lg',
+    xlarge: 'text-xl',
   }[settings.fontSize];
 
   const handleBack = () => {

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import * as yaml from 'js-yaml';
 import started from 'electron-squirrel-startup';
 import { fdir } from 'fdir';
-import { stripOrdinalPrefix, formatOrdinalPrefix, calculateRenameOperations, type RenameOperation } from './utils/ordinals';
+import { calculateRenameOperations, type RenameOperation } from './utils/ordinals';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
