@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, type MenuItemConstructorOptions } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import * as yaml from 'js-yaml';
@@ -474,6 +474,16 @@ function setupIpcHandlers(): void {
   });
 
   // Search folder recursively for text in .md and .txt files
+  ipcMain.handle('open-external', async (_event, filePath: string): Promise<boolean> => {
+    try {
+      const result = await shell.openPath(filePath);
+      // shell.openPath returns empty string on success, error message on failure
+      return result === '';
+    } catch {
+      return false;
+    }
+  });
+
   ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, isAdvanced = false): Promise<SearchResult[]> => {
     try {
       console.log(`\n=== Search Started ===`);

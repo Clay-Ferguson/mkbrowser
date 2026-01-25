@@ -189,6 +189,18 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
             </svg>
           </button>
           <button
+            onClick={(e) => {
+              e.stopPropagation();
+              window.electronAPI.openExternal(entry.path);
+            }}
+            className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-700 rounded transition-colors flex-shrink-0"
+            title="Open in file manager"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </button>
+          <button
             onClick={handleDeleteClick}
             disabled={deleting}
             className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors flex-shrink-0 disabled:opacity-50"

@@ -58,6 +58,7 @@ export interface ElectronAPI {
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
+  openExternal: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<boolean>;
   searchFolder: (folderPath: string, query: string, isAdvanced?: boolean) => Promise<SearchResult[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
@@ -129,6 +130,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeFileBinary: (filePath: string, base64Data: string) => ipcRenderer.invoke('write-file-binary', filePath, base64Data),
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
+  openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
   searchFolder: (folderPath: string, query: string, isAdvanced?: boolean) => ipcRenderer.invoke('search-folder', folderPath, query, isAdvanced),
   renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),

@@ -61,6 +61,7 @@ export interface ElectronAPI {
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
+  openExternal: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<boolean>;
   searchFolder: (folderPath: string, query: string, isAdvanced?: boolean) => Promise<SearchResult[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
