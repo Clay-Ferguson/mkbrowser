@@ -424,7 +424,7 @@ export function getExpansionCounts(directoryPath: string): ExpansionCounts {
  * Cached expansion counts to avoid creating new objects on every snapshot call
  */
 let cachedExpansionCounts: ExpansionCounts = { expandedCount: 0, collapsedCount: 0, totalCount: 0 };
-let cachedExpansionCountsPath: string = '';
+let cachedExpansionCountsPath = '';
 
 /**
  * Get snapshot of expansion counts for the current path.
