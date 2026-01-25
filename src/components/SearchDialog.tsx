@@ -112,16 +112,29 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
           </label>
         </div>
 
-        {/* Advanced checkbox */}
-        <label className="flex items-center gap-2 mb-4 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isAdvanced}
-            onChange={(e) => setIsAdvanced(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-          />
-          <span className="text-sm text-slate-300">Advanced</span>
-        </label>
+        {/* Search type radio buttons */}
+        <div className="flex items-center gap-6 mb-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="searchType"
+              checked={!isAdvanced}
+              onChange={() => setIsAdvanced(false)}
+              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+            />
+            <span className="text-sm text-slate-300">Literal</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="searchType"
+              checked={isAdvanced}
+              onChange={() => setIsAdvanced(true)}
+              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+            />
+            <span className="text-sm text-slate-300">Advanced</span>
+          </label>
+        </div>
 
         {error ? (
           <p className="text-xs text-red-400 mt-2">{error}</p>
