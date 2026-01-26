@@ -23,7 +23,7 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
 // Command-line override for browse folder (takes precedence over config file)
 let commandLineFolder: string | null = null;
 
-type FontSize = 'small' | 'medium' | 'large';
+type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 
 interface AppSettings {

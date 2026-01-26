@@ -1,14 +1,22 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { EditorView, placeholder as placeholderExt } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
+import { EditorState, Compartment } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { markdown } from '@codemirror/lang-markdown';
+import { useSettings, type FontSize } from '../store';
 
 const STORAGE_KEY = 'codemirror-editor-height';
 const DEFAULT_HEIGHT = 256;
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 800;
+
+const FONT_SIZE_MAP: Record<FontSize, string> = {
+  small: '12px',
+  medium: '14px',
+  large: '16px',
+  xlarge: '18px',
+};
 
 function getStoredHeight(): number {
   try {
@@ -33,6 +41,12 @@ function setStoredHeight(height: number): void {
   }
 }
 
+interface ContextMenuState {
+  visible: boolean;
+  x: number;
+  y: number;
+}
+
 interface CodeMirrorEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -44,10 +58,96 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text' }: C
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const fontSizeCompartment = useRef(new Compartment());
+  const settings = useSettings();
   const [height, setHeight] = useState(getStoredHeight);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   const isDraggingRef = useRef(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(prev => ({ ...prev, visible: false }));
+  }, []);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({
+      visible: true,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  }, []);
+
+  const handleCut = useCallback(async () => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    const { from, to } = view.state.selection.main;
+    if (from !== to) {
+      const selectedText = view.state.sliceDoc(from, to);
+      await navigator.clipboard.writeText(selectedText);
+      view.dispatch({
+        changes: { from, to, insert: '' },
+      });
+    }
+    closeContextMenu();
+    view.focus();
+  }, [closeContextMenu]);
+
+  const handleCopy = useCallback(async () => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    const { from, to } = view.state.selection.main;
+    if (from !== to) {
+      const selectedText = view.state.sliceDoc(from, to);
+      await navigator.clipboard.writeText(selectedText);
+    }
+    closeContextMenu();
+    view.focus();
+  }, [closeContextMenu]);
+
+  const handlePaste = useCallback(async () => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    const text = await navigator.clipboard.readText();
+    const { from, to } = view.state.selection.main;
+    view.dispatch({
+      changes: { from, to, insert: text },
+      selection: { anchor: from + text.length },
+    });
+    closeContextMenu();
+    view.focus();
+  }, [closeContextMenu]);
+
+  const handleSelectAll = useCallback(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    view.dispatch({
+      selection: { anchor: 0, head: view.state.doc.length },
+    });
+    closeContextMenu();
+    view.focus();
+  }, [closeContextMenu]);
+
+  // Close context menu when clicking elsewhere
+  useEffect(() => {
+    if (!contextMenu.visible) return;
+
+    const handleClick = () => closeContextMenu();
+    const handleScroll = () => closeContextMenu();
+
+    document.addEventListener('click', handleClick);
+    document.addEventListener('scroll', handleScroll, true);
+
+    return () => {
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [contextMenu.visible, closeContextMenu]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -85,28 +185,32 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text' }: C
     };
   }, [height]);
 
+  const createFontSizeTheme = useCallback((fontSize: FontSize) => {
+    return EditorView.theme({
+      '&': {
+        height: '100%',
+        fontSize: FONT_SIZE_MAP[fontSize],
+      },
+      '.cm-scroller': {
+        overflow: 'auto',
+        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+      },
+      '.cm-content': {
+        caretColor: '#fff',
+      },
+      '&.cm-focused': {
+        outline: 'none',
+      },
+    });
+  }, []);
+
   useEffect(() => {
     if (!editorRef.current) return;
 
     const extensions = [
       basicSetup,
       oneDark,
-      EditorView.theme({
-        '&': {
-          height: '100%',
-          fontSize: '14px',
-        },
-        '.cm-scroller': {
-          overflow: 'auto',
-          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-        },
-        '.cm-content': {
-          caretColor: '#fff',
-        },
-        '&.cm-focused': {
-          outline: 'none',
-        },
-      }),
+      fontSizeCompartment.current.of(createFontSizeTheme(settings.fontSize)),
       EditorView.lineWrapping,
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
@@ -158,6 +262,16 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text' }: C
     }
   }, [value]);
 
+  // Update font size when settings change
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    view.dispatch({
+      effects: fontSizeCompartment.current.reconfigure(createFontSizeTheme(settings.fontSize)),
+    });
+  }, [settings.fontSize, createFontSizeTheme]);
+
   return (
     <div
       ref={containerRef}
@@ -167,6 +281,7 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text' }: C
         ref={editorRef}
         style={{ height: `${height}px` }}
         className="overflow-hidden"
+        onContextMenu={handleContextMenu}
       />
       <div
         onMouseDown={handleMouseDown}
@@ -175,6 +290,44 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text' }: C
       >
         <div className="w-8 h-0.5 bg-slate-500 rounded-full" />
       </div>
+
+      {contextMenu.visible && (
+        <div
+          className="fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-1 z-50 min-w-[140px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={handleCut}
+            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+          >
+            <span>Cut</span>
+            <span className="text-slate-500 text-xs">Ctrl+X</span>
+          </button>
+          <button
+            onClick={handleCopy}
+            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+          >
+            <span>Copy</span>
+            <span className="text-slate-500 text-xs">Ctrl+C</span>
+          </button>
+          <button
+            onClick={handlePaste}
+            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+          >
+            <span>Paste</span>
+            <span className="text-slate-500 text-xs">Ctrl+V</span>
+          </button>
+          <div className="border-t border-slate-600 my-1" />
+          <button
+            onClick={handleSelectAll}
+            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+          >
+            <span>Select All</span>
+            <span className="text-slate-500 text-xs">Ctrl+A</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
