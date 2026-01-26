@@ -9,10 +9,13 @@ MkBrowser is an Electron desktop app that combines a file explorer with inline M
 - In-place Markdown editing with save/cancel flow.
 - Multiple files can be edited at once.
 - File/folder selection (multi-select) for menu-driven actions.
-- Configurable sorting and folders-on-top behavior.
+- Edit menu actions: Cut, Copy, Paste, Delete, Select All.
+- Configurable sorting and folders-on-top behavior (file ordering).
+- Settings for font size.
 - Hidden files filtered out by default (dotfiles).
 - Content caching for Markdown to reduce re-reads.
 - Search and export dialogs (UI-level support).
+- PDF export support for Markdown content.
 
 ## Tech Stack
 
