@@ -14,10 +14,19 @@ function CreateFolderDialog({ defaultName = '', onCreate, onCancel }: CreateFold
     inputRef.current?.focus();
   }, []);
 
+  const generateTimestampName = (): string => {
+    const now = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const hours24 = now.getHours();
+    const hours12 = hours24 % 12 || 12;
+    const ampm = hours24 < 12 ? 'AM' : 'PM';
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}--${pad(hours12)}-${pad(now.getMinutes())}-${pad(now.getSeconds())}-${ampm}`;
+  };
+
   const handleCreate = () => {
     const trimmedName = folderName.trim();
-    if (!trimmedName) return;
-    onCreate(trimmedName);
+    const finalName = trimmedName || generateTimestampName();
+    onCreate(finalName);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -42,7 +51,7 @@ function CreateFolderDialog({ defaultName = '', onCreate, onCancel }: CreateFold
           onChange={(e) => setFolderName(e.target.value)}
           onKeyDown={handleKeyDown}
           className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
-          placeholder="my-folder"
+          placeholder="Leave blank for timestamp (YYYY-MM-DD--HH-MM-SS)"
         />
         <div className="flex justify-end gap-3 mt-6">
           <button
@@ -53,8 +62,7 @@ function CreateFolderDialog({ defaultName = '', onCreate, onCancel }: CreateFold
           </button>
           <button
             onClick={handleCreate}
-            disabled={!folderName.trim()}
-            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed rounded transition-colors"
+            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors"
           >
             Create
           </button>
