@@ -225,7 +225,12 @@ function App() {
         }))
       );
     } catch (err) {
-      setError('Failed to read directory');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to read directory';
+      if (errorMessage.includes('does not exist')) {
+        setError('This folder no longer exists');
+      } else {
+        setError('Failed to read directory');
+      }
       setEntries([]);
     } finally {
       setLoading(false);

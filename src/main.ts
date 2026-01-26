@@ -331,59 +331,66 @@ function setupIpcHandlers(): void {
 
   // Read directory contents
   ipcMain.handle('read-directory', async (_event, dirPath: string): Promise<FileEntry[]> => {
+    // First check if directory exists
     try {
-      const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
-      const fileEntries: FileEntry[] = [];
+      const dirStat = await fs.promises.stat(dirPath);
+      if (!dirStat.isDirectory()) {
+        throw new Error(`Path is not a directory: ${dirPath}`);
+      }
+    } catch {
+      // Re-throw with clear message for non-existent paths
+      throw new Error(`Directory does not exist: ${dirPath}`);
+    }
 
-      for (const entry of entries) {
-        // Skip hidden files/folders (starting with .)
-        if (entry.name.startsWith('.')) continue;
+    // Now read the directory contents
+    const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+    const fileEntries: FileEntry[] = [];
 
-        const fullPath = path.join(dirPath, entry.name);
-        const isDirectory = entry.isDirectory();
-        const isMarkdown = !isDirectory && entry.name.toLowerCase().endsWith('.md');
+    for (const entry of entries) {
+      // Skip hidden files/folders (starting with .)
+      if (entry.name.startsWith('.')) continue;
 
-        // Get file stats for modification and creation time
-        let modifiedTime = 0;
-        let createdTime = 0;
-        try {
-          const stat = await fs.promises.stat(fullPath);
-          modifiedTime = stat.mtimeMs;
-          createdTime = stat.birthtimeMs;
-        } catch {
-          // If stat fails, use current time
-          modifiedTime = Date.now();
-          createdTime = Date.now();
-        }
+      const fullPath = path.join(dirPath, entry.name);
+      const isDirectory = entry.isDirectory();
+      const isMarkdown = !isDirectory && entry.name.toLowerCase().endsWith('.md');
 
-        const fileEntry: FileEntry = {
-          name: entry.name,
-          path: fullPath,
-          isDirectory,
-          isMarkdown,
-          modifiedTime,
-          createdTime,
-        };
-
-        // Note: We no longer read markdown content here.
-        // Content will be loaded on-demand with caching in the renderer.
-
-        fileEntries.push(fileEntry);
+      // Get file stats for modification and creation time
+      let modifiedTime = 0;
+      let createdTime = 0;
+      try {
+        const stat = await fs.promises.stat(fullPath);
+        modifiedTime = stat.mtimeMs;
+        createdTime = stat.birthtimeMs;
+      } catch {
+        // If stat fails, use current time
+        modifiedTime = Date.now();
+        createdTime = Date.now();
       }
 
-      // Sort: directories first, then files, alphabetically within each group
-      // (The renderer will re-sort based on user's sort preference)
-      fileEntries.sort((a, b) => {
-        if (a.isDirectory && !b.isDirectory) return -1;
-        if (!a.isDirectory && b.isDirectory) return 1;
-        return a.name.localeCompare(b.name);
-      });
+      const fileEntry: FileEntry = {
+        name: entry.name,
+        path: fullPath,
+        isDirectory,
+        isMarkdown,
+        modifiedTime,
+        createdTime,
+      };
 
-      return fileEntries;
-    } catch (error) {
-      console.error('Error reading directory:', error);
-      return [];
+      // Note: We no longer read markdown content here.
+      // Content will be loaded on-demand with caching in the renderer.
+
+      fileEntries.push(fileEntry);
     }
+
+    // Sort: directories first, then files, alphabetically within each group
+    // (The renderer will re-sort based on user's sort preference)
+    fileEntries.sort((a, b) => {
+      if (a.isDirectory && !b.isDirectory) return -1;
+      if (!a.isDirectory && b.isDirectory) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    return fileEntries;
   });
 
   // Read a single file's content
