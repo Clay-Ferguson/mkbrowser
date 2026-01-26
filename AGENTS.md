@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-MkBrowser is an Electron desktop app (Electron 40 + Vite + TypeScript + React 19 + Tailwind CSS 4) that functions as a file explorer with **inline Markdown rendering**—not a separate preview pane. It displays one folder level at a time.
+MkBrowser is an Electron 40 desktop app (Vite + TypeScript + React 19 + Tailwind CSS 4) that functions as a file explorer with **inline Markdown rendering**. It displays one folder level at a time with expandable markdown cards—not a separate preview pane.
 
 ## Critical Architecture: Three-Process Electron Model
 
@@ -10,37 +10,46 @@ MkBrowser is an Electron desktop app (Electron 40 + Vite + TypeScript + React 19
 
 | Process | File | Environment | Purpose |
 |---------|------|-------------|---------|
-| Main | [src/main.ts](../src/main.ts) | Node.js | File system ops, IPC handlers, window management |
-| Preload | [src/preload.ts](../src/preload.ts) | Bridge | Exposes `window.electronAPI` via `contextBridge` |
-| Renderer | [src/App.tsx](../src/App.tsx) | Browser | React UI, NO direct Node.js access |
+| Main | `src/main.ts` | Node.js | File system ops, IPC handlers, window management |
+| Preload | `src/preload.ts` | Bridge | Exposes `window.electronAPI` via `contextBridge` |
+| Renderer | `src/App.tsx` | Browser | React UI, NO direct Node.js access |
 
-**Data Flow Pattern:**
+**Data Flow:**
 ```
 Renderer → window.electronAPI.method() → ipcRenderer.invoke('channel') 
-→ Main process handler → fs operations → returns data to renderer
+→ Main process handler → fs operations → returns to renderer
 ```
 
-## Adding New IPC Handlers
+### Adding New IPC Handlers (3-file change)
 
-1. Add handler in [src/main.ts](../src/main.ts) `setupIpcHandlers()`:
+1. **Main** (`src/main.ts`): Add handler in `setupIpcHandlers()`:
    ```typescript
    ipcMain.handle('my-channel', async (_event, arg: string): Promise<ReturnType> => { ... });
    ```
-2. Expose in [src/preload.ts](../src/preload.ts)
-3. Update `ElectronAPI` interface in [src/global.d.ts](../src/global.d.ts)
+2. **Preload** (`src/preload.ts`): Expose via `contextBridge.exposeInMainWorld`
+3. **Types** (`src/global.d.ts`): Update `ElectronAPI` interface
 
 ## State Management: useSyncExternalStore
 
-Uses React's `useSyncExternalStore` (no Redux/Context). See [src/store/](../src/store/).
+Uses React's `useSyncExternalStore`—no Redux/Context needed. See `src/store/`.
 
-- **Types**: [src/store/types.ts](../src/store/types.ts) - `ItemData`, `AppState`
-- **Actions & hooks**: [src/store/store.ts](../src/store/store.ts) - `upsertItem`, `setItemExpanded`, `useItems`, `useItem`
+- **Types**: `src/store/types.ts` — `ItemData`, `AppState`
+- **Actions & hooks**: `src/store/store.ts` — `upsertItem`, `setItemExpanded`, `useItems`, `useItem`
 - Items stored in `Map<path, ItemData>` for O(1) lookup
+- Components subscribe to specific slices via selector hooks (e.g., `useItem(path)`)
+
+**Pattern**: Actions create new state objects to trigger React re-renders:
+```typescript
+const newItems = new Map(state.items);
+newItems.set(path, updatedItem);
+state = { ...state, items: newItems };
+emitChange();
+```
 
 ## Developer Workflow
 
 ```bash
-# Development (Linux REQUIRES this to avoid sandbox errors)
+# Development (Linux REQUIRES sandbox disabled)
 yarn start:linux
 
 # Standard (Windows/Mac)
@@ -52,29 +61,45 @@ yarn start
 
 ## Tailwind CSS 4 Patterns
 
-Uses CSS-first config in [src/index.css](../src/index.css) (no `tailwind.config.js`).
+Uses CSS-first config in `src/index.css` (no `tailwind.config.js`).
 
-**Markdown rendering** - always use:
+**Markdown rendering** — always use:
 ```tsx
 <article className="prose prose-invert prose-sm max-w-none">
   <Markdown>{content}</Markdown>
 </article>
 ```
 
-**Color palette**: Dark theme with slate-900/slate-800. Folders: amber-500. Markdown: blue-400.
+**Color palette**: Dark theme with `slate-900/slate-800`. Folders: `amber-500`. Markdown: `blue-400`.
 
 ## Key Implementation Details
 
-- **Hidden files filtered**: Files starting with `.` are skipped in `read-directory` handler
-- **Sorting**: Directories first, then alphabetical within each group
-- **Config location**: `~/.config/mk-browser/config.yaml` (uses `js-yaml`)
-- **Content caching**: `ItemData.content` + `contentCachedAt` to avoid re-reading unchanged files
+- **Hidden files**: Filtered in `read-directory` handler (files starting with `.`)
+- **Sorting**: Configurable via `AppSettings.sortOrder` and `foldersOnTop`
+- **Config**: `~/.config/mk-browser/config.yaml` (uses `js-yaml`)
+- **Content caching**: `ItemData.content` + `contentCachedAt` to avoid re-reads
+- **Selection**: `ItemData.isSelected` drives checkbox state for multi-select operations
 
 ## Component Patterns
 
-- [src/components/FolderEntry.tsx](../src/components/FolderEntry.tsx) - Clickable folder rows
-- [src/components/MarkdownEntry.tsx](../src/components/MarkdownEntry.tsx) - Expandable cards with inline content + editing
-- [src/components/FileEntry.tsx](../src/components/FileEntry.tsx) - Static non-markdown files
+| Component | Purpose |
+|-----------|---------|
+| `src/components/entries/FolderEntry.tsx` | Clickable folder rows with navigation |
+| `src/components/entries/MarkdownEntry.tsx` | Expandable cards with inline content + editing |
+| `src/components/entries/FileEntry.tsx` | Static non-markdown files |
+| `src/components/dialogs/*` | Modal dialogs (Alert, Confirm, Create, Search, Export) |
+| `src/components/views/*` | Full-page views (SearchResults, Settings) |
+
+## Menu-Driven Actions
+
+Edit menu operations (`Cut`, `Paste`, `Delete`, `Select All`) are sent from main process to renderer via IPC events:
+```typescript
+// main.ts sends
+mainWindow.webContents.send('cut-items');
+
+// App.tsx listens
+window.electronAPI.onCutRequested(() => { cutSelectedItems(); });
+```
 
 ---- 
 
