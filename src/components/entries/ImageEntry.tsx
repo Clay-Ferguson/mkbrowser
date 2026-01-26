@@ -26,6 +26,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenImagePath, setFullscreenImagePath] = useState(entry.path);
   const [showEndAlert, setShowEndAlert] = useState(false);
+  const [showBeginningAlert, setShowBeginningAlert] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isRenaming = item?.renaming ?? false;
@@ -78,6 +79,18 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
       setShowEndAlert(true);
     } else {
       setFullscreenImagePath(allImages[currentIndex + 1].path);
+    }
+  };
+
+  // Handle previous image navigation
+  const handlePreviousImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
+    if (currentIndex === -1 || currentIndex <= 0) {
+      // At the beginning of images
+      setShowBeginningAlert(true);
+    } else {
+      setFullscreenImagePath(allImages[currentIndex - 1].path);
     }
   };
 
@@ -283,6 +296,16 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
             setFullscreenImagePath(entry.path);
           }}
         >
+          {/* Previous image button */}
+          <button
+            onClick={handlePreviousImage}
+            className="absolute top-4 right-28 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            title="Previous image"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
           {/* Next image button */}
           <button
             onClick={handleNextImage}
@@ -322,6 +345,15 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
           title="End of Images"
           message="You have reached the end of the images in this folder."
           onClose={() => setShowEndAlert(false)}
+        />
+      )}
+
+      {/* Beginning of images alert */}
+      {showBeginningAlert && (
+        <AlertDialog
+          title="Beginning of Images"
+          message="You have reached the beginning of the images in this folder."
+          onClose={() => setShowBeginningAlert(false)}
         />
       )}
 
