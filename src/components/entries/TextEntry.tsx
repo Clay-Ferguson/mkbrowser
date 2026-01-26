@@ -13,6 +13,7 @@ import {
 } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
+import CodeMirrorEditor from '../CodeMirrorEditor';
 
 interface TextEntryProps {
   entry: FileEntry;
@@ -308,11 +309,11 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
           {loading && !content ? (
             <div className="text-slate-400 text-sm">Loading...</div>
           ) : isEditing ? (
-            <textarea
+            <CodeMirrorEditor
               value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              className="w-full h-64 bg-slate-900 text-slate-200 font-mono text-sm p-3 rounded border border-slate-600 focus:border-blue-500 focus:outline-none resize-y"
+              onChange={setEditContent}
               placeholder="Enter text content..."
+              language="text"
             />
           ) : (
             <pre className="text-slate-200 font-mono text-sm whitespace-pre-wrap break-words">
