@@ -10,6 +10,7 @@ MkBrowser is an Electron desktop app that combines a file explorer with inline M
 - Multiple files can be edited at once.
 - File/folder selection (multi-select) for menu-driven actions.
 - Edit menu actions: Cut, Copy, Paste, Delete, Select All.
+- Single-click create file from clipboard content.
 - Configurable sorting and folders-on-top behavior (file ordering).
 - Settings for font size.
 - Hidden files filtered out by default (dotfiles).
