@@ -40,8 +40,8 @@ async function processMermaidQueue() {
   if (task) {
     try {
       await task();
-    } catch (err) {
-      console.error('[Mermaid] Queue task error:', err);
+    } catch {
+      // Error handled by the task itself
     }
   }
 
@@ -77,28 +77,21 @@ function MermaidDiagram({ code }: { code: string }) {
     let isMounted = true;
     const diagramId = idRef.current;
 
-    console.log(`[Mermaid ${diagramId}] Queueing render...`);
     setLoading(true);
     setSvg('');
     setError('');
 
     queueMermaidRender(async () => {
-      console.log(`[Mermaid ${diagramId}] Starting render...`);
-
       try {
         const safeId = `mermaid-diagram-${diagramId}-${Date.now()}`;
         const result = await mermaid.render(safeId, code);
 
         if (isMounted) {
-          console.log(`[Mermaid ${diagramId}] Render successful, SVG length: ${result.svg.length}`);
           setSvg(result.svg);
           setError('');
           setLoading(false);
-        } else {
-          console.log(`[Mermaid ${diagramId}] Component unmounted, discarding result`);
         }
       } catch (err) {
-        console.error(`[Mermaid ${diagramId}] Render error:`, err);
         if (isMounted) {
           setError(err instanceof Error ? err.message : 'Failed to render diagram');
           setSvg('');
@@ -108,7 +101,6 @@ function MermaidDiagram({ code }: { code: string }) {
     });
 
     return () => {
-      console.log(`[Mermaid ${diagramId}] Cleanup (unmounting)`);
       isMounted = false;
     };
   }, [code]);
