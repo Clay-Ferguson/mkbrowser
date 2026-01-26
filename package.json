@@ -57,6 +57,7 @@
     "fdir": "^6.5.0",
     "js-yaml": "^4.1.1",
     "katex": "^0.16.28",
+    "mermaid": "^11.12.2",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-markdown": "^10.1.0",

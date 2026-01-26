@@ -3,6 +3,7 @@ import Markdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import mermaid from 'mermaid';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
@@ -18,6 +19,127 @@ import {
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import CodeMirrorEditor from '../CodeMirrorEditor';
+
+// Initialize mermaid with dark theme
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  securityLevel: 'loose',
+});
+
+// Render queue to serialize mermaid renders (mermaid can't handle concurrent renders)
+const mermaidRenderQueue: Array<() => Promise<void>> = [];
+let isRenderingMermaid = false;
+
+async function processMermaidQueue() {
+  if (isRenderingMermaid || mermaidRenderQueue.length === 0) return;
+
+  isRenderingMermaid = true;
+  const task = mermaidRenderQueue.shift();
+
+  if (task) {
+    try {
+      await task();
+    } catch (err) {
+      console.error('[Mermaid] Queue task error:', err);
+    }
+  }
+
+  isRenderingMermaid = false;
+
+  // Process next item in queue
+  if (mermaidRenderQueue.length > 0) {
+    processMermaidQueue();
+  }
+}
+
+function queueMermaidRender(task: () => Promise<void>) {
+  mermaidRenderQueue.push(task);
+  processMermaidQueue();
+}
+
+// Counter for unique IDs (more reliable than useId for mermaid)
+let mermaidIdCounter = 0;
+
+// Component to render Mermaid diagrams
+function MermaidDiagram({ code }: { code: string }) {
+  const [svg, setSvg] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const idRef = useRef<number | null>(null);
+
+  // Assign a stable ID on mount
+  if (idRef.current === null) {
+    idRef.current = ++mermaidIdCounter;
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+    const diagramId = idRef.current;
+
+    console.log(`[Mermaid ${diagramId}] Queueing render...`);
+    setLoading(true);
+    setSvg('');
+    setError('');
+
+    queueMermaidRender(async () => {
+      console.log(`[Mermaid ${diagramId}] Starting render...`);
+
+      try {
+        const safeId = `mermaid-diagram-${diagramId}-${Date.now()}`;
+        const result = await mermaid.render(safeId, code);
+
+        if (isMounted) {
+          console.log(`[Mermaid ${diagramId}] Render successful, SVG length: ${result.svg.length}`);
+          setSvg(result.svg);
+          setError('');
+          setLoading(false);
+        } else {
+          console.log(`[Mermaid ${diagramId}] Component unmounted, discarding result`);
+        }
+      } catch (err) {
+        console.error(`[Mermaid ${diagramId}] Render error:`, err);
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to render diagram');
+          setSvg('');
+          setLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      console.log(`[Mermaid ${diagramId}] Cleanup (unmounting)`);
+      isMounted = false;
+    };
+  }, [code]);
+
+  if (error) {
+    return (
+      <div className="bg-red-900/30 border border-red-500 rounded p-3 text-red-300 text-sm">
+        <strong>Mermaid Error:</strong> {error}
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8 text-slate-400">
+        <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+        <span>Rendering diagram...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mermaid-diagram flex justify-center my-4"
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  );
+}
 
 interface MarkdownEntryProps {
   entry: FileEntry;
@@ -320,7 +442,31 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
             />
           ) : (
             <article className="prose prose-invert prose-base max-w-none">
-              <Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{content || ''}</Markdown>
+              <Markdown
+                remarkPlugins={[remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+                components={{
+                  code({ className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || '');
+                    const language = match ? match[1] : '';
+                    const codeString = String(children).replace(/\n$/, '');
+
+                    // Check if this is a mermaid code block
+                    if (language === 'mermaid') {
+                      return <MermaidDiagram code={codeString} />;
+                    }
+
+                    // For other code blocks, render normally
+                    return (
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                }}
+              >
+                {content || ''}
+              </Markdown>
             </article>
           )}
         </div>
