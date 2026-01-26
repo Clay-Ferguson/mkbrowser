@@ -1,5 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import Markdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
@@ -317,7 +320,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
             />
           ) : (
             <article className="prose prose-invert prose-base max-w-none">
-              <Markdown>{content || ''}</Markdown>
+              <Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{content || ''}</Markdown>
             </article>
           )}
         </div>
