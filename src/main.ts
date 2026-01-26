@@ -550,9 +550,17 @@ function setupIpcHandlers(): void {
         .map(p => p.trim())
         .filter(p => p.length > 0);
       
+      // Convert wildcard patterns to regex (e.g., "node_*" becomes /^node_.*$/i)
+      const ignoredPatterns = ignoredPaths.map(pattern => {
+        // Escape regex special chars except *, then convert * to .*
+        const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+        const regexPattern = escaped.replace(/\*/g, '.*');
+        return new RegExp(`^${regexPattern}$`, 'i'); // case-insensitive, full match
+      });
+      
       // Create exclude predicate for fdir (returns true to exclude)
       const shouldExcludeDir = (dirName: string): boolean => {
-        return ignoredPaths.includes(dirName);
+        return ignoredPatterns.some(pattern => pattern.test(dirName));
       };
       
       // Helper to escape regex special characters (except *)
