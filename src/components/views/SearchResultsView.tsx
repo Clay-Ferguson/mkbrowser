@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import {
   setCurrentView,
+  setSearchResults,
   useSearchResults,
   useSearchQuery,
   useSearchFolder,
   useSettings,
 } from '../../store';
+import ConfirmDialog from '../dialogs/ConfirmDialog';
 
 interface SearchResultsViewProps {
   onNavigateToResult: (folderPath: string, fileName: string) => void;
@@ -15,6 +18,8 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const searchQuery = useSearchQuery();
   const searchFolder = useSearchFolder();
   const settings = useSettings();
+  const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Font size CSS class mapping
   const fontSizeClass = {
@@ -38,6 +43,32 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
   // Get the folder name for display
   const folderName = searchFolder.split('/').pop() || searchFolder;
+
+  const handleDeleteClick = (e: React.MouseEvent, path: string) => {
+    e.stopPropagation();
+    const fileName = path.substring(path.lastIndexOf('/') + 1);
+    setDeleteTarget({ path, name: fileName });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const success = await window.electronAPI.deleteFile(deleteTarget.path);
+      if (success) {
+        // Remove the deleted file from search results
+        const updatedResults = searchResults.filter(r => r.path !== deleteTarget.path);
+        setSearchResults(updatedResults, searchQuery, searchFolder);
+      }
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteTarget(null);
+  };
 
   return (
     <div className={`min-h-screen bg-slate-900 ${fontSizeClass}`}>
@@ -90,9 +121,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
               <div
                 key={result.path}
                 onClick={() => handleResultClick(result.path)}
-                className="bg-slate-800 rounded-lg border border-slate-700 p-4 hover:border-slate-600 transition-colors cursor-pointer"
+                className="bg-slate-800 rounded-lg border border-slate-700 px-2 py-1.5 hover:border-slate-600 transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   {/* File icon */}
                   <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -109,12 +140,33 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                   <div className="text-sm text-slate-500 flex-shrink-0">
                     {result.matchCount} match{result.matchCount !== 1 ? 'es' : ''}
                   </div>
+
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => handleDeleteClick(e, result.path)}
+                    disabled={deleting}
+                    className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-50"
+                    title="Delete"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </main>
+
+      {/* Delete confirmation dialog */}
+      {deleteTarget && (
+        <ConfirmDialog
+          message={`Are you sure you want to delete "${deleteTarget.name}"?`}
+          onConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+        />
+      )}
     </div>
   );
 }
