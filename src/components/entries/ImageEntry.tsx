@@ -51,7 +51,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
     }
   }, [isRenaming, entry.name]);
 
-  // Handle Escape key to close fullscreen overlay
+  // Handle Escape key to close fullscreen overlay and arrow keys for navigation
   useEffect(() => {
     if (!isFullscreen) return;
     
@@ -59,12 +59,26 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
       if (e.key === 'Escape') {
         setIsFullscreen(false);
         setFullscreenImagePath(entry.path); // Reset to this entry's image
+      } else if (e.key === 'ArrowRight') {
+        const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
+        if (currentIndex === -1 || currentIndex >= allImages.length - 1) {
+          setShowEndAlert(true);
+        } else {
+          setFullscreenImagePath(allImages[currentIndex + 1].path);
+        }
+      } else if (e.key === 'ArrowLeft') {
+        const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
+        if (currentIndex === -1 || currentIndex <= 0) {
+          setShowBeginningAlert(true);
+        } else {
+          setFullscreenImagePath(allImages[currentIndex - 1].path);
+        }
       }
     };
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen, entry.path]);
+  }, [isFullscreen, entry.path, fullscreenImagePath, allImages]);
 
   // Get the current image being displayed in fullscreen
   const currentFullscreenImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
