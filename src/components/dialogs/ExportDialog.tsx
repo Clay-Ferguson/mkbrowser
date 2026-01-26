@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 interface ExportDialogProps {
   defaultFolder: string;
   defaultFileName: string;
-  onExport: (outputFolder: string, fileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => void;
+  onExport: (outputFolder: string, fileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean, exportToPdf: boolean) => void;
   onCancel: () => void;
 }
 
@@ -13,6 +13,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
   const [includeSubfolders, setIncludeSubfolders] = useState(false);
   const [includeFilenames, setIncludeFilenames] = useState(true);
   const [includeDividers, setIncludeDividers] = useState(true);
+  const [exportToPdf, setExportToPdf] = useState(false);
   const fileNameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -32,12 +33,12 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
     const trimmedFileName = fileName.trim();
     if (!trimmedFolder || !trimmedFileName) return;
     
-    // Ensure filename ends with .md
-    const finalFileName = trimmedFileName.endsWith('.md') 
-      ? trimmedFileName 
-      : `${trimmedFileName}.md`;
+    // Strip any extension and add the appropriate one
+    const baseFileName = trimmedFileName.replace(/\.(md|pdf)$/i, '');
+    // Always use .md extension - the caller will handle PDF conversion
+    const finalFileName = `${baseFileName}.md`;
     
-    onExport(trimmedFolder, finalFileName, includeSubfolders, includeFilenames, includeDividers);
+    onExport(trimmedFolder, finalFileName, includeSubfolders, includeFilenames, includeDividers, exportToPdf);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -98,7 +99,9 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             placeholder="export.md"
           />
           <p className="text-xs text-slate-500 mt-1">
-            The .md extension will be added automatically if not provided.
+            {exportToPdf 
+              ? 'The output file will have a .pdf extension.'
+              : 'The output file will have a .md extension.'}
           </p>
         </div>
 
@@ -135,7 +138,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
         </div>
 
         {/* Divider Lines Checkbox */}
-        <div className="mb-6">
+        <div className="mb-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -147,6 +150,23 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
           </label>
           <p className="text-xs text-slate-500 mt-1 ml-6">
             When enabled, a horizontal line will separate each file&apos;s content.
+          </p>
+        </div>
+
+        {/* Export to PDF Checkbox */}
+        <div className="mb-6">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={exportToPdf}
+              onChange={(e) => setExportToPdf(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
+            />
+            <span className="text-sm text-slate-300">Export to PDF</span>
+          </label>
+          <p className="text-xs text-slate-500 mt-1 ml-6">
+            When enabled, the markdown file will be converted to PDF using Pandoc.
+            A terminal window will open showing the conversion progress.
           </p>
         </div>
 

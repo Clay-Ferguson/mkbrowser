@@ -78,6 +78,7 @@ export interface ElectronAPI {
   setWindowTitle: (title: string) => Promise<void>;
   selectExportFolder: () => Promise<string | null>;
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;
+  exportToPdf: (markdownPath: string, pdfPath: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

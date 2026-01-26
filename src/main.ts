@@ -854,6 +854,85 @@ function setupIpcHandlers(): void {
       };
     }
   });
+
+  // Export markdown to PDF using external terminal
+  ipcMain.handle('export-to-pdf', async (
+    _event,
+    markdownPath: string,
+    pdfPath: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { spawn } = await import('node:child_process');
+      
+      // Get the path to the PDF export script
+      // In development: app.getAppPath() returns project root
+      // In production: resources are in process.resourcesPath
+      const resourcePath = app.isPackaged
+        ? path.join(process.resourcesPath, 'pdf-export')
+        : path.join(app.getAppPath(), 'resources', 'pdf-export');
+      
+      const scriptPath = path.join(resourcePath, 'generate-pdf.sh');
+      
+      // Check if script exists
+      if (!fs.existsSync(scriptPath)) {
+        return {
+          success: false,
+          error: `PDF export script not found at: ${scriptPath}`,
+        };
+      }
+      
+      // Try common Linux terminal emulators in order of preference
+      const terminals = [
+        { cmd: 'x-terminal-emulator', args: ['-e'] },
+        { cmd: 'gnome-terminal', args: ['--'] },
+        { cmd: 'konsole', args: ['-e'] },
+        { cmd: 'xfce4-terminal', args: ['-e'] },
+        { cmd: 'xterm', args: ['-e'] },
+        { cmd: 'kitty', args: ['--'] },
+        { cmd: 'alacritty', args: ['-e'] },
+      ];
+      
+      // Find the first available terminal
+      let terminalCmd: string | null = null;
+      let terminalArgs: string[] = [];
+      
+      for (const terminal of terminals) {
+        try {
+          const { execSync } = await import('node:child_process');
+          execSync(`which ${terminal.cmd}`, { stdio: 'ignore' });
+          terminalCmd = terminal.cmd;
+          terminalArgs = terminal.args;
+          break;
+        } catch {
+          // Terminal not found, try next
+        }
+      }
+      
+      if (!terminalCmd) {
+        return {
+          success: false,
+          error: 'No terminal emulator found. Please install gnome-terminal, konsole, xterm, or another terminal emulator.',
+        };
+      }
+      
+      // Spawn the terminal with the script
+      const child = spawn(terminalCmd, [...terminalArgs, scriptPath, markdownPath, pdfPath], {
+        detached: true,
+        stdio: 'ignore',
+      });
+      
+      // Detach the process so it doesn't block the app
+      child.unref();
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error launching PDF export:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+      };
+    }
+  });
 }
 
 // Handle command-line arguments to set initial browse folder

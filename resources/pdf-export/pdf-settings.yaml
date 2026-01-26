@@ -1,0 +1,20 @@
+---
+mainfont: "DejaVu Serif"
+sansfont: "DejaVu Sans"
+monofont: "DejaVu Sans Mono"
+mathfont: "DejaVu Math TeX Gyre"
+
+# Page margins (default LaTeX is ~1 inch, we're using ~0.5 inch)
+geometry:
+  - top=0.75in
+  - bottom=0.75in
+  - left=0.75in
+  - right=0.75in
+
+# Figure numbering using native LaTeX (no third-party filters needed)
+# When you use ![Caption text](image.png), LaTeX will automatically
+# number it as "Figure 1: Caption text", "Figure 2: ...", etc.
+header-includes:
+  - \usepackage{float}
+  - \floatplacement{figure}{H}
+---

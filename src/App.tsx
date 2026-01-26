@@ -470,12 +470,13 @@ function App() {
   }, [currentPath]);
 
   // Handle export
-  const handleExport = useCallback(async (outputFolder: string, fileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => {
+  const handleExport = useCallback(async (outputFolder: string, fileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean, exportToPdf: boolean) => {
     if (!currentPath) return;
     
     setShowExportDialog(false);
     setError(null);
 
+    // First, export to markdown
     const result = await window.electronAPI.exportFolderContents(currentPath, outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers);
     
     if (!result.success) {
@@ -483,9 +484,22 @@ function App() {
       return;
     }
 
-    // Open the exported file with the system default viewer
-    if (result.outputPath) {
-      await window.electronAPI.openExternal(result.outputPath);
+    if (exportToPdf && result.outputPath) {
+      // Convert to PDF - the markdown file path becomes input, generate PDF path
+      const pdfPath = result.outputPath.replace(/\.md$/i, '.pdf');
+      const pdfResult = await window.electronAPI.exportToPdf(result.outputPath, pdfPath);
+      
+      if (!pdfResult.success) {
+        setError(pdfResult.error || 'Failed to launch PDF export');
+        return;
+      }
+      // PDF generation happens in external terminal, no file to open here
+      // The terminal will show the user the result
+    } else {
+      // Open the exported markdown file with the system default viewer
+      if (result.outputPath) {
+        await window.electronAPI.openExternal(result.outputPath);
+      }
     }
   }, [currentPath]);
 
