@@ -102,6 +102,64 @@ function sortEntries(entries: FileEntry[], sortOrder: SortOrder, foldersOnTop: b
   }
 }
 
+type PathBreadcrumbProps = {
+  rootPath: string;
+  currentPath: string;
+  onNavigate: (path: string) => void;
+};
+
+function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
+  const normalizedRoot = rootPath.replace(/\/+$/, '');
+  const normalizedCurrent = currentPath.replace(/\/+$/, '');
+  const relativePath = normalizedCurrent.startsWith(normalizedRoot)
+    ? normalizedCurrent.slice(normalizedRoot.length)
+    : normalizedCurrent;
+
+  const parts = relativePath
+    .split('/')
+    .filter(Boolean);
+
+  const buildPathForIndex = (index: number) => {
+    if (index < 0) return normalizedRoot;
+    const segmentPath = parts.slice(0, index + 1).join('/');
+    return `${normalizedRoot}/${segmentPath}`;
+  };
+
+  return (
+    <div className="flex items-center gap-1 text-sm min-w-0" title={currentPath}>
+      <button
+        type="button"
+        onClick={() => onNavigate(normalizedRoot)}
+        className="p-1 text-slate-400 hover:text-blue-400 rounded cursor-pointer"
+        aria-label="Go to root folder"
+        title={normalizedRoot}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9.75L12 4l9 5.75V20a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1V9.75z" />
+        </svg>
+      </button>
+
+      {parts.length === 0 && (
+        <span className="text-slate-200 font-medium">/</span>
+      )}
+
+      {parts.map((part, index) => (
+        <div key={`${part}-${index}`} className="flex items-center min-w-0">
+          <span className="text-slate-500 mx-1">/</span>
+          <button
+            type="button"
+            onClick={() => onNavigate(buildPathForIndex(index))}
+            className="text-slate-200 hover:text-blue-400 cursor-pointer no-underline truncate"
+            title={buildPathForIndex(index)}
+          >
+            {part}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function App() {
   const [rootPath, setRootPath] = useState<string>('');
   const [entries, setEntries] = useState<FileEntry[]>([]);
@@ -738,13 +796,6 @@ function App() {
     }
   }, [currentPath, rootPath]);
 
-  // Get relative path for breadcrumb display
-  const getRelativePath = () => {
-    if (!rootPath || !currentPath) return '';
-    if (currentPath === rootPath) return '/';
-    return currentPath.substring(rootPath.length) || '/';
-  };
-
   // Folder selection prompt (first run or no folder configured)
   if (!currentPath && !loading) {
     return (
@@ -813,29 +864,13 @@ function App() {
       <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
-            {/* Back button */}
-            <button
-              onClick={navigateUp}
-              disabled={currentPath === rootPath}
-              className={`p-2 rounded-lg transition-colors ${
-                currentPath === rootPath
-                  ? 'text-slate-600 cursor-not-allowed'
-                  : 'text-slate-400 hover:bg-slate-700'
-              }`}
-              title="Go up"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-
             {/* Breadcrumb / path display */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center text-sm">
-                <span className="text-slate-200 font-medium truncate" title={currentPath}>
-                  {getRelativePath()}
-                </span>
-              </div>
+              <PathBreadcrumb
+                rootPath={rootPath}
+                currentPath={currentPath}
+                onNavigate={navigateTo}
+              />
             </div>
 
             {/* Header action buttons */}
