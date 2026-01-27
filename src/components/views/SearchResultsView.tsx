@@ -22,6 +22,29 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Helper function to calculate days difference from today
+  const getDaysFromToday = (timestamp: number): number => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const targetDate = new Date(timestamp);
+    targetDate.setHours(0, 0, 0, 0);
+    const diffMs = targetDate.getTime() - today.getTime();
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
+  };
+
+  // Helper function to format the days display
+  const formatDaysDisplay = (days: number): string => {
+    if (days === 0) return '(today)';
+    return `(${days > 0 ? days : days})`;
+  };
+
+  // Helper function to get the color class for days
+  const getDaysColorClass = (days: number): string => {
+    if (days === 0) return 'text-white';
+    if (days < 0) return 'text-orange-400';
+    return 'text-green-400';
+  };
+
   // Debug: Log search results to see if foundTime is present
   console.log('Search results:', searchResults);
   console.log('First result:', searchResults[0]);
@@ -152,6 +175,14 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                       {result.lineNumber && result.lineNumber > 0 && (
                         <span className="text-sm text-amber-400">:{result.lineNumber}</span>
                       )}
+                      {result.foundTime && result.foundTime > 0 && (() => {
+                        const days = getDaysFromToday(result.foundTime);
+                        return (
+                          <span className={`text-sm font-semibold ${getDaysColorClass(days)}`}>
+                            {formatDaysDisplay(days)}
+                          </span>
+                        );
+                      })()}
                     </div>
                     {/* Show matching line text if available */}
                     {result.lineText && (

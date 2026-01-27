@@ -75,3 +75,25 @@ export function future(timestamp: number): boolean {
   const now = Date.now();
   return timestamp > now;
 }
+
+/**
+ * Checks if a timestamp (in milliseconds) represents today's date
+ * 
+ * @param timestamp - The timestamp in milliseconds since epoch (0 is treated as invalid)
+ * @returns True if the timestamp's date matches today's date, false otherwise
+ */
+export function today(timestamp: number): boolean {
+  // Treat 0 as invalid timestamp (not found)
+  if (timestamp === 0) {
+    return false;
+  }
+  
+  const now = new Date();
+  const checkDate = new Date(timestamp);
+  
+  return (
+    now.getFullYear() === checkDate.getFullYear() &&
+    now.getMonth() === checkDate.getMonth() &&
+    now.getDate() === checkDate.getDate()
+  );
+}

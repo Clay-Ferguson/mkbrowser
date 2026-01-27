@@ -5,7 +5,7 @@ import * as yaml from 'js-yaml';
 import started from 'electron-squirrel-startup';
 import { fdir } from 'fdir';
 import { calculateRenameOperations, type RenameOperation } from './utils/ordinals';
-import { extractTimestamp, past, future } from './utils/timeUtils';
+import { extractTimestamp, past, future, today } from './utils/timeUtils';
 import { createContentSearcher } from './utils/searchUtils';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -641,10 +641,10 @@ function setupIpcHandlers(): void {
             };
             
             try {
-              // Create a function that evaluates the user's expression with '$', 'ts', 'past', and 'future' in scope
+              // Create a function that evaluates the user's expression with '$', 'ts', 'past', 'future', and 'today' in scope
               const expressionCode = `return (${queryStr});`;
-              const evalFunction = new Function('$', 'ts', 'past', 'future', expressionCode);
-              const rawResult = evalFunction($, ts, past, future);
+              const evalFunction = new Function('$', 'ts', 'past', 'future', 'today', expressionCode);
+              const rawResult = evalFunction($, ts, past, future, today);
               const matches = Boolean(rawResult);
               const matchCount = getMatchCount();
               return { 
