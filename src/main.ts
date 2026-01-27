@@ -598,14 +598,17 @@ function setupIpcHandlers(): void {
       // Convert wildcard patterns to regex (e.g., "node_*" becomes /^node_.*$/i)
       const ignoredPatterns = ignoredPaths.map(pattern => {
         // Escape regex special chars except *, then convert * to .*
-        const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+        // Also escape / to handle path separators safely in regex
+        const escaped = pattern.replace(/[.+?^${}()|[\]\\/]/g, '\\$&');
         const regexPattern = escaped.replace(/\*/g, '.*');
         return new RegExp(`^${regexPattern}$`, 'i'); // case-insensitive, full match
       });
       
-      // Create exclude predicate for  (returns true to exclude)
-      const shouldExcludeDir = (dirName: string): boolean => {
-        return ignoredPatterns.some(pattern => pattern.test(dirName));
+      // Create exclude predicate for (returns true to exclude)
+      const shouldExcludePath = (name: string, fullPath: string): boolean => {
+        // Check both name and full path against ignored patterns
+        // This allows matching simple names "node_modules", filenames "AGENTS.md", and wildcards with paths "*/demo-data"
+        return ignoredPatterns.some(pattern => pattern.test(name) || pattern.test(fullPath));
       };
       
       // Helper to escape regex special characters (except *)
@@ -691,12 +694,13 @@ function setupIpcHandlers(): void {
         // Search file and folder names - crawl all entries (files AND directories)
         const filesApi = new fdir()
           .withFullPaths()
-          .exclude((dirName) => shouldExcludeDir(dirName))
+          .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
+          .filter((filePath) => !shouldExcludePath(path.basename(filePath), filePath))
           .crawl(folderPath);
 
         const dirsApi = new fdir()
           .withFullPaths()
-          .exclude((dirName) => shouldExcludeDir(dirName))
+          .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
           .onlyDirs()
           .crawl(folderPath);
 
@@ -729,8 +733,11 @@ function setupIpcHandlers(): void {
         // Search file contents - only .md and .txt files
         const api = new fdir()
           .withFullPaths()
-          .exclude((dirName) => shouldExcludeDir(dirName))
+          .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
           .filter((filePath) => {
+            const fileName = path.basename(filePath);
+            if (shouldExcludePath(fileName, filePath)) return false;
+
             const ext = path.extname(filePath).toLowerCase();
             return ext === '.md' || ext === '.txt';
           })

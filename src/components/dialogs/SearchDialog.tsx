@@ -59,12 +59,6 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
     const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
     if (!cleanedQuery) return;
     
-    // Validate advanced search requires $() predicate
-    if (searchType === 'advanced' && !cleanedQuery.includes('$(')) {
-      setError('Advanced search requires a $() predicate expression');
-      return;
-    }
-    
     setError(null);
     
     // Encode newlines as {{nl}} for persistence in search definition
