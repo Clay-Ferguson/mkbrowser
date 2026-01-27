@@ -77,6 +77,37 @@ export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 
 /**
+ * Search mode: content or filenames
+ */
+export type SearchMode = 'content' | 'filenames';
+
+/**
+ * Search type: literal, wildcard, or advanced
+ */
+export type SearchType = 'literal' | 'wildcard' | 'advanced';
+
+/**
+ * Search block: entire-file or file-lines
+ */
+export type SearchBlock = 'entire-file' | 'file-lines';
+
+/**
+ * Saved search definition
+ */
+export interface SearchDefinition {
+  /** Name of the search definition */
+  name: string;
+  /** The search query text */
+  searchText: string;
+  /** Search target: content or filenames */
+  searchTarget: SearchMode;
+  /** Search type: literal, wildcard, or advanced */
+  searchMode: SearchType;
+  /** Search block: entire-file or file-lines */
+  searchBlock: SearchBlock;
+}
+
+/**
  * Application settings that are persisted to config file
  */
 export interface AppSettings {
@@ -88,6 +119,8 @@ export interface AppSettings {
   foldersOnTop: boolean;
   /** Newline-separated list of folder/file names to ignore in search */
   ignoredPaths: string;
+  /** Saved search definitions */
+  searchDefinitions: SearchDefinition[];
 }
 
 /**

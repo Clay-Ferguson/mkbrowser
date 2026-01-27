@@ -10,6 +10,7 @@ const defaultSettings: AppSettings = {
   sortOrder: 'alphabetical',
   foldersOnTop: true,
   ignoredPaths: '',
+  searchDefinitions: [],
 };
 
 /**

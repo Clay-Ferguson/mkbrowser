@@ -114,9 +114,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             </div>
 
             {/* Results list */}
-            {searchResults.map((result) => (
+            {searchResults.map((result, index) => (
               <div
-                key={result.path}
+                key={`${result.path}-${result.lineNumber || 0}-${index}`}
                 onClick={() => handleResultClick(result.path)}
                 className="bg-slate-800 rounded-lg border border-slate-700 px-2 py-1.5 hover:border-slate-600 transition-colors cursor-pointer"
               >
@@ -124,11 +124,20 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                   {/* File icon */}
                   <DocumentTextIcon className="w-5 h-5 text-blue-400 flex-shrink-0" />
 
-                  {/* File path */}
+                  {/* File path with optional line number */}
                   <div className="flex-1 min-w-0">
-                    <div className="text-slate-200 truncate" title={result.path}>
-                      {result.relativePath}
+                    <div className="text-slate-200 truncate flex items-center gap-2" title={result.path}>
+                      <span>{result.relativePath}</span>
+                      {result.lineNumber && result.lineNumber > 0 && (
+                        <span className="text-sm text-amber-400">:{result.lineNumber}</span>
+                      )}
                     </div>
+                    {/* Show matching line text if available */}
+                    {result.lineText && (
+                      <div className="text-sm text-slate-400 truncate mt-0.5 font-mono" title={result.lineText}>
+                        {result.lineText}
+                      </div>
+                    )}
                   </div>
 
                   {/* Match count */}

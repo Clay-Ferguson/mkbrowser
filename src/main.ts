@@ -25,12 +25,24 @@ let commandLineFolder: string | null = null;
 
 type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
+type SearchMode = 'content' | 'filenames';
+type SearchType = 'literal' | 'wildcard' | 'advanced';
+type SearchBlock = 'entire-file' | 'file-lines';
+
+interface SearchDefinition {
+  name: string;
+  searchText: string;
+  searchTarget: SearchMode;
+  searchMode: SearchType;
+  searchBlock: SearchBlock;
+}
 
 interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
   foldersOnTop: boolean;
   ignoredPaths: string;
+  searchDefinitions: SearchDefinition[];
 }
 
 interface AppConfig {
@@ -43,6 +55,7 @@ const defaultSettings: AppSettings = {
   sortOrder: 'alphabetical',
   foldersOnTop: true,
   ignoredPaths: '',
+  searchDefinitions: [],
 };
 
 function ensureConfigDir(): void {
@@ -95,6 +108,8 @@ interface SearchResult {
   path: string;
   relativePath: string;
   matchCount: number;
+  lineNumber?: number; // 1-based line number (0 or undefined for entire file matches)
+  lineText?: string; // The matching line text (only for line-by-line search)
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -537,7 +552,7 @@ function setupIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content'): Promise<SearchResult[]> => {
+  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchBlock: 'entire-file' | 'file-lines' = 'entire-file'): Promise<SearchResult[]> => {
     try {
       // console.log(`\n=== Search Started ===`);
       // console.log(`Folder: ${folderPath}`);
@@ -563,7 +578,7 @@ function setupIpcHandlers(): void {
         return new RegExp(`^${regexPattern}$`, 'i'); // case-insensitive, full match
       });
       
-      // Create exclude predicate for fdir (returns true to exclude)
+      // Create exclude predicate for  (returns true to exclude)
       const shouldExcludeDir = (dirName: string): boolean => {
         return ignoredPatterns.some(pattern => pattern.test(dirName));
       };
@@ -705,17 +720,42 @@ function setupIpcHandlers(): void {
 
         for (const filePath of files) {
           try {
+            // &&&
             const content = await fs.promises.readFile(filePath, 'utf-8');
-            const { matches, matchCount } = matchPredicate(content);
-
-            if (matches) {
-              // Get relative path for cleaner display
+            
+            // Check if we're searching line-by-line or entire file
+            if (searchBlock === 'file-lines') {
+              // Line-by-line search: split content into lines and search each separately
+              const lines = content.split(/\r?\n/); // Handle both Unix and Windows line endings
               const relativePath = path.relative(folderPath, filePath);
-              results.push({
-                path: filePath,
-                relativePath,
-                matchCount,
-              });
+              
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const { matches, matchCount } = matchPredicate(line);
+                
+                if (matches) {
+                  results.push({
+                    path: filePath,
+                    relativePath,
+                    matchCount,
+                    lineNumber: i + 1, // 1-based line number
+                    lineText: line,
+                  });
+                }
+              }
+            } else {
+              // Entire file search (default behavior)
+              const { matches, matchCount } = matchPredicate(content);
+
+              if (matches) {
+                // Get relative path for cleaner display
+                const relativePath = path.relative(folderPath, filePath);
+                results.push({
+                  path: filePath,
+                  relativePath,
+                  matchCount,
+                });
+              }
             }
           } catch (readError) {
             // Skip files that can't be read

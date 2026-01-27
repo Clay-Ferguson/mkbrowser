@@ -2,11 +2,25 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 
 // Type definitions for the exposed API
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
+export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
+export type SearchMode = 'content' | 'filenames';
+export type SearchType = 'literal' | 'wildcard' | 'advanced';
+export type SearchBlock = 'entire-file' | 'file-lines';
+
+export interface SearchDefinition {
+  name: string;
+  searchText: string;
+  searchTarget: SearchMode;
+  searchMode: SearchType;
+  searchBlock: SearchBlock;
+}
 
 export interface AppSettings {
   fontSize: FontSize;
-  sortOrder: 'alphabetical' | 'ordinal';
+  sortOrder: SortOrder;
   foldersOnTop: boolean;
+  ignoredPaths: string;
+  searchDefinitions: SearchDefinition[];
 }
 
 export interface AppConfig {
@@ -26,6 +40,8 @@ export interface SearchResult {
   path: string;
   relativePath: string;
   matchCount: number;
+  lineNumber?: number;
+  lineText?: string;
 }
 
 export interface RenameOperation {
@@ -62,7 +78,7 @@ export interface ElectronAPI {
   deleteFile: (filePath: string) => Promise<boolean>;
   openExternal: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<boolean>;
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames') => Promise<SearchResult[]>;
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => Promise<SearchResult[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
 }
 
@@ -152,7 +168,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames') => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode),
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchBlock),
   renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
   onExportRequested: (callback: () => void) => {

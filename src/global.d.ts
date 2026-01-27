@@ -2,11 +2,24 @@ export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 
+export type SearchMode = 'content' | 'filenames';
+export type SearchType = 'literal' | 'wildcard' | 'advanced';
+export type SearchBlock = 'entire-file' | 'file-lines';
+
+export interface SearchDefinition {
+  name: string;
+  searchText: string;
+  searchTarget: SearchMode;
+  searchMode: SearchType;
+  searchBlock: SearchBlock;
+}
+
 export interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
   foldersOnTop: boolean;
   ignoredPaths: string;
+  searchDefinitions: SearchDefinition[];
 }
 
 export interface AppConfig {
@@ -30,6 +43,8 @@ export interface SearchResult {
   path: string;
   relativePath: string;
   matchCount: number;
+  lineNumber?: number; // 1-based line number (0 or undefined for entire file matches)
+  lineText?: string; // The matching line text (only for line-by-line search)
 }
 
 export interface RenameOperation {
@@ -73,7 +88,7 @@ export interface ElectronAPI {
   deleteFile: (filePath: string) => Promise<boolean>;
   openExternal: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<boolean>;
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames') => Promise<SearchResult[]>;
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => Promise<SearchResult[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
   setWindowTitle: (title: string) => Promise<void>;
   selectExportFolder: () => Promise<string | null>;

@@ -54,6 +54,7 @@ import {
   useExpansionCounts,
   type ItemData,
   type SortOrder,
+  type SearchDefinition,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
 
@@ -659,15 +660,88 @@ function App() {
 
   const handleSearch = useCallback(async (options: SearchOptions) => {
     if (!currentPath) return;
+    
+    // Save search definition if searchName is provided
+    if (options.searchName) {
+      try {
+        const currentSettings = getSettings();
+        const config = await window.electronAPI.getConfig();
+        
+        // Create new search definition
+        const newSearchDefinition: SearchDefinition = {
+          name: options.searchName,
+          searchText: options.query,
+          searchTarget: options.searchMode,
+          searchMode: options.searchType,
+          searchBlock: options.searchBlock,
+        };
+        
+        // Remove any existing search definition with the same name
+        const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
+          (def) => def.name !== options.searchName
+        );
+        
+        // Add the new search definition
+        updatedSearchDefinitions.push(newSearchDefinition);
+        
+        // Save updated settings
+        await window.electronAPI.saveConfig({
+          ...config,
+          settings: {
+            ...currentSettings,
+            searchDefinitions: updatedSearchDefinitions,
+          },
+        });
+        
+        // Update local settings state
+        setSettings({
+          ...currentSettings,
+          searchDefinitions: updatedSearchDefinitions,
+        });
+      } catch (err) {
+        console.error('Failed to save search definition:', err);
+      }
+    }
+    
     setShowSearchDialog(false);
     
-    const results = await window.electronAPI.searchFolder(currentPath, options.query, options.searchType, options.searchMode);
+    const results = await window.electronAPI.searchFolder(currentPath, options.query, options.searchType, options.searchMode, options.searchBlock);
     setSearchResults(results, options.query, currentPath);
     setCurrentView('search-results');
   }, [currentPath]);
 
   const handleCancelSearch = useCallback(() => {
     setShowSearchDialog(false);
+  }, []);
+
+  // Delete a saved search definition by name
+  const handleDeleteSearchDefinition = useCallback(async (name: string) => {
+    try {
+      const currentSettings = getSettings();
+      const config = await window.electronAPI.getConfig();
+      
+      // Filter out the search definition with the matching name
+      const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
+        (def) => def.name !== name
+      );
+      
+      // Save updated settings
+      await window.electronAPI.saveConfig({
+        ...config,
+        settings: {
+          ...currentSettings,
+          searchDefinitions: updatedSearchDefinitions,
+        },
+      });
+      
+      // Update local settings state
+      setSettings({
+        ...currentSettings,
+        searchDefinitions: updatedSearchDefinitions,
+      });
+    } catch (err) {
+      console.error('Failed to delete search definition:', err);
+    }
   }, []);
 
   // Save settings to config file
@@ -1007,6 +1081,7 @@ function App() {
         <SearchDialog
           onSearch={handleSearch}
           onCancel={handleCancelSearch}
+          onDeleteSearchDefinition={handleDeleteSearchDefinition}
         />
       )}
 

@@ -157,7 +157,7 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
         </span>
       )}
       {!isRenaming && (
-        <>
+        <div className="flex items-center gap-1">
           {showInsertIcons && (
             <>
               <button
@@ -198,7 +198,7 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
           >
             <TrashIcon className="w-5 h-5" />
           </button>
-        </>
+        </div>
       )}
       {showDeleteConfirm && (
         <ConfirmDialog

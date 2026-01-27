@@ -2,22 +2,28 @@ import { useEffect, useRef, useState } from 'react';
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
+export type SearchBlock = 'entire-file' | 'file-lines';
 
 export interface SearchOptions {
   query: string;
   searchType: SearchType;
   searchMode: SearchMode;
+  searchBlock: SearchBlock;
+  searchName: string;
 }
 
 interface SearchDialogProps {
   onSearch: (options: SearchOptions) => void;
   onCancel: () => void;
+  onDeleteSearchDefinition: (name: string) => void;
 }
 
-function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
+function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchName, setSearchName] = useState('');
   const [searchType, setSearchType] = useState<SearchType>('literal');
   const [searchMode, setSearchMode] = useState<SearchMode>('content');
+  const [searchBlock, setSearchBlock] = useState<SearchBlock>('entire-file');
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -49,7 +55,7 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
     }
     
     setError(null);
-    onSearch({ query: cleanedQuery, searchType, searchMode });
+    onSearch({ query: cleanedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim() });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -89,6 +95,33 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
           style={{ minHeight: '80px' }}
         />
 
+        <div className="mb-4">
+          <label className="block text-sm text-slate-400 mb-2 mt-3">
+            Search Name (optional - saves this search if provided)
+          </label>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              className="flex-1 bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
+              placeholder="Enter a name to save this search..."
+            />
+            <button
+              onClick={() => {
+                if (searchName.trim()) {
+                  onDeleteSearchDefinition(searchName.trim());
+                  setSearchName('');
+                }
+              }}
+              disabled={!searchName.trim()}
+              className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-500 disabled:bg-red-600/50 disabled:cursor-not-allowed rounded transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+
         {/* Search mode radio buttons */}
         <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
           <legend className="text-xs text-slate-400 px-2">Search Target</legend>
@@ -116,7 +149,7 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
           </div>
         </fieldset>
 
-        {/* Search type radio buttons */}
+        {/* Search Mode radio buttons */}
         <fieldset className="border border-slate-600 rounded-md p-3 mb-4">
           <legend className="text-xs text-slate-400 px-2">Search Mode</legend>
           <div className="flex items-center gap-6">
@@ -149,6 +182,35 @@ function SearchDialog({ onSearch, onCancel }: SearchDialogProps) {
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
               />
               <span className="text-sm text-slate-300">Advanced</span>
+            </label>
+          </div>
+        </fieldset>
+
+        {/* Search block radio buttons (only enabled for file contents search with advanced mode) */}
+        <fieldset className={`border border-slate-600 rounded-md p-3 mb-3 ${searchMode === 'filenames' || searchType !== 'advanced' ? 'opacity-50' : ''}`}>
+          <legend className="text-xs text-slate-400 px-2">Search Block</legend>
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="searchBlock"
+                checked={searchBlock === 'entire-file'}
+                onChange={() => setSearchBlock('entire-file')}
+                disabled={searchMode === 'filenames' || searchType !== 'advanced'}
+                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <span className="text-sm text-slate-300">Entire File</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="searchBlock"
+                checked={searchBlock === 'file-lines'}
+                onChange={() => setSearchBlock('file-lines')}
+                disabled={searchMode === 'filenames' || searchType !== 'advanced'}
+                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <span className="text-sm text-slate-300">File Lines</span>
             </label>
           </div>
         </fieldset>
