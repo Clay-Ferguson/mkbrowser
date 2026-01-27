@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, Bars3Icon, DocumentPlusIcon, FolderPlusIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, Bars3Icon, DocumentPlusIcon, FolderPlusIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES } from '../../utils/styles';
@@ -205,9 +205,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
           aria-label={`Select ${entry.name}`}
         />
         {/* Text file icon - document with lines */}
-        <svg className="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
+        <DocumentTextIcon className="w-5 h-5 text-emerald-400 flex-shrink-0" />
         {isRenaming ? (
           <input
             ref={renameInputRef}

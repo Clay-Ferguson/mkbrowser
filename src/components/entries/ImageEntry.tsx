@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, PhotoIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES } from '../../utils/styles';
@@ -207,9 +207,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
           aria-label={`Select ${entry.name}`}
         />
         {/* Image icon */}
-        <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
+        <PhotoIcon className="w-5 h-5 text-green-500 flex-shrink-0" />
         {isRenaming ? (
           <input
             ref={inputRef}
@@ -311,9 +309,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
             className="absolute top-4 right-28 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
             title="Previous image"
           >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <ChevronLeftIcon className="w-8 h-8" />
           </button>
           {/* Next image button */}
           <button
@@ -321,9 +317,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
             className="absolute top-4 right-16 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
             title="Next image"
           >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <ChevronRightIcon className="w-8 h-8" />
           </button>
           {/* Close button */}
           <button
@@ -335,9 +329,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
             className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
             title="Close (Esc)"
           >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <XMarkIcon className="w-8 h-8" />
           </button>
           <img
             src={fullscreenImageUrl}

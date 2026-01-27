@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { CHECKBOX_CLASSES, ENTRY_CONTAINER_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES } from '../../utils/styles';
@@ -133,9 +133,7 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
         className={CHECKBOX_CLASSES}
         aria-label={`Select ${entry.name}`}
       />
-      <svg className="w-5 h-5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-      </svg>
+      <DocumentIcon className="w-5 h-5 text-slate-500 flex-shrink-0" />
       {isRenaming ? (
         <input
           ref={inputRef}

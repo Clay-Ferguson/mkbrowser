@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DocumentPlusIcon, FolderPlusIcon, MagnifyingGlassIcon, ClipboardDocumentIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, FolderIcon } from '@heroicons/react/24/outline';
+import { DocumentPlusIcon, FolderPlusIcon, MagnifyingGlassIcon, ClipboardDocumentIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, FolderIcon, HomeIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
 import MarkdownEntry from './components/entries/MarkdownEntry';
@@ -136,9 +136,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
         aria-label="Go to root folder"
         title={normalizedRoot}
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9.75L12 4l9 5.75V20a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1V9.75z" />
-        </svg>
+        <HomeIcon className="w-4 h-4" />
       </button>
 
       {parts.length === 0 && (
@@ -806,9 +804,7 @@ function App() {
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-8">
         <div className="bg-slate-800 rounded-lg shadow-lg p-8 max-w-md w-full text-center border border-slate-700">
           <div className="mb-6">
-            <svg className="w-16 h-16 mx-auto text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
+            <FolderIcon className="w-16 h-16 mx-auto text-slate-500" />
           </div>
           <h1 className="text-2xl font-semibold text-slate-100 mb-2">Welcome to MkBrowser</h1>
           <p className="text-slate-400 mb-6">

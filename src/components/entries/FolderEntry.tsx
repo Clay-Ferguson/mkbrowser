@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon } from '@heroicons/react/24/outline';
+import { FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { CHECKBOX_CLASSES, ENTRY_CONTAINER_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES } from '../../utils/styles';
@@ -139,9 +140,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
         className={CHECKBOX_CLASSES}
         aria-label={`Select ${entry.name}`}
       />
-      <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-      </svg>
+      <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
       {isRenaming ? (
         <input
           ref={inputRef}

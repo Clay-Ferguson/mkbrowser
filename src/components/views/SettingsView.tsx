@@ -1,3 +1,4 @@
+import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import {
   setCurrentView,
   setFontSize,
@@ -83,9 +84,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               className="p-2 rounded-lg transition-colors text-slate-400 hover:bg-slate-700"
               title="Back to browser"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <ChevronLeftIcon className="w-5 h-5" />
             </button>
 
             {/* Title */}
