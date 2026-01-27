@@ -42,6 +42,7 @@ export interface SearchResult {
   matchCount: number;
   lineNumber?: number;
   lineText?: string;
+  foundTime?: number; // Timestamp found by ts() function in advanced search (milliseconds since epoch)
 }
 
 export interface RenameOperation {

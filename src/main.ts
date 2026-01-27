@@ -110,6 +110,7 @@ interface SearchResult {
   matchCount: number;
   lineNumber?: number; // 1-based line number (0 or undefined for entire file matches)
   lineText?: string; // The matching line text (only for line-by-line search)
+  foundTime?: number; // Timestamp found by ts() function in advanced search (milliseconds since epoch)
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -620,13 +621,14 @@ function setupIpcHandlers(): void {
       };
       
       // Create the predicate function based on search type
-      const createMatchPredicate = (queryStr: string, type: 'literal' | 'wildcard' | 'advanced'): (content: string) => { matches: boolean; matchCount: number } => {
+      const createMatchPredicate = (queryStr: string, type: 'literal' | 'wildcard' | 'advanced'): (content: string) => { matches: boolean; matchCount: number; foundTime?: number } => {
         if (type === 'advanced') {
           // Advanced mode: evaluate user's JavaScript expression
           // Create a '$' function that will be injected into the expression's scope
           return (content: string) => {
             const contentLower = content.toLowerCase();
             let matchCount = 0;
+            let foundTime: number | undefined = undefined;
             
             // The '$' function checks if content contains the given text (case-insensitive)
             // and increments matchCount for each call that returns true
@@ -647,13 +649,57 @@ function setupIpcHandlers(): void {
               return false;
             };
             
+            // The 'ts' function detects timestamps in MM/DD/YYYY or MM/DD/YYYY HH:MM:SS AM/PM format
+            // Returns the timestamp in milliseconds, or 0 if not found
+            const ts = (): number => {
+              // Regex for MM/DD/YYYY HH:MM:SS AM/PM format (with optional time)
+              const dateTimeRegex = /(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM))?/i;
+              const match = content.match(dateTimeRegex);
+              
+              if (match) {
+                const month = parseInt(match[1], 10);
+                const day = parseInt(match[2], 10);
+                const year = parseInt(match[3], 10);
+                
+                let hours = 0;
+                let minutes = 0;
+                let seconds = 0;
+                
+                if (match[4]) {
+                  // Time part exists
+                  hours = parseInt(match[4], 10);
+                  minutes = parseInt(match[5], 10);
+                  seconds = parseInt(match[6], 10);
+                  const ampm = match[7]?.toUpperCase();
+                  
+                  // Convert to 24-hour format
+                  if (ampm === 'PM' && hours !== 12) {
+                    hours += 12;
+                  } else if (ampm === 'AM' && hours === 12) {
+                    hours = 0;
+                  }
+                }
+                
+                // Create Date object (month is 0-indexed in JavaScript)
+                const date = new Date(year, month - 1, day, hours, minutes, seconds);
+                const timestamp = date.getTime();
+                
+                // Store the found timestamp in the closure variable
+                foundTime = timestamp;
+                
+                return timestamp;
+              }
+              
+              return 0;
+            };
+            
             try {
-              // Create a function that evaluates the user's expression with '$' in scope
+              // Create a function that evaluates the user's expression with '$' and 'ts' in scope
               const expressionCode = `return (${queryStr});`;
-              const evalFunction = new Function('$', expressionCode);
-              const rawResult = evalFunction($);
+              const evalFunction = new Function('$', 'ts', expressionCode);
+              const rawResult = evalFunction($, ts);
               const matches = Boolean(rawResult);
-              return { matches, matchCount: matches ? Math.max(matchCount, 1) : 0 };
+              return { matches, matchCount: matches ? Math.max(matchCount, 1) : 0, foundTime };
             } catch (evalError) {
               console.warn(`[DEBUG] Error evaluating expression: ${evalError}`);
               return { matches: false, matchCount: 0 };
@@ -667,9 +713,9 @@ function setupIpcHandlers(): void {
             if (matches) {
               // Count matches by finding all occurrences
               const allMatches = content.match(new RegExp(regex.source, 'gi'));
-              return { matches: true, matchCount: allMatches ? allMatches.length : 1 };
+              return { matches: true, matchCount: allMatches ? allMatches.length : 1, foundTime: undefined };
             }
-            return { matches: false, matchCount: 0 };
+            return { matches: false, matchCount: 0, foundTime: undefined };
           };
         } else {
           // Literal mode: case-insensitive text search
@@ -682,7 +728,7 @@ function setupIpcHandlers(): void {
               matchCount++;
               searchIndex += queryLower.length;
             }
-            return { matches: matchCount > 0, matchCount };
+            return { matches: matchCount > 0, matchCount, foundTime: undefined };
           };
         }
       };
@@ -714,7 +760,7 @@ function setupIpcHandlers(): void {
         for (const entryPath of allEntries) {
           // Get just the filename/foldername (not the full path)
           const entryName = path.basename(entryPath);
-          const { matches, matchCount } = matchPredicate(entryName);
+          const { matches, matchCount, foundTime } = matchPredicate(entryName);
 
           if (matches) {
             // Get relative path for cleaner display
@@ -723,6 +769,7 @@ function setupIpcHandlers(): void {
               path: entryPath,
               relativePath,
               matchCount,
+              ...(foundTime !== undefined && { foundTime }),
             });
           }
         }
@@ -753,7 +800,7 @@ function setupIpcHandlers(): void {
               
               for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                const { matches, matchCount } = matchPredicate(line);
+                const { matches, matchCount, foundTime } = matchPredicate(line);
                 
                 if (matches) {
                   results.push({
@@ -762,12 +809,13 @@ function setupIpcHandlers(): void {
                     matchCount,
                     lineNumber: i + 1, // 1-based line number
                     lineText: line,
+                    ...(foundTime !== undefined && { foundTime }),
                   });
                 }
               }
             } else {
               // Entire file search (default behavior)
-              const { matches, matchCount } = matchPredicate(content);
+              const { matches, matchCount, foundTime } = matchPredicate(content);
 
               if (matches) {
                 // Get relative path for cleaner display
@@ -776,6 +824,7 @@ function setupIpcHandlers(): void {
                   path: filePath,
                   relativePath,
                   matchCount,
+                  ...(foundTime !== undefined && { foundTime }),
                 });
               }
             }
