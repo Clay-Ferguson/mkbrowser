@@ -5,6 +5,8 @@ import * as yaml from 'js-yaml';
 import started from 'electron-squirrel-startup';
 import { fdir } from 'fdir';
 import { calculateRenameOperations, type RenameOperation } from './utils/ordinals';
+import { extractTimestamp } from './utils/timeUtils';
+import { createContentSearcher } from './utils/searchUtils';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -626,71 +628,22 @@ function setupIpcHandlers(): void {
           // Advanced mode: evaluate user's JavaScript expression
           // Create a '$' function that will be injected into the expression's scope
           return (content: string) => {
-            const contentLower = content.toLowerCase();
-            let matchCount = 0;
             let foundTime: number | undefined = undefined;
             
-            // The '$' function checks if content contains the given text (case-insensitive)
-            // and increments matchCount for each call that returns true
-            const $ = (searchText: string): boolean => {
-              const searchLower = searchText.toLowerCase();
-              const found = contentLower.includes(searchLower);
-              if (found) {
-                // Count occurrences for matchCount
-                let count = 0;
-                let idx = 0;
-                while ((idx = contentLower.indexOf(searchLower, idx)) !== -1) {
-                  count++;
-                  idx += searchLower.length;
-                }
-                matchCount += count;
-                return true;
-              }
-              return false;
-            };
+            // Create the content searcher with '$' function
+            const { $, getMatchCount } = createContentSearcher(content);
             
             // The 'ts' function detects timestamps in MM/DD/YYYY or MM/DD/YYYY HH:MM:SS AM/PM format
             // Returns the timestamp in milliseconds, or 0 if not found
             const ts = (): number => {
-              // Regex for MM/DD/YYYY HH:MM:SS AM/PM format (with optional time)
-              const dateTimeRegex = /(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM))?/i;
-              const match = content.match(dateTimeRegex);
+              const timestamp = extractTimestamp(content);
               
-              if (match) {
-                const month = parseInt(match[1], 10);
-                const day = parseInt(match[2], 10);
-                const year = parseInt(match[3], 10);
-                
-                let hours = 0;
-                let minutes = 0;
-                let seconds = 0;
-                
-                if (match[4]) {
-                  // Time part exists
-                  hours = parseInt(match[4], 10);
-                  minutes = parseInt(match[5], 10);
-                  seconds = parseInt(match[6], 10);
-                  const ampm = match[7]?.toUpperCase();
-                  
-                  // Convert to 24-hour format
-                  if (ampm === 'PM' && hours !== 12) {
-                    hours += 12;
-                  } else if (ampm === 'AM' && hours === 12) {
-                    hours = 0;
-                  }
-                }
-                
-                // Create Date object (month is 0-indexed in JavaScript)
-                const date = new Date(year, month - 1, day, hours, minutes, seconds);
-                const timestamp = date.getTime();
-                
-                // Store the found timestamp in the closure variable
+              // Store the found timestamp in the closure variable
+              if (timestamp > 0) {
                 foundTime = timestamp;
-                
-                return timestamp;
               }
               
-              return 0;
+              return timestamp;
             };
             
             try {
@@ -699,6 +652,7 @@ function setupIpcHandlers(): void {
               const evalFunction = new Function('$', 'ts', expressionCode);
               const rawResult = evalFunction($, ts);
               const matches = Boolean(rawResult);
+              const matchCount = getMatchCount();
               return { matches, matchCount: matches ? Math.max(matchCount, 1) : 0, foundTime };
             } catch (evalError) {
               console.warn(`[DEBUG] Error evaluating expression: ${evalError}`);
