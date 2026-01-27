@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
+import { CHECKBOX_CLASSES, ENTRY_CONTAINER_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES } from '../../utils/styles';
 import { useItem, useHighlightItem, setHighlightItem, setItemRenaming, setItemSelected } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -127,14 +129,14 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
   return (
     <div
       onClick={() => !isRenaming && onNavigate(entry.path)}
-      className={`w-full flex items-center gap-3 px-4 py-1 bg-slate-800 rounded-lg border ${isHighlighted ? 'border-purple-500' : 'border-slate-700 hover:border-slate-600'} hover:bg-slate-750 transition-colors text-left cursor-pointer`}
+      className={`w-full ${ENTRY_CONTAINER_CLASSES} ${isHighlighted ? 'border-purple-500' : 'border-slate-700 hover:border-slate-600'} hover:bg-slate-750 transition-colors text-left cursor-pointer`}
     >
       <input
         type="checkbox"
         checked={isSelected}
         onChange={(e) => setItemSelected(entry.path, e.target.checked)}
         onClick={handleCheckboxClick}
-        className="h-5 w-5 accent-blue-500 flex-shrink-0"
+        className={CHECKBOX_CLASSES}
         aria-label={`Select ${entry.name}`}
       />
       <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -151,7 +153,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
           onBlur={handleSave}
           onClick={handleInputClick}
           disabled={saving}
-          className="flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm font-medium"
+          className={`${RENAME_INPUT_CLASSES} font-medium`}
         />
       ) : (
         <span id={buildEntryHeaderId(entry.name)} className="text-slate-200 font-medium truncate flex-1">{entry.name}</span>
@@ -162,32 +164,26 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
         <div className="flex items-center gap-1">
           <button
             onClick={handleRenameClick}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+            className={RENAME_BUTTON_CLASSES}
             title="Rename"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
+            <PencilSquareIcon className="w-5 h-5" />
           </button>
           {showInsertIcons && (
             <>
               <button
                 onClick={handleInsertFileBelow}
-                className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors"
+                className={INSERT_FILE_BUTTON_CLASSES}
                 title="Insert file below"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <DocumentPlusIcon className="w-5 h-5" />
               </button>
               <button
                 onClick={handleInsertFolderBelow}
-                className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-700 rounded transition-colors"
+                className={INSERT_FOLDER_BUTTON_CLASSES}
                 title="Insert folder below"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                </svg>
+                <FolderPlusIcon className="w-5 h-5" />
               </button>
             </>
           )}
@@ -199,19 +195,15 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
             className="p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-700 rounded transition-colors"
             title="Open in file manager"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
+            <ArrowTopRightOnSquareIcon className="w-5 h-5" />
           </button>
           <button
             onClick={handleDeleteClick}
             disabled={deleting}
-            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-50"
+            className={DELETE_BUTTON_CLASSES}
             title="Delete"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <TrashIcon className="w-5 h-5" />
           </button>
         </div>
       )}

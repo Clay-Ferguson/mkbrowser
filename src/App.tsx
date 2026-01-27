@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { DocumentPlusIcon, FolderPlusIcon, MagnifyingGlassIcon, ClipboardDocumentIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, FolderIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
 import MarkdownEntry from './components/entries/MarkdownEntry';
@@ -884,9 +885,7 @@ function App() {
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Create file"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
+                <DocumentPlusIcon className="w-5 h-5" />
               </button>
 
               {/* Create folder button */}
@@ -895,9 +894,7 @@ function App() {
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Create folder"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                </svg>
+                <FolderPlusIcon className="w-5 h-5" />
               </button>
 
               {/* Search button */}
@@ -906,9 +903,7 @@ function App() {
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Search in folder"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                <MagnifyingGlassIcon className="w-5 h-5" />
               </button>
 
               {/* Paste from clipboard button */}
@@ -917,9 +912,7 @@ function App() {
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Paste from clipboard"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+                <ClipboardDocumentIcon className="w-5 h-5" />
               </button>
 
               {/* Expand all button */}
@@ -929,9 +922,7 @@ function App() {
                   className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                   title="Expand all"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <ChevronDownIcon className="w-5 h-5" />
                 </button>
               )}
 
@@ -942,9 +933,7 @@ function App() {
                   className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                   title="Collapse all"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                  </svg>
+                  <ChevronUpIcon className="w-5 h-5" />
                 </button>
               )}
 
@@ -954,9 +943,7 @@ function App() {
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Refresh"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <ArrowPathIcon className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -973,9 +960,7 @@ function App() {
 
         {!loading && entries.filter((entry) => !items.get(entry.path)?.isCut).length === 0 && (
           <div className="text-center py-12">
-            <svg className="w-12 h-12 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
+            <FolderIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
             <p className="text-slate-400">This folder is empty</p>
           </div>
         )}
