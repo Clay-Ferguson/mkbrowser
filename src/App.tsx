@@ -727,7 +727,10 @@ function App() {
     
     setShowSearchDialog(false);
     
-    const results = await window.electronAPI.searchFolder(currentPath, options.query, options.searchType, options.searchMode, options.searchBlock);
+    // Decode {{nl}} tokens back to spaces for actual search execution
+    const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
+    
+    const results = await window.electronAPI.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchBlock);
     setSearchResults(results, options.query, currentPath);
     setCurrentView('search-results');
   }, [currentPath]);

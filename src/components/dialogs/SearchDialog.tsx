@@ -28,7 +28,9 @@ interface SearchDialogProps {
 }
 
 function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialValues }: SearchDialogProps) {
-  const [searchQuery, setSearchQuery] = useState(initialValues?.searchQuery || '');
+  const [searchQuery, setSearchQuery] = useState(
+    initialValues?.searchQuery ? initialValues.searchQuery.replace(/\{\{nl\}\}/g, '\n') : ''
+  );
   const [searchName, setSearchName] = useState(initialValues?.searchName || '');
   const [searchType, setSearchType] = useState<SearchType>(initialValues?.searchType || 'literal');
   const [searchMode, setSearchMode] = useState<SearchMode>(initialValues?.searchMode || 'content');
@@ -53,7 +55,7 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
   };
 
   const handleSearch = () => {
-    // Remove all newlines and trim the query before using it
+    // Replace newlines with spaces for search execution
     const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
     if (!cleanedQuery) return;
     
@@ -64,7 +66,11 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
     }
     
     setError(null);
-    onSearch({ query: cleanedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim() });
+    
+    // Encode newlines as {{nl}} for persistence in search definition
+    const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
+    
+    onSearch({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim() });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
