@@ -22,6 +22,24 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Debug: Log search results to see if foundTime is present
+  console.log('Search results:', searchResults);
+  console.log('First result:', searchResults[0]);
+
+  // Check if any result has a non-zero foundTime
+  const hasFoundTimes = searchResults.some(r => r.foundTime && r.foundTime > 0);
+  console.log('Has found times:', hasFoundTimes);
+
+  // Sort results by foundTime if any result has it
+  const sortedResults = hasFoundTimes
+    ? [...searchResults].sort((a, b) => {
+        const timeA = a.foundTime || 0;
+        const timeB = b.foundTime || 0;
+        return timeA - timeB; // Chronological order (oldest first)
+      })
+    : searchResults;
+  console.log('Sorted results:', sortedResults);
+
   // Font size CSS class mapping
   const fontSizeClass = {
     small: 'text-sm',
@@ -111,10 +129,13 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             {/* Results count */}
             <div className="text-sm text-slate-500 mb-4">
               {searchResults.length} file{searchResults.length !== 1 ? 's' : ''} found
+              {hasFoundTimes && (
+                <span className="ml-2 text-blue-400 font-medium">• Items Ordered by Time</span>
+              )}
             </div>
 
             {/* Results list */}
-            {searchResults.map((result, index) => (
+            {sortedResults.map((result, index) => (
               <div
                 key={`${result.path}-${result.lineNumber || 0}-${index}`}
                 onClick={() => handleResultClick(result.path)}

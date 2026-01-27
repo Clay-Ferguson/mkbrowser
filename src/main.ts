@@ -628,7 +628,8 @@ function setupIpcHandlers(): void {
           // Advanced mode: evaluate user's JavaScript expression
           // Create a '$' function that will be injected into the expression's scope
           return (content: string) => {
-            let foundTime: number | undefined = undefined;
+            // Always extract timestamp from content (regardless of whether ts() is called)
+            const foundTime = extractTimestamp(content);
             
             // Create the content searcher with '$' function
             const { $, getMatchCount } = createContentSearcher(content);
@@ -636,14 +637,7 @@ function setupIpcHandlers(): void {
             // The 'ts' function detects timestamps in MM/DD/YYYY or MM/DD/YYYY HH:MM:SS AM/PM format
             // Returns the timestamp in milliseconds, or 0 if not found
             const ts = (): number => {
-              const timestamp = extractTimestamp(content);
-              
-              // Store the found timestamp in the closure variable
-              if (timestamp > 0) {
-                foundTime = timestamp;
-              }
-              
-              return timestamp;
+              return foundTime;
             };
             
             try {
@@ -653,7 +647,11 @@ function setupIpcHandlers(): void {
               const rawResult = evalFunction($, ts, past, future);
               const matches = Boolean(rawResult);
               const matchCount = getMatchCount();
-              return { matches, matchCount: matches ? Math.max(matchCount, 1) : 0, foundTime };
+              return { 
+                matches, 
+                matchCount: matches ? Math.max(matchCount, 1) : 0, 
+                foundTime: foundTime > 0 ? foundTime : undefined 
+              };
             } catch (evalError) {
               console.warn(`[DEBUG] Error evaluating expression: ${evalError}`);
               return { matches: false, matchCount: 0 };
@@ -774,6 +772,7 @@ function setupIpcHandlers(): void {
               if (matches) {
                 // Get relative path for cleaner display
                 const relativePath = path.relative(folderPath, filePath);
+                console.log(`[DEBUG] Found match in ${relativePath}: matchCount=${matchCount}, foundTime=${foundTime}`);
                 results.push({
                   path: filePath,
                   relativePath,
