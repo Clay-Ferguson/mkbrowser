@@ -291,6 +291,26 @@ function setupApplicationMenu(): void {
     ],
   });
 
+  // Add Search menu if there are saved search definitions
+  const config = loadConfig();
+  const searchDefinitions = config.settings?.searchDefinitions || [];
+  if (searchDefinitions.length > 0) {
+    // Sort search definitions alphabetically by name
+    const sortedDefinitions = [...searchDefinitions].sort((a, b) => 
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+
+    template.push({
+      label: 'Search',
+      submenu: sortedDefinitions.map((def) => ({
+        label: def.name,
+        click: () => {
+          mainWindow?.webContents.send('open-search-definition', def);
+        },
+      })),
+    });
+  }
+
   template.push({
     label: 'Tools',
     submenu: [
@@ -328,6 +348,8 @@ function setupIpcHandlers(): void {
   // Save configuration
   ipcMain.handle('save-config', (_event, config: AppConfig): void => {
     saveConfig(config);
+    // Rebuild menu to update search definitions
+    setupApplicationMenu();
   });
 
   // Set window title

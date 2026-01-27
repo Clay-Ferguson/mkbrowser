@@ -12,18 +12,27 @@ export interface SearchOptions {
   searchName: string;
 }
 
+export interface SearchDialogInitialValues {
+  searchQuery?: string;
+  searchName?: string;
+  searchType?: SearchType;
+  searchMode?: SearchMode;
+  searchBlock?: SearchBlock;
+}
+
 interface SearchDialogProps {
   onSearch: (options: SearchOptions) => void;
   onCancel: () => void;
   onDeleteSearchDefinition: (name: string) => void;
+  initialValues?: SearchDialogInitialValues;
 }
 
-function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition }: SearchDialogProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchName, setSearchName] = useState('');
-  const [searchType, setSearchType] = useState<SearchType>('literal');
-  const [searchMode, setSearchMode] = useState<SearchMode>('content');
-  const [searchBlock, setSearchBlock] = useState<SearchBlock>('entire-file');
+function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialValues }: SearchDialogProps) {
+  const [searchQuery, setSearchQuery] = useState(initialValues?.searchQuery || '');
+  const [searchName, setSearchName] = useState(initialValues?.searchName || '');
+  const [searchType, setSearchType] = useState<SearchType>(initialValues?.searchType || 'literal');
+  const [searchMode, setSearchMode] = useState<SearchMode>(initialValues?.searchMode || 'content');
+  const [searchBlock, setSearchBlock] = useState<SearchBlock>(initialValues?.searchBlock || 'entire-file');
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 

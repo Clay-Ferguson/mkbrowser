@@ -22,7 +22,7 @@ import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import AlertDialog from './components/dialogs/AlertDialog';
 import ConfirmDialog from './components/dialogs/ConfirmDialog';
-import SearchDialog, { type SearchOptions } from './components/dialogs/SearchDialog';
+import SearchDialog, { type SearchOptions, type SearchDialogInitialValues } from './components/dialogs/SearchDialog';
 import ExportDialog from './components/dialogs/ExportDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
@@ -170,6 +170,7 @@ function App() {
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [showSearchDialog, setShowSearchDialog] = useState<boolean>(false);
+  const [searchDialogInitialValues, setSearchDialogInitialValues] = useState<SearchDialogInitialValues | undefined>(undefined);
   const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
   const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
@@ -521,6 +522,24 @@ function App() {
     };
   }, []);
 
+  // Listen for search definition selection from menu
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onOpenSearchDefinition((definition) => {
+      setSearchDialogInitialValues({
+        searchQuery: definition.searchText,
+        searchName: definition.name,
+        searchType: definition.searchMode,
+        searchMode: definition.searchTarget,
+        searchBlock: definition.searchBlock,
+      });
+      setShowSearchDialog(true);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // Generate default export filename from current folder name
   const generateExportFileName = useCallback(() => {
     if (!currentPath) return 'export.md';
@@ -651,6 +670,7 @@ function App() {
 
   // Search handlers
   const handleOpenSearchDialog = useCallback(() => {
+    setSearchDialogInitialValues(undefined);
     setShowSearchDialog(true);
   }, []);
 
@@ -712,6 +732,7 @@ function App() {
 
   const handleCancelSearch = useCallback(() => {
     setShowSearchDialog(false);
+    setSearchDialogInitialValues(undefined);
   }, []);
 
   // Delete a saved search definition by name
@@ -1082,6 +1103,7 @@ function App() {
           onSearch={handleSearch}
           onCancel={handleCancelSearch}
           onDeleteSearchDefinition={handleDeleteSearchDefinition}
+          initialValues={searchDialogInitialValues}
         />
       )}
 
