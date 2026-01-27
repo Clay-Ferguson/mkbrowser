@@ -12,6 +12,23 @@ const DEFAULT_HEIGHT = 256;
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 800;
 
+// todo-0: I think we have multiple places where this function is duplicated. Refactor into a shared utility.
+// Format current date/time as MM/DD/YYYY HH:MM:SS AM/PM
+function formatTimestamp(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const year = now.getFullYear();
+  let hours = now.getHours();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  const hoursStr = String(hours).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${month}/${day}/${year} ${hoursStr}:${minutes}:${seconds} ${ampm}`;
+}
+
 // Dictionary URLs (using jsDelivr CDN for hunspell dictionaries)
 const DICT_BASE_URL = 'https://cdn.jsdelivr.net/npm/dictionary-en@4.0.0/index';
 
@@ -317,6 +334,20 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text' }: C
     view.focus();
   }, [closeContextMenu, contextMenu.spelling]);
 
+  const handleInsertTimestamp = useCallback(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    const timestamp = formatTimestamp();
+    const { from, to } = view.state.selection.main;
+    view.dispatch({
+      changes: { from, to, insert: timestamp },
+      selection: { anchor: from + timestamp.length },
+    });
+    closeContextMenu();
+    view.focus();
+  }, [closeContextMenu]);
+
   // Close context menu when clicking elsewhere
   useEffect(() => {
     if (!contextMenu.visible) return;
@@ -545,6 +576,13 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text' }: C
           >
             <span>Select All</span>
             <span className="text-slate-500 text-xs">Ctrl+A</span>
+          </button>
+          <div className="border-t border-slate-600 my-1" />
+          <button
+            onClick={handleInsertTimestamp}
+            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+          >
+            Insert Timestamp
           </button>
         </div>
       )}
