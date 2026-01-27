@@ -24,6 +24,7 @@ const initialState: AppState = {
   searchFolder: '',
   searchResults: [],
   settings: defaultSettings,
+  highlightItem: null,
 };
 
 /**
@@ -116,6 +117,13 @@ function getSearchFolderSnapshot(): string {
  */
 function getSettingsSnapshot(): AppSettings {
   return state.settings;
+}
+
+/**
+ * Get snapshot of highlighted item name
+ */
+function getHighlightItemSnapshot(): string | null {
+  return state.highlightItem;
 }
 
 // ============================================================================
@@ -552,7 +560,11 @@ export function setItemEditing(path: string, editing: boolean): void {
     editing,
   });
 
-  state = { ...state, items: newItems };
+  state = {
+    ...state,
+    items: newItems,
+    ...(editing ? { highlightItem: existing.name } : {}),
+  };
   emitChange();
 }
 
@@ -569,7 +581,20 @@ export function setItemRenaming(path: string, renaming: boolean): void {
     renaming,
   });
 
-  state = { ...state, items: newItems };
+  state = {
+    ...state,
+    items: newItems,
+    ...(renaming ? { highlightItem: existing.name } : {}),
+  };
+  emitChange();
+}
+
+/**
+ * Set the currently highlighted item name
+ */
+export function setHighlightItem(name: string | null): void {
+  if (state.highlightItem === name) return;
+  state = { ...state, highlightItem: name };
   emitChange();
 }
 
@@ -787,4 +812,11 @@ export function useSearchFolder(): string {
  */
 export function useSettings(): AppSettings {
   return useSyncExternalStore(subscribe, getSettingsSnapshot);
+}
+
+/**
+ * Hook to subscribe to highlighted item name
+ */
+export function useHighlightItem(): string | null {
+  return useSyncExternalStore(subscribe, getHighlightItemSnapshot);
 }

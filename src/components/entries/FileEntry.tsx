@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { useItem, setItemRenaming, setItemSelected, toggleItemExpanded } from '../../store';
+import { useItem, useHighlightItem, setHighlightItem, setItemRenaming, setItemSelected, toggleItemExpanded } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
@@ -15,6 +15,7 @@ interface FileEntryProps {
 
 function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow }: FileEntryProps) {
   const item = useItem(entry.path);
+  const highlightItem = useHighlightItem();
   const [newName, setNewName] = useState(entry.name);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -24,6 +25,7 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
   const isRenaming = item?.renaming ?? false;
   const isExpanded = item?.isExpanded ?? false;
   const isSelected = item?.isSelected ?? false;
+  const isHighlighted = highlightItem === entry.name;
   const showInsertIcons = hasOrdinalPrefix(entry.name);
   const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(entry.name) : null;
 
@@ -65,6 +67,7 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
       const success = await window.electronAPI.renameFile(entry.path, newPath);
       if (success) {
         setItemRenaming(entry.path, false);
+        setHighlightItem(trimmedName);
         onRename();
       }
     } finally {
@@ -120,7 +123,7 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
   };
 
   return (
-    <div className="flex items-center gap-3 px-4 py-1 bg-slate-800 rounded-lg border border-slate-700">
+    <div className={`flex items-center gap-3 px-4 py-1 bg-slate-800 rounded-lg border ${isHighlighted ? 'border-purple-500' : 'border-slate-700'}`}>
       <input
         type="checkbox"
         checked={isSelected}

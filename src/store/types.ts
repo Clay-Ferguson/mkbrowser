@@ -135,6 +135,11 @@ export interface AppState {
    * Application settings (persisted to config file)
    */
   settings: AppSettings;
+
+  /**
+   * Name of the currently highlighted item in the browser view
+   */
+  highlightItem: string | null;
 }
 
 /**

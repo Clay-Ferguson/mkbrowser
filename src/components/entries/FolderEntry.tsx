@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { useItem, setItemRenaming, setItemSelected } from '../../store';
+import { useItem, useHighlightItem, setHighlightItem, setItemRenaming, setItemSelected } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
@@ -16,6 +16,7 @@ interface FolderEntryProps {
 
 function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow }: FolderEntryProps) {
   const item = useItem(entry.path);
+  const highlightItem = useHighlightItem();
   const [newName, setNewName] = useState(entry.name);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -24,6 +25,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
 
   const isRenaming = item?.renaming ?? false;
   const isSelected = item?.isSelected ?? false;
+  const isHighlighted = highlightItem === entry.name;
   const showInsertIcons = hasOrdinalPrefix(entry.name);
   const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(entry.name) : null;
 
@@ -60,6 +62,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
       const success = await window.electronAPI.renameFile(entry.path, newPath);
       if (success) {
         setItemRenaming(entry.path, false);
+        setHighlightItem(trimmedName);
         onRename();
       }
     } finally {
@@ -124,7 +127,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
   return (
     <div
       onClick={() => !isRenaming && onNavigate(entry.path)}
-      className="w-full flex items-center gap-3 px-4 py-1 bg-slate-800 rounded-lg border border-slate-700 hover:bg-slate-750 hover:border-slate-600 transition-colors text-left cursor-pointer"
+      className={`w-full flex items-center gap-3 px-4 py-1 bg-slate-800 rounded-lg border ${isHighlighted ? 'border-purple-500' : 'border-slate-700 hover:border-slate-600'} hover:bg-slate-750 transition-colors text-left cursor-pointer`}
     >
       <input
         type="checkbox"

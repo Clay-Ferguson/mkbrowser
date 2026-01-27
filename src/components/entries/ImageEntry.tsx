@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { useItem, setItemRenaming, setItemSelected, toggleItemExpanded } from '../../store';
+import { useItem, useHighlightItem, setHighlightItem, setItemRenaming, setItemSelected, toggleItemExpanded } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import AlertDialog from '../dialogs/AlertDialog';
@@ -19,6 +19,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   console.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
   
   const item = useItem(entry.path);
+  const highlightItem = useHighlightItem();
   const [newName, setNewName] = useState(entry.name);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -32,6 +33,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   const isRenaming = item?.renaming ?? false;
   const isExpanded = item?.isExpanded ?? true;  // Default to expanded for images
   const isSelected = item?.isSelected ?? false;
+  const isHighlighted = highlightItem === entry.name;
   const showInsertIcons = hasOrdinalPrefix(entry.name);
   const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(entry.name) : null;
 
@@ -132,6 +134,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
       const success = await window.electronAPI.renameFile(entry.path, newPath);
       if (success) {
         setItemRenaming(entry.path, false);
+        setHighlightItem(trimmedName);
         onRename();
       }
     } finally {
@@ -191,7 +194,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   console.log('[ImageEntry] Image URL:', imageUrl);
 
   return (
-    <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+    <div className={`bg-slate-800 rounded-lg border ${isHighlighted ? 'border-purple-500' : 'border-slate-700'} overflow-hidden`}>
       {/* Header row */}
       <div className="flex items-center gap-3 px-4 py-1">
         <input

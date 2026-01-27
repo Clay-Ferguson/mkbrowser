@@ -13,6 +13,7 @@ export {
   setItemExpanded,
   setItemEditing,
   setItemRenaming,
+  setHighlightItem,
   clearAllSelections,
   selectItemsByPaths,
   expandAllItems,
@@ -47,5 +48,6 @@ export {
   useSearchQuery,
   useSearchFolder,
   useSettings,
+  useHighlightItem,
   useExpansionCounts,
 } from './store';

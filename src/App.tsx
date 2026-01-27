@@ -41,6 +41,7 @@ import {
   navigateToBrowserPath,
   clearPendingScrollToFile,
   setPendingScrollToFile,
+  setHighlightItem,
   setSearchResults,
   setSettings,
   getSettings,
@@ -592,6 +593,7 @@ function App() {
     if (success) {
       setShowCreateDialog(false);
       setCreateFileDefaultName('');
+      setHighlightItem(fileName);
       setPendingScrollToFile(fileName);
       refreshDirectory();
       // Set editing mode after scroll completes for editable file types
@@ -632,6 +634,7 @@ function App() {
     if (success) {
       setShowCreateFolderDialog(false);
       setCreateFolderDefaultName('');
+      setHighlightItem(folderName);
       setPendingScrollToFile(folderName);
       refreshDirectory();
     } else {

@@ -8,7 +8,9 @@ import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
   useItem,
+  useHighlightItem,
   setItemContent,
+  setHighlightItem,
   setItemEditing,
   setItemRenaming,
   setItemSelected,
@@ -143,6 +145,7 @@ interface MarkdownEntryProps {
 
 function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow }: MarkdownEntryProps) {
   const item = useItem(entry.path);
+  const highlightItem = useHighlightItem();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editContent, setEditContent] = useState('');
@@ -156,6 +159,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
   const isRenaming = item?.renaming ?? false;
   const isExpanded = item?.isExpanded ?? true;
   const isSelected = item?.isSelected ?? false;
+  const isHighlighted = highlightItem === entry.name;
   const showInsertIcons = hasOrdinalPrefix(entry.name);
   const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(entry.name) : null;
 
@@ -251,6 +255,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
       const success = await window.electronAPI.renameFile(entry.path, newPath);
       if (success) {
         setItemRenaming(entry.path, false);
+        setHighlightItem(trimmedName);
         onRename();
       }
     } finally {
@@ -306,7 +311,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
   };
 
   return (
-    <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+    <div className={`bg-slate-800 rounded-lg border ${isHighlighted ? 'border-purple-500' : 'border-slate-700'} overflow-hidden`}>
       <div className="flex items-center gap-3 px-4 py-1 bg-slate-800/50 border-b border-slate-700">
         <input
           type="checkbox"
