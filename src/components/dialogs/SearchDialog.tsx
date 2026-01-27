@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import ConfirmDialog from './ConfirmDialog';
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
@@ -36,6 +37,7 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
   const [searchMode, setSearchMode] = useState<SearchMode>(initialValues?.searchMode || 'content');
   const [searchBlock, setSearchBlock] = useState<SearchBlock>(initialValues?.searchBlock || 'entire-file');
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -119,8 +121,7 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
             <button
               onClick={() => {
                 if (searchName.trim()) {
-                  onDeleteSearchDefinition(searchName.trim());
-                  setSearchName('');
+                  setShowDeleteConfirm(true);
                 }
               }}
               disabled={!searchName.trim()}
@@ -255,6 +256,20 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
           </button>
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          message={`Are you sure you want to delete the search definition "${searchName}"?`}
+          onConfirm={() => {
+            if (searchName.trim()) {
+              onDeleteSearchDefinition(searchName.trim());
+              setSearchName('');
+            }
+            setShowDeleteConfirm(false);
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }
