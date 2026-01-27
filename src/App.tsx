@@ -525,6 +525,8 @@ function App() {
   // Listen for search definition selection from menu
   useEffect(() => {
     const unsubscribe = window.electronAPI.onOpenSearchDefinition((definition) => {
+      // Switch to browser view so the search dialog is visible
+      setCurrentView('browser');
       setSearchDialogInitialValues({
         searchQuery: definition.searchText,
         searchName: definition.name,
