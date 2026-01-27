@@ -123,6 +123,11 @@ const createWindow = () => {
     width: 1200,
     height: 800,
     icon: icon,
+
+    // need transparent backgrount to fix the classic Linux "ghost border" syndrome
+    transparent: true, // This often snaps the border out of existence
+    backgroundColor: '#00000000', // Ensure the background starts fully clear
+    
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
