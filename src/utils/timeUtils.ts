@@ -43,3 +43,35 @@ export function extractTimestamp(content: string): number {
   
   return 0;
 }
+
+/**
+ * Checks if a timestamp (in milliseconds) represents a time in the past
+ * 
+ * @param timestamp - The timestamp in milliseconds since epoch (0 is treated as invalid)
+ * @returns True if the timestamp is in the past, false otherwise
+ */
+export function past(timestamp: number): boolean {
+  // Treat 0 as invalid timestamp (not found)
+  if (timestamp === 0) {
+    return false;
+  }
+  
+  const now = Date.now();
+  return timestamp < now;
+}
+
+/**
+ * Checks if a timestamp (in milliseconds) represents a time in the future
+ * 
+ * @param timestamp - The timestamp in milliseconds since epoch (0 is treated as invalid)
+ * @returns True if the timestamp is in the future, false otherwise
+ */
+export function future(timestamp: number): boolean {
+  // Treat 0 as invalid timestamp (not found)
+  if (timestamp === 0) {
+    return false;
+  }
+  
+  const now = Date.now();
+  return timestamp > now;
+}
