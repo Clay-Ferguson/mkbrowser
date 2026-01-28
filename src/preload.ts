@@ -64,6 +64,7 @@ export interface ElectronAPI {
   selectFolder: () => Promise<string | null>;
   onFolderSelected: (callback: (folderPath: string) => void) => () => void;
   onCutRequested: (callback: () => void) => () => void;
+  onUndoCutRequested: (callback: () => void) => () => void;
   onPasteRequested: (callback: () => void) => () => void;
   onDeleteRequested: (callback: () => void) => () => void;
   onSelectAllRequested: (callback: () => void) => () => void;
@@ -105,6 +106,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('cut-items', handler);
     return () => {
       ipcRenderer.removeListener('cut-items', handler);
+    };
+  },
+  onUndoCutRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('undo-cut', handler);
+    return () => {
+      ipcRenderer.removeListener('undo-cut', handler);
     };
   },
   onPasteRequested: (callback: () => void) => {

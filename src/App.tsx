@@ -267,6 +267,17 @@ function App() {
     };
   }, []);
 
+  // Listen for Undo Cut menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onUndoCutRequested(() => {
+      clearAllCutItems();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // Listen for View menu action
   useEffect(() => {
     const unsubscribe = window.electronAPI.onViewChanged((view) => {

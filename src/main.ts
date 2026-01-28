@@ -235,6 +235,12 @@ function setupApplicationMenu(): void {
         },
       },
       {
+        label: 'Undo Cut',
+        click: () => {
+          mainWindow?.webContents.send('undo-cut');
+        },
+      },
+      {
         label: 'Paste',
         accelerator: 'CmdOrCtrl+V',
         click: () => {
