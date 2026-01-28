@@ -196,7 +196,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   console.log('[ImageEntry] Image URL:', imageUrl);
 
   return (
-    <div className={`bg-slate-800 rounded-lg border ${isHighlighted ? 'border-purple-500' : 'border-slate-700'} overflow-hidden`}>
+    <div className={`bg-slate-800 rounded-lg border ${isHighlighted ? 'border-2 border-purple-500' : 'border-slate-700'} overflow-hidden`}>
       {/* Header row */}
       <div className="flex items-center gap-3 px-4 py-1">
         <input

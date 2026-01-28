@@ -195,7 +195,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
   };
 
   return (
-    <div className={`bg-slate-800 rounded-lg border ${isHighlighted ? 'border-purple-500' : 'border-slate-700'} overflow-hidden`}>
+    <div className={`bg-slate-800 rounded-lg border ${isHighlighted ? 'border-2 border-purple-500' : 'border-slate-700'} overflow-hidden`}>
       <div className="flex items-center gap-3 px-4 py-1 bg-slate-800/50 border-b border-slate-700">
         <input
           type="checkbox"
