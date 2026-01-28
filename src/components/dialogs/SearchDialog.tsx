@@ -43,11 +43,13 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Convert search definitions to combobox options
-  const searchDefinitionOptions: ComboboxOption[] = searchDefinitions.map((def) => ({
-    value: def.name,
-    label: def.name,
-  }));
+  // Convert search definitions to combobox options (sorted alphabetically)
+  const searchDefinitionOptions: ComboboxOption[] = [...searchDefinitions]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((def) => ({
+      value: def.name,
+      label: def.name,
+    }));
 
   // Handle selection of a saved search definition from the combobox
   const handleSelectSearchDefinition = (option: ComboboxOption) => {
