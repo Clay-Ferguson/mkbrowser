@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import ConfirmDialog from './ConfirmDialog';
+import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
+import type { SearchDefinition } from '../../store/types';
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
@@ -26,9 +28,10 @@ interface SearchDialogProps {
   onCancel: () => void;
   onDeleteSearchDefinition: (name: string) => void;
   initialValues?: SearchDialogInitialValues;
+  searchDefinitions: SearchDefinition[];
 }
 
-function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialValues }: SearchDialogProps) {
+function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialValues, searchDefinitions }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState(
     initialValues?.searchQuery ? initialValues.searchQuery.replace(/\{\{nl\}\}/g, '\n') : ''
   );
@@ -39,6 +42,26 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Convert search definitions to combobox options
+  const searchDefinitionOptions: ComboboxOption[] = searchDefinitions.map((def) => ({
+    value: def.name,
+    label: def.name,
+  }));
+
+  // Handle selection of a saved search definition from the combobox
+  const handleSelectSearchDefinition = (option: ComboboxOption) => {
+    const selectedDef = searchDefinitions.find((def) => def.name === option.value);
+    if (selectedDef) {
+      setSearchName(selectedDef.name);
+      setSearchQuery(selectedDef.searchText.replace(/\{\{nl\}\}/g, '\n'));
+      setSearchType(selectedDef.searchMode);
+      setSearchMode(selectedDef.searchTarget);
+      setSearchBlock(selectedDef.searchBlock);
+      // Adjust textarea height after loading content
+      setTimeout(adjustTextareaHeight, 0);
+    }
+  };
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -111,12 +134,13 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
             Search Name (optional - saves this search if provided)
           </label>
           <div className="flex gap-3">
-            <input
-              type="text"
+            <EditableCombobox
               value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-              className="flex-1 bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
-              placeholder="Enter a name to save this search..."
+              onChange={setSearchName}
+              onSelect={handleSelectSearchDefinition}
+              options={searchDefinitionOptions}
+              placeholder="Enter a name to save, or select existing..."
+              className="flex-1"
             />
             <button
               onClick={() => {

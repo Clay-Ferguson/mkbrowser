@@ -1109,6 +1109,7 @@ function App() {
           onCancel={handleCancelSearch}
           onDeleteSearchDefinition={handleDeleteSearchDefinition}
           initialValues={searchDialogInitialValues}
+          searchDefinitions={settings.searchDefinitions}
         />
       )}
 
