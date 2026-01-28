@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DocumentPlusIcon, FolderPlusIcon, MagnifyingGlassIcon, ClipboardDocumentIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, HomeIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
@@ -336,16 +336,28 @@ function App() {
     }
   }, [currentPath]);
 
-  // Handle pending scroll after directory loads
+  // Track previous path to detect folder navigation
+  const previousPathRef = useRef<string | null>(null);
+
+  // Handle pending scroll after directory loads, or scroll to top on new folder
   useEffect(() => {
-    if (!loading && pendingScrollToFile) {
+    if (!loading) {
+      const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
+      previousPathRef.current = currentPath;
+
       // Short timeout just for DOM to settle after React render
       setTimeout(() => {
-        scrollItemIntoView(pendingScrollToFile);
-        clearPendingScrollToFile();
+        if (pendingScrollToFile) {
+          // Scroll to specific file (e.g., from search results)
+          scrollItemIntoView(pendingScrollToFile);
+          clearPendingScrollToFile();
+        } else if (isNewFolder) {
+          // Scroll to top when navigating to a new folder
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }
       }, 100);
     }
-  }, [loading, pendingScrollToFile]);
+  }, [loading, pendingScrollToFile, currentPath]);
 
   // Refresh directory without showing loading indicator (used after rename)
   const refreshDirectory = useCallback(() => {
