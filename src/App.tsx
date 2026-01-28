@@ -197,6 +197,10 @@ function App() {
   const showExpandAll = expansionCounts.totalCount > 0 && expansionCounts.expandedCount < expansionCounts.totalCount;
   const showCollapseAll = expansionCounts.totalCount > 0 && expansionCounts.collapsedCount < expansionCounts.totalCount;
 
+  // Determine if any items are selected or cut (for Cut/Paste buttons)
+  const hasSelectedItems = Array.from(items.values()).some((item) => item.isSelected);
+  const hasCutItems = Array.from(items.values()).some((item) => item.isCut);
+
   // Apply font size globally via data attribute on html element
   useEffect(() => {
     document.documentElement.setAttribute('data-font-size', settings.fontSize);
@@ -991,6 +995,28 @@ function App() {
 
             {/* Header action buttons */}
             <div className="flex items-center gap-1">
+              {/* Cut button - shown when items are selected and no items are cut */}
+              {hasSelectedItems && !hasCutItems && (
+                <button
+                  onClick={cutSelectedItems}
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                  title="Cut selected items"
+                >
+                  Cut
+                </button>
+              )}
+
+              {/* Paste button - shown when items are cut */}
+              {hasCutItems && (
+                <button
+                  onClick={() => void pasteCutItems()}
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                  title="Paste cut items"
+                >
+                  Paste
+                </button>
+              )}
+
               {/* Create file button */}
               <button
                 onClick={handleOpenCreateDialog}
