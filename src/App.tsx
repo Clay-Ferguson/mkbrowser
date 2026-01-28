@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DocumentPlusIcon, FolderPlusIcon, MagnifyingGlassIcon, ClipboardDocumentIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, FolderIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { DocumentPlusIcon, FolderPlusIcon, MagnifyingGlassIcon, ClipboardDocumentIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, HomeIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
 import MarkdownEntry from './components/entries/MarkdownEntry';
@@ -1104,6 +1104,16 @@ function App() {
                 title="Refresh"
               >
                 <ArrowPathIcon className="w-5 h-5" />
+              </button>
+
+              {/* Up level button */}
+              <button
+                onClick={navigateUp}
+                disabled={currentPath === rootPath}
+                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                title="Go up one level"
+              >
+                <ArrowUpIcon className="w-5 h-5" />
               </button>
             </div>
           </div>
