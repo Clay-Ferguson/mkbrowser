@@ -1006,6 +1006,17 @@ function App() {
                 </button>
               )}
 
+              {/* Delete button - shown when items are selected and no items are cut */}
+              {hasSelectedItems && !hasCutItems && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                  title="Delete selected items"
+                >
+                  Del
+                </button>
+              )}
+
               {/* Paste button - shown when items are cut */}
               {hasCutItems && (
                 <button
