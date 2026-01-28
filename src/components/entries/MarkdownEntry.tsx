@@ -429,7 +429,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
               title="Double-click to edit"
             >
               <Markdown
-                remarkPlugins={[remarkMath]}
+                remarkPlugins={[[remarkMath, { singleDollarTextMath: false }]]}
                 rehypePlugins={[rehypeKatex]}
                 components={{
                   // Custom anchor component to open external URLs in system browser

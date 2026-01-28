@@ -88,3 +88,46 @@ You can export the contents of the current folder into a single document.
     - **Include Dividers**: Adds a visual separator between files.
     - **Export to PDF**: If checked, the application will attempt to generate a PDF file instead of a Markdown file.
 3. Click **Export** to finish.
+## LaTeX Math Support
+
+MkBrowser supports rendering mathematical equations using LaTeX syntax via KaTeX.
+
+### Syntax
+
+- **Inline Math**: Wrap your equation in double dollar signs: `$$equation$$`
+  - Example: `$$f(x)$$` renders as $$f(x)$$
+  
+- **Block Math**: Use double dollar signs on separate lines for display equations:
+  ````
+  $$
+  equation
+  $$
+  ````
+
+### Important Note about Dollar Signs
+
+Regular dollar signs (like `$127` for monetary values) are treated as literal text and will not trigger math rendering. Only **double dollar signs** (`$$`) are used for LaTeX equations.
+
+### Example
+
+Here's how to write the calculus limit definition:
+
+````markdown
+## Calculus Limit Definition
+
+For a function $$f(x)$$, the derivative at a point $$x$$ is defined as:
+
+$$
+f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h}
+$$
+````
+
+**Rendered output:**
+
+## Calculus Limit Definition
+
+For a function $$f(x)$$, the derivative at a point $$x$$ is defined as:
+
+$$
+f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h}
+$$
