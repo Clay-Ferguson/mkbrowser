@@ -28,14 +28,17 @@ function EditableCombobox({
 }: EditableComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [showAllOptions, setShowAllOptions] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Filter options based on current input value
-  const filteredOptions = options.filter((option) =>
-    option.label.toLowerCase().includes(value.toLowerCase())
-  );
+  // Filter options based on current input value, unless showAllOptions is true
+  const filteredOptions = showAllOptions
+    ? options
+    : options.filter((option) =>
+        option.label.toLowerCase().includes(value.toLowerCase())
+      );
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -62,12 +65,14 @@ function EditableCombobox({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
+    setShowAllOptions(false); // Filter as user types
     setIsOpen(true);
     setHighlightedIndex(-1);
   };
 
   const handleInputFocus = () => {
     if (options.length > 0) {
+      setShowAllOptions(true); // Show all options on focus
       setIsOpen(true);
     }
   };
@@ -76,7 +81,7 @@ function EditableCombobox({
     onSelect(option);
     setIsOpen(false);
     setHighlightedIndex(-1);
-    inputRef.current?.focus();
+    setShowAllOptions(true); // Reset to show all for next open
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -118,8 +123,12 @@ function EditableCombobox({
 
   const toggleDropdown = () => {
     if (options.length > 0) {
-      setIsOpen(!isOpen);
-      if (!isOpen) {
+      const willOpen = !isOpen;
+      if (willOpen) {
+        setShowAllOptions(true); // Show all options when opening via button
+      }
+      setIsOpen(willOpen);
+      if (willOpen) {
         inputRef.current?.focus();
       }
     }
