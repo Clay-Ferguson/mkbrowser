@@ -144,19 +144,31 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
         <span className="text-slate-200 font-medium">/</span>
       )}
 
-      {parts.map((part, index) => (
-        <div key={`${part}-${index}`} className="flex items-center min-w-0">
-          <span className="text-slate-500 mx-1">/</span>
-          <button
-            type="button"
-            onClick={() => onNavigate(buildPathForIndex(index))}
-            className="text-slate-200 hover:text-blue-400 cursor-pointer no-underline truncate"
-            title={buildPathForIndex(index)}
-          >
-            {part}
-          </button>
-        </div>
-      ))}
+      {parts.map((part, index) => {
+        const isLast = index === parts.length - 1;
+        return (
+          <div key={`${part}-${index}`} className="flex items-center min-w-0">
+            <span className="text-slate-500 mx-1">/</span>
+            {isLast ? (
+              <span
+                className="text-slate-400 truncate"
+                title={buildPathForIndex(index)}
+              >
+                {part}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onNavigate(buildPathForIndex(index))}
+                className="text-slate-200 hover:text-blue-400 cursor-pointer no-underline truncate"
+                title={buildPathForIndex(index)}
+              >
+                {part}
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
