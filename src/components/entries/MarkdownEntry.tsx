@@ -423,7 +423,11 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
               language="markdown"
             />
           ) : (
-            <article className="prose prose-invert prose-base max-w-none">
+            <article 
+              className="prose prose-invert prose-base max-w-none cursor-pointer" 
+              onDoubleClick={handleEditClick}
+              title="Double-click to edit"
+            >
               <Markdown
                 remarkPlugins={[remarkMath]}
                 rehypePlugins={[rehypeKatex]}

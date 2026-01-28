@@ -309,7 +309,11 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
               language="text"
             />
           ) : (
-            <pre className="text-slate-200 font-mono text-sm whitespace-pre-wrap break-words">
+            <pre 
+              className="text-slate-200 font-mono text-sm whitespace-pre-wrap break-words cursor-pointer" 
+              onDoubleClick={handleEditClick}
+              title="Double-click to edit"
+            >
               {content || ''}
             </pre>
           )}
