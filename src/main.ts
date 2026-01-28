@@ -577,6 +577,20 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Open URL in external browser (for http/https links)
+  ipcMain.handle('open-external-url', async (_event, url: string): Promise<boolean> => {
+    try {
+      // Only allow http and https URLs for security
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        await shell.openExternal(url);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  });
+
   ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchBlock: 'entire-file' | 'file-lines' = 'entire-file'): Promise<SearchResult[]> => {
     try {
       // console.log(`\n=== Search Started ===`);

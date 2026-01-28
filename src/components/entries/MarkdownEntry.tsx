@@ -428,6 +428,23 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
                 remarkPlugins={[remarkMath]}
                 rehypePlugins={[rehypeKatex]}
                 components={{
+                  // Custom anchor component to open external URLs in system browser
+                  a({ href, children, ...props }) {
+                    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+                      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+                        e.preventDefault();
+                        window.electronAPI.openExternalUrl(href);
+                      }
+                      // For other links (relative paths, file:// etc), allow default behavior
+                      // This preserves future ability to handle local file links
+                    };
+
+                    return (
+                      <a href={href} onClick={handleClick} {...props}>
+                        {children}
+                      </a>
+                    );
+                  },
                   code({ className, children, ...props }) {
                     const match = /language-(\w+)/.exec(className || '');
                     const language = match ? match[1] : '';

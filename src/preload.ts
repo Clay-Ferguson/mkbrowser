@@ -178,6 +178,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
+  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchBlock),
   renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),
