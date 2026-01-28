@@ -522,25 +522,29 @@ function App() {
     };
   }, []);
 
-  // Listen for search definition selection from menu
+  // Listen for search definition selection from menu - execute search immediately
   useEffect(() => {
-    const unsubscribe = window.electronAPI.onOpenSearchDefinition((definition) => {
-      // Switch to browser view so the search dialog is visible
-      setCurrentView('browser');
-      setSearchDialogInitialValues({
-        searchQuery: definition.searchText,
-        searchName: definition.name,
-        searchType: definition.searchMode,
-        searchMode: definition.searchTarget,
-        searchBlock: definition.searchBlock,
-      });
-      setShowSearchDialog(true);
+    const unsubscribe = window.electronAPI.onOpenSearchDefinition(async (definition) => {
+      if (!currentPath) return;
+      
+      // Decode {{nl}} tokens back to spaces for actual search execution
+      const searchQuery = definition.searchText.replace(/\{\{nl\}\}/g, ' ');
+      
+      const results = await window.electronAPI.searchFolder(
+        currentPath,
+        searchQuery,
+        definition.searchMode,
+        definition.searchTarget,
+        definition.searchBlock
+      );
+      setSearchResults(results, definition.searchText, currentPath);
+      setCurrentView('search-results');
     });
 
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [currentPath]);
 
   // Generate default export filename from current folder name
   const generateExportFileName = useCallback(() => {
