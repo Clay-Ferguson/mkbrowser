@@ -17,6 +17,7 @@ import {
   setItemContent,
   setHighlightItem,
   setItemEditing,
+  clearItemGoToLine,
   setItemRenaming,
   setItemSelected,
   setItemExpanded,
@@ -603,6 +604,8 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
               placeholder="Enter markdown content..."
               language="markdown"
               autoFocus
+              goToLine={item?.goToLine}
+              onGoToLineComplete={() => clearItemGoToLine(entry.path)}
             />
           ) : (
             <article 

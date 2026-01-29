@@ -50,6 +50,12 @@ export interface ItemData {
    * Whether the file/folder is currently being renamed.
    */
   renaming?: boolean;
+
+  /**
+   * Line number to scroll to when editing starts (1-based).
+   * Set when initiating edit from search results with a line match.
+   */
+  goToLine?: number;
 }
 
 /**
@@ -189,6 +195,12 @@ export interface AppState {
    * Set when clicking edit from search results, cleared after editing starts.
    */
   pendingEditFile: string | null;
+
+  /**
+   * Line number to scroll to when editing starts (1-based).
+   * Used with pendingEditFile when navigating from search results.
+   */
+  pendingEditLineNumber: number | null;
 }
 
 /**

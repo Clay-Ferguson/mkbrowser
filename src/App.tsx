@@ -52,6 +52,7 @@ import {
   useCurrentPath,
   usePendingScrollToFile,
   usePendingEditFile,
+  usePendingEditLineNumber,
   useSettings,
   useExpansionCounts,
   type ItemData,
@@ -212,6 +213,7 @@ function App() {
   const currentPath = useCurrentPath();
   const pendingScrollToFile = usePendingScrollToFile();
   const pendingEditFile = usePendingEditFile();
+  const pendingEditLineNumber = usePendingEditLineNumber();
   const settings = useSettings();
   const expansionCounts = useExpansionCounts();
 
@@ -384,10 +386,12 @@ function App() {
 
         // Handle pending edit (e.g., from search results edit button)
         if (pendingEditFile) {
+          // Capture the line number before clearing (it will be stored in ItemData)
+          const lineNumber = pendingEditLineNumber ?? undefined;
           // Start editing the file after a slight delay for the scroll to complete
           setTimeout(() => {
             setItemExpanded(pendingEditFile, true);
-            setItemEditing(pendingEditFile, true);
+            setItemEditing(pendingEditFile, true, lineNumber);
             clearPendingEditFile();
           }, 100);
         }

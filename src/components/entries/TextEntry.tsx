@@ -9,6 +9,7 @@ import {
   setItemContent,
   setHighlightItem,
   setItemEditing,
+  clearItemGoToLine,
   setItemRenaming,
   setItemSelected,
   setItemExpanded,
@@ -326,6 +327,8 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
               placeholder="Enter text content..."
               language="text"
               autoFocus
+              goToLine={item?.goToLine}
+              onGoToLineComplete={() => clearItemGoToLine(entry.path)}
             />
           ) : (
             <pre 

@@ -28,6 +28,7 @@ const initialState: AppState = {
   settings: defaultSettings,
   highlightItem: null,
   pendingEditFile: null,
+  pendingEditLineNumber: null,
 };
 
 /**
@@ -134,6 +135,13 @@ function getHighlightItemSnapshot(): string | null {
  */
 function getPendingEditFileSnapshot(): string | null {
   return state.pendingEditFile;
+}
+
+/**
+ * Get snapshot of pending edit line number
+ */
+function getPendingEditLineNumberSnapshot(): number | null {
+  return state.pendingEditLineNumber;
 }
 
 // ============================================================================
@@ -559,8 +567,11 @@ export function isCacheValid(path: string): boolean {
 
 /**
  * Set the editing state of an item
+ * @param path - The full path of the item
+ * @param editing - Whether the item is being edited
+ * @param goToLine - Optional 1-based line number to scroll to when editing starts
  */
-export function setItemEditing(path: string, editing: boolean): void {
+export function setItemEditing(path: string, editing: boolean, goToLine?: number): void {
   const existing = state.items.get(path);
   if (!existing) return;
 
@@ -568,6 +579,7 @@ export function setItemEditing(path: string, editing: boolean): void {
   newItems.set(path, {
     ...existing,
     editing,
+    goToLine: editing ? goToLine : undefined,
   });
 
   state = {
@@ -575,6 +587,23 @@ export function setItemEditing(path: string, editing: boolean): void {
     items: newItems,
     ...(editing ? { highlightItem: existing.name } : {}),
   };
+  emitChange();
+}
+
+/**
+ * Clear the goToLine property for an item (call after scrolling to the line)
+ */
+export function clearItemGoToLine(path: string): void {
+  const existing = state.items.get(path);
+  if (!existing || existing.goToLine === undefined) return;
+
+  const newItems = new Map(state.items);
+  newItems.set(path, {
+    ...existing,
+    goToLine: undefined,
+  });
+
+  state = { ...state, items: newItems };
   emitChange();
 }
 
@@ -661,18 +690,20 @@ export function setPendingScrollToFile(fileName: string): void {
 
 /**
  * Set a file to start editing after navigation completes
+ * @param filePath - The full path of the file to edit
+ * @param lineNumber - Optional 1-based line number to scroll to
  */
-export function setPendingEditFile(filePath: string): void {
-  state = { ...state, pendingEditFile: filePath };
+export function setPendingEditFile(filePath: string, lineNumber?: number): void {
+  state = { ...state, pendingEditFile: filePath, pendingEditLineNumber: lineNumber ?? null };
   emitChange();
 }
 
 /**
- * Clear the pending edit file (call after editing starts)
+ * Clear the pending edit file and line number (call after editing starts)
  */
 export function clearPendingEditFile(): void {
-  if (state.pendingEditFile === null) return;
-  state = { ...state, pendingEditFile: null };
+  if (state.pendingEditFile === null && state.pendingEditLineNumber === null) return;
+  state = { ...state, pendingEditFile: null, pendingEditLineNumber: null };
   emitChange();
 }
 
@@ -864,4 +895,11 @@ export function useHighlightItem(): string | null {
  */
 export function usePendingEditFile(): string | null {
   return useSyncExternalStore(subscribe, getPendingEditFileSnapshot);
+}
+
+/**
+ * Hook to subscribe to pending edit line number
+ */
+export function usePendingEditLineNumber(): number | null {
+  return useSyncExternalStore(subscribe, getPendingEditLineNumberSnapshot);
 }

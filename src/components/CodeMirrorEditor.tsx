@@ -195,9 +195,13 @@ interface CodeMirrorEditorProps {
   language?: 'markdown' | 'text';
   /** If true, automatically focus the editor after mounting (with a small delay for rendering) */
   autoFocus?: boolean;
+  /** 1-based line number to scroll to and position cursor at after initialization */
+  goToLine?: number;
+  /** Callback when goToLine has been processed (so parent can clear it) */
+  onGoToLineComplete?: () => void;
 }
 
-function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -458,24 +462,46 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
 
     viewRef.current = view;
 
-    // Auto-focus after a delay to ensure rendering is complete
-    if (autoFocus) {
-      const focusTimer = setTimeout(() => {
-        if (viewRef.current) {
+    // Auto-focus and scroll to line after a delay to ensure rendering is complete
+    const focusTimer = setTimeout(() => {
+      if (viewRef.current) {
+        // If goToLine is specified, scroll to that line and position cursor
+        if (goToLine && goToLine > 0) {
+          try {
+            const doc = viewRef.current.state.doc;
+            // Ensure line number is within bounds (1-based)
+            const targetLine = Math.min(goToLine, doc.lines);
+            const line = doc.line(targetLine);
+
+            viewRef.current.dispatch({
+              selection: { anchor: line.from, head: line.from },
+              scrollIntoView: true,
+            });
+
+            // Notify parent that goToLine has been processed
+            if (onGoToLineComplete) {
+              onGoToLineComplete();
+            }
+          } catch (err) {
+            console.error('Failed to scroll to line:', err);
+          }
+        }
+
+        // Focus the editor
+        if (autoFocus) {
           viewRef.current.focus();
         }
-      }, 1000);
-      // Clean up timer if component unmounts before focus
-      const cleanup = () => clearTimeout(focusTimer);
-      // Store cleanup in a ref or call it in the main cleanup
-      view.destroy = (() => {
-        const originalDestroy = view.destroy.bind(view);
-        return () => {
-          cleanup();
-          originalDestroy();
-        };
-      })();
-    }
+      }
+    }, 100);
+
+    // Clean up timer if component unmounts
+    view.destroy = (() => {
+      const originalDestroy = view.destroy.bind(view);
+      return () => {
+        clearTimeout(focusTimer);
+        originalDestroy();
+      };
+    })();
 
     // Load spell checker asynchronously
     loadSpellChecker().then((typo) => {

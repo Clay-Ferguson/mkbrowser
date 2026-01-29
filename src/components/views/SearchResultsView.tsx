@@ -95,7 +95,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     setDeleteTarget({ path, name: fileName });
   };
 
-  const handleEditClick = (e: React.MouseEvent, resultPath: string) => {
+  const handleEditClick = (e: React.MouseEvent, resultPath: string, lineNumber?: number) => {
     e.stopPropagation();
     // Extract the parent folder and file name from the result path
     const lastSlashIndex = resultPath.lastIndexOf('/');
@@ -107,7 +107,8 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     navigateToBrowserPath(folderPath, fileName);
 
     // Set the pending edit so App.tsx will start editing after items load
-    setPendingEditFile(resultPath);
+    // Include the line number if available (for scrolling to the match)
+    setPendingEditFile(resultPath, lineNumber);
   };
 
   const handleDeleteConfirm = async () => {
@@ -219,7 +220,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
                   {/* Edit button */}
                   <button
-                    onClick={(e) => handleEditClick(e, result.path)}
+                    onClick={(e) => handleEditClick(e, result.path, result.lineNumber)}
                     className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors"
                     title="Edit file"
                   >
