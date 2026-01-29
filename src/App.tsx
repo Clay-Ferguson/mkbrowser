@@ -372,7 +372,11 @@ function App() {
           clearPendingScrollToFile();
         } else if (isNewFolder) {
           // Scroll to top when navigating to a new folder
-          window.scrollTo({ top: 0, behavior: 'instant' });
+          // Use the main container's scroll instead of window.scrollTo to avoid layout issues
+          const mainContainer = document.querySelector('main');
+          if (mainContainer) {
+            mainContainer.scrollTo({ top: 0, behavior: 'instant' });
+          }
         }
       }, 100);
     }
@@ -752,7 +756,6 @@ function App() {
       setHighlightItem(fileName);
       setPendingScrollToFile(fileName);
       refreshDirectory();
-      // Set editing mode after scroll completes for editable file types
       const isMarkdown = fileName.toLowerCase().endsWith('.md');
       const isText = fileName.toLowerCase().endsWith('.txt');
       if (isMarkdown || isText) {
@@ -1094,9 +1097,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
       {/* Header with navigation */}
-      <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
+      <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0">
         <div className={`${getContentWidthClasses(settings.contentWidth)} py-3`}>
           <div className="flex items-center gap-3">
             {/* Breadcrumb / path display */}
@@ -1225,7 +1228,8 @@ function App() {
       </header>
 
       {/* Main content */}
-      <main className={`${getContentWidthClasses(settings.contentWidth)} py-6`}>
+      <main className="flex-1 min-h-0 overflow-y-auto">
+        <div className={`${getContentWidthClasses(settings.contentWidth)} py-6`}>
         {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-slate-400">Loading...</div>
@@ -1263,6 +1267,7 @@ function App() {
             })()}
           </div>
         )}
+        </div>
       </main>
 
       {showCreateDialog && (

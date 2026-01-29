@@ -757,7 +757,6 @@ function setupIpcHandlers(): void {
 
         for (const filePath of files) {
           try {
-            // &&&
             const content = await fs.promises.readFile(filePath, 'utf-8');
             
             // Check if we're searching line-by-line or entire file
