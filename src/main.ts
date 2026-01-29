@@ -476,6 +476,31 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Create a new file (checks if it already exists first)
+  ipcMain.handle('create-file', async (_event, filePath: string, content: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      // Check if file already exists
+      try {
+        await fs.promises.access(filePath);
+        // If we get here, the file exists
+        return { success: false, error: 'A file/folder with this name already exists' };
+      } catch {
+        // File doesn't exist, we can create it
+      }
+      await fs.promises.writeFile(filePath, content, 'utf-8');
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error creating file:', error);
+      let errorMessage = 'Failed to create file';
+      if (error.code === 'EACCES' || error.code === 'EPERM') {
+        errorMessage = 'Permission denied';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      return { success: false, error: errorMessage };
+    }
+  });
+
   // Rename a file or folder
   ipcMain.handle('rename-file', async (_event, oldPath: string, newPath: string): Promise<boolean> => {
     try {
@@ -499,13 +524,21 @@ function setupIpcHandlers(): void {
   });
 
   // Create a new folder
-  ipcMain.handle('create-folder', async (_event, folderPath: string): Promise<boolean> => {
+  ipcMain.handle('create-folder', async (_event, folderPath: string): Promise<{ success: boolean; error?: string }> => {
     try {
       await fs.promises.mkdir(folderPath);
-      return true;
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error('Error creating folder:', error);
-      return false;
+      let errorMessage = 'Failed to create folder';
+      if (error.code === 'EEXIST') {
+        errorMessage = 'A file/folder with this name already exists';
+      } else if (error.code === 'EACCES' || error.code === 'EPERM') {
+        errorMessage = 'Permission denied';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      return { success: false, error: errorMessage };
     }
   });
 

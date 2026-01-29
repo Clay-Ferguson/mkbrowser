@@ -572,7 +572,7 @@ function App() {
     // Check if folder already exists
     const folderExists = await window.electronAPI.pathExists(newFolderPath);
     if (folderExists) {
-      setError(`A folder named "${folderName}" already exists in this directory.`);
+      setError(`A file/folder named "${folderName}" already exists in this directory.`);
       return;
     }
 
@@ -754,8 +754,8 @@ function App() {
   const handleCreateFile = useCallback(async (fileName: string) => {
     if (!currentPath) return;
     const filePath = `${currentPath}/${fileName}`;
-    const success = await window.electronAPI.writeFile(filePath, '');
-    if (success) {
+    const result = await window.electronAPI.createFile(filePath, '');
+    if (result.success) {
       setShowCreateDialog(false);
       setCreateFileDefaultName('');
       setHighlightItem(fileName);
@@ -772,7 +772,7 @@ function App() {
     } else {
       setShowCreateDialog(false);
       setCreateFileDefaultName('');
-      setError('Failed to create file');
+      setError(result.error || 'Failed to create file');
     }
   }, [currentPath, refreshDirectory]);
 
@@ -794,8 +794,8 @@ function App() {
   const handleCreateFolder = useCallback(async (folderName: string) => {
     if (!currentPath) return;
     const folderPath = `${currentPath}/${folderName}`;
-    const success = await window.electronAPI.createFolder(folderPath);
-    if (success) {
+    const result = await window.electronAPI.createFolder(folderPath);
+    if (result.success) {
       setShowCreateFolderDialog(false);
       setCreateFolderDefaultName('');
       setHighlightItem(folderName);
@@ -804,7 +804,7 @@ function App() {
     } else {
       setShowCreateFolderDialog(false);
       setCreateFolderDefaultName('');
-      setError('Failed to create folder');
+      setError(result.error || 'Failed to create folder');
     }
   }, [currentPath, refreshDirectory]);
 

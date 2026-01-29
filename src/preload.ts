@@ -77,10 +77,11 @@ export interface ElectronAPI {
   pathExists: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<boolean>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
+  createFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
   deleteFile: (filePath: string) => Promise<boolean>;
   openExternal: (filePath: string) => Promise<boolean>;
-  createFolder: (folderPath: string) => Promise<boolean>;
+  createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => Promise<SearchResult[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
 }
@@ -194,6 +195,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pathExists: (checkPath: string) => ipcRenderer.invoke('path-exists', checkPath),
   writeFile: (filePath: string, content: string) => ipcRenderer.invoke('write-file', filePath, content),
   writeFileBinary: (filePath: string, base64Data: string) => ipcRenderer.invoke('write-file-binary', filePath, base64Data),
+  createFile: (filePath: string, content: string) => ipcRenderer.invoke('create-file', filePath, content),
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),
   deleteFile: (filePath: string) => ipcRenderer.invoke('delete-file', filePath),
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
