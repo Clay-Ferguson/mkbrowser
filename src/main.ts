@@ -232,30 +232,9 @@ function setupApplicationMenu(): void {
     label: 'Edit',
     submenu: [
       {
-        label: 'Cut',
-        click: () => {
-          mainWindow?.webContents.send('cut-items');
-        },
-      },
-      {
         label: 'Undo Cut',
         click: () => {
           mainWindow?.webContents.send('undo-cut');
-        },
-      },
-      {
-        label: 'Paste',
-        accelerator: 'CmdOrCtrl+V',
-        click: () => {
-          mainWindow?.webContents.send('paste-items');
-        },
-      },
-      { type: 'separator' },
-      {
-        label: 'Delete',
-        accelerator: 'Delete',
-        click: () => {
-          mainWindow?.webContents.send('delete-items');
         },
       },
       { type: 'separator' },
