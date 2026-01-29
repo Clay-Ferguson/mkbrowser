@@ -231,7 +231,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
           </span>
         )}
         {!isRenaming && (
-          <>
+          <div className="flex items-center gap-1">
             {showInsertIcons && (
               <>
                 <button
@@ -272,7 +272,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
             >
               <TrashIcon className="w-5 h-5" />
             </button>
-          </>
+          </div>
         )}
       </div>
 
