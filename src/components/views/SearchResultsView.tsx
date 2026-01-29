@@ -113,9 +113,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   };
 
   return (
-    <div className={`min-h-screen bg-slate-900 ${fontSizeClass}`}>
+    <div className={`flex-1 flex flex-col min-h-0 bg-slate-900 ${fontSizeClass}`}>
       {/* Header */}
-      <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
+      <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Back button */}
@@ -141,7 +141,8 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
       </header>
 
       {/* Main content */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className="flex-1 min-h-0 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 py-6">
         {searchResults.length === 0 ? (
           <div className="text-center py-12">
             <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
@@ -211,6 +212,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             ))}
           </div>
         )}
+        </div>
       </main>
 
       {/* Delete confirmation dialog */}
