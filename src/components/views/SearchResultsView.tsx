@@ -159,20 +159,21 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             </div>
 
             {/* Results list */}
-            {sortedResults.map((result, index) => (
+            {sortedResults.map((result, index) => {              
+              return (
               <div
                 key={`${result.path}-${result.lineNumber || 0}-${index}`}
                 onClick={() => handleResultClick(result.path)}
                 className="bg-slate-800 rounded-lg border border-slate-700 px-2 py-1.5 hover:border-slate-600 transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-start gap-2">
                   {/* File icon */}
-                  <DocumentTextIcon className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                  <DocumentTextIcon className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
 
                   {/* File path with optional line number */}
                   <div className="flex-1 min-w-0">
-                    <div className="text-slate-200 truncate flex items-center gap-2" title={result.path}>
-                      <span>{result.relativePath}</span>
+                    <div className="text-slate-200 flex flex-wrap items-center gap-x-2 gap-y-0.5 break-words" title={result.path}>
+                      <span className="break-all">{result.relativePath}</span>
                       {result.lineNumber && result.lineNumber > 0 && (
                         <span className="text-sm text-amber-400">:{result.lineNumber}</span>
                       )}
@@ -209,7 +210,8 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
         </div>
