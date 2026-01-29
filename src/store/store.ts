@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ItemData, SearchResultItem } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem } from './types';
 import { createItemData } from './types';
 
 /**
@@ -11,6 +11,7 @@ const defaultSettings: AppSettings = {
   foldersOnTop: true,
   ignoredPaths: '',
   searchDefinitions: [],
+  contentWidth: 'medium',
 };
 
 /**
@@ -728,6 +729,17 @@ export function setIgnoredPaths(ignoredPaths: string): void {
   state = {
     ...state,
     settings: { ...state.settings, ignoredPaths },
+  };
+  emitChange();
+}
+
+/**
+ * Update the content width setting
+ */
+export function setContentWidth(contentWidth: ContentWidth): void {
+  state = {
+    ...state,
+    settings: { ...state.settings, contentWidth },
   };
   emitChange();
 }

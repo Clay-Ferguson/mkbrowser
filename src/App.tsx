@@ -5,7 +5,7 @@ import FolderEntry from './components/entries/FolderEntry';
 import MarkdownEntry from './components/entries/MarkdownEntry';
 import FileEntryComponent from './components/entries/FileEntry';
 import ImageEntry from './components/entries/ImageEntry';
-import TextEntry from './components/entries/TextEntry';
+import TextEntry from './components/entries/TextEntry'; 
 
 // Common image file extensions
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);
@@ -54,9 +54,28 @@ import {
   useExpansionCounts,
   type ItemData,
   type SortOrder,
+  type ContentWidth,
   type SearchDefinition,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
+
+/**
+ * Get Tailwind classes for content width based on setting
+ */
+function getContentWidthClasses(contentWidth: ContentWidth): string {
+  switch (contentWidth) {
+    case 'narrow':
+      return 'max-w-2xl mx-auto px-4';
+    case 'medium':
+      return 'max-w-4xl mx-auto px-4';
+    case 'wide':
+      return 'max-w-6xl mx-auto px-4';
+    case 'full':
+      return 'px-4';
+    default:
+      return 'max-w-4xl mx-auto px-4';
+  }
+}
 
 /**
  * Apply sort comparison based on the selected sort order.
@@ -1005,7 +1024,7 @@ function App() {
     <div className="min-h-screen bg-slate-900">
       {/* Header with navigation */}
       <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3">
+        <div className={`${getContentWidthClasses(settings.contentWidth)} py-3`}>
           <div className="flex items-center gap-3">
             {/* Breadcrumb / path display */}
             <div className="flex-1 min-w-0">
@@ -1133,7 +1152,7 @@ function App() {
       </header>
 
       {/* Main content */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main className={`${getContentWidthClasses(settings.contentWidth)} py-6`}>
         {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-slate-400">Loading...</div>

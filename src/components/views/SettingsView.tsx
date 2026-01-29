@@ -5,9 +5,11 @@ import {
   setSortOrder,
   setFoldersOnTop,
   setIgnoredPaths,
+  setContentWidth,
   useSettings,
   type FontSize,
   type SortOrder,
+  type ContentWidth,
 } from '../../store';
 
 interface FontSizeOption {
@@ -33,6 +35,18 @@ const sortOrderOptions: SortOrderOption[] = [
   { value: 'created-reverse', label: 'Created Time (reverse-chron)' },
   { value: 'modified-chron', label: 'Modified Time (chron)' },
   { value: 'modified-reverse', label: 'Modified Time (reverse-chron)' },
+];
+
+interface ContentWidthOption {
+  value: ContentWidth;
+  label: string;
+}
+
+const contentWidthOptions: ContentWidthOption[] = [
+  { value: 'narrow', label: 'Narrow' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'wide', label: 'Wide' },
+  { value: 'full', label: 'Full Width' },
 ];
 
 interface SettingsViewProps {
@@ -68,6 +82,12 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
 
   const handleIgnoredPathsChange = (ignoredPaths: string) => {
     setIgnoredPaths(ignoredPaths);
+    // Trigger save to persist the setting
+    onSaveSettings();
+  };
+
+  const handleContentWidthChange = (contentWidth: ContentWidth) => {
+    setContentWidth(contentWidth);
     // Trigger save to persist the setting
     onSaveSettings();
   };
@@ -112,6 +132,29 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                 className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
               >
                 {fontSizeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </section>
+
+          {/* Appearance Setting */}
+          <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-100 mb-2">Appearance</h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Adjust the visual layout of the application.
+            </p>
+
+            <div className="flex items-center gap-4">
+              <label className="text-slate-300 text-sm">Content Width:</label>
+              <select
+                value={settings.contentWidth}
+                onChange={(e) => handleContentWidthChange(e.target.value as ContentWidth)}
+                className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+              >
+                {contentWidthOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

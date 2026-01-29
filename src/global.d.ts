@@ -2,6 +2,8 @@ export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 
+export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
+
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchBlock = 'entire-file' | 'file-lines';
@@ -20,6 +22,7 @@ export interface AppSettings {
   foldersOnTop: boolean;
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
+  contentWidth: ContentWidth;
 }
 
 export interface AppConfig {

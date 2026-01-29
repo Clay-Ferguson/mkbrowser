@@ -80,6 +80,11 @@ export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 
 /**
+ * Available content width options for the main content area
+ */
+export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
+
+/**
  * Search mode: content or filenames
  */
 export type SearchMode = 'content' | 'filenames';
@@ -124,6 +129,8 @@ export interface AppSettings {
   ignoredPaths: string;
   /** Saved search definitions */
   searchDefinitions: SearchDefinition[];
+  /** Content width for the main content area */
+  contentWidth: ContentWidth;
 }
 
 /**

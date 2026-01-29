@@ -1,4 +1,4 @@
-export type { AppState, AppView, AppSettings, FontSize, SortOrder, ItemData, SearchResultItem, SearchDefinition } from './types';
+export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchDefinition } from './types';
 export type { ExpansionCounts } from './store';
 export { createItemData } from './types';
 
@@ -35,6 +35,7 @@ export {
   setSortOrder,
   setFoldersOnTop,
   setIgnoredPaths,
+  setContentWidth,
   getSettings,
   getExpansionCounts,
   // Hooks

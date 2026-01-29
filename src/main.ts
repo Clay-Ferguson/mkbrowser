@@ -27,6 +27,7 @@ let commandLineFolder: string | null = null;
 
 type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
+type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 type SearchMode = 'content' | 'filenames';
 type SearchType = 'literal' | 'wildcard' | 'advanced';
 type SearchBlock = 'entire-file' | 'file-lines';
@@ -45,6 +46,7 @@ interface AppSettings {
   foldersOnTop: boolean;
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
+  contentWidth: ContentWidth;
 }
 
 interface AppConfig {
@@ -58,6 +60,7 @@ const defaultSettings: AppSettings = {
   foldersOnTop: true,
   ignoredPaths: '',
   searchDefinitions: [],
+  contentWidth: 'medium',
 };
 
 function ensureConfigDir(): void {
