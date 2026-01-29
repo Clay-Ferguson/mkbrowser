@@ -252,6 +252,13 @@ function setupApplicationMenu(): void {
           mainWindow?.webContents.send('unselect-all-items');
         },
       },
+      { type: 'separator' },
+      {
+        label: 'Move to Folder',
+        click: () => {
+          mainWindow?.webContents.send('move-to-folder');
+        },
+      },
     ],
   });
 

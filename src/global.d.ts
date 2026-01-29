@@ -81,6 +81,7 @@ export interface ElectronAPI {
   onDeleteRequested: (callback: () => void) => () => void;
   onSelectAllRequested: (callback: () => void) => () => void;
   onUnselectAllRequested: (callback: () => void) => () => void;
+  onMoveToFolderRequested: (callback: () => void) => () => void;
   onRenumberRequested: (callback: () => void) => () => void;
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   onExportRequested: (callback: () => void) => () => void;

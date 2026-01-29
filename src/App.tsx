@@ -528,6 +528,79 @@ function App() {
     };
   }, []);
 
+  // Handle "Move to Folder" action - creates a folder with the file's name and moves the file into it
+  const handleMoveToFolder = useCallback(async () => {
+    if (!currentPath) return;
+
+    const selectedItems = getSelectedItems();
+
+    // Check that exactly one item is selected
+    if (selectedItems.length === 0) {
+      setError('Please select a file to move to a folder.');
+      return;
+    }
+    if (selectedItems.length > 1) {
+      setError('Please select only one file for "Move to Folder".');
+      return;
+    }
+
+    const selectedItem = selectedItems[0];
+
+    // Check that the selected item is a file, not a folder
+    if (selectedItem.isDirectory) {
+      setError('Cannot use "Move to Folder" on a folder. Please select a file.');
+      return;
+    }
+
+    // Get the file name without extension to use as folder name
+    const fileName = selectedItem.name;
+    const lastDotIndex = fileName.lastIndexOf('.');
+    const folderName = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName;
+
+    // Build the new folder path in the current directory
+    const newFolderPath = `${currentPath}/${folderName}`;
+
+    // Check if folder already exists
+    const folderExists = await window.electronAPI.pathExists(newFolderPath);
+    if (folderExists) {
+      setError(`A folder named "${folderName}" already exists in this directory.`);
+      return;
+    }
+
+    // Create the new folder
+    const folderCreated = await window.electronAPI.createFolder(newFolderPath);
+    if (!folderCreated) {
+      setError(`Failed to create folder "${folderName}".`);
+      return;
+    }
+
+    // Move the file into the new folder
+    const newFilePath = `${newFolderPath}/${fileName}`;
+    const moveSuccess = await window.electronAPI.renameFile(selectedItem.path, newFilePath);
+    if (!moveSuccess) {
+      setError(`Failed to move "${fileName}" into the new folder.`);
+      return;
+    }
+
+    // Clear selection and remove the old item from the store
+    clearAllSelections();
+    deleteItems([selectedItem.path]);
+
+    // Refresh the directory to show the new folder
+    refreshDirectory();
+  }, [currentPath, getSelectedItems, refreshDirectory]);
+
+  // Listen for Move to Folder menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onMoveToFolderRequested(() => {
+      void handleMoveToFolder();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [handleMoveToFolder]);
+
   // Handle renumbering files in the current directory
   const handleRenumberFiles = useCallback(async () => {
     if (!currentPath) return;

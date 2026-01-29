@@ -153,6 +153,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('unselect-all-items', handler);
     };
   },
+  onMoveToFolderRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('move-to-folder', handler);
+    return () => {
+      ipcRenderer.removeListener('move-to-folder', handler);
+    };
+  },
   onRenumberRequested: (callback: () => void) => {
     const handler = () => {
       callback();
