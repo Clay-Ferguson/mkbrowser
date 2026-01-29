@@ -127,7 +127,7 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
           className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm font-mono resize-none ${
             error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
           }`}
-          placeholder={searchType === 'advanced' ? '$(\'ABC\') || $(\'DEF\')' : searchType === 'wildcard' ? 'intro*duction' : 'Enter search text...'}
+          placeholder={searchType === 'advanced' ? 'Functions: $, ts, past, future, today' : searchType === 'wildcard' ? 'intro*duction' : 'Enter search text...'}
           style={{ minHeight: '80px' }}
         />
 
