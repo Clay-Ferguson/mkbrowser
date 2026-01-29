@@ -135,6 +135,86 @@ function MermaidDiagram({ code }: { code: string }) {
   );
 }
 
+// Custom anchor component factory - creates a component that can access entry path
+function createCustomAnchor(entryPath: string) {
+  return function CustomAnchor({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (!href) return;
+      
+      // Handle external URLs - open in system browser
+      if (href.startsWith('http://') || href.startsWith('https://')) {
+        e.preventDefault();
+        window.electronAPI.openExternalUrl(href);
+        return;
+      }
+      
+      // Handle relative links (./file.md, ../folder/file.md, or just file.md)
+      // Skip anchor-only links and other protocols
+      if (!href.startsWith('#') && !href.includes('://')) {
+        e.preventDefault();
+        
+        // Get the directory containing this markdown file
+        const currentDir = entryPath.substring(0, entryPath.lastIndexOf('/'));
+        
+        // Resolve the relative path
+        let targetPath: string;
+        if (href.startsWith('/')) {
+          // Absolute path from root - use as-is
+          targetPath = href;
+        } else {
+          // Relative path - resolve from current directory
+          const parts = currentDir.split('/');
+          const hrefParts = href.split('/');
+          
+          for (const part of hrefParts) {
+            if (part === '..') {
+              parts.pop();
+            } else if (part !== '.' && part !== '') {
+              parts.push(part);
+            }
+          }
+          targetPath = parts.join('/');
+        }
+        
+        // Extract folder and filename from the resolved path
+        const lastSlash = targetPath.lastIndexOf('/');
+        const folderPath = lastSlash > 0 ? targetPath.substring(0, lastSlash) : targetPath;
+        const fileName = lastSlash > 0 ? targetPath.substring(lastSlash + 1) : targetPath;
+        
+        // Navigate to the folder and scroll to/highlight the file
+        setHighlightItem(fileName);
+        navigateToBrowserPath(folderPath, fileName);
+        return;
+      }
+    };
+
+    return (
+      <a href={href} onClick={handleClick} {...props}>
+        {children}
+      </a>
+    );
+  };
+}
+
+// Custom code component for syntax highlighting and mermaid diagrams
+function CustomCode({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) {
+  const match = /language-(\w+)/.exec(className || '');
+  const language = match ? match[1] : '';
+  const codeString = String(children).replace(/\n$/, '');
+
+  // Check if this is a mermaid code block
+  if (language === 'mermaid') {
+    return <MermaidDiagram code={codeString} />;
+  }
+
+  // For other code blocks, render normally
+  return (
+    <code className={className} {...props}>
+      {children}
+    </code>
+  );
+}
+
 interface MarkdownEntryProps {
   entry: FileEntry;
   onRename: () => void;
@@ -434,82 +514,8 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
                 remarkPlugins={[[remarkMath, { singleDollarTextMath: false }]]}
                 rehypePlugins={[rehypeKatex]}
                 components={{
-                  // Custom anchor component to open external URLs in system browser
-                  // and handle relative links within the file browser
-                  a({ href, children, ...props }) {
-                    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-                      if (!href) return;
-                      
-                      // Handle external URLs - open in system browser
-                      if (href.startsWith('http://') || href.startsWith('https://')) {
-                        e.preventDefault();
-                        window.electronAPI.openExternalUrl(href);
-                        return;
-                      }
-                      
-                      // Handle relative links (./file.md, ../folder/file.md, or just file.md)
-                      // Skip anchor-only links and other protocols
-                      if (!href.startsWith('#') && !href.includes('://')) {
-                        e.preventDefault();
-                        
-                        // Get the directory containing this markdown file
-                        const currentDir = entry.path.substring(0, entry.path.lastIndexOf('/'));
-                        
-                        // Resolve the relative path
-                        let targetPath: string;
-                        if (href.startsWith('/')) {
-                          // Absolute path from root - use as-is
-                          targetPath = href;
-                        } else {
-                          // Relative path - resolve from current directory
-                          const parts = currentDir.split('/');
-                          const hrefParts = href.split('/');
-                          
-                          for (const part of hrefParts) {
-                            if (part === '..') {
-                              parts.pop();
-                            } else if (part !== '.' && part !== '') {
-                              parts.push(part);
-                            }
-                          }
-                          targetPath = parts.join('/');
-                        }
-                        
-                        // Extract folder and filename from the resolved path
-                        const lastSlash = targetPath.lastIndexOf('/');
-                        const folderPath = lastSlash > 0 ? targetPath.substring(0, lastSlash) : targetPath;
-                        const fileName = lastSlash > 0 ? targetPath.substring(lastSlash + 1) : targetPath;
-                        
-                        // Navigate to the folder and scroll to/highlight the file
-                        setHighlightItem(fileName);
-                        navigateToBrowserPath(folderPath, fileName);
-                        return;
-                      }
-                    };
-
-                    return (
-                      <a href={href} onClick={handleClick} {...props}>
-                        {children}
-                      </a>
-                    );
-                  },
-                  code({ className, children, ...props }) {
-                    const match = /language-(\w+)/.exec(className || '');
-                    const language = match ? match[1] : '';
-                    const codeString = String(children).replace(/\n$/, '');
-
-                    // Check if this is a mermaid code block
-                    if (language === 'mermaid') {
-                      return <MermaidDiagram code={codeString} />;
-                    }
-
-                    // For other code blocks, render normally
-                    return (
-                      <code className={className} {...props}>
-                        {children}
-                      </code>
-                    );
-                  },
+                  a: createCustomAnchor(entry.path),
+                  code: CustomCode,
                 }}
               >
                 {content || ''}
