@@ -448,6 +448,11 @@ function App() {
       }
     }
 
+    // If pasting a single item, scroll to it in the new location
+    if (cutItems.length === 1) {
+      setPendingScrollToFile(cutItems[0].name);
+    }
+
     clearAllCutItems();
     refreshDirectory();
   }, [currentPath, items, refreshDirectory, findPasteDuplicates, findCutItemsFromDifferentFolders]);
