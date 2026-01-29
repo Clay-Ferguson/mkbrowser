@@ -27,6 +27,7 @@ const initialState: AppState = {
   searchResults: [],
   settings: defaultSettings,
   highlightItem: null,
+  pendingEditFile: null,
 };
 
 /**
@@ -126,6 +127,13 @@ function getSettingsSnapshot(): AppSettings {
  */
 function getHighlightItemSnapshot(): string | null {
   return state.highlightItem;
+}
+
+/**
+ * Get snapshot of pending edit file path
+ */
+function getPendingEditFileSnapshot(): string | null {
+  return state.pendingEditFile;
 }
 
 // ============================================================================
@@ -652,6 +660,23 @@ export function setPendingScrollToFile(fileName: string): void {
 }
 
 /**
+ * Set a file to start editing after navigation completes
+ */
+export function setPendingEditFile(filePath: string): void {
+  state = { ...state, pendingEditFile: filePath };
+  emitChange();
+}
+
+/**
+ * Clear the pending edit file (call after editing starts)
+ */
+export function clearPendingEditFile(): void {
+  if (state.pendingEditFile === null) return;
+  state = { ...state, pendingEditFile: null };
+  emitChange();
+}
+
+/**
  * Set search results along with the query and folder they came from
  */
 export function setSearchResults(
@@ -832,4 +857,11 @@ export function useSettings(): AppSettings {
  */
 export function useHighlightItem(): string | null {
   return useSyncExternalStore(subscribe, getHighlightItemSnapshot);
+}
+
+/**
+ * Hook to subscribe to pending edit file path
+ */
+export function usePendingEditFile(): string | null {
+  return useSyncExternalStore(subscribe, getPendingEditFileSnapshot);
 }

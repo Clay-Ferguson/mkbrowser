@@ -42,6 +42,7 @@ import {
   navigateToBrowserPath,
   clearPendingScrollToFile,
   setPendingScrollToFile,
+  clearPendingEditFile,
   setHighlightItem,
   setSearchResults,
   setSettings,
@@ -50,6 +51,7 @@ import {
   useCurrentView,
   useCurrentPath,
   usePendingScrollToFile,
+  usePendingEditFile,
   useSettings,
   useExpansionCounts,
   type ItemData,
@@ -209,6 +211,7 @@ function App() {
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
   const pendingScrollToFile = usePendingScrollToFile();
+  const pendingEditFile = usePendingEditFile();
   const settings = useSettings();
   const expansionCounts = useExpansionCounts();
 
@@ -378,9 +381,19 @@ function App() {
             mainContainer.scrollTo({ top: 0, behavior: 'instant' });
           }
         }
+
+        // Handle pending edit (e.g., from search results edit button)
+        if (pendingEditFile) {
+          // Start editing the file after a slight delay for the scroll to complete
+          setTimeout(() => {
+            setItemExpanded(pendingEditFile, true);
+            setItemEditing(pendingEditFile, true);
+            clearPendingEditFile();
+          }, 100);
+        }
       }, 100);
     }
-  }, [loading, pendingScrollToFile, currentPath]);
+  }, [loading, pendingScrollToFile, pendingEditFile, currentPath]);
 
   // Refresh directory without showing loading indicator (used after rename)
   const refreshDirectory = useCallback(() => {

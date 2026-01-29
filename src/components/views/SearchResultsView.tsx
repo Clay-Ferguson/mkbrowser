@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { ChevronLeftIcon, MagnifyingGlassIcon, DocumentTextIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import {
   setCurrentView,
   setSearchResults,
+  setHighlightItem,
+  navigateToBrowserPath,
+  setPendingEditFile,
   useSearchResults,
   useSearchQuery,
   useSearchFolder,
@@ -90,6 +93,21 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     e.stopPropagation();
     const fileName = path.substring(path.lastIndexOf('/') + 1);
     setDeleteTarget({ path, name: fileName });
+  };
+
+  const handleEditClick = (e: React.MouseEvent, resultPath: string) => {
+    e.stopPropagation();
+    // Extract the parent folder and file name from the result path
+    const lastSlashIndex = resultPath.lastIndexOf('/');
+    const folderPath = resultPath.substring(0, lastSlashIndex);
+    const fileName = resultPath.substring(lastSlashIndex + 1);
+
+    // Set highlight and navigate to browser view
+    setHighlightItem(fileName);
+    navigateToBrowserPath(folderPath, fileName);
+
+    // Set the pending edit so App.tsx will start editing after items load
+    setPendingEditFile(resultPath);
   };
 
   const handleDeleteConfirm = async () => {
@@ -198,6 +216,15 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                   <div className="text-sm text-slate-500 flex-shrink-0">
                     {result.matchCount} match{result.matchCount !== 1 ? 'es' : ''}
                   </div>
+
+                  {/* Edit button */}
+                  <button
+                    onClick={(e) => handleEditClick(e, result.path)}
+                    className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors"
+                    title="Edit file"
+                  >
+                    <PencilSquareIcon className="w-5 h-5" />
+                  </button>
 
                   {/* Delete button */}
                   <button

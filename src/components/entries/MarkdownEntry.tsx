@@ -316,6 +316,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const editInitialized = useRef(false);
 
   const isEditing = item?.editing ?? false;
   const isRenaming = item?.renaming ?? false;
@@ -338,6 +339,22 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
       }
     }
   }, [isRenaming, entry.name]);
+
+  // Reset initialization flag when exiting edit mode
+  useEffect(() => {
+    if (!isEditing) {
+      editInitialized.current = false;
+    }
+  }, [isEditing]);
+
+  // Initialize editContent when entering edit mode and content is available
+  // This handles external triggers (e.g., from search results edit button)
+  useEffect(() => {
+    if (isEditing && !editInitialized.current && item?.content !== undefined) {
+      setEditContent(item.content);
+      editInitialized.current = true;
+    }
+  }, [isEditing, item?.content]);
 
   // Load content if not cached or cache is stale
   useEffect(() => {
@@ -370,6 +387,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
 
   const handleEditClick = () => {
     setEditContent(content);
+    editInitialized.current = true;
     setItemExpanded(entry.path, true);
     setItemEditing(entry.path, true);
   };

@@ -183,6 +183,12 @@ export interface AppState {
    * Name of the currently highlighted item in the browser view
    */
   highlightItem: string | null;
+
+  /**
+   * Full file path to start editing after navigation completes.
+   * Set when clicking edit from search results, cleared after editing starts.
+   */
+  pendingEditFile: string | null;
 }
 
 /**
