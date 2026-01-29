@@ -4,6 +4,8 @@ import Markdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import mermaid from 'mermaid';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
@@ -207,7 +209,21 @@ function CustomCode({ className, children, ...props }: React.HTMLAttributes<HTML
     return <MermaidDiagram code={codeString} />;
   }
 
-  // For other code blocks, render normally
+  // For fenced code blocks with a language, use syntax highlighting
+  if (language) {
+    return (
+      <SyntaxHighlighter
+        style={oneDark as { [key: string]: React.CSSProperties }}
+        language={language}
+        PreTag="div"
+        customStyle={{ margin: 0, border: '1px solid #475569', borderRadius: '0.375rem' }}
+      >
+        {codeString}
+      </SyntaxHighlighter>
+    );
+  }
+
+  // For inline code or code blocks without a language, render normally
   return (
     <code className={className} {...props}>
       {children}
@@ -219,10 +235,16 @@ function CustomCode({ className, children, ...props }: React.HTMLAttributes<HTML
 function CustomPre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) {
   const [copied, setCopied] = useState(false);
 
+  // Check if the child code element has a language class (meaning SyntaxHighlighter or Mermaid will render it)
+  const codeElement = children as React.ReactElement;
+  const codeClassName = (codeElement?.props as { className?: string })?.className || '';
+  const languageMatch = /language-(\w+)/.exec(codeClassName);
+  const hasLanguage = !!languageMatch;
+  const isMermaid = languageMatch?.[1] === 'mermaid';
+
   const handleCopy = async () => {
     // Extract text content from children (the code element)
-    const codeElement = children as React.ReactElement;
-    const codeContent = (codeElement?.props as any)?.children;
+    const codeContent = (codeElement?.props as { children?: string })?.children;
     const textToCopy = String(codeContent).replace(/\n$/, '');
 
     try {
@@ -233,6 +255,28 @@ function CustomPre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>)
       console.error('Failed to copy:', err);
     }
   };
+
+  // For code blocks with a language (SyntaxHighlighter or Mermaid), don't wrap in <pre>
+  if (hasLanguage) {
+    return (
+      <div className="relative group not-prose">
+        {children}
+        {!isMermaid && (
+          <button
+            onClick={handleCopy}
+            className="absolute top-2 right-2 p-1.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
+            title={copied ? 'Copied!' : 'Copy code'}
+          >
+            {copied ? (
+              <ClipboardDocumentCheckIcon className="w-4 h-4 text-green-400" />
+            ) : (
+              <ClipboardDocumentIcon className="w-4 h-4" />
+            )}
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="relative group">
