@@ -118,28 +118,6 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
       {/* Main content */}
       <main className="max-w-4xl mx-auto px-4 py-6">
         <div className="space-y-6">
-          {/* Font Size Setting */}
-          <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-            <h2 className="text-lg font-semibold text-slate-100 mb-2">Font Size</h2>
-            <p className="text-sm text-slate-400 mb-4">
-              Choose the base font size for the application interface.
-            </p>
-
-            <div className="flex items-center gap-4">
-              <select
-                value={settings.fontSize}
-                onChange={(e) => handleFontSizeChange(e.target.value as FontSize)}
-                className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-              >
-                {fontSizeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </section>
-
           {/* Appearance Setting */}
           <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
             <h2 className="text-lg font-semibold text-slate-100 mb-2">Appearance</h2>
@@ -147,19 +125,36 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               Adjust the visual layout of the application.
             </p>
 
-            <div className="flex items-center gap-4">
-              <label className="text-slate-300 text-sm">Content Width:</label>
-              <select
-                value={settings.contentWidth}
-                onChange={(e) => handleContentWidthChange(e.target.value as ContentWidth)}
-                className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-              >
-                {contentWidthOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-wrap gap-6">
+              <div className="flex items-center gap-2">
+                <label className="text-slate-300 text-sm">Font Size:</label>
+                <select
+                  value={settings.fontSize}
+                  onChange={(e) => handleFontSizeChange(e.target.value as FontSize)}
+                  className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                >
+                  {fontSizeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-slate-300 text-sm">Content Width:</label>
+                <select
+                  value={settings.contentWidth}
+                  onChange={(e) => handleContentWidthChange(e.target.value as ContentWidth)}
+                  className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                >
+                  {contentWidthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </section>
 
@@ -170,32 +165,32 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               Choose how files and folders are ordered in the browser.
             </p>
 
-            <div className="flex items-center gap-4 mb-4">
-              <select
-                value={settings.sortOrder}
-                onChange={(e) => handleSortOrderChange(e.target.value as SortOrder)}
-                className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-              >
-                {sortOrderOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-2">
+                <label className="text-slate-300 text-sm">Order:</label>
+                <select
+                  value={settings.sortOrder}
+                  onChange={(e) => handleSortOrderChange(e.target.value as SortOrder)}
+                  className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                >
+                  {sortOrderOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.foldersOnTop}
-                onChange={(e) => handleFoldersOnTopChange(e.target.checked)}
-                className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-              />
-              <span className="text-slate-200">Folders on Top</span>
-            </label>
-            <p className="text-sm text-slate-400 mt-2 ml-8">
-              When enabled, folders are displayed above files in the listing.
-            </p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.foldersOnTop}
+                  onChange={(e) => handleFoldersOnTopChange(e.target.checked)}
+                  className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                />
+                <span className="text-slate-200">Folders on Top</span>
+              </label>
+            </div>
           </section>
 
           {/* Ignored Paths Setting */}
