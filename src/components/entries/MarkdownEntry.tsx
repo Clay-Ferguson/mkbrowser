@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, ArrowPathIcon, DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
 import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
@@ -592,7 +593,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
               title="Double-click to edit"
             >
               <Markdown
-                remarkPlugins={[[remarkMath, { singleDollarTextMath: false }]]}
+                remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
                 rehypePlugins={[rehypeKatex]}
                 components={{
                   a: createCustomAnchor(entry.path),
