@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, DocumentIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { CHECKBOX_CLASSES, ENTRY_CONTAINER_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES } from '../../utils/styles';
@@ -181,7 +181,7 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
             className={RENAME_BUTTON_CLASSES}
             title="Rename"
           >
-            <PencilSquareIcon className="w-5 h-5" />
+            <PencilIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => window.electronAPI.openExternal(entry.path)}

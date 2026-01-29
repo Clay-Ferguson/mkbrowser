@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, Bars3Icon, DocumentPlusIcon, FolderPlusIcon, ArrowPathIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, ArrowPathIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import Markdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -447,14 +447,14 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
               className={RENAME_BUTTON_CLASSES}
               title="Edit content"
             >
-              <Bars3Icon className="w-5 h-5" />
+              <PencilSquareIcon className="w-5 h-5" />
             </button>
             <button
               onClick={handleRenameClick}
               className={RENAME_BUTTON_CLASSES}
               title="Rename"
             >
-              <PencilSquareIcon className="w-5 h-5" />
+              <PencilIcon className="w-5 h-5" />
             </button>
             {showInsertIcons && (
               <>

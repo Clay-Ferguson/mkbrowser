@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon } from '@heroicons/react/24/outline';
 import { FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
@@ -166,7 +166,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
             className={RENAME_BUTTON_CLASSES}
             title="Rename"
           >
-            <PencilSquareIcon className="w-5 h-5" />
+            <PencilIcon className="w-5 h-5" />
           </button>
           {showInsertIcons && (
             <>

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, Bars3Icon, DocumentPlusIcon, FolderPlusIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES } from '../../utils/styles';
@@ -252,14 +252,14 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
               className={RENAME_BUTTON_CLASSES}
               title="Edit content"
             >
-              <Bars3Icon className="w-5 h-5" />
+              <PencilSquareIcon className="w-5 h-5" />
             </button>
             <button
               onClick={handleRenameClick}
               className={RENAME_BUTTON_CLASSES}
               title="Rename"
             >
-              <PencilSquareIcon className="w-5 h-5" />
+              <PencilIcon className="w-5 h-5" />
             </button>
             {showInsertIcons && (
               <>
