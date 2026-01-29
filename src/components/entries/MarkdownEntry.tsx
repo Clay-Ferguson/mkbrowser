@@ -421,6 +421,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
               onChange={setEditContent}
               placeholder="Enter markdown content..."
               language="markdown"
+              autoFocus
             />
           ) : (
             <article 

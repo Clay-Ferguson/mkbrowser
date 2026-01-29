@@ -193,9 +193,11 @@ interface CodeMirrorEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   language?: 'markdown' | 'text';
+  /** If true, automatically focus the editor after mounting (with a small delay for rendering) */
+  autoFocus?: boolean;
 }
 
-function CodeMirrorEditor({ value, onChange, placeholder, language = 'text' }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -455,6 +457,25 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text' }: C
     });
 
     viewRef.current = view;
+
+    // Auto-focus after a delay to ensure rendering is complete
+    if (autoFocus) {
+      const focusTimer = setTimeout(() => {
+        if (viewRef.current) {
+          viewRef.current.focus();
+        }
+      }, 1000);
+      // Clean up timer if component unmounts before focus
+      const cleanup = () => clearTimeout(focusTimer);
+      // Store cleanup in a ref or call it in the main cleanup
+      view.destroy = (() => {
+        const originalDestroy = view.destroy.bind(view);
+        return () => {
+          cleanup();
+          originalDestroy();
+        };
+      })();
+    }
 
     // Load spell checker asynchronously
     loadSpellChecker().then((typo) => {

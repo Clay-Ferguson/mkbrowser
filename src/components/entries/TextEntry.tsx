@@ -307,6 +307,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
               onChange={setEditContent}
               placeholder="Enter text content..."
               language="text"
+              autoFocus
             />
           ) : (
             <pre 
