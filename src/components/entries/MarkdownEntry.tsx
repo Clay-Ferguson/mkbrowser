@@ -19,6 +19,7 @@ import {
   setItemExpanded,
   toggleItemExpanded,
   isCacheValid,
+  navigateToBrowserPath,
 } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -434,14 +435,56 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
                 rehypePlugins={[rehypeKatex]}
                 components={{
                   // Custom anchor component to open external URLs in system browser
+                  // and handle relative links within the file browser
                   a({ href, children, ...props }) {
                     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-                      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+                      if (!href) return;
+                      
+                      // Handle external URLs - open in system browser
+                      if (href.startsWith('http://') || href.startsWith('https://')) {
                         e.preventDefault();
                         window.electronAPI.openExternalUrl(href);
+                        return;
                       }
-                      // For other links (relative paths, file:// etc), allow default behavior
-                      // This preserves future ability to handle local file links
+                      
+                      // Handle relative links (./file.md, ../folder/file.md, or just file.md)
+                      // Skip anchor-only links and other protocols
+                      if (!href.startsWith('#') && !href.includes('://')) {
+                        e.preventDefault();
+                        
+                        // Get the directory containing this markdown file
+                        const currentDir = entry.path.substring(0, entry.path.lastIndexOf('/'));
+                        
+                        // Resolve the relative path
+                        let targetPath: string;
+                        if (href.startsWith('/')) {
+                          // Absolute path from root - use as-is
+                          targetPath = href;
+                        } else {
+                          // Relative path - resolve from current directory
+                          const parts = currentDir.split('/');
+                          const hrefParts = href.split('/');
+                          
+                          for (const part of hrefParts) {
+                            if (part === '..') {
+                              parts.pop();
+                            } else if (part !== '.' && part !== '') {
+                              parts.push(part);
+                            }
+                          }
+                          targetPath = parts.join('/');
+                        }
+                        
+                        // Extract folder and filename from the resolved path
+                        const lastSlash = targetPath.lastIndexOf('/');
+                        const folderPath = lastSlash > 0 ? targetPath.substring(0, lastSlash) : targetPath;
+                        const fileName = lastSlash > 0 ? targetPath.substring(lastSlash + 1) : targetPath;
+                        
+                        // Navigate to the folder and scroll to/highlight the file
+                        setHighlightItem(fileName);
+                        navigateToBrowserPath(folderPath, fileName);
+                        return;
+                      }
                     };
 
                     return (
