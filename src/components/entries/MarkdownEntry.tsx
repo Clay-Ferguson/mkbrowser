@@ -493,7 +493,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
 
   return (
     <div className={`bg-slate-800 rounded-lg border ${isHighlighted ? 'border-2 border-purple-500' : 'border-slate-700'} overflow-hidden`}>
-      <div className="flex items-center gap-3 px-4 py-1 bg-slate-800/50 border-b border-slate-700">
+      <div className="flex items-center gap-3 pl-4 pr-2 py-1 bg-slate-800/50 border-b border-slate-700">
         <input
           type="checkbox"
           checked={isSelected}
@@ -542,7 +542,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
             </button>
           </div>
         ) : !isRenaming && (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 -mr-1.5">
             <button
               onClick={handleEditClick}
               className={RENAME_BUTTON_CLASSES}
