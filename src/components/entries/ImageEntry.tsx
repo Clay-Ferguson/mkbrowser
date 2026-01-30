@@ -30,6 +30,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showFullscreenDeleteConfirm, setShowFullscreenDeleteConfirm] = useState(false);
   const [fullscreenImagePath, setFullscreenImagePath] = useState(entry.path);
   const [showEndAlert, setShowEndAlert] = useState(false);
   const [showBeginningAlert, setShowBeginningAlert] = useState(false);
@@ -114,6 +115,49 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
     } else {
       setFullscreenImagePath(allImages[currentIndex - 1].path);
     }
+  };
+
+  // Handle delete from fullscreen view
+  const handleFullscreenDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowFullscreenDeleteConfirm(true);
+  };
+
+  const handleFullscreenDeleteConfirm = async () => {
+    setShowFullscreenDeleteConfirm(false);
+    const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
+    const pathToDelete = fullscreenImagePath;
+    
+    // Determine which image to show next
+    let nextImagePath: string | null = null;
+    if (allImages.length > 1) {
+      if (currentIndex < allImages.length - 1) {
+        // There's a next image, switch to it
+        nextImagePath = allImages[currentIndex + 1].path;
+      } else if (currentIndex > 0) {
+        // No next image but there's a previous one
+        nextImagePath = allImages[currentIndex - 1].path;
+      }
+    }
+    
+    try {
+      const success = await window.electronAPI.deleteFile(pathToDelete);
+      if (success) {
+        if (nextImagePath) {
+          setFullscreenImagePath(nextImagePath);
+        } else {
+          // No more images, close fullscreen
+          setIsFullscreen(false);
+        }
+        onDelete();
+      }
+    } catch (error) {
+      console.error('[ImageEntry] Failed to delete image:', error);
+    }
+  };
+
+  const handleFullscreenDeleteCancel = () => {
+    setShowFullscreenDeleteConfirm(false);
   };
 
   const handleRenameClick = () => {
@@ -330,7 +374,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
           {/* Previous image button */}
           <button
             onClick={handlePreviousImage}
-            className="absolute top-4 right-28 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            className="absolute top-4 right-40 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
             title="Previous image"
           >
             <ChevronLeftIcon className="w-8 h-8" />
@@ -338,10 +382,18 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
           {/* Next image button */}
           <button
             onClick={handleNextImage}
-            className="absolute top-4 right-16 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            className="absolute top-4 right-28 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
             title="Next image"
           >
             <ChevronRightIcon className="w-8 h-8" />
+          </button>
+          {/* Delete button */}
+          <button
+            onClick={handleFullscreenDeleteClick}
+            className="absolute top-4 right-16 p-2 text-white/70 hover:text-red-400 hover:bg-white/10 rounded-full transition-colors"
+            title="Delete image"
+          >
+            <TrashIcon className="w-8 h-8" />
           </button>
           {/* Close button */}
           <button
@@ -379,6 +431,15 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
           title="Beginning of Images"
           message="You have reached the beginning of the images in this folder."
           onClose={() => setShowBeginningAlert(false)}
+        />
+      )}
+
+      {/* Fullscreen delete confirmation */}
+      {showFullscreenDeleteConfirm && (
+        <ConfirmDialog
+          message={`Are you sure you want to delete "${currentFullscreenImage.name}"?`}
+          onConfirm={handleFullscreenDeleteConfirm}
+          onCancel={handleFullscreenDeleteCancel}
         />
       )}
 
