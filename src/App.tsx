@@ -703,6 +703,41 @@ function App() {
     };
   }, [currentPath]);
 
+  // Listen for bookmark selection from menu - navigate to the bookmarked item
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onOpenBookmark(async (fullPath: string) => {
+      // Check if the path exists
+      const exists = await window.electronAPI.pathExists(fullPath);
+      if (!exists) {
+        setError(`Bookmark no longer exists: ${fullPath}`);
+        return;
+      }
+
+      // Determine if it's a file or folder by checking if it has a file extension
+      // or by trying to read it as a directory
+      const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+      const parentPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
+      
+      // Try to read the path as a directory to determine if it's a folder
+      try {
+        await window.electronAPI.readDirectory(fullPath);
+        // It's a folder - navigate directly to it
+        setCurrentPath(fullPath);
+        setCurrentView('browser');
+      } catch {
+        // It's a file - navigate to parent folder and highlight the file
+        setCurrentPath(parentPath);
+        setCurrentView('browser');
+        setHighlightItem(fileName);
+        setPendingScrollToFile(fileName);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // Generate default export filename from current folder name
   const generateExportFileName = useCallback(() => {
     if (!currentPath) return 'export.md';

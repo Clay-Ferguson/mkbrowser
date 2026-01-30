@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 // Type definitions for the exposed API
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
+export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchBlock = 'entire-file' | 'file-lines';
@@ -190,6 +191,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('open-search-definition', handler);
     return () => {
       ipcRenderer.removeListener('open-search-definition', handler);
+    };
+  },
+  onOpenBookmark: (callback: (fullPath: string) => void) => {
+    const handler = (_event: IpcRendererEvent, fullPath: string) => {
+      callback(fullPath);
+    };
+    ipcRenderer.on('open-bookmark', handler);
+    return () => {
+      ipcRenderer.removeListener('open-bookmark', handler);
     };
   },
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),

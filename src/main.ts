@@ -311,6 +311,30 @@ function setupApplicationMenu(): void {
     });
   }
 
+  // Add Bookmark menu if there are bookmarks
+  const bookmarks = config.settings?.bookmarks || [];
+  if (bookmarks.length > 0) {
+    // Sort bookmarks alphabetically by their display name (file/folder name only)
+    const sortedBookmarks = [...bookmarks].sort((a, b) => {
+      const nameA = a.substring(a.lastIndexOf('/') + 1);
+      const nameB = b.substring(b.lastIndexOf('/') + 1);
+      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+    });
+
+    template.push({
+      label: 'Bookmark',
+      submenu: sortedBookmarks.map((fullPath) => {
+        const displayName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+        return {
+          label: displayName,
+          click: () => {
+            mainWindow?.webContents.send('open-bookmark', fullPath);
+          },
+        };
+      }),
+    });
+  }
+
   template.push({
     label: 'Tools',
     submenu: [
