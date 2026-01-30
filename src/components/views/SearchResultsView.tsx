@@ -38,7 +38,28 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   // Helper function to format the days display
   const formatDaysDisplay = (days: number): string => {
     if (days === 0) return '(today)';
-    return `(${days > 0 ? days : days})`;
+    
+    const absDays = Math.abs(days);
+    const sign = days < 0 ? '-' : '';
+    
+    // For small values (< 31 days), just show days
+    if (absDays < 31) {
+      return `(${sign}${absDays} day${absDays !== 1 ? 's' : ''})`;
+    }
+    
+    // Calculate years, months, and remaining days
+    const years = Math.floor(absDays / 365);
+    const remainingAfterYears = absDays % 365;
+    const months = Math.floor(remainingAfterYears / 30);
+    const remainingDays = remainingAfterYears % 30;
+    
+    // Build the display string, omitting zero values
+    const parts: string[] = [];
+    if (years > 0) parts.push(`${years}y`);
+    if (months > 0) parts.push(`${months}m`);
+    if (remainingDays > 0) parts.push(`${remainingDays}d`);
+    
+    return `(${sign}${parts.join(' ')})`;
   };
 
   // Helper function to get the color class for days
