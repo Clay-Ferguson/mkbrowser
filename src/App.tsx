@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { DocumentPlusIcon, FolderPlusIcon, MagnifyingGlassIcon, ClipboardDocumentIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ClipboardDocumentIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
 import MarkdownEntry from './components/entries/MarkdownEntry';
@@ -1240,7 +1241,7 @@ function App() {
               {/* Create file button */}
               <button
                 onClick={handleOpenCreateDialog}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Create file"
               >
                 <DocumentPlusIcon className="w-5 h-5" />
@@ -1249,7 +1250,7 @@ function App() {
               {/* Create folder button */}
               <button
                 onClick={handleOpenCreateFolderDialog}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Create folder"
               >
                 <FolderPlusIcon className="w-5 h-5" />
