@@ -152,13 +152,12 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1 text-sm" title={currentPath}>
+    <div className="flex flex-wrap items-center gap-1 text-sm">
       <button
         type="button"
         onClick={() => onNavigate(normalizedRoot)}
         className="p-1 text-slate-400 hover:text-blue-400 rounded cursor-pointer flex-shrink-0"
         aria-label="Go to root folder"
-        title={normalizedRoot}
       >
         <HomeIcon className="w-4 h-4" />
       </button>
@@ -175,7 +174,6 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
             {isLast ? (
               <span
                 className="text-slate-200 break-all"
-                title={buildPathForIndex(index)}
               >
                 {part}
               </span>
@@ -184,7 +182,6 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
                 type="button"
                 onClick={() => onNavigate(buildPathForIndex(index))}
                 className="text-slate-200 hover:text-blue-400 cursor-pointer no-underline break-all"
-                title={buildPathForIndex(index)}
               >
                 {part}
               </button>
