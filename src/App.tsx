@@ -1161,7 +1161,11 @@ function App() {
     if (currentPath === rootPath) return;
     const parent = currentPath.substring(0, currentPath.lastIndexOf('/'));
     if (parent.length >= rootPath.length) {
+      // Get the name of the folder we're leaving (to highlight and scroll to it)
+      const currentFolderName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
       setCurrentPath(parent);
+      setHighlightItem(currentFolderName);
+      setPendingScrollToFile(currentFolderName);
     }
   }, [currentPath, rootPath]);
 
