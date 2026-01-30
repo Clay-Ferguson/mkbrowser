@@ -24,8 +24,6 @@ MkBrowser is an Electron desktop app that combines a file explorer with inline M
 
 ![expanded-file](docs/img/expanded-file.png)
 
-![expanded-file](docs/img/expanded-file.png)
-
 ![export-dialog](docs/img/export-dialog.png)
 
 ![settings-page](docs/img/settings-page.png)
