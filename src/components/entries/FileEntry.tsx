@@ -4,7 +4,7 @@ import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { CHECKBOX_CLASSES, ENTRY_CONTAINER_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES, BOOKMARK_BUTTON_CLASSES } from '../../utils/styles';
-import { useItem, useHighlightItem, useSettings, setHighlightItem, setItemRenaming, setItemSelected, toggleItemExpanded, toggleBookmark } from '../../store';
+import { useItem, useHighlightItem, useSettings, setHighlightItem, setItemRenaming, setItemSelected, toggleItemExpanded, toggleBookmark, updateBookmarkPath } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
@@ -72,6 +72,10 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
       const newPath = `${dirPath}/${trimmedName}`;
       const success = await window.electronAPI.renameFile(entry.path, newPath);
       if (success) {
+        // Update bookmark if this item was bookmarked
+        if (updateBookmarkPath(entry.path, newPath)) {
+          onSaveSettings();
+        }
         setItemRenaming(entry.path, false);
         setHighlightItem(trimmedName);
         onRename();

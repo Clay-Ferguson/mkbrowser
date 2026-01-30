@@ -831,6 +831,31 @@ export function isBookmarked(filePath: string): boolean {
 }
 
 /**
+ * Update a bookmark path when a file/folder is renamed.
+ * If the oldPath is bookmarked, updates it to the newPath.
+ * Returns true if a bookmark was updated.
+ */
+export function updateBookmarkPath(oldPath: string, newPath: string): boolean {
+  const currentBookmarks = state.settings.bookmarks || [];
+  const index = currentBookmarks.indexOf(oldPath);
+  
+  if (index === -1) {
+    return false; // Not bookmarked, nothing to update
+  }
+  
+  const newBookmarks = [...currentBookmarks];
+  newBookmarks[index] = newPath;
+  
+  state = {
+    ...state,
+    settings: { ...state.settings, bookmarks: newBookmarks },
+  };
+  emitChange();
+  
+  return true;
+}
+
+/**
  * Get current settings (non-reactive, for use outside React)
  */
 export function getSettings(): AppSettings {

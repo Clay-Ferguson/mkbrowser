@@ -41,6 +41,7 @@ export {
   setContentWidth,
   toggleBookmark,
   isBookmarked,
+  updateBookmarkPath,
   getSettings,
   getExpansionCounts,
   // Hooks

@@ -17,6 +17,7 @@ import {
   setItemExpanded,
   toggleItemExpanded,
   toggleBookmark,
+  updateBookmarkPath,
   isCacheValid,
 } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
@@ -163,6 +164,10 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
       const newPath = `${dirPath}/${trimmedName}`;
       const success = await window.electronAPI.renameFile(entry.path, newPath);
       if (success) {
+        // Update bookmark if this item was bookmarked
+        if (updateBookmarkPath(entry.path, newPath)) {
+          onSaveSettings();
+        }
         setItemRenaming(entry.path, false);
         setHighlightItem(trimmedName);
         onRename();

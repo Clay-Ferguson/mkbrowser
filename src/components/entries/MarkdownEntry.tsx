@@ -25,6 +25,7 @@ import {
   setItemExpanded,
   toggleItemExpanded,
   toggleBookmark,
+  updateBookmarkPath,
   isCacheValid,
   navigateToBrowserPath,
 } from '../../store';
@@ -441,6 +442,10 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
       const newPath = `${dirPath}/${trimmedName}`;
       const success = await window.electronAPI.renameFile(entry.path, newPath);
       if (success) {
+        // Update bookmark if this item was bookmarked
+        if (updateBookmarkPath(entry.path, newPath)) {
+          onSaveSettings();
+        }
         setItemRenaming(entry.path, false);
         setHighlightItem(trimmedName);
         onRename();
