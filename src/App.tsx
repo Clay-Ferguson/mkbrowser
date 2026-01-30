@@ -709,7 +709,25 @@ function App() {
       // Check if the path exists
       const exists = await window.electronAPI.pathExists(fullPath);
       if (!exists) {
-        setError(`Bookmark no longer exists: ${fullPath}`);
+        // Remove the bookmark since it no longer exists
+        const currentSettings = getSettings();
+        const updatedBookmarks = (currentSettings.bookmarks || []).filter(b => b !== fullPath);
+        const updatedSettings = { ...currentSettings, bookmarks: updatedBookmarks };
+        setSettings(updatedSettings);
+        
+        // Persist the updated settings
+        try {
+          const config = await window.electronAPI.getConfig();
+          await window.electronAPI.saveConfig({
+            ...config,
+            settings: updatedSettings,
+          });
+        } catch (err) {
+          console.error('Failed to save settings after removing bookmark:', err);
+        }
+        
+        const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+        setError(`Bookmark "${fileName}" no longer exists and has been removed.`);
         return;
       }
 
