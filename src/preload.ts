@@ -75,6 +75,7 @@ export interface ElectronAPI {
   onRenumberRequested: (callback: () => void) => () => void;
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   onOpenSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
+  onEditSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
@@ -191,6 +192,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('open-search-definition', handler);
     return () => {
       ipcRenderer.removeListener('open-search-definition', handler);
+    };
+  },
+  onEditSearchDefinition: (callback: (definition: SearchDefinition) => void) => {
+    const handler = (_event: IpcRendererEvent, definition: SearchDefinition) => {
+      callback(definition);
+    };
+    ipcRenderer.on('edit-search-definition', handler);
+    return () => {
+      ipcRenderer.removeListener('edit-search-definition', handler);
     };
   },
   onOpenBookmark: (callback: (fullPath: string) => void) => {

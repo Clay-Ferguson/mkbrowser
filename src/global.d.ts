@@ -86,6 +86,7 @@ export interface ElectronAPI {
   onRenumberRequested: (callback: () => void) => () => void;
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   onExportRequested: (callback: () => void) => () => void;
+  onEditSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
   onOpenSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
   onOpenBookmark: (callback: (fullPath: string) => void) => () => void;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;

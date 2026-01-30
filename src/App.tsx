@@ -173,7 +173,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
             <span className="text-slate-500 mx-1">/</span>
             {isLast ? (
               <span
-                className="text-slate-400 break-all"
+                className="text-slate-200 break-all"
                 title={buildPathForIndex(index)}
               >
                 {part}
@@ -702,6 +702,25 @@ function App() {
       unsubscribe();
     };
   }, [currentPath]);
+
+  // Listen for edit search definition from menu (Ctrl+click) - open SearchDialog with definition pre-filled
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onEditSearchDefinition((definition) => {
+      // Populate the SearchDialog with the definition's values
+      setSearchDialogInitialValues({
+        searchQuery: definition.searchText,
+        searchName: definition.name,
+        searchType: definition.searchMode,
+        searchMode: definition.searchTarget,
+        searchBlock: definition.searchBlock,
+      });
+      setShowSearchDialog(true);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Listen for bookmark selection from menu - navigate to the bookmarked item
   useEffect(() => {

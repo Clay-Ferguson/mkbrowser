@@ -75,6 +75,17 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     $('#project') && $('#urgent')
     ```
 
+### Saving Search Definitions
+You can save frequently used searches for quick access later.
+
+1. In the Search dialog, enter your search query and configure the options.
+2. Type a name for your search in the **Search Name** field.
+3. Click **Search** to execute and save the definition.
+
+Once saved, your search definitions appear in the **Search** menu on the application's main menu bar (sorted alphabetically). Simply click a saved search to execute it immediately.
+
+**Tip:** Hold **Ctrl** while clicking a search menu item to open the Search dialog with that definition pre-filled. This allows you to review the search parameters before running it, or to edit and update the saved definition.
+
 ## Exporting
 
 You can export the contents of the current folder into a single document.

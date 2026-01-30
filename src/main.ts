@@ -304,8 +304,13 @@ function setupApplicationMenu(): void {
       label: 'Search',
       submenu: sortedDefinitions.map((def) => ({
         label: def.name,
-        click: () => {
-          mainWindow?.webContents.send('open-search-definition', def);
+        click: (_menuItem, _browserWindow, event) => {
+          // Ctrl+click opens the search dialog for editing; regular click executes immediately
+          if (event.ctrlKey) {
+            mainWindow?.webContents.send('edit-search-definition', def);
+          } else {
+            mainWindow?.webContents.send('open-search-definition', def);
+          }
         },
       })),
     });
