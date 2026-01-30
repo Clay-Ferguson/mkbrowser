@@ -6,11 +6,14 @@ import {
   setHighlightItem,
   navigateToBrowserPath,
   setPendingEditFile,
+  setSearchResultsScrollPosition,
+  getSearchResultsScrollPosition,
   useSearchResults,
   useSearchQuery,
   useSearchFolder,
   useSettings,
 } from '../../store';
+import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
 interface SearchResultsViewProps {
@@ -24,6 +27,12 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const settings = useSettings();
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  
+  // Scroll position persistence
+  const { containerRef: mainContainerRef, handleScroll: handleMainScroll } = useScrollPersistence(
+    getSearchResultsScrollPosition,
+    setSearchResultsScrollPosition
+  );
 
   // Helper function to calculate days difference from today
   const getDaysFromToday = (timestamp: number): number => {
@@ -181,7 +190,11 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 min-h-0 overflow-y-auto">
+      <main 
+        ref={mainContainerRef}
+        onScroll={handleMainScroll}
+        className="flex-1 min-h-0 overflow-y-auto"
+      >
         <div className="max-w-4xl mx-auto px-4 py-6">
         {searchResults.length === 0 ? (
           <div className="text-center py-12">

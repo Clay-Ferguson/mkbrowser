@@ -142,6 +142,19 @@ export interface AppSettings {
 }
 
 /**
+ * Scroll position storage for each view
+ * Browser view uses a Map to track per-path scroll positions
+ */
+export interface ScrollPositions {
+  /** Browser view scroll positions, keyed by path */
+  browser: Map<string, number>;
+  /** Search results view scroll position */
+  'search-results': number;
+  /** Settings view scroll position */
+  settings: number;
+}
+
+/**
  * Global application state
  */
 export interface AppState {
@@ -203,6 +216,12 @@ export interface AppState {
    * Used with pendingEditFile when navigating from search results.
    */
   pendingEditLineNumber: number | null;
+
+  /**
+   * Scroll positions for each view.
+   * Browser view stores per-path positions, other views store a single position.
+   */
+  scrollPositions: ScrollPositions;
 }
 
 /**

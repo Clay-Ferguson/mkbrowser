@@ -6,11 +6,14 @@ import {
   setFoldersOnTop,
   setIgnoredPaths,
   setContentWidth,
+  setSettingsScrollPosition,
+  getSettingsScrollPosition,
   useSettings,
   type FontSize,
   type SortOrder,
   type ContentWidth,
 } from '../../store';
+import { useScrollPersistence } from '../../utils/useScrollPersistence';
 
 interface FontSizeOption {
   value: FontSize;
@@ -55,6 +58,12 @@ interface SettingsViewProps {
 
 function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const settings = useSettings();
+  
+  // Scroll position persistence
+  const { containerRef: mainContainerRef, handleScroll: handleMainScroll } = useScrollPersistence(
+    getSettingsScrollPosition,
+    setSettingsScrollPosition
+  );
 
   // Font size is now applied globally via data-font-size attribute on html element
 
@@ -93,9 +102,9 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
       {/* Header */}
-      <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-10">
+      <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Back button */}
@@ -116,7 +125,12 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
       </header>
 
       {/* Main content */}
-      <main className="max-w-4xl mx-auto px-4 py-6">
+      <main 
+        ref={mainContainerRef}
+        onScroll={handleMainScroll}
+        className="flex-1 min-h-0 overflow-y-auto"
+      >
+        <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="space-y-6">
           {/* Appearance Setting */}
           <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
@@ -208,6 +222,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
             />
           </section>
+        </div>
         </div>
       </main>
     </div>

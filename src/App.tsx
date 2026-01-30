@@ -48,6 +48,8 @@ import {
   setSearchResults,
   setSettings,
   getSettings,
+  setBrowserScrollPosition,
+  getBrowserScrollPosition,
   useItems,
   useCurrentView,
   useCurrentPath,
@@ -360,11 +362,23 @@ function App() {
 
   // Track previous path to detect folder navigation
   const previousPathRef = useRef<string | null>(null);
+  
+  // Ref to the main scrollable container for scroll position tracking
+  const mainContainerRef = useRef<HTMLElement | null>(null);
+  
+  // Debounce timer for scroll position saving
+  const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Handle pending scroll after directory loads, or scroll to top on new folder
+  // Handle pending scroll after directory loads, or restore scroll position on folder navigation
   useEffect(() => {
     if (!loading) {
       const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
+      
+      // Save scroll position for the previous folder before switching
+      if (isNewFolder && previousPathRef.current && mainContainerRef.current) {
+        setBrowserScrollPosition(previousPathRef.current, mainContainerRef.current.scrollTop);
+      }
+      
       previousPathRef.current = currentPath;
 
       // Short timeout just for DOM to settle after React render
@@ -374,11 +388,11 @@ function App() {
           scrollItemIntoView(pendingScrollToFile);
           clearPendingScrollToFile();
         } else if (isNewFolder) {
-          // Scroll to top when navigating to a new folder
-          // Use the main container's scroll instead of window.scrollTo to avoid layout issues
-          const mainContainer = document.querySelector('main');
+          // Restore saved scroll position for this folder, or scroll to top
+          const savedPosition = getBrowserScrollPosition(currentPath);
+          const mainContainer = mainContainerRef.current;
           if (mainContainer) {
-            mainContainer.scrollTo({ top: 0, behavior: 'instant' });
+            mainContainer.scrollTo({ top: savedPosition, behavior: 'instant' });
           }
         }
 
@@ -396,6 +410,29 @@ function App() {
       }, 100);
     }
   }, [loading, pendingScrollToFile, pendingEditFile, currentPath]);
+
+  // Handle scroll events on the main container (debounced save)
+  const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
+    // Clear any pending save timer
+    if (scrollSaveTimerRef.current) {
+      clearTimeout(scrollSaveTimerRef.current);
+    }
+    // Debounce: save scroll position after 150ms of no scrolling
+    scrollSaveTimerRef.current = setTimeout(() => {
+      if (currentPath) {
+        setBrowserScrollPosition(currentPath, e.currentTarget.scrollTop);
+      }
+    }, 150);
+  }, [currentPath]);
+  
+  // Cleanup scroll save timer on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollSaveTimerRef.current) {
+        clearTimeout(scrollSaveTimerRef.current);
+      }
+    };
+  }, []);
 
   // Refresh directory without showing loading indicator (used after rename)
   const refreshDirectory = useCallback(() => {
@@ -1315,7 +1352,11 @@ function App() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 min-h-0 overflow-y-auto">
+      <main 
+        ref={mainContainerRef}
+        onScroll={handleMainScroll}
+        className="flex-1 min-h-0 overflow-y-auto"
+      >
         <div className={`${getContentWidthClasses(settings.contentWidth)} py-6`}>
         {loading && (
           <div className="flex items-center justify-center py-12">

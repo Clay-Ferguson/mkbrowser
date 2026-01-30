@@ -1,4 +1,4 @@
-export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchDefinition } from './types';
+export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchDefinition, ScrollPositions } from './types';
 export type { ExpansionCounts } from './store';
 export { createItemData } from './types';
 
@@ -26,6 +26,12 @@ export {
   isCacheValid,
   setCurrentView,
   setCurrentPath,
+  setBrowserScrollPosition,
+  getBrowserScrollPosition,
+  setSearchResultsScrollPosition,
+  getSearchResultsScrollPosition,
+  setSettingsScrollPosition,
+  getSettingsScrollPosition,
   navigateToBrowserPath,
   clearPendingScrollToFile,
   setPendingScrollToFile,
@@ -59,4 +65,5 @@ export {
   useSettings,
   useHighlightItem,
   useExpansionCounts,
+  useScrollPositions,
 } from './store';

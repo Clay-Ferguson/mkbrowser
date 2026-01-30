@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, ScrollPositions } from './types';
 import { createItemData } from './types';
 
 /**
@@ -30,6 +30,11 @@ const initialState: AppState = {
   highlightItem: null,
   pendingEditFile: null,
   pendingEditLineNumber: null,
+  scrollPositions: {
+    browser: new Map(),
+    'search-results': 0,
+    settings: 0,
+  },
 };
 
 /**
@@ -143,6 +148,13 @@ function getPendingEditFileSnapshot(): string | null {
  */
 function getPendingEditLineNumberSnapshot(): number | null {
   return state.pendingEditLineNumber;
+}
+
+/**
+ * Get snapshot of scroll positions
+ */
+function getScrollPositionsSnapshot(): ScrollPositions {
+  return state.scrollPositions;
 }
 
 // ============================================================================
@@ -657,6 +669,72 @@ export function setCurrentPath(path: string): void {
 }
 
 /**
+ * Set scroll position for the browser view at a specific path
+ */
+export function setBrowserScrollPosition(path: string, position: number): void {
+  const newBrowserPositions = new Map(state.scrollPositions.browser);
+  newBrowserPositions.set(path, position);
+  state = {
+    ...state,
+    scrollPositions: {
+      ...state.scrollPositions,
+      browser: newBrowserPositions,
+    },
+  };
+  // Don't emit change for scroll position updates to avoid re-renders
+  // The position is saved silently and only read on mount
+}
+
+/**
+ * Get scroll position for the browser view at a specific path
+ */
+export function getBrowserScrollPosition(path: string): number {
+  return state.scrollPositions.browser.get(path) ?? 0;
+}
+
+/**
+ * Set scroll position for the search-results view
+ */
+export function setSearchResultsScrollPosition(position: number): void {
+  state = {
+    ...state,
+    scrollPositions: {
+      ...state.scrollPositions,
+      'search-results': position,
+    },
+  };
+  // Don't emit change for scroll position updates
+}
+
+/**
+ * Get scroll position for the search-results view
+ */
+export function getSearchResultsScrollPosition(): number {
+  return state.scrollPositions['search-results'];
+}
+
+/**
+ * Set scroll position for the settings view
+ */
+export function setSettingsScrollPosition(position: number): void {
+  state = {
+    ...state,
+    scrollPositions: {
+      ...state.scrollPositions,
+      settings: position,
+    },
+  };
+  // Don't emit change for scroll position updates
+}
+
+/**
+ * Get scroll position for the settings view
+ */
+export function getSettingsScrollPosition(): number {
+  return state.scrollPositions.settings;
+}
+
+/**
  * Navigate to a path and switch to browser view in a single state update.
  * Optionally set a file to scroll to after render completes.
  */
@@ -957,4 +1035,10 @@ export function usePendingEditFile(): string | null {
  */
 export function usePendingEditLineNumber(): number | null {
   return useSyncExternalStore(subscribe, getPendingEditLineNumberSnapshot);
+}
+/**
+ * Hook to subscribe to scroll positions
+ */
+export function useScrollPositions(): ScrollPositions {
+  return useSyncExternalStore(subscribe, getScrollPositionsSnapshot);
 }
