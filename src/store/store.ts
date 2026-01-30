@@ -12,6 +12,7 @@ const defaultSettings: AppSettings = {
   ignoredPaths: '',
   searchDefinitions: [],
   contentWidth: 'medium',
+  bookmarks: [],
 };
 
 /**
@@ -798,6 +799,35 @@ export function setContentWidth(contentWidth: ContentWidth): void {
     settings: { ...state.settings, contentWidth },
   };
   emitChange();
+}
+
+/**
+ * Toggle bookmark for a file path.
+ * If the path is bookmarked, removes it. If not, adds it.
+ * Returns the new bookmarked state.
+ */
+export function toggleBookmark(filePath: string): boolean {
+  const currentBookmarks = state.settings.bookmarks || [];
+  const isCurrentlyBookmarked = currentBookmarks.includes(filePath);
+  
+  const newBookmarks = isCurrentlyBookmarked
+    ? currentBookmarks.filter(p => p !== filePath)
+    : [...currentBookmarks, filePath];
+  
+  state = {
+    ...state,
+    settings: { ...state.settings, bookmarks: newBookmarks },
+  };
+  emitChange();
+  
+  return !isCurrentlyBookmarked;
+}
+
+/**
+ * Check if a file path is bookmarked
+ */
+export function isBookmarked(filePath: string): boolean {
+  return (state.settings.bookmarks || []).includes(filePath);
 }
 
 /**

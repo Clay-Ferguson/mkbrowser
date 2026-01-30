@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon } from '@heroicons/react/24/outline';
-import { FolderIcon } from '@heroicons/react/24/solid';
+import { PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
+import { FolderIcon, BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { CHECKBOX_CLASSES, ENTRY_CONTAINER_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES } from '../../utils/styles';
-import { useItem, useHighlightItem, setHighlightItem, setItemRenaming, setItemSelected } from '../../store';
+import { CHECKBOX_CLASSES, ENTRY_CONTAINER_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES, BOOKMARK_BUTTON_CLASSES } from '../../utils/styles';
+import { useItem, useHighlightItem, useSettings, setHighlightItem, setItemRenaming, setItemSelected, toggleBookmark } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
@@ -15,11 +15,13 @@ interface FolderEntryProps {
   onDelete: () => void;
   onInsertFileBelow: (defaultName: string) => void;
   onInsertFolderBelow: (defaultName: string) => void;
+  onSaveSettings: () => void;
 }
 
-function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow }: FolderEntryProps) {
+function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: FolderEntryProps) {
   const item = useItem(entry.path);
   const highlightItem = useHighlightItem();
+  const settings = useSettings();
   const [newName, setNewName] = useState(entry.name);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -29,6 +31,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
   const isRenaming = item?.renaming ?? false;
   const isSelected = item?.isSelected ?? false;
   const isHighlighted = highlightItem === entry.name;
+  const isBookmarked = (settings.bookmarks || []).includes(entry.path);
   const showInsertIcons = hasOrdinalPrefix(entry.name);
   const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(entry.name) : null;
 
@@ -94,6 +97,12 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowDeleteConfirm(true);
+  };
+
+  const handleBookmarkClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleBookmark(entry.path);
+    onSaveSettings();
   };
 
   const handleDeleteConfirm = async () => {
@@ -203,6 +212,17 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
             title="Delete"
           >
             <TrashIcon className="w-5 h-5" />
+          </button>
+          <button
+            onClick={handleBookmarkClick}
+            className={BOOKMARK_BUTTON_CLASSES}
+            title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+          >
+            {isBookmarked ? (
+              <BookmarkSolidIcon className="w-5 h-5 text-blue-400" />
+            ) : (
+              <BookmarkOutlineIcon className="w-5 h-5" />
+            )}
           </button>
         </div>
       )}

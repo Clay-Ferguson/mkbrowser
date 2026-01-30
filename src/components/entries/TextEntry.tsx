@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
-import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, DocumentTextIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
+import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES } from '../../utils/styles';
+import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES, BOOKMARK_BUTTON_CLASSES } from '../../utils/styles';
 import {
   useItem,
   useHighlightItem,
+  useSettings,
   setItemContent,
   setHighlightItem,
   setItemEditing,
@@ -14,6 +16,7 @@ import {
   setItemSelected,
   setItemExpanded,
   toggleItemExpanded,
+  toggleBookmark,
   isCacheValid,
 } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
@@ -26,11 +29,13 @@ interface TextEntryProps {
   onDelete: () => void;
   onInsertFileBelow: (defaultName: string) => void;
   onInsertFolderBelow: (defaultName: string) => void;
+  onSaveSettings: () => void;
 }
 
-function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow }: TextEntryProps) {
+function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: TextEntryProps) {
   const item = useItem(entry.path);
   const highlightItem = useHighlightItem();
+  const settings = useSettings();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editContent, setEditContent] = useState('');
@@ -46,6 +51,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
   const isExpanded = item?.isExpanded ?? true;
   const isSelected = item?.isSelected ?? false;
   const isHighlighted = highlightItem === entry.name;
+  const isBookmarked = (settings.bookmarks || []).includes(entry.path);
   const showInsertIcons = hasOrdinalPrefix(entry.name);
   const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(entry.name) : null;
 
@@ -197,6 +203,11 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
     setShowDeleteConfirm(false);
   };
 
+  const handleBookmarkClick = () => {
+    toggleBookmark(entry.path);
+    onSaveSettings();
+  };
+
   const handleToggleExpanded = () => {
     toggleItemExpanded(entry.path);
   };
@@ -312,6 +323,17 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
               title="Delete"
             >
               <TrashIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleBookmarkClick}
+              className={BOOKMARK_BUTTON_CLASSES}
+              title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+            >
+              {isBookmarked ? (
+                <BookmarkSolidIcon className="w-5 h-5 text-blue-400" />
+              ) : (
+                <BookmarkOutlineIcon className="w-5 h-5" />
+              )}
             </button>
           </div>
         )}

@@ -39,6 +39,8 @@ export {
   setFoldersOnTop,
   setIgnoredPaths,
   setContentWidth,
+  toggleBookmark,
+  isBookmarked,
   getSettings,
   getExpansionCounts,
   // Hooks

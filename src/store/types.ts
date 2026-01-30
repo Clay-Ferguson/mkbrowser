@@ -137,6 +137,8 @@ export interface AppSettings {
   searchDefinitions: SearchDefinition[];
   /** Content width for the main content area */
   contentWidth: ContentWidth;
+  /** Array of bookmarked file paths */
+  bookmarks: string[];
 }
 
 /**

@@ -23,6 +23,7 @@ export interface AppSettings {
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
   contentWidth: ContentWidth;
+  bookmarks: string[];
 }
 
 export interface AppConfig {

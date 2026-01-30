@@ -10,3 +10,4 @@ export const INSERT_FOLDER_BUTTON_CLASSES = 'p-1.5 text-slate-400 hover:text-amb
 export const RENAME_BUTTON_CLASSES = 'p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors';
 export const OPEN_EXTERNAL_BUTTON_CLASSES = 'p-1.5 text-slate-400 hover:text-cyan-400 hover:bg-slate-700 rounded transition-colors';
 export const DELETE_BUTTON_CLASSES = 'p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-50';
+export const BOOKMARK_BUTTON_CLASSES = 'p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors';

@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, PhotoIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, PhotoIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
+import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES } from '../../utils/styles';
-import { useItem, useHighlightItem, setHighlightItem, setItemRenaming, setItemSelected, toggleItemExpanded } from '../../store';
+import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES, BOOKMARK_BUTTON_CLASSES } from '../../utils/styles';
+import { useItem, useHighlightItem, useSettings, setHighlightItem, setItemRenaming, setItemSelected, toggleItemExpanded, toggleBookmark } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import AlertDialog from '../dialogs/AlertDialog';
@@ -15,13 +16,15 @@ interface ImageEntryProps {
   onDelete: () => void;
   onInsertFileBelow: (defaultName: string) => void;
   onInsertFolderBelow: (defaultName: string) => void;
+  onSaveSettings: () => void;
 }
 
-function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow }: ImageEntryProps) {
+function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: ImageEntryProps) {
   console.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
   
   const item = useItem(entry.path);
   const highlightItem = useHighlightItem();
+  const settings = useSettings();
   const [newName, setNewName] = useState(entry.name);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -36,6 +39,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   const isExpanded = item?.isExpanded ?? true;  // Default to expanded for images
   const isSelected = item?.isSelected ?? false;
   const isHighlighted = highlightItem === entry.name;
+  const isBookmarked = (settings.bookmarks || []).includes(entry.path);
   const showInsertIcons = hasOrdinalPrefix(entry.name);
   const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(entry.name) : null;
 
@@ -175,6 +179,11 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
     setShowDeleteConfirm(false);
   };
 
+  const handleBookmarkClick = () => {
+    toggleBookmark(entry.path);
+    onSaveSettings();
+  };
+
   const handleToggleExpanded = () => {
     toggleItemExpanded(entry.path);
   };
@@ -271,6 +280,17 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
               title="Delete"
             >
               <TrashIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleBookmarkClick}
+              className={BOOKMARK_BUTTON_CLASSES}
+              title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+            >
+              {isBookmarked ? (
+                <BookmarkSolidIcon className="w-5 h-5 text-blue-400" />
+              ) : (
+                <BookmarkOutlineIcon className="w-5 h-5" />
+              )}
             </button>
           </div>
         )}

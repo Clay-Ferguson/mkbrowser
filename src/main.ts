@@ -47,6 +47,7 @@ interface AppSettings {
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
   contentWidth: ContentWidth;
+  bookmarks: string[];
 }
 
 interface AppConfig {
@@ -61,6 +62,7 @@ const defaultSettings: AppSettings = {
   ignoredPaths: '',
   searchDefinitions: [],
   contentWidth: 'medium',
+  bookmarks: [],
 };
 
 function ensureConfigDir(): void {

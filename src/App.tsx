@@ -1269,15 +1269,15 @@ function App() {
               return sortedEntries.map((entry) => (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
+                    <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
+                    <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : isTextFile(entry.name) ? (
-                    <TextEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
+                    <TextEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : (
-                    <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} />
+                    <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   )}
                 </div>
               ));

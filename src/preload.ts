@@ -21,6 +21,8 @@ export interface AppSettings {
   foldersOnTop: boolean;
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
+  contentWidth?: ContentWidth;
+  bookmarks: string[];
 }
 
 export interface AppConfig {
