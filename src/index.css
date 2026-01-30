@@ -5,6 +5,31 @@
   --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Fat scrollbars - wider and easier to click */
+::-webkit-scrollbar {
+  width: 20px;
+  height: 20px;
+  background-color: black;
+}
+
+::-webkit-scrollbar-track {
+  background-color: rgb(41, 52, 68);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: slategray;
+  border: 1px solid silver;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: darkgray;
+}
+
+/* Prevent Dark Reader extension from overriding scrollbar colors */
+* {
+  scrollbar-color: unset !important;
+}
+
 /* Bulletproof viewport-filling layout for Electron */
 html {
   position: fixed;
