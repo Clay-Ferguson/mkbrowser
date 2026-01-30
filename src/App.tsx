@@ -151,11 +151,11 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
   };
 
   return (
-    <div className="flex items-center gap-1 text-sm min-w-0" title={currentPath}>
+    <div className="flex flex-wrap items-center gap-1 text-sm" title={currentPath}>
       <button
         type="button"
         onClick={() => onNavigate(normalizedRoot)}
-        className="p-1 text-slate-400 hover:text-blue-400 rounded cursor-pointer"
+        className="p-1 text-slate-400 hover:text-blue-400 rounded cursor-pointer flex-shrink-0"
         aria-label="Go to root folder"
         title={normalizedRoot}
       >
@@ -169,11 +169,11 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
       {parts.map((part, index) => {
         const isLast = index === parts.length - 1;
         return (
-          <div key={`${part}-${index}`} className="flex items-center min-w-0">
+          <div key={`${part}-${index}`} className="flex items-center">
             <span className="text-slate-500 mx-1">/</span>
             {isLast ? (
               <span
-                className="text-slate-400 truncate"
+                className="text-slate-400 break-all"
                 title={buildPathForIndex(index)}
               >
                 {part}
@@ -182,7 +182,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
               <button
                 type="button"
                 onClick={() => onNavigate(buildPathForIndex(index))}
-                className="text-slate-200 hover:text-blue-400 cursor-pointer no-underline truncate"
+                className="text-slate-200 hover:text-blue-400 cursor-pointer no-underline break-all"
                 title={buildPathForIndex(index)}
               >
                 {part}
@@ -1120,21 +1120,18 @@ function App() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-      {/* Header with navigation */}
-      <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0">
-        <div className={`${getContentWidthClasses(settings.contentWidth)} py-3`}>
-          <div className="flex items-center gap-3">
-            {/* Breadcrumb / path display */}
-            <div className="flex-1 min-w-0">
-              <PathBreadcrumb
-                rootPath={rootPath}
-                currentPath={currentPath}
-                onNavigate={navigateTo}
-              />
-            </div>
+      {/* Full-width breadcrumb header */}
+      <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0 px-4 py-2">
+        <PathBreadcrumb
+          rootPath={rootPath}
+          currentPath={currentPath}
+          onNavigate={navigateTo}
+        />
+      </header>
 
-            {/* Header action buttons */}
-            <div className="flex items-center gap-1">
+      {/* Header with action buttons */}
+      <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0 px-4">
+        <div className="flex items-center justify-end gap-1">
               {/* Cut button - shown when items are selected and no items are cut */}
               {hasSelectedItems && !hasCutItems && (
                 <button
@@ -1244,8 +1241,6 @@ function App() {
               >
                 <ArrowUpIcon className="w-5 h-5" />
               </button>
-            </div>
-          </div>
         </div>
       </header>
 
