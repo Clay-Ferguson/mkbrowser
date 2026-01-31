@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { ChevronLeftIcon, MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import {
-  setCurrentView,
   setSearchResults,
   setHighlightItem,
   navigateToBrowserPath,
@@ -104,10 +103,6 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     xlarge: 'text-xl',
   }[settings.fontSize];
 
-  const handleBack = () => {
-    setCurrentView('browser');
-  };
-
   const handleResultClick = (resultPath: string) => {
     // Extract the parent folder and file name from the result path
     const lastSlashIndex = resultPath.lastIndexOf('/');
@@ -172,17 +167,8 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   return (
     <div className={`flex-1 flex flex-col min-h-0 bg-slate-900 ${fontSizeClass}`}>
       {/* Header */}
-      <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0">
+      <header className="flex-shrink-0">
         <div className="flex items-center gap-3 px-2 py-1">
-          {/* Back button */}
-          <button
-            onClick={handleBack}
-            className="p-2 rounded-lg transition-colors text-slate-400 hover:bg-slate-700"
-            title="Back to browser"
-          >
-            <ChevronLeftIcon className="w-5 h-5" />
-          </button>
-
           {/* Title */}
           <div className="flex items-center gap-2 text-sm min-w-0">
             <span className="text-slate-200 font-medium">Search Results</span>
