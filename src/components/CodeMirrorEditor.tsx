@@ -22,7 +22,7 @@ function formatDate(): string {
   return `${month}/${day}/${year}`;
 }
 
-// Format current date/time as MM/DD/YY HH:MM:SS AM/PM
+// Format current date/time as MM/DD/YY HH:MM AM/PM
 function formatTimestamp(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -34,8 +34,7 @@ function formatTimestamp(): string {
   if (hours === 0) hours = 12;
   const hoursStr = String(hours).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
-  const seconds = String(now.getSeconds()).padStart(2, '0');
-  return `${month}/${day}/${year} ${hoursStr}:${minutes}:${seconds} ${ampm}`;
+  return `${month}/${day}/${year} ${hoursStr}:${minutes} ${ampm}`;
 }
 
 // TODO: make this be built-in to our install not referenced from CDN
@@ -252,13 +251,13 @@ const hashtagTheme = EditorView.baseTheme({
 });
 
 // Extract date patterns from text with their positions
-// Matches: MM/DD/YYYY, MM/DD/YY, and optionally with HH:MM:SS AM/PM
+// Matches: MM/DD/YYYY, MM/DD/YY, and optionally with HH:MM AM/PM or HH:MM:SS AM/PM
 function extractDates(text: string): { from: number; to: number }[] {
   const dates: { from: number; to: number }[] = [];
   // Regex matches:
   // - MM/DD/YYYY or MM/DD/YY (required)
-  // - Optionally followed by space and HH:MM:SS AM/PM
-  const regex = /\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\/(\d{4}|\d{2})(\s+(0?[1-9]|1[0-2]):[0-5]\d:[0-5]\d\s*[AaPp][Mm])?\b/g;
+  // - Optionally followed by space and HH:MM AM/PM or HH:MM:SS AM/PM (seconds optional)
+  const regex = /\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\/(\d{4}|\d{2})(\s+(0?[1-9]|1[0-2]):[0-5]\d(:[0-5]\d)?\s*[AaPp][Mm])?\b/g;
   let match;
   while ((match = regex.exec(text)) !== null) {
     dates.push({

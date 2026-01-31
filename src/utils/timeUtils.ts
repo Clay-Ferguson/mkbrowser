@@ -1,7 +1,7 @@
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
- * Detects timestamps in MM/DD/YYYY, MM/DD/YY, or with HH:MM:SS AM/PM format
+ * Detects timestamps in MM/DD/YYYY, MM/DD/YY, or with HH:MM:SS AM/PM or HH:MM AM/PM format
  * Two-digit years are interpreted as 2000+YY (e.g., "26" becomes "2026")
  * Returns the timestamp in milliseconds, or 0 if not found
  * 
@@ -9,8 +9,8 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * @returns Timestamp in milliseconds since epoch, or 0 if not found
  */
 export function extractTimestamp(content: string): number {
-  // Regex for MM/DD/YYYY or MM/DD/YY HH:MM:SS AM/PM format (with optional time)
-  const dateTimeRegex = /(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM))?/i;
+  // Regex for MM/DD/YYYY or MM/DD/YY with optional time (HH:MM:SS AM/PM or HH:MM AM/PM)
+  const dateTimeRegex = /(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM))?/i;
   const match = content.match(dateTimeRegex);
   
   if (match) {
@@ -31,7 +31,7 @@ export function extractTimestamp(content: string): number {
       // Time part exists
       hours = parseInt(match[4], 10);
       minutes = parseInt(match[5], 10);
-      seconds = parseInt(match[6], 10);
+      seconds = match[6] ? parseInt(match[6], 10) : 0; // Default to 0 if seconds not provided
       const ampm = match[7]?.toUpperCase();
       
       // Convert to 24-hour format
