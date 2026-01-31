@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, PhotoIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, PhotoIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
@@ -95,35 +95,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   const currentFullscreenImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
   const fullscreenImageUrl = `local-file://${fullscreenImagePath}`;
 
-  // Handle next image navigation
-  const handleNextImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-    if (currentIndex === -1 || currentIndex >= allImages.length - 1) {
-      // At the end of images
-      setShowEndAlert(true);
-    } else {
-      setFullscreenImagePath(allImages[currentIndex + 1].path);
-    }
-  };
 
-  // Handle previous image navigation
-  const handlePreviousImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-    if (currentIndex === -1 || currentIndex <= 0) {
-      // At the beginning of images
-      setShowBeginningAlert(true);
-    } else {
-      setFullscreenImagePath(allImages[currentIndex - 1].path);
-    }
-  };
-
-  // Handle delete from fullscreen view
-  const handleFullscreenDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowFullscreenDeleteConfirm(true);
-  };
 
   const handleFullscreenDeleteConfirm = async () => {
     setShowFullscreenDeleteConfirm(false);
@@ -364,7 +336,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
         </div>
       )}
 
-      {/* Fullscreen overlay */}
+      {/* Fullscreen overlay - use keyboard: Left/Right arrows to navigate, Delete to delete, Escape to close */}
       {isFullscreen && (
         <div 
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
@@ -373,42 +345,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
             setFullscreenImagePath(entry.path);
           }}
         >
-          {/* Previous image button */}
-          <button
-            onClick={handlePreviousImage}
-            className="absolute top-4 right-40 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-            title="Previous image"
-          >
-            <ChevronLeftIcon className="w-8 h-8" />
-          </button>
-          {/* Next image button */}
-          <button
-            onClick={handleNextImage}
-            className="absolute top-4 right-28 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-            title="Next image"
-          >
-            <ChevronRightIcon className="w-8 h-8" />
-          </button>
-          {/* Delete button */}
-          <button
-            onClick={handleFullscreenDeleteClick}
-            className="absolute top-4 right-16 p-2 text-white/70 hover:text-red-400 hover:bg-white/10 rounded-full transition-colors"
-            title="Delete image"
-          >
-            <TrashIcon className="w-8 h-8" />
-          </button>
-          {/* Close button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFullscreen(false);
-              setFullscreenImagePath(entry.path);
-            }}
-            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-            title="Close (Esc)"
-          >
-            <XMarkIcon className="w-8 h-8" />
-          </button>
+          <span className="absolute top-2 left-2 text-white/60 text-xs">ESC to close</span>
           <img
             src={fullscreenImageUrl}
             alt={currentFullscreenImage.name}
