@@ -36,6 +36,99 @@ You can manage your files using the application menu or keyboard shortcuts.
     - Select items and choose **Cut** from the **Edit** menu to move files.
     - Navigate to the destination folder and choose **Paste**.
 
+### Split and Join
+
+MkBrowser provides **Split** and **Join** operations to help you break apart large files or combine multiple files into one. These features work with text (`.txt`) and Markdown (`.md`) files.
+
+#### Split
+
+The **Split** feature divides a single file into multiple smaller files using a double blank line as the delimiter.
+
+**How to use Split:**
+
+1. Click the checkbox next to the text or Markdown file you want to split (select exactly one file).
+2. Go to **Edit → Split** in the menu bar.
+3. The file will be divided at each occurrence of a **double blank line** (two consecutive empty lines).
+
+**What happens:**
+
+- The original file is renamed with a `-00` suffix (e.g., `my-notes.md` becomes `my-notes-00.md`).
+- Each subsequent section becomes a new file with incrementing numbers: `my-notes-01.md`, `my-notes-02.md`, etc.
+- The numbered suffixes ensure files sort alphabetically in the correct order.
+
+**Example:**
+
+If you have a file `chapter.md` with this content:
+
+```
+# Part One
+
+This is the first section.
+
+
+# Part Two
+
+This is the second section.
+
+
+# Part Three
+
+This is the third section.
+```
+
+After splitting, you'll have three files:
+- `chapter-00.md` containing "# Part One..."
+- `chapter-01.md` containing "# Part Two..."
+- `chapter-02.md` containing "# Part Three..."
+
+**Requirements:**
+- Exactly one file must be selected.
+- The file must be a `.txt` or `.md` file.
+- The file must contain at least one double blank line (the delimiter).
+
+#### Join
+
+The **Join** feature combines multiple files into a single file, inserting a double blank line between each file's content.
+
+**How to use Join:**
+
+1. Click the checkboxes next to two or more text or Markdown files you want to combine.
+2. Go to **Edit → Join** in the menu bar.
+3. The files will be merged into a single file.
+
+**What happens:**
+
+- Files are sorted alphabetically by filename before joining.
+- The content of all files is concatenated with a **double blank line** (`\n\n\n`) separator between each file's content.
+- The combined content is written to the alphabetically first file.
+- The other files are deleted (only after verifying the write succeeded).
+
+**Example:**
+
+If you select these three files:
+- `notes-00.md` (content: "First part")
+- `notes-01.md` (content: "Second part")
+- `notes-02.md` (content: "Third part")
+
+After joining, only `notes-00.md` remains, containing:
+
+```
+First part
+
+
+Second part
+
+
+Third part
+```
+
+**Requirements:**
+- At least two files must be selected.
+- All selected items must be files (not folders).
+- All files must be `.txt` or `.md` files.
+
+**Safety:** The Join operation verifies that the combined content was written correctly by checking the file size before deleting the other files. This ensures no data is lost.
+
 ## Searching
 
 MkBrowser includes a powerful search feature to help you find content across your notes.
