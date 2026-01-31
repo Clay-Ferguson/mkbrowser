@@ -8,7 +8,7 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: './icon-256',
-    extraResource: ['./icon-256.png', './resources/pdf-export'],
+    extraResource: ['./icon-256.png', './resources/pdf-export', './resources/dictionaries'],
   },
   rebuildConfig: {},
   makers: [

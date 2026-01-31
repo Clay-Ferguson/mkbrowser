@@ -212,6 +212,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('open-bookmark', handler);
     };
   },
+  loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
   pathExists: (checkPath: string) => ipcRenderer.invoke('path-exists', checkPath),

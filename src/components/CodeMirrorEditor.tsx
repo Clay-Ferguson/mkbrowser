@@ -37,10 +37,6 @@ function formatTimestamp(): string {
   return `${month}/${day}/${year} ${hoursStr}:${minutes} ${ampm}`;
 }
 
-// TODO: make this be built-in to our install not referenced from CDN
-// Dictionary URLs (using jsDelivr CDN for hunspell dictionaries)
-const DICT_BASE_URL = 'https://cdn.jsdelivr.net/npm/dictionary-en@4.0.0/index';
-
 // Singleton for the spell checker
 let typoInstance: Typo | null = null;
 let typoLoadingPromise: Promise<Typo | null> | null = null;
@@ -51,21 +47,7 @@ async function loadSpellChecker(): Promise<Typo | null> {
 
   typoLoadingPromise = (async () => {
     try {
-      const [affResponse, dicResponse] = await Promise.all([
-        fetch(`${DICT_BASE_URL}.aff`),
-        fetch(`${DICT_BASE_URL}.dic`),
-      ]);
-
-      if (!affResponse.ok || !dicResponse.ok) {
-        console.error('Failed to load dictionary files');
-        return null;
-      }
-
-      const [affData, dicData] = await Promise.all([
-        affResponse.text(),
-        dicResponse.text(),
-      ]);
-
+      const { affData, dicData } = await window.electronAPI.loadDictionary();
       typoInstance = new Typo('en_US', affData, dicData);
       return typoInstance;
     } catch (error) {

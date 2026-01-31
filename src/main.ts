@@ -365,6 +365,23 @@ function setupApplicationMenu(): void {
 
 // IPC Handlers
 function setupIpcHandlers(): void {
+  // Load dictionary files for spell checking
+  ipcMain.handle('load-dictionary', async (): Promise<{ affData: string; dicData: string }> => {
+    const dictionaryPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'dictionaries')
+      : path.join(app.getAppPath(), 'resources', 'dictionaries');
+
+    const affPath = path.join(dictionaryPath, 'en_US.aff');
+    const dicPath = path.join(dictionaryPath, 'en_US.dic');
+
+    const [affData, dicData] = await Promise.all([
+      fs.promises.readFile(affPath, 'utf-8'),
+      fs.promises.readFile(dicPath, 'utf-8'),
+    ]);
+
+    return { affData, dicData };
+  });
+
   // Get the configured browse folder (command-line override takes precedence)
   ipcMain.handle('get-config', (): AppConfig => {
     const config = loadConfig();

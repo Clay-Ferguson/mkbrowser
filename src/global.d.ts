@@ -72,6 +72,7 @@ export interface ExportResult {
 }
 
 export interface ElectronAPI {
+  loadDictionary: () => Promise<{ affData: string; dicData: string }>;
   getConfig: () => Promise<AppConfig>;
   saveConfig: (config: AppConfig) => Promise<void>;
   selectFolder: () => Promise<string | null>;
