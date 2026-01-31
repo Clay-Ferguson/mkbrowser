@@ -15,9 +15,9 @@ export type AppView = 'browser' | 'search-results' | 'settings';
 
 The 'browser' one is the main default application `src/App.tsx`, but any pages other than the main (browser) page should follow a pattern similar to what you find in `src/components/SearchResultsView.tsx`
 
-## Main Menu
+## Tab Navigation
 
-Each page has a main menu item for selecting it under the `Page` main application window, so for example menu `Page -> Browser` takes the user to the 'browser' page. When the user selects a particuar 'page' we update the `currentView` in the global `AppState`, and that causes the page to display at next render.
+Each page has a corresponding tab button in the tab panel at the top of the screen (Browse, Search, Settings). When the user clicks a tab button, we update the `currentView` in the global `AppState`, and that causes the page to display at next render.
 
 ## React Global State Management
 
