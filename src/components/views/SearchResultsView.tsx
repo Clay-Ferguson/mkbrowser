@@ -168,7 +168,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     <div className={`flex-1 flex flex-col min-h-0 bg-slate-900 ${fontSizeClass}`}>
       {/* Header */}
       <header className="flex-shrink-0">
-        <div className="flex items-center gap-3 px-2 py-1">
+        <div className="flex items-center gap-3 px-2 py-2">
           {/* Title */}
           <div className="flex items-center gap-2 text-sm min-w-0">
             <span className="text-slate-200 font-medium">Search Results</span>
