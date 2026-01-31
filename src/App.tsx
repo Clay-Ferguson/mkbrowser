@@ -1007,6 +1007,50 @@ function App() {
     setSearchDialogInitialValues(undefined);
   }, []);
 
+  // Save a search definition without executing the search
+  const handleSaveSearchDefinition = useCallback(async (options: SearchOptions) => {
+    if (!options.searchName) return;
+    
+    try {
+      const currentSettings = getSettings();
+      const config = await window.electronAPI.getConfig();
+      
+      // Create new search definition
+      const newSearchDefinition: SearchDefinition = {
+        name: options.searchName,
+        searchText: options.query,
+        searchTarget: options.searchMode,
+        searchMode: options.searchType,
+        searchBlock: options.searchBlock,
+      };
+      
+      // Remove any existing search definition with the same name
+      const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
+        (def) => def.name !== options.searchName
+      );
+      
+      // Add the new search definition
+      updatedSearchDefinitions.push(newSearchDefinition);
+      
+      // Save updated settings
+      await window.electronAPI.saveConfig({
+        ...config,
+        settings: {
+          ...currentSettings,
+          searchDefinitions: updatedSearchDefinitions,
+        },
+      });
+      
+      // Update local settings state
+      setSettings({
+        ...currentSettings,
+        searchDefinitions: updatedSearchDefinitions,
+      });
+    } catch (err) {
+      console.error('Failed to save search definition:', err);
+    }
+  }, []);
+
   // Delete a saved search definition by name
   const handleDeleteSearchDefinition = useCallback(async (name: string) => {
     try {
@@ -1421,6 +1465,7 @@ function App() {
       {showSearchDialog && (
         <SearchDialog
           onSearch={handleSearch}
+          onSave={handleSaveSearchDefinition}
           onCancel={handleCancelSearch}
           onDeleteSearchDefinition={handleDeleteSearchDefinition}
           initialValues={searchDialogInitialValues}

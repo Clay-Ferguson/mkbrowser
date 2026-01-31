@@ -25,13 +25,14 @@ export interface SearchDialogInitialValues {
 
 interface SearchDialogProps {
   onSearch: (options: SearchOptions) => void;
+  onSave: (options: SearchOptions) => void;
   onCancel: () => void;
   onDeleteSearchDefinition: (name: string) => void;
   initialValues?: SearchDialogInitialValues;
   searchDefinitions: SearchDefinition[];
 }
 
-function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialValues, searchDefinitions }: SearchDialogProps) {
+function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, initialValues, searchDefinitions }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState(
     initialValues?.searchQuery ? initialValues.searchQuery.replace(/\{\{nl\}\}/g, '\n') : ''
   );
@@ -94,6 +95,17 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
     onSearch({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim() });
   };
 
+  const handleSave = () => {
+    if (!searchName.trim()) return;
+    
+    setError(null);
+    
+    // Encode newlines as {{nl}} for persistence in search definition
+    const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
+    
+    onSave({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim() });
+  };
+
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setSearchQuery(e.target.value);
     if (error) setError(null); // Clear error when user types
@@ -144,6 +156,13 @@ function SearchDialog({ onSearch, onCancel, onDeleteSearchDefinition, initialVal
               placeholder="Enter a name to save, or select existing..."
               className="flex-1"
             />
+            <button
+              onClick={handleSave}
+              disabled={!searchName.trim()}
+              className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-500 disabled:bg-green-600/50 disabled:cursor-not-allowed rounded transition-colors"
+            >
+              Save
+            </button>
             <button
               onClick={() => {
                 if (searchName.trim()) {
