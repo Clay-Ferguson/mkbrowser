@@ -1281,18 +1281,17 @@ function App() {
       {/* Tab navigation */}
       <AppTabButtons />
 
-      {/* Full-width breadcrumb header */}
-      <header data-id="browser-header-breadcrumbs" className="bg-transparent flex-shrink-0 px-4 py-1 flex items-center gap-3">
-        <PathBreadcrumb
-          rootPath={rootPath}
-          currentPath={currentPath}
-          onNavigate={navigateTo}
-        />
-      </header>
+      {/* Combined header: breadcrumbs left, actions right, wraps responsively */}
+      <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
+        <div data-id="browser-header-breadcrumbs" className="flex items-center gap-3 min-w-0">
+          <PathBreadcrumb
+            rootPath={rootPath}
+            currentPath={currentPath}
+            onNavigate={navigateTo}
+          />
+        </div>
 
-      {/* Header with action buttons */}
-      <header data-id="browser-header-actions" className="bg-transparent flex-shrink-0 px-4">
-        <div className="flex items-center justify-end gap-1">
+        <div data-id="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
               {/* Cut button - shown when items are selected and no items are cut */}
               {hasSelectedItems && !hasCutItems && (
                 <button
@@ -1407,11 +1406,12 @@ function App() {
 
       {/* Main content */}
       <main 
+        data-id="browser-main-content"
         ref={mainContainerRef}
         onScroll={handleMainScroll}
         className="flex-1 min-h-0 overflow-y-auto"
       >
-        <div className={`${getContentWidthClasses(settings.contentWidth)} py-6`}>
+        <div className={`${getContentWidthClasses(settings.contentWidth)} py-3`}>
         {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-slate-400">Loading...</div>
