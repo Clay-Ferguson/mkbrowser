@@ -1,4 +1,5 @@
 import { useCurrentView, setCurrentView, type AppView } from '../store';
+import appLogo from '../../public/icon-256.png';
 
 interface TabConfig {
   id: AppView;
@@ -16,6 +17,11 @@ function AppTabButtons() {
 
   return (
     <nav className="flex items-center gap-6 px-4 py-2 bg-slate-900">
+      <img
+        src={appLogo}
+        alt="MkBrowser"
+        className="w-10 h-10 flex-shrink-0"
+      />
       {tabs.map((tab) => (
         <button
           key={tab.id}
