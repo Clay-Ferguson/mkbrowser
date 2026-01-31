@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, HomeIcon } from '@heroicons/react/24/outline';
-import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
+import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, HomeIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
+import { FolderPlusIcon, DocumentPlusIcon, BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
 import MarkdownEntry from './components/entries/MarkdownEntry';
@@ -51,6 +51,7 @@ import {
   getSettings,
   setBrowserScrollPosition,
   getBrowserScrollPosition,
+  toggleBookmark,
   useItems,
   useCurrentView,
   useCurrentPath,
@@ -135,9 +136,11 @@ type PathBreadcrumbProps = {
   rootPath: string;
   currentPath: string;
   onNavigate: (path: string) => void;
+  isBookmarked: boolean;
+  onToggleBookmark: () => void;
 };
 
-function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
+function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onToggleBookmark }: PathBreadcrumbProps) {
   const normalizedRoot = rootPath.replace(/\/+$/, '');
   const normalizedCurrent = currentPath.replace(/\/+$/, '');
   const relativePath = normalizedCurrent.startsWith(normalizedRoot)
@@ -192,6 +195,22 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
           </div>
         );
       })}
+
+      {parts.length > 0 && (
+        <button
+          type="button"
+          onClick={onToggleBookmark}
+          className="p-1 text-slate-400 hover:text-blue-400 rounded cursor-pointer flex-shrink-0 ml-1"
+          aria-label={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+          title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+        >
+          {isBookmarked ? (
+            <BookmarkSolidIcon className="w-5 h-5 text-blue-400" />
+          ) : (
+            <BookmarkOutlineIcon className="w-5 h-5" />
+          )}
+        </button>
+      )}
     </div>
   );
 }
@@ -1096,6 +1115,13 @@ function App() {
     }
   }, []);
 
+  // Toggle bookmark for current folder
+  const handleToggleCurrentFolderBookmark = useCallback(() => {
+    if (!currentPath) return;
+    toggleBookmark(currentPath);
+    void handleSaveSettings();
+  }, [currentPath, handleSaveSettings]);
+
   // Generate timestamp-based filename
   const generateTimestampFilename = useCallback((extension: string) => {
     const now = new Date();
@@ -1288,6 +1314,8 @@ function App() {
             rootPath={rootPath}
             currentPath={currentPath}
             onNavigate={navigateTo}
+            isBookmarked={(settings.bookmarks || []).includes(currentPath)}
+            onToggleBookmark={handleToggleCurrentFolderBookmark}
           />
         </div>
 
@@ -1411,7 +1439,7 @@ function App() {
         onScroll={handleMainScroll}
         className="flex-1 min-h-0 overflow-y-auto"
       >
-        <div className={`${getContentWidthClasses(settings.contentWidth)} py-3`}>
+        <div className={`${getContentWidthClasses(settings.contentWidth)}`}>
         {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-slate-400">Loading...</div>
