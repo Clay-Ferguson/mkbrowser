@@ -16,7 +16,7 @@ function AppTabButtons() {
   const currentView = useCurrentView();
 
   return (
-    <nav className="flex items-center gap-6 px-4 py-2 bg-slate-800 border-b border-slate-600">
+    <nav data-id="app-tab-buttons" className="flex items-center gap-6 px-4 pt-1 bg-slate-800 border-b border-slate-600">
       <img
         src={appLogo}
         alt="MkBrowser"
@@ -28,7 +28,7 @@ function AppTabButtons() {
           type="button"
           onClick={() => setCurrentView(tab.id)}
           className={`
-            text-sm font-medium pb-1 transition-colors cursor-pointer
+            text-base font-medium pb-1 transition-colors cursor-pointer
             ${currentView === tab.id
               ? 'text-slate-100 border-b-4 border-blue-500'
               : 'text-slate-400 hover:text-slate-200 border-b-4 border-transparent'
