@@ -1276,7 +1276,12 @@ function App() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
       {/* Full-width breadcrumb header */}
-      <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0 px-4 py-2">
+      <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0 px-4 py-1 flex items-center gap-3">
+        <img
+          src="icon-256.png"
+          alt="MkBrowser"
+          className="w-10 h-10 flex-shrink-0"
+        />
         <PathBreadcrumb
           rootPath={rootPath}
           currentPath={currentPath}
