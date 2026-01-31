@@ -79,12 +79,12 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   };
 
   // Debug: Log search results to see if foundTime is present
-  console.log('Search results:', searchResults);
-  console.log('First result:', searchResults[0]);
+  // console.log('Search results:', searchResults);
+  // console.log('First result:', searchResults[0]);
 
   // Check if any result has a non-zero foundTime
   const hasFoundTimes = searchResults.some(r => r.foundTime && r.foundTime > 0);
-  console.log('Has found times:', hasFoundTimes);
+  // console.log('Has found times:', hasFoundTimes);
 
   // Sort results by foundTime if any result has it
   const sortedResults = hasFoundTimes
@@ -94,7 +94,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
         return timeA - timeB; // Chronological order (oldest first)
       })
     : searchResults;
-  console.log('Sorted results:', sortedResults);
+  // console.log('Sorted results:', sortedResults);
 
   // Font size CSS class mapping
   const fontSizeClass = {
@@ -118,6 +118,14 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
   // Get the folder name for display
   const folderName = searchFolder.split('/').pop() || searchFolder;
+
+  // Helper function to determine priority border styling
+  const getPriorityBorder = (lineText?: string): string => {
+    if (!lineText) return 'border border-slate-700 hover:border-slate-600';
+    if (lineText.includes('#p1')) return 'border-2 border-orange-500 hover:border-orange-400';
+    if (lineText.includes('#p2')) return 'border-2 border-yellow-400 hover:border-yellow-300';
+    return 'border border-slate-700 hover:border-slate-600';
+  };
 
   const handleDeleteClick = (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
@@ -217,7 +225,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
               <div
                 key={`${result.path}-${result.lineNumber || 0}-${index}`}
                 onClick={() => handleResultClick(result.path)}
-                className="bg-slate-800 rounded-lg border border-slate-700 px-2 py-1.5 hover:border-slate-600 transition-colors cursor-pointer"
+                className={`bg-slate-800 rounded-lg ${getPriorityBorder(result.lineText)} px-2 py-1.5 transition-colors cursor-pointer`}
               >
                 <div className="flex items-start gap-2">
                   {/* File icon */}
