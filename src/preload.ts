@@ -72,6 +72,8 @@ export interface ElectronAPI {
   onDeleteRequested: (callback: () => void) => () => void;
   onSelectAllRequested: (callback: () => void) => () => void;
   onUnselectAllRequested: (callback: () => void) => () => void;
+  onSplitFileRequested: (callback: () => void) => () => void;
+  onJoinFilesRequested: (callback: () => void) => () => void;
   onRenumberRequested: (callback: () => void) => () => void;
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   onOpenSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
@@ -167,6 +169,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('move-to-folder', handler);
     };
   },
+  onSplitFileRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('split-file', handler);
+    return () => {
+      ipcRenderer.removeListener('split-file', handler);
+    };
+  },
+  onJoinFilesRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('join-files', handler);
+    return () => {
+      ipcRenderer.removeListener('join-files', handler);
+    };
+  },
   onRenumberRequested: (callback: () => void) => {
     const handler = () => {
       callback();
@@ -217,6 +237,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
   pathExists: (checkPath: string) => ipcRenderer.invoke('path-exists', checkPath),
   writeFile: (filePath: string, content: string) => ipcRenderer.invoke('write-file', filePath, content),
+  getFileSize: (filePath: string) => ipcRenderer.invoke('get-file-size', filePath),
   writeFileBinary: (filePath: string, base64Data: string) => ipcRenderer.invoke('write-file-binary', filePath, base64Data),
   createFile: (filePath: string, content: string) => ipcRenderer.invoke('create-file', filePath, content),
   renameFile: (oldPath: string, newPath: string) => ipcRenderer.invoke('rename-file', oldPath, newPath),

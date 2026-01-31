@@ -84,6 +84,8 @@ export interface ElectronAPI {
   onSelectAllRequested: (callback: () => void) => () => void;
   onUnselectAllRequested: (callback: () => void) => () => void;
   onMoveToFolderRequested: (callback: () => void) => () => void;
+  onSplitFileRequested: (callback: () => void) => () => void;
+  onJoinFilesRequested: (callback: () => void) => () => void;
   onRenumberRequested: (callback: () => void) => () => void;
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   onExportRequested: (callback: () => void) => () => void;
@@ -94,6 +96,7 @@ export interface ElectronAPI {
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<boolean>;
+  getFileSize: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   createFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;

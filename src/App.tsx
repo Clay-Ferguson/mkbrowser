@@ -66,6 +66,7 @@ import {
   type SearchDefinition,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
+import { splitFile, joinFiles } from './utils/editUtil';
 
 /**
  * Get Tailwind classes for content width based on setting
@@ -681,6 +682,125 @@ function App() {
       unsubscribe();
     };
   }, [handleMoveToFolder]);
+
+  // Handle "Split" action - splits a text/markdown file into multiple files using double-blank-line delimiter
+  const handleSplitFile = useCallback(async () => {
+    if (!currentPath) return;
+
+    const selectedItems = getSelectedItems();
+
+    // Check that exactly one item is selected
+    if (selectedItems.length === 0) {
+      setError('Please select a file to split.');
+      return;
+    }
+    if (selectedItems.length > 1) {
+      setError('Please select only one file for "Split".');
+      return;
+    }
+
+    const selectedItem = selectedItems[0];
+
+    // Check that the selected item is a file, not a folder
+    if (selectedItem.isDirectory) {
+      setError('Cannot split a folder. Please select a text or markdown file.');
+      return;
+    }
+
+    // Check that the file is a .txt or .md file
+    const fileName = selectedItem.name.toLowerCase();
+    if (!fileName.endsWith('.txt') && !fileName.endsWith('.md')) {
+      setError('Split is only available for text (.txt) and markdown (.md) files.');
+      return;
+    }
+
+    // Perform the split operation
+    const result = await splitFile(
+      selectedItem.path,
+      window.electronAPI.readFile,
+      window.electronAPI.writeFile,
+      window.electronAPI.createFile,
+      window.electronAPI.renameFile
+    );
+
+    if (!result.success) {
+      setError(result.error || 'Failed to split file.');
+      return;
+    }
+
+    // Clear selection and refresh the directory to show new files
+    clearAllSelections();
+    refreshDirectory();
+  }, [currentPath, getSelectedItems, refreshDirectory]);
+
+  // Listen for Split File menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onSplitFileRequested(() => {
+      void handleSplitFile();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [handleSplitFile]);
+
+  // Handle "Join" action - joins multiple text/markdown files into a single file
+  const handleJoinFiles = useCallback(async () => {
+    if (!currentPath) return;
+
+    const selectedItems = getSelectedItems();
+
+    // Check that multiple items are selected
+    if (selectedItems.length < 2) {
+      setError('Please select at least two files to join.');
+      return;
+    }
+
+    // Check that all selected items are files (not folders) and are .txt or .md files
+    for (const item of selectedItems) {
+      if (item.isDirectory) {
+        setError(`Cannot join folders. "${item.name}" is a folder.`);
+        return;
+      }
+      const fileName = item.name.toLowerCase();
+      if (!fileName.endsWith('.txt') && !fileName.endsWith('.md')) {
+        setError(`Join is only available for text (.txt) and markdown (.md) files. "${item.name}" is not supported.`);
+        return;
+      }
+    }
+
+    // Get the file paths
+    const filePaths = selectedItems.map(item => item.path);
+
+    // Perform the join operation
+    const result = await joinFiles(
+      filePaths,
+      window.electronAPI.readFile,
+      window.electronAPI.writeFile,
+      window.electronAPI.deleteFile,
+      window.electronAPI.getFileSize
+    );
+
+    if (!result.success) {
+      setError(result.error || 'Failed to join files.');
+      return;
+    }
+
+    // Clear selection and refresh the directory
+    clearAllSelections();
+    refreshDirectory();
+  }, [currentPath, getSelectedItems, refreshDirectory]);
+
+  // Listen for Join Files menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onJoinFilesRequested(() => {
+      void handleJoinFiles();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [handleJoinFiles]);
 
   // Handle renumbering files in the current directory
   const handleRenumberFiles = useCallback(async () => {

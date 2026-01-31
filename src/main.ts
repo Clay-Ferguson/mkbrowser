@@ -264,6 +264,19 @@ function setupApplicationMenu(): void {
           mainWindow?.webContents.send('move-to-folder');
         },
       },
+      { type: 'separator' },
+      {
+        label: 'Split',
+        click: () => {
+          mainWindow?.webContents.send('split-file');
+        },
+      },
+      {
+        label: 'Join',
+        click: () => {
+          mainWindow?.webContents.send('join-files');
+        },
+      },
     ],
   });
 
@@ -492,6 +505,17 @@ function setupIpcHandlers(): void {
     } catch (error) {
       console.error('Error writing file:', error);
       return false;
+    }
+  });
+
+  // Get file size in bytes
+  ipcMain.handle('get-file-size', async (_event, filePath: string): Promise<number> => {
+    try {
+      const stats = await fs.promises.stat(filePath);
+      return stats.size;
+    } catch (error) {
+      console.error('Error getting file size:', error);
+      return -1;
     }
   });
 
