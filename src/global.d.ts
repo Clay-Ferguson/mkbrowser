@@ -114,3 +114,15 @@ declare global {
     electronAPI: ElectronAPI;
   }
 }
+
+// Allow importing image files as modules
+declare module '*.png' {
+  const src: string;
+  export default src;
+}
+
+// Allow Vite public folder imports (e.g., '/icon-256.png')
+declare module '/icon-256.png' {
+  const src: string;
+  export default src;
+}
