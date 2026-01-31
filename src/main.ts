@@ -264,33 +264,6 @@ function setupApplicationMenu(): void {
     ],
   });
 
-  template.push({
-    label: 'Page',
-    submenu: [
-      {
-        label: 'Browser',
-        accelerator: 'CmdOrCtrl+1',
-        click: () => {
-          mainWindow?.webContents.send('view-changed', 'browser');
-        },
-      },
-      {
-        label: 'Search Results',
-        accelerator: 'CmdOrCtrl+2',
-        click: () => {
-          mainWindow?.webContents.send('view-changed', 'search-results');
-        },
-      },
-      {
-        label: 'Settings',
-        accelerator: 'CmdOrCtrl+,',
-        click: () => {
-          mainWindow?.webContents.send('view-changed', 'settings');
-        },
-      },
-    ],
-  });
-
   // Add Search menu if there are saved search definitions
   const config = loadConfig();
   const searchDefinitions = config.settings?.searchDefinitions || [];
