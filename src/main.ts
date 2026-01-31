@@ -191,6 +191,9 @@ async function openFolderFromMenu(): Promise<void> {
     config.browseFolder = folderPath;
     saveConfig(config);
 
+    // Rebuild menu to update bookmark filtering based on new browse folder
+    setupApplicationMenu();
+
     mainWindow.webContents.send('folder-selected', folderPath);
   }
 }
@@ -289,8 +292,15 @@ function setupApplicationMenu(): void {
     });
   }
 
-  // Add Bookmark menu if there are bookmarks
-  const bookmarks = config.settings?.bookmarks || [];
+  // Add Bookmark menu if there are bookmarks under the current browse folder
+  const allBookmarks = config.settings?.bookmarks || [];
+  const browseFolder = commandLineFolder || config.browseFolder;
+  // Filter to only show bookmarks that are under the application's base browse folder
+  const bookmarks = browseFolder
+    ? allBookmarks.filter(bookmark => 
+        bookmark === browseFolder || bookmark.startsWith(browseFolder + path.sep)
+      )
+    : allBookmarks;
   if (bookmarks.length > 0) {
     // Sort bookmarks alphabetically by their display name (file/folder name only)
     const sortedBookmarks = [...bookmarks].sort((a, b) => {
