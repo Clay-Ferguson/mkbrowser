@@ -52,23 +52,31 @@ MkBrowser includes a powerful search feature to help you find content across you
     - **Search Scope**: Search inside **Entire File** or match specific **File Lines**.
 
 ### Advanced Search Predicates
-In **Advanced Mode**, you can write JavaScript-like expressions to filter files. The following custom functions are available:
+In **Advanced Mode**, you can write JavaScript-like expressions to filter files. The following custom functions and variables are available:
 
 *   **`$('text')`**: Returns `true` if the file content contains the text "text" (case-insensitive).
     *   Example: `$('important')` finds files containing "important".
-*   **`ts()`**: Extracts the first date/timestamp found in the file (format: MM/DD/YYYY). Returns a number representing the date.
-*   **`past(date)`**: Returns `true` if the date is in the past.
-*   **`future(date)`**: Returns `true` if the date is in the future.
+*   **`ts`**: A pre-existing variable containing the first date/timestamp found in the file (format: MM/DD/YYYY). Returns a number representing the date in milliseconds, or 0 if no timestamp is found.
+*   **`past(date, lookbackDays?)`**: Returns `true` if the date is in the past. The optional `lookbackDays` parameter limits results to timestamps within the specified number of days ago (e.g., `past(ts, 7)` matches timestamps from the last 7 days).
+*   **`future(date, lookaheadDays?)`**: Returns `true` if the date is in the future. The optional `lookaheadDays` parameter limits results to timestamps within the specified number of days ahead (e.g., `future(ts, 30)` matches timestamps within the next 30 days).
 *   **`today(date)`**: Returns `true` if the date is today.
 
 **Examples:**
 *   Find files with "TODO" that are due in the future:
     ```javascript
-    $('#TODO') && future(ts())
+    $('#TODO') && future(ts)
     ```
 *   Find files with "Meeting" that happened in the past:
     ```javascript
-    $('#meeting') && past(ts())
+    $('#meeting') && past(ts)
+    ```
+*   Find files with "TODO" due within the next 7 days:
+    ```javascript
+    $('#TODO') && future(ts, 7)
+    ```
+*   Find files with "Review" from the last 30 days:
+    ```javascript
+    $('#review') && past(ts, 30)
     ```
 *   Find files containing both "project" and "urgent":
     ```javascript

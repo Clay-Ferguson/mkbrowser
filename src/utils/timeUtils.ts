@@ -1,3 +1,5 @@
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 /**
  * Detects timestamps in MM/DD/YYYY, MM/DD/YY, or with HH:MM:SS AM/PM format
  * Two-digit years are interpreted as 2000+YY (e.g., "26" becomes "2026")
@@ -54,32 +56,46 @@ export function extractTimestamp(content: string): number {
  * Checks if a timestamp (in milliseconds) represents a time in the past
  * 
  * @param timestamp - The timestamp in milliseconds since epoch (0 is treated as invalid)
- * @returns True if the timestamp is in the past, false otherwise
+ * @param lookbackDays - Optional number of days to look back from now
+ * @returns True if the timestamp is in the past (and within lookbackDays, if provided), false otherwise
  */
-export function past(timestamp: number): boolean {
+export function past(timestamp: number, lookbackDays?: number): boolean {
   // Treat 0 as invalid timestamp (not found)
   if (timestamp === 0) {
     return false;
   }
   
   const now = Date.now();
-  return timestamp < now;
+  if (lookbackDays === undefined) {
+    return timestamp < now;
+  }
+
+  const maxLookbackMs = lookbackDays * MS_PER_DAY;
+  const cutoff = now - maxLookbackMs;
+  return timestamp < now && timestamp >= cutoff;
 }
 
 /**
  * Checks if a timestamp (in milliseconds) represents a time in the future
  * 
  * @param timestamp - The timestamp in milliseconds since epoch (0 is treated as invalid)
- * @returns True if the timestamp is in the future, false otherwise
+ * @param lookaheadDays - Optional number of days to look ahead from now
+ * @returns True if the timestamp is in the future (and within lookaheadDays, if provided), false otherwise
  */
-export function future(timestamp: number): boolean {
+export function future(timestamp: number, lookaheadDays?: number): boolean {
   // Treat 0 as invalid timestamp (not found)
   if (timestamp === 0) {
     return false;
   }
   
   const now = Date.now();
-  return timestamp > now;
+  if (lookaheadDays === undefined) {
+    return timestamp > now;
+  }
+
+  const maxLookaheadMs = lookaheadDays * MS_PER_DAY;
+  const cutoff = now + maxLookaheadMs;
+  return timestamp > now && timestamp <= cutoff;
 }
 
 /**

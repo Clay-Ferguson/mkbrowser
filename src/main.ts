@@ -705,16 +705,10 @@ function setupIpcHandlers(): void {
           // Create a '$' function that will be injected into the expression's scope
           return (content: string) => {
             // Always extract timestamp from content (regardless of whether ts() is called)
-            const foundTime = extractTimestamp(content);
+            const ts = extractTimestamp(content);
             
             // Create the content searcher with '$' function
             const { $, getMatchCount } = createContentSearcher(content);
-            
-            // The 'ts' function detects timestamps in MM/DD/YYYY or MM/DD/YYYY HH:MM:SS AM/PM format
-            // Returns the timestamp in milliseconds, or 0 if not found
-            const ts = (): number => {
-              return foundTime;
-            };
             
             try {
               // Create a function that evaluates the user's expression with '$', 'ts', 'past', 'future', and 'today' in scope
@@ -726,7 +720,7 @@ function setupIpcHandlers(): void {
               return { 
                 matches, 
                 matchCount: matches ? Math.max(matchCount, 1) : 0, 
-                foundTime: foundTime > 0 ? foundTime : undefined 
+                foundTime: ts > 0 ? ts : undefined 
               };
             } catch (evalError) {
               console.warn(`[DEBUG] Error evaluating expression: ${evalError}`);
