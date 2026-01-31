@@ -16,7 +16,7 @@ function AppTabButtons() {
   const currentView = useCurrentView();
 
   return (
-    <nav className="flex items-center gap-6 px-4 py-2 bg-slate-900">
+    <nav className="flex items-center gap-6 px-4 py-2 bg-slate-800">
       <img
         src={appLogo}
         alt="MkBrowser"

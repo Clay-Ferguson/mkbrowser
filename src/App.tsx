@@ -1282,7 +1282,7 @@ function App() {
       <AppTabButtons />
 
       {/* Full-width breadcrumb header */}
-      <header data-id="browser-header-breadcrumbs" className="bg-slate-800 border-b border-slate-700 flex-shrink-0 px-4 py-1 flex items-center gap-3">
+      <header data-id="browser-header-breadcrumbs" className="bg-transparent flex-shrink-0 px-4 py-1 flex items-center gap-3">
         <PathBreadcrumb
           rootPath={rootPath}
           currentPath={currentPath}
@@ -1291,7 +1291,7 @@ function App() {
       </header>
 
       {/* Header with action buttons */}
-      <header data-id="browser-header-actions" className="bg-slate-800 border-b border-slate-700 flex-shrink-0 px-4">
+      <header data-id="browser-header-actions" className="bg-transparent flex-shrink-0 px-4">
         <div className="flex items-center justify-end gap-1">
               {/* Cut button - shown when items are selected and no items are cut */}
               {hasSelectedItems && !hasCutItems && (
