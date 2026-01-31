@@ -28,6 +28,7 @@ import SearchDialog, { type SearchOptions, type SearchDialogInitialValues } from
 import ExportDialog from './components/dialogs/ExportDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
+import AppTabButtons from './components/AppTabButtons';
 import {
   clearAllSelections,
   selectItemsByPaths,
@@ -1247,7 +1248,8 @@ function App() {
   // Show search results view when in search-results mode
   if (currentView === 'search-results') {
     return (
-      <>
+      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+        <AppTabButtons />
         <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
         {error && (
           <AlertDialog
@@ -1255,14 +1257,15 @@ function App() {
             onClose={() => setError(null)}
           />
         )}
-      </>
+      </div>
     );
   }
 
   // Show settings view when in settings mode
   if (currentView === 'settings') {
     return (
-      <>
+      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+        <AppTabButtons />
         <SettingsView onSaveSettings={handleSaveSettings} />
         {error && (
           <AlertDialog
@@ -1270,12 +1273,15 @@ function App() {
             onClose={() => setError(null)}
           />
         )}
-      </>
+      </div>
     );
   }
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+      {/* Tab navigation */}
+      <AppTabButtons />
+
       {/* Full-width breadcrumb header */}
       <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0 px-4 py-1 flex items-center gap-3">
         <img
