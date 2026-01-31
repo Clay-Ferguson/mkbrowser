@@ -13,12 +13,21 @@ const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 800;
 
 // todo-0: I think we have multiple places where this function is duplicated. Refactor into a shared utility.
-// Format current date/time as MM/DD/YYYY HH:MM:SS AM/PM
+// Format current date as MM/DD/YY
+function formatDate(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const year = String(now.getFullYear()).slice(-2);
+  return `${month}/${day}/${year}`;
+}
+
+// Format current date/time as MM/DD/YY HH:MM:SS AM/PM
 function formatTimestamp(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
-  const year = now.getFullYear();
+  const year = String(now.getFullYear()).slice(-2);
   let hours = now.getHours();
   const ampm = hours >= 12 ? 'PM' : 'AM';
   hours = hours % 12;
@@ -518,6 +527,20 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
     view.focus();
   }, [closeContextMenu]);
 
+  const handleInsertDate = useCallback(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    const date = formatDate();
+    const { from, to } = view.state.selection.main;
+    view.dispatch({
+      changes: { from, to, insert: date },
+      selection: { anchor: from + date.length },
+    });
+    closeContextMenu();
+    view.focus();
+  }, [closeContextMenu]);
+
   // Close context menu when clicking elsewhere
   useEffect(() => {
     if (!contextMenu.visible) return;
@@ -798,6 +821,12 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
             className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
           >
             Insert Timestamp
+          </button>
+          <button
+            onClick={handleInsertDate}
+            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+          >
+            Insert Date
           </button>
         </div>
       )}
