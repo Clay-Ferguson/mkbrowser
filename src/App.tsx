@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, HomeIcon } from '@heroicons/react/24/outline';
 import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
+import appLogo from '/icon-256.png';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
 import MarkdownEntry from './components/entries/MarkdownEntry';
@@ -1278,7 +1279,7 @@ function App() {
       {/* Full-width breadcrumb header */}
       <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0 px-4 py-1 flex items-center gap-3">
         <img
-          src="icon-256.png"
+          src={appLogo}
           alt="MkBrowser"
           className="w-10 h-10 flex-shrink-0"
         />
