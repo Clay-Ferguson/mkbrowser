@@ -173,26 +173,22 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     <div className={`flex-1 flex flex-col min-h-0 bg-slate-900 ${fontSizeClass}`}>
       {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700 flex-shrink-0">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            {/* Back button */}
-            <button
-              onClick={handleBack}
-              className="p-2 rounded-lg transition-colors text-slate-400 hover:bg-slate-700"
-              title="Back to browser"
-            >
-              <ChevronLeftIcon className="w-5 h-5" />
-            </button>
+        <div className="flex items-center gap-3 px-2 py-1">
+          {/* Back button */}
+          <button
+            onClick={handleBack}
+            className="p-2 rounded-lg transition-colors text-slate-400 hover:bg-slate-700"
+            title="Back to browser"
+          >
+            <ChevronLeftIcon className="w-5 h-5" />
+          </button>
 
-            {/* Title */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-slate-200 font-medium">Search Results</span>
-                <span className="text-slate-500">
-                  for "{searchQuery}" in {folderName}
-                </span>
-              </div>
-            </div>
+          {/* Title */}
+          <div className="flex items-center gap-2 text-sm min-w-0">
+            <span className="text-slate-200 font-medium">Search Results</span>
+            <span className="text-slate-500 truncate">
+              for "{searchQuery}" in {folderName}
+            </span>
           </div>
         </div>
       </header>
