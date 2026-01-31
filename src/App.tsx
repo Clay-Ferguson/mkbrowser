@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MagnifyingGlassIcon, ClipboardDocumentIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, HomeIcon } from '@heroicons/react/24/outline';
 import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
@@ -1338,6 +1338,15 @@ function App() {
                 <FolderPlusIcon className="w-5 h-5" />
               </button>
 
+              {/* Paste from clipboard button */}
+              <button
+                onClick={handlePasteFromClipboard}
+                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Paste from clipboard"
+              >
+                <ClipboardIcon className="w-5 h-5" />
+              </button>
+
               {/* Search button */}
               <button
                 onClick={handleOpenSearchDialog}
@@ -1345,15 +1354,6 @@ function App() {
                 title="Search in folder"
               >
                 <MagnifyingGlassIcon className="w-5 h-5" />
-              </button>
-
-              {/* Paste from clipboard button */}
-              <button
-                onClick={handlePasteFromClipboard}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Paste from clipboard"
-              >
-                <ClipboardDocumentIcon className="w-5 h-5" />
               </button>
 
               {/* Expand all button */}
