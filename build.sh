@@ -21,12 +21,5 @@ echo "   sudo dpkg -i ./out/make/deb/x64/*.deb"
 echo "-- or -- run the install script: ./install.sh"
 echo ""
 
-# Prompt user to run install script
-read -p "Would you like to run the install script now? (y/n): " -n 1 -r
-echo ""
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "🚀 Running install script..."
-    ./install.sh
-else
-    echo "Skipping installation. You can run ./install.sh manually later."
-fi
+echo "🚀 Running install script..."
+./install.sh
