@@ -82,6 +82,8 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
         } else {
           setFullscreenImagePath(allImages[currentIndex - 1].path);
         }
+      } else if (e.key === 'Delete') {
+        setShowFullscreenDeleteConfirm(true);
       }
     };
     
