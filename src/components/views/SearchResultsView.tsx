@@ -111,6 +111,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     onNavigateToResult(folderPath, fileName);
   };
 
+  // Detect if a search has actually been executed
+  const hasSearched = searchQuery.length > 0;
+
   // Get the folder name for display
   const folderName = searchFolder.split('/').pop() || searchFolder;
 
@@ -166,18 +169,20 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 bg-slate-900 ${fontSizeClass}`}>
-      {/* Header */}
-      <header className="flex-shrink-0">
-        <div className="flex items-center gap-3 px-2 py-2">
-          {/* Title */}
-          <div className="flex items-center gap-2 text-sm min-w-0">
-            <span className="text-slate-200 font-medium">Search Results</span>
-            <span className="text-slate-500 truncate">
-              for "{searchQuery}" in {folderName}
-            </span>
+      {/* Header - only show search info when a search has been executed */}
+      {hasSearched && (
+        <header className="flex-shrink-0">
+          <div className="flex items-center gap-3 px-2 py-2">
+            {/* Title */}
+            <div className="flex items-center gap-2 text-sm min-w-0">
+              <span className="text-slate-200 font-medium">Search Results</span>
+              <span className="text-slate-500 truncate">
+                for "{searchQuery}" in {folderName}
+              </span>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main content */}
       <main 
@@ -186,7 +191,15 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
         className="flex-1 min-h-0 overflow-y-auto"
       >
         <div className="max-w-4xl mx-auto px-4 py-6">
-        {searchResults.length === 0 ? (
+        {!hasSearched ? (
+          <div className="text-center py-12">
+            <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
+            <p className="text-slate-300 mb-2">No search yet</p>
+            <p className="text-slate-500">
+              Use the <MagnifyingGlassIcon className="w-4 h-4 inline-block mx-1 align-text-bottom" /> search button on the Browse tab to search your files.
+            </p>
+          </div>
+        ) : searchResults.length === 0 ? (
           <div className="text-center py-12">
             <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
             <p className="text-slate-400">No results found for "{searchQuery}"</p>
