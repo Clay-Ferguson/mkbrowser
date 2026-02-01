@@ -239,12 +239,12 @@ You can export the contents of the current folder into a single document.
 3. Click **Export** to finish.
 ## LaTeX Math Support
 
-MkBrowser supports rendering mathematical equations using LaTeX syntax via KaTeX.
+MkBrowser supports rendering mathematical equations using LaTeX syntax via KaTeX, compatible with GitHub's math rendering.
 
 ### Syntax
 
-- **Inline Math**: Wrap your equation in double dollar signs: `$$equation$$`
-  - Example: `$$f(x)$$` renders as $$f(x)$$
+- **Inline Math**: Wrap your equation in single dollar signs: `$equation$`
+  - Example: `$f(x)$` renders as an inline formula
   
 - **Block Math**: Use double dollar signs on separate lines for display equations:
   ````
@@ -253,9 +253,17 @@ MkBrowser supports rendering mathematical equations using LaTeX syntax via KaTeX
   $$
   ````
 
-### Important Note about Dollar Signs
+### Escaping Dollar Signs for Currency
 
-Regular dollar signs (like `$127` for monetary values) are treated as literal text and will not trigger math rendering. Only **double dollar signs** (`$$`) are used for LaTeX equations.
+Since `$` is used for math delimiters, use the standard LaTeX escape `\$` to display literal dollar signs (e.g., for monetary values):
+
+| You type | Renders as |
+|----------|------------|
+| `\$100` | $100 |
+| `\$49.99` | $49.99 |
+| `$x^2$` | *x²* (math) |
+
+This is the same escape convention used in traditional LaTeX and is compatible with most Markdown-with-math systems.
 
 ### Example
 
@@ -264,19 +272,21 @@ Here's how to write the calculus limit definition:
 ````markdown
 ## Calculus Limit Definition
 
-For a function $$f(x)$$, the derivative at a point $$x$$ is defined as:
+For a function $f(x)$, the derivative at a point $x$ is defined as:
 
 $$
 f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h}
 $$
+
+This course costs \$99.
 ````
 
 **Rendered output:**
 
-## Calculus Limit Definition
-
-For a function $$f(x)$$, the derivative at a point $$x$$ is defined as:
+For a function $f(x)$, the derivative at a point $x$ is defined as:
 
 $$
 f'(x) = \lim_{h \to 0} \frac{f(x + h) - f(x)}{h}
 $$
+
+This course costs $99.

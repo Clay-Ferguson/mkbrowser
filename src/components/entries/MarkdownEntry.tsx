@@ -40,6 +40,15 @@ mermaid.initialize({
   securityLevel: 'loose',
 });
 
+/**
+ * Preprocess content to handle escaped dollar signs for LaTeX math.
+ * Converts \$ to HTML entity &#36; so it renders as a literal $ 
+ * without triggering math mode. This is the standard LaTeX escape convention.
+ */
+function preprocessMathEscapes(content: string): string {
+  return content.replace(/\\\$/g, '&#36;');
+}
+
 // Render queue to serialize mermaid renders (mermaid can't handle concurrent renders)
 const mermaidRenderQueue: Array<() => Promise<void>> = [];
 let isRenderingMermaid = false;
@@ -641,7 +650,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
               title="Double-click to edit"
             >
               <Markdown
-                remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
+                remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
                 rehypePlugins={[rehypeKatex]}
                 components={{
                   a: createCustomAnchor(entry.path),
@@ -649,7 +658,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
                   pre: CustomPre,
                 }}
               >
-                {content || ''}
+                {preprocessMathEscapes(content || '')}
               </Markdown>
             </article>
           )}
