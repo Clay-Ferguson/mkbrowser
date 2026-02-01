@@ -141,6 +141,7 @@ type PathBreadcrumbProps = {
   onToggleBookmark: () => void;
 };
 
+// todo-0: let's make this a component in its own file
 function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onToggleBookmark }: PathBreadcrumbProps) {
   const normalizedRoot = rootPath.replace(/\/+$/, '');
   const normalizedCurrent = currentPath.replace(/\/+$/, '');
@@ -163,10 +164,10 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
       <button
         type="button"
         onClick={() => onNavigate(normalizedRoot)}
-        className="p-1 text-slate-400 hover:text-blue-400 rounded cursor-pointer flex-shrink-0"
+        className="p-1 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded cursor-pointer flex-shrink-0 transition-colors"
         aria-label="Go to root folder"
       >
-        <HomeIcon className="w-4 h-4" />
+        <HomeIcon className="w-5 h-5" />
       </button>
 
       {parts.length === 0 && (
@@ -188,7 +189,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
               <button
                 type="button"
                 onClick={() => onNavigate(buildPathForIndex(index))}
-                className="text-slate-200 hover:text-blue-400 cursor-pointer no-underline break-all"
+                className="px-1 text-slate-200 hover:text-blue-400 hover:bg-slate-700 rounded cursor-pointer no-underline break-all transition-colors"
               >
                 {part}
               </button>
