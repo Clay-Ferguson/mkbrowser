@@ -27,6 +27,10 @@ This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) 
 
 ![expanded-file](docs/img/expanded-file.png)
 
+![expanded-file](docs/img/editing-file.png)
+
+![expanded-file](docs/img/searching.png)
+
 ![export-dialog](docs/img/export-dialog.png)
 
 ![settings-page](docs/img/settings-page.png)
