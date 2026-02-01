@@ -4,7 +4,7 @@ import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES, BOOKMARK_BUTTON_CLASSES } from '../../utils/styles';
-import { useItem, useHighlightItem, useSettings, setHighlightItem, setItemRenaming, setItemSelected, toggleItemExpanded, toggleBookmark, updateBookmarkPath } from '../../store';
+import { useItem, useHighlightItem, useSettings, setHighlightItem, setItemRenaming, setItemSelected, toggleItemExpanded, toggleBookmark, updateBookmarkPath, setPendingScrollToFile } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import AlertDialog from '../dialogs/AlertDialog';
@@ -84,6 +84,13 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
         }
       } else if (e.key === 'Delete') {
         setShowFullscreenDeleteConfirm(true);
+      } else if (e.key.toLowerCase() === 'j') {
+        // Jump to the current fullscreen image - close fullscreen, scroll to it, and highlight it
+        const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
+        setIsFullscreen(false);
+        setFullscreenImagePath(entry.path); // Reset to this entry's image
+        setHighlightItem(currentImage.name);
+        setPendingScrollToFile(currentImage.name);
       }
     };
     
@@ -345,7 +352,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
             setFullscreenImagePath(entry.path);
           }}
         >
-          <span className="absolute top-2 left-2 text-white/60 text-xs">ESC to close</span>
+          <span className="absolute top-2 left-2 text-white/60 text-xs">ESC=Close, J=Jump to Image</span>
           <img
             src={fullscreenImageUrl}
             alt={currentFullscreenImage.name}
