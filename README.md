@@ -18,6 +18,7 @@ This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) 
 - Hidden files filtered out by default (dotfiles).
 - Content caching for Markdown to reduce re-reads.
 - Search and export dialogs (UI-level support).
+- Replace in Files: bulk find-and-replace across all text files.
 - PDF export support for Markdown content.
 
 ## Screenshots

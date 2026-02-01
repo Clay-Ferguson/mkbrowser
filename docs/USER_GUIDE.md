@@ -187,6 +187,43 @@ Once saved, your search definitions appear in the **Search** menu on the applica
 
 **Tip:** Hold **Ctrl** while clicking a search menu item to open the Search dialog with that definition pre-filled. This allows you to review the search parameters before running it, or to edit and update the saved definition.
 
+## Replace in Files
+
+MkBrowser includes a **Replace in Files** feature that allows you to find and replace text across all Markdown (`.md`) and text (`.txt`) files in the current folder and all subfolders.
+
+### Using Replace in Files
+
+1. Navigate to the folder where you want to perform the replacement.
+2. Go to **Edit → Replace in Files** in the menu bar.
+3. In the dialog that appears:
+   - **Search for**: Enter the exact text you want to find.
+   - **Replace with**: Enter the replacement text (can be empty to delete matches).
+4. Click **Replace** to perform the replacement, or **Cancel** to close the dialog.
+
+### What Happens
+
+- The replacement searches recursively through all subfolders.
+- Only `.md` and `.txt` files are processed.
+- All occurrences of the search text are replaced (not just the first occurrence in each file).
+- The search is **case-sensitive** and matches **exact text** only.
+- Files configured in your **Ignored Paths** setting (see Settings) are skipped.
+
+### Results Summary
+
+After the replacement completes, a dialog will show you:
+- The total number of replacements made.
+- The number of files that were modified.
+- If any files could not be processed, you'll see a count of failed files.
+
+**Example:**
+> "Replaced 15 occurrences in 4 files."
+
+### Tips
+
+- **Preview first**: Use the Search feature to find matches before replacing, so you know what will be changed.
+- **Backup**: For large-scale replacements, consider backing up your folder first.
+- **Special characters**: The search treats your text literally—special characters like `*`, `.`, or `?` are matched exactly as typed, not as wildcards or patterns.
+
 ## Exporting
 
 You can export the contents of the current folder into a single document.
