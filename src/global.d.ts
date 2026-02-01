@@ -65,6 +65,14 @@ export interface RenumberResult {
   operations?: RenameOperation[];
 }
 
+export interface ReplaceResult {
+  path: string;
+  relativePath: string;
+  replacementCount: number;
+  success: boolean;
+  error?: string;
+}
+
 export interface ExportResult {
   success: boolean;
   outputPath?: string;
@@ -87,6 +95,7 @@ export interface ElectronAPI {
   onSplitFileRequested: (callback: () => void) => () => void;
   onJoinFilesRequested: (callback: () => void) => () => void;
   onRenumberRequested: (callback: () => void) => () => void;
+  onReplaceInFilesRequested: (callback: () => void) => () => void;
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   onExportRequested: (callback: () => void) => () => void;
   onEditSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
@@ -105,6 +114,7 @@ export interface ElectronAPI {
   openExternalUrl: (url: string) => Promise<boolean>;
     createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => Promise<SearchResult[]>;
+  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
   setWindowTitle: (title: string) => Promise<void>;
   selectExportFolder: () => Promise<string | null>;

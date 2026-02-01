@@ -24,6 +24,7 @@ import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import AlertDialog from './components/dialogs/AlertDialog';
 import ConfirmDialog from './components/dialogs/ConfirmDialog';
 import SearchDialog, { type SearchOptions, type SearchDialogInitialValues } from './components/dialogs/SearchDialog';
+import ReplaceDialog from './components/dialogs/ReplaceDialog';
 import ExportDialog from './components/dialogs/ExportDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
@@ -226,6 +227,8 @@ function App() {
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [showSearchDialog, setShowSearchDialog] = useState<boolean>(false);
+  const [showReplaceDialog, setShowReplaceDialog] = useState<boolean>(false);
+  const [replaceResultMessage, setReplaceResultMessage] = useState<string | null>(null);
   const [searchDialogInitialValues, setSearchDialogInitialValues] = useState<SearchDialogInitialValues | undefined>(undefined);
   const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
@@ -855,6 +858,17 @@ function App() {
     };
   }, []);
 
+  // Listen for Replace in Files menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onReplaceInFilesRequested(() => {
+      setShowReplaceDialog(true);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   // Listen for search definition selection from menu - execute search immediately
   useEffect(() => {
     const unsubscribe = window.electronAPI.onOpenSearchDefinition(async (definition) => {
@@ -1146,6 +1160,46 @@ function App() {
   const handleCancelSearch = useCallback(() => {
     setShowSearchDialog(false);
     setSearchDialogInitialValues(undefined);
+  }, []);
+
+  // Replace in files handlers
+  const handleReplace = useCallback(async (searchText: string, replaceText: string) => {
+    if (!currentPath) return;
+    
+    setShowReplaceDialog(false);
+    
+    try {
+      const results = await window.electronAPI.searchAndReplace(currentPath, searchText, replaceText);
+      
+      // Calculate summary
+      const successfulFiles = results.filter(r => r.success);
+      const totalReplacements = successfulFiles.reduce((sum, r) => sum + r.replacementCount, 0);
+      const failedFiles = results.filter(r => !r.success);
+      
+      let message = '';
+      if (totalReplacements > 0) {
+        message = `Replaced ${totalReplacements} occurrence${totalReplacements === 1 ? '' : 's'} in ${successfulFiles.length} file${successfulFiles.length === 1 ? '' : 's'}.`;
+      } else {
+        message = 'No matches found.';
+      }
+      
+      if (failedFiles.length > 0) {
+        message += `\n\n${failedFiles.length} file${failedFiles.length === 1 ? '' : 's'} could not be processed.`;
+      }
+      
+      setReplaceResultMessage(message);
+      
+      // Refresh the directory to show updated content
+      if (totalReplacements > 0) {
+        void refreshDirectory();
+      }
+    } catch (err) {
+      setReplaceResultMessage(`Replace failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [currentPath, refreshDirectory]);
+
+  const handleCancelReplace = useCallback(() => {
+    setShowReplaceDialog(false);
   }, []);
 
   // Save a search definition without executing the search
@@ -1628,6 +1682,13 @@ function App() {
         />
       )}
 
+      {showReplaceDialog && (
+        <ReplaceDialog
+          onReplace={handleReplace}
+          onCancel={handleCancelReplace}
+        />
+      )}
+
       {showExportDialog && currentPath && (
         <ExportDialog
           defaultFolder={currentPath}
@@ -1642,6 +1703,13 @@ function App() {
           message={`Are you sure you want to delete ${getSelectedItems().length} selected item(s)? This cannot be undone.`}
           onConfirm={() => void performDelete()}
           onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
+      {replaceResultMessage && (
+        <AlertDialog
+          message={replaceResultMessage}
+          onClose={() => setReplaceResultMessage(null)}
         />
       )}
 

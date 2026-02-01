@@ -232,6 +232,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('open-bookmark', handler);
     };
   },
+  onReplaceInFilesRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('replace-in-files', handler);
+    return () => {
+      ipcRenderer.removeListener('replace-in-files', handler);
+    };
+  },
+  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
+    ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),

@@ -7,6 +7,7 @@ import { fdir } from 'fdir';
 import { calculateRenameOperations, type RenameOperation } from './utils/ordinals';
 import { extractTimestamp, past, future, today } from './utils/timeUtils';
 import { createContentSearcher } from './utils/searchUtils';
+import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -275,6 +276,13 @@ function setupApplicationMenu(): void {
         label: 'Join',
         click: () => {
           mainWindow?.webContents.send('join-files');
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Replace in Files',
+        click: () => {
+          mainWindow?.webContents.send('replace-in-files');
         },
       },
     ],
@@ -646,6 +654,31 @@ function setupIpcHandlers(): void {
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error occurred' 
       };
+    }
+  });
+
+  // Search and replace in files recursively
+  ipcMain.handle('search-and-replace', async (_event, folderPath: string, searchText: string, replaceText: string): Promise<ReplaceResult[]> => {
+    try {
+      // Load ignored paths from config
+      const config = loadConfig();
+      const ignoredPathsRaw = config.settings?.ignoredPaths ?? '';
+      const ignoredPaths = ignoredPathsRaw
+        .split('\n')
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+      
+      // Convert wildcard patterns to regex
+      const ignoredPatterns = ignoredPaths.map(pattern => {
+        const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+        const regexPattern = escaped.replace(/\*/g, '.*');
+        return new RegExp(`^${regexPattern}$`, 'i');
+      });
+
+      return await searchAndReplace(folderPath, searchText, replaceText, ignoredPatterns);
+    } catch (error) {
+      console.error('Error in search and replace:', error);
+      return [];
     }
   });
 
