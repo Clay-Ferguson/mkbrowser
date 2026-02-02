@@ -1622,7 +1622,7 @@ function App() {
         data-id="browser-main-content"
         ref={mainContainerRef}
         onScroll={handleMainScroll}
-        className="flex-1 min-h-0 overflow-y-auto pb-4"
+        className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1"
       >
         <div className={`${getContentWidthClasses(settings.contentWidth)}`}>
         {loading && (
