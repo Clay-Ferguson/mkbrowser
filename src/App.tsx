@@ -21,7 +21,7 @@ function isTextFile(fileName: string): boolean {
 }
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
-import AlertDialog from './components/dialogs/AlertDialog';
+import ErrorDialog from './components/dialogs/ErrorDialog';
 import ConfirmDialog from './components/dialogs/ConfirmDialog';
 import SearchDialog, { type SearchOptions, type SearchDialogInitialValues } from './components/dialogs/SearchDialog';
 import ReplaceDialog from './components/dialogs/ReplaceDialog';
@@ -1445,7 +1445,7 @@ function App() {
         </div>
 
         {error && (
-          <AlertDialog
+          <ErrorDialog
             message={error}
             onClose={() => setError(null)}
           />
@@ -1461,7 +1461,7 @@ function App() {
         <AppTabButtons />
         <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
         {error && (
-          <AlertDialog
+          <ErrorDialog
             message={error}
             onClose={() => setError(null)}
           />
@@ -1477,7 +1477,7 @@ function App() {
         <AppTabButtons />
         <SettingsView onSaveSettings={handleSaveSettings} />
         {error && (
-          <AlertDialog
+          <ErrorDialog
             message={error}
             onClose={() => setError(null)}
           />
@@ -1716,14 +1716,14 @@ function App() {
       )}
 
       {replaceResultMessage && (
-        <AlertDialog
+        <ErrorDialog
           message={replaceResultMessage}
           onClose={() => setReplaceResultMessage(null)}
         />
       )}
 
       {error && (
-        <AlertDialog
+        <ErrorDialog
           message={error}
           onClose={() => setError(null)}
         />

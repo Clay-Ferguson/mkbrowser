@@ -1,11 +1,11 @@
-interface AlertDialogProps {
+interface ErrorDialogProps {
   message: string;
   onClose: () => void;
   title?: string;
   buttonLabel?: string;
 }
 
-function AlertDialog({ message, onClose, title = 'Error', buttonLabel = 'OK' }: AlertDialogProps) {
+function ErrorDialog({ message, onClose, title = 'Error', buttonLabel = 'OK' }: ErrorDialogProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 max-w-md mx-4 shadow-xl">
@@ -24,4 +24,4 @@ function AlertDialog({ message, onClose, title = 'Error', buttonLabel = 'OK' }: 
   );
 }
 
-export default AlertDialog;
+export default ErrorDialog;

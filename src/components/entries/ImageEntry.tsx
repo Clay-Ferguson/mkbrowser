@@ -7,7 +7,7 @@ import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INS
 import { useItem, useHighlightItem, useSettings, setHighlightItem, setItemRenaming, setItemSelected, toggleItemExpanded, toggleBookmark, updateBookmarkPath, setPendingScrollToFile } from '../../store';
 import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
-import AlertDialog from '../dialogs/AlertDialog';
+import ErrorDialog from '../dialogs/ErrorDialog';
 
 interface ImageEntryProps {
   entry: FileEntryType;
@@ -364,7 +364,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
 
       {/* End of images alert */}
       {showEndAlert && (
-        <AlertDialog
+        <ErrorDialog
           title="End of Images"
           message="You have reached the end of the images in this folder."
           onClose={() => setShowEndAlert(false)}
@@ -373,7 +373,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
 
       {/* Beginning of images alert */}
       {showBeginningAlert && (
-        <AlertDialog
+        <ErrorDialog
           title="Beginning of Images"
           message="You have reached the beginning of the images in this folder."
           onClose={() => setShowBeginningAlert(false)}
