@@ -37,6 +37,7 @@ import {
   clearAllCutItems,
   cutSelectedItems,
   deleteItems,
+  clearCache,
   upsertItems,
   setItemEditing,
   setItemExpanded,
@@ -464,6 +465,12 @@ function App() {
     loadDirectory(false);
   }, [loadDirectory]);
 
+  // Handle delete from entry components - clears cache before refreshing
+  const handleEntryDelete = useCallback(() => {
+    clearCache();
+    loadDirectory(false);
+  }, [loadDirectory]);
+
   const findPasteDuplicates = useCallback(async (cutItems: ItemData[]) => {
     if (!currentPath) return [] as string[];
 
@@ -530,7 +537,7 @@ function App() {
       setPendingScrollToFile(cutItems[0].name);
     }
 
-    clearAllCutItems();
+    clearCache();
     refreshDirectory();
   }, [currentPath, items, refreshDirectory, findPasteDuplicates, findCutItemsFromDifferentFolders]);
 
@@ -571,6 +578,7 @@ function App() {
     // Remove successfully deleted items from the store
     if (pathsToDelete.length > 0) {
       deleteItems(pathsToDelete);
+      clearCache();
       refreshDirectory();
     }
   }, [getSelectedItems, refreshDirectory]);
@@ -1638,15 +1646,15 @@ function App() {
               return sortedEntries.map((entry) => (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                    <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                    <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : isTextFile(entry.name) ? (
-                    <TextEntry entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                    <TextEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : (
-                    <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={refreshDirectory} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                    <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   )}
                 </div>
               ));

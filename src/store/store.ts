@@ -560,6 +560,16 @@ export function deleteItems(paths: string[]): void {
 }
 
 /**
+ * Clear all cached items from the store.
+ * Called after operations that modify the filesystem (delete, paste)
+ * to ensure stale items don't remain in memory.
+ */
+export function clearCache(): void {
+  state = { ...state, items: new Map<string, ItemData>() };
+  emitChange();
+}
+
+/**
  * Get an item by path (direct access, not a hook)
  */
 export function getItem(path: string): ItemData | undefined {
