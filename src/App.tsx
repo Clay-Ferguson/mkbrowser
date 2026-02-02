@@ -850,6 +850,7 @@ function App() {
   // Listen for Export menu action
   useEffect(() => {
     const unsubscribe = window.electronAPI.onExportRequested(() => {
+      setCurrentView('browser');
       setShowExportDialog(true);
     });
 
@@ -1612,7 +1613,7 @@ function App() {
         data-id="browser-main-content"
         ref={mainContainerRef}
         onScroll={handleMainScroll}
-        className="flex-1 min-h-0 overflow-y-auto"
+        className="flex-1 min-h-0 overflow-y-auto pb-4"
       >
         <div className={`${getContentWidthClasses(settings.contentWidth)}`}>
         {loading && (

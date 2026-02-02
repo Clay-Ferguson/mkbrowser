@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { EditorView, placeholder as placeholderExt, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
+import { EditorView, placeholder as placeholderExt, Decoration, DecorationSet, ViewPlugin, ViewUpdate, keymap } from '@codemirror/view';
 import { EditorState, Compartment, RangeSetBuilder } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -607,6 +607,32 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
       datePlugin,
       dateTheme,
       EditorView.lineWrapping,
+      keymap.of([
+        {
+          key: 'Ctrl-t',
+          run: (view) => {
+            const timestamp = formatTimestamp();
+            const { from, to } = view.state.selection.main;
+            view.dispatch({
+              changes: { from, to, insert: timestamp },
+              selection: { anchor: from + timestamp.length },
+            });
+            return true;
+          },
+        },
+        {
+          key: 'Ctrl-d',
+          run: (view) => {
+            const date = formatDate();
+            const { from, to } = view.state.selection.main;
+            view.dispatch({
+              changes: { from, to, insert: date },
+              selection: { anchor: from + date.length },
+            });
+            return true;
+          },
+        },
+      ]),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChange(update.state.doc.toString());
@@ -799,15 +825,17 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
           <div className="border-t border-slate-600 my-1" />
           <button
             onClick={handleInsertTimestamp}
-            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
           >
-            Insert Timestamp
+            <span>Insert Timestamp</span>
+            <span className="text-slate-500 text-xs">Ctrl+T</span>
           </button>
           <button
             onClick={handleInsertDate}
-            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
           >
-            Insert Date
+            <span>Insert Date</span>
+            <span className="text-slate-500 text-xs">Ctrl+D</span>
           </button>
         </div>
       )}
