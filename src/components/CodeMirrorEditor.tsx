@@ -6,134 +6,13 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { markdown } from '@codemirror/lang-markdown';
 import { useSettings, type FontSize } from '../store';
 import Typo from 'typo-js';
+import { formatDate, formatTimestamp } from '../utils/timeUtil';
+import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme, type SpellingSuggestion } from './spellChecker';
 
 const STORAGE_KEY = 'codemirror-editor-height';
 const DEFAULT_HEIGHT = 256;
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 800;
-
-// todo-0: I think we have multiple places where this function is duplicated. Refactor into a shared utility.
-// Format current date as MM/DD/YY
-function formatDate(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const year = String(now.getFullYear()).slice(-2);
-  return `${month}/${day}/${year}`;
-}
-
-// Format current date/time as MM/DD/YY HH:MM AM/PM
-function formatTimestamp(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const year = String(now.getFullYear()).slice(-2);
-  let hours = now.getHours();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  if (hours === 0) hours = 12;
-  const hoursStr = String(hours).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  return `${month}/${day}/${year} ${hoursStr}:${minutes} ${ampm}`;
-}
-
-// Singleton for the spell checker
-let typoInstance: Typo | null = null;
-let typoLoadingPromise: Promise<Typo | null> | null = null;
-
-async function loadSpellChecker(): Promise<Typo | null> {
-  if (typoInstance) return typoInstance;
-  if (typoLoadingPromise) return typoLoadingPromise;
-
-  typoLoadingPromise = (async () => {
-    try {
-      const { affData, dicData } = await window.electronAPI.loadDictionary();
-      typoInstance = new Typo('en_US', affData, dicData);
-      return typoInstance;
-    } catch (error) {
-      console.error('Failed to initialize spell checker:', error);
-      return null;
-    }
-  })();
-
-  return typoLoadingPromise;
-}
-
-// Decoration for misspelled words
-const misspelledMark = Decoration.mark({ class: 'cm-misspelled' });
-
-// Extract words from text with their positions
-function extractWords(text: string): { word: string; from: number; to: number }[] {
-  const words: { word: string; from: number; to: number }[] = [];
-  // Match word characters, including apostrophes within words
-  const regex = /[a-zA-Z]+(?:'[a-zA-Z]+)?/g;
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    words.push({
-      word: match[0],
-      from: match.index,
-      to: match.index + match[0].length,
-    });
-  }
-  return words;
-}
-
-// Create spell check decorations for a view
-function createSpellCheckDecorations(view: EditorView, typo: Typo | null): DecorationSet {
-  const builder = new RangeSetBuilder<Decoration>();
-
-  if (!typo) return builder.finish();
-
-  const doc = view.state.doc;
-
-  for (let i = 1; i <= doc.lines; i++) {
-    const line = doc.line(i);
-    const words = extractWords(line.text);
-
-    for (const { word, from, to } of words) {
-      // Skip very short words and words that are all caps (likely acronyms)
-      if (word.length < 2 || (word.length > 1 && word === word.toUpperCase())) {
-        continue;
-      }
-
-      if (!typo.check(word)) {
-        builder.add(line.from + from, line.from + to, misspelledMark);
-      }
-    }
-  }
-
-  return builder.finish();
-}
-
-// ViewPlugin for spell checking
-function createSpellCheckPlugin(typoRef: { current: Typo | null }) {
-  return ViewPlugin.fromClass(
-    class {
-      decorations: DecorationSet;
-
-      constructor(view: EditorView) {
-        this.decorations = createSpellCheckDecorations(view, typoRef.current);
-      }
-
-      update(update: ViewUpdate) {
-        if (update.docChanged || update.viewportChanged) {
-          this.decorations = createSpellCheckDecorations(update.view, typoRef.current);
-        }
-      }
-    },
-    {
-      decorations: (v) => v.decorations,
-    }
-  );
-}
-
-// Theme for misspelled words
-const spellCheckTheme = EditorView.baseTheme({
-  '.cm-misspelled': {
-    textDecoration: 'underline wavy red',
-    textDecorationSkipInk: 'none',
-  },
-});
 
 // Decorations for hashtags
 const hashtagP1Mark = Decoration.mark({ class: 'cm-hashtag-p1' });
@@ -326,13 +205,6 @@ function setStoredHeight(height: number): void {
   } catch {
     // localStorage not available
   }
-}
-
-interface SpellingSuggestion {
-  word: string;
-  from: number;
-  to: number;
-  suggestions: string[];
 }
 
 interface ContextMenuState {

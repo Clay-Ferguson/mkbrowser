@@ -119,3 +119,29 @@ export function today(timestamp: number): boolean {
     now.getDate() === checkDate.getDate()
   );
 }
+
+// todo-0: I think we have multiple places where this function is duplicated. Refactor into a shared utility.
+// Format current date as MM/DD/YY
+export function formatDate(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const year = String(now.getFullYear()).slice(-2);
+  return `${month}/${day}/${year}`;
+}
+
+// Format current date/time as MM/DD/YY HH:MM AM/PM
+export function formatTimestamp(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const year = String(now.getFullYear()).slice(-2);
+  let hours = now.getHours();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+  const hoursStr = String(hours).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${month}/${day}/${year} ${hoursStr}:${minutes} ${ampm}`;
+}
+
