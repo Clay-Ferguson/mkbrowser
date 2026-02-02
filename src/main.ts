@@ -5,8 +5,8 @@ import * as yaml from 'js-yaml';
 import started from 'electron-squirrel-startup';
 import { fdir } from 'fdir';
 import { calculateRenameOperations, type RenameOperation } from './utils/ordinals';
-import { extractTimestamp, past, future, today } from './utils/timeUtils';
-import { createContentSearcher } from './utils/searchUtils';
+import { extractTimestamp, past, future, today } from './utils/timeUtil';
+import { createContentSearcher } from './utils/searchUtil';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
