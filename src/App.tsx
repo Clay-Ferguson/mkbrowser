@@ -22,6 +22,7 @@ function isTextFile(fileName: string): boolean {
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import ErrorDialog from './components/dialogs/ErrorDialog';
+import MessageDialog from './components/dialogs/MessageDialog';
 import ConfirmDialog from './components/dialogs/ConfirmDialog';
 import SearchDialog, { type SearchOptions, type SearchDialogInitialValues } from './components/dialogs/SearchDialog';
 import ReplaceDialog from './components/dialogs/ReplaceDialog';
@@ -1716,7 +1717,8 @@ function App() {
       )}
 
       {replaceResultMessage && (
-        <ErrorDialog
+        <MessageDialog
+          title="Replace Results"
           message={replaceResultMessage}
           onClose={() => setReplaceResultMessage(null)}
         />
