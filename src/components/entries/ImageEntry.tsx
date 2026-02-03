@@ -1,64 +1,58 @@
-import { useState, useRef, useEffect } from 'react';
-import { PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, PhotoIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
-import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+import { useState, useEffect } from 'react';
+import { PhotoIcon } from '@heroicons/react/24/outline';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, BUTTON_CLZ_INSERT_FILE, BUTTON_CLZ_INSERT_FOLDER, BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../utils/styles';
-import { useItem, useHighlightItem, useSettings, setHighlightItem, setItemRenaming, setItemSelected, toggleItemExpanded, toggleBookmark, updateBookmarkPath, setPendingScrollToFile } from '../../store';
-import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../utils/ordinals';
+import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
+import {
+  useEntryCore,
+  useRename,
+  useDelete,
+  EntryActionBar,
+  RenameInput,
+  SelectionCheckbox,
+  type BaseEntryProps,
+} from './common';
 
-interface ImageEntryProps {
-  entry: FileEntryType;
+interface ImageEntryProps extends BaseEntryProps {
   allImages: FileEntryType[];
-  onRename: () => void;
-  onDelete: () => void;
-  onInsertFileBelow: (defaultName: string) => void;
-  onInsertFolderBelow: (defaultName: string) => void;
-  onSaveSettings: () => void;
 }
 
 function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: ImageEntryProps) {
   console.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
   
-  const item = useItem(entry.path);
-  const highlightItem = useHighlightItem();
-  const settings = useSettings();
-  const [newName, setNewName] = useState(entry.name);
-  const [saving, setSaving] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const {
+    isRenaming,
+    isExpanded,
+    isSelected,
+    isHighlighted,
+    isBookmarked,
+    showInsertIcons,
+    nextOrdinalPrefix,
+  } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
+
+  const rename = useRename({
+    path: entry.path,
+    name: entry.name,
+    isRenaming,
+    onRename,
+    onSaveSettings,
+  });
+
+  const del = useDelete({
+    path: entry.path,
+    onDelete,
+  });
+
+  // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFullscreenDeleteConfirm, setShowFullscreenDeleteConfirm] = useState(false);
   const [fullscreenImagePath, setFullscreenImagePath] = useState(entry.path);
   const [showEndAlert, setShowEndAlert] = useState(false);
   const [showBeginningAlert, setShowBeginningAlert] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const isRenaming = item?.renaming ?? false;
-  const isExpanded = item?.isExpanded ?? true;  // Default to expanded for images
-  const isSelected = item?.isSelected ?? false;
-  const isHighlighted = highlightItem === entry.name;
-  const isBookmarked = (settings.bookmarks || []).includes(entry.path);
-  const showInsertIcons = hasOrdinalPrefix(entry.name);
-  const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(entry.name) : null;
 
   console.log('[ImageEntry] State:', { isRenaming, isExpanded, isSelected });
-
-  // Focus input when entering rename mode
-  useEffect(() => {
-    if (isRenaming && inputRef.current) {
-      inputRef.current.focus();
-      // Select filename without extension
-      const dotIndex = entry.name.lastIndexOf('.');
-      if (dotIndex > 0) {
-        inputRef.current.setSelectionRange(0, dotIndex);
-      } else {
-        inputRef.current.select();
-      }
-    }
-  }, [isRenaming, entry.name]);
 
   // Handle Escape key to close fullscreen overlay and arrow keys for navigation
   useEffect(() => {
@@ -96,13 +90,11 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen, entry.path, fullscreenImagePath, allImages]);
+  }, [isFullscreen, entry.path, fullscreenImagePath, allImages, entry.name]);
 
   // Get the current image being displayed in fullscreen
   const currentFullscreenImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
   const fullscreenImageUrl = `local-file://${fullscreenImagePath}`;
-
-
 
   const handleFullscreenDeleteConfirm = async () => {
     setShowFullscreenDeleteConfirm(false);
@@ -141,92 +133,8 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
     setShowFullscreenDeleteConfirm(false);
   };
 
-  const handleRenameClick = () => {
-    setNewName(entry.name);
-    setItemRenaming(entry.path, true);
-  };
-
-  const handleCancel = () => {
-    setNewName(entry.name);
-    setItemRenaming(entry.path, false);
-  };
-
-  const handleSave = async () => {
-    const trimmedName = newName.trim();
-    if (!trimmedName || trimmedName === entry.name) {
-      handleCancel();
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const dirPath = entry.path.substring(0, entry.path.lastIndexOf('/'));
-      const newPath = `${dirPath}/${trimmedName}`;
-      const success = await window.electronAPI.renameFile(entry.path, newPath);
-      if (success) {
-        // Update bookmark if this item was bookmarked
-        if (updateBookmarkPath(entry.path, newPath)) {
-          onSaveSettings();
-        }
-        setItemRenaming(entry.path, false);
-        setHighlightItem(trimmedName);
-        onRename();
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSave();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      handleCancel();
-    }
-  };
-
-  const handleDeleteClick = () => {
-    setShowDeleteConfirm(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    setShowDeleteConfirm(false);
-    setDeleting(true);
-    try {
-      const success = await window.electronAPI.deleteFile(entry.path);
-      if (success) {
-        onDelete();
-      }
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const handleDeleteCancel = () => {
-    setShowDeleteConfirm(false);
-  };
-
-  const handleBookmarkClick = () => {
-    toggleBookmark(entry.path);
-    onSaveSettings();
-  };
-
   const handleToggleExpanded = () => {
     toggleItemExpanded(entry.path);
-  };
-
-  const handleInsertFileBelow = () => {
-    if (nextOrdinalPrefix) {
-      onInsertFileBelow(nextOrdinalPrefix);
-    }
-  };
-
-  const handleInsertFolderBelow = () => {
-    if (nextOrdinalPrefix) {
-      onInsertFolderBelow(nextOrdinalPrefix);
-    }
   };
 
   // Convert file path to local-file:// URL for the image src
@@ -237,26 +145,22 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
     <div className={`bg-slate-800 rounded-lg border ${isHighlighted ? 'border-2 border-purple-500' : 'border-slate-700'} overflow-hidden`}>
       {/* Header row */}
       <div className="flex items-center gap-3 px-4 py-1">
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={(e) => setItemSelected(entry.path, e.target.checked)}
-          className={CHECKBOX_CLASSES}
-          aria-label={`Select ${entry.name}`}
+        <SelectionCheckbox
+          path={entry.path}
+          name={entry.name}
+          isSelected={isSelected}
         />
         {/* Image icon */}
         <PhotoIcon className="w-5 h-5 text-green-500 flex-shrink-0" />
         {isRenaming ? (
-          <input
-            ref={inputRef}
-            type="text"
-            id={buildEntryHeaderId(entry.name)}
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={handleSave}
-            disabled={saving}
-            className={RENAME_INPUT_CLASSES}
+          <RenameInput
+            ref={rename.inputRef}
+            name={entry.name}
+            value={rename.newName}
+            onChange={rename.setNewName}
+            onKeyDown={rename.handleKeyDown}
+            onBlur={rename.handleSave}
+            disabled={rename.saving}
           />
         ) : (
           <span
@@ -269,59 +173,18 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
           </span>
         )}
         {!isRenaming && (
-          <div className="flex items-center gap-1">
-            {showInsertIcons && (
-              <>
-                <button
-                  onClick={handleInsertFileBelow}
-                  className={BUTTON_CLZ_INSERT_FILE}
-                  title="Insert file below"
-                >
-                  <DocumentPlusIcon className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={handleInsertFolderBelow}
-                  className={BUTTON_CLZ_INSERT_FOLDER}
-                  title="Insert folder below"
-                >
-                  <FolderPlusIcon className="w-5 h-5" />
-                </button>
-              </>
-            )}
-            <button
-              onClick={handleRenameClick}
-              className={BUTTON_CLZ_RENAME}
-              title="Rename"
-            >
-              <PencilIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => window.electronAPI.openExternal(entry.path)}
-              className={BUTTON_CLZ_OPEN_EXTERNAL}
-              title="Open with system default"
-            >
-              <ArrowTopRightOnSquareIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleDeleteClick}
-              disabled={deleting}
-              className={BUTTON_CLZ_DELETE}
-              title="Delete"
-            >
-              <TrashIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleBookmarkClick}
-              className={BUTTON_CLZ_BOOKMARK}
-              title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
-            >
-              {isBookmarked ? (
-                <BookmarkSolidIcon className="w-5 h-5 text-blue-400" />
-              ) : (
-                <BookmarkOutlineIcon className="w-5 h-5" />
-              )}
-            </button>
-          </div>
+          <EntryActionBar
+            path={entry.path}
+            showInsertIcons={showInsertIcons}
+            nextOrdinalPrefix={nextOrdinalPrefix}
+            isBookmarked={isBookmarked}
+            deleting={del.deleting}
+            onRenameClick={rename.handleRenameClick}
+            onDeleteClick={del.handleDeleteClick}
+            onInsertFileBelow={onInsertFileBelow}
+            onInsertFolderBelow={onInsertFolderBelow}
+            onSaveSettings={onSaveSettings}
+          />
         )}
       </div>
 
@@ -389,11 +252,11 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
         />
       )}
 
-      {showDeleteConfirm && (
+      {del.showDeleteConfirm && (
         <ConfirmDialog
           message={`Are you sure you want to delete "${entry.name}"?`}
-          onConfirm={handleDeleteConfirm}
-          onCancel={handleDeleteCancel}
+          onConfirm={del.handleDeleteConfirm}
+          onCancel={del.handleDeleteCancel}
         />
       )}
     </div>
