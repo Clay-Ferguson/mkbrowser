@@ -3,7 +3,7 @@ import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, Doc
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, INSERT_FILE_BUTTON_CLASSES, INSERT_FOLDER_BUTTON_CLASSES, RENAME_BUTTON_CLASSES, OPEN_EXTERNAL_BUTTON_CLASSES, DELETE_BUTTON_CLASSES, BOOKMARK_BUTTON_CLASSES } from '../../utils/styles';
+import { CHECKBOX_CLASSES, RENAME_INPUT_CLASSES, BUTTON_CLZ_INSERT_FILE, BUTTON_CLZ_INSERT_FOLDER, BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../utils/styles';
 import {
   useItem,
   useHighlightItem,
@@ -284,14 +284,14 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
           <div className="flex items-center gap-1">
             <button
               onClick={handleEditClick}
-              className={RENAME_BUTTON_CLASSES}
+              className={BUTTON_CLZ_RENAME}
               title="Edit content"
             >
               <PencilSquareIcon className="w-5 h-5" />
             </button>
             <button
               onClick={handleRenameClick}
-              className={RENAME_BUTTON_CLASSES}
+              className={BUTTON_CLZ_RENAME}
               title="Rename"
             >
               <PencilIcon className="w-5 h-5" />
@@ -300,14 +300,14 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
               <>
                 <button
                   onClick={handleInsertFileBelow}
-                  className={INSERT_FILE_BUTTON_CLASSES}
+                  className={BUTTON_CLZ_INSERT_FILE}
                   title="Insert file below"
                 >
                   <DocumentPlusIcon className="w-5 h-5" />
                 </button>
                 <button
                   onClick={handleInsertFolderBelow}
-                  className={INSERT_FOLDER_BUTTON_CLASSES}
+                  className={BUTTON_CLZ_INSERT_FOLDER}
                   title="Insert folder below"
                 >
                   <FolderPlusIcon className="w-5 h-5" />
@@ -316,7 +316,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
             )}
             <button
               onClick={() => window.electronAPI.openExternal(entry.path)}
-              className={OPEN_EXTERNAL_BUTTON_CLASSES}
+              className={BUTTON_CLZ_OPEN_EXTERNAL}
               title="Open with system default"
             >
               <ArrowTopRightOnSquareIcon className="w-5 h-5" />
@@ -324,14 +324,14 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
             <button
               onClick={handleDeleteClick}
               disabled={deleting}
-              className={DELETE_BUTTON_CLASSES}
+              className={BUTTON_CLZ_DELETE}
               title="Delete"
             >
               <TrashIcon className="w-5 h-5" />
             </button>
             <button
               onClick={handleBookmarkClick}
-              className={BOOKMARK_BUTTON_CLASSES}
+              className={BUTTON_CLZ_BOOKMARK}
               title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
             >
               {isBookmarked ? (
