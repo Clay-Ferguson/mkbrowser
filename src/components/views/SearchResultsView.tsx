@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState } from 'react'; 
 import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import {
   setSearchResults,
   setHighlightItem,
+  setHighlightedSearchResult,
   navigateToBrowserPath,
   setPendingEditFile,
   setSearchResultsScrollPosition,
@@ -11,6 +12,7 @@ import {
   useSearchQuery,
   useSearchFolder,
   useSettings,
+  useHighlightedSearchResult,
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -24,6 +26,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const searchQuery = useSearchQuery();
   const searchFolder = useSearchFolder();
   const settings = useSettings();
+  const highlightedSearchResult = useHighlightedSearchResult();
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   
@@ -103,7 +106,10 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     xlarge: 'text-xl',
   }[settings.fontSize];
 
-  const handleResultClick = (resultPath: string) => {
+  const handleResultClick = (resultPath: string, lineNumber?: number) => {
+    // Track this as the highlighted search result
+    setHighlightedSearchResult({ path: resultPath, lineNumber });
+    
     // Extract the parent folder and file name from the result path
     const lastSlashIndex = resultPath.lastIndexOf('/');
     const folderPath = resultPath.substring(0, lastSlashIndex);
@@ -123,6 +129,13 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     if (lineText.includes('#p1')) return 'border-2 border-orange-500 hover:border-orange-400';
     if (lineText.includes('#p2')) return 'border-2 border-yellow-400 hover:border-yellow-300';
     return 'border border-slate-700 hover:border-slate-600';
+  };
+
+  // Helper function to check if a result is highlighted
+  const isHighlighted = (path: string, lineNumber?: number): boolean => {
+    if (!highlightedSearchResult) return false;
+    return highlightedSearchResult.path === path && 
+           highlightedSearchResult.lineNumber === lineNumber;
   };
 
   const handleDeleteClick = (e: React.MouseEvent, path: string) => {
@@ -215,12 +228,17 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             </div>
 
             {/* Results list */}
-            {sortedResults.map((result, index) => {              
+            {sortedResults.map((result, index) => {
+              const highlighted = isHighlighted(result.path, result.lineNumber);
+              const borderClass = highlighted 
+                ? 'border-2 border-purple-500' 
+                : getPriorityBorder(result.lineText);
+              
               return (
               <div
                 key={`${result.path}-${result.lineNumber || 0}-${index}`}
-                onClick={() => handleResultClick(result.path)}
-                className={`bg-slate-800 rounded-lg ${getPriorityBorder(result.lineText)} px-2 py-1.5 transition-colors cursor-pointer`}
+                onClick={() => handleResultClick(result.path, result.lineNumber)}
+                className={`bg-slate-800 rounded-lg ${borderClass} px-2 py-1.5 transition-colors cursor-pointer`}
               >
                 <div className="flex items-start gap-2">
                   {/* File icon */}

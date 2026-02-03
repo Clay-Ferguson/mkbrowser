@@ -15,6 +15,7 @@ export {
   clearItemGoToLine,
   setItemRenaming,
   setHighlightItem,
+  setHighlightedSearchResult,
   clearAllSelections,
   selectItemsByPaths,
   expandAllItems,
@@ -65,6 +66,7 @@ export {
   useSearchFolder,
   useSettings,
   useHighlightItem,
+  useHighlightedSearchResult,
   useExpansionCounts,
   useScrollPositions,
 } from './store';

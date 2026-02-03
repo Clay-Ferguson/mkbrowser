@@ -222,6 +222,12 @@ export interface AppState {
    * Browser view stores per-path positions, other views store a single position.
    */
   scrollPositions: ScrollPositions;
+
+  /**
+   * Path and line number of the highlighted search result.
+   * Used to highlight the result when returning to search results view.
+   */
+  highlightedSearchResult: { path: string; lineNumber?: number } | null;
 }
 
 /**

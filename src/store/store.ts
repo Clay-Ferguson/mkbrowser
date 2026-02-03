@@ -35,6 +35,7 @@ const initialState: AppState = {
     'search-results': 0,
     settings: 0,
   },
+  highlightedSearchResult: null,
 };
 
 /**
@@ -155,6 +156,13 @@ function getPendingEditLineNumberSnapshot(): number | null {
  */
 function getScrollPositionsSnapshot(): ScrollPositions {
   return state.scrollPositions;
+}
+
+/**
+ * Get snapshot of highlighted search result
+ */
+function getHighlightedSearchResultSnapshot(): { path: string; lineNumber?: number } | null {
+  return state.highlightedSearchResult;
 }
 
 // ============================================================================
@@ -661,6 +669,14 @@ export function setHighlightItem(name: string | null): void {
 }
 
 /**
+ * Set the highlighted search result (for persistent highlighting)
+ */
+export function setHighlightedSearchResult(result: { path: string; lineNumber?: number } | null): void {
+  state = { ...state, highlightedSearchResult: result };
+  emitChange();
+}
+
+/**
  * Set the current view
  */
 export function setCurrentView(view: AppView): void {
@@ -1051,4 +1067,11 @@ export function usePendingEditLineNumber(): number | null {
  */
 export function useScrollPositions(): ScrollPositions {
   return useSyncExternalStore(subscribe, getScrollPositionsSnapshot);
+}
+
+/**
+ * Hook to subscribe to highlighted search result
+ */
+export function useHighlightedSearchResult(): { path: string; lineNumber?: number } | null {
+  return useSyncExternalStore(subscribe, getHighlightedSearchResultSnapshot);
 }
