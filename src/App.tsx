@@ -8,17 +8,6 @@ import FileEntryComponent from './components/entries/FileEntry';
 import ImageEntry from './components/entries/ImageEntry';
 import TextEntry from './components/entries/TextEntry'; 
 
-// Common image file extensions
-const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);
-
-function isImageFile(fileName: string): boolean {
-  const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
-  return IMAGE_EXTENSIONS.has(ext);
-}
-
-function isTextFile(fileName: string): boolean {
-  return fileName.toLowerCase().endsWith('.txt');
-}
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import ErrorDialog from './components/dialogs/ErrorDialog';
@@ -64,13 +53,14 @@ import {
   usePendingEditLineNumber,
   useSettings,
   useExpansionCounts,
-  type ItemData,
-  type SortOrder,
   type ContentWidth,
   type SearchDefinition,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
-import { splitFile, joinFiles } from './utils/editUtil';
+import { pasteCutItems, deleteSelectedItems, moveFileToFolder, performSplitFile, performJoinFiles } from './edit';
+import { pasteFromClipboard } from './utils/clipboard';
+import { isImageFile, isTextFile, sortEntries } from './utils/fileUtils';
+import { loadConfig } from './config';
 
 /**
  * Get Tailwind classes for content width based on setting
@@ -87,53 +77,6 @@ function getContentWidthClasses(contentWidth: ContentWidth): string {
       return 'px-4';
     default:
       return 'max-w-4xl mx-auto px-4';
-  }
-}
-
-/**
- * Apply sort comparison based on the selected sort order.
- */
-function compareByOrder(a: FileEntry, b: FileEntry, sortOrder: SortOrder): number {
-  switch (sortOrder) {
-    case 'alphabetical':
-      return a.name.localeCompare(b.name);
-    case 'created-chron':
-      // Older files first (ascending)
-      return a.createdTime - b.createdTime;
-    case 'created-reverse':
-      // Newer files first (descending)
-      return b.createdTime - a.createdTime;
-    case 'modified-chron':
-      // Older modifications first (ascending)
-      return a.modifiedTime - b.modifiedTime;
-    case 'modified-reverse':
-      // More recently modified first (descending)
-      return b.modifiedTime - a.modifiedTime;
-    default:
-      return a.name.localeCompare(b.name);
-  }
-}
-
-/**
- * Sort entries based on the selected sort order and foldersOnTop preference.
- * When foldersOnTop is true, directories are sorted first, then files.
- * When false, all items are sorted together.
- */
-function sortEntries(entries: FileEntry[], sortOrder: SortOrder, foldersOnTop: boolean): FileEntry[] {
-  if (foldersOnTop) {
-    // Separate folders and files
-    const folders = entries.filter(e => e.isDirectory);
-    const files = entries.filter(e => !e.isDirectory);
-
-    // Sort each list independently
-    folders.sort((a, b) => compareByOrder(a, b, sortOrder));
-    files.sort((a, b) => compareByOrder(a, b, sortOrder));
-
-    // Merge: folders first, then files
-    return [...folders, ...files];
-  } else {
-    // Sort all items together
-    return [...entries].sort((a, b) => compareByOrder(a, b, sortOrder));
   }
 }
 
@@ -185,30 +128,18 @@ function App() {
 
   // Load initial configuration
   useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const config = await window.electronAPI.getConfig();
-        // Load settings from config into store (only once at startup)
-        if (config.settings) {
-          setSettings(config.settings);
-        }
-        if (config.browseFolder) {
-          const exists = await window.electronAPI.pathExists(config.browseFolder);
-          if (exists) {
-            setRootPath(config.browseFolder);
-            setCurrentPath(config.browseFolder);
-          } else {
-            setLoading(false);
-          }
-        } else {
-          setLoading(false);
-        }
-      } catch (err) {
-        setError('Failed to load configuration');
+    const initConfig = async () => {
+      const result = await loadConfig();
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+      } else if (result.rootPath) {
+        setRootPath(result.rootPath);
+      } else {
         setLoading(false);
       }
     };
-    loadConfig();
+    initConfig();
   }, []);
 
   // Listen for folder changes from the application menu
@@ -389,32 +320,7 @@ function App() {
     loadDirectory(false);
   }, [loadDirectory]);
 
-  const findPasteDuplicates = useCallback(async (cutItems: ItemData[]) => {
-    if (!currentPath) return [] as string[];
-
-    const duplicateNames = await Promise.all(
-      cutItems.map(async (item) => {
-        const destinationPath = `${currentPath}/${item.name}`;
-        const exists = await window.electronAPI.pathExists(destinationPath);
-        return exists ? item.name : null;
-      })
-    );
-
-    return duplicateNames.filter((name): name is string => Boolean(name));
-  }, [currentPath]);
-
-  const findCutItemsFromDifferentFolders = useCallback((cutItems: ItemData[]) => {
-    if (cutItems.length === 0) return [] as string[];
-
-    const getParentPath = (path: string) => path.substring(0, path.lastIndexOf('/'));
-    const baseFolder = getParentPath(cutItems[0].path);
-
-    return cutItems
-      .filter((item) => getParentPath(item.path) !== baseFolder)
-      .map((item) => item.name);
-  }, []);
-
-  const pasteCutItems = useCallback(async () => {
+  const doPasteCutItems = useCallback(async () => {
     if (!currentPath) return;
 
     const cutItems = Array.from(items.values()).filter((item) => item.isCut);
@@ -422,53 +328,37 @@ function App() {
 
     setError(null);
 
-    const getParentPath = (path: string) => path.substring(0, path.lastIndexOf('/'));
-    const sourceFolder = getParentPath(cutItems[0].path);
-    if (sourceFolder === currentPath) {
-      setError('Cannot paste. Cut items are already in this folder.');
-      return;
-    }
+    const result = await pasteCutItems(
+      cutItems,
+      currentPath,
+      window.electronAPI.pathExists,
+      window.electronAPI.renameFile
+    );
 
-    const crossFolderItems = findCutItemsFromDifferentFolders(cutItems);
-    if (crossFolderItems.length > 0) {
-      setError(`Cannot paste. Cut items must come from the same folder: ${crossFolderItems.join(', ')}`);
+    if (!result.success) {
+      setError(result.error || 'Failed to paste items');
       return;
-    }
-
-    const duplicates = await findPasteDuplicates(cutItems);
-    if (duplicates.length > 0) {
-      setError(`Cannot paste. These items already exist: ${duplicates.join(', ')}`);
-      return;
-    }
-
-    for (const item of cutItems) {
-      const destinationPath = `${currentPath}/${item.name}`;
-      const success = await window.electronAPI.renameFile(item.path, destinationPath);
-      if (!success) {
-        setError(`Failed to move ${item.name}`);
-        return;
-      }
     }
 
     // If pasting a single item, scroll to it in the new location
-    if (cutItems.length === 1) {
-      setPendingScrollToFile(cutItems[0].name);
+    if (result.pastedItemName) {
+      setPendingScrollToFile(result.pastedItemName);
     }
 
     clearCache();
     refreshDirectory();
-  }, [currentPath, items, refreshDirectory, findPasteDuplicates, findCutItemsFromDifferentFolders]);
+  }, [currentPath, items, refreshDirectory]);
 
   // Listen for Paste menu action
   useEffect(() => {
     const unsubscribe = window.electronAPI.onPasteRequested(() => {
-      void pasteCutItems();
+      void doPasteCutItems();
     });
 
     return () => {
       unsubscribe();
     };
-  }, [pasteCutItems]);
+  }, [doPasteCutItems]);
 
   // Get selected items for delete operation
   const getSelectedItems = useCallback(() => {
@@ -482,20 +372,15 @@ function App() {
 
     setShowDeleteConfirm(false);
 
-    // Delete each selected item from the filesystem
-    const pathsToDelete: string[] = [];
-    for (const item of selectedItems) {
-      const success = await window.electronAPI.deleteFile(item.path);
-      if (success) {
-        pathsToDelete.push(item.path);
-      } else {
-        setError(`Failed to delete ${item.name}`);
-      }
+    const result = await deleteSelectedItems(selectedItems, window.electronAPI.deleteFile);
+
+    if (!result.success && result.failedItem) {
+      setError(`Failed to delete ${result.failedItem}`);
     }
 
     // Remove successfully deleted items from the store
-    if (pathsToDelete.length > 0) {
-      deleteItems(pathsToDelete);
+    if (result.deletedPaths.length > 0) {
+      deleteItems(result.deletedPaths);
       clearCache();
       refreshDirectory();
     }
@@ -564,33 +449,17 @@ function App() {
       return;
     }
 
-    // Get the file name without extension to use as folder name
-    const fileName = selectedItem.name;
-    const lastDotIndex = fileName.lastIndexOf('.');
-    const folderName = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName;
+    const result = await moveFileToFolder(
+      selectedItem.path,
+      selectedItem.name,
+      currentPath,
+      window.electronAPI.pathExists,
+      window.electronAPI.createFolder,
+      window.electronAPI.renameFile
+    );
 
-    // Build the new folder path in the current directory
-    const newFolderPath = `${currentPath}/${folderName}`;
-
-    // Check if folder already exists
-    const folderExists = await window.electronAPI.pathExists(newFolderPath);
-    if (folderExists) {
-      setError(`A file/folder named "${folderName}" already exists in this directory.`);
-      return;
-    }
-
-    // Create the new folder
-    const folderCreated = await window.electronAPI.createFolder(newFolderPath);
-    if (!folderCreated) {
-      setError(`Failed to create folder "${folderName}".`);
-      return;
-    }
-
-    // Move the file into the new folder
-    const newFilePath = `${newFolderPath}/${fileName}`;
-    const moveSuccess = await window.electronAPI.renameFile(selectedItem.path, newFilePath);
-    if (!moveSuccess) {
-      setError(`Failed to move "${fileName}" into the new folder.`);
+    if (!result.success) {
+      setError(result.error || 'Failed to move file to folder.');
       return;
     }
 
@@ -617,36 +486,8 @@ function App() {
   const handleSplitFile = useCallback(async () => {
     if (!currentPath) return;
 
-    const selectedItems = getSelectedItems();
-
-    // Check that exactly one item is selected
-    if (selectedItems.length === 0) {
-      setError('Please select a file to split.');
-      return;
-    }
-    if (selectedItems.length > 1) {
-      setError('Please select only one file for "Split".');
-      return;
-    }
-
-    const selectedItem = selectedItems[0];
-
-    // Check that the selected item is a file, not a folder
-    if (selectedItem.isDirectory) {
-      setError('Cannot split a folder. Please select a text or markdown file.');
-      return;
-    }
-
-    // Check that the file is a .txt or .md file
-    const fileName = selectedItem.name.toLowerCase();
-    if (!fileName.endsWith('.txt') && !fileName.endsWith('.md')) {
-      setError('Split is only available for text (.txt) and markdown (.md) files.');
-      return;
-    }
-
-    // Perform the split operation
-    const result = await splitFile(
-      selectedItem.path,
+    const result = await performSplitFile(
+      getSelectedItems(),
       window.electronAPI.readFile,
       window.electronAPI.writeFile,
       window.electronAPI.createFile,
@@ -678,33 +519,8 @@ function App() {
   const handleJoinFiles = useCallback(async () => {
     if (!currentPath) return;
 
-    const selectedItems = getSelectedItems();
-
-    // Check that multiple items are selected
-    if (selectedItems.length < 2) {
-      setError('Please select at least two files to join.');
-      return;
-    }
-
-    // Check that all selected items are files (not folders) and are .txt or .md files
-    for (const item of selectedItems) {
-      if (item.isDirectory) {
-        setError(`Cannot join folders. "${item.name}" is a folder.`);
-        return;
-      }
-      const fileName = item.name.toLowerCase();
-      if (!fileName.endsWith('.txt') && !fileName.endsWith('.md')) {
-        setError(`Join is only available for text (.txt) and markdown (.md) files. "${item.name}" is not supported.`);
-        return;
-      }
-    }
-
-    // Get the file paths
-    const filePaths = selectedItems.map(item => item.path);
-
-    // Perform the join operation
-    const result = await joinFiles(
-      filePaths,
+    const result = await performJoinFiles(
+      getSelectedItems(),
       window.electronAPI.readFile,
       window.electronAPI.writeFile,
       window.electronAPI.deleteFile,
@@ -1224,105 +1040,28 @@ function App() {
     void handleSaveSettings();
   }, [currentPath, handleSaveSettings]);
 
-  // Generate timestamp-based filename
-  const generateTimestampFilename = useCallback((extension: string) => {
-    const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}--${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-    return `${timestamp}${extension}`;
-  }, []);
-
   // Paste from clipboard handler
   const handlePasteFromClipboard = useCallback(async () => {
     if (!currentPath) return;
 
-    try {
-      // Try to read clipboard items (modern Clipboard API)
-      const clipboardItems = await navigator.clipboard.read();
-      
-      for (const item of clipboardItems) {
-        // Check for image types first
-        const imageType = item.types.find(type => type.startsWith('image/'));
-        if (imageType) {
-          const blob = await item.getType(imageType);
-          const arrayBuffer = await blob.arrayBuffer();
-          const base64 = btoa(
-            new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-          );
-          
-          // Determine extension from MIME type (clipboard images are typically PNG)
-          let ext = '.png';
-          if (imageType === 'image/jpeg') ext = '.jpg';
-          else if (imageType === 'image/gif') ext = '.gif';
-          else if (imageType === 'image/webp') ext = '.webp';
-          
-          const fileName = generateTimestampFilename(ext);
-          const filePath = `${currentPath}/${fileName}`;
-          
-          const success = await window.electronAPI.writeFileBinary(filePath, base64);
-          if (success) {
-            setPendingScrollToFile(fileName);
-            refreshDirectory();
-            // Set expanded after refresh
-            setTimeout(() => {
-              setItemExpanded(filePath, true);
-            }, 200);
-          } else {
-            setError('Failed to paste image from clipboard');
-          }
-          return;
-        }
-        
-        // Check for text
-        if (item.types.includes('text/plain')) {
-          const blob = await item.getType('text/plain');
-          const text = await blob.text();
-          
-          const fileName = generateTimestampFilename('.md');
-          const filePath = `${currentPath}/${fileName}`;
-          
-          const success = await window.electronAPI.writeFile(filePath, text);
-          if (success) {
-            setPendingScrollToFile(fileName);
-            refreshDirectory();
-            // Set expanded after refresh
-            setTimeout(() => {
-              setItemExpanded(filePath, true);
-            }, 200);
-          } else {
-            setError('Failed to paste text from clipboard');
-          }
-          return;
-        }
-      }
-      
-      setError('Clipboard is empty or contains unsupported content');
-    } catch (err) {
-      // Fallback to older clipboard API for text
-      try {
-        const text = await navigator.clipboard.readText();
-        if (text) {
-          const fileName = generateTimestampFilename('.md');
-          const filePath = `${currentPath}/${fileName}`;
-          
-          const success = await window.electronAPI.writeFile(filePath, text);
-          if (success) {
-            setPendingScrollToFile(fileName);
-            refreshDirectory();
-            setTimeout(() => {
-              setItemExpanded(filePath, true);
-            }, 200);
-          } else {
-            setError('Failed to paste text from clipboard');
-          }
-        } else {
-          setError('Clipboard is empty');
-        }
-      } catch {
-        setError('Unable to read clipboard. Please ensure clipboard access is allowed.');
-      }
+    const result = await pasteFromClipboard(
+      currentPath,
+      window.electronAPI.writeFileBinary,
+      window.electronAPI.writeFile
+    );
+
+    if (result.success && result.fileName) {
+      const filePath = `${currentPath}/${result.fileName}`;
+      setPendingScrollToFile(result.fileName);
+      refreshDirectory();
+      // Set expanded after refresh
+      setTimeout(() => {
+        setItemExpanded(filePath, true);
+      }, 200);
+    } else if (result.error) {
+      setError(result.error);
     }
-  }, [currentPath, generateTimestampFilename, refreshDirectory]);
+  }, [currentPath, refreshDirectory]);
 
   // Navigate to a subdirectory
   const navigateTo = useCallback((path: string) => {
@@ -1447,7 +1186,7 @@ function App() {
               {/* Paste button - shown when items are cut */}
               {hasCutItems && (
                 <button
-                  onClick={() => void pasteCutItems()}
+                  onClick={() => void doPasteCutItems()}
                   className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                   title="Paste cut items"
                 >

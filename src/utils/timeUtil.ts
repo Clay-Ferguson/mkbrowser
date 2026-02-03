@@ -120,8 +120,6 @@ export function today(timestamp: number): boolean {
   );
 }
 
-// todo-0: I think we have multiple places where this function is duplicated. Refactor into a shared utility.
-// Format current date as MM/DD/YY
 export function formatDate(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
