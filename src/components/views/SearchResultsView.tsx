@@ -88,23 +88,22 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   // console.log('Search results:', searchResults);
   // console.log('First result:', searchResults[0]);
 
-  // Check if any result has a non-zero foundTime
-  const hasFoundTimes = searchResults.some(r => r.foundTime && r.foundTime > 0);
-  // console.log('Has found times:', hasFoundTimes);
-
-  // Sort results by foundTime if any result has it, otherwise by the selected sort option
-  const sortedResults = hasFoundTimes
-    ? [...searchResults].sort((a, b) => {
-        const timeA = a.foundTime || 0;
-        const timeB = b.foundTime || 0;
-        return timeA - timeB; // Chronological order (oldest first)
-      })
-    : [...searchResults].sort((a, b) => {
-        const timeField = searchSortBy === 'created-time' ? 'createdTime' : 'modifiedTime';
-        const timeA = a[timeField] || 0;
-        const timeB = b[timeField] || 0;
-        return searchSortDirection === 'asc' ? timeA - timeB : timeB - timeA;
-      });
+  // Sort results based on the selected sort option and direction
+  const sortedResults = [...searchResults].sort((a, b) => {
+    let timeA: number;
+    let timeB: number;
+    if (searchSortBy === 'line-time') {
+      timeA = a.foundTime || 0;
+      timeB = b.foundTime || 0;
+    } else if (searchSortBy === 'created-time') {
+      timeA = a.createdTime || 0;
+      timeB = b.createdTime || 0;
+    } else {
+      timeA = a.modifiedTime || 0;
+      timeB = b.modifiedTime || 0;
+    }
+    return searchSortDirection === 'asc' ? timeA - timeB : timeB - timeA;
+  });
   // console.log('Sorted results:', sortedResults);
 
   // Font size CSS class mapping
@@ -235,11 +234,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             {/* Results count */}
             <div className="text-sm text-slate-500 mb-4">
               {searchResults.length} file{searchResults.length !== 1 ? 's' : ''} found
-              {hasFoundTimes ? (
-                <span className="ml-2 text-blue-400 font-medium">• Sorted by Time</span>
-              ) : (
-                <span className="ml-2 text-slate-500">• Sorted by {searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortDirection === 'asc' ? 'oldest first' : 'newest first'})</span>
-              )}
+              <span className="ml-2 text-slate-500">
+                • Sorted by {searchSortBy === 'line-time' ? 'time on line' : searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortDirection === 'asc' ? 'oldest first' : 'newest first'})
+              </span>
             </div>
 
             {/* Results list */}

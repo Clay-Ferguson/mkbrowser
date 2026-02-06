@@ -7,6 +7,8 @@ export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchBlock = 'entire-file' | 'file-lines';
+export type SearchSortBy = 'modified-time' | 'created-time' | 'line-time';
+export type SearchSortDirection = 'asc' | 'desc';
 
 export interface SearchDefinition {
   name: string;
@@ -14,6 +16,8 @@ export interface SearchDefinition {
   searchTarget: SearchMode;
   searchMode: SearchType;
   searchBlock: SearchBlock;
+  sortBy?: SearchSortBy;
+  sortDirection?: SearchSortDirection;
 }
 
 export interface AppSettings {

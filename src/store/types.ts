@@ -110,7 +110,7 @@ export type SearchBlock = 'entire-file' | 'file-lines';
 /**
  * Sort order for search results
  */
-export type SearchSortBy = 'modified-time' | 'created-time';
+export type SearchSortBy = 'modified-time' | 'created-time' | 'line-time';
 
 /**
  * Sort direction for search results (chronological ordering)
