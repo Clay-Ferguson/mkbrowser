@@ -627,7 +627,7 @@ function App() {
         definition.searchTarget,
         definition.searchBlock
       );
-      setSearchResults(results, definition.searchText, currentPath);
+      setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc');
       setCurrentView('search-results');
     });
 
@@ -646,6 +646,8 @@ function App() {
         searchType: definition.searchMode,
         searchMode: definition.searchTarget,
         searchBlock: definition.searchBlock,
+        sortBy: definition.sortBy,
+        sortDirection: definition.sortDirection,
       });
       setShowSearchDialog(true);
     });
@@ -861,6 +863,8 @@ function App() {
           searchTarget: options.searchMode,
           searchMode: options.searchType,
           searchBlock: options.searchBlock,
+          sortBy: options.sortBy,
+          sortDirection: options.sortDirection,
         };
         
         // Remove any existing search definition with the same name
@@ -896,7 +900,7 @@ function App() {
     const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
     
     const results = await window.electronAPI.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchBlock);
-    setSearchResults(results, options.query, currentPath);
+    setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection);
     setCurrentView('search-results');
   }, [currentPath]);
 
@@ -960,6 +964,8 @@ function App() {
         searchTarget: options.searchMode,
         searchMode: options.searchType,
         searchBlock: options.searchBlock,
+        sortBy: options.sortBy,
+        sortDirection: options.sortDirection,
       };
       
       // Remove any existing search definition with the same name

@@ -50,6 +50,8 @@ export interface SearchResult {
   lineNumber?: number; // 1-based line number (0 or undefined for entire file matches)
   lineText?: string; // The matching line text (only for line-by-line search)
   foundTime?: number; // Timestamp found by ts() function in advanced search (milliseconds since epoch)
+  modifiedTime?: number; // File modification timestamp (milliseconds since epoch)
+  createdTime?: number; // File creation timestamp (milliseconds since epoch)
 }
 
 export interface RenameOperation {

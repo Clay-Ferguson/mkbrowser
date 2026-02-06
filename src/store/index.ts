@@ -1,4 +1,4 @@
-export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchDefinition, ScrollPositions } from './types';
+export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, ScrollPositions } from './types';
 export type { ExpansionCounts } from './store';
 export { createItemData } from './types';
 
@@ -64,6 +64,8 @@ export {
   useSearchResults,
   useSearchQuery,
   useSearchFolder,
+  useSearchSortBy,
+  useSearchSortDirection,
   useSettings,
   useHighlightItem,
   useHighlightedSearchResult,

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, ScrollPositions } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions } from './types';
 import { createItemData } from './types';
 
 /**
@@ -26,6 +26,8 @@ const initialState: AppState = {
   searchQuery: '',
   searchFolder: '',
   searchResults: [],
+  searchSortBy: 'modified-time',
+  searchSortDirection: 'desc',
   settings: defaultSettings,
   highlightItem: null,
   pendingEditFile: null,
@@ -121,6 +123,20 @@ function getSearchQuerySnapshot(): string {
  */
 function getSearchFolderSnapshot(): string {
   return state.searchFolder;
+}
+
+/**
+ * Get snapshot of search sort by
+ */
+function getSearchSortBySnapshot(): SearchSortBy {
+  return state.searchSortBy;
+}
+
+/**
+ * Get snapshot of search sort direction
+ */
+function getSearchSortDirectionSnapshot(): SearchSortDirection {
+  return state.searchSortDirection;
 }
 
 /**
@@ -818,13 +834,17 @@ export function clearPendingEditFile(): void {
 export function setSearchResults(
   results: SearchResultItem[],
   query: string,
-  folder: string
+  folder: string,
+  sortBy?: SearchSortBy,
+  sortDirection?: SearchSortDirection
 ): void {
   state = {
     ...state,
     searchResults: results,
     searchQuery: query,
     searchFolder: folder,
+    ...(sortBy !== undefined && { searchSortBy: sortBy }),
+    ...(sortDirection !== undefined && { searchSortDirection: sortDirection }),
   };
   emitChange();
 }
@@ -838,6 +858,8 @@ export function clearSearchResults(): void {
     searchResults: [],
     searchQuery: '',
     searchFolder: '',
+    searchSortBy: 'modified-time',
+    searchSortDirection: 'desc',
   };
   emitChange();
 }
@@ -1033,6 +1055,20 @@ export function useSearchQuery(): string {
  */
 export function useSearchFolder(): string {
   return useSyncExternalStore(subscribe, getSearchFolderSnapshot);
+}
+
+/**
+ * Hook to subscribe to search sort by
+ */
+export function useSearchSortBy(): SearchSortBy {
+  return useSyncExternalStore(subscribe, getSearchSortBySnapshot);
+}
+
+/**
+ * Hook to subscribe to search sort direction
+ */
+export function useSearchSortDirection(): SearchSortDirection {
+  return useSyncExternalStore(subscribe, getSearchSortDirectionSnapshot);
 }
 
 /**

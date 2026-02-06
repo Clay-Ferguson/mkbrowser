@@ -6,6 +6,8 @@ import type { SearchDefinition } from '../../store/types';
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchBlock = 'entire-file' | 'file-lines';
+export type SearchSortBy = 'modified-time' | 'created-time';
+export type SearchSortDirection = 'asc' | 'desc';
 
 export interface SearchOptions {
   query: string;
@@ -13,6 +15,8 @@ export interface SearchOptions {
   searchMode: SearchMode;
   searchBlock: SearchBlock;
   searchName: string;
+  sortBy: SearchSortBy;
+  sortDirection: SearchSortDirection;
 }
 
 export interface SearchDialogInitialValues {
@@ -21,6 +25,8 @@ export interface SearchDialogInitialValues {
   searchType?: SearchType;
   searchMode?: SearchMode;
   searchBlock?: SearchBlock;
+  sortBy?: SearchSortBy;
+  sortDirection?: SearchSortDirection;
 }
 
 interface SearchDialogProps {
@@ -40,6 +46,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const [searchType, setSearchType] = useState<SearchType>(initialValues?.searchType || 'literal');
   const [searchMode, setSearchMode] = useState<SearchMode>(initialValues?.searchMode || 'content');
   const [searchBlock, setSearchBlock] = useState<SearchBlock>(initialValues?.searchBlock || 'entire-file');
+  const [sortBy, setSortBy] = useState<SearchSortBy>(initialValues?.sortBy || 'modified-time');
+  const [sortDirection, setSortDirection] = useState<SearchSortDirection>(initialValues?.sortDirection || 'desc');
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -61,6 +69,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
       setSearchType(selectedDef.searchMode);
       setSearchMode(selectedDef.searchTarget);
       setSearchBlock(selectedDef.searchBlock);
+      setSortBy(selectedDef.sortBy || 'modified-time');
+      setSortDirection(selectedDef.sortDirection || 'desc');
       // Adjust textarea height after loading content
       setTimeout(adjustTextareaHeight, 0);
     }
@@ -92,7 +102,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
     
-    onSearch({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim() });
+    onSearch({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection });
   };
 
   const handleSave = () => {
@@ -103,7 +113,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
     
-    onSave({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim() });
+    onSave({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -269,6 +279,32 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             </label>
           </div>
         </fieldset>
+
+        {/* Sort By and Direction dropdowns */}
+        <div className="flex gap-3 mb-3">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Sort Results By</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SearchSortBy)}
+              className="bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
+            >
+              <option value="modified-time">File Modification Time</option>
+              <option value="created-time">File Creation Time</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Direction</label>
+            <select
+              value={sortDirection}
+              onChange={(e) => setSortDirection(e.target.value as SearchSortDirection)}
+              className="bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
+            >
+              <option value="desc">DESC (newest first)</option>
+              <option value="asc">ASC (oldest first)</option>
+            </select>
+          </div>
+        </div>
 
         {error ? (
           <p className="text-xs text-red-400 mt-2">{error}</p>

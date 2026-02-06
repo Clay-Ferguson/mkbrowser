@@ -73,6 +73,8 @@ export interface SearchResultItem {
   lineNumber?: number; // 1-based line number (0 or undefined for entire file matches)
   lineText?: string; // The matching line text (only for line-by-line search)
   foundTime?: number; // Timestamp found by ts() function in advanced search (milliseconds since epoch)
+  modifiedTime?: number; // File modification timestamp (milliseconds since epoch)
+  createdTime?: number; // File creation timestamp (milliseconds since epoch)
 }
 
 /**
@@ -106,6 +108,16 @@ export type SearchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchBlock = 'entire-file' | 'file-lines';
 
 /**
+ * Sort order for search results
+ */
+export type SearchSortBy = 'modified-time' | 'created-time';
+
+/**
+ * Sort direction for search results (chronological ordering)
+ */
+export type SearchSortDirection = 'asc' | 'desc';
+
+/**
  * Saved search definition
  */
 export interface SearchDefinition {
@@ -119,6 +131,10 @@ export interface SearchDefinition {
   searchMode: SearchType;
   /** Search block: entire-file or file-lines */
   searchBlock: SearchBlock;
+  /** Sort order for search results */
+  sortBy: SearchSortBy;
+  /** Sort direction: ascending (oldest first) or descending (newest first) */
+  sortDirection: SearchSortDirection;
 }
 
 /**
@@ -194,6 +210,16 @@ export interface AppState {
    * Search results from the most recent search
    */
   searchResults: SearchResultItem[];
+
+  /**
+   * Sort order applied to the current search results
+   */
+  searchSortBy: SearchSortBy;
+
+  /**
+   * Sort direction applied to the current search results
+   */
+  searchSortDirection: SearchSortDirection;
 
   /**
    * Application settings (persisted to config file)

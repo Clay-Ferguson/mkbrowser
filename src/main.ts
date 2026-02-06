@@ -119,6 +119,8 @@ interface SearchResult {
   lineNumber?: number; // 1-based line number (0 or undefined for entire file matches)
   lineText?: string; // The matching line text (only for line-by-line search)
   foundTime?: number; // Timestamp found by ts() function in advanced search (milliseconds since epoch)
+  modifiedTime?: number; // File modification timestamp (milliseconds since epoch)
+  createdTime?: number; // File creation timestamp (milliseconds since epoch)
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -845,11 +847,21 @@ function setupIpcHandlers(): void {
           if (matches) {
             // Get relative path for cleaner display
             const relativePath = path.relative(folderPath, entryPath);
+            // Get file stat for modification and creation times
+            let modifiedTime: number | undefined;
+            let createdTime: number | undefined;
+            try {
+              const stat = await fs.promises.stat(entryPath);
+              modifiedTime = stat.mtimeMs;
+              createdTime = stat.birthtimeMs;
+            } catch { /* ignore stat errors */ }
             results.push({
               path: entryPath,
               relativePath,
               matchCount,
               ...(foundTime !== undefined && { foundTime }),
+              ...(modifiedTime !== undefined && { modifiedTime }),
+              ...(createdTime !== undefined && { createdTime }),
             });
           }
         }
@@ -879,6 +891,14 @@ function setupIpcHandlers(): void {
               // Line-by-line search: split content into lines and search each separately
               const lines = content.split(/\r?\n/); // Handle both Unix and Windows line endings
               const relativePath = path.relative(folderPath, filePath);
+              // Get file stat for modification and creation times
+              let modifiedTime: number | undefined;
+              let createdTime: number | undefined;
+              try {
+                const stat = await fs.promises.stat(filePath);
+                modifiedTime = stat.mtimeMs;
+                createdTime = stat.birthtimeMs;
+              } catch { /* ignore stat errors */ }
               
               for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
@@ -892,6 +912,8 @@ function setupIpcHandlers(): void {
                     lineNumber: i + 1, // 1-based line number
                     lineText: line,
                     ...(foundTime !== undefined && { foundTime }),
+                    ...(modifiedTime !== undefined && { modifiedTime }),
+                    ...(createdTime !== undefined && { createdTime }),
                   });
                 }
               }
@@ -902,12 +924,22 @@ function setupIpcHandlers(): void {
               if (matches) {
                 // Get relative path for cleaner display
                 const relativePath = path.relative(folderPath, filePath);
+                // Get file stat for modification and creation times
+                let modifiedTime: number | undefined;
+                let createdTime: number | undefined;
+                try {
+                  const fileStat = await fs.promises.stat(filePath);
+                  modifiedTime = fileStat.mtimeMs;
+                  createdTime = fileStat.birthtimeMs;
+                } catch { /* ignore stat errors */ }
                 console.log(`[DEBUG] Found match in ${relativePath}: matchCount=${matchCount}, foundTime=${foundTime}`);
                 results.push({
                   path: filePath,
                   relativePath,
                   matchCount,
                   ...(foundTime !== undefined && { foundTime }),
+                  ...(modifiedTime !== undefined && { modifiedTime }),
+                  ...(createdTime !== undefined && { createdTime }),
                 });
               }
             }
