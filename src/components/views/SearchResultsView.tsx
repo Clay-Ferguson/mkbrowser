@@ -114,6 +114,10 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     const lastSlashIndex = resultPath.lastIndexOf('/');
     const folderPath = resultPath.substring(0, lastSlashIndex);
     const fileName = resultPath.substring(lastSlashIndex + 1);
+    
+    // Highlight the item in the browser view with purple border
+    setHighlightItem(fileName);
+    
     onNavigateToResult(folderPath, fileName);
   };
 
