@@ -639,6 +639,7 @@ function App() {
   // Listen for edit search definition from menu (Ctrl+click) - open SearchDialog with definition pre-filled
   useEffect(() => {
     const unsubscribe = window.electronAPI.onEditSearchDefinition((definition) => {
+      setCurrentView('browser');
       // Populate the SearchDialog with the definition's values
       setSearchDialogInitialValues({
         searchQuery: definition.searchText,
