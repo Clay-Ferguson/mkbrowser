@@ -112,25 +112,25 @@ Already implemented in `tests/search.test.ts`. Included here for completeness.
 
 ### 5a. Literal file-lines
 
-- [ ] Returns individual line results with `lineNumber` and `lineText`
-- [ ] `TARGET_WORD` in known-lines.md: results on lines 2 and 4 specifically
-- [ ] `lineNumber` is 1-based
-- [ ] `lineText` contains the full text of the matching line
-- [ ] Multiple results from the same file have the same `path` and `relativePath`
-- [ ] matchCount per line reflects occurrences on that single line
-- [ ] `FIND_ME` on line 2 of multi-per-line.md has matchCount=2 (appears twice)
-- [ ] `FIND_ME` on line 4 of multi-per-line.md has matchCount=1
-- [ ] Non-matching lines are excluded from results
+- [x] Returns individual line results with `lineNumber` and `lineText`
+- [x] `TARGET_WORD` in known-lines.md: results on lines 2 and 4 specifically
+- [x] `lineNumber` is 1-based
+- [x] `lineText` contains the full text of the matching line
+- [x] Multiple results from the same file have the same `path` and `relativePath`
+- [x] matchCount per line reflects occurrences on that single line
+- [x] `FIND_ME` on line 2 of multi-per-line.md has matchCount=2 (appears twice)
+- [x] `FIND_ME` on line 4 of multi-per-line.md has matchCount=1
+- [x] Non-matching lines are excluded from results
 
 ### 5b. Wildcard file-lines
 
-- [ ] Wildcard pattern applied per-line rather than whole file
-- [ ] Line results include lineNumber and lineText
+- [x] Wildcard pattern applied per-line rather than whole file
+- [x] Line results include lineNumber and lineText
 
 ### 5c. Advanced file-lines
 
-- [ ] `$()` operates on each individual line, not the whole file
-- [ ] Timestamp extraction per-line: only lines containing a date will have `foundTime`
+- [x] `$()` operates on each individual line, not the whole file
+- [x] Timestamp extraction per-line: only lines containing a date will have `foundTime`
 
 ---
 

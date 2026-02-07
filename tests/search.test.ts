@@ -588,3 +588,180 @@ describe('filename search', () => {
     });
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// 5. File-Lines Mode (searchBlock='file-lines')
+// ═══════════════════════════════════════════════════════════════════
+describe('file-lines mode', () => {
+
+  // ── 5a. Literal file-lines ──────────────────────────────────────
+  describe('literal file-lines', () => {
+    it('returns individual line results with lineNumber and lineText', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'TARGET_WORD', 'literal', 'content', 'file-lines');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      for (const r of results) {
+        expect(r.lineNumber).toBeDefined();
+        expect(typeof r.lineNumber).toBe('number');
+        expect(r.lineText).toBeDefined();
+        expect(typeof r.lineText).toBe('string');
+      }
+    });
+
+    it('TARGET_WORD in known-lines.md: results on lines 2 and 4 specifically', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'TARGET_WORD', 'literal', 'content', 'file-lines');
+      const knownLineResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'known-lines.md')
+      );
+      expect(knownLineResults).toHaveLength(2);
+      const lineNumbers = knownLineResults.map(r => r.lineNumber).sort();
+      expect(lineNumbers).toEqual([2, 4]);
+    });
+
+    it('lineNumber is 1-based', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'TARGET_WORD', 'literal', 'content', 'file-lines');
+      const knownLineResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'known-lines.md')
+      );
+      // Lines 2 and 4 — both ≥ 1, confirming 1-based indexing
+      for (const r of knownLineResults) {
+        expect(r.lineNumber).toBeGreaterThanOrEqual(1);
+      }
+      expect(knownLineResults.map(r => r.lineNumber).sort()).toEqual([2, 4]);
+    });
+
+    it('lineText contains the full text of the matching line', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'TARGET_WORD', 'literal', 'content', 'file-lines');
+      const knownLineResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'known-lines.md')
+      );
+      const line2 = knownLineResults.find(r => r.lineNumber === 2);
+      expect(line2).toBeDefined();
+      expect(line2!.lineText).toBe('Line two contains TARGET_WORD here.');
+
+      const line4 = knownLineResults.find(r => r.lineNumber === 4);
+      expect(line4).toBeDefined();
+      expect(line4!.lineText).toBe('Line four also has TARGET_WORD in it.');
+    });
+
+    it('multiple results from the same file have the same path and relativePath', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'TARGET_WORD', 'literal', 'content', 'file-lines');
+      const knownLineResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'known-lines.md')
+      );
+      expect(knownLineResults).toHaveLength(2);
+      expect(knownLineResults[0].path).toBe(knownLineResults[1].path);
+      expect(knownLineResults[0].relativePath).toBe(knownLineResults[1].relativePath);
+    });
+
+    it('matchCount per line reflects occurrences on that single line', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'TARGET_WORD', 'literal', 'content', 'file-lines');
+      const knownLineResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'known-lines.md')
+      );
+      // Each matching line has exactly 1 occurrence of TARGET_WORD
+      for (const r of knownLineResults) {
+        expect(r.matchCount).toBe(1);
+      }
+    });
+
+    it('FIND_ME on line 2 of multi-per-line.md has matchCount=2', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'FIND_ME', 'literal', 'content', 'file-lines');
+      const multiResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'multi-per-line.md')
+      );
+      const line2 = multiResults.find(r => r.lineNumber === 2);
+      expect(line2).toBeDefined();
+      expect(line2!.matchCount).toBe(2);
+    });
+
+    it('FIND_ME on line 4 of multi-per-line.md has matchCount=1', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'FIND_ME', 'literal', 'content', 'file-lines');
+      const multiResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'multi-per-line.md')
+      );
+      const line4 = multiResults.find(r => r.lineNumber === 4);
+      expect(line4).toBeDefined();
+      expect(line4!.matchCount).toBe(1);
+    });
+
+    it('non-matching lines are excluded from results', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'TARGET_WORD', 'literal', 'content', 'file-lines');
+      const knownLineResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'known-lines.md')
+      );
+      // Only lines 2 and 4 match; lines 1, 3, 5 should not appear
+      const lineNumbers = knownLineResults.map(r => r.lineNumber);
+      expect(lineNumbers).not.toContain(1);
+      expect(lineNumbers).not.toContain(3);
+      expect(lineNumbers).not.toContain(5);
+    });
+  });
+
+  // ── 5b. Wildcard file-lines ─────────────────────────────────────
+  describe('wildcard file-lines', () => {
+    it('wildcard pattern applied per-line rather than whole file', async () => {
+      // TARGET*WORD matches "TARGET_WORD" (underscore fills the wildcard gap)
+      const results = await searchFolder(TEST_DATA_DIR, 'TARGET*WORD', 'wildcard', 'content', 'file-lines');
+      const knownLineResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'known-lines.md')
+      );
+      // Should match lines 2 and 4 individually, not the whole file as one result
+      expect(knownLineResults).toHaveLength(2);
+      const lineNumbers = knownLineResults.map(r => r.lineNumber).sort();
+      expect(lineNumbers).toEqual([2, 4]);
+    });
+
+    it('line results include lineNumber and lineText', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'FIND*ME', 'wildcard', 'content', 'file-lines');
+      const multiResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'multi-per-line.md')
+      );
+      expect(multiResults.length).toBeGreaterThanOrEqual(1);
+      for (const r of multiResults) {
+        expect(r.lineNumber).toBeDefined();
+        expect(typeof r.lineNumber).toBe('number');
+        expect(r.lineText).toBeDefined();
+        expect(typeof r.lineText).toBe('string');
+      }
+    });
+  });
+
+  // ── 5c. Advanced file-lines ─────────────────────────────────────
+  describe('advanced file-lines', () => {
+    it('$() operates on each individual line, not the whole file', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, "$('TARGET_WORD')", 'advanced', 'content', 'file-lines');
+      const knownLineResults = results.filter(
+        r => r.relativePath === rel('line-numbers', 'known-lines.md')
+      );
+      // Only lines 2 and 4 contain TARGET_WORD; whole-file mode would return 1 result
+      expect(knownLineResults).toHaveLength(2);
+      const lineNumbers = knownLineResults.map(r => r.lineNumber).sort();
+      expect(lineNumbers).toEqual([2, 4]);
+    });
+
+    it('timestamp extraction per-line: only lines containing a date will have foundTime', async () => {
+      // entry-2026-01-15.md content per line:
+      //   Line 1: "# Journal Entry"
+      //   Line 2: "01/15/2026 9:30 AM"
+      //   Line 3: ""
+      //   Line 4+: text about search feature
+      // Using `true` expression so every line matches, but only line 2 has a timestamp.
+      const results = await searchFolder(TEST_DATA_DIR, 'true', 'advanced', 'content', 'file-lines');
+      const entryLines = results.filter(
+        r => r.relativePath === rel('journal', 'entry-2026-01-15.md')
+      );
+      expect(entryLines.length).toBeGreaterThanOrEqual(2);
+
+      // Line 2 has the date "01/15/2026 9:30 AM" → foundTime should be set
+      const line2 = entryLines.find(r => r.lineNumber === 2);
+      expect(line2).toBeDefined();
+      expect(line2!.foundTime).toBeDefined();
+      expect(line2!.foundTime).toBeGreaterThan(0);
+
+      // Lines without dates should NOT have foundTime
+      const line1 = entryLines.find(r => r.lineNumber === 1);
+      expect(line1).toBeDefined();
+      expect(line1!.foundTime).toBeUndefined();
+    });
+  });
+});
