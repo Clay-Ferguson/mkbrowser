@@ -1,7 +1,7 @@
 /**
  * Test fixture setup for search tests.
  *
- * Creates ~50 .md and .txt files under <projectRoot>/test-data/ with varied content.
+ * Creates ~60 .md and .txt files under <projectRoot>/test-data/ with varied content.
  * The entire test-data/ directory is wiped and rebuilt before the suite runs.
  * Tests MUST NOT modify these files — they are read-only fixtures.
  */
@@ -14,6 +14,21 @@ export const TEST_DATA_DIR = path.resolve(__dirname, '..', '..', 'test-data');
 /** Convenience: build the expected relative path for assertions */
 export function rel(...segments: string[]): string {
   return segments.join(path.sep);
+}
+
+/**
+ * Format a Date as MM/DD/YYYY HH:MM AM/PM (matching extractTimestamp's expected format).
+ */
+function formatDateForFixture(d: Date): string {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  let h = d.getHours();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  const hh = String(h).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${mm}/${dd}/${yyyy} ${hh}:${min} ${ampm}`;
 }
 
 // ─── File definitions ────────────────────────────────────────────────
@@ -432,6 +447,73 @@ Nothing interesting to find here.
   ['images/photo.jpg', 'FAKE_BINARY_DATA_NOT_REAL_IMAGE'],
   ['data/config.json', '{"key": "value", "search": "should not appear"}'],
   ['data/settings.yaml', 'search_term: should_not_appear_in_results\n'],
+
+  // ── wildcard-testing/ subfolder ──────────────────────────────────
+  ['wildcard-testing/hello-world.md', `# Hello World
+
+This is a hello world example file.
+hello_world and helloWorld are naming conventions.
+`],
+
+  ['wildcard-testing/help-wanted.md', `# Help Wanted
+
+Looking for contributors to help with testing.
+Any help is appreciated.
+`],
+
+  ['wildcard-testing/hero-banner.md', `# Hero Banner
+
+The hero section displays a large banner image.
+Heroes of open source contribute daily.
+`],
+
+  ['wildcard-testing/boundaries.md', `# Boundary Tests
+
+StartMARKEREnd appears as one word.
+MARKER is also standalone on this line.
+PrefixMARKER and MARKERSuffix test boundaries.
+ALPHA_1234567890_1234567890_12345_OMEGA on this line the gap exceeds twenty five characters.
+`],
+
+  ['wildcard-testing/multi-wildcard.md', `# Multi Wildcard
+
+The cat sat on the mat.
+The car drove past the bar.
+A dog and a log in the fog.
+`],
+
+  // ── line-numbers/ subfolder (for file-lines mode testing) ────────
+  ['line-numbers/known-lines.md', `Line one has nothing special.
+Line two contains TARGET_WORD here.
+Line three is plain text.
+Line four also has TARGET_WORD in it.
+Line five is the last line.`],
+
+  ['line-numbers/multi-per-line.md', `No matches on line one.
+FIND_ME and FIND_ME appear twice on line two.
+Line three says hello.
+FIND_ME shows up once on line four.
+Empty line follows.
+`],
+
+  // ── ignored-test/ subfolder (for ignoredPaths testing) ───────────
+  ['ignored-test/visible-file.md', `# Visible File
+
+This file should appear in search results.
+It contains the word IGNORED_TEST_MARKER.
+`],
+
+  ['ignored-test/skipme/hidden-file.md', `# Hidden File
+
+This file is inside the skipme folder.
+It also contains IGNORED_TEST_MARKER but should be excluded.
+`],
+
+  ['ignored-test/also-skip.md', `# Also Skip
+
+This file should be excluded by name pattern.
+IGNORED_TEST_MARKER is here too.
+`],
 ];
 
 /**
@@ -444,13 +526,43 @@ export async function setupTestData(): Promise<void> {
     fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
   }
 
-  // Create all files
+  // Create all static files
   for (const [relativePath, content] of FILES) {
     const fullPath = path.join(TEST_DATA_DIR, relativePath);
     const dir = path.dirname(fullPath);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(fullPath, content, 'utf-8');
   }
+
+  // Create dynamic timestamp files (dates relative to "now")
+  const now = new Date();
+
+  const todayDate = formatDateForFixture(now);
+  writeFixture('journal/entry-today.md', `# Today's Entry\n${todayDate}\n\nThis entry was created today.\nTODAY_MARKER is here for identification.\n`);
+
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const tomorrowDate = formatDateForFixture(tomorrow);
+  writeFixture('journal/entry-tomorrow.md', `# Tomorrow's Entry\n${tomorrowDate}\n\nThis entry has a future date.\nFUTURE_MARKER is here for identification.\n`);
+
+  const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const nextWeekDate = formatDateForFixture(nextWeek);
+  writeFixture('journal/entry-next-week.md', `# Next Week Entry\n${nextWeekDate}\n\nThis entry is one week from now.\nFUTURE_WEEK_MARKER is here.\n`);
+
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const yesterdayDate = formatDateForFixture(yesterday);
+  writeFixture('journal/entry-yesterday.md', `# Yesterday's Entry\n${yesterdayDate}\n\nThis entry has yesterday's date.\nRECENT_PAST_MARKER is here.\n`);
+
+  const farFuture = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+  const farFutureDate = formatDateForFixture(farFuture);
+  writeFixture('journal/entry-far-future.md', `# Far Future Entry\n${farFutureDate}\n\nThis entry is a year from now.\nFAR_FUTURE_MARKER is here.\n`);
+}
+
+/** Helper to write a single fixture file */
+function writeFixture(relativePath: string, content: string): void {
+  const fullPath = path.join(TEST_DATA_DIR, relativePath);
+  const dir = path.dirname(fullPath);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(fullPath, content, 'utf-8');
 }
 
 /**

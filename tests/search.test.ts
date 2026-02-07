@@ -106,3 +106,86 @@ describe('literal content search', () => {
     expect(r.relativePath).not.toContain(TEST_DATA_DIR);
   });
 });
+
+describe('wildcard content search', () => {
+  it('matches basic wildcard pattern', async () => {
+    // hel*world → /hel.{0,25}world/i matches "Hello World", "hello world",
+    // and "hello_world and helloWorld" (merged into one greedy match)
+    const results = await searchFolder(TEST_DATA_DIR, 'hel*world', 'wildcard');
+    const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
+    expect(hw).toBeDefined();
+    expect(hw!.matchCount).toBe(3);
+  });
+
+  it('matches wildcard at start of pattern', async () => {
+    // *world matches content with up to 25 chars before "world"
+    const results = await searchFolder(TEST_DATA_DIR, '*world', 'wildcard');
+    const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
+    expect(hw).toBeDefined();
+    expect(hw!.matchCount).toBeGreaterThanOrEqual(3);
+  });
+
+  it('matches wildcard at end of pattern', async () => {
+    // hello* matches "hello" followed by up to 25 chars
+    const results = await searchFolder(TEST_DATA_DIR, 'hello*', 'wildcard');
+    const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
+    expect(hw).toBeDefined();
+    expect(hw!.matchCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('matches multiple wildcards in pattern', async () => {
+    // c*t*mat → /c.{0,25}t.{0,25}mat/i matches "cat sat on the mat"
+    const results = await searchFolder(TEST_DATA_DIR, 'c*t*mat', 'wildcard');
+    const mw = results.find(r => r.relativePath === rel('wildcard-testing', 'multi-wildcard.md'));
+    expect(mw).toBeDefined();
+    expect(mw!.matchCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('enforces 25-char limit per wildcard segment', async () => {
+    // ALPHA*OMEGA — gap is 28 chars ("_1234567890_1234567890_12345_"), exceeds 25-char limit
+    const noMatch = await searchFolder(TEST_DATA_DIR, 'ALPHA*OMEGA', 'wildcard');
+    const bndNo = noMatch.find(r => r.relativePath === rel('wildcard-testing', 'boundaries.md'));
+    expect(bndNo).toBeUndefined();
+
+    // Start*End — gap is 6 chars ("MARKER"), well within 25-char limit
+    const yesMatch = await searchFolder(TEST_DATA_DIR, 'Start*End', 'wildcard');
+    const bndYes = yesMatch.find(r => r.relativePath === rel('wildcard-testing', 'boundaries.md'));
+    expect(bndYes).toBeDefined();
+  });
+
+  it('is case-insensitive', async () => {
+    // HEL*WORLD (all caps) should match the same content as hel*world
+    const results = await searchFolder(TEST_DATA_DIR, 'HEL*WORLD', 'wildcard');
+    const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
+    expect(hw).toBeDefined();
+    expect(hw!.matchCount).toBe(3);
+  });
+
+  it('counts multiple wildcard matches in a single file', async () => {
+    // hel*world matches 3 times in hello-world.md:
+    // "Hello World" (title), "hello world", "hello_world and helloWorld" (greedy merge)
+    const results = await searchFolder(TEST_DATA_DIR, 'hel*world', 'wildcard');
+    const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
+    expect(hw).toBeDefined();
+    expect(hw!.matchCount).toBe(3);
+  });
+
+  it('returns empty array when no files match', async () => {
+    const results = await searchFolder(TEST_DATA_DIR, 'zzz*qqq*xyz', 'wildcard');
+    expect(results).toEqual([]);
+  });
+
+  it('escapes special regex characters in query', async () => {
+    // $19* should match "$19.99" in special-chars.md ($ is escaped, not treated as regex anchor)
+    const results = await searchFolder(TEST_DATA_DIR, '$19*', 'wildcard');
+    const sc = results.find(r => r.relativePath === rel('special-chars.md'));
+    expect(sc).toBeDefined();
+    expect(sc!.matchCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('only searches .md and .txt files', async () => {
+    // FAKE_BINARY_DATA_NOT_REAL_IMAGE exists only in images/photo.jpg — should not be found
+    const results = await searchFolder(TEST_DATA_DIR, 'FAKE_BINARY*', 'wildcard');
+    expect(results).toEqual([]);
+  });
+});
