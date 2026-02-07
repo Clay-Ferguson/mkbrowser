@@ -174,26 +174,26 @@ Already implemented in `tests/search.test.ts`. Included here for completeness.
 
 These test the predicate factory directly without file I/O, for fast isolated validation.
 
-- [ ] Literal predicate: returns correct matchCount for known content string
-- [ ] Literal predicate: case-insensitive matching
-- [ ] Wildcard predicate: `he*o` matches "hello" but not "hero" (25-char limit is actually generous enough for both — test with tighter boundaries)
-- [ ] Wildcard predicate: special chars escaped properly
-- [ ] Advanced predicate: `$('test')` on content containing "test" returns matches=true
-- [ ] Advanced predicate: syntax error returns matches=false, matchCount=0
-- [ ] Advanced predicate: `ts` injection with valid timestamp populates foundTime
-- [ ] Advanced predicate: `ts` injection with no timestamp yields foundTime=undefined
+- [x] Literal predicate: returns correct matchCount for known content string
+- [x] Literal predicate: case-insensitive matching
+- [x] Wildcard predicate: `he*o` matches "hello" but not "hero" (25-char limit is actually generous enough for both — test with tighter boundaries)
+- [x] Wildcard predicate: special chars escaped properly
+- [x] Advanced predicate: `$('test')` on content containing "test" returns matches=true
+- [x] Advanced predicate: syntax error returns matches=false, matchCount=0
+- [x] Advanced predicate: `ts` injection with valid timestamp populates foundTime
+- [x] Advanced predicate: `ts` injection with no timestamp yields foundTime=undefined
 
 ---
 
 ## 10. `createContentSearcher` Unit Tests (from searchUtil.ts)
 
-- [ ] `$('hello')` returns true when content contains "hello"
-- [ ] `$('hello')` returns false when content doesn't contain "hello"
-- [ ] Case-insensitive: `$('HELLO')` matches content with "hello"
-- [ ] `getMatchCount()` returns 0 before any `$()` calls
-- [ ] `getMatchCount()` accumulates across multiple `$()` calls
-- [ ] Multiple occurrences: `$('a')` on "aaa" → getMatchCount() returns 3
-- [ ] `$('xyz')` returns false and doesn't increment matchCount
+- [x] `$('hello')` returns true when content contains "hello"
+- [x] `$('hello')` returns false when content doesn't contain "hello"
+- [x] Case-insensitive: `$('HELLO')` matches content with "hello"
+- [x] `getMatchCount()` returns 0 before any `$()` calls
+- [x] `getMatchCount()` accumulates across multiple `$()` calls
+- [x] Multiple occurrences: `$('a')` on "aaa" → getMatchCount() returns 3
+- [x] `$('xyz')` returns false and doesn't increment matchCount
 
 ---
 
@@ -201,34 +201,34 @@ These test the predicate factory directly without file I/O, for fast isolated va
 
 ### `extractTimestamp`
 
-- [ ] Parses `MM/DD/YYYY` format (no time)
-- [ ] Parses `MM/DD/YY` format (2-digit year → 2000+)
-- [ ] Parses `MM/DD/YYYY HH:MM AM` format
-- [ ] Parses `MM/DD/YYYY HH:MM:SS PM` format
-- [ ] AM/PM conversion: 12 PM → 12, 12 AM → 0, 1 PM → 13
-- [ ] Returns 0 for content with no date
-- [ ] Finds first date in multi-line content
+- [x] Parses `MM/DD/YYYY` format (no time)
+- [x] Parses `MM/DD/YY` format (2-digit year → 2000+)
+- [x] Parses `MM/DD/YYYY HH:MM AM` format
+- [x] Parses `MM/DD/YYYY HH:MM:SS PM` format
+- [x] AM/PM conversion: 12 PM → 12, 12 AM → 0, 1 PM → 13
+- [x] Returns 0 for content with no date
+- [x] Finds first date in multi-line content
 
 ### `past`
 
-- [ ] Returns true for a timestamp before now
-- [ ] Returns false for a timestamp after now
-- [ ] Returns false for timestamp=0
-- [ ] With lookbackDays: returns true within window, false outside
+- [x] Returns true for a timestamp before now
+- [x] Returns false for a timestamp after now
+- [x] Returns false for timestamp=0
+- [x] With lookbackDays: returns true within window, false outside
 
 ### `future`
 
-- [ ] Returns true for a timestamp after now
-- [ ] Returns false for a timestamp before now
-- [ ] Returns false for timestamp=0
-- [ ] With lookaheadDays: returns true within window, false outside
+- [x] Returns true for a timestamp after now
+- [x] Returns false for a timestamp before now
+- [x] Returns false for timestamp=0
+- [x] With lookaheadDays: returns true within window, false outside
 
 ### `today`
 
-- [ ] Returns true for a timestamp matching today's date
-- [ ] Returns false for yesterday
-- [ ] Returns false for tomorrow
-- [ ] Returns false for timestamp=0
+- [x] Returns true for a timestamp matching today's date
+- [x] Returns false for yesterday
+- [x] Returns false for tomorrow
+- [x] Returns false for timestamp=0
 
 ---
 

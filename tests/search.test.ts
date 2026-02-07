@@ -3,7 +3,9 @@
  */
 import path from 'node:path';
 import { describe, it, expect, beforeAll } from 'vitest';
-import { searchFolder } from '../src/search';
+import { searchFolder, createMatchPredicate } from '../src/search';
+import { createContentSearcher } from '../src/utils/searchUtil';
+import { extractTimestamp, past, future, today } from '../src/utils/timeUtil';
 import { setupTestData, TEST_DATA_DIR, rel } from './fixtures/setup';
 
 // Build all fixture files once before the entire suite
@@ -995,5 +997,277 @@ describe('edge cases', () => {
     const deepFile = results.find(r => r.relativePath === rel('nested', 'deep', 'structure', 'deep-file.md'));
     expect(deepFile).toBeDefined();
     expect(deepFile!.matchCount).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ── Section 9: createMatchPredicate Unit Tests ──────────────────────────────
+describe('createMatchPredicate (direct function testing)', () => {
+  // ── Literal predicate ──────────────────────────────────────────────────────
+  it('literal predicate: returns correct matchCount for known content string', () => {
+    const predicate = createMatchPredicate('apple', 'literal');
+    const result = predicate('I have an apple and another apple today');
+    expect(result.matches).toBe(true);
+    expect(result.matchCount).toBe(2);
+  });
+
+  it('literal predicate: case-insensitive matching', () => {
+    const predicate = createMatchPredicate('hello', 'literal');
+    const result = predicate('HELLO World hello HELLO');
+    expect(result.matches).toBe(true);
+    expect(result.matchCount).toBe(3);
+  });
+
+  // ── Wildcard predicate ─────────────────────────────────────────────────────
+  it('wildcard predicate: he*o matches "hello" and "hero"', () => {
+    const predicate = createMatchPredicate('he*o', 'wildcard');
+    expect(predicate('hello').matches).toBe(true);
+    expect(predicate('hero').matches).toBe(true);
+  });
+
+  it('wildcard predicate: 25-char limit prevents match across large gaps', () => {
+    const predicate = createMatchPredicate('start*end', 'wildcard');
+    // Exactly 25 chars between → should match
+    const within = 'start' + 'x'.repeat(25) + 'end';
+    expect(predicate(within).matches).toBe(true);
+    // 26 chars between → should NOT match
+    const beyond = 'start' + 'x'.repeat(26) + 'end';
+    expect(beyond).toContain('start');
+    expect(beyond).toContain('end');
+    expect(predicate(beyond).matches).toBe(false);
+  });
+
+  it('wildcard predicate: special chars escaped properly', () => {
+    const predicate = createMatchPredicate('$19*', 'wildcard');
+    const result = predicate('Price: $19.99');
+    expect(result.matches).toBe(true);
+    expect(result.matchCount).toBe(1);
+  });
+
+  // ── Advanced predicate ─────────────────────────────────────────────────────
+  it('advanced predicate: $("test") on content containing "test" returns matches=true', () => {
+    const predicate = createMatchPredicate("$('test')", 'advanced');
+    const result = predicate('this is a test of things');
+    expect(result.matches).toBe(true);
+    expect(result.matchCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('advanced predicate: syntax error returns matches=false, matchCount=0', () => {
+    const predicate = createMatchPredicate('$$$invalid syntax{{{', 'advanced');
+    const result = predicate('any content here');
+    expect(result.matches).toBe(false);
+    expect(result.matchCount).toBe(0);
+  });
+
+  it('advanced predicate: ts injection with valid timestamp populates foundTime', () => {
+    const predicate = createMatchPredicate('ts > 0', 'advanced');
+    const result = predicate('Meeting on 01/15/2026 10:00 AM');
+    expect(result.matches).toBe(true);
+    expect(result.foundTime).toBeDefined();
+    expect(result.foundTime).toBeGreaterThan(0);
+  });
+
+  it('advanced predicate: ts injection with no timestamp yields foundTime=undefined', () => {
+    const predicate = createMatchPredicate('true', 'advanced');
+    const result = predicate('no date in here at all');
+    expect(result.matches).toBe(true);
+    expect(result.foundTime).toBeUndefined();
+  });
+});
+
+// ─── Section 10: createContentSearcher Unit Tests ───────────────────────────
+
+describe('createContentSearcher', () => {
+  it('$("hello") returns true when content contains "hello"', () => {
+    const { $ } = createContentSearcher('say hello to the world');
+    expect($('hello')).toBe(true);
+  });
+
+  it('$("hello") returns false when content does not contain "hello"', () => {
+    const { $ } = createContentSearcher('goodbye cruel world');
+    expect($('hello')).toBe(false);
+  });
+
+  it('case-insensitive: $("HELLO") matches content with "hello"', () => {
+    const { $ } = createContentSearcher('hello there');
+    expect($('HELLO')).toBe(true);
+  });
+
+  it('getMatchCount() returns 0 before any $() calls', () => {
+    const { getMatchCount } = createContentSearcher('anything');
+    expect(getMatchCount()).toBe(0);
+  });
+
+  it('getMatchCount() accumulates across multiple $() calls', () => {
+    const { $, getMatchCount } = createContentSearcher('hello world hello');
+    $('hello'); // 2 occurrences
+    $('world'); // 1 occurrence
+    expect(getMatchCount()).toBe(3);
+  });
+
+  it('multiple occurrences: $("a") on "aaa" → getMatchCount() returns 3', () => {
+    const { $, getMatchCount } = createContentSearcher('aaa');
+    $('a');
+    expect(getMatchCount()).toBe(3);
+  });
+
+  it('$("xyz") returns false and does not increment matchCount', () => {
+    const { $, getMatchCount } = createContentSearcher('no match here');
+    expect($('xyz')).toBe(false);
+    expect(getMatchCount()).toBe(0);
+  });
+});
+
+// ─── Section 11: Time Utility Unit Tests (from timeUtil.ts) ─────────────────
+
+describe('extractTimestamp', () => {
+  it('parses MM/DD/YYYY format (no time)', () => {
+    const ts = extractTimestamp('Date: 03/15/2025');
+    const d = new Date(ts);
+    expect(d.getFullYear()).toBe(2025);
+    expect(d.getMonth()).toBe(2); // 0-indexed: March = 2
+    expect(d.getDate()).toBe(15);
+    expect(d.getHours()).toBe(0);
+    expect(d.getMinutes()).toBe(0);
+    expect(d.getSeconds()).toBe(0);
+  });
+
+  it('parses MM/DD/YY format (2-digit year → 2000+)', () => {
+    const ts = extractTimestamp('Entry: 01/20/26');
+    const d = new Date(ts);
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(0); // January
+    expect(d.getDate()).toBe(20);
+  });
+
+  it('parses MM/DD/YYYY HH:MM AM format', () => {
+    const ts = extractTimestamp('Meeting at 07/04/2025 10:30 AM');
+    const d = new Date(ts);
+    expect(d.getFullYear()).toBe(2025);
+    expect(d.getMonth()).toBe(6); // July
+    expect(d.getDate()).toBe(4);
+    expect(d.getHours()).toBe(10);
+    expect(d.getMinutes()).toBe(30);
+    expect(d.getSeconds()).toBe(0);
+  });
+
+  it('parses MM/DD/YYYY HH:MM:SS PM format', () => {
+    const ts = extractTimestamp('Log: 12/25/2025 03:45:59 PM');
+    const d = new Date(ts);
+    expect(d.getFullYear()).toBe(2025);
+    expect(d.getMonth()).toBe(11); // December
+    expect(d.getDate()).toBe(25);
+    expect(d.getHours()).toBe(15); // 3 PM = 15
+    expect(d.getMinutes()).toBe(45);
+    expect(d.getSeconds()).toBe(59);
+  });
+
+  it('AM/PM conversion: 12 PM → 12, 12 AM → 0, 1 PM → 13', () => {
+    const noon = extractTimestamp('12/01/2025 12:00 PM');
+    expect(new Date(noon).getHours()).toBe(12);
+
+    const midnight = extractTimestamp('12/01/2025 12:00 AM');
+    expect(new Date(midnight).getHours()).toBe(0);
+
+    const onePM = extractTimestamp('12/01/2025 1:00 PM');
+    expect(new Date(onePM).getHours()).toBe(13);
+  });
+
+  it('returns 0 for content with no date', () => {
+    expect(extractTimestamp('No date here at all')).toBe(0);
+    expect(extractTimestamp('')).toBe(0);
+    expect(extractTimestamp('Just some random text 12345')).toBe(0);
+  });
+
+  it('finds first date in multi-line content', () => {
+    const content = `Line one with no date
+Line two has 06/15/2025
+Line three has 09/20/2025`;
+    const ts = extractTimestamp(content);
+    const d = new Date(ts);
+    expect(d.getMonth()).toBe(5); // June (first match)
+    expect(d.getDate()).toBe(15);
+    expect(d.getFullYear()).toBe(2025);
+  });
+});
+
+describe('past', () => {
+  it('returns true for a timestamp before now', () => {
+    const yesterday = Date.now() - 24 * 60 * 60 * 1000;
+    expect(past(yesterday)).toBe(true);
+  });
+
+  it('returns false for a timestamp after now', () => {
+    const tomorrow = Date.now() + 24 * 60 * 60 * 1000;
+    expect(past(tomorrow)).toBe(false);
+  });
+
+  it('returns false for timestamp=0', () => {
+    expect(past(0)).toBe(false);
+  });
+
+  it('with lookbackDays: returns true within window, false outside', () => {
+    const twoDaysAgo = Date.now() - 2 * 24 * 60 * 60 * 1000;
+    const tenDaysAgo = Date.now() - 10 * 24 * 60 * 60 * 1000;
+
+    // 2 days ago is within a 5-day lookback
+    expect(past(twoDaysAgo, 5)).toBe(true);
+
+    // 10 days ago is outside a 5-day lookback
+    expect(past(tenDaysAgo, 5)).toBe(false);
+  });
+});
+
+describe('future', () => {
+  it('returns true for a timestamp after now', () => {
+    const tomorrow = Date.now() + 24 * 60 * 60 * 1000;
+    expect(future(tomorrow)).toBe(true);
+  });
+
+  it('returns false for a timestamp before now', () => {
+    const yesterday = Date.now() - 24 * 60 * 60 * 1000;
+    expect(future(yesterday)).toBe(false);
+  });
+
+  it('returns false for timestamp=0', () => {
+    expect(future(0)).toBe(false);
+  });
+
+  it('with lookaheadDays: returns true within window, false outside', () => {
+    const twoDaysAhead = Date.now() + 2 * 24 * 60 * 60 * 1000;
+    const tenDaysAhead = Date.now() + 10 * 24 * 60 * 60 * 1000;
+
+    // 2 days ahead is within a 5-day lookahead
+    expect(future(twoDaysAhead, 5)).toBe(true);
+
+    // 10 days ahead is outside a 5-day lookahead
+    expect(future(tenDaysAhead, 5)).toBe(false);
+  });
+});
+
+describe('today', () => {
+  it('returns true for a timestamp matching today\'s date', () => {
+    // Use a timestamp from earlier today (midnight)
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    expect(today(todayMidnight)).toBe(true);
+
+    // Also test with current time
+    expect(today(Date.now())).toBe(true);
+  });
+
+  it('returns false for yesterday', () => {
+    const now = new Date();
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 12, 0, 0).getTime();
+    expect(today(yesterday)).toBe(false);
+  });
+
+  it('returns false for tomorrow', () => {
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 12, 0, 0).getTime();
+    expect(today(tomorrow)).toBe(false);
+  });
+
+  it('returns false for timestamp=0', () => {
+    expect(today(0)).toBe(false);
   });
 });
