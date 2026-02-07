@@ -44,42 +44,42 @@ Already implemented in `tests/search.test.ts`. Included here for completeness.
 
 ### 3a. The `$()` content searcher
 
-- [ ] Single `$()` call: `$('banana')` finds files containing "banana"
-- [ ] `$()` is case-insensitive
-- [ ] Multiple `$()` with AND: `$('React') && $('Node.js')` finds files containing both
-- [ ] Multiple `$()` with OR: `$('Rust') || $('Go')` finds files containing either
-- [ ] Negation: `$('search') && !$('wildcard')` — has "search" but not "wildcard"
-- [ ] `$()` matchCount accumulates across multiple `$()` calls in one expression
-- [ ] `$()` returns false for non-matching content, matchCount stays 0
-- [ ] Files without any `$()` match still get matchCount of 1 if expression is truthy (e.g., `true`)
+- [x] Single `$()` call: `$('banana')` finds files containing "banana"
+- [x] `$()` is case-insensitive
+- [x] Multiple `$()` with AND: `$('React') && $('Node.js')` finds files containing both
+- [x] Multiple `$()` with OR: `$('Rust') || $('Go')` finds files containing either
+- [x] Negation: `$('search') && !$('wildcard')` — has "search" but not "wildcard"
+- [x] `$()` matchCount accumulates across multiple `$()` calls in one expression
+- [x] `$()` returns false for non-matching content, matchCount stays 0
+- [x] Files without any `$()` match still get matchCount of 1 if expression is truthy (e.g., `true`)
 
 ### 3b. Timestamp functions (`ts`, `past`, `future`, `today`)
 
-- [ ] `past(ts)` matches files with timestamps in the past (journal entries from 2024, Jan 2026, etc.)
-- [ ] `past(ts)` does NOT match files with future timestamps (entry-tomorrow.md, entry-far-future.md)
-- [ ] `past(ts, N)` with lookback days — matches only entries within N days ago
-- [ ] `future(ts)` matches files with timestamps in the future (entry-tomorrow.md, entry-next-week.md, entry-far-future.md)
-- [ ] `future(ts)` does NOT match files with past timestamps
-- [ ] `future(ts, N)` with lookahead days — matches entries within N days ahead but not beyond
-- [ ] `today(ts)` matches only entry-today.md
-- [ ] `today(ts)` does NOT match yesterday, tomorrow, or other dated entries
-- [ ] Files with no timestamp: `ts` is 0, so `past(ts)` and `future(ts)` return false
-- [ ] `foundTime` field is populated in results when `ts > 0`
-- [ ] `foundTime` is absent/undefined when file has no timestamp
+- [x] `past(ts)` matches files with timestamps in the past (journal entries from 2024, Jan 2026, etc.)
+- [x] `past(ts)` does NOT match files with future timestamps (entry-tomorrow.md, entry-far-future.md)
+- [x] `past(ts, N)` with lookback days — matches only entries within N days ago
+- [x] `future(ts)` matches files with timestamps in the future (entry-tomorrow.md, entry-next-week.md, entry-far-future.md)
+- [x] `future(ts)` does NOT match files with past timestamps
+- [x] `future(ts, N)` with lookahead days — matches entries within N days ahead but not beyond
+- [x] `today(ts)` matches only entry-today.md
+- [x] `today(ts)` does NOT match yesterday, tomorrow, or other dated entries
+- [x] Files with no timestamp: `ts` is 0, so `past(ts)` and `future(ts)` return false
+- [x] `foundTime` field is populated in results when `ts > 0`
+- [x] `foundTime` is absent/undefined when file has no timestamp
 
 ### 3c. Combining `$()` with timestamp functions
 
-- [ ] `$('search') && past(ts)` — files that contain "search" AND have a past timestamp
-- [ ] `$('FUTURE_MARKER') && future(ts)` — content match + future timestamp
-- [ ] `today(ts) && $('TODAY_MARKER')` — both conditions
+- [x] `$('search') && past(ts)` — files that contain "search" AND have a past timestamp
+- [x] `$('FUTURE_MARKER') && future(ts)` — content match + future timestamp
+- [x] `today(ts) && $('TODAY_MARKER')` — both conditions
 
 ### 3d. Advanced edge cases
 
-- [ ] Syntax error in expression returns no matches (doesn't throw)
-- [ ] Expression that returns a number: nonzero is truthy → match
-- [ ] Expression that returns a string: non-empty is truthy → match
-- [ ] Expression `true` matches every file (matchCount = 1 each)
-- [ ] Expression `false` matches no files
+- [x] Syntax error in expression returns no matches (doesn't throw)
+- [x] Expression that returns a number: nonzero is truthy → match
+- [x] Expression that returns a string: non-empty is truthy → match
+- [x] Expression `true` matches every file (matchCount = 1 each)
+- [x] Expression `false` matches no files
 
 ---
 

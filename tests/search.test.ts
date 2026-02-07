@@ -189,3 +189,271 @@ describe('wildcard content search', () => {
     expect(results).toEqual([]);
   });
 });
+
+// ─── Section 3: Advanced Content Search ─────────────────────────────
+describe('advanced content search', () => {
+
+  // ── 3a. The $() content searcher ──────────────────────────────────
+  describe('$() content searcher', () => {
+    it('finds files containing a term via $() call', async () => {
+      // "banana" appears in smoothie.txt and single-match.md
+      const results = await searchFolder(TEST_DATA_DIR, "$('banana')", 'advanced');
+      expect(results.length).toBeGreaterThanOrEqual(2);
+      const smoothie = results.find(r => r.relativePath === rel('recipes', 'smoothie.txt'));
+      const singleMatch = results.find(r => r.relativePath === rel('multi-match', 'single-match.md'));
+      expect(smoothie).toBeDefined();
+      expect(singleMatch).toBeDefined();
+    });
+
+    it('$() is case-insensitive', async () => {
+      // "BANANA" (uppercase query) should still match "banana" in files
+      const results = await searchFolder(TEST_DATA_DIR, "$('BANANA')", 'advanced');
+      expect(results.length).toBeGreaterThanOrEqual(2);
+      const smoothie = results.find(r => r.relativePath === rel('recipes', 'smoothie.txt'));
+      expect(smoothie).toBeDefined();
+    });
+
+    it('multiple $() with AND: finds files containing both terms', async () => {
+      // webapp.md contains both "React" and "Node.js"
+      const results = await searchFolder(TEST_DATA_DIR, "$('React') && $('Node.js')", 'advanced');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      const webapp = results.find(r => r.relativePath === rel('projects', 'webapp.md'));
+      expect(webapp).toBeDefined();
+      // rust.md contains neither React nor Node.js
+      const rust = results.find(r => r.relativePath === rel('topics', 'programming', 'rust.md'));
+      expect(rust).toBeUndefined();
+    });
+
+    it('multiple $() with OR: finds files containing either term', async () => {
+      // rust.md has "Rust", go.txt has "Go"
+      const results = await searchFolder(TEST_DATA_DIR, "$('Rust') || $('Go')", 'advanced');
+      const rust = results.find(r => r.relativePath === rel('topics', 'programming', 'rust.md'));
+      const go = results.find(r => r.relativePath === rel('topics', 'programming', 'go.txt'));
+      expect(rust).toBeDefined();
+      expect(go).toBeDefined();
+    });
+
+    it('negation: has one term but not another', async () => {
+      // "search" appears in several files; "wildcard" also appears in some of them.
+      // This finds files with "search" but NOT "wildcard".
+      const results = await searchFolder(TEST_DATA_DIR, "$('search') && !$('wildcard')", 'advanced');
+      for (const r of results) {
+        // none of the returned files should contain "wildcard"
+        const content = require('fs').readFileSync(r.path, 'utf-8');
+        expect(content.toLowerCase()).toContain('search');
+        expect(content.toLowerCase()).not.toContain('wildcard');
+      }
+      expect(results.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('matchCount accumulates across multiple $() calls', async () => {
+      // webapp.md: "React" appears 2x ("React for the frontend", "React Native" is in mobile-app.md)
+      // Actually let's use webapp.md: $('React') + $('Node.js') — React appears 1x, Node.js appears 1x → matchCount = 2
+      const results = await searchFolder(TEST_DATA_DIR, "$('React') && $('Node.js')", 'advanced');
+      const webapp = results.find(r => r.relativePath === rel('projects', 'webapp.md'));
+      expect(webapp).toBeDefined();
+      // React = 1 occurrence + Node.js = 1 occurrence → matchCount >= 2
+      expect(webapp!.matchCount).toBeGreaterThanOrEqual(2);
+    });
+
+    it('returns matchCount 0 for non-matching content', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, "$('xyzzy_nonexistent_99')", 'advanced');
+      expect(results).toEqual([]);
+    });
+
+    it('files without $() match get matchCount of 1 if expression is truthy', async () => {
+      // Expression `true` has no $() calls, but is truthy → every file matches with matchCount = 1
+      const results = await searchFolder(TEST_DATA_DIR, 'true', 'advanced');
+      expect(results.length).toBeGreaterThan(0);
+      for (const r of results) {
+        expect(r.matchCount).toBe(1);
+      }
+    });
+  });
+
+  // ── 3b. Timestamp functions ───────────────────────────────────────
+  describe('timestamp functions (ts, past, future, today)', () => {
+    it('past(ts) matches files with timestamps in the past', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'past(ts)', 'advanced');
+      // Static past entries: old-entry (06/15/2024), 2026-01-15, 2026-01-20, 2026-02-01, 2026-02-05
+      // Dynamic past entries: entry-yesterday
+      // notes.txt has 03/15/2026 which is in the future relative to tests date context (Feb 7, 2026)
+      expect(results.length).toBeGreaterThanOrEqual(5);
+      const oldEntry = results.find(r => r.relativePath === rel('journal', 'old-entry.md'));
+      expect(oldEntry).toBeDefined();
+      const jan15 = results.find(r => r.relativePath === rel('journal', 'entry-2026-01-15.md'));
+      expect(jan15).toBeDefined();
+      const yesterday = results.find(r => r.relativePath === rel('journal', 'entry-yesterday.md'));
+      expect(yesterday).toBeDefined();
+    });
+
+    it('past(ts) does NOT match files with future timestamps', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'past(ts)', 'advanced');
+      const tomorrow = results.find(r => r.relativePath === rel('journal', 'entry-tomorrow.md'));
+      const farFuture = results.find(r => r.relativePath === rel('journal', 'entry-far-future.md'));
+      expect(tomorrow).toBeUndefined();
+      expect(farFuture).toBeUndefined();
+    });
+
+    it('past(ts, N) with lookback days matches only recent entries', async () => {
+      // Look back only 3 days — should match entry-yesterday but not old-entry or Jan entries
+      const results = await searchFolder(TEST_DATA_DIR, 'past(ts, 3)', 'advanced');
+      const yesterday = results.find(r => r.relativePath === rel('journal', 'entry-yesterday.md'));
+      expect(yesterday).toBeDefined();
+      const oldEntry = results.find(r => r.relativePath === rel('journal', 'old-entry.md'));
+      expect(oldEntry).toBeUndefined();
+      const jan15 = results.find(r => r.relativePath === rel('journal', 'entry-2026-01-15.md'));
+      expect(jan15).toBeUndefined();
+    });
+
+    it('future(ts) matches files with timestamps in the future', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'future(ts)', 'advanced');
+      const tomorrow = results.find(r => r.relativePath === rel('journal', 'entry-tomorrow.md'));
+      const nextWeek = results.find(r => r.relativePath === rel('journal', 'entry-next-week.md'));
+      const farFuture = results.find(r => r.relativePath === rel('journal', 'entry-far-future.md'));
+      expect(tomorrow).toBeDefined();
+      expect(nextWeek).toBeDefined();
+      expect(farFuture).toBeDefined();
+    });
+
+    it('future(ts) does NOT match files with past timestamps', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'future(ts)', 'advanced');
+      const oldEntry = results.find(r => r.relativePath === rel('journal', 'old-entry.md'));
+      const jan15 = results.find(r => r.relativePath === rel('journal', 'entry-2026-01-15.md'));
+      expect(oldEntry).toBeUndefined();
+      expect(jan15).toBeUndefined();
+    });
+
+    it('future(ts, N) with lookahead days matches entries within N days but not beyond', async () => {
+      // Look ahead 3 days — should match tomorrow but not next-week or far-future
+      const results = await searchFolder(TEST_DATA_DIR, 'future(ts, 3)', 'advanced');
+      const tomorrow = results.find(r => r.relativePath === rel('journal', 'entry-tomorrow.md'));
+      expect(tomorrow).toBeDefined();
+      const nextWeek = results.find(r => r.relativePath === rel('journal', 'entry-next-week.md'));
+      expect(nextWeek).toBeUndefined();
+      const farFuture = results.find(r => r.relativePath === rel('journal', 'entry-far-future.md'));
+      expect(farFuture).toBeUndefined();
+    });
+
+    it('today(ts) matches only the entry with today\'s date', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'today(ts)', 'advanced');
+      const todayEntry = results.find(r => r.relativePath === rel('journal', 'entry-today.md'));
+      expect(todayEntry).toBeDefined();
+      // Should not match others
+      const yesterday = results.find(r => r.relativePath === rel('journal', 'entry-yesterday.md'));
+      const tomorrow = results.find(r => r.relativePath === rel('journal', 'entry-tomorrow.md'));
+      expect(yesterday).toBeUndefined();
+      expect(tomorrow).toBeUndefined();
+    });
+
+    it('today(ts) does NOT match yesterday, tomorrow, or other dated entries', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'today(ts)', 'advanced');
+      const paths = results.map(r => r.relativePath);
+      expect(paths).not.toContain(rel('journal', 'entry-yesterday.md'));
+      expect(paths).not.toContain(rel('journal', 'entry-tomorrow.md'));
+      expect(paths).not.toContain(rel('journal', 'entry-next-week.md'));
+      expect(paths).not.toContain(rel('journal', 'entry-far-future.md'));
+      expect(paths).not.toContain(rel('journal', 'old-entry.md'));
+    });
+
+    it('files with no timestamp: ts is 0, past(ts) and future(ts) return false', async () => {
+      // no-match.md has no date at all — ts should be 0, past(0) → false
+      const pastResults = await searchFolder(TEST_DATA_DIR, 'past(ts)', 'advanced');
+      const noMatch = pastResults.find(r => r.relativePath === rel('multi-match', 'no-match.md'));
+      expect(noMatch).toBeUndefined();
+
+      const futureResults = await searchFolder(TEST_DATA_DIR, 'future(ts)', 'advanced');
+      const noMatchFuture = futureResults.find(r => r.relativePath === rel('multi-match', 'no-match.md'));
+      expect(noMatchFuture).toBeUndefined();
+    });
+
+    it('foundTime is populated in results when ts > 0', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'past(ts)', 'advanced');
+      // All results from past(ts) have ts > 0, so foundTime should be set
+      for (const r of results) {
+        expect(r.foundTime).toBeDefined();
+        expect(r.foundTime).toBeGreaterThan(0);
+      }
+    });
+
+    it('foundTime is absent when file has no timestamp', async () => {
+      // Use `true` to match all files, then check files without timestamps
+      const results = await searchFolder(TEST_DATA_DIR, 'true', 'advanced');
+      const noMatch = results.find(r => r.relativePath === rel('multi-match', 'no-match.md'));
+      expect(noMatch).toBeDefined();
+      // no-match.md has no date → ts is 0 → foundTime should be undefined
+      expect(noMatch!.foundTime).toBeUndefined();
+    });
+  });
+
+  // ── 3c. Combining $() with timestamp functions ────────────────────
+  describe('combining $() with timestamp functions', () => {
+    it('$("search") && past(ts) — content match + past timestamp', async () => {
+      // journal entries with "search" and past timestamps
+      const results = await searchFolder(TEST_DATA_DIR, "$('search') && past(ts)", 'advanced');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      // All results must have foundTime set and contain "search"
+      for (const r of results) {
+        expect(r.foundTime).toBeDefined();
+        expect(r.foundTime).toBeGreaterThan(0);
+        const content = require('fs').readFileSync(r.path, 'utf-8');
+        expect(content.toLowerCase()).toContain('search');
+      }
+    });
+
+    it('$("FUTURE_MARKER") && future(ts) — content match + future timestamp', async () => {
+      // entry-tomorrow.md has "FUTURE_MARKER" and a future date
+      const results = await searchFolder(TEST_DATA_DIR, "$('FUTURE_MARKER') && future(ts)", 'advanced');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      const tomorrow = results.find(r => r.relativePath === rel('journal', 'entry-tomorrow.md'));
+      expect(tomorrow).toBeDefined();
+      expect(tomorrow!.foundTime).toBeDefined();
+    });
+
+    it('today(ts) && $("TODAY_MARKER") — both conditions', async () => {
+      // entry-today.md has "TODAY_MARKER" and today's date
+      const results = await searchFolder(TEST_DATA_DIR, "today(ts) && $('TODAY_MARKER')", 'advanced');
+      expect(results).toHaveLength(1);
+      expect(results[0].relativePath).toBe(rel('journal', 'entry-today.md'));
+      expect(results[0].foundTime).toBeDefined();
+    });
+  });
+
+  // ── 3d. Advanced edge cases ───────────────────────────────────────
+  describe('advanced edge cases', () => {
+    it('syntax error in expression returns no matches (does not throw)', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, '$$$invalid(((syntax', 'advanced');
+      expect(results).toEqual([]);
+    });
+
+    it('expression that returns a nonzero number is truthy → match', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, '42', 'advanced');
+      expect(results.length).toBeGreaterThan(0);
+      for (const r of results) {
+        expect(r.matchCount).toBe(1);
+      }
+    });
+
+    it('expression that returns a non-empty string is truthy → match', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, '"hello"', 'advanced');
+      expect(results.length).toBeGreaterThan(0);
+      for (const r of results) {
+        expect(r.matchCount).toBe(1);
+      }
+    });
+
+    it('expression `true` matches every searchable file', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'true', 'advanced');
+      // We have ~60+ .md and .txt files
+      expect(results.length).toBeGreaterThanOrEqual(40);
+      for (const r of results) {
+        expect(r.matchCount).toBe(1);
+      }
+    });
+
+    it('expression `false` matches no files', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'false', 'advanced');
+      expect(results).toEqual([]);
+    });
+  });
+});
