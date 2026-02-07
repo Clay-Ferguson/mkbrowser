@@ -3,11 +3,9 @@ import path from 'node:path';
 import fs from 'node:fs';
 import * as yaml from 'js-yaml';
 import started from 'electron-squirrel-startup';
-import { fdir } from 'fdir';
 import { calculateRenameOperations, type RenameOperation } from './utils/ordinals';
-import { extractTimestamp, past, future, today } from './utils/timeUtil';
-import { createContentSearcher } from './utils/searchUtil';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
+import { searchFolder, type SearchResult } from './search';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -109,18 +107,6 @@ interface FileEntry {
   /** Created timestamp in milliseconds since epoch */
   createdTime: number;
   content?: string; // Only populated for markdown files
-}
-
-// Search result type
-interface SearchResult {
-  path: string;
-  relativePath: string;
-  matchCount: number;
-  lineNumber?: number; // 1-based line number (0 or undefined for entire file matches)
-  lineText?: string; // The matching line text (only for line-by-line search)
-  foundTime?: number; // Timestamp found by ts() function in advanced search (milliseconds since epoch)
-  modifiedTime?: number; // File modification timestamp (milliseconds since epoch)
-  createdTime?: number; // File creation timestamp (milliseconds since epoch)
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -711,14 +697,6 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchBlock: 'entire-file' | 'file-lines' = 'entire-file'): Promise<SearchResult[]> => {
     try {
-      // console.log(`\n=== Search Started ===`);
-      // console.log(`Folder: ${folderPath}`);
-      // console.log(`Query: "${query}"`);
-      // console.log(`Search type: ${searchType}`);
-      // console.log(`Search mode: ${searchMode}`);
-
-      const results: SearchResult[] = [];
-
       // Load ignored paths from config
       const config = loadConfig();
       const ignoredPathsRaw = config.settings?.ignoredPaths ?? '';
@@ -726,241 +704,8 @@ function setupIpcHandlers(): void {
         .split('\n')
         .map(p => p.trim())
         .filter(p => p.length > 0);
-      
-      // Convert wildcard patterns to regex (e.g., "node_*" becomes /^node_.*$/i)
-      const ignoredPatterns = ignoredPaths.map(pattern => {
-        // Escape regex special chars except *, then convert * to .*
-        // Also escape / to handle path separators safely in regex
-        const escaped = pattern.replace(/[.+?^${}()|[\]\\/]/g, '\\$&');
-        const regexPattern = escaped.replace(/\*/g, '.*');
-        return new RegExp(`^${regexPattern}$`, 'i'); // case-insensitive, full match
-      });
-      
-      // Create exclude predicate for (returns true to exclude)
-      const shouldExcludePath = (name: string, fullPath: string): boolean => {
-        // Check both name and full path against ignored patterns
-        // This allows matching simple names "node_modules", filenames "AGENTS.md", and wildcards with paths "*/demo-data"
-        return ignoredPatterns.some(pattern => pattern.test(name) || pattern.test(fullPath));
-      };
-      
-      // Helper to escape regex special characters (except *)
-      const escapeRegexExceptWildcard = (str: string): string => {
-        // Escape all regex special chars except *
-        return str.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-      };
 
-      // Helper to convert wildcard pattern to regex
-      const wildcardToRegex = (pattern: string): RegExp => {
-        // Escape special regex chars, then convert * to .{0,25} (max 25 chars)
-        const escaped = escapeRegexExceptWildcard(pattern);
-        const regexPattern = escaped.replace(/\*/g, '.{0,25}');
-        return new RegExp(regexPattern, 'i'); // case-insensitive
-      };
-      
-      // Create the predicate function based on search type
-      const createMatchPredicate = (queryStr: string, type: 'literal' | 'wildcard' | 'advanced'): (content: string) => { matches: boolean; matchCount: number; foundTime?: number } => {
-        if (type === 'advanced') {
-          // Advanced mode: evaluate user's JavaScript expression
-          // Create a '$' function that will be injected into the expression's scope
-          return (content: string) => {
-            // Always extract timestamp from content (regardless of whether ts() is called)
-            const ts = extractTimestamp(content);
-            
-            // Create the content searcher with '$' function
-            const { $, getMatchCount } = createContentSearcher(content);
-            
-            try {
-              // Create a function that evaluates the user's expression with '$', 'ts', 'past', 'future', and 'today' in scope
-              const expressionCode = `return (${queryStr});`;
-              const evalFunction = new Function('$', 'ts', 'past', 'future', 'today', expressionCode);
-              const rawResult = evalFunction($, ts, past, future, today);
-              const matches = Boolean(rawResult);
-              const matchCount = getMatchCount();
-              return { 
-                matches, 
-                matchCount: matches ? Math.max(matchCount, 1) : 0, 
-                foundTime: ts > 0 ? ts : undefined 
-              };
-            } catch (evalError) {
-              console.warn(`[DEBUG] Error evaluating expression: ${evalError}`);
-              return { matches: false, matchCount: 0 };
-            }
-          };
-        } else if (type === 'wildcard') {
-          // Wildcard mode: convert * to regex .*
-          const regex = wildcardToRegex(queryStr);
-          return (content: string) => {
-            const matches = regex.test(content);
-            if (matches) {
-              // Count matches by finding all occurrences
-              const allMatches = content.match(new RegExp(regex.source, 'gi'));
-              return { matches: true, matchCount: allMatches ? allMatches.length : 1, foundTime: undefined };
-            }
-            return { matches: false, matchCount: 0, foundTime: undefined };
-          };
-        } else {
-          // Literal mode: case-insensitive text search
-          const queryLower = queryStr.toLowerCase();
-          return (content: string) => {
-            const contentLower = content.toLowerCase();
-            let matchCount = 0;
-            let searchIndex = 0;
-            while ((searchIndex = contentLower.indexOf(queryLower, searchIndex)) !== -1) {
-              matchCount++;
-              searchIndex += queryLower.length;
-            }
-            return { matches: matchCount > 0, matchCount, foundTime: undefined };
-          };
-        }
-      };
-
-      const matchPredicate = createMatchPredicate(query, searchType);
-
-      if (searchMode === 'filenames') {
-        // Search file and folder names - crawl all entries (files AND directories)
-        const filesApi = new fdir()
-          .withFullPaths()
-          .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
-          .filter((filePath) => !shouldExcludePath(path.basename(filePath), filePath))
-          .crawl(folderPath);
-
-        const dirsApi = new fdir()
-          .withFullPaths()
-          .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
-          .onlyDirs()
-          .crawl(folderPath);
-
-        const [files, dirs] = await Promise.all([
-          filesApi.withPromise(),
-          dirsApi.withPromise()
-        ]);
-
-        // Combine files and directories (excluding the root folder itself)
-        const allEntries = [...files, ...dirs.filter(d => d !== folderPath)];
-        console.log(`Found ${allEntries.length} entries (files + folders) to search`);
-
-        for (const entryPath of allEntries) {
-          // Get just the filename/foldername (not the full path)
-          const entryName = path.basename(entryPath);
-          const { matches, matchCount, foundTime } = matchPredicate(entryName);
-
-          if (matches) {
-            // Get relative path for cleaner display
-            const relativePath = path.relative(folderPath, entryPath);
-            // Get file stat for modification and creation times
-            let modifiedTime: number | undefined;
-            let createdTime: number | undefined;
-            try {
-              const stat = await fs.promises.stat(entryPath);
-              modifiedTime = stat.mtimeMs;
-              createdTime = stat.birthtimeMs;
-            } catch { /* ignore stat errors */ }
-            results.push({
-              path: entryPath,
-              relativePath,
-              matchCount,
-              ...(foundTime !== undefined && { foundTime }),
-              ...(modifiedTime !== undefined && { modifiedTime }),
-              ...(createdTime !== undefined && { createdTime }),
-            });
-          }
-        }
-      } else {
-        // Search file contents - only .md and .txt files
-        const api = new fdir()
-          .withFullPaths()
-          .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
-          .filter((filePath) => {
-            const fileName = path.basename(filePath);
-            if (shouldExcludePath(fileName, filePath)) return false;
-
-            const ext = path.extname(filePath).toLowerCase();
-            return ext === '.md' || ext === '.txt';
-          })
-          .crawl(folderPath);
-
-        const files = await api.withPromise();
-        console.log(`Found ${files.length} .md/.txt files to search`);
-
-        for (const filePath of files) {
-          try {
-            const content = await fs.promises.readFile(filePath, 'utf-8');
-            
-            // Check if we're searching line-by-line or entire file
-            if (searchBlock === 'file-lines') {
-              // Line-by-line search: split content into lines and search each separately
-              const lines = content.split(/\r?\n/); // Handle both Unix and Windows line endings
-              const relativePath = path.relative(folderPath, filePath);
-              // Get file stat for modification and creation times
-              let modifiedTime: number | undefined;
-              let createdTime: number | undefined;
-              try {
-                const stat = await fs.promises.stat(filePath);
-                modifiedTime = stat.mtimeMs;
-                createdTime = stat.birthtimeMs;
-              } catch { /* ignore stat errors */ }
-              
-              for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                const { matches, matchCount, foundTime } = matchPredicate(line);
-                
-                if (matches) {
-                  results.push({
-                    path: filePath,
-                    relativePath,
-                    matchCount,
-                    lineNumber: i + 1, // 1-based line number
-                    lineText: line,
-                    ...(foundTime !== undefined && { foundTime }),
-                    ...(modifiedTime !== undefined && { modifiedTime }),
-                    ...(createdTime !== undefined && { createdTime }),
-                  });
-                }
-              }
-            } else {
-              // Entire file search (default behavior)
-              const { matches, matchCount, foundTime } = matchPredicate(content);
-
-              if (matches) {
-                // Get relative path for cleaner display
-                const relativePath = path.relative(folderPath, filePath);
-                // Get file stat for modification and creation times
-                let modifiedTime: number | undefined;
-                let createdTime: number | undefined;
-                try {
-                  const fileStat = await fs.promises.stat(filePath);
-                  modifiedTime = fileStat.mtimeMs;
-                  createdTime = fileStat.birthtimeMs;
-                } catch { /* ignore stat errors */ }
-                console.log(`[DEBUG] Found match in ${relativePath}: matchCount=${matchCount}, foundTime=${foundTime}`);
-                results.push({
-                  path: filePath,
-                  relativePath,
-                  matchCount,
-                  ...(foundTime !== undefined && { foundTime }),
-                  ...(modifiedTime !== undefined && { modifiedTime }),
-                  ...(createdTime !== undefined && { createdTime }),
-                });
-              }
-            }
-          } catch (readError) {
-            // Skip files that can't be read
-            console.warn(`Could not read file: ${filePath}`);
-          }
-        }
-      }
-
-      // Sort by match count (descending)
-      results.sort((a, b) => b.matchCount - a.matchCount);
-
-      console.log(`\n=== Search Results ===`);
-      console.log(`Total files with matches: ${results.length}`);
-      for (const result of results) {
-        console.log(`  ${result.relativePath}: ${result.matchCount} match(es)`);
-      }
-      console.log(`=== Search Complete ===\n`);
-
-      return results;
+      return await searchFolder(folderPath, query, searchType, searchMode, searchBlock, ignoredPaths);
     } catch (error) {
       console.error('Error searching folder:', error);
       return [];
