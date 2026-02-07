@@ -1,6 +1,7 @@
 /**
  * Search tests — Phase 1: Literal content search
  */
+import path from 'node:path';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { searchFolder } from '../src/search';
 import { setupTestData, TEST_DATA_DIR, rel } from './fixtures/setup';
@@ -763,5 +764,170 @@ describe('file-lines mode', () => {
       expect(line1).toBeDefined();
       expect(line1!.foundTime).toBeUndefined();
     });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 6. Ignored Paths
+// ═══════════════════════════════════════════════════════════════════
+describe('ignored paths', () => {
+  it('exact folder name exclusion: ignoredPaths=["skipme"] excludes skipme/ subtree', async () => {
+    const results = await searchFolder(
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', 'entire-file', ['skipme']
+    );
+    const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
+    expect(hidden).toBeUndefined();
+    // The other two files should still appear
+    expect(results.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('exact file name exclusion: ignoredPaths=["also-skip.md"] excludes that file', async () => {
+    const results = await searchFolder(
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', 'entire-file', ['also-skip.md']
+    );
+    const skipped = results.find(r => r.relativePath === rel('ignored-test', 'also-skip.md'));
+    expect(skipped).toBeUndefined();
+    // visible-file.md and hidden-file.md should still appear
+    expect(results.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('wildcard pattern exclusion: ignoredPaths=["skip*"] excludes skipme/ folder', async () => {
+    const results = await searchFolder(
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', 'entire-file', ['skip*']
+    );
+    const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
+    expect(hidden).toBeUndefined();
+    // visible-file.md and also-skip.md should still be found
+    const visible = results.find(r => r.relativePath === rel('ignored-test', 'visible-file.md'));
+    expect(visible).toBeDefined();
+  });
+
+  it('multiple ignored paths at once: both folder and file patterns combined', async () => {
+    const results = await searchFolder(
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', 'entire-file', ['skipme', 'also-skip.md']
+    );
+    const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
+    const alsoSkip = results.find(r => r.relativePath === rel('ignored-test', 'also-skip.md'));
+    expect(hidden).toBeUndefined();
+    expect(alsoSkip).toBeUndefined();
+    // Only visible-file.md should remain from the ignored-test folder
+    const visible = results.find(r => r.relativePath === rel('ignored-test', 'visible-file.md'));
+    expect(visible).toBeDefined();
+  });
+
+  it('ignored paths apply to both content and filename search modes', async () => {
+    // Content search with ignored path
+    const contentResults = await searchFolder(
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', 'entire-file', ['skipme']
+    );
+    const contentHidden = contentResults.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
+    expect(contentHidden).toBeUndefined();
+
+    // Filename search with ignored path — "hidden" should match hidden-file.md normally
+    const filenameResults = await searchFolder(
+      TEST_DATA_DIR, 'hidden', 'literal', 'filenames', 'entire-file', ['skipme']
+    );
+    const filenameHidden = filenameResults.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
+    expect(filenameHidden).toBeUndefined();
+  });
+
+  it('ignored paths are case-insensitive', async () => {
+    // Use uppercase "SKIPME" to exclude "skipme" folder
+    const results = await searchFolder(
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', 'entire-file', ['SKIPME']
+    );
+    const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
+    expect(hidden).toBeUndefined();
+  });
+
+  it('non-excluded files in same parent folder are still found', async () => {
+    const results = await searchFolder(
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', 'entire-file', ['skipme', 'also-skip.md']
+    );
+    const visible = results.find(r => r.relativePath === rel('ignored-test', 'visible-file.md'));
+    expect(visible).toBeDefined();
+    expect(visible!.matchCount).toBe(1);
+  });
+
+  it('empty ignoredPaths array means nothing is excluded', async () => {
+    const results = await searchFolder(
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', 'entire-file', []
+    );
+    // All three ignored-test files should appear
+    const visible = results.find(r => r.relativePath === rel('ignored-test', 'visible-file.md'));
+    const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
+    const alsoSkip = results.find(r => r.relativePath === rel('ignored-test', 'also-skip.md'));
+    expect(visible).toBeDefined();
+    expect(hidden).toBeDefined();
+    expect(alsoSkip).toBeDefined();
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// 7. Result Metadata
+// ---------------------------------------------------------------------------
+describe('result metadata', () => {
+  it('modifiedTime is a positive number (milliseconds since epoch)', async () => {
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.modifiedTime).toBeDefined();
+      expect(r.modifiedTime).toBeGreaterThan(0);
+    }
+  });
+
+  it('createdTime is a positive number', async () => {
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.createdTime).toBeDefined();
+      expect(r.createdTime).toBeGreaterThan(0);
+    }
+  });
+
+  it('path is an absolute path', async () => {
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(path.isAbsolute(r.path)).toBe(true);
+    }
+  });
+
+  it('relativePath is relative to the searched folder root', async () => {
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      // relativePath should NOT be absolute
+      expect(path.isAbsolute(r.relativePath)).toBe(false);
+      // Joining folderRoot + relativePath should equal the absolute path
+      expect(path.join(TEST_DATA_DIR, r.relativePath)).toBe(r.path);
+    }
+  });
+
+  it('results sorted by matchCount descending (verified across all modes)', async () => {
+    // Content search (literal)
+    const literalResults = await searchFolder(TEST_DATA_DIR, 'apple', 'literal');
+    for (let i = 1; i < literalResults.length; i++) {
+      expect(literalResults[i - 1].matchCount).toBeGreaterThanOrEqual(literalResults[i].matchCount);
+    }
+
+    // Content search (wildcard)
+    const wildcardResults = await searchFolder(TEST_DATA_DIR, 'hel*', 'wildcard');
+    for (let i = 1; i < wildcardResults.length; i++) {
+      expect(wildcardResults[i - 1].matchCount).toBeGreaterThanOrEqual(wildcardResults[i].matchCount);
+    }
+
+    // Filename search
+    const filenameResults = await searchFolder(TEST_DATA_DIR, 'entry', 'literal', 'filenames');
+    for (let i = 1; i < filenameResults.length; i++) {
+      expect(filenameResults[i - 1].matchCount).toBeGreaterThanOrEqual(filenameResults[i].matchCount);
+    }
+
+    // File-lines search
+    const lineResults = await searchFolder(TEST_DATA_DIR, 'TARGET_WORD', 'literal', 'content', 'file-lines');
+    for (let i = 1; i < lineResults.length; i++) {
+      expect(lineResults[i - 1].matchCount).toBeGreaterThanOrEqual(lineResults[i].matchCount);
+    }
   });
 });

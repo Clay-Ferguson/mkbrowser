@@ -136,24 +136,24 @@ Already implemented in `tests/search.test.ts`. Included here for completeness.
 
 ## 6. Ignored Paths (`ignoredPaths` parameter)
 
-- [ ] Exact folder name exclusion: `ignoredPaths=['skipme']` excludes `ignored-test/skipme/` subtree
-- [ ] Exact file name exclusion: `ignoredPaths=['also-skip.md']` excludes that specific file
-- [ ] Wildcard pattern exclusion: `ignoredPaths=['skip*']` excludes `skipme/` folder
-- [ ] Multiple ignored paths at once: both folder and file patterns combined
-- [ ] Ignored paths apply to both content and filename search modes
-- [ ] Ignored paths are case-insensitive
-- [ ] Non-excluded files in same parent folder are still found (`visible-file.md` still appears)
-- [ ] Empty ignoredPaths array means nothing is excluded
+- [x] Exact folder name exclusion: `ignoredPaths=['skipme']` excludes `ignored-test/skipme/` subtree
+- [x] Exact file name exclusion: `ignoredPaths=['also-skip.md']` excludes that specific file
+- [x] Wildcard pattern exclusion: `ignoredPaths=['skip*']` excludes `skipme/` folder
+- [x] Multiple ignored paths at once: both folder and file patterns combined
+- [x] Ignored paths apply to both content and filename search modes
+- [x] Ignored paths are case-insensitive
+- [x] Non-excluded files in same parent folder are still found (`visible-file.md` still appears)
+- [x] Empty ignoredPaths array means nothing is excluded
 
 ---
 
 ## 7. Result Metadata
 
-- [ ] `modifiedTime` is a positive number (milliseconds since epoch)
-- [ ] `createdTime` is a positive number
-- [ ] `path` is an absolute path
-- [ ] `relativePath` is relative to the searched folder root
-- [ ] Sorting: results sorted by matchCount descending (verified across all modes)
+- [x] `modifiedTime` is a positive number (milliseconds since epoch)
+- [x] `createdTime` is a positive number
+- [x] `path` is an absolute path
+- [x] `relativePath` is relative to the searched folder root
+- [x] Sorting: results sorted by matchCount descending (verified across all modes)
 
 ---
 
