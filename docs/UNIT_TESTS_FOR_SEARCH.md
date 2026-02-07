@@ -87,24 +87,24 @@ Already implemented in `tests/search.test.ts`. Included here for completeness.
 
 ### 4a. Literal filename search (`searchType='literal'`)
 
-- [ ] Finds files by partial name: query `calc` matches `calculus.md`
-- [ ] Case-insensitive filename match
-- [ ] Matches folders too (not just files): query `science` matches `topics/science` directory
-- [ ] Matches file extensions: query `.txt` finds all .txt files
-- [ ] Only matches basename, not full path (query `topics` matches the `topics` folder but not files inside it unless their name contains "topics")
-- [ ] Returns modifiedTime and createdTime in results
+- [x] Finds files by partial name: query `calc` matches `calculus.md`
+- [x] Case-insensitive filename match
+- [x] Matches folders too (not just files): query `science` matches `topics/science` directory
+- [x] Matches file extensions: query `.txt` finds all .txt files
+- [x] Only matches basename, not full path (query `topics` matches the `topics` folder but not files inside it unless their name contains "topics")
+- [x] Returns modifiedTime and createdTime in results
 
 ### 4b. Wildcard filename search (`searchType='wildcard'`)
 
-- [ ] `entry-*` matches all journal entry files
-- [ ] `*.txt` matches all .txt files
-- [ ] `copy-*` matches all duplicate copy files
-- [ ] Wildcard is case-insensitive
+- [x] `entry-*` matches all journal entry files
+- [x] `*.txt` matches all .txt files
+- [x] `copy-*` matches all duplicate copy files
+- [x] Wildcard is case-insensitive
 
 ### 4c. Advanced filename search (`searchType='advanced'`)
 
-- [ ] `$('entry')` applied to filenames finds files with "entry" in the name
-- [ ] Filename search checks all file types, not just .md/.txt
+- [x] `$('entry')` applied to filenames finds files with "entry" in the name
+- [x] Filename search checks all file types, not just .md/.txt
 
 ---
 

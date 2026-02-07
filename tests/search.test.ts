@@ -457,3 +457,134 @@ describe('advanced content search', () => {
     });
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// 4. Filename Search (searchMode='filenames')
+// ═══════════════════════════════════════════════════════════════════
+describe('filename search', () => {
+
+  // ── 4a. Literal filename search ─────────────────────────────────
+  describe('literal filename search', () => {
+    it('finds files by partial name: query "calc" matches calculus.md', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'calc', 'literal', 'filenames');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      const calculus = results.find(r => r.relativePath === rel('topics', 'math', 'calculus.md'));
+      expect(calculus).toBeDefined();
+    });
+
+    it('is case-insensitive for filename matching', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'CALCULUS', 'literal', 'filenames');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      const calculus = results.find(r => r.relativePath === rel('topics', 'math', 'calculus.md'));
+      expect(calculus).toBeDefined();
+    });
+
+    it('matches folders too (not just files): query "science" matches the science directory', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'science', 'literal', 'filenames');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      const scienceDir = results.find(r => r.relativePath === rel('topics', 'science'));
+      expect(scienceDir).toBeDefined();
+    });
+
+    it('matches file extensions: query ".txt" finds all .txt files', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, '.txt', 'literal', 'filenames');
+      // There are 8 .txt files in test-data
+      expect(results).toHaveLength(8);
+      for (const r of results) {
+        expect(r.path).toMatch(/\.txt$/);
+      }
+    });
+
+    it('only matches basename, not full path', async () => {
+      // "topics" should match the "topics" folder itself, but NOT files inside it
+      // whose basenames don't contain "topics"
+      const results = await searchFolder(TEST_DATA_DIR, 'topics', 'literal', 'filenames');
+      const topicsDir = results.find(r => r.relativePath === rel('topics'));
+      expect(topicsDir).toBeDefined();
+
+      // Files like topics/math/calculus.md should NOT be matched
+      // because the basename "calculus.md" doesn't contain "topics"
+      for (const r of results) {
+        const basename = r.relativePath.split(/[\\/]/).pop()!;
+        expect(basename.toLowerCase()).toContain('topics');
+      }
+    });
+
+    it('returns modifiedTime and createdTime in results', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'readme', 'literal', 'filenames');
+      expect(results.length).toBeGreaterThanOrEqual(1);
+      for (const r of results) {
+        expect(r.modifiedTime).toBeDefined();
+        expect(r.modifiedTime).toBeGreaterThan(0);
+        expect(r.createdTime).toBeDefined();
+        expect(r.createdTime).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  // ── 4b. Wildcard filename search ────────────────────────────────
+  describe('wildcard filename search', () => {
+    it('"entry-*" matches all journal entry files', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'entry-*', 'wildcard', 'filenames');
+      // There are 10 entry-* files (9 entry-xxx + old-entry is NOT matched since basename is "old-entry.md" and "entry-*" anchors at the start via full match)
+      // Actually, wildcard uses regex test, not full match. "entry-*" → /entry-.{0,25}/i
+      // old-entry.md does NOT start with "entry-", but `.test()` checks partial match on the basename
+      // "old-entry.md" contains "entry-" as a substring? No: "old-entry.md" — no dash after "entry"
+      // So only the 9 files starting with "entry-" should match
+      expect(results).toHaveLength(9);
+      for (const r of results) {
+        const basename = r.relativePath.split(/[\\/]/).pop()!;
+        expect(basename.toLowerCase()).toMatch(/entry-/);
+      }
+    });
+
+    it('"*.txt" matches all .txt files', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, '*.txt', 'wildcard', 'filenames');
+      expect(results).toHaveLength(8);
+      for (const r of results) {
+        expect(r.path).toMatch(/\.txt$/);
+      }
+    });
+
+    it('"copy-*" matches all duplicate copy files', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'copy-*', 'wildcard', 'filenames');
+      expect(results).toHaveLength(3);
+      const paths = results.map(r => r.relativePath).sort();
+      expect(paths).toEqual([
+        rel('duplicates', 'copy-one.md'),
+        rel('duplicates', 'copy-three.md'),
+        rel('duplicates', 'copy-two.md'),
+      ]);
+    });
+
+    it('wildcard filename search is case-insensitive', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, 'COPY-*', 'wildcard', 'filenames');
+      expect(results).toHaveLength(3);
+    });
+  });
+
+  // ── 4c. Advanced filename search ────────────────────────────────
+  describe('advanced filename search', () => {
+    it('$("entry") applied to filenames finds files with "entry" in the name', async () => {
+      const results = await searchFolder(TEST_DATA_DIR, "$('entry')", 'advanced', 'filenames');
+      // 10 files in journal/ have "entry" in their basename
+      expect(results).toHaveLength(10);
+      for (const r of results) {
+        const basename = r.relativePath.split(/[\\/]/).pop()!;
+        expect(basename.toLowerCase()).toContain('entry');
+      }
+    });
+
+    it('filename search checks all file types, not just .md/.txt', async () => {
+      // config.json should be found by filename search
+      const results = await searchFolder(TEST_DATA_DIR, 'config', 'literal', 'filenames');
+      const configJson = results.find(r => r.relativePath === rel('data', 'config.json'));
+      expect(configJson).toBeDefined();
+
+      // photo.jpg should also be findable
+      const photoResults = await searchFolder(TEST_DATA_DIR, 'photo', 'literal', 'filenames');
+      const photoJpg = photoResults.find(r => r.relativePath === rel('images', 'photo.jpg'));
+      expect(photoJpg).toBeDefined();
+    });
+  });
+});
