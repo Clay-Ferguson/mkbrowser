@@ -159,14 +159,14 @@ Already implemented in `tests/search.test.ts`. Included here for completeness.
 
 ## 8. Edge Cases
 
-- [ ] Empty file (empty.md): content search finds no matches
-- [ ] Unicode content: literal search for `café` finds unicode.md
-- [ ] Unicode content: literal search for `日本語` finds unicode.md
-- [ ] Special regex characters in literal query don't break (e.g., searching for `(H2O)`)
-- [ ] Very long query string (100+ chars) doesn't crash
-- [ ] Searching a nonexistent folder path returns empty array (or throws gracefully)
-- [ ] Searching a folder with no .md/.txt files returns empty for content mode
-- [ ] Deeply nested files (3+ directory levels) are found
+- [x] Empty file (empty.md): content search finds no matches
+- [x] Unicode content: literal search for `café` finds unicode.md
+- [x] Unicode content: literal search for `日本語` finds unicode.md
+- [x] Special regex characters in literal query don't break (e.g., searching for `(H2O)`)
+- [x] Very long query string (100+ chars) doesn't crash
+- [x] Searching a nonexistent folder path returns empty array (or throws gracefully)
+- [x] Searching a folder with no .md/.txt files returns empty for content mode
+- [x] Deeply nested files (3+ directory levels) are found
 
 ---
 

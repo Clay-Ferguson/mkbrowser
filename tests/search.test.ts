@@ -931,3 +931,69 @@ describe('result metadata', () => {
     }
   });
 });
+
+describe('edge cases', () => {
+  it('empty file: content search finds no matches', async () => {
+    const results = await searchFolder(TEST_DATA_DIR, 'anything', 'literal');
+    const emptyFile = results.find(r => r.relativePath === 'empty.md');
+    expect(emptyFile).toBeUndefined();
+  });
+
+  it('unicode content: literal search for "café" finds unicode.md', async () => {
+    const results = await searchFolder(TEST_DATA_DIR, 'café', 'literal');
+    const unicodeFile = results.find(r => r.relativePath === 'unicode.md');
+    expect(unicodeFile).toBeDefined();
+    expect(unicodeFile!.matchCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('unicode content: literal search for "日本語" finds unicode.md', async () => {
+    const results = await searchFolder(TEST_DATA_DIR, '日本語', 'literal');
+    const unicodeFile = results.find(r => r.relativePath === 'unicode.md');
+    expect(unicodeFile).toBeDefined();
+    expect(unicodeFile!.matchCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('special regex characters in literal query don\'t break (e.g., searching for "(H2O)")', async () => {
+    // special-chars.md has "(like this)" and chemistry.md has "(H2O)"
+    const results = await searchFolder(TEST_DATA_DIR, '(H2O)', 'literal');
+    const chemFile = results.find(r => r.relativePath === rel('topics', 'science', 'chemistry.md'));
+    expect(chemFile).toBeDefined();
+    expect(chemFile!.matchCount).toBe(1);
+  });
+
+  it('very long query string (100+ chars) doesn\'t crash', async () => {
+    const longQuery = 'a'.repeat(150);
+    const results = await searchFolder(TEST_DATA_DIR, longQuery, 'literal');
+    // No file contains 150 consecutive 'a' chars, so empty result is expected
+    expect(Array.isArray(results)).toBe(true);
+    expect(results).toHaveLength(0);
+  });
+
+  it('searching a nonexistent folder path returns empty array or throws gracefully', async () => {
+    const fakePath = path.join(TEST_DATA_DIR, 'nonexistent-folder-xyz');
+    // Should either return empty or throw — must not crash unexpectedly
+    try {
+      const results = await searchFolder(fakePath, 'test', 'literal');
+      expect(Array.isArray(results)).toBe(true);
+      expect(results).toHaveLength(0);
+    } catch (err) {
+      // If it throws, that's also acceptable — just shouldn't be an unhandled crash
+      expect(err).toBeDefined();
+    }
+  });
+
+  it('searching a folder with no .md/.txt files returns empty for content mode', async () => {
+    // The images/ folder only contains a .jpg file
+    const imagesDir = path.join(TEST_DATA_DIR, 'images');
+    const results = await searchFolder(imagesDir, 'FAKE_BINARY', 'literal');
+    expect(results).toHaveLength(0);
+  });
+
+  it('deeply nested files (3+ directory levels) are found', async () => {
+    // nested/deep/structure/deep-file.md is 3 levels deep
+    const results = await searchFolder(TEST_DATA_DIR, 'recursive search', 'literal');
+    const deepFile = results.find(r => r.relativePath === rel('nested', 'deep', 'structure', 'deep-file.md'));
+    expect(deepFile).toBeDefined();
+    expect(deepFile!.matchCount).toBeGreaterThanOrEqual(1);
+  });
+});
