@@ -1,4 +1,5 @@
 import { useItem, getItemEditContent, setItemEditContent } from '../../store';
+import { CHECKBOX_CLASSES } from '../../utils/styles';
 
 /**
  * Represents a single hashtag with its checked state.
@@ -70,7 +71,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   };
 
   return (
-    <div className="flex flex-col gap-1 pt-10 pr-1 min-w-[80px]">
+    <div className="flex flex-col gap-1 pt-2 pr-1 min-w-[80px]">
       {tags.map((t, i) => (
         <label
           key={t.tag}
@@ -80,7 +81,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
             type="checkbox"
             checked={t.checked}
             onChange={() => handleToggle(i)}
-            className="accent-blue-500 w-3.5 h-3.5 cursor-pointer"
+            className={`${CHECKBOX_CLASSES} cursor-pointer`}
           />
           <span className="whitespace-nowrap">{t.tag}</span>
         </label>
