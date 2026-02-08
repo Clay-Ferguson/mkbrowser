@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useItem, getItemEditContent, setItemEditContent } from '../../store';
 
 /**
@@ -10,11 +9,7 @@ export interface TagData {
 }
 
 /** Default hardcoded tags for Phase 1/2 testing. */
-const DEFAULT_TAGS: TagData[] = [
-  { tag: '#abc', checked: false },
-  { tag: '#def', checked: false },
-  { tag: '#ghi', checked: false },
-];
+const DEFAULT_TAGS: string[] = ['#abc', '#def', '#ghi'];
 
 /**
  * Escape a string for use in a RegExp.
@@ -32,30 +27,24 @@ interface TagsPickerProps {
  * TagsPicker — renders a vertical list of hashtag checkboxes.
  * Displayed to the right of a MarkdownEntry when it is in edit mode.
  *
- * On mount, checks which hashtags already exist in the editor content
- * and pre-checks those boxes. Toggling a checkbox on appends the hashtag
- * to the end of the editor content; toggling off removes all occurrences.
+ * Checked state is derived directly from the editor content on every render,
+ * so checkboxes stay perfectly in sync whether the user types in the editor
+ * or clicks a checkbox. Toggling a checkbox on appends the hashtag to the
+ * end of the editor content; toggling off removes all occurrences.
  */
 export default function TagsPicker({ filePath }: TagsPickerProps) {
   const item = useItem(filePath);
   const editContent = item?.editContent ?? '';
 
-  // Initialize checked state from editor content on mount
-  const [tags, setTags] = useState<TagData[]>(() =>
-    DEFAULT_TAGS.map((t) => ({
-      ...t,
-      checked: editContent.includes(t.tag),
-    }))
-  );
+  // Derive checked state from content on every render — no local state needed
+  const tags: TagData[] = DEFAULT_TAGS.map((tag) => ({
+    tag,
+    checked: editContent.includes(tag),
+  }));
 
   const handleToggle = (index: number) => {
     const tag = tags[index];
     const newChecked = !tag.checked;
-
-    // Update checkbox state
-    setTags((prev) =>
-      prev.map((t, i) => (i === index ? { ...t, checked: newChecked } : t))
-    );
 
     // Read the latest editor content synchronously (avoids render lag)
     const currentContent = getItemEditContent(filePath);
