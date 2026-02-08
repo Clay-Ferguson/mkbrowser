@@ -1,78 +1,82 @@
+# MkBrowser — Copilot Instructions
 
+## Architecture (Electron Three-Process Model)
 
-# MkBrowser AI Coding Instructions
-
-## Architecture Overview
-
-MkBrowser is an Electron desktop app for browsing folders with inline Markdown rendering. It follows a strict **three-process architecture**:
+MkBrowser is an Electron desktop app for folder browsing with inline Markdown rendering. It enforces a strict IPC boundary:
 
 | Process | File | Responsibility |
 |---------|------|----------------|
 | Main | `src/main.ts` | File system, IPC handlers, native menus |
 | Preload | `src/preload.ts` | Exposes `window.electronAPI` to renderer |
-| Renderer | `src/App.tsx` | React UI only, no direct fs access |
+| Renderer | `src/App.tsx` | React UI — **no Node.js imports allowed** |
 
-**Critical Rule**: Renderer code must NEVER import Node.js modules. All file operations go through `window.electronAPI.*` calls.
+**Data flow**: Renderer → `window.electronAPI.*` → `ipcRenderer.invoke` → Main process → Node.js fs → result returned to renderer.
 
-## Adding New IPC Handlers
+## Adding IPC Handlers (Three-File Sync)
 
-When adding file system functionality, update these files in sync:
-1. `src/main.ts` - Add `ipcMain.handle('handler-name', ...)` 
-2. `src/preload.ts` - Add method in `contextBridge.exposeInMainWorld`
-3. `src/global.d.ts` - Add type signature to `ElectronAPI` interface
+Every new file system operation requires changes in three files kept in sync:
+1. `src/main.ts` — `ipcMain.handle('handler-name', ...)` implementation
+2. `src/preload.ts` — method in `contextBridge.exposeInMainWorld`
+3. `src/global.d.ts` — type signature in `ElectronAPI` interface
 
-Example pattern in main.ts:
-```typescript
-ipcMain.handle('my-operation', async (_event, arg: string): Promise<Result> => {
-  // Node.js file operations here
-});
-```
+## State Management (No Redux)
 
-## State Management
+State uses a custom store (`src/store/`) built on `useSyncExternalStore`:
+- `types.ts` — interfaces (`ItemData`, `AppState`, `AppSettings`, etc.)
+- `store.ts` — mutations, subscriptions, hooks (`useItem`, `useItems`, `useCurrentView`, etc.)
+- `index.ts` — public API re-exports (actions like `setItemEditing`, hooks like `useSettings`)
 
-State lives in `src/store/` using React's `useSyncExternalStore` (no Redux):
-- `store.ts` - State mutations and subscriptions
-- `types.ts` - TypeScript interfaces (`ItemData`, `AppState`, etc.)
-- `index.ts` - Public exports (actions and hooks)
+Items are stored in `Map<path, ItemData>` for O(1) lookups. Always create **new objects** when mutating state to trigger React re-renders. Import actions and hooks from `../../store` (the `index.ts` barrel).
 
-Items stored in `Map<path, ItemData>` for O(1) lookups. Always create new objects for state updates to trigger re-renders.
-
-Key item fields: `isSelected`, `isExpanded`, `editing`, `content`, `contentCachedAt`
-
-## Component Organization
+## Component Patterns
 
 ```
 src/components/
-  entries/       # File list item renderers (MarkdownEntry, FolderEntry, etc.)
-  dialogs/       # Modal dialogs (SearchDialog, CreateFileDialog, etc.)
-  views/         # Full-page views (SettingsView, SearchResultsView)
+  entries/         # File list item renderers per type
+    common/        # Shared hooks: useEntryCore, useRename, useDelete, useContentLoader, useEditMode
+    MarkdownEntry.tsx, FolderEntry.tsx, TextEntry.tsx, ImageEntry.tsx, FileEntry.tsx
+  dialogs/         # Modal dialogs (ConfirmDialog pattern — see .claude/skills/dialogs/SKILL.md)
+  views/           # Full-page views: SettingsView, SearchResultsView, FolderAnalysisView
 ```
 
-Entry components render individual items in the file list. They receive `ItemData` and handle expand/collapse, edit mode, and selection.
+Entry components compose shared hooks from `entries/common/` and render `EntryActionBar`, `RenameInput`, `SelectionCheckbox` for consistent UX. New entry types should follow this composition pattern.
 
-## Styling
+## Menu → IPC → Renderer Event Pattern
 
-Uses **Tailwind CSS 4** with CSS-first configuration in `src/index.css`. The Typography plugin styles rendered Markdown content.
+Native menu actions (cut, paste, delete, etc.) flow as:
+1. `src/main.ts` — menu click sends event via `mainWindow.webContents.send('event-name')`
+2. `src/preload.ts` — exposes `onEventRequested(callback)` listener
+3. `src/App.tsx` — registers listener, calls store actions
 
-Content width is controlled by settings: `narrow`, `medium`, `wide`, `full` (see `getContentWidthClasses` in App.tsx).
+## Tech Stack
+
+- **Runtime**: Electron 40, React 19, TypeScript
+- **Build**: Electron Forge + Vite (configs: `vite.main.config.ts`, `vite.preload.config.ts`, `vite.renderer.config.mts`)
+- **Styling**: Tailwind CSS 4 (CSS-first config in `src/index.css`, Typography plugin for Markdown)
+- **Markdown**: react-markdown + remark-gfm + remark-math + rehype-katex + mermaid
+- **Editor**: CodeMirror 6 (`src/components/CodeMirrorEditor.tsx`)
+- **Testing**: Vitest (node environment), tests in `tests/`, fixtures in `tests/fixtures/`
 
 ## Development Commands
 
 ```bash
-npm install              # Install dependencies
-npm run start:linux      # Run on Linux (requires sandbox disabled)
-npm start                # Run on Windows/Mac
-npm run lint             # ESLint check
+npm run start:linux      # Linux (sandbox disabled)
+npm start                # Windows/Mac
+npm run lint             # ESLint
+npm test                 # Vitest (run once)
+npm run test:watch       # Vitest (watch mode)
 npm run make             # Build distributable
 ```
 
-## Key Patterns
+## Testing Conventions
 
-- **Menu actions** trigger IPC events that the renderer listens to (e.g., `onCutRequested`, `onPasteRequested`)
-- **Content caching**: Markdown content cached in `ItemData.content` with `contentCachedAt` timestamp for invalidation
-- **Multiple concurrent edits**: Each file tracks its own `editing` state independently
-- **Search definitions**: Saved searches stored in settings with `literal`, `wildcard`, or `advanced` modes
+Tests use Vitest with a node environment. Test data lives in `test-data/` and is generated by `tests/fixtures/setup.ts` via `beforeAll`. Test files must **not** modify fixture data — fixtures are read-only. Search logic (`src/search.ts`, `src/utils/searchUtil.ts`) is testable without Electron.
 
-## File Naming Convention
+## Key Conventions
 
-Demo data uses ordinal prefixes like `00010_`, `00020_` for manual ordering. The "Renumber Files" feature adjusts these prefixes.
+- **Content caching**: Markdown content is cached in `ItemData.content` with `contentCachedAt` timestamp; check `isCacheValid()` before re-reading
+- **Multiple concurrent edits**: Each file tracks its own `editing` state in `ItemData`
+- **Views**: App has four views (`AppView` type): `browser`, `search-results`, `settings`, `folder-analysis`
+- **Ordinal file naming**: Demo data uses `00010_`, `00020_` prefixes for manual ordering; `renumberFiles` adjusts these
+- **Search modes**: `literal`, `wildcard`, `advanced` with `content`/`filenames` targets and `entire-file`/`file-lines` granularity
+- **Config persistence**: YAML-based (`AppConfig`) via `window.electronAPI.getConfig()`/`saveConfig()`
