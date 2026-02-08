@@ -636,8 +636,8 @@ export function setItemEditing(path: string, editing: boolean, goToLine?: number
     ...existing,
     editing,
     goToLine: editing ? goToLine : undefined,
-    // Clear editContent when exiting edit mode
-    ...(editing ? {} : { editContent: undefined }),
+    // Clear editContent and availableTags when exiting edit mode
+    ...(editing ? {} : { editContent: undefined, availableTags: undefined }),
   });
 
   state = {
@@ -645,6 +645,20 @@ export function setItemEditing(path: string, editing: boolean, goToLine?: number
     items: newItems,
     ...(editing ? { highlightItem: existing.name } : {}),
   };
+  emitChange();
+}
+
+/**
+ * Set the available tags for a file (loaded from ancestor .TAGS.md files).
+ */
+export function setItemAvailableTags(path: string, availableTags: string[]): void {
+  const existing = state.items.get(path);
+  if (!existing) return;
+
+  const newItems = new Map(state.items);
+  newItems.set(path, { ...existing, availableTags });
+
+  state = { ...state, items: newItems };
   emitChange();
 }
 

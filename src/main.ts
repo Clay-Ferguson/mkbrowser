@@ -738,6 +738,47 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Collect tags by walking up ancestor directories reading .TAGS.md files
+  ipcMain.handle('collect-ancestor-tags', async (_event, filePath: string): Promise<string[]> => {
+    try {
+      const HASHTAG_REGEX = /#[a-zA-Z0-9][a-zA-Z0-9_-]*/g;
+      const seen = new Set<string>();
+      const tags: string[] = [];
+
+      // Start from the directory containing the file
+      let dir = path.dirname(filePath);
+      const root = path.parse(dir).root;
+
+      // Walk up the directory tree
+      while (true) {
+        const tagsFile = path.join(dir, '.TAGS.md');
+        try {
+          const content = await fs.promises.readFile(tagsFile, 'utf-8');
+          HASHTAG_REGEX.lastIndex = 0;
+          let match;
+          while ((match = HASHTAG_REGEX.exec(content)) !== null) {
+            const tag = match[0];
+            if (!seen.has(tag)) {
+              seen.add(tag);
+              tags.push(tag);
+            }
+          }
+        } catch {
+          // .TAGS.md doesn't exist at this level — that's fine, keep walking
+        }
+
+        // Stop at filesystem root
+        if (dir === root || dir === path.dirname(dir)) break;
+        dir = path.dirname(dir);
+      }
+
+      return tags;
+    } catch (error) {
+      console.error('Error collecting ancestor tags:', error);
+      return [];
+    }
+  });
+
   // Select folder for export output
   ipcMain.handle('select-export-folder', async (): Promise<string | null> => {
     const result = await dialog.showOpenDialog({

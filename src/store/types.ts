@@ -62,6 +62,12 @@ export interface ItemData {
    * Set when initiating edit from search results with a line match.
    */
   goToLine?: number;
+
+  /**
+   * Tags loaded from ancestor `.TAGS.md` files for this item.
+   * Set asynchronously when editing starts; undefined means not yet loaded.
+   */
+  availableTags?: string[];
 }
 
 /**

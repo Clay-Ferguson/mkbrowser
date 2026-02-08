@@ -1,5 +1,7 @@
-import { useItem, getItemEditContent, setItemEditContent } from '../../store';
+import { useState, useEffect } from 'react';
+import { useItem, getItemEditContent, setItemEditContent, setItemAvailableTags } from '../../store';
 import { CHECKBOX_CLASSES } from '../../utils/styles';
+import { loadTagsForFile, type TagsLoadState } from '../../utils/tagUtils';
 
 /**
  * Represents a single hashtag with its checked state.
@@ -8,9 +10,6 @@ export interface TagData {
   tag: string;
   checked: boolean;
 }
-
-/** Default hardcoded tags for Phase 1/2 testing. */
-const DEFAULT_TAGS: string[] = ['#abc', '#def', '#ghi'];
 
 /**
  * Escape a string for use in a RegExp.
@@ -28,6 +27,10 @@ interface TagsPickerProps {
  * TagsPicker — renders a vertical list of hashtag checkboxes.
  * Displayed to the right of a MarkdownEntry when it is in edit mode.
  *
+ * Tags are loaded asynchronously by walking up ancestor directories and
+ * collecting hashtags from `.TAGS.md` files. While loading, a spinner is shown.
+ * If no `.TAGS.md` files are found (or they contain no tags), nothing is rendered.
+ *
  * Checked state is derived directly from the editor content on every render,
  * so checkboxes stay perfectly in sync whether the user types in the editor
  * or clicks a checkbox. Toggling a checkbox on appends the hashtag to the
@@ -37,8 +40,39 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   const item = useItem(filePath);
   const editContent = item?.editContent ?? '';
 
+  // Async tag loading state
+  const [loadState, setLoadState] = useState<TagsLoadState>({ status: 'loading' });
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadState({ status: 'loading' });
+
+    loadTagsForFile(filePath).then((tags) => {
+      if (!cancelled) {
+        setLoadState({ status: 'loaded', tags });
+        setItemAvailableTags(filePath, tags);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [filePath]);
+
+  // While loading, show a small spinner
+  if (loadState.status === 'loading') {
+    return (
+      <div className="flex flex-col gap-1 pt-2 pr-1 min-w-[80px]">
+        <span className="text-xs text-slate-500 animate-pulse">Loading tags…</span>
+      </div>
+    );
+  }
+
+  // If no tags found, render nothing
+  if (loadState.tags.length === 0) {
+    return null;
+  }
+
   // Derive checked state from content on every render — no local state needed
-  const tags: TagData[] = DEFAULT_TAGS.map((tag) => ({
+  const tags: TagData[] = loadState.tags.map((tag) => ({
     tag,
     checked: editContent.includes(tag),
   }));

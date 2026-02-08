@@ -1374,7 +1374,7 @@ function App() {
                   {entry.isDirectory ? (
                     <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : entry.isMarkdown ? (
-                    items.get(entry.path)?.editing ? (
+                    items.get(entry.path)?.editing && (items.get(entry.path)?.availableTags?.length ?? 0) > 0 ? (
                       <div className="flex gap-2">
                         <div className="flex-1 min-w-0">
                           <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
@@ -1382,7 +1382,11 @@ function App() {
                         <TagsPicker filePath={entry.path} />
                       </div>
                     ) : (
-                      <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                      <>
+                        <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                        {/* Render TagsPicker hidden while editing so it can load tags into the store */}
+                        {items.get(entry.path)?.editing && <div className="hidden"><TagsPicker filePath={entry.path} /></div>}
+                      </>
                     )
                   ) : isImageFile(entry.name) ? (
                     <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
