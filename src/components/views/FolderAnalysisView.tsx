@@ -7,7 +7,7 @@ import {
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 
 interface FolderAnalysisViewProps {
-  onSearchHashtag: (hashtag: string) => void;
+  onSearchHashtag: (hashtag: string, ctrlKey: boolean) => void;
 }
 
 function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
@@ -42,6 +42,7 @@ function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
             Scanned <span className="text-slate-300 font-medium">{totalFiles}</span> file{totalFiles !== 1 ? 's' : ''} in{' '}
             <span className="text-slate-300 font-mono text-xs">{folderPath}</span>
           </p>
+          <p className="text-xs text-slate-500 mt-1">Click for File Search. CTRL-Click for Line-by-Line Search</p>
         </div>
 
         {/* Hashtags section */}
@@ -60,9 +61,9 @@ function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
                 <button
                   key={entry.tag}
                   type="button"
-                  onClick={() => onSearchHashtag(entry.tag)}
+                  onClick={(e) => onSearchHashtag(entry.tag, e.ctrlKey)}
                   className="w-full flex items-center justify-between py-1.5 px-3 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer text-left"
-                  title={`Search for ${entry.tag}`}
+                  title={`Search for ${entry.tag} (Ctrl+click for advanced search)`}
                 >
                   <span className="text-blue-400 font-mono text-sm">{entry.tag}</span>
                   <span className="text-slate-400 text-sm tabular-nums">
