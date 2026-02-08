@@ -7,6 +7,7 @@ import MarkdownEntry from './components/entries/MarkdownEntry';
 import FileEntryComponent from './components/entries/FileEntry';
 import ImageEntry from './components/entries/ImageEntry';
 import TextEntry from './components/entries/TextEntry'; 
+import TagsPicker from './components/entries/TagsPicker';
 
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
@@ -1373,7 +1374,16 @@ function App() {
                   {entry.isDirectory ? (
                     <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                    items.get(entry.path)?.editing ? (
+                      <div className="flex gap-2">
+                        <div className="flex-1 min-w-0">
+                          <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                        </div>
+                        <TagsPicker filePath={entry.path} />
+                      </div>
+                    ) : (
+                      <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                    )
                   ) : isImageFile(entry.name) ? (
                     <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : isTextFile(entry.name) ? (

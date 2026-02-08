@@ -636,6 +636,8 @@ export function setItemEditing(path: string, editing: boolean, goToLine?: number
     ...existing,
     editing,
     goToLine: editing ? goToLine : undefined,
+    // Clear editContent when exiting edit mode
+    ...(editing ? {} : { editContent: undefined }),
   });
 
   state = {
@@ -644,6 +646,28 @@ export function setItemEditing(path: string, editing: boolean, goToLine?: number
     ...(editing ? { highlightItem: existing.name } : {}),
   };
   emitChange();
+}
+
+/**
+ * Set the current edit content for a file (used during editing).
+ * This allows sibling components (e.g., TagsPicker) to read/modify editor content.
+ */
+export function setItemEditContent(path: string, editContent: string): void {
+  const existing = state.items.get(path);
+  if (!existing) return;
+
+  const newItems = new Map(state.items);
+  newItems.set(path, { ...existing, editContent });
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
+/**
+ * Get the current edit content for a file synchronously (not a hook).
+ * Useful for reading the latest value in event handlers without render lag.
+ */
+export function getItemEditContent(path: string): string {
+  return state.items.get(path)?.editContent ?? '';
 }
 
 /**

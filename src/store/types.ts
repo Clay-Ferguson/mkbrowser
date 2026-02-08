@@ -47,6 +47,12 @@ export interface ItemData {
   editing?: boolean;
 
   /**
+   * Current content being edited (only set while in edit mode).
+   * Shared via store so sibling components (e.g., TagsPicker) can read/modify it.
+   */
+  editContent?: string;
+
+  /**
    * Whether the file/folder is currently being renamed.
    */
   renaming?: boolean;

@@ -12,6 +12,8 @@ export {
   setItemSelected,
   setItemExpanded,
   setItemEditing,
+  setItemEditContent,
+  getItemEditContent,
   clearItemGoToLine,
   setItemRenaming,
   setHighlightItem,
