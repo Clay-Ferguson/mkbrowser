@@ -6,6 +6,20 @@
 echo "🔨 Building MkBrowser..."
 echo ""
 
+# Run tests first and abort if any fail
+echo "🧪 Running tests..."
+echo ""
+yarn test
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Tests failed! Build aborted."
+  echo "   Fix the failing tests and try again."
+  exit 1
+fi
+echo ""
+echo "✅ All tests passed!"
+echo ""
+
 # Run the electron-forge make command to create distributables
 # This will create .deb and .rpm packages in the 'out' directory
 yarn make
