@@ -85,6 +85,11 @@ export interface ExportResult {
   error?: string;
 }
 
+export interface FolderAnalysisResult {
+  hashtags: Array<{ tag: string; count: number }>;
+  totalFiles: number;
+}
+
 export interface ElectronAPI {
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
   getConfig: () => Promise<AppConfig>;
@@ -102,6 +107,7 @@ export interface ElectronAPI {
   onJoinFilesRequested: (callback: () => void) => () => void;
   onRenumberRequested: (callback: () => void) => () => void;
   onReplaceInFilesRequested: (callback: () => void) => () => void;
+  onFolderAnalysisRequested: (callback: () => void) => () => void;
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   onExportRequested: (callback: () => void) => () => void;
   onEditSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
@@ -121,6 +127,7 @@ export interface ElectronAPI {
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => Promise<SearchResult[]>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
+  analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
   setWindowTitle: (title: string) => Promise<void>;
   selectExportFolder: () => Promise<string | null>;

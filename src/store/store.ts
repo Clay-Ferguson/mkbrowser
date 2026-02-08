@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState } from './types';
 import { createItemData } from './types';
 
 /**
@@ -36,8 +36,10 @@ const initialState: AppState = {
     browser: new Map(),
     'search-results': 0,
     settings: 0,
+    'folder-analysis': 0,
   },
   highlightedSearchResult: null,
+  folderAnalysis: null,
 };
 
 /**
@@ -179,6 +181,13 @@ function getScrollPositionsSnapshot(): ScrollPositions {
  */
 function getHighlightedSearchResultSnapshot(): { path: string; lineNumber?: number } | null {
   return state.highlightedSearchResult;
+}
+
+/**
+ * Get snapshot of folder analysis state
+ */
+function getFolderAnalysisSnapshot(): FolderAnalysisState | null {
+  return state.folderAnalysis;
 }
 
 // ============================================================================
@@ -777,6 +786,35 @@ export function getSettingsScrollPosition(): number {
 }
 
 /**
+ * Set scroll position for the folder analysis view
+ */
+export function setFolderAnalysisScrollPosition(position: number): void {
+  state = {
+    ...state,
+    scrollPositions: {
+      ...state.scrollPositions,
+      'folder-analysis': position,
+    },
+  };
+  // Don't emit change for scroll position updates
+}
+
+/**
+ * Get scroll position for the folder analysis view
+ */
+export function getFolderAnalysisScrollPosition(): number {
+  return state.scrollPositions['folder-analysis'];
+}
+
+/**
+ * Set folder analysis results
+ */
+export function setFolderAnalysis(data: FolderAnalysisState): void {
+  state = { ...state, folderAnalysis: data };
+  emitChange();
+}
+
+/**
  * Navigate to a path and switch to browser view in a single state update.
  * Optionally set a file to scroll to after render completes.
  */
@@ -1110,4 +1148,11 @@ export function useScrollPositions(): ScrollPositions {
  */
 export function useHighlightedSearchResult(): { path: string; lineNumber?: number } | null {
   return useSyncExternalStore(subscribe, getHighlightedSearchResultSnapshot);
+}
+
+/**
+ * Hook to subscribe to folder analysis state
+ */
+export function useFolderAnalysis(): FolderAnalysisState | null {
+  return useSyncExternalStore(subscribe, getFolderAnalysisSnapshot);
 }

@@ -61,6 +61,11 @@ export interface RenumberResult {
   operations?: RenameOperation[];
 }
 
+export interface FolderAnalysisResult {
+  hashtags: Array<{ tag: string; count: number }>;
+  totalFiles: number;
+}
+
 export interface ElectronAPI {
   getConfig: () => Promise<AppConfig>;
   saveConfig: (config: AppConfig) => Promise<void>;
@@ -78,6 +83,7 @@ export interface ElectronAPI {
   onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
   onOpenSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
   onEditSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
+  onFolderAnalysisRequested: (callback: () => void) => () => void;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
@@ -89,6 +95,7 @@ export interface ElectronAPI {
   openExternal: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => Promise<SearchResult[]>;
+  analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
 }
 
@@ -257,6 +264,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchBlock),
+  analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
   onExportRequested: (callback: () => void) => {
@@ -273,4 +281,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('export-folder-contents', sourceFolder, outputFolder, outputFileName, includeSubfolders, includeFilenames, includeDividers),
   exportToPdf: (markdownPath: string, pdfPath: string) =>
     ipcRenderer.invoke('export-to-pdf', markdownPath, pdfPath),
+  onFolderAnalysisRequested: (callback: () => void) => {
+    const handler = () => {
+      callback();
+    };
+    ipcRenderer.on('folder-analysis-requested', handler);
+    return () => {
+      ipcRenderer.removeListener('folder-analysis-requested', handler);
+    };
+  },
 } as ElectronAPI);

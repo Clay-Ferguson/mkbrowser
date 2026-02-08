@@ -61,7 +61,27 @@ export interface ItemData {
 /**
  * Represents which application page (aka view or panel) is currently displayed
  */
-export type AppView = 'browser' | 'search-results' | 'settings';
+export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis';
+
+/**
+ * A single hashtag entry with its occurrence count
+ */
+export interface HashtagEntry {
+  tag: string;
+  count: number;
+}
+
+/**
+ * State for the folder analysis feature
+ */
+export interface FolderAnalysisState {
+  /** Map of hashtag -> count */
+  hashtags: HashtagEntry[];
+  /** The folder path that was analyzed */
+  folderPath: string;
+  /** Total number of files scanned */
+  totalFiles: number;
+}
 
 /**
  * Search result from the file search
@@ -168,6 +188,8 @@ export interface ScrollPositions {
   'search-results': number;
   /** Settings view scroll position */
   settings: number;
+  /** Folder analysis view scroll position */
+  'folder-analysis': number;
 }
 
 /**
@@ -254,6 +276,11 @@ export interface AppState {
    * Used to highlight the result when returning to search results view.
    */
   highlightedSearchResult: { path: string; lineNumber?: number } | null;
+
+  /**
+   * Folder analysis results (null until an analysis is run)
+   */
+  folderAnalysis: FolderAnalysisState | null;
 }
 
 /**

@@ -18,6 +18,7 @@ import ReplaceDialog from './components/dialogs/ReplaceDialog';
 import ExportDialog from './components/dialogs/ExportDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
+import FolderAnalysisView from './components/views/FolderAnalysisView';
 import AppTabButtons from './components/AppTabButtons';
 import PathBreadcrumb from './components/PathBreadcrumb';
 import {
@@ -45,6 +46,7 @@ import {
   setBrowserScrollPosition,
   getBrowserScrollPosition,
   toggleBookmark,
+  setFolderAnalysis,
   useItems,
   useCurrentView,
   useCurrentPath,
@@ -612,6 +614,32 @@ function App() {
     };
   }, []);
 
+  // Listen for Folder Analysis menu action
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onFolderAnalysisRequested(() => {
+      if (!currentPath) return;
+      
+      // Start the analysis and switch to the view
+      void (async () => {
+        try {
+          const result = await window.electronAPI.analyzeFolderHashtags(currentPath);
+          setFolderAnalysis({
+            hashtags: result.hashtags,
+            folderPath: currentPath,
+            totalFiles: result.totalFiles,
+          });
+          setCurrentView('folder-analysis');
+        } catch (err) {
+          setError('Failed to analyze folder: ' + (err instanceof Error ? err.message : String(err)));
+        }
+      })();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [currentPath]);
+
   // Listen for search definition selection from menu - execute search immediately
   useEffect(() => {
     const unsubscribe = window.electronAPI.onOpenSearchDefinition(async (definition) => {
@@ -1140,6 +1168,22 @@ function App() {
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons />
         <SettingsView onSaveSettings={handleSaveSettings} />
+        {error && (
+          <ErrorDialog
+            message={error}
+            onClose={() => setError(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Show folder analysis view
+  if (currentView === 'folder-analysis') {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+        <AppTabButtons />
+        <FolderAnalysisView />
         {error && (
           <ErrorDialog
             message={error}

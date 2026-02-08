@@ -1,4 +1,4 @@
-export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, ScrollPositions } from './types';
+export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, HashtagEntry } from './types';
 export type { ExpansionCounts } from './store';
 export { createItemData } from './types';
 
@@ -34,6 +34,9 @@ export {
   getSearchResultsScrollPosition,
   setSettingsScrollPosition,
   getSettingsScrollPosition,
+  setFolderAnalysisScrollPosition,
+  getFolderAnalysisScrollPosition,
+  setFolderAnalysis,
   navigateToBrowserPath,
   clearPendingScrollToFile,
   setPendingScrollToFile,
@@ -71,4 +74,5 @@ export {
   useHighlightedSearchResult,
   useExpansionCounts,
   useScrollPositions,
+  useFolderAnalysis,
 } from './store';

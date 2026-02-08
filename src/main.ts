@@ -6,6 +6,7 @@ import started from 'electron-squirrel-startup';
 import { calculateRenameOperations, type RenameOperation } from './utils/ordinals';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { searchFolder, type SearchResult } from './search';
+import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -335,6 +336,13 @@ function setupApplicationMenu(): void {
   template.push({
     label: 'Tools',
     submenu: [
+      {
+        label: 'Folder Analysis',
+        click: () => {
+          mainWindow?.webContents.send('folder-analysis-requested');
+        },
+      },
+      { type: 'separator' },
       {
         label: 'Re-Number Files',
         click: () => {
@@ -709,6 +717,24 @@ function setupIpcHandlers(): void {
     } catch (error) {
       console.error('Error searching folder:', error);
       return [];
+    }
+  });
+
+  // Analyze folder for hashtags in .md and .txt files
+  ipcMain.handle('analyze-folder-hashtags', async (_event, folderPath: string): Promise<FolderAnalysisResult> => {
+    try {
+      // Load ignored paths from config
+      const config = loadConfig();
+      const ignoredPathsRaw = config.settings?.ignoredPaths ?? '';
+      const ignoredPaths = ignoredPathsRaw
+        .split('\n')
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+
+      return await analyzeFolderHashtags(folderPath, ignoredPaths);
+    } catch (error) {
+      console.error('Error analyzing folder:', error);
+      return { hashtags: [], totalFiles: 0 };
     }
   });
 
