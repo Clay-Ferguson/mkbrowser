@@ -224,6 +224,35 @@ After the replacement completes, a dialog will show you:
 - **Backup**: For large-scale replacements, consider backing up your folder first.
 - **Special characters**: The search treats your text literally—special characters like `*`, `.`, or `?` are matched exactly as typed, not as wildcards or patterns.
 
+## Folder Analysis
+
+MkBrowser can analyze the contents of the current folder to provide useful statistics about your notes. Currently, the analysis extracts and counts all **hashtags** found across your Markdown and text files.
+
+### Running an Analysis
+
+1. Navigate to the folder you want to analyze.
+2. Go to **Tools → Folder Analysis** in the menu bar.
+3. The analysis will immediately scan all `.md` and `.txt` files recursively (including subfolders), then display the results in the **Analysis** view.
+
+### What Gets Scanned
+
+- All `.md` and `.txt` files in the current folder and all subfolders are included.
+- Files and folders matching your **Ignored Paths** setting (see Settings) are skipped.
+- The scan extracts hashtags — words starting with `#` followed by letters, numbers, underscores, or hyphens (e.g., `#project`, `#in-progress`, `#v2`).
+
+### Analysis Results
+
+The Analysis view shows:
+
+- **Total files scanned**: The number of `.md` and `.txt` files that were processed.
+- **Hashtag list**: Every unique hashtag found, sorted by frequency (most common first). Each entry shows the hashtag name and its total number of occurrences across all scanned files.
+
+### The Analysis Tab
+
+After running an analysis, an **Analysis** tab appears in the tab bar at the top of the application (alongside Browse, Search, and Settings). You can switch between tabs freely — the analysis results are preserved until you run a new analysis or close the application.
+
+**Note:** The Analysis tab only appears after you've run at least one analysis. It is not shown on a fresh application start.
+
 ## Exporting
 
 You can export the contents of the current folder into a single document.
