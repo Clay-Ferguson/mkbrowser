@@ -1146,6 +1146,15 @@ function App() {
     );
   }
 
+  // Handle searching for a hashtag from the folder analysis view
+  const handleSearchHashtag = useCallback(async (hashtag: string) => {
+    if (!currentPath) return;
+    
+    const results = await window.electronAPI.searchFolder(currentPath, hashtag, 'literal', 'content', 'entire-file');
+    setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc');
+    setCurrentView('search-results');
+  }, [currentPath]);
+
   // Show search results view when in search-results mode
   if (currentView === 'search-results') {
     return (
@@ -1183,7 +1192,7 @@ function App() {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons />
-        <FolderAnalysisView />
+        <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
         {error && (
           <ErrorDialog
             message={error}

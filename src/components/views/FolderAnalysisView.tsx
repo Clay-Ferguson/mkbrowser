@@ -6,7 +6,11 @@ import {
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 
-function FolderAnalysisView() {
+interface FolderAnalysisViewProps {
+  onSearchHashtag: (hashtag: string) => void;
+}
+
+function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
   const folderAnalysis = useFolderAnalysis();
 
   // Scroll position persistence
@@ -53,16 +57,19 @@ function FolderAnalysisView() {
           ) : (
             <div className="space-y-1">
               {hashtags.map((entry) => (
-                <div
+                <button
                   key={entry.tag}
-                  className="flex items-center justify-between py-1.5 px-3 rounded-lg hover:bg-slate-800 transition-colors"
+                  type="button"
+                  onClick={() => onSearchHashtag(entry.tag)}
+                  className="w-full flex items-center justify-between py-1.5 px-3 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer text-left"
+                  title={`Search for ${entry.tag}`}
                 >
                   <span className="text-blue-400 font-mono text-sm">{entry.tag}</span>
                   <span className="text-slate-400 text-sm tabular-nums">
                     {entry.count}
                     <span className="text-slate-500 ml-1">{entry.count === 1 ? 'occurrence' : 'occurrences'}</span>
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           )}
