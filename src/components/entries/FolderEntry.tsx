@@ -95,6 +95,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
           onInsertFileBelow={onInsertFileBelow}
           onInsertFolderBelow={onInsertFolderBelow}
           onSaveSettings={onSaveSettings}
+          className="-mr-1.5"
         />
       )}
       {del.showDeleteConfirm && (

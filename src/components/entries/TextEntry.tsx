@@ -125,6 +125,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
             onSaveSettings={onSaveSettings}
             showEditButton
             onEditClick={edit.handleEditClick}
+            className="-mr-1.5"
           />
         )}
       </div>
