@@ -1,5 +1,6 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
+import { HASHTAG_REGEX } from './hashtagRegex';
 
 // Decorations for hashtags
 const hashtagP1Mark = Decoration.mark({ class: 'cm-hashtag-p1' });
@@ -9,8 +10,7 @@ const hashtagRegularMark = Decoration.mark({ class: 'cm-hashtag-regular' });
 // Extract hashtags from text with their positions
 export function extractHashtags(text: string): { tag: string; from: number; to: number }[] {
   const hashtags: { tag: string; from: number; to: number }[] = [];
-  // Match hashtags: # followed by word characters (letters, numbers, underscores)
-  const regex = /#[a-zA-Z0-9_]+/g;
+  const regex = new RegExp(HASHTAG_REGEX.source, 'g');
   let match;
   while ((match = regex.exec(text)) !== null) {
     hashtags.push({

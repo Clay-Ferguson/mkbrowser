@@ -6,13 +6,7 @@
  * Tags are deduplicated and returned in the order they are first encountered
  * (closest directory first, then ancestors).
  */
-
-/**
- * Regex for extracting hashtags from text content.
- * Matches # followed by an alphanumeric character then optional alphanumeric,
- * underscores, or hyphens. Consistent with HASHTAG_REGEX in folderAnalysis.ts.
- */
-const HASHTAG_REGEX = /#[a-zA-Z0-9][a-zA-Z0-9_-]*/g;
+import { HASHTAG_REGEX } from './hashtagRegex';
 
 /**
  * Extract unique hashtags from a block of text.

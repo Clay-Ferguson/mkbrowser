@@ -7,6 +7,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
+import { HASHTAG_REGEX } from './utils/hashtagRegex';
 
 /**
  * Result of a folder analysis scan
@@ -17,13 +18,6 @@ export interface FolderAnalysisResult {
   /** Total number of files that were scanned */
   totalFiles: number;
 }
-
-/**
- * Regex for extracting hashtags from text content.
- * Matches # followed by alphanumeric characters, underscores, dots, or hyphens.
- * Must start with a letter or number after the # (not a symbol).
- */
-const HASHTAG_REGEX = /#[a-zA-Z0-9][a-zA-Z0-9_-]*/g;
 
 /**
  * Build the exclude predicate from an array of ignored path patterns.

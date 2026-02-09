@@ -7,6 +7,7 @@ import { calculateRenameOperations, type RenameOperation } from './utils/ordinal
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
+import { HASHTAG_REGEX } from './utils/hashtagRegex';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -741,7 +742,6 @@ function setupIpcHandlers(): void {
   // Collect tags by walking up ancestor directories reading .TAGS.md files
   ipcMain.handle('collect-ancestor-tags', async (_event, filePath: string): Promise<string[]> => {
     try {
-      const HASHTAG_REGEX = /#[a-zA-Z0-9][a-zA-Z0-9_-]*/g;
       const seen = new Set<string>();
       const tags: string[] = [];
 
