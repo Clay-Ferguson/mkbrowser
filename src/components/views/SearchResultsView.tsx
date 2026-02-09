@@ -8,6 +8,7 @@ import {
   setPendingEditFile,
   setSearchResultsScrollPosition,
   getSearchResultsScrollPosition,
+  deleteItems,
   useSearchResults,
   useSearchQuery,
   useSearchFolder,
@@ -182,6 +183,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     try {
       const success = await window.electronAPI.deleteFile(deleteTarget.path);
       if (success) {
+        // Remove the deleted item from the store so it no longer appears
+        // as selected or referenced in memory
+        deleteItems([deleteTarget.path]);
         // Remove the deleted file from search results
         const updatedResults = searchResults.filter(r => r.path !== deleteTarget.path);
         setSearchResults(updatedResults, searchQuery, searchFolder);

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { DeleteState } from './types';
+import { deleteItems } from '../../../store';
 
 interface UseDeleteOptions {
   /** Full path of the entry to delete */
@@ -27,6 +28,9 @@ export function useDelete({ path, onDelete }: UseDeleteOptions): DeleteState {
     try {
       const success = await window.electronAPI.deleteFile(path);
       if (success) {
+        // Remove the deleted item from the store so it no longer appears
+        // as selected or referenced in memory
+        deleteItems([path]);
         onDelete();
       }
     } finally {

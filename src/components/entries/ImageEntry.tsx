@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { PhotoIcon } from '@heroicons/react/24/outline';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded } from '../../store';
+import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import {
@@ -116,6 +116,9 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
     try {
       const success = await window.electronAPI.deleteFile(pathToDelete);
       if (success) {
+        // Remove the deleted item from the store so it no longer appears
+        // as selected or referenced in memory
+        deleteItems([pathToDelete]);
         if (nextImagePath) {
           setFullscreenImagePath(nextImagePath);
         } else {
