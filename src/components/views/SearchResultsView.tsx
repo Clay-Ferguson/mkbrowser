@@ -158,6 +158,10 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
   const handleEditClick = (e: React.MouseEvent, resultPath: string, lineNumber?: number) => {
     e.stopPropagation();
+
+    // Track this as the highlighted search result
+    setHighlightedSearchResult({ path: resultPath, lineNumber });
+
     // Extract the parent folder and file name from the result path
     const lastSlashIndex = resultPath.lastIndexOf('/');
     const folderPath = resultPath.substring(0, lastSlashIndex);
