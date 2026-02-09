@@ -1,5 +1,7 @@
+import { ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
+import { useHasCutItems } from '../../store';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { ENTRY_CONTAINER_CLASSES } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -20,9 +22,10 @@ interface FolderEntryProps {
   onInsertFileBelow: (defaultName: string) => void;
   onInsertFolderBelow: (defaultName: string) => void;
   onSaveSettings: () => void;
+  onPasteIntoFolder?: (folderPath: string) => void;
 }
 
-function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: FolderEntryProps) {
+function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onPasteIntoFolder }: FolderEntryProps) {
   const {
     isRenaming,
     isSelected,
@@ -32,6 +35,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
     nextOrdinalPrefix,
   } = useEntryCore({ path: entry.path, name: entry.name });
 
+  const hasCutItems = useHasCutItems();
   const rename = useRename({
     path: entry.path,
     name: entry.name,
@@ -84,6 +88,17 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
       {isRenaming ? (
         <div className="flex-shrink-0" />
       ) : (
+        <>
+        {hasCutItems && onPasteIntoFolder && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onPasteIntoFolder(entry.path); }}
+            className="flex-shrink-0 px-2 py-0.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+            title="Paste cut items into this folder"
+          >
+            <ClipboardDocumentIcon className="w-4 h-4 inline -mt-0.5 mr-0.5" />
+            Paste
+          </button>
+        )}
         <EntryActionBar
           path={entry.path}
           showInsertIcons={showInsertIcons}
@@ -97,6 +112,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
           onSaveSettings={onSaveSettings}
           className="-mr-1.5"
         />
+        </>
       )}
       {del.showDeleteConfirm && (
         <ConfirmDialog

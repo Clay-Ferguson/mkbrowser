@@ -1198,6 +1198,17 @@ export function useHighlightedSearchResult(): { path: string; lineNumber?: numbe
 }
 
 /**
+ * Hook to check whether any items are currently cut
+ */
+export function useHasCutItems(): boolean {
+  const items = useSyncExternalStore(subscribe, getItemsSnapshot);
+  for (const item of items.values()) {
+    if (item.isCut) return true;
+  }
+  return false;
+}
+
+/**
  * Hook to subscribe to folder analysis state
  */
 export function useFolderAnalysis(): FolderAnalysisState | null {

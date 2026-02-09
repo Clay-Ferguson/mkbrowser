@@ -361,6 +361,32 @@ function App() {
     refreshDirectory();
   }, [currentPath, items, refreshDirectory]);
 
+  // Paste cut items into a specific folder (used by FolderEntry paste buttons)
+  const doPasteIntoFolder = useCallback(async (folderPath: string) => {
+    const cutItems = Array.from(items.values()).filter((item) => item.isCut);
+    if (cutItems.length === 0) return;
+
+    setError(null);
+
+    const result = await pasteCutItems(
+      cutItems,
+      folderPath,
+      window.electronAPI.pathExists,
+      window.electronAPI.renameFile
+    );
+
+    if (!result.success) {
+      setError(result.error || 'Failed to paste items');
+      return;
+    }
+
+    // Remove old paths for moved items and clear cut state
+    const movedPaths = cutItems.map(item => item.path);
+    deleteItems(movedPaths);
+    clearAllCutItems();
+    refreshDirectory();
+  }, [items, refreshDirectory]);
+
   // Listen for Paste menu action
   useEffect(() => {
     const unsubscribe = window.electronAPI.onPasteRequested(() => {
@@ -1380,7 +1406,7 @@ function App() {
               return sortedEntries.map((entry) => (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
                   ) : entry.isMarkdown ? (
                     <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : isImageFile(entry.name) ? (

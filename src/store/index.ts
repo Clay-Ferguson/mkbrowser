@@ -77,5 +77,6 @@ export {
   useHighlightedSearchResult,
   useExpansionCounts,
   useScrollPositions,
+  useHasCutItems,
   useFolderAnalysis,
 } from './store';
