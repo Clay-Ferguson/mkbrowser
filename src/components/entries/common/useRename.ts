@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { setHighlightItem, setItemRenaming, updateBookmarkPath } from '../../../store';
+import { setHighlightItem, setItemRenaming, renameItem, updateBookmarkPath } from '../../../store';
 import type { RenameState } from './types';
 
 interface UseRenameOptions {
@@ -79,7 +79,9 @@ export function useRename({
         if (updateBookmarkPath(path, newPath)) {
           onSaveSettings();
         }
-        setItemRenaming(path, false);
+        // Move the item entry from old path to new path in the store,
+        // preserving selection and other state (prevents phantom selections)
+        renameItem(path, newPath, trimmedName);
         setHighlightItem(trimmedName);
         onRename();
       }

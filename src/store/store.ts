@@ -571,6 +571,28 @@ export function clearAllCutItems(): void {
 }
 
 /**
+ * Rename an item in the store: move its entry from oldPath to newPath,
+ * preserving all state (isSelected, isCut, isExpanded, content, etc.).
+ * This prevents phantom entries when a selected item is renamed.
+ */
+export function renameItem(oldPath: string, newPath: string, newName: string): void {
+  const existing = state.items.get(oldPath);
+  if (!existing) return;
+
+  const newItems = new Map(state.items);
+  newItems.delete(oldPath);
+  newItems.set(newPath, {
+    ...existing,
+    path: newPath,
+    name: newName,
+    renaming: false,
+  });
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
+
+/**
  * Delete multiple items from the store by their paths
  */
 export function deleteItems(paths: string[]): void {

@@ -24,6 +24,7 @@ export {
   collapseAllItems,
   clearAllCutItems,
   cutSelectedItems,
+  renameItem,
   deleteItems,
   clearCache,
   getItem,
