@@ -113,6 +113,14 @@ function App() {
   // Determine if any items are selected or cut (for Cut/Paste buttons)
   const hasSelectedItems = Array.from(items.values()).some((item) => item.isSelected);
   const hasCutItems = Array.from(items.values()).some((item) => item.isCut);
+  const selectedItems = Array.from(items.values()).filter((item) => item.isSelected);
+  const selectedFileCount = selectedItems.filter((item) => !item.isDirectory).length;
+  const hasSelectedFolders = selectedItems.some((item) => item.isDirectory);
+
+  // Notify main process of selection state changes for menu enablement (Split/Join)
+  useEffect(() => {
+    window.electronAPI.updateSelectionState(selectedFileCount, hasSelectedFolders);
+  }, [selectedFileCount, hasSelectedFolders]);
 
   // Apply font size globally via data attribute on html element
   useEffect(() => {

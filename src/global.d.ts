@@ -132,6 +132,7 @@ export interface ElectronAPI {
   collectAncestorTags: (filePath: string) => Promise<string[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
   setWindowTitle: (title: string) => Promise<void>;
+  updateSelectionState: (fileCount: number, hasFolders: boolean) => void;
   selectExportFolder: () => Promise<string | null>;
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;
   exportToPdf: (markdownPath: string, pdfPath: string) => Promise<{ success: boolean; error?: string }>;

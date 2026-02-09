@@ -26,6 +26,10 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
 // Command-line override for browse folder (takes precedence over config file)
 let commandLineFolder: string | null = null;
 
+// Track renderer selection state for menu enablement (Split/Join)
+let selectedFileCount = 0;
+let hasSelectedFolders = false;
+
 type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
@@ -244,6 +248,7 @@ function setupApplicationMenu(): void {
       {
         label: 'Unselect All',
         accelerator: 'CmdOrCtrl+Shift+A',
+        enabled: selectedFileCount > 0 || hasSelectedFolders,
         click: () => {
           mainWindow?.webContents.send('unselect-all-items');
         },
@@ -251,6 +256,7 @@ function setupApplicationMenu(): void {
       { type: 'separator' },
       {
         label: 'Move to Folder',
+        enabled: selectedFileCount === 1 && !hasSelectedFolders,
         click: () => {
           mainWindow?.webContents.send('move-to-folder');
         },
@@ -258,12 +264,14 @@ function setupApplicationMenu(): void {
       { type: 'separator' },
       {
         label: 'Split',
+        enabled: selectedFileCount === 1 && !hasSelectedFolders,
         click: () => {
           mainWindow?.webContents.send('split-file');
         },
       },
       {
         label: 'Join',
+        enabled: selectedFileCount >= 2 && !hasSelectedFolders,
         click: () => {
           mainWindow?.webContents.send('join-files');
         },
@@ -366,6 +374,15 @@ function setupApplicationMenu(): void {
 
 // IPC Handlers
 function setupIpcHandlers(): void {
+  // Track selection state from renderer for menu enablement (Split/Join)
+  ipcMain.on('update-selection-state', (_event, fileCount: number, hasFolders: boolean) => {
+    if (fileCount !== selectedFileCount || hasFolders !== hasSelectedFolders) {
+      selectedFileCount = fileCount;
+      hasSelectedFolders = hasFolders;
+      setupApplicationMenu();
+    }
+  });
+
   // Load dictionary files for spell checking
   ipcMain.handle('load-dictionary', async (): Promise<{ affData: string; dicData: string }> => {
     const dictionaryPath = app.isPackaged

@@ -272,6 +272,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   collectAncestorTags: (filePath: string) => ipcRenderer.invoke('collect-ancestor-tags', filePath),
   renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
+  updateSelectionState: (fileCount: number, hasFolders: boolean) => ipcRenderer.send('update-selection-state', fileCount, hasFolders),
   onExportRequested: (callback: () => void) => {
     const handler = () => {
       callback();
