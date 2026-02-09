@@ -48,7 +48,6 @@ export interface ItemData {
 
   /**
    * Current content being edited (only set while in edit mode).
-   * Shared via store so sibling components (e.g., TagsPicker) can read/modify it.
    */
   editContent?: string;
 
@@ -63,11 +62,7 @@ export interface ItemData {
    */
   goToLine?: number;
 
-  /**
-   * Tags loaded from ancestor `.TAGS.md` files for this item.
-   * Set asynchronously when editing starts; undefined means not yet loaded.
-   */
-  availableTags?: string[];
+
 }
 
 /**

@@ -14,7 +14,7 @@ interface UseEditModeOptions {
  * Provides state and handlers for the code editor.
  *
  * Edit content is stored in the global store (ItemData.editContent) so that
- * sibling components like TagsPicker can read and modify it.
+ * child components like TagsPicker can read and modify it.
  */
 export function useEditMode({ path, content }: UseEditModeOptions): EditModeState {
   const item = useItem(path);

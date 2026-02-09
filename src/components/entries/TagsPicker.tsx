@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useItem, getItemEditContent, setItemEditContent, setItemAvailableTags } from '../../store';
+import { useItem, getItemEditContent, setItemEditContent } from '../../store';
 import { CHECKBOX_CLASSES } from '../../utils/styles';
 import { loadTagsForFile, type TagsLoadState } from '../../utils/tagUtils';
 
@@ -8,7 +8,7 @@ import { loadTagsForFile, type TagsLoadState } from '../../utils/tagUtils';
  */
 export interface TagData {
   tag: string;
-  checked: boolean;
+  checked: boolean; 
 }
 
 /**
@@ -50,7 +50,6 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     loadTagsForFile(filePath).then((tags) => {
       if (!cancelled) {
         setLoadState({ status: 'loaded', tags });
-        setItemAvailableTags(filePath, tags);
       }
     });
 

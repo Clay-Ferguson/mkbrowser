@@ -7,7 +7,7 @@ import MarkdownEntry from './components/entries/MarkdownEntry';
 import FileEntryComponent from './components/entries/FileEntry';
 import ImageEntry from './components/entries/ImageEntry';
 import TextEntry from './components/entries/TextEntry'; 
-import TagsPicker from './components/entries/TagsPicker';
+
 
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
@@ -1364,7 +1364,7 @@ function App() {
         )}
 
         {!loading && entries.filter((entry) => !items.get(entry.path)?.isCut).length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-2"> 
             {(() => {
               const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
               const sortedEntries = sortEntries(visibleEntries, settings.sortOrder, settings.foldersOnTop);
@@ -1374,18 +1374,7 @@ function App() {
                   {entry.isDirectory ? (
                     <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : entry.isMarkdown ? (
-                    items.get(entry.path)?.editing && (items.get(entry.path)?.availableTags?.length ?? 0) > 0 ? (
-                      <div>
-                        <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
-                        <TagsPicker filePath={entry.path} />
-                      </div>
-                    ) : (
-                      <>
-                        <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
-                        {/* Render TagsPicker hidden while editing so it can load tags into the store */}
-                        {items.get(entry.path)?.editing && <div className="hidden"><TagsPicker filePath={entry.path} /></div>}
-                      </>
-                    )
+                    <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : isImageFile(entry.name) ? (
                     <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : isTextFile(entry.name) ? (

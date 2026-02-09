@@ -19,6 +19,7 @@ import {
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import CodeMirrorEditor from '../CodeMirrorEditor';
+import TagsPicker from './TagsPicker';
 import { createCustomImage } from './markdownImgResolver';
 import {
   useEntryCore,
@@ -426,15 +427,18 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
           {loading && !content ? (
             <div className="text-slate-400 text-sm">Loading...</div>
           ) : edit.isEditing ? (
-            <CodeMirrorEditor
-              value={edit.editContent}
-              onChange={edit.setEditContent}
-              placeholder="Enter markdown content..."
-              language="markdown"
-              autoFocus
-              goToLine={item?.goToLine}
-              onGoToLineComplete={() => clearItemGoToLine(entry.path)}
-            />
+            <>
+              <CodeMirrorEditor
+                value={edit.editContent}
+                onChange={edit.setEditContent}
+                placeholder="Enter markdown content..."
+                language="markdown"
+                autoFocus
+                goToLine={item?.goToLine}
+                onGoToLineComplete={() => clearItemGoToLine(entry.path)}
+              />
+              <TagsPicker filePath={entry.path} />
+            </>
           ) : (
             <article 
               className="prose prose-invert prose-base max-w-none cursor-pointer" 
