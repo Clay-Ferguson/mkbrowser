@@ -30,7 +30,6 @@ import {
   clearAllCutItems,
   cutSelectedItems,
   deleteItems,
-  clearCache,
   upsertItems,
   setItemEditing,
   setItemExpanded,
@@ -317,9 +316,8 @@ function App() {
     loadDirectory(false);
   }, [loadDirectory]);
 
-  // Handle delete from entry components - clears cache before refreshing
+  // Handle delete from entry components - removes the deleted item and refreshes listing
   const handleEntryDelete = useCallback(() => {
-    clearCache();
     loadDirectory(false);
   }, [loadDirectory]);
 
@@ -348,7 +346,10 @@ function App() {
       setPendingScrollToFile(result.pastedItemName);
     }
 
-    clearCache();
+    // Remove old paths for moved items and clear cut state
+    const movedPaths = cutItems.map(item => item.path);
+    deleteItems(movedPaths);
+    clearAllCutItems();
     refreshDirectory();
   }, [currentPath, items, refreshDirectory]);
 
@@ -384,7 +385,6 @@ function App() {
     // Remove successfully deleted items from the store
     if (result.deletedPaths.length > 0) {
       deleteItems(result.deletedPaths);
-      clearCache();
       refreshDirectory();
     }
   }, [getSelectedItems, refreshDirectory]);
