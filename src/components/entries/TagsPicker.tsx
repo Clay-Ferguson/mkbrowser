@@ -18,6 +18,20 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Remove all occurrences of a hashtag from text and clean up whitespace.
+ */
+export function removeTagFromText(text: string, tag: string): string {
+  const pattern = new RegExp(escapeRegExp(tag), 'g');
+  return text
+    .replace(pattern, '')
+    .replace(/  +/g, ' ')       // collapse multiple spaces
+    .replace(/^ /gm, '')        // trim leading space per line
+    .replace(/ $/gm, '')        // trim trailing space per line
+    .replace(/\n{3,}/g, '\n\n') // collapse 3+ newlines to 2
+    .trim();
+}
+
 interface TagsPickerProps {
   /** Full path of the file being edited */
   filePath: string;
@@ -90,15 +104,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
         setItemEditContent(filePath, currentContent + separator + tag.tag);
       }
     } else {
-      // Remove all occurrences of the hashtag and clean up whitespace
-      const pattern = new RegExp(escapeRegExp(tag.tag), 'g');
-      const cleaned = currentContent
-        .replace(pattern, '')
-        .replace(/  +/g, ' ')       // collapse multiple spaces
-        .replace(/^ /gm, '')        // trim leading space per line
-        .replace(/ $/gm, '')        // trim trailing space per line
-        .replace(/\n{3,}/g, '\n\n') // collapse 3+ newlines to 2
-        .trim();
+      const cleaned = removeTagFromText(currentContent, tag.tag);
       setItemEditContent(filePath, cleaned);
     }
   };
