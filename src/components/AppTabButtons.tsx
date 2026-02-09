@@ -1,4 +1,4 @@
-import { useCurrentView, setCurrentView, useFolderAnalysis, type AppView } from '../store';
+import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, type AppView } from '../store';
 import appLogo from '../../public/icon-256.png';
 
 interface TabConfig {
@@ -8,18 +8,20 @@ interface TabConfig {
 
 const baseTabs: TabConfig[] = [
   { id: 'browser', label: 'Browse' },
-  { id: 'search-results', label: 'Search' },
   { id: 'settings', label: 'Settings' },
 ];
 
 function AppTabButtons() {
   const currentView = useCurrentView();
   const folderAnalysis = useFolderAnalysis();
+  const searchResults = useSearchResults();
 
-  // Build tabs list - only show Analysis tab if an analysis has been run
-  const tabs = folderAnalysis
-    ? [...baseTabs, { id: 'folder-analysis' as AppView, label: 'Analysis' }]
-    : baseTabs;
+  // Build tabs list - only show Search/Analysis tabs if results exist
+  const tabs: TabConfig[] = [
+    ...baseTabs,
+    ...(searchResults.length > 0 ? [{ id: 'search-results' as AppView, label: 'Search' }] : []),
+    ...(folderAnalysis ? [{ id: 'folder-analysis' as AppView, label: 'Analysis' }] : []),
+  ];
 
   return (
     <nav data-id="app-tab-buttons" className="flex items-center gap-6 px-4 pt-1 bg-slate-800 border-b border-slate-600">
