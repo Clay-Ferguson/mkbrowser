@@ -103,12 +103,18 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     }
   };
 
+  const MONO_FONT = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
+
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2">
+    <div className="flex flex-wrap gap-x-2 gap-y-1 pt-2" style={{ fontFamily: MONO_FONT }}>
       {tags.map((t, i) => (
         <label
           key={t.tag}
-          className="flex items-center gap-1.5 cursor-pointer select-none text-sm text-slate-300 hover:text-slate-100 transition-colors"
+          className={`flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer select-none text-sm transition-colors ${
+            t.checked
+              ? 'bg-blue-600/50 text-blue-100 border border-slate-400/60'
+              : 'text-slate-300 hover:text-slate-100 border border-transparent'
+          }`}
         >
           <input
             type="checkbox"
