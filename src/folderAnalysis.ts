@@ -31,6 +31,8 @@ function buildExcludePredicate(ignoredPaths: string[]): (name: string, fullPath:
   });
 
   return (name: string, fullPath: string): boolean => {
+    // Always exclude hidden files/folders (starting with '.')
+    if (name.startsWith('.')) return true;
     return ignoredPatterns.some(p => p.test(name) || p.test(fullPath));
   };
 }

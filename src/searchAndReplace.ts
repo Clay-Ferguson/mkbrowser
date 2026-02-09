@@ -41,6 +41,8 @@ export async function searchAndReplace(
 
   // Create exclude predicate (returns true to exclude)
   const shouldExcludePath = (name: string, fullPath: string): boolean => {
+    // Always exclude hidden files/folders (starting with '.')
+    if (name.startsWith('.')) return true;
     return ignoredPatterns.some(pattern => pattern.test(name) || pattern.test(fullPath));
   };
 
