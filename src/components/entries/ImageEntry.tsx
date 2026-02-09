@@ -144,7 +144,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   return (
     <div className={`bg-slate-800 rounded-lg border ${isHighlighted ? 'border-2 border-purple-500' : 'border-slate-700'} overflow-hidden`}>
       {/* Header row */}
-      <div className="flex items-center gap-3 px-4 py-1">
+      <div className="flex items-center gap-3 pl-4 pr-2 py-1">
         <SelectionCheckbox
           path={entry.path}
           name={entry.name}
@@ -184,6 +184,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
             onInsertFileBelow={onInsertFileBelow}
             onInsertFolderBelow={onInsertFolderBelow}
             onSaveSettings={onSaveSettings}
+            className="-mr-1.5"
           />
         )}
       </div>
