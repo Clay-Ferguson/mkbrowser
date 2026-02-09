@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent } from '../../../store';
+import { useItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, upsertItem } from '../../../store';
 import type { EditModeState } from './types';
 
 interface UseEditModeOptions {
@@ -46,8 +46,24 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     }
   }, [isEditing, item?.content, path]);
 
-  const handleEditClick = () => {
-    setItemEditContent(path, content);
+  const handleEditClick = async () => {
+    // Check the file's current mtime on disk to detect external modifications
+    const diskMtime = await window.electronAPI.getFileMtime(path);
+    if (diskMtime > 0 && item && diskMtime > item.modifiedTime) {
+      // File was modified externally — re-read from disk before editing
+      try {
+        const freshContent = await window.electronAPI.readFile(path);
+        // Update the store with the new modifiedTime and content
+        upsertItem(path, item.name, item.isDirectory, diskMtime, item.createdTime);
+        setItemContent(path, freshContent);
+        setItemEditContent(path, freshContent);
+      } catch {
+        // If re-read fails, fall back to cached content
+        setItemEditContent(path, content);
+      }
+    } else {
+      setItemEditContent(path, content);
+    }
     editInitialized.current = true;
     setItemExpanded(path, true);
     setItemEditing(path, true);

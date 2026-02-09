@@ -118,6 +118,7 @@ export interface ElectronAPI {
   pathExists: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<boolean>;
   getFileSize: (filePath: string) => Promise<number>;
+  getFileMtime: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
   createFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;

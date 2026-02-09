@@ -524,6 +524,17 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Get file last-modified time (mtimeMs) so the renderer can detect external changes
+  ipcMain.handle('get-file-mtime', async (_event, filePath: string): Promise<number> => {
+    try {
+      const stats = await fs.promises.stat(filePath);
+      return stats.mtimeMs;
+    } catch (error) {
+      console.error('Error getting file mtime:', error);
+      return -1;
+    }
+  });
+
   // Write binary content to a file (for images)
   ipcMain.handle('write-file-binary', async (_event, filePath: string, base64Data: string): Promise<boolean> => {
     try {
