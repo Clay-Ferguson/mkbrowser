@@ -24,8 +24,8 @@ interface TagsPickerProps {
 }
 
 /**
- * TagsPicker — renders a vertical list of hashtag checkboxes.
- * Displayed to the right of a MarkdownEntry when it is in edit mode.
+ * TagsPicker — renders a horizontal wrapping list of hashtag checkboxes.
+ * Displayed beneath a MarkdownEntry when it is in edit mode.
  *
  * Tags are loaded asynchronously by walking up ancestor directories and
  * collecting hashtags from `.TAGS.md` files. While loading, a spinner is shown.
@@ -60,7 +60,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   // While loading, show a small spinner
   if (loadState.status === 'loading') {
     return (
-      <div className="flex flex-col gap-1 pt-2 pr-1 min-w-[80px]">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2">
         <span className="text-xs text-slate-500 animate-pulse">Loading tags…</span>
       </div>
     );
@@ -105,7 +105,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   };
 
   return (
-    <div className="flex flex-col gap-1 pt-2 pr-1 min-w-[80px]">
+    <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2">
       {tags.map((t, i) => (
         <label
           key={t.tag}

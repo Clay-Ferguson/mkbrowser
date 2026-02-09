@@ -772,6 +772,9 @@ function setupIpcHandlers(): void {
         dir = path.dirname(dir);
       }
 
+      // Sort tags alphabetically (case-insensitive)
+      tags.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
       return tags;
     } catch (error) {
       console.error('Error collecting ancestor tags:', error);

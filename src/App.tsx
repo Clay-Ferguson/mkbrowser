@@ -1375,10 +1375,8 @@ function App() {
                     <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : entry.isMarkdown ? (
                     items.get(entry.path)?.editing && (items.get(entry.path)?.availableTags?.length ?? 0) > 0 ? (
-                      <div className="flex gap-2">
-                        <div className="flex-1 min-w-0">
-                          <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
-                        </div>
+                      <div>
+                        <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                         <TagsPicker filePath={entry.path} />
                       </div>
                     ) : (
