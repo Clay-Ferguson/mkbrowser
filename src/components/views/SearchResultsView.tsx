@@ -136,14 +136,6 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   // Get the folder name for display
   const folderName = searchFolder.split('/').pop() || searchFolder;
 
-  // Helper function to determine priority border styling
-  const getPriorityBorder = (lineText?: string): string => {
-    if (!lineText) return 'border border-slate-700 hover:border-slate-600';
-    if (lineText.includes('#p1')) return 'border-2 border-orange-500 hover:border-orange-400';
-    if (lineText.includes('#p2')) return 'border-2 border-yellow-400 hover:border-yellow-300';
-    return 'border border-slate-700 hover:border-slate-600';
-  };
-
   // Helper function to check if a result is highlighted
   const isHighlighted = (path: string, lineNumber?: number): boolean => {
     if (!highlightedSearchResult) return false;
@@ -251,8 +243,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             {sortedResults.map((result, index) => {
               const highlighted = isHighlighted(result.path, result.lineNumber);
               const borderClass = highlighted 
-                ? 'border-2 border-purple-500' 
-                : getPriorityBorder(result.lineText);
+                ? 'border-2 border-purple-500' : 'border border-slate-700 hover:border-slate-600';
               
               return (
               <div
