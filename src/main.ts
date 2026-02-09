@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import * as yaml from 'js-yaml';
 import started from 'electron-squirrel-startup';
 import { calculateRenameOperations, type RenameOperation } from './utils/ordinals';
+import { trimLeadingWhitespaceFromNames } from './utils/fileUtils';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
@@ -451,6 +452,9 @@ function setupIpcHandlers(): void {
     // Now read the directory contents
     const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
     const fileEntries: FileEntry[] = [];
+
+    // Auto-fix any filenames with leading whitespace by renaming them on disk
+    await trimLeadingWhitespaceFromNames(dirPath, entries, path.join, fs.promises);
 
     for (const entry of entries) {
       // Skip hidden files/folders (starting with .)

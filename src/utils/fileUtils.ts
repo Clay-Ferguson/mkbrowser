@@ -1,6 +1,46 @@
 import type { FileEntry } from "src/global";
 import type { SortOrder } from "src/store";
 
+interface FsOperations {
+  stat: (path: string) => Promise<unknown>;
+  rename: (oldPath: string, newPath: string) => Promise<void>;
+}
+
+interface DirentLike {
+  name: string;
+}
+
+/**
+ * Auto-fix filenames with leading whitespace by renaming them on disk.
+ * Mutates the entry.name in place so callers see the corrected name.
+ * Skips entries where the trimmed name already exists to avoid collisions.
+ */
+export async function trimLeadingWhitespaceFromNames(
+  dirPath: string,
+  entries: DirentLike[],
+  joinPath: (...segments: string[]) => string,
+  fsOps: FsOperations,
+): Promise<void> {
+  for (const entry of entries) {
+    if (/^\s/.test(entry.name)) {
+      const trimmedName = entry.name.replace(/^\s+/, '');
+      if (trimmedName.length > 0) {
+        const oldPath = joinPath(dirPath, entry.name);
+        const newPath = joinPath(dirPath, trimmedName);
+        try {
+          // Only rename if the trimmed name doesn't already exist
+          await fsOps.stat(newPath);
+          console.warn(`Cannot auto-trim "${entry.name}": "${trimmedName}" already exists`);
+        } catch {
+          // Target doesn't exist, safe to rename
+          await fsOps.rename(oldPath, newPath);
+          entry.name = trimmedName;
+        }
+      }
+    }
+  }
+}
+
 // Common image file extensions
 export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);export function isImageFile(fileName: string): boolean {
   const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
