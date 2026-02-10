@@ -8,7 +8,7 @@ import { useSettings, type FontSize } from '../store';
 import Typo from 'typo-js';
 import { formatDate, formatTimestamp } from '../utils/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../utils/editorHashtagUtil';
-import { datePlugin, dateTheme } from '../utils/editorDateUtil';
+import { datePlugin, dateTheme, dateTooltipExtension } from '../utils/editorDateUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
 
@@ -153,6 +153,7 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
       hashtagTheme,
       datePlugin,
       dateTheme,
+      dateTooltipExtension,
       EditorView.lineWrapping,
       keymap.of([
         {

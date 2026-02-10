@@ -149,7 +149,7 @@ export function formatDaysDisplay(days: number): string {
   if (days === 0) return '(today)';
 
   const absDays = Math.abs(days);
-  const sign = days < 0 ? '-' : '';
+  const sign = days < 0 ? 'ago' : 'from now';
 
   // For small values (< 31 days), just show days
   if (absDays < 31) {
@@ -168,7 +168,7 @@ export function formatDaysDisplay(days: number): string {
   if (months > 0) parts.push(`${months}m`);
   if (remainingDays > 0) parts.push(`${remainingDays}d`);
 
-  return `(${sign}${parts.join(' ')})`;
+  return `(${parts.join(' ')} ${sign})`;
 }
 
 // Format current date/time as MM/DD/YY HH:MM AM/PM
