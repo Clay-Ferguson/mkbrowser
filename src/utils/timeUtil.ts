@@ -128,6 +128,49 @@ export function formatDate(): string {
   return `${month}/${day}/${year}`;
 }
 
+/**
+ * Calculate the number of days between a timestamp and today.
+ * Negative = past, positive = future, 0 = today.
+ */
+export function getDaysFromToday(timestamp: number): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const targetDate = new Date(timestamp);
+  targetDate.setHours(0, 0, 0, 0);
+  const diffMs = targetDate.getTime() - today.getTime();
+  return Math.round(diffMs / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Format a days-from-today value as a human-readable string.
+ * Examples: "(today)", "(-3 days)", "(1y 2m 5d)".
+ */
+export function formatDaysDisplay(days: number): string {
+  if (days === 0) return '(today)';
+
+  const absDays = Math.abs(days);
+  const sign = days < 0 ? '-' : '';
+
+  // For small values (< 31 days), just show days
+  if (absDays < 31) {
+    return `(${sign}${absDays} day${absDays !== 1 ? 's' : ''})`;
+  }
+
+  // Calculate years, months, and remaining days
+  const years = Math.floor(absDays / 365);
+  const remainingAfterYears = absDays % 365;
+  const months = Math.floor(remainingAfterYears / 30);
+  const remainingDays = remainingAfterYears % 30;
+
+  // Build the display string, omitting zero values
+  const parts: string[] = [];
+  if (years > 0) parts.push(`${years}y`);
+  if (months > 0) parts.push(`${months}m`);
+  if (remainingDays > 0) parts.push(`${remainingDays}d`);
+
+  return `(${sign}${parts.join(' ')})`;
+}
+
 // Format current date/time as MM/DD/YY HH:MM AM/PM
 export function formatTimestamp(): string {
   const now = new Date();

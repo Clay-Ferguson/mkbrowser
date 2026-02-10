@@ -18,6 +18,7 @@ import {
   useSearchSortDirection,
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
+import { getDaysFromToday, formatDaysDisplay } from '../../utils/timeUtil';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
 interface SearchResultsViewProps {
@@ -40,43 +41,6 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     getSearchResultsScrollPosition,
     setSearchResultsScrollPosition
   );
-
-  // Helper function to calculate days difference from today
-  const getDaysFromToday = (timestamp: number): number => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const targetDate = new Date(timestamp);
-    targetDate.setHours(0, 0, 0, 0);
-    const diffMs = targetDate.getTime() - today.getTime();
-    return Math.round(diffMs / (1000 * 60 * 60 * 24));
-  };
-
-  // Helper function to format the days display
-  const formatDaysDisplay = (days: number): string => {
-    if (days === 0) return '(today)';
-    
-    const absDays = Math.abs(days);
-    const sign = days < 0 ? '-' : '';
-    
-    // For small values (< 31 days), just show days
-    if (absDays < 31) {
-      return `(${sign}${absDays} day${absDays !== 1 ? 's' : ''})`;
-    }
-    
-    // Calculate years, months, and remaining days
-    const years = Math.floor(absDays / 365);
-    const remainingAfterYears = absDays % 365;
-    const months = Math.floor(remainingAfterYears / 30);
-    const remainingDays = remainingAfterYears % 30;
-    
-    // Build the display string, omitting zero values
-    const parts: string[] = [];
-    if (years > 0) parts.push(`${years}y`);
-    if (months > 0) parts.push(`${months}m`);
-    if (remainingDays > 0) parts.push(`${remainingDays}d`);
-    
-    return `(${sign}${parts.join(' ')})`;
-  };
 
   // Helper function to get the color class for days
   const getDaysColorClass = (days: number): string => {
