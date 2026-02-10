@@ -153,7 +153,7 @@ export function formatDaysDisplay(days: number): string {
 
   // For small values (< 31 days), just show days
   if (absDays < 31) {
-    return `(${sign}${absDays} day${absDays !== 1 ? 's' : ''})`;
+    return `(${absDays} day${absDays !== 1 ? 's' : ''} ${sign})`;
   }
 
   // Calculate years, months, and remaining days
