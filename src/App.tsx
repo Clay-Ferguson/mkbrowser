@@ -55,7 +55,6 @@ import {
   usePendingEditLineNumber,
   useSettings,
   useExpansionCounts,
-  type ContentWidth,
   type SearchDefinition,
 } from './store';
 import { scrollItemIntoView } from './utils/entryDom';
@@ -63,24 +62,7 @@ import { pasteCutItems, deleteSelectedItems, moveFileToFolder, performSplitFile,
 import { pasteFromClipboard } from './utils/clipboard';
 import { isImageFile, isTextFile, sortEntries } from './utils/fileUtils';
 import { loadConfig } from './config';
-
-/**
- * Get Tailwind classes for content width based on setting
- */
-function getContentWidthClasses(contentWidth: ContentWidth): string {
-  switch (contentWidth) {
-    case 'narrow':
-      return 'max-w-2xl mx-auto px-4';
-    case 'medium':
-      return 'max-w-4xl mx-auto px-4';
-    case 'wide':
-      return 'max-w-6xl mx-auto px-4';
-    case 'full':
-      return 'px-4';
-    default:
-      return 'max-w-4xl mx-auto px-4';
-  }
-}
+import { getContentWidthClasses } from './utils/styles';
 
 function App() {
   const [rootPath, setRootPath] = useState<string>('');

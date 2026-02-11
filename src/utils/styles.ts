@@ -1,6 +1,26 @@
+import type { ContentWidth } from '../store';
+
 /**
  * Shared Tailwind CSS class strings for consistent styling across components
  */
+
+/**
+ * Get Tailwind classes for content width based on setting
+ */
+export function getContentWidthClasses(contentWidth: ContentWidth): string {
+  switch (contentWidth) {
+    case 'narrow':
+      return 'max-w-2xl mx-auto px-4';
+    case 'medium':
+      return 'max-w-4xl mx-auto px-4';
+    case 'wide':
+      return 'max-w-6xl mx-auto px-4';
+    case 'full':
+      return 'px-4';
+    default:
+      return 'max-w-4xl mx-auto px-4';
+  }
+}
 
 export const CHECKBOX_CLASSES = 'h-5 w-5 accent-blue-500 flex-shrink-0';
 export const ENTRY_CONTAINER_CLASSES = 'flex items-center gap-3 pl-4 pr-2 py-1 bg-slate-800 rounded-lg border';

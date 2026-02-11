@@ -19,6 +19,7 @@ import {
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import { getDaysFromToday, formatDaysDisplay } from '../../utils/timeUtil';
+import { getContentWidthClasses } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
 interface SearchResultsViewProps {
@@ -179,7 +180,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
         onScroll={handleMainScroll}
         className="flex-1 min-h-0 overflow-y-auto"
       >
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className={`${getContentWidthClasses(settings.contentWidth)} py-6`}>
         {!hasSearched ? (
           <div className="text-center py-12">
             <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
