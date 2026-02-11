@@ -6,8 +6,11 @@ interface TabConfig {
   label: string;
 }
 
-const baseTabs: TabConfig[] = [
+// Canonical tab order: Browse, Search, Analysis, Settings
+const allTabs: TabConfig[] = [
   { id: 'browser', label: 'Browse' },
+  { id: 'search-results', label: 'Search' },
+  { id: 'folder-analysis', label: 'Analysis' },
   { id: 'settings', label: 'Settings' },
 ];
 
@@ -16,12 +19,14 @@ function AppTabButtons() {
   const folderAnalysis = useFolderAnalysis();
   const searchResults = useSearchResults();
 
-  // Build tabs list - only show Search/Analysis tabs if results exist
-  const tabs: TabConfig[] = [
-    ...baseTabs,
-    ...(searchResults.length > 0 ? [{ id: 'search-results' as AppView, label: 'Search' }] : []),
-    ...(folderAnalysis ? [{ id: 'folder-analysis' as AppView, label: 'Analysis' }] : []),
-  ];
+  const visibleIds = new Set<AppView>([
+    'browser',
+    'settings',
+    ...(searchResults.length > 0 ? ['search-results' as AppView] : []),
+    ...(folderAnalysis ? ['folder-analysis' as AppView] : []),
+  ]);
+
+  const tabs = allTabs.filter((tab) => visibleIds.has(tab.id));
 
   return (
     <nav data-id="app-tab-buttons" className="flex items-center gap-6 px-4 pt-1 bg-slate-800 border-b border-slate-600">
