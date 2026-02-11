@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
@@ -10,6 +10,7 @@ import TextEntry from './components/entries/TextEntry';
 
 
 import ToolsPopupMenu from './components/ToolsPopupMenu';
+import EditPopupMenu from './components/EditPopupMenu';
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import ErrorDialog from './components/dialogs/ErrorDialog';
@@ -79,6 +80,7 @@ function App() {
   const [searchDialogInitialValues, setSearchDialogInitialValues] = useState<SearchDialogInitialValues | undefined>(undefined);
   const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
   const [showToolsMenu, setShowToolsMenu] = useState<boolean>(false);
+  const [showEditMenu, setShowEditMenu] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
   const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
   const items = useItems();
@@ -240,6 +242,7 @@ function App() {
 
   // Ref for tools popup menu anchor
   const toolsButtonRef = useRef<HTMLButtonElement>(null);
+  const editButtonRef = useRef<HTMLButtonElement>(null);
 
   // Handle pending scroll after directory loads, or restore scroll position on folder navigation
   useEffect(() => {
@@ -1251,6 +1254,16 @@ function App() {
         </div>
 
         <div data-id="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
+              {/* Edit menu button */}
+              <button
+                ref={editButtonRef}
+                onClick={() => setShowEditMenu(prev => !prev)}
+                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Edit"
+              >
+                <PencilSquareIcon className="w-5 h-5" />
+              </button>
+
               {/* Tools menu button */}
               <button
                 ref={toolsButtonRef}
@@ -1461,6 +1474,27 @@ function App() {
           defaultFileName={generateExportFileName()}
           onExport={handleExport}
           onCancel={handleCancelExport}
+        />
+      )}
+
+      {showEditMenu && (
+        <EditPopupMenu
+          anchorRef={editButtonRef}
+          onClose={() => setShowEditMenu(false)}
+          onUndoCut={() => clearAllCutItems()}
+          onSelectAll={() => {
+            const currentFolderPaths = entries.map((entry) => entry.path);
+            selectItemsByPaths(currentFolderPaths);
+          }}
+          onUnselectAll={() => clearAllSelections()}
+          onMoveToFolder={() => void handleMoveToFolder()}
+          onSplit={() => void handleSplitFile()}
+          onJoin={() => void handleJoinFiles()}
+          onReplaceInFiles={() => setShowReplaceDialog(true)}
+          unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
+          moveToFolderDisabled={selectedFileCount !== 1 || hasSelectedFolders}
+          splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
+          joinDisabled={selectedFileCount < 2 || hasSelectedFolders}
         />
       )}
 
