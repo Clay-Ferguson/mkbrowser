@@ -384,6 +384,11 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Quit the application
+  ipcMain.handle('quit', () => {
+    app.quit();
+  });
+
   // Load dictionary files for spell checking
   ipcMain.handle('load-dictionary', async (): Promise<{ affData: string; dicData: string }> => {
     const dictionaryPath = app.isPackaged

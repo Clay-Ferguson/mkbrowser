@@ -91,6 +91,7 @@ export interface FolderAnalysisResult {
 }
 
 export interface ElectronAPI {
+  quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
   getConfig: () => Promise<AppConfig>;
   saveConfig: (config: AppConfig) => Promise<void>;

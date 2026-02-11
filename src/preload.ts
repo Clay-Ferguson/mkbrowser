@@ -84,6 +84,7 @@ export interface ElectronAPI {
   onOpenSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
   onEditSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
   onFolderAnalysisRequested: (callback: () => void) => () => void;
+  quit: () => Promise<void>;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
@@ -104,6 +105,7 @@ export interface ElectronAPI {
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
+  quit: () => ipcRenderer.invoke('quit'),
   getConfig: () => ipcRenderer.invoke('get-config'),
   saveConfig: (config: AppConfig) => ipcRenderer.invoke('save-config', config),
   selectFolder: () => ipcRenderer.invoke('select-folder'),

@@ -1,5 +1,7 @@
-import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, navigateToBrowserPath, type AppView } from '../store';
+import { useRef, useState } from 'react';
+import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, type AppView } from '../store';
 import appLogo from '../../public/icon-256.png';
+import FilePopupMenu from './FilePopupMenu';
 
 interface TabConfig {
   id: AppView;
@@ -7,7 +9,8 @@ interface TabConfig {
 }
 
 interface AppTabButtonsProps {
-  rootPath: string;
+  onSelectFolder: () => void;
+  onQuit: () => void;
 }
 
 // Canonical tab order: Browse, Search, Analysis, Settings
@@ -18,10 +21,12 @@ const allTabs: TabConfig[] = [
   { id: 'settings', label: 'Settings' },
 ];
 
-function AppTabButtons({ rootPath }: AppTabButtonsProps) {
+function AppTabButtons({ onSelectFolder, onQuit }: AppTabButtonsProps) {
   const currentView = useCurrentView();
   const folderAnalysis = useFolderAnalysis();
   const searchResults = useSearchResults();
+  const logoRef = useRef<HTMLButtonElement>(null);
+  const [showFileMenu, setShowFileMenu] = useState(false);
 
   const visibleIds = new Set<AppView>([
     'browser',
@@ -35,11 +40,12 @@ function AppTabButtons({ rootPath }: AppTabButtonsProps) {
   return (
     <nav data-id="app-tab-buttons" className="flex items-center gap-6 px-4 pt-1 bg-slate-800 border-b border-slate-600">
       <button
+        ref={logoRef}
         type="button"
-        onClick={() => navigateToBrowserPath(rootPath)}
+        onClick={() => setShowFileMenu((prev) => !prev)}
         className="flex-shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-slate-700 transition-colors"
-        aria-label="Go to root folder"
-        title="Go to root folder"
+        aria-label="File menu"
+        title="File menu"
       >
         <img
           src={appLogo}
@@ -47,6 +53,14 @@ function AppTabButtons({ rootPath }: AppTabButtonsProps) {
           className="w-10 h-10"
         />
       </button>
+      {showFileMenu && (
+        <FilePopupMenu
+          anchorRef={logoRef}
+          onClose={() => setShowFileMenu(false)}
+          onSelectFolder={onSelectFolder}
+          onQuit={onQuit}
+        />
+      )}
       {tabs.map((tab) => (
         <button
           key={tab.id}
