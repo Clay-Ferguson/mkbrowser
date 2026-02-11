@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, PencilSquareIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
@@ -11,6 +11,7 @@ import TextEntry from './components/entries/TextEntry';
 
 import ToolsPopupMenu from './components/ToolsPopupMenu';
 import EditPopupMenu from './components/EditPopupMenu';
+import BookmarksPopupMenu from './components/BookmarksPopupMenu';
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import ErrorDialog from './components/dialogs/ErrorDialog';
@@ -81,6 +82,7 @@ function App() {
   const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
   const [showToolsMenu, setShowToolsMenu] = useState<boolean>(false);
   const [showEditMenu, setShowEditMenu] = useState<boolean>(false);
+  const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
   const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
   const items = useItems();
@@ -243,6 +245,7 @@ function App() {
   // Ref for tools popup menu anchor
   const toolsButtonRef = useRef<HTMLButtonElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
+  const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
 
   // Handle pending scroll after directory loads, or restore scroll position on folder navigation
   useEffect(() => {
@@ -711,58 +714,63 @@ function App() {
     };
   }, []);
 
+  // Navigate to a bookmarked item - reused by both IPC listener and popup menu
+  const navigateToBookmark = useCallback(async (fullPath: string) => {
+    // Check if the path exists
+    const exists = await window.electronAPI.pathExists(fullPath);
+    if (!exists) {
+      // Remove the bookmark since it no longer exists
+      const currentSettings = getSettings();
+      const updatedBookmarks = (currentSettings.bookmarks || []).filter(b => b !== fullPath);
+      const updatedSettings = { ...currentSettings, bookmarks: updatedBookmarks };
+      setSettings(updatedSettings);
+      
+      // Persist the updated settings
+      try {
+        const config = await window.electronAPI.getConfig();
+        await window.electronAPI.saveConfig({
+          ...config,
+          settings: updatedSettings,
+        });
+      } catch (err) {
+        console.error('Failed to save settings after removing bookmark:', err);
+      }
+      
+      const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+      setError(`Bookmark "${fileName}" no longer exists and has been removed.`);
+      return;
+    }
+
+    // Determine if it's a file or folder by checking if it has a file extension
+    // or by trying to read it as a directory
+    const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+    const parentPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
+    
+    // Try to read the path as a directory to determine if it's a folder
+    try {
+      await window.electronAPI.readDirectory(fullPath);
+      // It's a folder - navigate directly to it
+      setCurrentPath(fullPath);
+      setCurrentView('browser');
+    } catch {
+      // It's a file - navigate to parent folder and highlight the file
+      setCurrentPath(parentPath);
+      setCurrentView('browser');
+      setHighlightItem(fileName);
+      setPendingScrollToFile(fileName);
+    }
+  }, []);
+
   // Listen for bookmark selection from menu - navigate to the bookmarked item
   useEffect(() => {
-    const unsubscribe = window.electronAPI.onOpenBookmark(async (fullPath: string) => {
-      // Check if the path exists
-      const exists = await window.electronAPI.pathExists(fullPath);
-      if (!exists) {
-        // Remove the bookmark since it no longer exists
-        const currentSettings = getSettings();
-        const updatedBookmarks = (currentSettings.bookmarks || []).filter(b => b !== fullPath);
-        const updatedSettings = { ...currentSettings, bookmarks: updatedBookmarks };
-        setSettings(updatedSettings);
-        
-        // Persist the updated settings
-        try {
-          const config = await window.electronAPI.getConfig();
-          await window.electronAPI.saveConfig({
-            ...config,
-            settings: updatedSettings,
-          });
-        } catch (err) {
-          console.error('Failed to save settings after removing bookmark:', err);
-        }
-        
-        const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-        setError(`Bookmark "${fileName}" no longer exists and has been removed.`);
-        return;
-      }
-
-      // Determine if it's a file or folder by checking if it has a file extension
-      // or by trying to read it as a directory
-      const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-      const parentPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
-      
-      // Try to read the path as a directory to determine if it's a folder
-      try {
-        await window.electronAPI.readDirectory(fullPath);
-        // It's a folder - navigate directly to it
-        setCurrentPath(fullPath);
-        setCurrentView('browser');
-      } catch {
-        // It's a file - navigate to parent folder and highlight the file
-        setCurrentPath(parentPath);
-        setCurrentView('browser');
-        setHighlightItem(fileName);
-        setPendingScrollToFile(fileName);
-      }
+    const unsubscribe = window.electronAPI.onOpenBookmark((fullPath: string) => {
+      void navigateToBookmark(fullPath);
     });
 
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [navigateToBookmark]);
 
   // Generate default export filename from current folder name
   const generateExportFileName = useCallback(() => {
@@ -1254,6 +1262,16 @@ function App() {
         </div>
 
         <div data-id="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
+              {/* Bookmarks menu button */}
+              <button
+                ref={bookmarksButtonRef}
+                onClick={() => setShowBookmarksMenu(prev => !prev)}
+                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Bookmarks"
+              >
+                <BookmarkIcon className="w-5 h-5" />
+              </button>
+
               {/* Edit menu button */}
               <button
                 ref={editButtonRef}
@@ -1474,6 +1492,16 @@ function App() {
           defaultFileName={generateExportFileName()}
           onExport={handleExport}
           onCancel={handleCancelExport}
+        />
+      )}
+
+      {showBookmarksMenu && (
+        <BookmarksPopupMenu
+          anchorRef={bookmarksButtonRef}
+          onClose={() => setShowBookmarksMenu(false)}
+          bookmarks={settings.bookmarks || []}
+          rootPath={rootPath}
+          onNavigate={(fullPath) => void navigateToBookmark(fullPath)}
         />
       )}
 
