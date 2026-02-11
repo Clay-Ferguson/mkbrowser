@@ -1184,7 +1184,7 @@ function App() {
   if (currentView === 'search-results') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons />
+        <AppTabButtons rootPath={rootPath} />
         <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
         {error && (
           <ErrorDialog
@@ -1200,7 +1200,7 @@ function App() {
   if (currentView === 'settings') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons />
+        <AppTabButtons rootPath={rootPath} />
         <SettingsView onSaveSettings={handleSaveSettings} />
         {error && (
           <ErrorDialog
@@ -1216,7 +1216,7 @@ function App() {
   if (currentView === 'folder-analysis') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons />
+        <AppTabButtons rootPath={rootPath} />
         <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
         {error && (
           <ErrorDialog
@@ -1231,7 +1231,7 @@ function App() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
       {/* Tab navigation */}
-      <AppTabButtons />
+      <AppTabButtons rootPath={rootPath} />
 
       {/* Combined header: breadcrumbs left, actions right, wraps responsively */}
       <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">

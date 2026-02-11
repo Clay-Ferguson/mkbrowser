@@ -1,9 +1,13 @@
-import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, type AppView } from '../store';
+import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, navigateToBrowserPath, type AppView } from '../store';
 import appLogo from '../../public/icon-256.png';
 
 interface TabConfig {
   id: AppView;
   label: string;
+}
+
+interface AppTabButtonsProps {
+  rootPath: string;
 }
 
 // Canonical tab order: Browse, Search, Analysis, Settings
@@ -14,7 +18,7 @@ const allTabs: TabConfig[] = [
   { id: 'settings', label: 'Settings' },
 ];
 
-function AppTabButtons() {
+function AppTabButtons({ rootPath }: AppTabButtonsProps) {
   const currentView = useCurrentView();
   const folderAnalysis = useFolderAnalysis();
   const searchResults = useSearchResults();
@@ -30,11 +34,19 @@ function AppTabButtons() {
 
   return (
     <nav data-id="app-tab-buttons" className="flex items-center gap-6 px-4 pt-1 bg-slate-800 border-b border-slate-600">
-      <img
-        src={appLogo}
-        alt="MkBrowser"
-        className="w-10 h-10 flex-shrink-0"
-      />
+      <button
+        type="button"
+        onClick={() => navigateToBrowserPath(rootPath)}
+        className="flex-shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-slate-700 transition-colors"
+        aria-label="Go to root folder"
+        title="Go to root folder"
+      >
+        <img
+          src={appLogo}
+          alt="MkBrowser"
+          className="w-10 h-10"
+        />
+      </button>
       {tabs.map((tab) => (
         <button
           key={tab.id}
