@@ -85,7 +85,7 @@ export default function PopupMenu({ anchorRef, onClose, children }: PopupMenuPro
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-1 min-w-[180px]"
+      className="fixed z-50 bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl py-1 px-0.5 min-w-[180px]"
       style={{
         top: position?.top ?? -9999,
         left: position?.left ?? -9999,
@@ -113,7 +113,7 @@ export function PopupMenuItem({
       className={`w-full text-left px-4 py-2 text-sm transition-colors ${
         disabled
           ? 'text-slate-500 cursor-not-allowed'
-          : 'text-slate-200 hover:bg-slate-700 cursor-pointer'
+          : 'text-slate-200 hover:bg-blue-800 cursor-pointer'
       }`}
       onClick={() => {
         if (!disabled) {
