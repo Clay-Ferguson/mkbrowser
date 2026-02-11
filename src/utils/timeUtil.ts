@@ -149,11 +149,11 @@ export function formatDaysDisplay(days: number): string {
   if (days === 0) return '(today)';
 
   const absDays = Math.abs(days);
-  const sign = days < 0 ? 'ago' : 'from now';
+  const sign = days < 0 ? '-' : '+';
 
   // For small values (< 31 days), just show days
   if (absDays < 31) {
-    return `(${absDays} day${absDays !== 1 ? 's' : ''} ${sign})`;
+    return `${sign}(${absDays} day${absDays !== 1 ? 's' : ''})`;
   }
 
   // Calculate years, months, and remaining days
@@ -168,7 +168,7 @@ export function formatDaysDisplay(days: number): string {
   if (months > 0) parts.push(`${months}m`);
   if (remainingDays > 0) parts.push(`${remainingDays}d`);
 
-  return `(${parts.join(' ')} ${sign})`;
+  return `${sign}(${parts.join(' ')})`;
 }
 
 // Format current date/time as MM/DD/YY HH:MM AM/PM
