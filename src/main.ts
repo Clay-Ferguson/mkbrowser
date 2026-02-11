@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, nativeImage, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, nativeImage } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import * as yaml from 'js-yaml';
@@ -26,10 +26,6 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
 
 // Command-line override for browse folder (takes precedence over config file)
 let commandLineFolder: string | null = null;
-
-// Track renderer selection state for menu enablement (Split/Join)
-let selectedFileCount = 0;
-let hasSelectedFolders = false;
 
 type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
@@ -169,221 +165,8 @@ const createWindow = () => {
   }
 };
 
-async function openFolderFromMenu(): Promise<void> {
-  if (!mainWindow) return;
-
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory'],
-    title: 'Select a folder to browse',
-  });
-
-  if (!result.canceled && result.filePaths.length > 0) {
-    const folderPath = result.filePaths[0];
-
-    // Command-line override should not block menu-based selection
-    commandLineFolder = null;
-
-    const config = loadConfig();
-    config.browseFolder = folderPath;
-    saveConfig(config);
-
-    // Rebuild menu to update bookmark filtering based on new browse folder
-    setupApplicationMenu();
-
-    mainWindow.webContents.send('folder-selected', folderPath);
-  }
-}
-
-function setupApplicationMenu(): void {
-  const template: MenuItemConstructorOptions[] = [];
-
-  if (process.platform === 'darwin') {
-    template.push({
-      label: app.name,
-      submenu: [
-        { role: 'about' },
-        { type: 'separator' },
-        { role: 'services' },
-        { type: 'separator' },
-        { role: 'hide' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
-        { type: 'separator' },
-        { role: 'quit' },
-      ],
-    });
-  }
-
-  template.push({
-    label: 'File',
-    submenu: [
-      {
-        label: 'Open Folder',
-        accelerator: 'CmdOrCtrl+O',
-        click: () => {
-          void openFolderFromMenu();
-        },
-      },
-      { type: 'separator' },
-      { role: process.platform === 'darwin' ? 'close' : 'quit' },
-    ],
-  });
-
-  template.push({
-    label: 'Edit',
-    submenu: [
-      {
-        label: 'Undo Cut',
-        click: () => {
-          mainWindow?.webContents.send('undo-cut');
-        },
-      },
-      { type: 'separator' },
-      {
-        label: 'Select All',
-        accelerator: 'CmdOrCtrl+A',
-        click: () => {
-          mainWindow?.webContents.send('select-all-items');
-        },
-      },
-      {
-        label: 'Unselect All',
-        accelerator: 'CmdOrCtrl+Shift+A',
-        enabled: selectedFileCount > 0 || hasSelectedFolders,
-        click: () => {
-          mainWindow?.webContents.send('unselect-all-items');
-        },
-      },
-      { type: 'separator' },
-      {
-        label: 'Move to Folder',
-        enabled: selectedFileCount === 1 && !hasSelectedFolders,
-        click: () => {
-          mainWindow?.webContents.send('move-to-folder');
-        },
-      },
-      { type: 'separator' },
-      {
-        label: 'Split',
-        enabled: selectedFileCount === 1 && !hasSelectedFolders,
-        click: () => {
-          mainWindow?.webContents.send('split-file');
-        },
-      },
-      {
-        label: 'Join',
-        enabled: selectedFileCount >= 2 && !hasSelectedFolders,
-        click: () => {
-          mainWindow?.webContents.send('join-files');
-        },
-      },
-      { type: 'separator' },
-      {
-        label: 'Replace in Files',
-        click: () => {
-          mainWindow?.webContents.send('replace-in-files');
-        },
-      },
-    ],
-  });
-
-  // Add Search menu if there are saved search definitions
-  const config = loadConfig();
-  const searchDefinitions = config.settings?.searchDefinitions || [];
-  if (searchDefinitions.length > 0) {
-    // Sort search definitions alphabetically by name
-    const sortedDefinitions = [...searchDefinitions].sort((a, b) => 
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    );
-
-    template.push({
-      label: 'Search',
-      submenu: sortedDefinitions.map((def) => ({
-        label: def.name,
-        click: (_menuItem, _browserWindow, event) => {
-          // Ctrl+click opens the search dialog for editing; regular click executes immediately
-          if (event.ctrlKey) {
-            mainWindow?.webContents.send('edit-search-definition', def);
-          } else {
-            mainWindow?.webContents.send('open-search-definition', def);
-          }
-        },
-      })),
-    });
-  }
-
-  // Add Bookmark menu if there are bookmarks under the current browse folder
-  const allBookmarks = config.settings?.bookmarks || [];
-  const browseFolder = commandLineFolder || config.browseFolder;
-  // Filter to only show bookmarks that are under the application's base browse folder
-  const bookmarks = browseFolder
-    ? allBookmarks.filter(bookmark => 
-        bookmark === browseFolder || bookmark.startsWith(browseFolder + path.sep)
-      )
-    : allBookmarks;
-  if (bookmarks.length > 0) {
-    // Sort bookmarks alphabetically by their display name (file/folder name only)
-    const sortedBookmarks = [...bookmarks].sort((a, b) => {
-      const nameA = a.substring(a.lastIndexOf('/') + 1);
-      const nameB = b.substring(b.lastIndexOf('/') + 1);
-      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-    });
-
-    template.push({
-      label: 'Bookmark',
-      submenu: sortedBookmarks.map((fullPath) => {
-        const displayName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-        return {
-          label: displayName,
-          click: () => {
-            mainWindow?.webContents.send('open-bookmark', fullPath);
-          },
-        };
-      }),
-    });
-  }
-
-  template.push({
-    label: 'Tools',
-    submenu: [
-      {
-        label: 'Folder Analysis',
-        click: () => {
-          mainWindow?.webContents.send('folder-analysis-requested');
-        },
-      },
-      { type: 'separator' },
-      {
-        label: 'Re-Number Files',
-        click: () => {
-          mainWindow?.webContents.send('renumber-files');
-        },
-      },
-      { type: 'separator' },
-      {
-        label: 'Export...',
-        click: () => {
-          mainWindow?.webContents.send('export-requested');
-        },
-      },
-    ],
-  });
-
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
-}
-
 // IPC Handlers
 function setupIpcHandlers(): void {
-  // Track selection state from renderer for menu enablement (Split/Join)
-  ipcMain.on('update-selection-state', (_event, fileCount: number, hasFolders: boolean) => {
-    if (fileCount !== selectedFileCount || hasFolders !== hasSelectedFolders) {
-      selectedFileCount = fileCount;
-      hasSelectedFolders = hasFolders;
-      setupApplicationMenu();
-    }
-  });
-
   // Quit the application
   ipcMain.handle('quit', () => {
     app.quit();
@@ -418,8 +201,6 @@ function setupIpcHandlers(): void {
   // Save configuration
   ipcMain.handle('save-config', (_event, config: AppConfig): void => {
     saveConfig(config);
-    // Rebuild menu to update search definitions
-    setupApplicationMenu();
   });
 
   // Set window title
@@ -1080,7 +861,8 @@ app.on('ready', async () => {
   setupIpcHandlers();
   await handleCommandLineArgs();
   createWindow();
-  setupApplicationMenu();
+  // Remove the default Electron menu bar entirely — all menus are now HTML popup menus
+  Menu.setApplicationMenu(null);
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

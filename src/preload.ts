@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 
 // Type definitions for the exposed API
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
@@ -70,20 +70,6 @@ export interface ElectronAPI {
   getConfig: () => Promise<AppConfig>;
   saveConfig: (config: AppConfig) => Promise<void>;
   selectFolder: () => Promise<string | null>;
-  onFolderSelected: (callback: (folderPath: string) => void) => () => void;
-  onCutRequested: (callback: () => void) => () => void;
-  onUndoCutRequested: (callback: () => void) => () => void;
-  onPasteRequested: (callback: () => void) => () => void;
-  onDeleteRequested: (callback: () => void) => () => void;
-  onSelectAllRequested: (callback: () => void) => () => void;
-  onUnselectAllRequested: (callback: () => void) => () => void;
-  onSplitFileRequested: (callback: () => void) => () => void;
-  onJoinFilesRequested: (callback: () => void) => () => void;
-  onRenumberRequested: (callback: () => void) => () => void;
-  onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => () => void;
-  onOpenSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
-  onEditSearchDefinition: (callback: (definition: SearchDefinition) => void) => () => void;
-  onFolderAnalysisRequested: (callback: () => void) => () => void;
   quit: () => Promise<void>;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
@@ -109,150 +95,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getConfig: () => ipcRenderer.invoke('get-config'),
   saveConfig: (config: AppConfig) => ipcRenderer.invoke('save-config', config),
   selectFolder: () => ipcRenderer.invoke('select-folder'),
-  onFolderSelected: (callback: (folderPath: string) => void) => {
-    const handler = (_event: IpcRendererEvent, folderPath: string) => {
-      callback(folderPath);
-    };
-    ipcRenderer.on('folder-selected', handler);
-    return () => {
-      ipcRenderer.removeListener('folder-selected', handler);
-    };
-  },
-  onCutRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('cut-items', handler);
-    return () => {
-      ipcRenderer.removeListener('cut-items', handler);
-    };
-  },
-  onUndoCutRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('undo-cut', handler);
-    return () => {
-      ipcRenderer.removeListener('undo-cut', handler);
-    };
-  },
-  onPasteRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('paste-items', handler);
-    return () => {
-      ipcRenderer.removeListener('paste-items', handler);
-    };
-  },
-  onDeleteRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('delete-items', handler);
-    return () => {
-      ipcRenderer.removeListener('delete-items', handler);
-    };
-  },
-  onSelectAllRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('select-all-items', handler);
-    return () => {
-      ipcRenderer.removeListener('select-all-items', handler);
-    };
-  },
-  onUnselectAllRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('unselect-all-items', handler);
-    return () => {
-      ipcRenderer.removeListener('unselect-all-items', handler);
-    };
-  },
-  onMoveToFolderRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('move-to-folder', handler);
-    return () => {
-      ipcRenderer.removeListener('move-to-folder', handler);
-    };
-  },
-  onSplitFileRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('split-file', handler);
-    return () => {
-      ipcRenderer.removeListener('split-file', handler);
-    };
-  },
-  onJoinFilesRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('join-files', handler);
-    return () => {
-      ipcRenderer.removeListener('join-files', handler);
-    };
-  },
-  onRenumberRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('renumber-files', handler);
-    return () => {
-      ipcRenderer.removeListener('renumber-files', handler);
-    };
-  },
-  onViewChanged: (callback: (view: 'browser' | 'search-results' | 'settings') => void) => {
-    const handler = (_event: IpcRendererEvent, view: 'browser' | 'search-results' | 'settings') => {
-      callback(view);
-    };
-    ipcRenderer.on('view-changed', handler);
-    return () => {
-      ipcRenderer.removeListener('view-changed', handler);
-    };
-  },
-  onOpenSearchDefinition: (callback: (definition: SearchDefinition) => void) => {
-    const handler = (_event: IpcRendererEvent, definition: SearchDefinition) => {
-      callback(definition);
-    };
-    ipcRenderer.on('open-search-definition', handler);
-    return () => {
-      ipcRenderer.removeListener('open-search-definition', handler);
-    };
-  },
-  onEditSearchDefinition: (callback: (definition: SearchDefinition) => void) => {
-    const handler = (_event: IpcRendererEvent, definition: SearchDefinition) => {
-      callback(definition);
-    };
-    ipcRenderer.on('edit-search-definition', handler);
-    return () => {
-      ipcRenderer.removeListener('edit-search-definition', handler);
-    };
-  },
-  onOpenBookmark: (callback: (fullPath: string) => void) => {
-    const handler = (_event: IpcRendererEvent, fullPath: string) => {
-      callback(fullPath);
-    };
-    ipcRenderer.on('open-bookmark', handler);
-    return () => {
-      ipcRenderer.removeListener('open-bookmark', handler);
-    };
-  },
-  onReplaceInFilesRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('replace-in-files', handler);
-    return () => {
-      ipcRenderer.removeListener('replace-in-files', handler);
-    };
-  },
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
     ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
@@ -274,28 +116,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   collectAncestorTags: (filePath: string) => ipcRenderer.invoke('collect-ancestor-tags', filePath),
   renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
-  updateSelectionState: (fileCount: number, hasFolders: boolean) => ipcRenderer.send('update-selection-state', fileCount, hasFolders),
-  onExportRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('export-requested', handler);
-    return () => {
-      ipcRenderer.removeListener('export-requested', handler);
-    };
-  },
   selectExportFolder: () => ipcRenderer.invoke('select-export-folder'),
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => 
     ipcRenderer.invoke('export-folder-contents', sourceFolder, outputFolder, outputFileName, includeSubfolders, includeFilenames, includeDividers),
   exportToPdf: (markdownPath: string, pdfPath: string) =>
     ipcRenderer.invoke('export-to-pdf', markdownPath, pdfPath),
-  onFolderAnalysisRequested: (callback: () => void) => {
-    const handler = () => {
-      callback();
-    };
-    ipcRenderer.on('folder-analysis-requested', handler);
-    return () => {
-      ipcRenderer.removeListener('folder-analysis-requested', handler);
-    };
-  },
 } as ElectronAPI);

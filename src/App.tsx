@@ -105,11 +105,6 @@ function App() {
   const selectedFileCount = selectedItems.filter((item) => !item.isDirectory).length;
   const hasSelectedFolders = selectedItems.some((item) => item.isDirectory);
 
-  // Notify main process of selection state changes for menu enablement (Split/Join)
-  useEffect(() => {
-    window.electronAPI.updateSelectionState(selectedFileCount, hasSelectedFolders);
-  }, [selectedFileCount, hasSelectedFolders]);
-
   // Apply font size globally via data attribute on html element
   useEffect(() => {
     document.documentElement.setAttribute('data-font-size', settings.fontSize);
@@ -138,52 +133,6 @@ function App() {
       }
     };
     initConfig();
-  }, []);
-
-  // Listen for folder changes from the application menu
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onFolderSelected((folderPath) => {
-      setRootPath(folderPath);
-      setCurrentPath(folderPath);
-      setError(null);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  // Listen for Cut menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onCutRequested(() => {
-      cutSelectedItems();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  // Listen for Undo Cut menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onUndoCutRequested(() => {
-      clearAllCutItems();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  // Listen for View menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onViewChanged((view) => {
-      setCurrentView(view);
-    });
-
-    return () => {
-      unsubscribe();
-    };
   }, []);
 
   // Load directory contents
@@ -380,17 +329,6 @@ function App() {
     refreshDirectory();
   }, [items, refreshDirectory]);
 
-  // Listen for Paste menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onPasteRequested(() => {
-      void doPasteCutItems();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [doPasteCutItems]);
-
   // Get selected items for delete operation
   const getSelectedItems = useCallback(() => {
     return Array.from(items.values()).filter((item) => item.isSelected);
@@ -415,45 +353,6 @@ function App() {
       refreshDirectory();
     }
   }, [getSelectedItems, refreshDirectory]);
-
-  // Listen for Delete menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onDeleteRequested(() => {
-      const selectedItems = getSelectedItems();
-      if (selectedItems.length > 0) {
-        setShowDeleteConfirm(true);
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [getSelectedItems]);
-
-  // Listen for Select All menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onSelectAllRequested(() => {
-      // Select all items in the current folder view
-      const currentFolderPaths = entries.map((entry) => entry.path);
-      selectItemsByPaths(currentFolderPaths);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [entries]);
-
-  // Listen for Unselect All menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onUnselectAllRequested(() => {
-      // Unselect all items across all cached data (broader scope for safety)
-      clearAllSelections();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
 
   // Handle "Move to Folder" action - creates a folder with the file's name and moves the file into it
   const handleMoveToFolder = useCallback(async () => {
@@ -501,17 +400,6 @@ function App() {
     refreshDirectory();
   }, [currentPath, getSelectedItems, refreshDirectory]);
 
-  // Listen for Move to Folder menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onMoveToFolderRequested(() => {
-      void handleMoveToFolder();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [handleMoveToFolder]);
-
   // Handle "Split" action - splits a text/markdown file into multiple files using double-blank-line delimiter
   const handleSplitFile = useCallback(async () => {
     if (!currentPath) return;
@@ -534,17 +422,6 @@ function App() {
     refreshDirectory();
   }, [currentPath, getSelectedItems, refreshDirectory]);
 
-  // Listen for Split File menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onSplitFileRequested(() => {
-      void handleSplitFile();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [handleSplitFile]);
-
   // Handle "Join" action - joins multiple text/markdown files into a single file
   const handleJoinFiles = useCallback(async () => {
     if (!currentPath) return;
@@ -566,17 +443,6 @@ function App() {
     clearAllSelections();
     refreshDirectory();
   }, [currentPath, getSelectedItems, refreshDirectory]);
-
-  // Listen for Join Files menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onJoinFilesRequested(() => {
-      void handleJoinFiles();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [handleJoinFiles]);
 
   // Handle renumbering files in the current directory
   const handleRenumberFiles = useCallback(async () => {
@@ -608,113 +474,7 @@ function App() {
     refreshDirectory();
   }, [currentPath, settings, refreshDirectory]);
 
-  // Listen for Re-Number Files menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onRenumberRequested(() => {
-      void handleRenumberFiles();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [handleRenumberFiles]);
-
-  // Listen for Export menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onExportRequested(() => {
-      setCurrentView('browser');
-      setShowExportDialog(true);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  // Listen for Replace in Files menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onReplaceInFilesRequested(() => {
-      setShowReplaceDialog(true);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  // Listen for Folder Analysis menu action
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onFolderAnalysisRequested(() => {
-      if (!currentPath) return;
-      
-      // Start the analysis and switch to the view
-      void (async () => {
-        try {
-          const result = await window.electronAPI.analyzeFolderHashtags(currentPath);
-          setFolderAnalysis({
-            hashtags: result.hashtags,
-            folderPath: currentPath,
-            totalFiles: result.totalFiles,
-          });
-          setCurrentView('folder-analysis');
-        } catch (err) {
-          setError('Failed to analyze folder: ' + (err instanceof Error ? err.message : String(err)));
-        }
-      })();
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [currentPath]);
-
-  // Listen for search definition selection from menu - execute search immediately
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onOpenSearchDefinition(async (definition) => {
-      if (!currentPath) return;
-      
-      // Decode {{nl}} tokens back to spaces for actual search execution
-      const searchQuery = definition.searchText.replace(/\{\{nl\}\}/g, ' ');
-      
-      const results = await window.electronAPI.searchFolder(
-        currentPath,
-        searchQuery,
-        definition.searchMode,
-        definition.searchTarget,
-        definition.searchBlock
-      );
-      setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc');
-      setCurrentView('search-results');
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [currentPath]);
-
-  // Listen for edit search definition from menu (Ctrl+click) - open SearchDialog with definition pre-filled
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onEditSearchDefinition((definition) => {
-      setCurrentView('browser');
-      // Populate the SearchDialog with the definition's values
-      setSearchDialogInitialValues({
-        searchQuery: definition.searchText,
-        searchName: definition.name,
-        searchType: definition.searchMode,
-        searchMode: definition.searchTarget,
-        searchBlock: definition.searchBlock,
-        sortBy: definition.sortBy,
-        sortDirection: definition.sortDirection,
-      });
-      setShowSearchDialog(true);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  // Navigate to a bookmarked item - reused by both IPC listener and popup menu
+  // Navigate to a bookmarked item - used by popup menu
   const navigateToBookmark = useCallback(async (fullPath: string) => {
     // Check if the path exists
     const exists = await window.electronAPI.pathExists(fullPath);
@@ -760,17 +520,6 @@ function App() {
       setPendingScrollToFile(fileName);
     }
   }, []);
-
-  // Listen for bookmark selection from menu - navigate to the bookmarked item
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.onOpenBookmark((fullPath: string) => {
-      void navigateToBookmark(fullPath);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [navigateToBookmark]);
 
   // Generate default export filename from current folder name
   const generateExportFileName = useCallback(() => {
