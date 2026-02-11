@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon } from '@heroicons/react/24/outline';
 import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
@@ -9,6 +9,7 @@ import ImageEntry from './components/entries/ImageEntry';
 import TextEntry from './components/entries/TextEntry'; 
 
 
+import ToolsPopupMenu from './components/ToolsPopupMenu';
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import ErrorDialog from './components/dialogs/ErrorDialog';
@@ -77,6 +78,7 @@ function App() {
   const [replaceResultMessage, setReplaceResultMessage] = useState<string | null>(null);
   const [searchDialogInitialValues, setSearchDialogInitialValues] = useState<SearchDialogInitialValues | undefined>(undefined);
   const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
+  const [showToolsMenu, setShowToolsMenu] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
   const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
   const items = useItems();
@@ -235,6 +237,9 @@ function App() {
   
   // Debounce timer for scroll position saving
   const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Ref for tools popup menu anchor
+  const toolsButtonRef = useRef<HTMLButtonElement>(null);
 
   // Handle pending scroll after directory loads, or restore scroll position on folder navigation
   useEffect(() => {
@@ -1246,6 +1251,16 @@ function App() {
         </div>
 
         <div data-id="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
+              {/* Tools menu button */}
+              <button
+                ref={toolsButtonRef}
+                onClick={() => setShowToolsMenu(prev => !prev)}
+                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Tools"
+              >
+                <WrenchIcon className="w-5 h-5" />
+              </button>
+
               {/* Cut button - shown when items are selected and no items are cut */}
               {hasSelectedItems && !hasCutItems && (
                 <button
@@ -1446,6 +1461,31 @@ function App() {
           defaultFileName={generateExportFileName()}
           onExport={handleExport}
           onCancel={handleCancelExport}
+        />
+      )}
+
+      {showToolsMenu && (
+        <ToolsPopupMenu
+          anchorRef={toolsButtonRef}
+          onClose={() => setShowToolsMenu(false)}
+          onFolderAnalysis={() => {
+            if (!currentPath) return;
+            void (async () => {
+              try {
+                const result = await window.electronAPI.analyzeFolderHashtags(currentPath);
+                setFolderAnalysis({
+                  hashtags: result.hashtags,
+                  folderPath: currentPath,
+                  totalFiles: result.totalFiles,
+                });
+                setCurrentView('folder-analysis');
+              } catch (err) {
+                setError('Failed to analyze folder: ' + (err instanceof Error ? err.message : String(err)));
+              }
+            })();
+          }}
+          onRenumberFiles={() => void handleRenumberFiles()}
+          onExport={() => setShowExportDialog(true)}
         />
       )}
 
