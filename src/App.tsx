@@ -1015,14 +1015,22 @@ function App() {
         </div>
 
         <div data-id="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
-              {/* Bookmarks menu button */}
+              {/* Create file button */}
               <button
-                ref={bookmarksButtonRef}
-                onClick={() => setShowBookmarksMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Bookmarks"
+                onClick={handleOpenCreateDialog}
+                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Create file"
               >
-                <BookmarkIcon className="w-5 h-5" />
+                <DocumentPlusIcon className="w-5 h-5" />
+              </button>
+
+              {/* Create folder button */}
+              <button
+                onClick={handleOpenCreateFolderDialog}
+                className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Create folder"
+              >
+                <FolderPlusIcon className="w-5 h-5" />
               </button>
 
               {/* Edit menu button */}
@@ -1033,6 +1041,16 @@ function App() {
                 title="Edit"
               >
                 <PencilSquareIcon className="w-5 h-5" />
+              </button>
+
+              {/* Bookmarks menu button */}
+              <button
+                ref={bookmarksButtonRef}
+                onClick={() => setShowBookmarksMenu(prev => !prev)}
+                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Bookmarks"
+              >
+                <BookmarkIcon className="w-5 h-5" />
               </button>
 
               {/* Tools menu button */}
@@ -1077,24 +1095,6 @@ function App() {
                   Paste
                 </button>
               )}
-
-              {/* Create file button */}
-              <button
-                onClick={handleOpenCreateDialog}
-                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Create file"
-              >
-                <DocumentPlusIcon className="w-5 h-5" />
-              </button>
-
-              {/* Create folder button */}
-              <button
-                onClick={handleOpenCreateFolderDialog}
-                className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Create folder"
-              >
-                <FolderPlusIcon className="w-5 h-5" />
-              </button>
 
               {/* Paste from clipboard button */}
               <button
