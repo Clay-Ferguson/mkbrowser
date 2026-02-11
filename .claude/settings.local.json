@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-electron-app@latest . --template=vite-typescript)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(nvm current:*)",
+      "Bash(yarn install)",
+      "Bash(yarn add react react-dom)",
+      "Bash(yarn add:*)",
+      "Bash(timeout 30s yarn start)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm install:*)",
+      "Bash(/home/clay/.nvm/versions/node/v24.13.0/bin/yarn add -D tailwindcss postcss autoprefixer @tailwindcss/typography)",
+      "Bash(source /home/clay/.nvm/nvm.sh)",
+      "Bash(yarn start:linux:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(npm ls:*)",
+      "Bash(ls:*)",
+      "Bash(timeout 30 npm start:*)",
+      "Bash(timeout 15 npm start:*)",
+      "Bash(timeout 20 npm start:*)",
+      "WebSearch"
+    ]
+  }
+}

@@ -2,6 +2,18 @@
 
 MkBrowser is a file explorer designed for managing Markdown notes with inline rendering.
 
+## Desktop Icon (Linux)
+
+To add MkBrowser to your application launcher on Ubuntu/GNOME so you can pin it to your dock:
+
+1. Run the install script from the project directory:
+   ```bash
+   ./install-desktop-icon.sh
+   ```
+2. This creates a `.desktop` file in `~/.local/share/applications/` that launches MkBrowser using the `mk-browser` command.
+3. Open your application launcher (Activities / Show Applications) and find **MkBrowser**.
+4. Right-click the icon and choose **Add to Favorites** to pin it to your dock.
+
 ## Browsing and Editing
 
 MkBrowser displays your files and folders in a single streamlined list.
