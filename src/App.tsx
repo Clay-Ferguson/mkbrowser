@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, PencilSquareIcon, BookmarkIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BookmarkIcon } from '@heroicons/react/24/outline';
 import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
@@ -1043,7 +1043,7 @@ function App() {
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Edit"
               >
-                <PencilSquareIcon className="w-5 h-5" />
+                <Squares2X2Icon className="w-5 h-5" />
               </button>
 
               {/* Bookmarks menu button */}
