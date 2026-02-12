@@ -312,7 +312,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
         ) : (
           <p className="text-xs text-slate-500 mt-2">
             {searchType === 'advanced' ? (
-              <>Uses <code className="bg-slate-700 px-1 rounded">$("text")</code> function, or past(ts), future(ts), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
+              <>Uses <code className="bg-slate-700 px-1 rounded">$("text")</code> function, or past(ts), future(ts), future(ts, days), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
             ) : searchType === 'wildcard' ? (
               <>Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters. Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
             ) : searchMode === 'filenames' ? (
