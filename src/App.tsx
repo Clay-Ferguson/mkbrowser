@@ -12,6 +12,7 @@ import TextEntry from './components/entries/TextEntry';
 import ToolsPopupMenu from './components/ToolsPopupMenu';
 import EditPopupMenu from './components/EditPopupMenu';
 import BookmarksPopupMenu from './components/BookmarksPopupMenu';
+import SearchPopupMenu from './components/SearchPopupMenu';
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import ErrorDialog from './components/dialogs/ErrorDialog';
@@ -83,6 +84,7 @@ function App() {
   const [showToolsMenu, setShowToolsMenu] = useState<boolean>(false);
   const [showEditMenu, setShowEditMenu] = useState<boolean>(false);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
+  const [showSearchMenu, setShowSearchMenu] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
   const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
   const items = useItems();
@@ -195,6 +197,7 @@ function App() {
   const toolsButtonRef = useRef<HTMLButtonElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
 
   // Handle pending scroll after directory loads, or restore scroll position on folder navigation
   useEffect(() => {
@@ -1107,9 +1110,10 @@ function App() {
 
               {/* Search button */}
               <button
-                onClick={handleOpenSearchDialog}
+                ref={searchButtonRef}
+                onClick={() => setShowSearchMenu(prev => !prev)}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Search in folder"
+                title="Search"
               >
                 <MagnifyingGlassIcon className="w-5 h-5" />
               </button>
@@ -1245,6 +1249,43 @@ function App() {
           defaultFileName={generateExportFileName()}
           onExport={handleExport}
           onCancel={handleCancelExport}
+        />
+      )}
+
+      {showSearchMenu && (
+        <SearchPopupMenu
+          anchorRef={searchButtonRef}
+          onClose={() => setShowSearchMenu(false)}
+          searchDefinitions={settings.searchDefinitions || []}
+          onNewSearch={handleOpenSearchDialog}
+          onRunSearch={(definition) => {
+            if (!currentPath) return;
+            void (async () => {
+              const searchQuery = definition.searchText.replace(/\{\{nl\}\}/g, ' ');
+              const results = await window.electronAPI.searchFolder(
+                currentPath,
+                searchQuery,
+                definition.searchMode,
+                definition.searchTarget,
+                definition.searchBlock
+              );
+              setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc');
+              setCurrentView('search-results');
+            })();
+          }}
+          onEditSearch={(definition) => {
+            setCurrentView('browser');
+            setSearchDialogInitialValues({
+              searchQuery: definition.searchText,
+              searchName: definition.name,
+              searchType: definition.searchMode,
+              searchMode: definition.searchTarget,
+              searchBlock: definition.searchBlock,
+              sortBy: definition.sortBy,
+              sortDirection: definition.sortDirection,
+            });
+            setShowSearchDialog(true);
+          }}
         />
       )}
 
