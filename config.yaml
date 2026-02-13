@@ -1,0 +1,79 @@
+browseFolder: /home/clay/ferguson
+settings:
+  fontSize: medium
+  sortOrder: alphabetical
+  foldersOnTop: true
+  ignoredPaths: ''
+  searchDefinitions:
+    - name: TODOs
+      searchText: $("#todo")
+      searchTarget: content
+      searchMode: advanced
+      searchBlock: file-lines
+      sortBy: line-time
+      sortDirection: desc
+    - name: TODOs - Future
+      searchText: $("#todo") && future(ts)
+      searchTarget: content
+      searchMode: advanced
+      searchBlock: file-lines
+      sortBy: line-time
+      sortDirection: desc
+    - name: TODOs - Future (Month)
+      searchText: $("#todo") && future(ts, 31)
+      searchTarget: content
+      searchMode: advanced
+      searchBlock: file-lines
+      sortBy: line-time
+      sortDirection: desc
+    - name: TODOs - Future (Week)
+      searchText: $("#todo") && future(ts, 7)
+      searchTarget: content
+      searchMode: advanced
+      searchBlock: file-lines
+      sortBy: line-time
+      sortDirection: desc
+    - name: TODOs - Past
+      searchText: $("#todo") && past(ts)
+      searchTarget: content
+      searchMode: advanced
+      searchBlock: file-lines
+      sortBy: line-time
+      sortDirection: desc
+    - name: TODOs - Today
+      searchText: $("#todo") && today(ts)
+      searchTarget: content
+      searchMode: advanced
+      searchBlock: file-lines
+      sortBy: line-time
+      sortDirection: desc
+    - name: TODOs - Future - P1
+      searchText: $("#todo") && future(ts) && $("#p1")
+      searchTarget: content
+      searchMode: advanced
+      searchBlock: file-lines
+      sortBy: line-time
+      sortDirection: desc
+    - name: TODOs - Future - P1 (Week)
+      searchText: $("#todo") && future(ts, 7) && $("#p1")
+      searchTarget: content
+      searchMode: advanced
+      searchBlock: file-lines
+      sortBy: line-time
+      sortDirection: desc
+    - name: TODOs -  Future - P1 (Month)
+      searchText: $("#todo") && future(ts, 31) && $("#p1")
+      searchTarget: content
+      searchMode: advanced
+      searchBlock: file-lines
+      sortBy: line-time
+      sortDirection: desc
+    - name: TODOs - Future - P1 (Month)
+      searchText: $("#todo") && future(ts, 31) && $("#p1")
+      searchTarget: content
+      searchMode: advanced
+      searchBlock: file-lines
+      sortBy: line-time
+      sortDirection: desc
+  contentWidth: full
+  bookmarks: []
