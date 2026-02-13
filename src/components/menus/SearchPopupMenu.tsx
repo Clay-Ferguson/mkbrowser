@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
-import type { SearchDefinition } from '../store';
-import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './PopupMenu';
+import type { SearchDefinition } from '../../store';
+import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
 interface SearchPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;

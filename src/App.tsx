@@ -9,10 +9,10 @@ import ImageEntry from './components/entries/ImageEntry';
 import TextEntry from './components/entries/TextEntry'; 
 
 
-import ToolsPopupMenu from './components/ToolsPopupMenu';
-import EditPopupMenu from './components/EditPopupMenu';
-import BookmarksPopupMenu from './components/BookmarksPopupMenu';
-import SearchPopupMenu from './components/SearchPopupMenu';
+import ToolsPopupMenu from './components/menus/ToolsPopupMenu';
+import EditPopupMenu from './components/menus/EditPopupMenu';
+import BookmarksPopupMenu from './components/menus/BookmarksPopupMenu';
+import SearchPopupMenu from './components/menus/SearchPopupMenu';
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import ErrorDialog from './components/dialogs/ErrorDialog';

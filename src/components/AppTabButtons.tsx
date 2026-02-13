@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, type AppView } from '../store';
 import appLogo from '../../public/icon-256.png';
-import FilePopupMenu from './FilePopupMenu';
+import FilePopupMenu from './menus/FilePopupMenu';
 
 interface TabConfig {
   id: AppView;

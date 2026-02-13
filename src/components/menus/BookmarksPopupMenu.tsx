@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import PopupMenu, { PopupMenuItem } from './PopupMenu';
+import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 
 interface BookmarksPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
