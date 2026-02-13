@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { EditorView } from '@codemirror/view';
 import Typo from 'typo-js';
-import { formatDate, formatTimestamp } from '../utils/timeUtil';
+import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import type { SpellingSuggestion } from './spellChecker';
 
 export interface ContextMenuState {

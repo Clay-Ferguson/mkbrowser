@@ -4,11 +4,11 @@ import { EditorState, Compartment } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { markdown } from '@codemirror/lang-markdown';
-import { useSettings, type FontSize } from '../store';
+import { useSettings, type FontSize } from '../../store';
 import Typo from 'typo-js';
-import { formatDate, formatTimestamp } from '../utils/timeUtil';
-import { hashtagPlugin, hashtagTheme } from '../utils/editorHashtagUtil';
-import { datePlugin, dateTheme, dateTooltipExtension } from '../utils/editorDateUtil';
+import { formatDate, formatTimestamp } from '../../utils/timeUtil';
+import { hashtagPlugin, hashtagTheme } from '../../utils/editorHashtagUtil';
+import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editorDateUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
 

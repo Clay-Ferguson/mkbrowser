@@ -18,7 +18,7 @@ import {
   navigateToBrowserPath,
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
-import CodeMirrorEditor from '../CodeMirrorEditor';
+import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import TagsPicker from './TagsPicker';
 import { createCustomImage } from './markdownImgResolver';
 import {
