@@ -54,6 +54,7 @@ interface AppSettings {
 
 interface AppConfig {
   browseFolder: string;
+  curSubFolder?: string;
   settings?: AppSettings;
 }
 
@@ -194,6 +195,8 @@ function setupIpcHandlers(): void {
     const config = loadConfig();
     if (commandLineFolder) {
       config.browseFolder = commandLineFolder;
+      // When launched with a command-line folder, ignore any saved subfolder
+      delete config.curSubFolder;
     }
     return config;
   });
@@ -841,6 +844,7 @@ async function handleCommandLineArgs(): Promise<void> {
         // Also update and save config file for persistence
         const config = loadConfig();
         config.browseFolder = absolutePath;
+        delete config.curSubFolder;
         saveConfig(config);
 
         console.log(`Opening folder from command line: ${absolutePath}`);

@@ -184,6 +184,23 @@ function App() {
     }
   }, [currentPath]);
 
+  // Persist current subfolder to config whenever navigation changes
+  useEffect(() => {
+    if (!currentPath || !rootPath) return;
+    const saveCurSubFolder = async () => {
+      try {
+        const config = await window.electronAPI.getConfig();
+        const curSubFolder = currentPath === rootPath ? undefined : currentPath;
+        if (config.curSubFolder !== curSubFolder) {
+          await window.electronAPI.saveConfig({ ...config, curSubFolder });
+        }
+      } catch {
+        // Non-critical — config will be updated on next navigation
+      }
+    };
+    saveCurSubFolder();
+  }, [currentPath, rootPath]);
+
   // Track previous path to detect folder navigation
   const previousPathRef = useRef<string | null>(null);
   

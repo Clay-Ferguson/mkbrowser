@@ -20,7 +20,15 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     if (config.browseFolder) {
       const exists = await window.electronAPI.pathExists(config.browseFolder);
       if (exists) {
-        setCurrentPath(config.browseFolder);
+        // If a saved subfolder exists and is valid, start there instead of the root
+        let initialPath = config.browseFolder;
+        if (config.curSubFolder && config.curSubFolder.startsWith(config.browseFolder)) {
+          const subExists = await window.electronAPI.pathExists(config.curSubFolder);
+          if (subExists) {
+            initialPath = config.curSubFolder;
+          }
+        }
+        setCurrentPath(initialPath);
         return { rootPath: config.browseFolder, loaded: true, error: null };
       } else {
         return { rootPath: null, loaded: true, error: null };

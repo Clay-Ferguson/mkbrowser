@@ -32,6 +32,7 @@ export interface AppSettings {
 
 export interface AppConfig {
   browseFolder: string;
+  curSubFolder?: string;
   settings?: AppSettings;
 }
 
