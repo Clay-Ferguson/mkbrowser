@@ -905,6 +905,23 @@ function App() {
     }
   }, [currentPath, rootPath]);
 
+  // Handle searching for a hashtag from the folder analysis view
+  const handleSearchHashtag = useCallback(async (hashtag: string, ctrlKey: boolean) => {
+    if (!currentPath) return;
+    
+    if (ctrlKey) {
+      // Advanced search: $("#hashtag") on file lines
+      const advancedQuery = `$("${hashtag}")`;
+      const results = await window.electronAPI.searchFolder(currentPath, advancedQuery, 'advanced', 'content', 'file-lines');
+      setSearchResults(results, advancedQuery, currentPath, 'modified-time', 'desc');
+    } else {
+      // Simple literal search
+      const results = await window.electronAPI.searchFolder(currentPath, hashtag, 'literal', 'content', 'entire-file');
+      setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc');
+    }
+    setCurrentView('search-results');
+  }, [currentPath]);
+
   // Folder selection prompt (first run or no folder configured)
   if (!currentPath && !loading) {
     return (
@@ -934,23 +951,6 @@ function App() {
       </div>
     );
   }
-
-  // Handle searching for a hashtag from the folder analysis view
-  const handleSearchHashtag = useCallback(async (hashtag: string, ctrlKey: boolean) => {
-    if (!currentPath) return;
-    
-    if (ctrlKey) {
-      // Advanced search: $("#hashtag") on file lines
-      const advancedQuery = `$("${hashtag}")`;
-      const results = await window.electronAPI.searchFolder(currentPath, advancedQuery, 'advanced', 'content', 'file-lines');
-      setSearchResults(results, advancedQuery, currentPath, 'modified-time', 'desc');
-    } else {
-      // Simple literal search
-      const results = await window.electronAPI.searchFolder(currentPath, hashtag, 'literal', 'content', 'entire-file');
-      setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc');
-    }
-    setCurrentView('search-results');
-  }, [currentPath]);
 
   // Show search results view when in search-results mode
   if (currentView === 'search-results') {
