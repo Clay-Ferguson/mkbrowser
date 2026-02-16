@@ -10,7 +10,7 @@ set -e
 if [ $# -eq 0 ]; then
     echo "Error: Missing required argument"
     echo "Usage: $0 <subfolder-name>"
-    echo "Example: $0 open-folder-demo-enhanced"
+    echo "Example: $0 open-folder-demo"
     exit 1
 fi
 
@@ -40,7 +40,7 @@ echo ""
 if [ ! -d "$SCREENSHOT_DIR" ] || [ -z "$(ls -A $SCREENSHOT_DIR/*.png 2>/dev/null)" ]; then
     echo -e "${RED}✗ No screenshots found in $SCREENSHOT_DIR/${NC}"
     echo "Run a demo test with screenshots enabled first."
-    echo "Example: npm run test:e2e -- open-folder-demo-enhanced.spec.ts"
+    echo "Example: npm run test:e2e -- open-folder-demo.spec.ts"
     exit 1
 fi
 

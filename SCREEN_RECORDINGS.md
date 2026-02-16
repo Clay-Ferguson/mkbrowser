@@ -63,7 +63,7 @@ Visual indicator functions return quickly but leave indicators visible:
 - Example: `highlightElement(page, locator, 800)` returns after 100ms, but highlight stays for 800ms
 
 ### 2. Demo Test Specs
-**Location**: `tests/e2e/open-folder-demo-enhanced.spec.ts`
+**Location**: `tests/e2e/open-folder-demo.spec.ts`
 
 Example structure:
 ```typescript
@@ -268,7 +268,7 @@ mkbrowser/
 │       ├── helpers/
 │       │   └── visual-indicators.ts     # Visual indicator library
 │       ├── open-folder.spec.ts          # Regular test (no recording)
-│       └── open-folder-demo-enhanced.spec.ts  # Demo with visual indicators
+│       └── open-folder-demo.spec.ts     # Demo with visual indicators
 ├── screenshots/                         # Generated screenshots (gitignored)
 │   ├── 001-step-name.png
 │   ├── 002-step-name.png

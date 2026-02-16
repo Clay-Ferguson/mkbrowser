@@ -11,7 +11,7 @@ rm -rf out
 echo ""
 echo "Select test scope:"
 echo "1) Run all tests"
-echo "2) Run specific test (open-folder-demo-enhanced.spec.ts)"
+echo "2) Run specific test (open-folder-demo.spec.ts)"
 echo ""
 read -p "Enter choice [1-2]: " choice
 
@@ -23,7 +23,7 @@ case $choice in
         npm run test:e2e
         ;;
     2)
-        SPECIFIC_TEST="open-folder-demo-enhanced"
+        SPECIFIC_TEST="open-folder-demo"
         echo "Cleaning up screenshots for $SPECIFIC_TEST..."
         rm -rf screenshots/$SPECIFIC_TEST
         echo "Running specific test: $SPECIFIC_TEST.spec.ts..."
