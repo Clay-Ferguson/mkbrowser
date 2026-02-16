@@ -28,11 +28,11 @@ export default function SortPopupMenu({
     <PopupMenu anchorRef={anchorRef} onClose={onClose} style={{ maxWidth: '20rem' }}>
       {sortOptions.map((option) => {
         const isActive = option.value === currentSortOrder;
-        const label = isActive ? `✓  ${option.label}` : `    ${option.label}`;
         return (
           <PopupMenuItem
             key={option.value}
-            label={label}
+            label={option.label}
+            selected={isActive}
             onClick={() => { onSelectSortOrder(option.value); onClose(); }}
           />
         );
