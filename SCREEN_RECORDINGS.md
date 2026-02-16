@@ -102,20 +102,16 @@ test('complete workflow with visual indicators', async ({ mainWindow }) => {
 ### 3. Video Creation Script
 **Location**: `create-video-from-screenshots.sh`
 
-Bash script that converts screenshots to video using FFmpeg:
+Bash script that converts screenshots and optional audio narration into a video. It supports interleaved `.png` screenshots and `.mp3` audio clips, ordered by filename.
 
-```bash
-ffmpeg -y \
-    -framerate "1/$FRAME_DURATION" \
-    -pattern_type glob \
-    -i "$SCREENSHOT_DIR/*.png" \
-    -c:v libx264 \
-    -preset slow \
-    -crf 18 \
-    -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p" \
-    -movflags +faststart \
-    "$OUTPUT_FILE"
-```
+**How it works**:
+1. Scans the screenshot folder for `.png` and `.mp3` files, sorted by filename
+2. Walks files in order, maintaining a "current image" reference
+3. For each `.png`: creates a video segment showing the image for `FRAME_DURATION` seconds with silent audio
+4. For each `.mp3`: creates a video segment holding the most recent screenshot on screen while the audio plays (duration detected via `ffprobe`)
+5. All segments have both video and audio tracks for consistent concatenation
+6. Concatenates segments into the final MP4 with `ffmpeg -f concat -c copy`
+7. GIF is generated from images only (GIF format has no audio support)
 
 **Parameters**:
 - `FRAME_DURATION`: Seconds per screenshot (default: 2)
@@ -124,7 +120,27 @@ ffmpeg -y \
 - `yuv420p`: Color format for broad compatibility
 - `faststart`: Optimize for web streaming
 
-**Output**: `test-videos/user-guide-TIMESTAMP.mp4`
+**Output**: `test-videos/<subfolder-name>.mp4` and `test-videos/<subfolder-name>.gif`
+
+#### Audio Narration
+
+To add spoken narration or other audio between screenshots, place `.mp3` files in the screenshot folder with numeric prefixes that sort them into the desired position:
+
+```
+screenshots/my-demo/
+  010-initial-view.png         # Shown for FRAME_DURATION (2s)
+  015-welcome-narration.mp3    # Holds 010 image while audio plays
+  020-click-button.png         # Shown for FRAME_DURATION (2s)
+  030-dialog-open.png          # Shown for FRAME_DURATION (2s)
+  035-explanation.mp3           # Holds 030 image while audio plays
+  040-result.png               # Shown for FRAME_DURATION (2s)
+```
+
+**Rules**:
+- The first file (by sort order) **must** be a `.png` — audio needs a preceding image to display
+- Use consistent-width numeric prefixes (e.g., 3-digit: `010`, `015`, `020`) with gaps to allow interleaving
+- Audio duration is detected automatically via `ffprobe`
+- Only `.mp3` format is currently supported
 
 ## Technical Deep Dive
 
@@ -212,12 +228,17 @@ const mainWindow = await app.firstWindow();
    npm run test:e2e -- feature-name-demo.spec.ts
    ```
 
-5. **Create the video**:
+5. **Optionally add audio narration**:
+   - Record or generate `.mp3` audio clips
+   - Name them with numeric prefixes that sort between the screenshots they should accompany
+   - Example: `015-narration.mp3` sorts between `010-screenshot.png` and `020-screenshot.png`
+
+6. **Create the video**:
    ```bash
-   ./create-video-from-screenshots.sh
+   ./create-video-from-screenshots.sh my-demo
    ```
 
-6. **Output location**: `test-videos/user-guide-TIMESTAMP.mp4`
+7. **Output location**: `test-videos/my-demo.mp4` and `test-videos/my-demo.gif`
 
 ### Customization Options
 
@@ -235,19 +256,6 @@ Edit the FFmpeg command:
 -crf 23  # Lower quality, smaller file
 ```
 
-#### Adjust Visual Indicator Appearance
-Edit `tests/e2e/helpers/visual-indicators.ts`:
-```javascript
-// Change color from red to blue
-element.style.setProperty('border', '4px solid #4444ff', 'important');
-
-// Change glow intensity
-element.style.setProperty('box-shadow', '0 0 40px rgba(68, 68, 255, 1.0)', 'important');
-
-// Change cursor emoji
-cursor.innerHTML = '☝️';  // Different pointer
-cursor.innerHTML = '🖱️';  // Mouse icon
-```
 
 #### Adjust Highlight Duration
 ```typescript
@@ -269,12 +277,15 @@ mkbrowser/
 │       │   └── visual-indicators.ts     # Visual indicator library
 │       ├── open-folder.spec.ts          # Regular test (no recording)
 │       └── open-folder-demo.spec.ts     # Demo with visual indicators
-├── screenshots/                         # Generated screenshots (gitignored)
-│   ├── 001-step-name.png
-│   ├── 002-step-name.png
-│   └── ...
+├── screenshots/                         # Generated media (gitignored)
+│   └── open-folder-demo/
+│       ├── 010-step-name.png            # Screenshot
+│       ├── 015-narration.mp3            # Audio narration (optional)
+│       ├── 020-step-name.png
+│       └── ...
 ├── test-videos/                         # Generated videos (gitignored)
-│   └── user-guide-TIMESTAMP.mp4
+│   ├── open-folder-demo.mp4             # Video with audio
+│   └── open-folder-demo.gif             # Images only (no audio)
 ├── create-video-from-screenshots.sh    # FFmpeg conversion script
 └── SCREEN_RECORDINGS.md                # This document
 ```
@@ -286,7 +297,8 @@ mkbrowser/
 - `electron`: Required by Playwright for Electron testing
 
 ### System Packages
-- `ffmpeg`: Video encoding and screenshot stitching
+- `ffmpeg`: Video encoding, segment creation, and concatenation
+- `ffprobe`: Audio duration detection (ships with ffmpeg)
 - `xdotool`: Used in initial attempts but not required for current system
 
 Install via:
@@ -301,10 +313,11 @@ Install via:
 - Use `highlightDuration` parameter to control how long highlights stay visible
 - Default durations are tuned for typical interactions, but adjust as needed
 
-### 2. Screenshot Naming
-- Use descriptive names: `03-about-to-click-create` not `03-click`
-- Include step numbers to maintain order
-- Format: `###-description.png` (three digits for up to 999 steps)
+### 2. File Naming
+- Use descriptive names: `030-about-to-click-create.png` not `03-click.png`
+- Use consistent-width numeric prefixes with gaps (e.g., `010`, `020`, `030`) to allow inserting audio between any two images
+- Format: `###-description.png` or `###-description.mp3` (three digits for up to 999 steps)
+- Audio files should sort immediately after the screenshot they narrate
 
 ### 3. Visual Indicator Placement
 - Show cursor BEFORE clicking
@@ -346,7 +359,7 @@ Install via:
 ## Future Enhancements
 
 ### Potential Improvements
-1. **Add audio narration**: Generate text-to-speech and combine with video
+1. **AI text-to-speech narration**: Automatically generate audio narration from text descriptions using AI TTS, then mix into the video
 2. **Animated transitions**: Add fade/slide effects between screenshots
 3. **Zoomed details**: Highlight small UI elements with zoom-in effect
 4. **Keyboard visualization**: Show keypresses as overlays
