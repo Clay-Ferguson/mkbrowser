@@ -13,6 +13,8 @@ echo "This script will install:"
 echo "  • Node.js (latest LTS)"
 echo "  • NPM (bundled with Node.js)"
 echo "  • Yarn (package manager)"
+echo "  • ffmpeg (video encoding for test captures)"
+echo "  • xdotool (window manipulation for test automation)"
 echo ""
 
 # Check if running on Linux
@@ -49,6 +51,8 @@ echo "📋 Current status:"
 echo "  Node.js: $(get_version node)"
 echo "  NPM:     $(get_version npm)"
 echo "  Yarn:    $(get_version yarn)"
+echo "  ffmpeg:  $(get_version ffmpeg)"
+echo "  xdotool: $(get_version xdotool)"
 echo ""
 
 # Ask if user wants to proceed
@@ -64,8 +68,10 @@ echo "🔄 Updating package lists..."
 sudo apt-get update
 
 echo ""
-echo "📦 Installing prerequisites (curl, ca-certificates, gnupg)..."
-sudo apt-get install -y curl ca-certificates gnupg
+echo "📦 Installing system prerequisites..."
+echo "  • Build tools (curl, ca-certificates, gnupg)"
+echo "  • Test automation tools (ffmpeg, xdotool)"
+sudo apt-get install -y curl ca-certificates gnupg ffmpeg xdotool
 
 # Install Node.js using NodeSource
 echo ""
@@ -75,6 +81,8 @@ echo "📥 Installing Node.js LTS via NodeSource..."
 sudo mkdir -p /etc/apt/keyrings
 
 # Download and add NodeSource GPG key
+# Remove existing key if present to avoid overwrite prompt
+sudo rm -f /etc/apt/keyrings/nodesource.gpg
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
 
 # Determine Ubuntu version and set up NodeSource repository
@@ -129,9 +137,13 @@ echo "📋 Final versions:"
 echo "  Node.js: $(node --version)"
 echo "  NPM:     $(npm --version)"
 echo "  Yarn:    $(yarn --version)"
+echo "  ffmpeg:  $(ffmpeg -version | head -n 1)"
+echo "  xdotool: $(xdotool --version 2>&1 | head -n 1)"
 echo ""
 echo "✨ Next steps:"
 echo "  1. Run 'yarn install' to install project dependencies"
 echo "  2. Run 'npm run start:linux' to start the development server"
-echo "  3. Run './build.sh' to create a distributable package and install it" 
+echo "  3. Run './build.sh' to create a distributable package and install it"
+echo "  4. Run tests: npm run test:e2e"
+echo "  5. Create user guide videos: npm run test:e2e -- open-folder-demo.spec.ts && ./create-video-from-screenshots.sh"
 echo ""

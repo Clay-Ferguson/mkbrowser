@@ -33,7 +33,11 @@ export const test = base.extend<{
       env: {
         ...process.env,
         ELECTRON_DISABLE_SANDBOX: '1',
+        DISPLAY: process.env.DISPLAY || ':0',
       },
+      // Ensure window is visible (not headless)
+      executablePath: undefined,
+      timeout: 30000,
     });
     
     // Provide the app to the test
