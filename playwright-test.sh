@@ -7,8 +7,28 @@ echo "Cleanup to force build..."
 rm -rf .vite
 rm -rf out
 
-echo "Running Playwright E2E tests..."
-npm run test:e2e
+# Prompt user to choose test scope
+echo ""
+echo "Select test scope:"
+echo "1) Run all tests"
+echo "2) Run specific test (open-folder-demo-enhanced.spec.ts)"
+echo ""
+read -p "Enter choice [1-2]: " choice
+
+case $choice in
+    1)
+        echo "Running all Playwright E2E tests..."
+        npm run test:e2e
+        ;;
+    2)
+        echo "Running specific test: open-folder-demo-enhanced.spec.ts..."
+        npx playwright test tests/e2e/open-folder-demo-enhanced.spec.ts
+        ;;
+    *)
+        echo "Invalid choice. Running all tests..."
+        npm run test:e2e
+        ;;
+esac
 
 # Capture the exit code
 TEST_EXIT_CODE=$?
