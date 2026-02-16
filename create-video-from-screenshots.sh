@@ -24,7 +24,9 @@ fi
 
 SCREENSHOT_DIR="screenshots/$SUBFOLDER"
 OUTPUT_DIR="test-videos"
-OUTPUT_FILE="$OUTPUT_DIR/$SUBFOLDER-$(date +%Y%m%d-%H%M%S).mp4"
+MP4_FILE="$OUTPUT_DIR/$SUBFOLDER.mp4"
+GIF_FILE="$OUTPUT_DIR/$SUBFOLDER.gif"
+PALETTE_FILE="$OUTPUT_DIR/$SUBFOLDER-palette.png"
 FRAME_DURATION=2  # seconds per screenshot
 
 # Colors
@@ -47,6 +49,9 @@ fi
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
 
+# Delete previous files if they exist
+rm -f "$MP4_FILE" "$GIF_FILE"
+
 # Count screenshots
 SCREENSHOT_COUNT=$(ls -1 $SCREENSHOT_DIR/*.png 2>/dev/null | wc -l)
 echo "Found $SCREENSHOT_COUNT screenshots"
@@ -54,10 +59,10 @@ echo "Duration per frame: ${FRAME_DURATION}s"
 echo "Total video length: $((SCREENSHOT_COUNT * FRAME_DURATION))s"
 echo ""
 
-# Create video with ffmpeg
+# Create MP4 video with ffmpeg
 # Each image is shown for FRAME_DURATION seconds
 # -framerate 1/FRAME_DURATION means 1 frame every FRAME_DURATION seconds
-echo "Creating video..."
+echo "Creating MP4 video..."
 ffmpeg -y \
     -framerate "1/$FRAME_DURATION" \
     -pattern_type glob \
@@ -67,19 +72,58 @@ ffmpeg -y \
     -crf 18 \
     -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p" \
     -movflags +faststart \
-    "$OUTPUT_FILE" \
+    "$MP4_FILE" \
     2>&1 | grep -E "(frame=|Duration:|Output|error)" || true
 
-if [ -f "$OUTPUT_FILE" ]; then
-    SIZE=$(du -h "$OUTPUT_FILE" | cut -f1)
-    echo ""
-    echo -e "${GREEN}✓ Video created successfully!${NC}"
-    echo "  File: $OUTPUT_FILE"
-    echo "  Size: $SIZE"
-    echo "  Subfolder: $SUBFOLDER"
-    echo ""
-    echo "To view: mpv $OUTPUT_FILE"
-else
-    echo -e "${RED}✗ Failed to create video${NC}"
+if [ ! -f "$MP4_FILE" ]; then
+    echo -e "${RED}✗ Failed to create MP4 video${NC}"
     exit 1
 fi
+
+MP4_SIZE=$(du -h "$MP4_FILE" | cut -f1)
+echo -e "${GREEN}✓ MP4 created successfully${NC} ($MP4_SIZE)"
+echo ""
+
+# Create GIF with palette for better quality
+echo "Generating GIF palette..."
+ffmpeg -y \
+    -framerate "1/$FRAME_DURATION" \
+    -pattern_type glob \
+    -i "$SCREENSHOT_DIR/*.png" \
+    -vf "palettegen" \
+    "$PALETTE_FILE" \
+    2>&1 | grep -E "(frame=|Duration:|Output|error)" || true
+
+if [ ! -f "$PALETTE_FILE" ]; then
+    echo -e "${RED}✗ Failed to generate palette${NC}"
+    exit 1
+fi
+
+echo "Creating GIF..."
+ffmpeg -y \
+    -framerate "1/$FRAME_DURATION" \
+    -pattern_type glob \
+    -i "$SCREENSHOT_DIR/*.png" \
+    -i "$PALETTE_FILE" \
+    -lavfi "paletteuse" \
+    "$GIF_FILE" \
+    2>&1 | grep -E "(frame=|Duration:|Output|error)" || true
+
+# Clean up palette file
+rm -f "$PALETTE_FILE"
+
+if [ ! -f "$GIF_FILE" ]; then
+    echo -e "${RED}✗ Failed to create GIF${NC}"
+    exit 1
+fi
+
+GIF_SIZE=$(du -h "$GIF_FILE" | cut -f1)
+echo -e "${GREEN}✓ GIF created successfully${NC} ($GIF_SIZE)"
+echo ""
+echo -e "${GREEN}=== Both formats created successfully! ===${NC}"
+echo "  MP4: $MP4_FILE ($MP4_SIZE)"
+echo "  GIF: $GIF_FILE ($GIF_SIZE)"
+echo "  Subfolder: $SUBFOLDER"
+echo ""
+echo "To view MP4: mpv $MP4_FILE"
+echo "To view GIF: mpv $GIF_FILE"

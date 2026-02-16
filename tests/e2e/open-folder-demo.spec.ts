@@ -36,7 +36,6 @@ test.describe('User Guide Demo (Enhanced)', () => {
 
     // Wait for initial load
     await mainWindow.waitForTimeout(2000);
-    await screenshot('initial-view');
 
     // Verify files are visible
     await expect(mainWindow.getByText('sample.md')).toBeVisible({ timeout: 10000 });
@@ -95,7 +94,6 @@ test.describe('User Guide Demo (Enhanced)', () => {
 
     // Verify save completed
     await expect(mainWindow.getByTestId('entry-save-button')).not.toBeVisible({ timeout: 5000 });
-    await screenshot('final-state');
 
     if (SCREENSHOTS) {
       console.log(`\n✓ Created ${step - 1} screenshots with visual indicators in ${screenshotDir}`);
