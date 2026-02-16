@@ -31,24 +31,16 @@ Provides visual cues that show where user interactions occur in screenshots:
 #### Functions:
 
 **`highlightElement(page, locator, duration)`**
-- Adds red glowing border around an element
+- Adds thick, highly visible red glowing border around an element
 - Used to draw attention to clickable elements
+- Border: 6px solid with 3px offset and intense double box-shadow
 - Duration: How long the highlight persists (default: 800ms)
-
-**`showCursorAt(page, locator, duration)`**
-- Displays 👆 emoji cursor pointing at an element
-- Shows where a click will occur
-- Bounces vertically for attention
-
-**`showClickIndicator(page, locator, duration)`**
-- Creates expanding ripple effect at click location
-- Shows where a click happened
-- Fades out as it expands
+- Returns after 100ms, leaving highlight visible for screenshots
 
 **`demonstrateClick(page, locator, options)`**
 - All-in-one function for demonstrating clicks
-- Combines: highlight → cursor → click → ripple
-- Options: `showCursor`, `showRipple`, `pauseBefore`, `pauseAfter`
+- Combines: highlight → pause → click
+- Options: `pauseBefore`, `pauseAfter`
 
 **`demonstrateTyping(page, text, options)`**
 - Highlights the focused input/editor where typing occurs
@@ -58,9 +50,17 @@ Provides visual cues that show where user interactions occur in screenshots:
 
 #### Visual Style:
 - **Color**: Red (#ff4444) for consistency across all indicators
-- **Glow**: Box-shadow with rgba(255, 68, 68, 0.6-0.8)
-- **Border**: 3-4px solid borders with `!important` to override existing styles
+- **Border**: 6px solid borders with 3px offset for maximum visibility
+- **Glow**: Dual-layer box-shadow with rgba(255, 68, 68, 0.9) and 0.7 for intense glow effect
 - **Animations**: CSS transitions and keyframe animations for smooth effects
+
+#### Timing Behavior:
+Visual indicator functions return quickly but leave indicators visible:
+- Indicators are created with auto-removal via `setTimeout`
+- Functions return after a short delay (100-200ms) for rendering
+- Indicators persist for their full `duration` parameter
+- This allows screenshots to capture indicators while they're still visible
+- Example: `highlightElement(page, locator, 800)` returns after 100ms, but highlight stays for 800ms
 
 ### 2. Demo Test Specs
 **Location**: `tests/e2e/open-folder-demo-enhanced.spec.ts`
@@ -83,7 +83,6 @@ test('complete workflow with visual indicators', async ({ mainWindow }) => {
 
   // 2. Demonstrate button click
   await highlightElement(mainWindow, createButton);
-  await showCursorAt(mainWindow, createButton);
   await screenshot('02-about-to-click');
   await demonstrateClick(mainWindow, createButton);
   await screenshot('03-after-click');

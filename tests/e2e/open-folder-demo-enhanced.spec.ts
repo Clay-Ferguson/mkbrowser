@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { demonstrateClick, demonstrateTyping, highlightElement, showCursorAt } from './helpers/visual-indicators';
+import { demonstrateTyping, highlightElement } from './helpers/visual-indicators';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -47,32 +47,26 @@ test.describe('User Guide Demo (Enhanced)', () => {
     // Demonstrate clicking the create file button
     const createButton = mainWindow.getByTestId('create-file-button');
 
-    // Show cursor pointing at button
-    await highlightElement(mainWindow, createButton, 800);
-    await showCursorAt(mainWindow, createButton, 600);
+    // Highlight and click with proper timing to capture screenshot
+    await highlightElement(mainWindow, createButton, 1500);
+    await mainWindow.waitForTimeout(200);
     await screenshot('03-about-to-click-create');
-
-    // Perform the click with visual feedback
-    await demonstrateClick(mainWindow, createButton, {
-      showCursor: false, // Already showed it
-      showRipple: true,
-      pauseBefore: 200,
-      pauseAfter: 800,
-    });
+    
+    await mainWindow.waitForTimeout(300);
+    await createButton.click();
+    await mainWindow.waitForTimeout(800);
 
     await screenshot('04-create-dialog-open');
 
     // Demonstrate clicking the Create button in dialog
     const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
-    await highlightElement(mainWindow, createDialogButton, 800);
-    await showCursorAt(mainWindow, createDialogButton, 600);
+    await highlightElement(mainWindow, createDialogButton, 1500);
+    await mainWindow.waitForTimeout(200);
     await screenshot('05-about-to-create-file');
 
-    await demonstrateClick(mainWindow, createDialogButton, {
-      showCursor: false,
-      showRipple: true,
-      pauseAfter: 1000,
-    });
+    await mainWindow.waitForTimeout(300);
+    await createDialogButton.click();
+    await mainWindow.waitForTimeout(1000);
 
     await screenshot('06-new-file-created');
 
@@ -89,15 +83,13 @@ test.describe('User Guide Demo (Enhanced)', () => {
 
     // Demonstrate clicking the Save button
     const saveButton = mainWindow.getByTestId('entry-save-button');
-    await highlightElement(mainWindow, saveButton, 800);
-    await showCursorAt(mainWindow, saveButton, 600);
+    await highlightElement(mainWindow, saveButton, 1500);
+    await mainWindow.waitForTimeout(200);
     await screenshot('08-about-to-save');
 
-    await demonstrateClick(mainWindow, saveButton, {
-      showCursor: false,
-      showRipple: true,
-      pauseAfter: 1000,
-    });
+    await mainWindow.waitForTimeout(300);
+    await saveButton.click();
+    await mainWindow.waitForTimeout(1000);
 
     await screenshot('09-file-saved');
 

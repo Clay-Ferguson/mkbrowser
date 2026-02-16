@@ -21,10 +21,10 @@ export async function highlightElement(
     const originalOutlineOffset = element.style.outlineOffset;
     const originalBoxShadow = element.style.boxShadow;
 
-    // Add highlight
-    element.style.outline = '3px solid #ff4444';
-    element.style.outlineOffset = '2px';
-    element.style.boxShadow = '0 0 20px rgba(255, 68, 68, 0.6)';
+    // Add highlight with thick, very visible border
+    element.style.outline = '6px solid #ff4444';
+    element.style.outlineOffset = '3px';
+    element.style.boxShadow = '0 0 40px rgba(255, 68, 68, 0.9), 0 0 20px rgba(255, 68, 68, 0.7)';
 
     // Restore after duration
     setTimeout(() => {
@@ -36,100 +36,6 @@ export async function highlightElement(
 
   // Wait for the highlight to be visible
   await page.waitForTimeout(100);
-}
-
-/**
- * Shows a click indicator (ripple effect) at the element's location.
- * Call this right after clicking to show where the click happened.
- */
-export async function showClickIndicator(
-  page: Page,
-  locator: Locator,
-  duration: number = 1000
-): Promise<void> {
-  await locator.evaluate((element, dur) => {
-    const rect = element.getBoundingClientRect();
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + rect.height / 2;
-
-    // Create ripple element
-    const ripple = document.createElement('div');
-    ripple.style.position = 'fixed';
-    ripple.style.left = `${x}px`;
-    ripple.style.top = `${y}px`;
-    ripple.style.width = '20px';
-    ripple.style.height = '20px';
-    ripple.style.borderRadius = '50%';
-    ripple.style.border = '3px solid #ff4444';
-    ripple.style.backgroundColor = 'rgba(255, 68, 68, 0.2)';
-    ripple.style.transform = 'translate(-50%, -50%) scale(1)';
-    ripple.style.pointerEvents = 'none';
-    ripple.style.zIndex = '999999';
-    ripple.style.transition = 'all 0.6s ease-out';
-
-    document.body.appendChild(ripple);
-
-    // Trigger animation
-    setTimeout(() => {
-      ripple.style.transform = 'translate(-50%, -50%) scale(3)';
-      ripple.style.opacity = '0';
-    }, 50);
-
-    // Remove after animation
-    setTimeout(() => {
-      ripple.remove();
-    }, dur);
-  }, duration);
-
-  await page.waitForTimeout(duration);
-}
-
-/**
- * Shows a cursor pointer at the element's location.
- * Useful for indicating where an action will occur.
- */
-export async function showCursorAt(
-  page: Page,
-  locator: Locator,
-  duration: number = 800
-): Promise<void> {
-  await locator.evaluate((element, dur) => {
-    const rect = element.getBoundingClientRect();
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + rect.height / 2;
-
-    // Create cursor element (hand pointer)
-    const cursor = document.createElement('div');
-    cursor.innerHTML = '👆';
-    cursor.style.position = 'fixed';
-    cursor.style.left = `${x - 10}px`;
-    cursor.style.top = `${y - 30}px`;
-    cursor.style.fontSize = '32px';
-    cursor.style.pointerEvents = 'none';
-    cursor.style.zIndex = '999999';
-    cursor.style.animation = 'bounce 0.5s ease-in-out infinite';
-    cursor.style.filter = 'drop-shadow(2px 2px 4px rgba(0,0,0,0.5))';
-
-    // Add bounce animation
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-      }
-    `;
-    document.head.appendChild(style);
-
-    document.body.appendChild(cursor);
-
-    // Remove after duration
-    setTimeout(() => {
-      cursor.remove();
-      style.remove();
-    }, dur);
-  }, duration);
-
-  await page.waitForTimeout(duration);
 }
 
 /**
@@ -180,26 +86,23 @@ export async function showTypingIndicator(
     }, dur);
   }, duration);
 
-  await page.waitForTimeout(duration);
+  // Wait for the indicator to be visible (but return before it's removed)
+  await page.waitForTimeout(200);
 }
 
 /**
- * Combined action: highlight, show cursor, then perform action.
+ * Combined action: highlight then perform action.
  * This is the recommended way to demonstrate clicks in videos.
  */
 export async function demonstrateClick(
   page: Page,
   locator: Locator,
   options: {
-    showCursor?: boolean;
-    showRipple?: boolean;
     pauseBefore?: number;
     pauseAfter?: number;
   } = {}
 ): Promise<void> {
   const {
-    showCursor = true,
-    showRipple = true,
     pauseBefore = 500,
     pauseAfter = 500,
   } = options;
@@ -207,52 +110,8 @@ export async function demonstrateClick(
   // Highlight the element
   await highlightElement(page, locator, 800);
 
-  // Show cursor
-  if (showCursor) {
-    await showCursorAt(page, locator, 600);
-  }
-
   // Pause before click
   await page.waitForTimeout(pauseBefore);
-
-  // Show click ripple BEFORE clicking (since element might disappear after click)
-  if (showRipple) {
-    // Get position and create ripple that will persist
-    await locator.evaluate((element) => {
-      const rect = element.getBoundingClientRect();
-      const x = rect.left + rect.width / 2;
-      const y = rect.top + rect.height / 2;
-
-      // Create ripple element
-      const ripple = document.createElement('div');
-      ripple.style.position = 'fixed';
-      ripple.style.left = `${x}px`;
-      ripple.style.top = `${y}px`;
-      ripple.style.width = '20px';
-      ripple.style.height = '20px';
-      ripple.style.borderRadius = '50%';
-      ripple.style.border = '3px solid #ff4444';
-      ripple.style.backgroundColor = 'rgba(255, 68, 68, 0.2)';
-      ripple.style.transform = 'translate(-50%, -50%) scale(1)';
-      ripple.style.pointerEvents = 'none';
-      ripple.style.zIndex = '999999';
-      ripple.style.transition = 'all 0.6s ease-out';
-
-      document.body.appendChild(ripple);
-
-      // Trigger animation
-      setTimeout(() => {
-        ripple.style.transform = 'translate(-50%, -50%) scale(3)';
-        ripple.style.opacity = '0';
-      }, 50);
-
-      // Remove after animation
-      setTimeout(() => {
-        ripple.remove();
-      }, 1000);
-    });
-    await page.waitForTimeout(200);
-  }
 
   // Perform the click
   await locator.click();
