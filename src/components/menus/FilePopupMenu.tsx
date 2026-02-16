@@ -19,6 +19,7 @@ export default function FilePopupMenu({
       <PopupMenuItem
         label="Open Folder"
         onClick={() => { onSelectFolder(); onClose(); }}
+        data-testid="menu-open-folder"
       />
       <PopupMenuDivider />
       <PopupMenuItem

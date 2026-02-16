@@ -46,6 +46,7 @@ function AppTabButtons({ onSelectFolder, onQuit }: AppTabButtonsProps) {
         className="flex-shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-slate-700 transition-colors"
         aria-label="File menu"
         title="File menu"
+        data-testid="app-logo"
       >
         <img
           src={appLogo}

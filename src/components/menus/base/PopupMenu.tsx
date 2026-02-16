@@ -108,12 +108,14 @@ export function PopupMenuItem({
   onClick,
   disabled = false,
   selected,
+  'data-testid': dataTestId,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
   /** If undefined: no checkbox area. If true: show checkmark. If false: show empty space (for alignment). */
   selected?: boolean;
+  'data-testid'?: string;
 }) {
   // When selected is defined (true or false), we reserve space for the checkbox
   const hasCheckboxArea = selected !== undefined;
@@ -133,6 +135,7 @@ export function PopupMenuItem({
         }
       }}
       disabled={disabled}
+      data-testid={dataTestId}
     >
       {hasCheckboxArea && (
         <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">

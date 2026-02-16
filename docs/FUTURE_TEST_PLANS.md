@@ -2,6 +2,8 @@
 
 AI Generated plan for how we can eventually add testing.
 
+UPDATE: We currently have Vitest running some test cases, and are skipping ahead to start with Playwright next, so this document's sequential ordering is not correct as per what we're actually doing.
+
 This document captures a phased plan for adding tests. It assumes **Vitest + React Testing Library** and uses **jsdom** for component tests. The first phases focus on non-GUI logic, followed by React component tests, and finally Electron API mocking strategies.
 
 > Important Note: This plan is intentionally staged. Early phases avoid Electron and UI complexity to build confidence quickly.
