@@ -24,7 +24,8 @@ export default function SortPopupMenu({
   onSelectSortOrder,
 }: SortPopupMenuProps) {
   return (
-    <PopupMenu anchorRef={anchorRef} onClose={onClose}>
+    // maxWidth hack: this menu renders inexplicably wide without it; root cause unknown
+    <PopupMenu anchorRef={anchorRef} onClose={onClose} style={{ maxWidth: '20rem' }}>
       {sortOptions.map((option) => {
         const isActive = option.value === currentSortOrder;
         const label = isActive ? `✓  ${option.label}` : `    ${option.label}`;

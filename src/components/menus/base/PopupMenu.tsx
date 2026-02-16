@@ -6,13 +6,15 @@ export interface PopupMenuProps {
   /** Called when the menu should close (click outside, Escape, item click) */
   onClose: () => void;
   children: ReactNode;
+  /** Optional extra inline styles merged onto the menu container */
+  style?: React.CSSProperties;
 }
 
 /**
  * Reusable popup menu that positions itself below an anchor element.
  * Handles click-outside dismiss, Escape key, and viewport edge-clipping.
  */
-export default function PopupMenu({ anchorRef, onClose, children }: PopupMenuProps) {
+export default function PopupMenu({ anchorRef, onClose, children, style: extraStyle }: PopupMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
@@ -91,6 +93,7 @@ export default function PopupMenu({ anchorRef, onClose, children }: PopupMenuPro
         left: position?.left ?? -9999,
         // Keep invisible until position is calculated to avoid flicker
         visibility: position ? 'visible' : 'hidden',
+        ...extraStyle,
       }}
     >
       {children}

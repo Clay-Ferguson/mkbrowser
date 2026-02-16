@@ -1087,6 +1087,16 @@ function App() {
                 <WrenchIcon className="w-5 h-5" />
               </button>
 
+              {/* Sort order menu button */}
+              <button
+                ref={sortButtonRef}
+                onClick={() => setShowSortMenu(prev => !prev)}
+                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Sort order"
+              >
+                <BarsArrowDownIcon className="w-5 h-5" />
+              </button>
+
               {/* Cut button - shown when items are selected and no items are cut */}
               {hasSelectedItems && !hasCutItems && (
                 <button
@@ -1127,16 +1137,6 @@ function App() {
                 title="Paste from clipboard"
               >
                 <ClipboardIcon className="w-5 h-5" />
-              </button>
-
-              {/* Sort order menu button */}
-              <button
-                ref={sortButtonRef}
-                onClick={() => setShowSortMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Sort order"
-              >
-                <BarsArrowDownIcon className="w-5 h-5" />
               </button>
 
               {/* Search button */}
