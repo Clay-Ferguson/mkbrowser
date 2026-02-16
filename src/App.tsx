@@ -1044,6 +1044,7 @@ function App() {
                 onClick={handleOpenCreateDialog}
                 className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Create file"
+                data-testid="create-file-button"
               >
                 <DocumentPlusIcon className="w-5 h-5" />
               </button>

@@ -107,6 +107,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
               onClick={edit.handleSave}
               disabled={edit.saving}
               className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-50"
+              data-testid="entry-save-button"
             >
               {edit.saving ? 'Saving...' : 'Save'}
             </button>

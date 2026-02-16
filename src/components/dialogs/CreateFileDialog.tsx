@@ -64,6 +64,7 @@ function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDi
           <button
             onClick={handleCreate}
             className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors"
+            data-testid="create-file-dialog-create-button"
           >
             Create
           </button>

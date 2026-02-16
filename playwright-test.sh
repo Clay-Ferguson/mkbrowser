@@ -3,6 +3,10 @@
 # Run Playwright E2E tests and show report
 # This script runs the tests, then automatically opens the HTML report in the browser
 
+echo "Cleanup to force build..."
+rm -rf .vite
+rm -rf out
+
 echo "Running Playwright E2E tests..."
 npm run test:e2e
 
