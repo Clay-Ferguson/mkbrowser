@@ -61,13 +61,6 @@ settings:
       searchBlock: file-lines
       sortBy: line-time
       sortDirection: desc
-    - name: TODOs -  Future - P1 (Month)
-      searchText: $("#todo") && future(ts, 31) && $("#p1")
-      searchTarget: content
-      searchMode: advanced
-      searchBlock: file-lines
-      sortBy: line-time
-      sortDirection: desc
     - name: TODOs - Future - P1 (Month)
       searchText: $("#todo") && future(ts, 31) && $("#p1")
       searchTarget: content
