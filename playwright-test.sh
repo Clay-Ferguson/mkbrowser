@@ -15,14 +15,19 @@ echo "2) Run specific test (open-folder-demo-enhanced.spec.ts)"
 echo ""
 read -p "Enter choice [1-2]: " choice
 
+SPECIFIC_TEST=""
+
 case $choice in
     1)
         echo "Running all Playwright E2E tests..."
         npm run test:e2e
         ;;
     2)
-        echo "Running specific test: open-folder-demo-enhanced.spec.ts..."
-        npx playwright test tests/e2e/open-folder-demo-enhanced.spec.ts
+        SPECIFIC_TEST="open-folder-demo-enhanced"
+        echo "Cleaning up screenshots for $SPECIFIC_TEST..."
+        rm -rf screenshots/$SPECIFIC_TEST
+        echo "Running specific test: $SPECIFIC_TEST.spec.ts..."
+        npx playwright test tests/e2e/$SPECIFIC_TEST.spec.ts
         ;;
     *)
         echo "Invalid choice. Running all tests..."
@@ -44,6 +49,18 @@ else
 fi
 
 echo ""
+
+# Offer to generate video if a specific test was run
+if [ -n "$SPECIFIC_TEST" ]; then
+    echo ""
+    read -p "Generate video from screenshots? [y/N]: " generate_video
+    if [[ "$generate_video" =~ ^[Yy]$ ]]; then
+        echo ""
+        echo "Generating video for $SPECIFIC_TEST..."
+        ./create-video-from-screenshots.sh "$SPECIFIC_TEST"
+        echo ""
+    fi
+fi
 
 # Kill any existing playwright report server
 pkill -f "playwright show-report" 2>/dev/null

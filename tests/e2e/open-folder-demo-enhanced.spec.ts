@@ -8,23 +8,30 @@ import * as path from 'path';
  * Creates screenshots with visual cues showing where clicks and typing occur.
  *
  * Run with: npm run test:e2e -- open-folder-demo-enhanced.spec.ts
- * Then convert to video with: ./create-video-from-screenshots.sh
+ * Then convert to video with: ./create-video-from-screenshots.sh open-folder-demo-enhanced
  */
 test.describe('User Guide Demo (Enhanced)', () => {
   test('complete workflow with visual indicators', async ({ mainWindow }) => {
-    const screenshotDir = path.join(__dirname, '../../screenshots');
+    // Control whether screenshots are captured
+    const SCREENSHOTS = true;
 
-    // Create screenshot directory
-    if (!fs.existsSync(screenshotDir)) {
+    // Create subfolder based on test file name
+    const testName = path.basename(__filename, '.spec.ts');
+    const screenshotDir = path.join(__dirname, '../../screenshots', testName);
+
+    // Create screenshot directory if screenshots are enabled
+    if (SCREENSHOTS && !fs.existsSync(screenshotDir)) {
       fs.mkdirSync(screenshotDir, { recursive: true });
     }
 
     let step = 1;
     const screenshot = async (name: string) => {
-      await mainWindow.screenshot({
-        path: path.join(screenshotDir, `${String(step).padStart(3, '0')}-${name}.png`)
-      });
-      step++;
+      if (SCREENSHOTS) {
+        await mainWindow.screenshot({
+          path: path.join(screenshotDir, `${String(step).padStart(3, '0')}-${name}.png`)
+        });
+        step++;
+      }
     };
 
     // Wait for initial load
@@ -98,7 +105,11 @@ test.describe('User Guide Demo (Enhanced)', () => {
     await expect(mainWindow.getByTestId('entry-save-button')).not.toBeVisible({ timeout: 5000 });
     await screenshot('10-final-state');
 
-    console.log(`\n✓ Created ${step - 1} screenshots with visual indicators in ${screenshotDir}`);
-    console.log('Run ./create-video-from-screenshots.sh to create video');
+    if (SCREENSHOTS) {
+      console.log(`\n✓ Created ${step - 1} screenshots with visual indicators in ${screenshotDir}`);
+      console.log('Run ./create-video-from-screenshots.sh open-folder-demo-enhanced to create video');
+    } else {
+      console.log('\n✓ Test completed (screenshots disabled)');
+    }
   });
 });

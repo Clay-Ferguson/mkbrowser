@@ -2,12 +2,29 @@
 
 # Create a video from Playwright screenshots for user guide documentation
 # Each screenshot is shown for a configurable duration
+# Usage: ./create-video-from-screenshots.sh <subfolder-name>
 
 set -e
 
-SCREENSHOT_DIR="screenshots"
+# Validate argument
+if [ $# -eq 0 ]; then
+    echo "Error: Missing required argument"
+    echo "Usage: $0 <subfolder-name>"
+    echo "Example: $0 open-folder-demo-enhanced"
+    exit 1
+fi
+
+SUBFOLDER="$1"
+
+# Check for empty string
+if [ -z "$SUBFOLDER" ]; then
+    echo "Error: Subfolder name cannot be empty"
+    exit 1
+fi
+
+SCREENSHOT_DIR="screenshots/$SUBFOLDER"
 OUTPUT_DIR="test-videos"
-OUTPUT_FILE="$OUTPUT_DIR/user-guide-$(date +%Y%m%d-%H%M%S).mp4"
+OUTPUT_FILE="$OUTPUT_DIR/$SUBFOLDER-$(date +%Y%m%d-%H%M%S).mp4"
 FRAME_DURATION=2  # seconds per screenshot
 
 # Colors
@@ -22,7 +39,8 @@ echo ""
 # Check if screenshots exist
 if [ ! -d "$SCREENSHOT_DIR" ] || [ -z "$(ls -A $SCREENSHOT_DIR/*.png 2>/dev/null)" ]; then
     echo -e "${RED}✗ No screenshots found in $SCREENSHOT_DIR/${NC}"
-    echo "Run the demo test first: npm run test:e2e -- open-folder-demo.spec.ts"
+    echo "Run a demo test with screenshots enabled first."
+    echo "Example: npm run test:e2e -- open-folder-demo-enhanced.spec.ts"
     exit 1
 fi
 
@@ -58,6 +76,7 @@ if [ -f "$OUTPUT_FILE" ]; then
     echo -e "${GREEN}✓ Video created successfully!${NC}"
     echo "  File: $OUTPUT_FILE"
     echo "  Size: $SIZE"
+    echo "  Subfolder: $SUBFOLDER"
     echo ""
     echo "To view: mpv $OUTPUT_FILE"
 else

@@ -109,3 +109,5 @@ test-videos/
 
 # Test screenshots (used to create user guide videos)
 screenshots/
+
+playwright-report/
