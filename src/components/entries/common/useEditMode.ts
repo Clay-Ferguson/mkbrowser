@@ -78,7 +78,7 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     try {
       const success = await window.electronAPI.writeFile(path, editContent);
       if (success) {
-        setItemContent(path, editContent);
+        setItemContent(path, editContent, Date.now());
         setItemEditing(path, false);
       }
     } finally {

@@ -276,15 +276,17 @@ export function upsertItems(
 /**
  * Set the cached content for a markdown file
  */
-export function setItemContent(path: string, content: string): void {
+export function setItemContent(path: string, content: string, modifiedTime?: number): void {
   const existing = state.items.get(path);
   if (!existing) return;
 
+  const now = modifiedTime ?? existing.modifiedTime;
   const newItems = new Map(state.items);
   newItems.set(path, {
     ...existing,
     content,
-    contentCachedAt: existing.modifiedTime,
+    modifiedTime: now,
+    contentCachedAt: now,
   });
 
   state = { ...state, items: newItems };

@@ -1,6 +1,5 @@
 import {
   setFontSize,
-  setSortOrder,
   setFoldersOnTop,
   setIgnoredPaths,
   setContentWidth,
@@ -8,7 +7,6 @@ import {
   getSettingsScrollPosition,
   useSettings,
   type FontSize,
-  type SortOrder,
   type ContentWidth,
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
@@ -23,19 +21,6 @@ const fontSizeOptions: FontSizeOption[] = [
   { value: 'medium', label: 'Medium' },
   { value: 'large', label: 'Large' },
   { value: 'xlarge', label: 'Extra Large' },
-];
-
-interface SortOrderOption {
-  value: SortOrder;
-  label: string;
-}
-
-const sortOrderOptions: SortOrderOption[] = [
-  { value: 'alphabetical', label: 'Alphabetical' },
-  { value: 'created-chron', label: 'Created Time (chron)' },
-  { value: 'created-reverse', label: 'Created Time (reverse-chron)' },
-  { value: 'modified-chron', label: 'Modified Time (chron)' },
-  { value: 'modified-reverse', label: 'Modified Time (reverse-chron)' },
 ];
 
 interface ContentWidthOption {
@@ -67,12 +52,6 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
 
   const handleFontSizeChange = (fontSize: FontSize) => {
     setFontSize(fontSize);
-    // Trigger save to persist the setting
-    onSaveSettings();
-  };
-
-  const handleSortOrderChange = (sortOrder: SortOrder) => {
-    setSortOrder(sortOrder);
     // Trigger save to persist the setting
     onSaveSettings();
   };
@@ -143,32 +122,6 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                   ))}
                 </select>
               </div>
-            </div>
-          </section>
-
-          {/* Sort Order Setting */}
-          <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-            <h2 className="text-lg font-semibold text-slate-100 mb-2">Sort Order</h2>
-            <p className="text-sm text-slate-400 mb-4">
-              Choose how files and folders are ordered in the browser.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-6">
-              <div className="flex items-center gap-2">
-                <label className="text-slate-300 text-sm">Order:</label>
-                <select
-                  value={settings.sortOrder}
-                  onChange={(e) => handleSortOrderChange(e.target.value as SortOrder)}
-                  className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                >
-                  {sortOrderOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"

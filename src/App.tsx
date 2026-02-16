@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BookmarkIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BookmarkIcon, BarsArrowDownIcon } from '@heroicons/react/24/outline';
 import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from './global';
 import FolderEntry from './components/entries/FolderEntry';
@@ -13,6 +13,7 @@ import ToolsPopupMenu from './components/menus/ToolsPopupMenu';
 import EditPopupMenu from './components/menus/EditPopupMenu';
 import BookmarksPopupMenu from './components/menus/BookmarksPopupMenu';
 import SearchPopupMenu from './components/menus/SearchPopupMenu';
+import SortPopupMenu from './components/menus/SortPopupMenu';
 import CreateFileDialog from './components/dialogs/CreateFileDialog';
 import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import ErrorDialog from './components/dialogs/ErrorDialog';
@@ -46,6 +47,7 @@ import {
   setHighlightItem,
   setSearchResults,
   setSettings,
+  setSortOrder,
   getSettings,
   setBrowserScrollPosition,
   getBrowserScrollPosition,
@@ -85,6 +87,7 @@ function App() {
   const [showEditMenu, setShowEditMenu] = useState<boolean>(false);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
   const [showSearchMenu, setShowSearchMenu] = useState<boolean>(false);
+  const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
   const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
   const items = useItems();
@@ -215,6 +218,7 @@ function App() {
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
+  const sortButtonRef = useRef<HTMLButtonElement>(null);
 
   // Handle pending scroll after directory loads, or restore scroll position on folder navigation
   useEffect(() => {
@@ -1125,6 +1129,16 @@ function App() {
                 <ClipboardIcon className="w-5 h-5" />
               </button>
 
+              {/* Sort order menu button */}
+              <button
+                ref={sortButtonRef}
+                onClick={() => setShowSortMenu(prev => !prev)}
+                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Sort order"
+              >
+                <BarsArrowDownIcon className="w-5 h-5" />
+              </button>
+
               {/* Search button */}
               <button
                 ref={searchButtonRef}
@@ -1203,7 +1217,15 @@ function App() {
           <div className="space-y-2"> 
             {(() => {
               const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
-              const sortedEntries = sortEntries(visibleEntries, settings.sortOrder, settings.foldersOnTop);
+              // Use in-memory store timestamps (updated on save) so sort reflects recent edits
+              const entriesWithCurrentTimes = visibleEntries.map((entry) => {
+                const item = items.get(entry.path);
+                if (item && (item.modifiedTime !== entry.modifiedTime || item.createdTime !== entry.createdTime)) {
+                  return { ...entry, modifiedTime: item.modifiedTime, createdTime: item.createdTime };
+                }
+                return entry;
+              });
+              const sortedEntries = sortEntries(entriesWithCurrentTimes, settings.sortOrder, settings.foldersOnTop);
               const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
               return sortedEntries.map((entry) => (
                 <div key={entry.path}>
@@ -1266,6 +1288,18 @@ function App() {
           defaultFileName={generateExportFileName()}
           onExport={handleExport}
           onCancel={handleCancelExport}
+        />
+      )}
+
+      {showSortMenu && (
+        <SortPopupMenu
+          anchorRef={sortButtonRef}
+          onClose={() => setShowSortMenu(false)}
+          currentSortOrder={settings.sortOrder}
+          onSelectSortOrder={(order) => {
+            setSortOrder(order);
+            void handleSaveSettings();
+          }}
         />
       )}
 
