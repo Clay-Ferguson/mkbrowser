@@ -55,6 +55,7 @@ FRAME_DURATION=2  # seconds per screenshot (images without audio)
 
 # Path to the Kokoro TTS project directory (only needed when .txt narration files
 # are used). Override this variable if your Kokoro project lives somewhere else.
+# Uses the official kokoro package (hexgrad): https://github.com/hexgrad/kokoro
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KOKORO_PROJECT_DIR="${SCRIPT_DIR}/../kokoro"
 KOKORO_VOICE="bm_daniel"
@@ -64,14 +65,15 @@ KOKORO_VOICE="bm_daniel"
 GENERATED_WAV_DIR="$SCREENSHOT_DIR/generated-wav"
 
 # --- Kokoro TTS helper ---
-# Activates the Kokoro venv, runs kokoro-tts, and returns to the original directory.
+# Activates the Kokoro venv and runs kokoro-generate.py (official hexgrad kokoro).
+# Supports [word](/phonemes/) inline pronunciation overrides via misaki G2P.
 # Usage: run_kokoro_tts <input_txt> <output_wav>
 run_kokoro_tts() {
     local input_txt="$(realpath "$1")"
     local output_wav="$(realpath --canonicalize-missing "$2")"
     pushd "$KOKORO_PROJECT_DIR" > /dev/null
     source .venv/bin/activate
-    kokoro-tts "$input_txt" "$output_wav" --voice "$KOKORO_VOICE"
+    python kokoro-generate.py "$input_txt" "$output_wav" --voice "$KOKORO_VOICE"
     deactivate
     popd > /dev/null
 }
