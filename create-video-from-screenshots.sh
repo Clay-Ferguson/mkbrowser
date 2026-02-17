@@ -4,18 +4,17 @@
 # Supports interleaved .png screenshots and audio in several formats:
 #   .mp3  — used directly as audio input
 #   .wav  — used directly as audio input (highest quality)
-#   .txt  — converted to WAV via Piper TTS, then used as audio input
+#   .txt  — converted to WAV via Kokoro TTS, then used as audio input
 #
 # Files are ordered by filename — use numeric prefixes (001-, 002-, etc.).
 # During audio clips, the most recent screenshot is held on screen.
 # Each screenshot without audio is displayed for FRAME_DURATION seconds.
 #
-# When .txt narration files are present, the Piper TTS engine is used to
+# When .txt narration files are present, the Kokoro TTS engine is used to
 # generate WAV audio. Generated files are cached in a generated-wav/
 # subfolder inside the screenshot directory and reused on subsequent runs
-# if the .txt source hasn't changed.  Set PIPER_TTS below to point to
-# your Piper tts.sh script (defaults to ../piper/tts.sh relative to this
-# script's location).
+# if the .txt source hasn't changed.  Set KOKORO_PROJECT_DIR below to
+# point to your Kokoro project directory.
 #
 # Usage: ./create-video-from-screenshots.sh <subfolder-name>
 #
@@ -24,7 +23,7 @@
 #     001-welcome.png
 #     002-narration.mp3          (or .wav, or .txt)
 #     003-next-screen.png
-#     004-explanation.txt         (narration text → Piper TTS → WAV)
+#     004-explanation.txt         (narration text → Kokoro TTS → WAV)
 #     005-final.png
 
 set -e
@@ -54,14 +53,28 @@ SEGMENT_DIR="$OUTPUT_DIR/$SUBFOLDER-segments"
 CONCAT_LIST="$SEGMENT_DIR/concat-list.txt"
 FRAME_DURATION=2  # seconds per screenshot (images without audio)
 
-# Path to the Piper TTS script (only needed when .txt narration files are used).
-# Override this variable if your Piper project lives somewhere else.
+# Path to the Kokoro TTS project directory (only needed when .txt narration files
+# are used). Override this variable if your Kokoro project lives somewhere else.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PIPER_TTS="${SCRIPT_DIR}/../piper/tts.sh"
+KOKORO_PROJECT_DIR="${SCRIPT_DIR}/../kokoro"
+KOKORO_VOICE="bm_daniel"
 
-# Subdirectory for WAV files generated from .txt narration by Piper TTS.
+# Subdirectory for WAV files generated from .txt narration by Kokoro TTS.
 # Lives inside the screenshot folder so cached audio stays next to its source.
 GENERATED_WAV_DIR="$SCREENSHOT_DIR/generated-wav"
+
+# --- Kokoro TTS helper ---
+# Activates the Kokoro venv, runs kokoro-tts, and returns to the original directory.
+# Usage: run_kokoro_tts <input_txt> <output_wav>
+run_kokoro_tts() {
+    local input_txt="$(realpath "$1")"
+    local output_wav="$(realpath --canonicalize-missing "$2")"
+    pushd "$KOKORO_PROJECT_DIR" > /dev/null
+    source .venv/bin/activate
+    kokoro-tts "$input_txt" "$output_wav" --voice "$KOKORO_VOICE"
+    deactivate
+    popd > /dev/null
+}
 
 # Colors
 GREEN='\033[0;32m'
@@ -129,17 +142,17 @@ if [[ "$FIRST_FILE" != *.png ]]; then
     exit 1
 fi
 
-# --- Piper TTS: validate & convert .txt → .wav ---
+# --- Kokoro TTS: validate & convert .txt → .wav ---
 if [ "$TTS_COUNT" -gt 0 ]; then
-    # Verify Piper TTS is available
-    if [ ! -x "$PIPER_TTS" ]; then
-        echo -e "${RED}✗ Piper TTS not found at: $PIPER_TTS${NC}"
-        echo "Narration .txt files require Piper TTS for text-to-speech conversion."
-        echo "Run the setup script first:  $(dirname "$PIPER_TTS")/setup-piper.sh"
+    # Verify Kokoro project directory and venv exist
+    if [ ! -d "$KOKORO_PROJECT_DIR" ] || [ ! -f "$KOKORO_PROJECT_DIR/.venv/bin/activate" ]; then
+        echo -e "${RED}✗ Kokoro TTS not found at: $KOKORO_PROJECT_DIR${NC}"
+        echo "Narration .txt files require Kokoro TTS for text-to-speech conversion."
+        echo "Expected a Python venv at: $KOKORO_PROJECT_DIR/.venv/"
         exit 1
     fi
 
-    echo "Converting $TTS_COUNT narration text file(s) to audio via Piper TTS..."
+    echo "Converting $TTS_COUNT narration text file(s) to audio via Kokoro TTS (voice: $KOKORO_VOICE)..."
     mkdir -p "$GENERATED_WAV_DIR"
 
     # Build a new array, replacing .txt entries with their generated .wav paths
@@ -153,7 +166,7 @@ if [ "$TTS_COUNT" -gt 0 ]; then
                 echo -e "  [${TXT_BASENAME}.txt] ${GREEN}cached${NC} → ${TXT_BASENAME}.wav"
             else
                 echo -n "  [${TXT_BASENAME}.txt] generating WAV ... "
-                "$PIPER_TTS" "$f" "$WAV_PATH"
+                run_kokoro_tts "$f" "$WAV_PATH"
                 echo -e "${GREEN}✓${NC}"
             fi
 
@@ -178,7 +191,7 @@ rm -f "$MP4_FILE" "$GIF_FILE"
 # Report what we found
 echo "Found $IMAGE_COUNT screenshot(s) and $AUDIO_COUNT audio clip(s)"
 if [ "$TTS_COUNT" -gt 0 ]; then
-    echo "  ($TTS_COUNT narration text file(s) converted via Piper TTS)"
+    echo "  ($TTS_COUNT narration text file(s) converted via Kokoro TTS)"
 fi
 echo "Image frame duration: ${FRAME_DURATION}s"
 if [ "$AUDIO_COUNT" -eq 0 ]; then
@@ -329,7 +342,7 @@ echo "  GIF: $GIF_FILE ($GIF_SIZE)"
 if [ "$AUDIO_COUNT" -gt 0 ]; then
     echo "  Audio: $AUDIO_COUNT clip(s) included in MP4 (not in GIF)"
     if [ "$TTS_COUNT" -gt 0 ]; then
-        echo "  TTS:   $TTS_COUNT narration(s) generated via Piper (cached in generated-wav/)"
+        echo "  TTS:   $TTS_COUNT narration(s) generated via Kokoro (cached in generated-wav/)"
     fi
 fi
 echo "  Subfolder: $SUBFOLDER"
