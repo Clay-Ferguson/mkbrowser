@@ -37,11 +37,6 @@ Provides visual cues that show where user interactions occur in screenshots:
 - Duration: How long the highlight persists (default: 800ms)
 - Returns after 100ms, leaving highlight visible for screenshots
 
-**`demonstrateClick(page, locator, options)`**
-- All-in-one function for demonstrating clicks
-- Combines: highlight → pause → click
-- Options: `pauseBefore`, `pauseAfter`
-
 **`demonstrateTyping(page, text, options)`**
 - Highlights the focused input/editor where typing occurs
 - Handles both native inputs and CodeMirror editors
@@ -84,7 +79,6 @@ test('complete workflow with visual indicators', async ({ mainWindow }) => {
   // 2. Demonstrate button click
   await highlightElement(mainWindow, createButton);
   await screenshot('02-about-to-click');
-  await demonstrateClick(mainWindow, createButton);
   await screenshot('03-after-click');
 
   // 3. Demonstrate typing

@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures/electronApp';
-import { demonstrateTyping, highlightElement, screenshotWithHighlight } from './helpers/visual-indicators';
-import { takeStepScreenshot, writeNarration } from './helpers/mediaUtils';
+import { highlightElement } from './helpers/visual-indicators';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateTypingForDemo, demonstrateClickForDemo } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -48,26 +48,16 @@ test.describe('Create File Demo', () => {
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'about-to-click-create');
     writeNarration(screenshotDir, step++, 'We\'ll click the Create File button at the top of the window to add a new file to our folder.');
 
-    await mainWindow.waitForTimeout(300);
-    await createButton.click();
-    await mainWindow.waitForTimeout(800);
+    await demonstrateClickForDemo(createButton);
 
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'create-dialog-open');
     writeNarration(screenshotDir, step++, 'The Create File dialog has appeared. We can enter a custom filename here. Let\'s type a descriptive name for our new file.');
 
     // Demonstrate typing a filename
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
-    await demonstrateTyping(mainWindow, 'my-journal-entry', {
-      locator: filenameInput,
-      showHighlight: true,
-      typingDelay: 120,
-      pauseAfter: 500,
-      highlightDuration: 3000,
-    });
+    await demonstrateTypingForDemo(mainWindow, 'my-journal-entry', true, filenameInput, 120);
 
-    await screenshotWithHighlight(mainWindow, filenameInput,
-      path.join(screenshotDir, `${String(step).padStart(3, '0')}-filename-entered.png`));
-    step++;
+    await takeStepScreenshotWithHighlight(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
     writeNarration(screenshotDir, step++, 'We\'ve entered "my-journal-entry" as the filename. Notice we didn\'t include a file extension — MkBrowser will automatically add ".md" to make it a Markdown file.');
 
     // Demonstrate clicking the Create button in dialog
@@ -77,26 +67,17 @@ test.describe('Create File Demo', () => {
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'about-to-create-file');
     writeNarration(screenshotDir, step++, 'Now we\'ll click the Create button to confirm and create the file.');
 
-    await mainWindow.waitForTimeout(300);
-    await createDialogButton.click();
-    await mainWindow.waitForTimeout(1000);
+    await demonstrateClickForDemo(createDialogButton);
 
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'new-file-created');
     writeNarration(screenshotDir, step++, 'Our new file has been created and is now open in edit mode. Notice the text editor that appeared — this is a full-featured code editor where we can write Markdown content.');
 
     // Demonstrate typing with visual highlight on the focused input area
-    await demonstrateTyping(mainWindow, 'this is a test', {
-      showHighlight: true,
-      typingDelay: 150, // Slower for visual effect
-      pauseAfter: 500, // Highlight will still be visible
-      highlightDuration: 8000, // Keep highlight visible long enough
-    });
+    await demonstrateTypingForDemo(mainWindow, 'this is a test', true);
 
     // Take screenshot with highlight applied atomically
     const cmEditor = mainWindow.locator('.cm-editor').first();
-    await screenshotWithHighlight(mainWindow, cmEditor,
-      path.join(screenshotDir, `${String(step).padStart(3, '0')}-content-typed.png`));
-    step++;
+    await takeStepScreenshotWithHighlight(mainWindow, cmEditor, screenshotDir, step++, 'content-typed');
     writeNarration(screenshotDir, step++, 'We\'ve typed some content into the editor. MkBrowser supports full Markdown syntax, so you can add headings, lists, links, and more. Now let\'s save our work.');
 
     // Demonstrate clicking the Save button
@@ -106,9 +87,7 @@ test.describe('Create File Demo', () => {
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'about-to-save');
     writeNarration(screenshotDir, step++, 'We\'ll click the Save button to write our changes to disk.');
 
-    await mainWindow.waitForTimeout(300);
-    await saveButton.click();
-    await mainWindow.waitForTimeout(1000);
+    await demonstrateClickForDemo(saveButton);
 
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'file-saved');
     writeNarration(screenshotDir, step++, 'The file has been saved and the editor has closed. Our content is now rendered as formatted Markdown right in the file list. That\'s the basic workflow — create, edit, and save files, all from within MkBrowser.');

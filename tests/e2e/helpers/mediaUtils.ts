@@ -1,4 +1,5 @@
-import type { Page } from '@playwright/test';
+import type { Page, Locator } from '@playwright/test';
+import { screenshotWithHighlight, demonstrateTyping } from './visual-indicators';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -47,4 +48,76 @@ export function writeNarration(
     path.join(screenshotDir, `${String(step).padStart(3, '0')}-narration.txt`),
     narrationText
   );
+}
+
+/**
+ * Takes a screenshot with highlight and standardized naming.
+ * 
+ * @param mainWindow - The Playwright Page object
+ * @param locator - The element to highlight in the screenshot
+ * @param screenshotDir - Directory where screenshots are saved
+ * @param step - Current step number
+ * @param filenameSuffix - The descriptive suffix for the screenshot (e.g., 'filename-entered')
+ * 
+ * @example
+ * await takeStepScreenshotWithHighlight(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
+ */
+export async function takeStepScreenshotWithHighlight(
+  mainWindow: Page,
+  locator: Locator,
+  screenshotDir: string,
+  step: number,
+  filenameSuffix: string
+): Promise<void> {
+  await screenshotWithHighlight(
+    mainWindow,
+    locator,
+    path.join(screenshotDir, `${String(step).padStart(3, '0')}-${filenameSuffix}.png`)
+  );
+}
+
+/**
+ * Demonstrates typing with standard demo timing for video recording.
+ * 
+ * @param mainWindow - The Playwright Page object
+ * @param text - The text to type
+ * @param showHighlight - Whether to show visual highlight during typing
+ * @param locator - Optional locator to focus and type into
+ * @param typingDelay - Milliseconds between each keystroke (default: 150)
+ * 
+ * @example
+ * await demonstrateTypingForDemo(mainWindow, 'this is a test', true);
+ * await demonstrateTypingForDemo(mainWindow, 'my-journal-entry', true, filenameInput, 120);
+ */
+export async function demonstrateTypingForDemo(
+  mainWindow: Page,
+  text: string,
+  showHighlight: boolean,
+  locator?: Locator,
+  typingDelay: number = 150
+): Promise<void> {
+  await demonstrateTyping(mainWindow, text, {
+    locator,
+    showHighlight,
+    typingDelay,
+    pauseAfter: 500,
+    highlightDuration: 8000,
+  });
+}
+
+/**
+ * Demonstrates a click with standard demo timing for video recording.
+ * Adds pauses before and after the click for visual clarity in demos.
+ * 
+ * @param locator - The element to click
+ * 
+ * @example
+ * await demonstrateClickForDemo(createButton);
+ */
+export async function demonstrateClickForDemo(
+  locator: Locator
+): Promise<void> {
+  await locator.page().waitForTimeout(300);
+  await locator.click();
+  await locator.page().waitForTimeout(1000);
 }

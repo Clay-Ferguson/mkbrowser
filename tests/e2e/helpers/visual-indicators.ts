@@ -1,7 +1,7 @@
 import type { Page, Locator } from '@playwright/test';
 
 const HIGHLIGHT = {
-  border: '2px solid #ff4444',
+  // border: '2px solid #ff4444',
   boxShadow: '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)',
   outline: '2px solid #ff6666',
   outlineOffset: '2px',
@@ -46,88 +46,6 @@ export async function highlightElement(
 }
 
 /**
- * Shows a "typing" indicator near the focused element.
- * Useful for demonstrating text input.
- */
-export async function showTypingIndicator(
-  page: Page,
-  locator: Locator,
-  duration: number = 1500
-): Promise<void> {
-  await locator.evaluate((element, dur) => {
-    const rect = element.getBoundingClientRect();
-
-    // Create typing indicator
-    const indicator = document.createElement('div');
-    indicator.textContent = '⌨️ typing...';
-    indicator.style.position = 'fixed';
-    indicator.style.left = `${rect.left}px`;
-    indicator.style.top = `${rect.top - 40}px`;
-    indicator.style.padding = '4px 12px';
-    indicator.style.backgroundColor = 'rgba(68, 138, 255, 0.9)';
-    indicator.style.color = 'white';
-    indicator.style.borderRadius = '4px';
-    indicator.style.fontSize = '14px';
-    indicator.style.fontWeight = 'bold';
-    indicator.style.pointerEvents = 'none';
-    indicator.style.zIndex = '999999';
-    indicator.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-    indicator.style.animation = 'pulse 1s ease-in-out infinite';
-
-    // Add pulse animation
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.6; }
-      }
-    `;
-    document.head.appendChild(style);
-
-    document.body.appendChild(indicator);
-
-    // Remove after duration
-    setTimeout(() => {
-      indicator.remove();
-      style.remove();
-    }, dur);
-  }, duration);
-
-  // Wait for the indicator to be visible (but return before it's removed)
-  await page.waitForTimeout(200);
-}
-
-/**
- * Combined action: highlight then perform action.
- * This is the recommended way to demonstrate clicks in videos.
- */
-export async function demonstrateClick(
-  page: Page,
-  locator: Locator,
-  options: {
-    pauseBefore?: number;
-    pauseAfter?: number;
-  } = {}
-): Promise<void> {
-  const {
-    pauseBefore = 500,
-    pauseAfter = 500,
-  } = options;
-
-  // Highlight the element
-  await highlightElement(page, locator, 800);
-
-  // Pause before click
-  await page.waitForTimeout(pauseBefore);
-
-  // Perform the click
-  await locator.click();
-
-  // Pause after click
-  await page.waitForTimeout(pauseAfter);
-}
-
-/**
  * Combined action: highlight focused input, then type.
  * This is the recommended way to demonstrate text input in videos.
  * The highlight persists during typing so screenshots show where input occurs.
@@ -166,18 +84,18 @@ export async function demonstrateTyping(
       // When we have a locator, apply styles directly to the known element
       // (locator.evaluate passes the DOM element directly — no need to search for it)
       await locator.evaluate((element, { dur, styles }) => {
-        const originalBorder = element.style.border;
+        // const originalBorder = element.style.border;
         const originalBoxShadow = element.style.boxShadow;
         const originalOutline = element.style.outline;
         const originalOutlineOffset = element.style.outlineOffset;
 
-        element.style.setProperty('border', styles.border, 'important');
+        // element.style.setProperty('border', styles.border, 'important');
         element.style.setProperty('box-shadow', styles.boxShadow, 'important');
         element.style.setProperty('outline', styles.outline, 'important');
         element.style.setProperty('outline-offset', styles.outlineOffset, 'important');
 
         setTimeout(() => {
-          element.style.border = originalBorder;
+          // element.style.border = originalBorder;
           element.style.boxShadow = originalBoxShadow;
           element.style.outline = originalOutline;
           element.style.outlineOffset = originalOutlineOffset;
@@ -204,17 +122,17 @@ export async function demonstrateTyping(
           return;
         }
 
-        const originalBorder = editorElement.style.border;
+        // const originalBorder = editorElement.style.border;
         const originalBoxShadow = editorElement.style.boxShadow;
         const originalOutline = editorElement.style.outline;
 
-        editorElement.style.setProperty('border', styles.border, 'important');
+        // editorElement.style.setProperty('border', styles.border, 'important');
         editorElement.style.setProperty('box-shadow', styles.boxShadow, 'important');
         editorElement.style.setProperty('outline', styles.outline, 'important');
         editorElement.style.setProperty('outline-offset', styles.outlineOffset, 'important');
 
         setTimeout(() => {
-          editorElement!.style.border = originalBorder;
+          // editorElement!.style.border = originalBorder;
           editorElement!.style.boxShadow = originalBoxShadow;
           editorElement!.style.outline = originalOutline;
         }, dur);
@@ -246,12 +164,12 @@ export async function screenshotWithHighlight(
 ): Promise<void> {
   // Apply highlight
   await locator.evaluate((element, styles) => {
-    element.dataset.origBorder = element.style.border;
+    // element.dataset.origBorder = element.style.border;
     element.dataset.origBoxShadow = element.style.boxShadow;
     element.dataset.origOutline = element.style.outline;
     element.dataset.origOutlineOffset = element.style.outlineOffset;
 
-    element.style.setProperty('border', styles.border, 'important');
+    // element.style.setProperty('border', styles.border, 'important');
     element.style.setProperty('box-shadow', styles.boxShadow, 'important');
     element.style.setProperty('outline', styles.outline, 'important');
     element.style.setProperty('outline-offset', styles.outlineOffset, 'important');
@@ -265,12 +183,12 @@ export async function screenshotWithHighlight(
 
   // Remove highlight
   await locator.evaluate((element) => {
-    element.style.border = element.dataset.origBorder || '';
+    // element.style.border = element.dataset.origBorder || '';
     element.style.boxShadow = element.dataset.origBoxShadow || '';
     element.style.outline = element.dataset.origOutline || '';
     element.style.outlineOffset = element.dataset.origOutlineOffset || '';
 
-    delete element.dataset.origBorder;
+    // delete element.dataset.origBorder;
     delete element.dataset.origBoxShadow;
     delete element.dataset.origOutline;
     delete element.dataset.origOutlineOffset;
