@@ -90,10 +90,13 @@ graph TB
     Queue -->|Process| Worker
     Worker -->|Update| DB
     
-    style FE fill:#61dafb
-    style API fill:#339933
-    style DB fill:#336791
-    style Cache fill:#dc382d
+    style Client fill:#3d2473
+    style FE fill:#0a6e8f
+    style API fill:#1e5c1e
+    style DB fill:#1e3f5a
+    style Cache fill:#8c1a12
+    style Queue fill:#7a4200
+    style Worker fill:#2d4a5a
 \`\`\``;
 
     await insertTextForDemo(mainWindow, mermaidContent, true);
