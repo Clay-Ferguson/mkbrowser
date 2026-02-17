@@ -1,19 +1,30 @@
 #!/bin/bash
 
 # Create a demo video from screenshots and optional audio narration
-# Supports interleaved .png screenshots and .mp3 audio clips.
+# Supports interleaved .png screenshots and audio in several formats:
+#   .mp3  — used directly as audio input
+#   .wav  — used directly as audio input (highest quality)
+#   .txt  — converted to WAV via Piper TTS, then used as audio input
+#
 # Files are ordered by filename — use numeric prefixes (001-, 002-, etc.).
 # During audio clips, the most recent screenshot is held on screen.
 # Each screenshot without audio is displayed for FRAME_DURATION seconds.
+#
+# When .txt narration files are present, the Piper TTS engine is used to
+# generate WAV audio. Generated files are cached in a generated-wav/
+# subfolder inside the screenshot directory and reused on subsequent runs
+# if the .txt source hasn't changed.  Set PIPER_TTS below to point to
+# your Piper tts.sh script (defaults to ../piper/tts.sh relative to this
+# script's location).
 #
 # Usage: ./create-video-from-screenshots.sh <subfolder-name>
 #
 # Example folder structure:
 #   screenshots/my-demo/
 #     001-welcome.png
-#     002-narration.mp3
+#     002-narration.mp3          (or .wav, or .txt)
 #     003-next-screen.png
-#     004-explanation.mp3
+#     004-explanation.txt         (narration text → Piper TTS → WAV)
 #     005-final.png
 
 set -e
@@ -43,6 +54,15 @@ SEGMENT_DIR="$OUTPUT_DIR/$SUBFOLDER-segments"
 CONCAT_LIST="$SEGMENT_DIR/concat-list.txt"
 FRAME_DURATION=2  # seconds per screenshot (images without audio)
 
+# Path to the Piper TTS script (only needed when .txt narration files are used).
+# Override this variable if your Piper project lives somewhere else.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PIPER_TTS="${SCRIPT_DIR}/../piper/tts.sh"
+
+# Subdirectory for WAV files generated from .txt narration by Piper TTS.
+# Lives inside the screenshot folder so cached audio stays next to its source.
+GENERATED_WAV_DIR="$SCREENSHOT_DIR/generated-wav"
+
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -71,24 +91,27 @@ if [ ! -d "$SCREENSHOT_DIR" ]; then
     exit 1
 fi
 
-# Collect and sort all media files (png + mp3)
+# Collect and sort all media files (png + mp3 + wav + txt)
+# Exclude the generated-wav/ subfolder so cached WAVs aren't double-counted.
 MEDIA_FILES=()
 while IFS= read -r -d '' f; do
     MEDIA_FILES+=("$f")
-done < <(find "$SCREENSHOT_DIR" -maxdepth 1 \( -name '*.png' -o -name '*.mp3' \) -print0 | sort -z)
+done < <(find "$SCREENSHOT_DIR" -maxdepth 1 \( -name '*.png' -o -name '*.mp3' -o -name '*.wav' -o -name '*.txt' \) -not -path '*/generated-wav/*' -print0 | sort -z)
 
 if [ ${#MEDIA_FILES[@]} -eq 0 ]; then
-    echo -e "${RED}✗ No .png or .mp3 files found in $SCREENSHOT_DIR/${NC}"
+    echo -e "${RED}✗ No .png, .mp3, .wav, or .txt files found in $SCREENSHOT_DIR/${NC}"
     exit 1
 fi
 
 # Count by type
 IMAGE_COUNT=0
 AUDIO_COUNT=0
+TTS_COUNT=0
 for f in "${MEDIA_FILES[@]}"; do
     case "$f" in
         *.png) ((IMAGE_COUNT++)) || true ;;
-        *.mp3) ((AUDIO_COUNT++)) || true ;;
+        *.mp3|*.wav) ((AUDIO_COUNT++)) || true ;;
+        *.txt) ((TTS_COUNT++)) || true ;;
     esac
 done
 
@@ -106,6 +129,44 @@ if [[ "$FIRST_FILE" != *.png ]]; then
     exit 1
 fi
 
+# --- Piper TTS: validate & convert .txt → .wav ---
+if [ "$TTS_COUNT" -gt 0 ]; then
+    # Verify Piper TTS is available
+    if [ ! -x "$PIPER_TTS" ]; then
+        echo -e "${RED}✗ Piper TTS not found at: $PIPER_TTS${NC}"
+        echo "Narration .txt files require Piper TTS for text-to-speech conversion."
+        echo "Run the setup script first:  $(dirname "$PIPER_TTS")/setup-piper.sh"
+        exit 1
+    fi
+
+    echo "Converting $TTS_COUNT narration text file(s) to audio via Piper TTS..."
+    mkdir -p "$GENERATED_WAV_DIR"
+
+    # Build a new array, replacing .txt entries with their generated .wav paths
+    CONVERTED_FILES=()
+    for f in "${MEDIA_FILES[@]}"; do
+        if [[ "$f" == *.txt ]]; then
+            TXT_BASENAME="$(basename "$f" .txt)"
+            WAV_PATH="$GENERATED_WAV_DIR/${TXT_BASENAME}.wav"
+
+            if [ -f "$WAV_PATH" ] && [ "$WAV_PATH" -nt "$f" ]; then
+                echo -e "  [${TXT_BASENAME}.txt] ${GREEN}cached${NC} → ${TXT_BASENAME}.wav"
+            else
+                echo -n "  [${TXT_BASENAME}.txt] generating WAV ... "
+                "$PIPER_TTS" "$f" "$WAV_PATH"
+                echo -e "${GREEN}✓${NC}"
+            fi
+
+            CONVERTED_FILES+=("$WAV_PATH")
+            ((AUDIO_COUNT++)) || true  # count the converted file as audio
+        else
+            CONVERTED_FILES+=("$f")
+        fi
+    done
+    MEDIA_FILES=("${CONVERTED_FILES[@]}")
+    echo ""
+fi
+
 # Create output and segment directories
 mkdir -p "$OUTPUT_DIR"
 rm -rf "$SEGMENT_DIR"
@@ -116,11 +177,35 @@ rm -f "$MP4_FILE" "$GIF_FILE"
 
 # Report what we found
 echo "Found $IMAGE_COUNT screenshot(s) and $AUDIO_COUNT audio clip(s)"
+if [ "$TTS_COUNT" -gt 0 ]; then
+    echo "  ($TTS_COUNT narration text file(s) converted via Piper TTS)"
+fi
 echo "Image frame duration: ${FRAME_DURATION}s"
 if [ "$AUDIO_COUNT" -eq 0 ]; then
     echo "Total video length: $((IMAGE_COUNT * FRAME_DURATION))s"
 fi
 echo ""
+
+# --- Helper: build an audio segment (image held on screen + audio track) ---
+# Usage: build_audio_segment <image> <audio_file> <segment_output>
+# Audio is normalized to 44100 Hz stereo so all segments have matching
+# parameters for the final concat step (silent image segments also use 44100/stereo).
+build_audio_segment() {
+    local image="$1"
+    local audio="$2"
+    local segment="$3"
+
+    ffmpeg -y \
+        -loop 1 -i "$image" \
+        -i "$audio" \
+        -c:v libx264 -preset slow -crf 18 \
+        -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p" \
+        -ar 44100 -ac 2 \
+        -c:a aac -b:a 128k \
+        -shortest \
+        "$segment" \
+        2>/dev/null
+}
 
 # --- Build video segments ---
 # Each segment has both video and audio tracks so concat works with -c copy.
@@ -151,7 +236,7 @@ for f in "${MEDIA_FILES[@]}"; do
         echo -e "${GREEN}✓${NC}"
         TOTAL_DURATION=$(echo "$TOTAL_DURATION + $FRAME_DURATION" | bc)
 
-    elif [[ "$f" == *.mp3 ]]; then
+    elif [[ "$f" == *.mp3 ]] || [[ "$f" == *.wav ]]; then
         # Get audio duration via ffprobe
         AUDIO_DURATION=$(ffprobe -v error \
             -show_entries format=duration \
@@ -164,15 +249,7 @@ for f in "${MEDIA_FILES[@]}"; do
         fi
 
         echo -n "  [$BASENAME] audio, ${AUDIO_DURATION}s (holding $(basename "$CURRENT_IMAGE")) ... "
-        ffmpeg -y \
-            -loop 1 -i "$CURRENT_IMAGE" \
-            -i "$f" \
-            -c:v libx264 -preset slow -crf 18 \
-            -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p" \
-            -c:a aac -b:a 128k \
-            -shortest \
-            "$SEGMENT_FILE" \
-            2>/dev/null
+        build_audio_segment "$CURRENT_IMAGE" "$f" "$SEGMENT_FILE"
         echo -e "${GREEN}✓${NC}"
         TOTAL_DURATION=$(echo "$TOTAL_DURATION + $AUDIO_DURATION" | bc)
     fi
@@ -251,6 +328,9 @@ echo "  MP4: $MP4_FILE ($MP4_SIZE)"
 echo "  GIF: $GIF_FILE ($GIF_SIZE)"
 if [ "$AUDIO_COUNT" -gt 0 ]; then
     echo "  Audio: $AUDIO_COUNT clip(s) included in MP4 (not in GIF)"
+    if [ "$TTS_COUNT" -gt 0 ]; then
+        echo "  TTS:   $TTS_COUNT narration(s) generated via Piper (cached in generated-wav/)"
+    fi
 fi
 echo "  Subfolder: $SUBFOLDER"
 echo ""

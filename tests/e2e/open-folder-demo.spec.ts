@@ -19,8 +19,9 @@ test.describe('User Guide Demo (Enhanced)', () => {
     const testName = path.basename(__filename, '.spec.ts');
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
 
-    // Create screenshot directory if screenshots are enabled
-    if (SCREENSHOTS && !fs.existsSync(screenshotDir)) {
+    // Clean and recreate screenshot directory on each run
+    if (SCREENSHOTS) {
+      fs.rmSync(screenshotDir, { recursive: true, force: true });
       fs.mkdirSync(screenshotDir, { recursive: true });
     }
 
@@ -34,6 +35,16 @@ test.describe('User Guide Demo (Enhanced)', () => {
       }
     };
 
+    const speak = async (text: string, name = 'narration') => {
+      if (SCREENSHOTS) {
+        fs.writeFileSync(
+          path.join(screenshotDir, `${String(step).padStart(3, '0')}-${name}.txt`),
+          text
+        );
+        step++;
+      }
+    };
+
     // Wait for initial load
     await mainWindow.waitForTimeout(2000);
 
@@ -42,6 +53,7 @@ test.describe('User Guide Demo (Enhanced)', () => {
     await expect(mainWindow.getByText('readme.txt')).toBeVisible();
     await expect(mainWindow.getByText('notes.md')).toBeVisible();
     await screenshot('files-visible');
+    await speak('Welcome to MkBrowser. Here we can see our files displayed in a browsable list. Markdown files are rendered inline, and we can create, edit, and organize files right from this interface. Let\'s create a new file to see how it works.');
 
     // Demonstrate clicking the create file button
     const createButton = mainWindow.getByTestId('create-file-button');
@@ -50,24 +62,28 @@ test.describe('User Guide Demo (Enhanced)', () => {
     await highlightElement(mainWindow, createButton, 1500);
     await mainWindow.waitForTimeout(200);
     await screenshot('about-to-click-create');
-    
+    await speak('We\'ll click the Create File button at the top of the window to add a new file to our folder.');
+
     await mainWindow.waitForTimeout(300);
     await createButton.click();
     await mainWindow.waitForTimeout(800);
 
     await screenshot('create-dialog-open');
+    await speak('The Create File dialog has appeared. We can choose a filename and file type. For this demo, we\'ll go with the default name and create a new Markdown file.');
 
     // Demonstrate clicking the Create button in dialog
     const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
     await highlightElement(mainWindow, createDialogButton, 1500);
     await mainWindow.waitForTimeout(200);
     await screenshot('about-to-create-file');
+    await speak('Now we\'ll click the Create button to confirm and create the file.');
 
     await mainWindow.waitForTimeout(300);
     await createDialogButton.click();
     await mainWindow.waitForTimeout(1000);
 
     await screenshot('new-file-created');
+    await speak('Our new file has been created and is now open in edit mode. Notice the text editor that appeared — this is a full-featured code editor where we can write Markdown content.');
 
     // Demonstrate typing with visual highlight on the focused input area
     await demonstrateTyping(mainWindow, 'this is a test', {
@@ -79,24 +95,30 @@ test.describe('User Guide Demo (Enhanced)', () => {
 
     // Take screenshot while highlight is still visible
     await screenshot('content-typed');
+    await speak('We\'ve typed some content into the editor. MkBrowser supports full Markdown syntax, so you can add headings, lists, links, and more. Now let\'s save our work.');
 
     // Demonstrate clicking the Save button
     const saveButton = mainWindow.getByTestId('entry-save-button');
     await highlightElement(mainWindow, saveButton, 1500);
     await mainWindow.waitForTimeout(200);
-    await screenshot('08-about-to-save');
+    await screenshot('about-to-save');
+    await speak('We\'ll click the Save button to write our changes to disk.');
 
     await mainWindow.waitForTimeout(300);
     await saveButton.click();
     await mainWindow.waitForTimeout(1000);
 
     await screenshot('file-saved');
+    await speak('The file has been saved and the editor has closed. Our content is now rendered as formatted Markdown right in the file list. That\'s the basic workflow — create, edit, and save files, all from within MkBrowser.');
 
     // Verify save completed
     await expect(mainWindow.getByTestId('entry-save-button')).not.toBeVisible({ timeout: 5000 });
 
     if (SCREENSHOTS) {
-      console.log(`\n✓ Created ${step - 1} screenshots with visual indicators in ${screenshotDir}`);
+      const files = fs.readdirSync(screenshotDir);
+      const pngCount = files.filter(f => f.endsWith('.png')).length;
+      const txtCount = files.filter(f => f.endsWith('.txt')).length;
+      console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
       console.log('Run ./create-video-from-screenshots.sh open-folder-demo to create video');
     } else {
       console.log('\n✓ Test completed (screenshots disabled)');
