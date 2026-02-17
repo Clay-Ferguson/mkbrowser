@@ -109,7 +109,20 @@ function MermaidDiagram({ code }: { code: string }) {
         const result = await mermaid.render(safeId, code);
 
         if (isMounted) {
-          setSvg(result.svg);
+          // HACK_BEGIN
+          // Mermaid's text-width measurement tends to run slightly narrow,
+          // causing foreignObject labels to clip on the right edge.
+          // Widen every foreignObject by 15% to give text room to breathe.
+          const fixedSvg = result.svg.replace(
+            /(<foreignObject\b[^>]*?\bwidth=")([^"]+)(")/g,
+            (_match, prefix, widthStr, suffix) => {
+              const newWidth = parseFloat(widthStr) * 1.15;
+              return `${prefix}${newWidth}${suffix}`;
+            }
+          );
+          setSvg(fixedSvg);
+          // HACK_END
+
           setError('');
           setLoading(false);
         }
