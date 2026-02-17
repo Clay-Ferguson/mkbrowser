@@ -1,5 +1,12 @@
 import type { Page, Locator } from '@playwright/test';
 
+const HIGHLIGHT = {
+  border: '2px solid #ff4444',
+  boxShadow: '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)',
+  outline: '2px solid #ff6666',
+  outlineOffset: '2px',
+} as const;
+
 /**
  * Visual indicator helpers for creating demonstration videos.
  * These functions add visual cues before taking screenshots to show
@@ -158,16 +165,16 @@ export async function demonstrateTyping(
     if (locator) {
       // When we have a locator, apply styles directly to the known element
       // (locator.evaluate passes the DOM element directly — no need to search for it)
-      await locator.evaluate((element, dur) => {
+      await locator.evaluate((element, { dur, styles }) => {
         const originalBorder = element.style.border;
         const originalBoxShadow = element.style.boxShadow;
         const originalOutline = element.style.outline;
         const originalOutlineOffset = element.style.outlineOffset;
 
-        element.style.setProperty('border', '4px solid #ff4444', 'important');
-        element.style.setProperty('box-shadow', '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)', 'important');
-        element.style.setProperty('outline', '2px solid #ff6666', 'important');
-        element.style.setProperty('outline-offset', '2px', 'important');
+        element.style.setProperty('border', styles.border, 'important');
+        element.style.setProperty('box-shadow', styles.boxShadow, 'important');
+        element.style.setProperty('outline', styles.outline, 'important');
+        element.style.setProperty('outline-offset', styles.outlineOffset, 'important');
 
         setTimeout(() => {
           element.style.border = originalBorder;
@@ -175,10 +182,10 @@ export async function demonstrateTyping(
           element.style.outline = originalOutline;
           element.style.outlineOffset = originalOutlineOffset;
         }, dur);
-      }, highlightDuration);
+      }, { dur: highlightDuration, styles: HIGHLIGHT });
     } else {
       // No locator — find CodeMirror editor or fall back to focused element
-      await page.evaluate((dur) => {
+      await page.evaluate(({ dur, styles }) => {
         let editorElement: HTMLElement | null = null;
 
         const cmEditor = document.querySelector('.cm-editor');
@@ -201,17 +208,17 @@ export async function demonstrateTyping(
         const originalBoxShadow = editorElement.style.boxShadow;
         const originalOutline = editorElement.style.outline;
 
-        editorElement.style.setProperty('border', '4px solid #ff4444', 'important');
-        editorElement.style.setProperty('box-shadow', '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)', 'important');
-        editorElement.style.setProperty('outline', '2px solid #ff6666', 'important');
-        editorElement.style.setProperty('outline-offset', '2px', 'important');
+        editorElement.style.setProperty('border', styles.border, 'important');
+        editorElement.style.setProperty('box-shadow', styles.boxShadow, 'important');
+        editorElement.style.setProperty('outline', styles.outline, 'important');
+        editorElement.style.setProperty('outline-offset', styles.outlineOffset, 'important');
 
         setTimeout(() => {
           editorElement!.style.border = originalBorder;
           editorElement!.style.boxShadow = originalBoxShadow;
           editorElement!.style.outline = originalOutline;
         }, dur);
-      }, highlightDuration);
+      }, { dur: highlightDuration, styles: HIGHLIGHT });
     }
 
     await page.waitForTimeout(300); // Let highlight render
@@ -238,17 +245,17 @@ export async function screenshotWithHighlight(
   screenshotPath: string
 ): Promise<void> {
   // Apply highlight
-  await locator.evaluate((element) => {
+  await locator.evaluate((element, styles) => {
     element.dataset.origBorder = element.style.border;
     element.dataset.origBoxShadow = element.style.boxShadow;
     element.dataset.origOutline = element.style.outline;
     element.dataset.origOutlineOffset = element.style.outlineOffset;
 
-    element.style.setProperty('border', '4px solid #ff4444', 'important');
-    element.style.setProperty('box-shadow', '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)', 'important');
-    element.style.setProperty('outline', '2px solid #ff6666', 'important');
-    element.style.setProperty('outline-offset', '2px', 'important');
-  });
+    element.style.setProperty('border', styles.border, 'important');
+    element.style.setProperty('box-shadow', styles.boxShadow, 'important');
+    element.style.setProperty('outline', styles.outline, 'important');
+    element.style.setProperty('outline-offset', styles.outlineOffset, 'important');
+  }, HIGHLIGHT);
 
   // Wait for the browser to paint the styles
   await page.waitForTimeout(150);
