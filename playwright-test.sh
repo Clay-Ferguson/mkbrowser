@@ -93,8 +93,11 @@ if [ -n "$SPECIFIC_TEST" ]; then
     fi
 fi
 
-# Kill any existing playwright report server
-pkill -f "playwright show-report" 2>/dev/null
-sleep 1
+read -p "Open HTML report? [Y/n]: " show_report
+if [[ ! "$show_report" =~ ^[Nn]$ ]]; then
+    # Kill any existing playwright report server
+    pkill -f "playwright show-report" 2>/dev/null
+    sleep 1
 
-npx playwright show-report
+    npx playwright show-report
+fi
