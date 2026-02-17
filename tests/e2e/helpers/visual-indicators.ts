@@ -22,16 +22,16 @@ export async function highlightElement(
   locator: Locator,
   duration: number = 800
 ): Promise<void> {
-  await locator.evaluate((element, dur) => {
+  await locator.evaluate((element, { dur, styles }) => {
     // Store original styles
     const originalOutline = element.style.outline;
     const originalOutlineOffset = element.style.outlineOffset;
     const originalBoxShadow = element.style.boxShadow;
 
-    // Add highlight with thick, very visible border
-    element.style.outline = '6px solid #ff4444';
-    element.style.outlineOffset = '3px';
-    element.style.boxShadow = '0 0 40px rgba(255, 68, 68, 0.9), 0 0 20px rgba(255, 68, 68, 0.7)';
+    // Add highlight using consistent styles
+    element.style.setProperty('outline', styles.outline, 'important');
+    element.style.setProperty('outline-offset', styles.outlineOffset, 'important');
+    element.style.setProperty('box-shadow', styles.boxShadow, 'important');
 
     // Restore after duration
     setTimeout(() => {
@@ -39,10 +39,10 @@ export async function highlightElement(
       element.style.outlineOffset = originalOutlineOffset;
       element.style.boxShadow = originalBoxShadow;
     }, dur);
-  }, duration);
+  }, { dur: duration, styles: HIGHLIGHT });
 
   // Wait for the highlight to be visible
-  await page.waitForTimeout(100);
+  await page.waitForTimeout(300);
 }
 
 /**
