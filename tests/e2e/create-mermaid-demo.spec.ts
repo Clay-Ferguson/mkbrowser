@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateTypingForDemo, demonstrateClickForDemo, insertTextForDemo } from './helpers/mediaUtils';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -54,7 +54,7 @@ test.describe('Create Mermaid Demo', () => {
 
     // Type the filename
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
-    await demonstrateTypingForDemo(mainWindow, 'my-architecture-diagram', true, filenameInput, 120);
+    await insertTextForDemo(mainWindow, 'my-architecture-diagram', true, filenameInput);
 
     await takeStepScreenshotWithHighlight(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
     writeNarration(screenshotDir, step++, 'We\'ve named it "my-architecture-diagram". Now let\'s create the file and add our diagram content.');

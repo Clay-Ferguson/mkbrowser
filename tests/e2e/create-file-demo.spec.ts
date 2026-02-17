@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateTypingForDemo, demonstrateClickForDemo } from './helpers/mediaUtils';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -57,7 +57,7 @@ test.describe('Create File Demo', () => {
 
     // Demonstrate typing a filename
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
-    await demonstrateTypingForDemo(mainWindow, 'my-journal-entry', true, filenameInput, 120);
+    await insertTextForDemo(mainWindow, 'my-journal-entry', true, filenameInput);
 
     await takeStepScreenshotWithHighlight(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
     writeNarration(screenshotDir, step++, 'We\'ve entered "my-journal-entry" as the filename. Notice we didn\'t include a file extension — MkBrowser will automatically add ".md" to make it a Markdown file.');
@@ -73,7 +73,7 @@ test.describe('Create File Demo', () => {
     writeNarration(screenshotDir, step++, 'Our new file has been created and is now open in edit mode. Notice the text editor that appeared — this is a full-featured code editor where we can write Markdown content.');
 
     // Demonstrate typing with visual highlight on the focused input area
-    await demonstrateTypingForDemo(mainWindow, 'this is a test', true);
+    await insertTextForDemo(mainWindow, 'this is a test', true);
 
     // Take screenshot with highlight applied atomically
     const cmEditor = mainWindow.locator('.cm-editor').first();

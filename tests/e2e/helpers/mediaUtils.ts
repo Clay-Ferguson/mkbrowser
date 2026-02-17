@@ -77,52 +77,26 @@ export async function takeStepScreenshotWithHighlight(
 }
 
 /**
- * Demonstrates typing with standard demo timing for video recording.
- * 
- * @param mainWindow - The Playwright Page object
- * @param text - The text to type
- * @param showHighlight - Whether to show visual highlight during typing
- * @param locator - Optional locator to focus and type into
- * @param typingDelay - Milliseconds between each keystroke (default: 35 for super fast but visible typing)
- * 
- * @example
- * await demonstrateTypingForDemo(mainWindow, 'this is a test', true);
- * await demonstrateTypingForDemo(mainWindow, 'my-journal-entry', true, filenameInput, 120);
- */
-export async function demonstrateTypingForDemo(
-  mainWindow: Page,
-  text: string,
-  showHighlight: boolean,
-  locator?: Locator,
-  typingDelay: number = 15
-): Promise<void> {
-  await demonstrateTyping(mainWindow, text, {
-    locator,
-    showHighlight,
-    typingDelay,
-    pauseAfter: 500,
-    highlightDuration: 15000,
-  });
-}
-
-/**
- * Bulk-inserts text into the CodeMirror editor for demo recordings.
- * Unlike demonstrateTypingForDemo (which types character-by-character),
- * this inserts all text at once via the CodeMirror API — avoiding any
- * auto-indent or keystroke-triggered behavior.
+ * Bulk-inserts text into an element for demo recordings.
  *
  * @param mainWindow - The Playwright Page object
  * @param text - The text to insert
  * @param showHighlight - Whether to show visual highlight around the editor
+ * @param focusTarget - Optional locator to focus before inserting text
  *
  * @example
  * await insertTextForDemo(mainWindow, mermaidContent, true);
+ * await insertTextForDemo(mainWindow, 'my-file', true, filenameInput);
  */
 export async function insertTextForDemo(
   mainWindow: Page,
   text: string,
   showHighlight: boolean,
+  focusTarget?: Locator,
 ): Promise<void> {
+  if (focusTarget) {
+    await focusTarget.focus();
+  }
   await insertText(mainWindow, text, {
     showHighlight,
     pauseAfter: 500,

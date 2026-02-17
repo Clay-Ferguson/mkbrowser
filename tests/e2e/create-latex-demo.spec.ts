@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateTypingForDemo, demonstrateClickForDemo } from './helpers/mediaUtils';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -54,7 +54,7 @@ test.describe('Create LaTeX Demo', () => {
 
     // Type the filename
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
-    await demonstrateTypingForDemo(mainWindow, 'my-latex-formula', true, filenameInput, 120);
+    await insertTextForDemo(mainWindow, 'my-latex-formula', true, filenameInput);
 
     await takeStepScreenshotWithHighlight(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
     writeNarration(screenshotDir, step++, 'We\'ve named it "my-latex-formula". Now let\'s create the file and add some mathematical content.');
@@ -74,7 +74,7 @@ test.describe('Create LaTeX Demo', () => {
 
 $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$`;
 
-    await demonstrateTypingForDemo(mainWindow, latexContent, true);
+    await insertTextForDemo(mainWindow, latexContent, true);
 
     // Take screenshot with the content typed
     const cmEditor = mainWindow.locator('.cm-editor').first();

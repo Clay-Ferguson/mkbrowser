@@ -82,8 +82,8 @@ await takeStepScreenshotWithHighlight(mainWindow, buttonLocator, screenshotDir, 
 // Write narration text (converted to speech during video generation)
 writeNarration(screenshotDir, step++, 'Narration text explaining what the user sees...');
 
-// Demonstrate typing with highlight
-await demonstrateTypingForDemo(mainWindow, 'text to type', true, inputLocator);
+// Bulk-insert text with highlight (optionally focus a target element first)
+await insertTextForDemo(mainWindow, 'text to type', true, inputLocator);
 
 // Demonstrate clicking with proper timing
 await demonstrateClickForDemo(buttonLocator);
@@ -164,10 +164,10 @@ Provides standardized functions for capturing screenshots and writing narration 
 - Uses atomic highlight application to guarantee visibility in captured image
 - Example: `await takeStepScreenshotWithHighlight(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create')`
 
-**`demonstrateTypingForDemo(mainWindow, text, showHighlight, locator, typingDelay)`**
-- Shows typing with visual highlight for demo clarity
-- Default typing delay: 150ms per keystroke
-- Highlight persists during typing for screenshots
+**`insertTextForDemo(mainWindow, text, showHighlight, focusTarget?)`**
+- Bulk-inserts text at once (like a paste) with optional visual highlight
+- Optionally accepts a `focusTarget` locator to focus before inserting
+- Works with CodeMirror editors, `<textarea>`, and `<input>` elements
 
 **`demonstrateClickForDemo(locator)`**
 - Demonstrates clicks with appropriate pauses for video recording
@@ -187,10 +187,10 @@ Provides low-level visual cues that show where user interactions occur in screen
 - Duration: How long the highlight persists (default: 800ms)
 - Returns after 100ms, leaving highlight visible for screenshots
 
-**`demonstrateTyping(page, text, options)`**
-- Highlights the focused input/editor where typing occurs
+**`insertText(page, text, options)`**
+- Low-level bulk text insertion with visual highlight
 - Handles both native inputs and CodeMirror editors
-- Options: `showHighlight`, `typingDelay`, `highlightDuration`
+- Options: `showHighlight`, `pauseBefore`, `pauseAfter`, `highlightDuration`
 - Special handling for CodeMirror: Targets the container div with `.rounded` class for better visibility
 
 #### Visual Style:
@@ -236,7 +236,7 @@ test('complete workflow with visual indicators', async ({ mainWindow }) => {
   
   // Demonstrate actions with proper timing
   await demonstrateClickForDemo(createButton);
-  await demonstrateTypingForDemo(mainWindow, 'my-journal-entry', true, filenameInput);
+  await insertTextForDemo(mainWindow, 'my-journal-entry', true, filenameInput);
 });
 ```
 
@@ -442,7 +442,7 @@ The complete workflow from test creation to video generation:
      takeStepScreenshot, 
      takeStepScreenshotWithHighlight,
      writeNarration,
-     demonstrateTypingForDemo,
+     insertTextForDemo,
      demonstrateClickForDemo 
    } from './helpers/mediaUtils';
    ```
@@ -550,26 +550,23 @@ Edit the FFmpeg command in `create-video-from-screenshots.sh`:
 -crf 23  # Lower quality, smaller file
 ```
 
-#### Adjust Typing Speed and Highlight Duration
-Modify the parameters when calling `demonstrateTypingForDemo()`:
+#### Adjust Text Insertion and Highlight Duration
+Use `insertTextForDemo()` for standard demo text insertion:
 ```typescript
-await demonstrateTypingForDemo(
-  mainWindow, 
-  'text to type', 
-  true,           // showHighlight
-  inputLocator,   // optional locator
-  200             // typingDelay in ms (default: 150)
-);
+// Insert into the currently focused element
+await insertTextForDemo(mainWindow, 'text to insert', true);
+
+// Focus a specific element first, then insert
+await insertTextForDemo(mainWindow, 'text to insert', true, inputLocator);
 ```
 
-Or use the low-level `demonstrateTyping()` for more control:
+Or use the low-level `insertText()` for more control:
 ```typescript
-await demonstrateTyping(mainWindow, 'text', {
-  locator: inputElement,
+await insertText(mainWindow, 'text', {
   showHighlight: true,
   highlightDuration: 10000,  // 10 seconds
-  typingDelay: 200,          // Slower typing
-  pauseAfter: 1000,          // Pause after typing
+  pauseBefore: 500,          // Pause before inserting
+  pauseAfter: 800,           // Pause after inserting
 });
 ```
 
@@ -645,7 +642,7 @@ cd kokoro
 ### 1. Use Media Utility Helpers
 - Always use `takeStepScreenshot()` and `writeNarration()` from `mediaUtils.ts` for consistent file naming
 - Use `takeStepScreenshotWithHighlight()` for screenshots that need visual indicators
-- Use `demonstrateTypingForDemo()` and `demonstrateClickForDemo()` for proper demo timing
+- Use `insertTextForDemo()` and `demonstrateClickForDemo()` for proper demo timing
 - These helpers handle 3-digit numbering automatically via the `step` counter
 
 ### 2. Screenshot and Narration Pairing
