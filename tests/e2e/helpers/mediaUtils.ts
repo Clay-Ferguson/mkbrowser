@@ -1,5 +1,5 @@
 import type { Page, Locator } from '@playwright/test';
-import { screenshotWithHighlight, demonstrateTyping } from './visual-indicators';
+import { screenshotWithHighlight, demonstrateTyping, insertText } from './visual-indicators';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -94,12 +94,37 @@ export async function demonstrateTypingForDemo(
   text: string,
   showHighlight: boolean,
   locator?: Locator,
-  typingDelay: number = 35
+  typingDelay: number = 15
 ): Promise<void> {
   await demonstrateTyping(mainWindow, text, {
     locator,
     showHighlight,
     typingDelay,
+    pauseAfter: 500,
+    highlightDuration: 15000,
+  });
+}
+
+/**
+ * Bulk-inserts text into the CodeMirror editor for demo recordings.
+ * Unlike demonstrateTypingForDemo (which types character-by-character),
+ * this inserts all text at once via the CodeMirror API — avoiding any
+ * auto-indent or keystroke-triggered behavior.
+ *
+ * @param mainWindow - The Playwright Page object
+ * @param text - The text to insert
+ * @param showHighlight - Whether to show visual highlight around the editor
+ *
+ * @example
+ * await insertTextForDemo(mainWindow, mermaidContent, true);
+ */
+export async function insertTextForDemo(
+  mainWindow: Page,
+  text: string,
+  showHighlight: boolean,
+): Promise<void> {
+  await insertText(mainWindow, text, {
+    showHighlight,
     pauseAfter: 500,
     highlightDuration: 15000,
   });

@@ -57,7 +57,7 @@ FRAME_DURATION=2  # seconds per screenshot (images without audio)
 # are used). Override this variable if your Kokoro project lives somewhere else.
 # Uses the official kokoro package (hexgrad): https://github.com/hexgrad/kokoro
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KOKORO_PROJECT_DIR="${SCRIPT_DIR}/../kokoro"
+KOKORO_PROJECT_DIR="${SCRIPT_DIR}/../kocreator"
 KOKORO_VOICE="bm_daniel"
 
 # Subdirectory for WAV files generated from .txt narration by Kokoro TTS.

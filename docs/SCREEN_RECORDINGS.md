@@ -26,7 +26,7 @@ Both are saved to `screenshots/<test-name>/` with sequential 3-digit numbering (
 ### 3. Video Generation → Final Output
 [`create-video-from-screenshots.sh`](create-video-from-screenshots.sh) converts test output to videos:
 - Scans the screenshot folder for `.png` and `.txt` files
-- Validates that Kokoro TTS is available (located in sibling `../kokoro` folder)
+- Validates that Kokoro TTS is available (located in sibling `../kocreator` folder)
 - Converts `.txt` narration files to `.wav` audio using Kokoro TTS (cached in `generated-wav/` subfolder)
 - Creates video segments combining screenshots with audio narration
 - Concatenates segments into final `.mp4` (with audio) and `.gif` (images only) files
@@ -42,7 +42,7 @@ Both are saved to `screenshots/<test-name>/` with sequential 3-digit numbering (
 ```
 
 ### Prerequisites
-- **Kokoro TTS**: Must be cloned and set up in a sibling folder (`../kokoro`) before running demo tests
+- **Kokoro TTS**: Must be cloned and set up in a sibling folder (`../kocreator`) before running demo tests
 - **One-time setup**:
   ```bash
   cd ~/ferguson/projects  # Or wherever your mkbrowser folder is
@@ -311,7 +311,7 @@ screenshots/create-file-demo/
 
 #### Kokoro TTS Setup
 
-Kokoro TTS is a fast, local neural text-to-speech engine. The Kokoro project must be cloned into a sibling folder (`../kokoro` relative to the mkbrowser project root). 
+Kokoro TTS is a fast, local neural text-to-speech engine. The Kokoro project must be cloned into a sibling folder (`../kocreator` relative to the mkbrowser project root). 
 
 **One-time setup**:
 
@@ -323,13 +323,13 @@ Kokoro TTS is a fast, local neural text-to-speech engine. The Kokoro project mus
 
 2. Run the setup script to install Kokoro:
    ```bash
-   cd kokoro
+   cd kocreator
    ./setup-kokoro.sh    # Creates venv, installs kokoro-tts, downloads voice models
    ```
 
 Once set up, the video creation script will automatically invoke Kokoro TTS when it encounters `.txt` narration files. No internet connection is required after the initial setup.
 
-The `KOKORO_PROJECT_DIR` variable at the top of `create-video-from-screenshots.sh` controls the path to the Kokoro project directory (default: `../kokoro`). Override it if your Kokoro project is in a different location.
+The `KOKORO_PROJECT_DIR` variable at the top of `create-video-from-screenshots.sh` controls the path to the Kokoro project directory (default: `../kocreator`). Override it if your Kokoro project is in a different location.
 
 #### Writing Narration Text Files
 
@@ -426,7 +426,7 @@ The complete workflow from test creation to video generation:
    # Clone Kokoro TTS as a sibling project
    cd ~/ferguson/projects  # Or wherever your mkbrowser folder is
    git clone https://github.com/hexgrad/kokoro kokoro
-   cd kokoro
+   cd kocreator
    ./setup-kokoro.sh    # Install Kokoro TTS engine
    ```
 
@@ -604,7 +604,7 @@ mkbrowser/
 ├── create-video-from-screenshots.sh    # FFmpeg conversion script
 └── SCREEN_RECORDINGS.md                # This document
 
-kokoro/                                  # Sibling project (separate repository)
+kocreator/                                  # Sibling project (separate repository)
 ├── setup-kokoro.sh                     # One-time installation script
 ├── .venv/                               # Python virtual environment
 └── ... # Kokoro TTS engine files
@@ -621,7 +621,7 @@ kokoro/                                  # Sibling project (separate repository)
 - `ffprobe`: Audio duration detection (ships with ffmpeg)
 
 ### Kokoro TTS (Required for `.txt` Narration)
-- **Location**: `../kokoro` (sibling folder to the mkbrowser project)
+- **Location**: `../kocreator` (sibling folder to the mkbrowser project)
 - **Setup**: Clone from GitHub and run `./setup-kokoro.sh`
 - **Repository**: https://github.com/hexgrad/kokoro
 - **Voice model**: `bm_daniel` (default, downloaded during setup)
@@ -637,7 +637,7 @@ Install Kokoro TTS (one-time):
 cd ~/ferguson/projects  # Or wherever your mkbrowser folder is
 git clone https://github.com/hexgrad/kokoro kokoro
 cd kokoro
-./setup-kokoro.sh
+./setup-kocreator.sh
 ```
 
 ## Best Practices
@@ -706,7 +706,7 @@ cd kokoro
   ```bash
   cd ~/ferguson/projects  # Or wherever your mkbrowser folder is
   git clone https://github.com/hexgrad/kokoro kokoro
-  cd kokoro
+  cd kocreator
   ./setup-kokoro.sh
   ```
 
