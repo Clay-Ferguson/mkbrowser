@@ -88,7 +88,8 @@ if [ -n "$SPECIFIC_TEST" ]; then
     if [[ "$generate_video" =~ ^[Yy]$ ]]; then
         echo ""
         echo "Generating video for $SPECIFIC_TEST..."
-        ./create-video.sh "$SPECIFIC_TEST"
+        CURRENT_FOLDER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        ./create-video.sh "$CURRENT_FOLDER" "$SPECIFIC_TEST"
         echo ""
     fi
 fi

@@ -16,10 +16,10 @@
 # if the .txt source hasn't changed.  Set KOKORO_PROJECT_DIR below to
 # point to your Kokoro project directory.
 #
-# Usage: ./create-video.sh <subfolder-name>
+# Usage: ./create-video.sh <base-folder> <subfolder-name>
 #
 # Example folder structure:
-#   screenshots/my-demo/
+#   <base-folder>/screenshots/my-demo/
 #     001-welcome.png
 #     002-narration.mp3          (or .wav, or .txt)
 #     003-next-screen.png
@@ -28,24 +28,29 @@
 
 set -e
 
-# Validate argument
-if [ $# -eq 0 ]; then
-    echo "Error: Missing required argument"
-    echo "Usage: $0 <subfolder-name>"
-    echo "Example: $0 create-file-demo"
+# Validate arguments
+if [ $# -lt 2 ]; then
+    echo "Error: Missing required arguments"
+    echo "Usage: $0 <base-folder> <subfolder-name>"
+    echo "Example: $0 /home/user/myproject create-file-demo"
     exit 1
 fi
 
-SUBFOLDER="$1"
+BASEFOLDER="$1"
+SUBFOLDER="$2"
 
-# Check for empty string
+# Check for empty strings
+if [ -z "$BASEFOLDER" ]; then
+    echo "Error: Base folder cannot be empty"
+    exit 1
+fi
 if [ -z "$SUBFOLDER" ]; then
     echo "Error: Subfolder name cannot be empty"
     exit 1
 fi
 
-SCREENSHOT_DIR="screenshots/$SUBFOLDER"
-OUTPUT_DIR="test-videos"
+SCREENSHOT_DIR="$BASEFOLDER/screenshots/$SUBFOLDER"
+OUTPUT_DIR="$BASEFOLDER/test-videos"
 MP4_FILE="$OUTPUT_DIR/$SUBFOLDER.mp4"
 GIF_FILE="$OUTPUT_DIR/$SUBFOLDER.gif"
 PALETTE_FILE="$OUTPUT_DIR/$SUBFOLDER-palette.png"
