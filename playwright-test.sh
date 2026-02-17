@@ -3,6 +3,37 @@
 # Run Playwright E2E tests and show report
 # This script runs the tests, then automatically opens the HTML report in the browser
 
+# Function to select a specific test from available E2E tests
+select_specific_test() {
+    local test_files=(tests/e2e/*.spec.ts)
+    local test_names=()
+    
+    # Extract test names without path and extension
+    for file in "${test_files[@]}"; do
+        local basename=$(basename "$file" .spec.ts)
+        test_names+=("$basename")
+    done
+    
+    # Display menu (redirect to stderr so it's visible to user)
+    echo "" >&2
+    echo "Available E2E tests:" >&2
+    for i in "${!test_names[@]}"; do
+        echo "$((i+1))) ${test_names[$i]}" >&2
+    done
+    echo "" >&2
+    
+    # Get user selection
+    read -p "Enter test number [1-${#test_names[@]}]: " test_choice
+    
+    # Validate and return selection (only this goes to stdout for capture)
+    if [[ "$test_choice" =~ ^[0-9]+$ ]] && [ "$test_choice" -ge 1 ] && [ "$test_choice" -le "${#test_names[@]}" ]; then
+        echo "${test_names[$((test_choice-1))]}"
+    else
+        echo "" >&2
+        return 1
+    fi
+}
+
 # Prompt user to choose test scope
 echo ""
 echo "Select test scope:"
@@ -19,7 +50,11 @@ case $choice in
         npm run test:e2e
         ;;
     2)
-        SPECIFIC_TEST="create-latex-demo"
+        SPECIFIC_TEST=$(select_specific_test)
+        if [ $? -ne 0 ] || [ -z "$SPECIFIC_TEST" ]; then
+            echo "Invalid test selection. Exiting."
+            exit 1
+        fi
         echo "Cleaning up screenshots for $SPECIFIC_TEST..."
         rm -rf screenshots/$SPECIFIC_TEST
         echo "Running specific test: $SPECIFIC_TEST.spec.ts..."
