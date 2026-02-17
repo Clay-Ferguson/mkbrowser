@@ -130,6 +130,7 @@ export async function demonstrateTyping(
   page: Page,
   text: string,
   options: {
+    locator?: Locator; // Optional locator to focus and type into
     showHighlight?: boolean;
     pauseBefore?: number;
     pauseAfter?: number;
@@ -138,6 +139,7 @@ export async function demonstrateTyping(
   } = {}
 ): Promise<void> {
   const {
+    locator,
     showHighlight = true,
     pauseBefore = 500,
     pauseAfter = 800,
@@ -145,48 +147,72 @@ export async function demonstrateTyping(
     highlightDuration = 5000, // Keep highlight visible long enough for typing + screenshot
   } = options;
 
+  // If a locator is provided, focus it first
+  if (locator) {
+    await locator.click();
+    await page.waitForTimeout(100); // Wait for focus
+  }
+
   // Apply persistent highlight to the input area
   if (showHighlight) {
-    // Find and highlight the editor - handle both regular inputs and CodeMirror
-    await page.evaluate((dur) => {
-      let editorElement: HTMLElement | null = null;
+    if (locator) {
+      // When we have a locator, apply styles directly to the known element
+      // (locator.evaluate passes the DOM element directly — no need to search for it)
+      await locator.evaluate((element, dur) => {
+        const originalBorder = element.style.border;
+        const originalBoxShadow = element.style.boxShadow;
+        const originalOutline = element.style.outline;
+        const originalOutlineOffset = element.style.outlineOffset;
 
-      // Try to find CodeMirror editor container (the parent with rounded borders)
-      const cmEditor = document.querySelector('.cm-editor');
-      if (cmEditor) {
-        // Get the container div (parent of .cm-editor)
-        editorElement = cmEditor.parentElement?.closest('.rounded') as HTMLElement;
-        if (!editorElement) {
-          editorElement = cmEditor as HTMLElement;
+        element.style.setProperty('border', '4px solid #ff4444', 'important');
+        element.style.setProperty('box-shadow', '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)', 'important');
+        element.style.setProperty('outline', '2px solid #ff6666', 'important');
+        element.style.setProperty('outline-offset', '2px', 'important');
+
+        setTimeout(() => {
+          element.style.border = originalBorder;
+          element.style.boxShadow = originalBoxShadow;
+          element.style.outline = originalOutline;
+          element.style.outlineOffset = originalOutlineOffset;
+        }, dur);
+      }, highlightDuration);
+    } else {
+      // No locator — find CodeMirror editor or fall back to focused element
+      await page.evaluate((dur) => {
+        let editorElement: HTMLElement | null = null;
+
+        const cmEditor = document.querySelector('.cm-editor');
+        if (cmEditor) {
+          // Get the container div (parent of .cm-editor)
+          editorElement = cmEditor.parentElement?.closest('.rounded') as HTMLElement;
+          if (!editorElement) {
+            editorElement = cmEditor as HTMLElement;
+          }
+        } else {
+          editorElement = document.activeElement as HTMLElement;
         }
-      } else {
-        // Fall back to focused element
-        editorElement = document.activeElement as HTMLElement;
-      }
 
-      if (!editorElement) {
-        console.warn('No editor element found for highlighting');
-        return;
-      }
+        if (!editorElement) {
+          console.warn('No editor element found for highlighting');
+          return;
+        }
 
-      // Store original styles
-      const originalBorder = editorElement.style.border;
-      const originalBoxShadow = editorElement.style.boxShadow;
-      const originalOutline = editorElement.style.outline;
+        const originalBorder = editorElement.style.border;
+        const originalBoxShadow = editorElement.style.boxShadow;
+        const originalOutline = editorElement.style.outline;
 
-      // Add highly visible highlight that overrides everything
-      editorElement.style.setProperty('border', '4px solid #ff4444', 'important');
-      editorElement.style.setProperty('box-shadow', '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)', 'important');
-      editorElement.style.setProperty('outline', '2px solid #ff6666', 'important');
-      editorElement.style.setProperty('outline-offset', '2px', 'important');
+        editorElement.style.setProperty('border', '4px solid #ff4444', 'important');
+        editorElement.style.setProperty('box-shadow', '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)', 'important');
+        editorElement.style.setProperty('outline', '2px solid #ff6666', 'important');
+        editorElement.style.setProperty('outline-offset', '2px', 'important');
 
-      // Auto-cleanup after duration
-      setTimeout(() => {
-        editorElement!.style.border = originalBorder;
-        editorElement!.style.boxShadow = originalBoxShadow;
-        editorElement!.style.outline = originalOutline;
-      }, dur);
-    }, highlightDuration);
+        setTimeout(() => {
+          editorElement!.style.border = originalBorder;
+          editorElement!.style.boxShadow = originalBoxShadow;
+          editorElement!.style.outline = originalOutline;
+        }, dur);
+      }, highlightDuration);
+    }
 
     await page.waitForTimeout(300); // Let highlight render
   }
@@ -199,4 +225,47 @@ export async function demonstrateTyping(
 
   // Pause after typing (highlight still visible)
   await page.waitForTimeout(pauseAfter);
+}
+
+/**
+ * Takes a screenshot with a red highlight border on the specified element.
+ * Applies the border, captures the screenshot, then removes the border — all atomically.
+ * This guarantees the highlight is always visible in the captured image regardless of timing.
+ */
+export async function screenshotWithHighlight(
+  page: Page,
+  locator: Locator,
+  screenshotPath: string
+): Promise<void> {
+  // Apply highlight
+  await locator.evaluate((element) => {
+    element.dataset.origBorder = element.style.border;
+    element.dataset.origBoxShadow = element.style.boxShadow;
+    element.dataset.origOutline = element.style.outline;
+    element.dataset.origOutlineOffset = element.style.outlineOffset;
+
+    element.style.setProperty('border', '4px solid #ff4444', 'important');
+    element.style.setProperty('box-shadow', '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)', 'important');
+    element.style.setProperty('outline', '2px solid #ff6666', 'important');
+    element.style.setProperty('outline-offset', '2px', 'important');
+  });
+
+  // Wait for the browser to paint the styles
+  await page.waitForTimeout(150);
+
+  // Capture the screenshot
+  await page.screenshot({ path: screenshotPath });
+
+  // Remove highlight
+  await locator.evaluate((element) => {
+    element.style.border = element.dataset.origBorder || '';
+    element.style.boxShadow = element.dataset.origBoxShadow || '';
+    element.style.outline = element.dataset.origOutline || '';
+    element.style.outlineOffset = element.dataset.origOutlineOffset || '';
+
+    delete element.dataset.origBorder;
+    delete element.dataset.origBoxShadow;
+    delete element.dataset.origOutline;
+    delete element.dataset.origOutlineOffset;
+  });
 }

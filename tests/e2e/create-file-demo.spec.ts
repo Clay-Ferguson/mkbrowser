@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { demonstrateTyping, highlightElement } from './helpers/visual-indicators';
+import { demonstrateTyping, highlightElement, screenshotWithHighlight } from './helpers/visual-indicators';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -80,13 +80,16 @@ test.describe('Create File Demo', () => {
     // Demonstrate typing a filename
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
     await demonstrateTyping(mainWindow, 'my-journal-entry', {
+      locator: filenameInput,
       showHighlight: true,
       typingDelay: 120,
       pauseAfter: 500,
       highlightDuration: 3000,
     });
 
-    await screenshot('filename-entered');
+    await screenshotWithHighlight(mainWindow, filenameInput,
+      path.join(screenshotDir, `${String(step).padStart(3, '0')}-filename-entered.png`));
+    step++;
     await speak('We\'ve entered "my-journal-entry" as the filename. Notice we didn\'t include a file extension — MkBrowser will automatically add ".md" to make it a Markdown file.');
 
     // Demonstrate clicking the Create button in dialog
@@ -111,8 +114,11 @@ test.describe('Create File Demo', () => {
       highlightDuration: 8000, // Keep highlight visible long enough
     });
 
-    // Take screenshot while highlight is still visible
-    await screenshot('content-typed');
+    // Take screenshot with highlight applied atomically
+    const cmEditor = mainWindow.locator('.cm-editor').first();
+    await screenshotWithHighlight(mainWindow, cmEditor,
+      path.join(screenshotDir, `${String(step).padStart(3, '0')}-content-typed.png`));
+    step++;
     await speak('We\'ve typed some content into the editor. MkBrowser supports full Markdown syntax, so you can add headings, lists, links, and more. Now let\'s save our work.');
 
     // Demonstrate clicking the Save button
