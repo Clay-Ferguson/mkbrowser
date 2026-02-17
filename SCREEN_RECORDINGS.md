@@ -63,7 +63,7 @@ Visual indicator functions return quickly but leave indicators visible:
 - Example: `highlightElement(page, locator, 800)` returns after 100ms, but highlight stays for 800ms
 
 ### 2. Demo Test Specs
-**Location**: `tests/e2e/open-folder-demo.spec.ts`
+**Location**: `tests/e2e/create-file-demo.spec.ts`
 
 Example structure:
 ```typescript
@@ -322,9 +322,9 @@ mkbrowser/
 │       ├── helpers/
 │       │   └── visual-indicators.ts     # Visual indicator library
 │       ├── open-folder.spec.ts          # Regular test (no recording)
-│       └── open-folder-demo.spec.ts     # Demo with visual indicators
+│       └── create-file-demo.spec.ts     # Demo with visual indicators
 ├── screenshots/                         # Generated media (gitignored)
-│   └── open-folder-demo/
+│   └── create-file-demo/
 │       ├── 001-step-name.png            # Screenshot
 │       ├── 002-narration.txt            # Narration text (converted via Piper TTS)
 │       ├── 003-step-name.png
@@ -333,8 +333,8 @@ mkbrowser/
 │           ├── 002-narration.wav
 │           └── ...
 ├── test-videos/                         # Generated videos (gitignored)
-│   ├── open-folder-demo.mp4             # Video with audio
-│   └── open-folder-demo.gif             # Images only (no audio)
+│   ├── create-file-demo.mp4             # Video with audio
+│   └── create-file-demo.gif             # Images only (no audio)
 ├── create-video-from-screenshots.sh    # FFmpeg conversion script
 └── SCREEN_RECORDINGS.md                # This document
 ```

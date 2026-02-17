@@ -7,10 +7,10 @@ import * as path from 'path';
  * E2E Demo Test with Visual Indicators
  * Creates screenshots with visual cues showing where clicks and typing occur.
  *
- * Run with: npm run test:e2e -- open-folder-demo.spec.ts
- * Then convert to video with: ./create-video-from-screenshots.sh open-folder-demo
+ * Run with: npm run test:e2e -- create-file-demo.spec.ts
+ * Then convert to video with: ./create-video-from-screenshots.sh create-file-demo
  */
-test.describe('User Guide Demo (Enhanced)', () => {
+test.describe('Create File Demo', () => {
   test('complete workflow with visual indicators', async ({ mainWindow }) => {
     // Control whether screenshots are captured
     const SCREENSHOTS = true;
@@ -23,6 +23,12 @@ test.describe('User Guide Demo (Enhanced)', () => {
     if (SCREENSHOTS) {
       fs.rmSync(screenshotDir, { recursive: true, force: true });
       fs.mkdirSync(screenshotDir, { recursive: true });
+    }
+
+    // Clean up any previously created test file to avoid conflicts
+    const testFilePath = path.join(__dirname, '../../test-data/mkbrowser-test/my-journal-entry.md');
+    if (fs.existsSync(testFilePath)) {
+      fs.unlinkSync(testFilePath);
     }
 
     let step = 1;
@@ -69,7 +75,19 @@ test.describe('User Guide Demo (Enhanced)', () => {
     await mainWindow.waitForTimeout(800);
 
     await screenshot('create-dialog-open');
-    await speak('The Create File dialog has appeared. We can choose a filename and file type. For this demo, we\'ll go with the default name and create a new Markdown file.');
+    await speak('The Create File dialog has appeared. We can enter a custom filename here. Let\'s type a descriptive name for our new file.');
+
+    // Demonstrate typing a filename
+    const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
+    await demonstrateTyping(mainWindow, 'my-journal-entry', {
+      showHighlight: true,
+      typingDelay: 120,
+      pauseAfter: 500,
+      highlightDuration: 3000,
+    });
+
+    await screenshot('filename-entered');
+    await speak('We\'ve entered "my-journal-entry" as the filename. Notice we didn\'t include a file extension — MkBrowser will automatically add ".md" to make it a Markdown file.');
 
     // Demonstrate clicking the Create button in dialog
     const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
@@ -119,7 +137,7 @@ test.describe('User Guide Demo (Enhanced)', () => {
       const pngCount = files.filter(f => f.endsWith('.png')).length;
       const txtCount = files.filter(f => f.endsWith('.txt')).length;
       console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
-      console.log('Run ./create-video-from-screenshots.sh open-folder-demo to create video');
+      console.log('Run ./create-video-from-screenshots.sh create-file-demo to create video');
     } else {
       console.log('\n✓ Test completed (screenshots disabled)');
     }

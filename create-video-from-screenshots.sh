@@ -32,7 +32,7 @@ set -e
 if [ $# -eq 0 ]; then
     echo "Error: Missing required argument"
     echo "Usage: $0 <subfolder-name>"
-    echo "Example: $0 open-folder-demo"
+    echo "Example: $0 create-file-demo"
     exit 1
 fi
 
