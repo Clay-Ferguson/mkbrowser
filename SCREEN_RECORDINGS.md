@@ -102,19 +102,28 @@ test('complete workflow with visual indicators', async ({ mainWindow }) => {
 ### 3. Video Creation Script
 **Location**: `create-video-from-screenshots.sh`
 
-Bash script that converts screenshots and optional audio narration into a video. It supports interleaved `.png` screenshots and `.mp3` audio clips, ordered by filename.
+Bash script that converts screenshots and optional audio narration into a video. It supports interleaved `.png` screenshots and audio in several formats, all ordered by filename:
+
+| Extension | Description |
+|-----------|-------------|
+| `.png`    | Screenshot image — displayed for `FRAME_DURATION` seconds |
+| `.mp3`    | Pre-recorded audio — played while holding the most recent screenshot |
+| `.wav`    | Pre-recorded audio (lossless) — same behavior as `.mp3` |
+| `.txt`    | Narration text — converted to WAV audio via **Piper TTS**, then used like `.wav` |
 
 **How it works**:
-1. Scans the screenshot folder for `.png` and `.mp3` files, sorted by filename
-2. Walks files in order, maintaining a "current image" reference
-3. For each `.png`: creates a video segment showing the image for `FRAME_DURATION` seconds with silent audio
-4. For each `.mp3`: creates a video segment holding the most recent screenshot on screen while the audio plays (duration detected via `ffprobe`)
-5. All segments have both video and audio tracks for consistent concatenation
-6. Concatenates segments into the final MP4 with `ffmpeg -f concat -c copy`
-7. GIF is generated from images only (GIF format has no audio support)
+1. Scans the screenshot folder for `.png`, `.mp3`, `.wav`, and `.txt` files, sorted by filename
+2. If any `.txt` files are found, validates that Piper TTS is available and converts each `.txt` to a `.wav` file (cached in a `generated-wav/` subfolder)
+3. Walks files in order, maintaining a "current image" reference
+4. For each `.png`: creates a video segment showing the image for `FRAME_DURATION` seconds with silent audio
+5. For each audio file (`.mp3`, `.wav`, or converted `.txt`): creates a video segment holding the most recent screenshot on screen while the audio plays (duration detected via `ffprobe`)
+6. All segments are normalized to 44100 Hz stereo AAC audio for consistent concatenation
+7. Concatenates segments into the final MP4 with `ffmpeg -f concat -c copy`
+8. GIF is generated from images only (GIF format has no audio support)
 
 **Parameters**:
 - `FRAME_DURATION`: Seconds per screenshot (default: 2)
+- `PIPER_TTS`: Path to the Piper `tts.sh` script (default: `../piper/tts.sh` relative to the script)
 - `preset slow`: Better compression, slower encoding
 - `crf 18`: High quality (lower = better, range: 0-51)
 - `yuv420p`: Color format for broad compatibility
@@ -124,23 +133,58 @@ Bash script that converts screenshots and optional audio narration into a video.
 
 #### Audio Narration
 
-To add spoken narration or other audio between screenshots, place `.mp3` files in the screenshot folder with numeric prefixes that sort them into the desired position:
+To add spoken narration between screenshots, place audio or text files in the screenshot folder with numeric prefixes that sort them into the desired position. The easiest approach is to write `.txt` narration files directly — the script will automatically convert them to speech using **Piper TTS**:
 
 ```
 screenshots/my-demo/
-  010-initial-view.png         # Shown for FRAME_DURATION (2s)
-  015-welcome-narration.mp3    # Holds 010 image while audio plays
-  020-click-button.png         # Shown for FRAME_DURATION (2s)
-  030-dialog-open.png          # Shown for FRAME_DURATION (2s)
-  035-explanation.mp3           # Holds 030 image while audio plays
-  040-result.png               # Shown for FRAME_DURATION (2s)
+  001-initial-view.png         # Shown for FRAME_DURATION (2s)
+  002-narration.txt            # Text → Piper TTS → WAV → audio segment
+  003-click-button.png         # Shown for FRAME_DURATION (2s)
+  004-narration.txt            # Text → Piper TTS → WAV → audio segment
+  005-dialog-open.png          # Shown for FRAME_DURATION (2s)
+  006-explanation.mp3          # Pre-recorded audio works too
+  007-result.png               # Shown for FRAME_DURATION (2s)
 ```
+
+**Supported audio formats**:
+- **`.txt`** — Plain text narration. Converted to WAV via Piper TTS (local, offline, no cloud APIs). Generated WAV files are cached in a `generated-wav/` subfolder and reused on subsequent runs if the `.txt` source hasn't changed.
+- **`.mp3`** — Pre-recorded audio clips.
+- **`.wav`** — Pre-recorded lossless audio clips.
 
 **Rules**:
 - The first file (by sort order) **must** be a `.png` — audio needs a preceding image to display
-- Use consistent-width numeric prefixes (e.g., 3-digit: `010`, `015`, `020`) with gaps to allow interleaving
+- Use consistent-width numeric prefixes (e.g., 3-digit: `001`, `002`, `003`)
 - Audio duration is detected automatically via `ffprobe`
-- Only `.mp3` format is currently supported
+- All audio is normalized to 44100 Hz stereo during encoding for consistent concatenation
+
+#### Piper TTS Setup
+
+Piper TTS is a fast, local neural text-to-speech engine. The Piper project lives in a sibling folder (`../piper/` relative to the mkbrowser project root). One-time setup:
+
+```bash
+cd ../piper
+./setup-piper.sh    # Creates venv, installs piper-tts, downloads voice model (~115 MB)
+```
+
+Once set up, the video creation script will automatically invoke Piper when it encounters `.txt` narration files. No internet connection is required after the initial setup.
+
+The `PIPER_TTS` variable at the top of `create-video-from-screenshots.sh` controls the path to the Piper `tts.sh` script. Override it if your Piper project is in a different location.
+
+#### Writing Narration Text Files
+
+Narration `.txt` files contain plain English text that Piper will speak aloud. Write them as natural sentences:
+
+```
+Welcome to MkBrowser. Here we can see our files displayed in a browsable list.
+Markdown files are rendered inline, and we can create, edit, and organize
+files right from this interface. Let's create a new file to see how it works.
+```
+
+Tips:
+- Write conversationally — Piper handles natural language well
+- Keep each narration segment focused on what's visible in the preceding screenshot
+- Punctuation affects pacing: periods create pauses, commas create brief pauses
+- Generated WAV files are cached in `screenshots/<demo>/generated-wav/` — delete this folder to force regeneration
 
 ## Technical Deep Dive
 
@@ -228,10 +272,12 @@ const mainWindow = await app.firstWindow();
    npm run test:e2e -- feature-name-demo.spec.ts
    ```
 
-5. **Optionally add audio narration**:
-   - Record or generate `.mp3` audio clips
-   - Name them with numeric prefixes that sort between the screenshots they should accompany
-   - Example: `015-narration.mp3` sorts between `010-screenshot.png` and `020-screenshot.png`
+5. **Add narration** (optional but recommended):
+   - Write `.txt` files containing the narration text for each screenshot
+   - Name them with numeric prefixes so they sort after the screenshot they describe
+   - Example: `002-narration.txt` sorts after `001-screenshot.png` and before `003-screenshot.png`
+   - Alternatively, use pre-recorded `.mp3` or `.wav` audio files
+   - **First-time only**: Run `cd ../piper && ./setup-piper.sh` to install the Piper TTS engine
 
 6. **Create the video**:
    ```bash
@@ -279,10 +325,13 @@ mkbrowser/
 │       └── open-folder-demo.spec.ts     # Demo with visual indicators
 ├── screenshots/                         # Generated media (gitignored)
 │   └── open-folder-demo/
-│       ├── 010-step-name.png            # Screenshot
-│       ├── 015-narration.mp3            # Audio narration (optional)
-│       ├── 020-step-name.png
-│       └── ...
+│       ├── 001-step-name.png            # Screenshot
+│       ├── 002-narration.txt            # Narration text (converted via Piper TTS)
+│       ├── 003-step-name.png
+│       ├── ...
+│       └── generated-wav/               # Cached WAV files from TTS (auto-created)
+│           ├── 002-narration.wav
+│           └── ...
 ├── test-videos/                         # Generated videos (gitignored)
 │   ├── open-folder-demo.mp4             # Video with audio
 │   └── open-folder-demo.gif             # Images only (no audio)
@@ -301,6 +350,12 @@ mkbrowser/
 - `ffprobe`: Audio duration detection (ships with ffmpeg)
 - `xdotool`: Used in initial attempts but not required for current system
 
+### Piper TTS (Optional — Required Only for `.txt` Narration)
+- **Location**: `../piper/` (sibling folder to the mkbrowser project)
+- **Setup**: `cd ../piper && ./setup-piper.sh`
+- **Voice model**: `en_US-ryan-high` (~115 MB, downloaded during setup)
+- **Runtime**: Python venv with `piper-tts` package (local, no internet needed after setup)
+
 Install via:
 ```bash
 ./install-prerequisites.sh  # Installs both NPM and system dependencies
@@ -314,10 +369,10 @@ Install via:
 - Default durations are tuned for typical interactions, but adjust as needed
 
 ### 2. File Naming
-- Use descriptive names: `030-about-to-click-create.png` not `03-click.png`
-- Use consistent-width numeric prefixes with gaps (e.g., `010`, `020`, `030`) to allow inserting audio between any two images
-- Format: `###-description.png` or `###-description.mp3` (three digits for up to 999 steps)
-- Audio files should sort immediately after the screenshot they narrate
+- Use descriptive names: `003-about-to-click-create.png` not `03-click.png`
+- Use consistent-width numeric prefixes (e.g., `001`, `002`, `003`) — odd numbers for screenshots, even for narration works well
+- Format: `###-description.png`, `###-narration.txt`, `###-description.mp3`, or `###-description.wav`
+- Narration files should sort immediately after the screenshot they describe
 
 ### 3. Visual Indicator Placement
 - Show cursor BEFORE clicking
@@ -359,7 +414,7 @@ Install via:
 ## Future Enhancements
 
 ### Potential Improvements
-1. **AI text-to-speech narration**: Automatically generate audio narration from text descriptions using AI TTS, then mix into the video
+1. ~~**AI text-to-speech narration**~~: ✅ **Implemented!** — Piper TTS converts `.txt` narration files to speech automatically
 2. **Animated transitions**: Add fade/slide effects between screenshots
 3. **Zoomed details**: Highlight small UI elements with zoom-in effect
 4. **Keyboard visualization**: Show keypresses as overlays
