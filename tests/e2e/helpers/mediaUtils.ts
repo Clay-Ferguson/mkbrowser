@@ -83,7 +83,7 @@ export async function takeStepScreenshotWithHighlight(
  * @param text - The text to type
  * @param showHighlight - Whether to show visual highlight during typing
  * @param locator - Optional locator to focus and type into
- * @param typingDelay - Milliseconds between each keystroke (default: 150)
+ * @param typingDelay - Milliseconds between each keystroke (default: 35 for super fast but visible typing)
  * 
  * @example
  * await demonstrateTypingForDemo(mainWindow, 'this is a test', true);
@@ -94,14 +94,14 @@ export async function demonstrateTypingForDemo(
   text: string,
   showHighlight: boolean,
   locator?: Locator,
-  typingDelay: number = 150
+  typingDelay: number = 35
 ): Promise<void> {
   await demonstrateTyping(mainWindow, text, {
     locator,
     showHighlight,
     typingDelay,
     pauseAfter: 500,
-    highlightDuration: 8000,
+    highlightDuration: 15000,
   });
 }
 

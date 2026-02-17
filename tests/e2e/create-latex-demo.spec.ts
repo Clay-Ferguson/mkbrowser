@@ -1,0 +1,106 @@
+import { test, expect } from './fixtures/electronApp';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateTypingForDemo, demonstrateClickForDemo } from './helpers/mediaUtils';
+import * as fs from 'fs';
+import * as path from 'path';
+
+/**
+ * E2E Demo Test - LaTeX Rendering
+ * 
+ * This test demonstrates MkBrowser's automatic LaTeX rendering capability.
+ * Creates a file with mathematical formulas and shows how they're rendered
+ * automatically when the file is saved.
+ * 
+ * This is the second video in the tutorial series, building on the basic
+ * file creation workflow from the first demo.
+ *
+ * Run with: npm run test:e2e -- create-latex-demo.spec.ts
+ * Then convert to video with: ./create-video-from-screenshots.sh create-latex-demo
+ */
+test.describe('Create LaTeX Demo', () => {
+  test('demonstrate LaTeX formula rendering', async ({ mainWindow }) => {
+    // Create subfolder based on test file name
+    const testName = path.basename(__filename, '.spec.ts');
+    const screenshotDir = path.join(__dirname, '../../screenshots', testName);
+
+    // Clean and recreate screenshot directory on each run
+    fs.rmSync(screenshotDir, { recursive: true, force: true });
+    fs.mkdirSync(screenshotDir, { recursive: true });
+
+    // Clean up any previously created test file to avoid conflicts
+    const testFilePath = path.join(__dirname, '../../test-data/mkbrowser-test/my-latex-formula.md');
+    if (fs.existsSync(testFilePath)) {
+      fs.unlinkSync(testFilePath);
+    }
+
+    let step = 1;
+
+    // Wait for initial load
+    await mainWindow.waitForTimeout(2000);
+
+    // Verify files are visible
+    await expect(mainWindow.getByText('sample.md')).toBeVisible({ timeout: 10000 });
+    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
+    writeNarration(screenshotDir, step++, 'Welcome back to MkBrowser. In this demo, we\'ll explore one of MkBrowser\'s powerful features: automatic LaTeX rendering for mathematical formulas. Let\'s create a file with a mathematical equation.');
+
+    // Click the create file button
+    const createButton = mainWindow.getByTestId('create-file-button');
+    await takeStepScreenshotWithHighlight(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create');
+    writeNarration(screenshotDir, step++, 'We\'ll start by creating a new file.');
+
+    await demonstrateClickForDemo(createButton);
+
+    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'create-dialog-open');
+    writeNarration(screenshotDir, step++, 'The Create File dialog opens. Let\'s give our file a name that reflects its mathematical content.');
+
+    // Type the filename
+    const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
+    await demonstrateTypingForDemo(mainWindow, 'my-latex-formula', true, filenameInput, 120);
+
+    await takeStepScreenshotWithHighlight(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
+    writeNarration(screenshotDir, step++, 'We\'ve named it "my-latex-formula". Now let\'s create the file and add some mathematical content.');
+
+    // Click Create button in dialog
+    const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
+    await takeStepScreenshotWithHighlight(mainWindow, createDialogButton, screenshotDir, step++, 'about-to-create-file');
+    writeNarration(screenshotDir, step++, 'Clicking Create to open our new file.');
+
+    await demonstrateClickForDemo(createDialogButton);
+
+    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'new-file-created');
+    writeNarration(screenshotDir, step++, 'Great! Our file is created and the editor is ready. Now let\'s add some LaTeX content. We\'ll start with a brief explanation, then include the quadratic formula.');
+
+    // Type the LaTeX content with explanation
+    const latexContent = `The quadratic formula solves equations of the form ax² + bx + c = 0. It provides the solutions for x:
+
+$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$`;
+
+    await demonstrateTypingForDemo(mainWindow, latexContent, true);
+
+    // Take screenshot with the content typed
+    const cmEditor = mainWindow.locator('.cm-editor').first();
+    await takeStepScreenshotWithHighlight(mainWindow, cmEditor, screenshotDir, step++, 'latex-typed');
+    writeNarration(screenshotDir, step++, 'We\'ve entered our explanation and the quadratic formula. Notice the LaTeX code is surrounded by double dollar signs — this tells MkBrowser to render it as a mathematical formula. The formula itself uses LaTeX syntax with commands like "frac" for fractions and "sqrt" for square roots. Now watch what happens when we save.');
+
+    // Click Save button
+    const saveButton = mainWindow.getByTestId('entry-save-button');
+    await takeStepScreenshotWithHighlight(mainWindow, saveButton, screenshotDir, step++, 'about-to-save');
+    writeNarration(screenshotDir, step++, 'Let\'s save the file and see the LaTeX magic happen.');
+
+    await demonstrateClickForDemo(saveButton);
+
+    // Wait a moment for the rendering to complete
+    await mainWindow.waitForTimeout(1000);
+
+    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'formula-rendered');
+    writeNarration(screenshotDir, step++, 'Amazing! The LaTeX code has been automatically rendered into a beautiful, properly formatted mathematical formula. The quadratic formula is now displayed with professional typography — fractions, square roots, and all mathematical symbols are perfectly rendered. This makes MkBrowser ideal for taking notes on mathematics, physics, or any technical subject. No special tools needed — just write your LaTeX between dollar sign delimiters and MkBrowser handles the rest.');
+
+    // Verify save completed
+    await expect(mainWindow.getByTestId('entry-save-button')).not.toBeVisible({ timeout: 5000 });
+
+    const files = fs.readdirSync(screenshotDir);
+    const pngCount = files.filter(f => f.endsWith('.png')).length;
+    const txtCount = files.filter(f => f.endsWith('.txt')).length;
+    console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
+    console.log('Run ./create-video-from-screenshots.sh create-latex-demo to create video');
+  });
+});

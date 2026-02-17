@@ -7,7 +7,7 @@
 echo ""
 echo "Select test scope:"
 echo "1) Run all tests"
-echo "2) Run specific test (create-file-demo.spec.ts)"
+echo "2) Run specific test"
 echo ""
 read -p "Enter choice [1-2]: " choice
 
@@ -19,7 +19,7 @@ case $choice in
         npm run test:e2e
         ;;
     2)
-        SPECIFIC_TEST="create-file-demo"
+        SPECIFIC_TEST="create-latex-demo"
         echo "Cleaning up screenshots for $SPECIFIC_TEST..."
         rm -rf screenshots/$SPECIFIC_TEST
         echo "Running specific test: $SPECIFIC_TEST.spec.ts..."

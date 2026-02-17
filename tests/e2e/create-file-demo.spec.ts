@@ -5,7 +5,12 @@ import * as path from 'path';
 
 /**
  * E2E Demo Test with Visual Indicators
+ * 
+ * This test runs through the workflow of creating a new file, entering content, 
+ * and saving, while capturing each step with annotated screenshots and narration text files.
+ * 
  * Creates screenshots with visual cues showing where clicks and typing occur.
+ * 
  *
  * Run with: npm run test:e2e -- create-file-demo.spec.ts
  * Then convert to video with: ./create-video-from-screenshots.sh create-file-demo
