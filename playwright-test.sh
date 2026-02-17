@@ -89,7 +89,7 @@ if [ -n "$SPECIFIC_TEST" ]; then
         echo ""
         echo "Generating video for $SPECIFIC_TEST..."
         CURRENT_FOLDER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        ./create-video.sh "$CURRENT_FOLDER" "$SPECIFIC_TEST"
+        ../kocreator/create-video.sh "$CURRENT_FOLDER" "$SPECIFIC_TEST"
         echo ""
     fi
 fi
