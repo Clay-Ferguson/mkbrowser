@@ -13,7 +13,7 @@ import * as path from 'path';
  * 
  *
  * Run with: npm run test:e2e -- create-file-demo.spec.ts
- * Then convert to video with: ./create-video-from-screenshots.sh create-file-demo
+ * Then convert to video with: ./create-video.sh create-file-demo
  */
 test.describe('Create File Demo', () => {
   test('complete workflow with visual indicators', async ({ mainWindow }) => {
@@ -97,6 +97,6 @@ test.describe('Create File Demo', () => {
     const pngCount = files.filter(f => f.endsWith('.png')).length;
     const txtCount = files.filter(f => f.endsWith('.txt')).length;
     console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
-    console.log('Run ./create-video-from-screenshots.sh create-file-demo to create video');
+    console.log('Run ./create-video.sh create-file-demo to create video');
   });
 });

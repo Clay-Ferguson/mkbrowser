@@ -14,7 +14,7 @@ import * as path from 'path';
  * file creation workflow and LaTeX rendering from previous demos.
  *
  * Run with: npm run test:e2e -- create-mermaid-demo.spec.ts
- * Then convert to video with: ./create-video-from-screenshots.sh create-mermaid-demo
+ * Then convert to video with: ./create-video.sh create-mermaid-demo
  */
 test.describe('Create Mermaid Demo', () => {
   test('demonstrate Mermaid diagram rendering', async ({ mainWindow }) => {
@@ -126,6 +126,6 @@ graph TB
     const pngCount = files.filter(f => f.endsWith('.png')).length;
     const txtCount = files.filter(f => f.endsWith('.txt')).length;
     console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
-    console.log('Run ./create-video-from-screenshots.sh create-mermaid-demo to create video');
+    console.log('Run ./create-video.sh create-mermaid-demo to create video');
   });
 });

@@ -16,7 +16,7 @@
 # if the .txt source hasn't changed.  Set KOKORO_PROJECT_DIR below to
 # point to your Kokoro project directory.
 #
-# Usage: ./create-video-from-screenshots.sh <subfolder-name>
+# Usage: ./create-video.sh <subfolder-name>
 #
 # Example folder structure:
 #   screenshots/my-demo/

@@ -88,7 +88,7 @@ if [ -n "$SPECIFIC_TEST" ]; then
     if [[ "$generate_video" =~ ^[Yy]$ ]]; then
         echo ""
         echo "Generating video for $SPECIFIC_TEST..."
-        ./create-video-from-screenshots.sh "$SPECIFIC_TEST"
+        ./create-video.sh "$SPECIFIC_TEST"
         echo ""
     fi
 fi
