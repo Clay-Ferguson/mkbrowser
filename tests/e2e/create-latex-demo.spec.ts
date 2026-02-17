@@ -9,12 +9,6 @@ import * as path from 'path';
  * This test demonstrates MkBrowser's automatic LaTeX rendering capability.
  * Creates a file with mathematical formulas and shows how they're rendered
  * automatically when the file is saved.
- * 
- * This is the second video in the tutorial series, building on the basic
- * file creation workflow from the first demo.
- *
- * Run with: npm run test:e2e -- create-latex-demo.spec.ts
- * Then convert to video with: ./create-video.sh create-latex-demo
  */
 test.describe('Create LaTeX Demo', () => {
   test('demonstrate LaTeX formula rendering', async ({ mainWindow }) => {
@@ -101,6 +95,5 @@ $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$`;
     const pngCount = files.filter(f => f.endsWith('.png')).length;
     const txtCount = files.filter(f => f.endsWith('.txt')).length;
     console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
-    console.log('Run ./create-video.sh create-latex-demo to create video');
   });
 });

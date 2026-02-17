@@ -9,12 +9,6 @@ import * as path from 'path';
  * This test demonstrates MkBrowser's automatic Mermaid diagram rendering capability.
  * Creates a file with a software architecture diagram and shows how it's rendered
  * automatically when the file is saved.
- * 
- * This is the third video in the tutorial series, building on the basic
- * file creation workflow and LaTeX rendering from previous demos.
- *
- * Run with: npm run test:e2e -- create-mermaid-demo.spec.ts
- * Then convert to video with: ./create-video.sh create-mermaid-demo
  */
 test.describe('Create Mermaid Demo', () => {
   test('demonstrate Mermaid diagram rendering', async ({ mainWindow }) => {
@@ -126,6 +120,5 @@ graph TB
     const pngCount = files.filter(f => f.endsWith('.png')).length;
     const txtCount = files.filter(f => f.endsWith('.txt')).length;
     console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
-    console.log('Run ./create-video.sh create-mermaid-demo to create video');
   });
 });

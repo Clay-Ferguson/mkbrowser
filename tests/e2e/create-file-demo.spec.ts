@@ -8,12 +8,6 @@ import * as path from 'path';
  * 
  * This test runs through the workflow of creating a new file, entering content, 
  * and saving, while capturing each step with annotated screenshots and narration text files.
- * 
- * Creates screenshots with visual cues showing where clicks and typing occur.
- * 
- *
- * Run with: npm run test:e2e -- create-file-demo.spec.ts
- * Then convert to video with: ./create-video.sh create-file-demo
  */
 test.describe('Create File Demo', () => {
   test('complete workflow with visual indicators', async ({ mainWindow }) => {
@@ -97,6 +91,5 @@ test.describe('Create File Demo', () => {
     const pngCount = files.filter(f => f.endsWith('.png')).length;
     const txtCount = files.filter(f => f.endsWith('.txt')).length;
     console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
-    console.log('Run ./create-video.sh create-file-demo to create video');
   });
 });
