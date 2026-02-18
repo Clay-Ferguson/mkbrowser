@@ -12,6 +12,7 @@ interface EditableComboboxProps {
   options: ComboboxOption[];
   placeholder?: string;
   className?: string;
+  'data-testid'?: string;
 }
 
 /**
@@ -25,6 +26,7 @@ function EditableCombobox({
   options,
   placeholder,
   className = '',
+  'data-testid': dataTestId,
 }: EditableComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -145,6 +147,7 @@ function EditableCombobox({
           onFocus={handleInputFocus}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
+          data-testid={dataTestId}
           className="flex-1 bg-slate-900 text-slate-200 px-3 py-2 rounded-l border border-r-0 border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
         />
         <button

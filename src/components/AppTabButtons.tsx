@@ -65,6 +65,7 @@ function AppTabButtons({ onSelectFolder, onQuit }: AppTabButtonsProps) {
       {tabs.map((tab) => (
         <button
           key={tab.id}
+          data-testid={`tab-button-${tab.id}`}
           type="button"
           onClick={() => setCurrentView(tab.id)}
           className={`
