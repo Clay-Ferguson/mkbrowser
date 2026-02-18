@@ -34,6 +34,15 @@ select_specific_test() {
     fi
 }
 
+# Build the app first so the Playwright fixture loads the latest code
+echo "Building app with electron-forge..."
+npm run build
+if [ $? -ne 0 ]; then
+    echo "Build failed. Exiting."
+    exit 1
+fi
+echo ""
+
 # Prompt user to choose test scope
 echo ""
 echo "Select test scope:"
