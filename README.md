@@ -23,14 +23,7 @@ This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) 
 
 ## Screenshots
 
-### Create a File
-![collapsed-files](docs/img/create-file-demo.gif)
-
-### LaTeX
-![expanded-file](docs/img/create-latex-demo.gif)
-
-### Mermaid Diagram
-![expanded-file](docs/img/create-mermaid-demo.gif)
+### [Click here for Animated GIFs](docs/img/animaged-gifs/about-animated-gifs.md)
 
 ### View Files Collapsed
 ![collapsed-files](docs/img/collapsed-files.png)
