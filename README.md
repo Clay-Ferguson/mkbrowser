@@ -23,22 +23,31 @@ This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) 
 
 ## Screenshots
 
+### Create a File
 ![collapsed-files](docs/img/create-file-demo.gif)
 
+### LaTeX
 ![expanded-file](docs/img/create-latex-demo.gif)
 
+### Mermaid Diagram
 ![expanded-file](docs/img/create-mermaid-demo.gif)
 
+### View Files Collapsed
 ![collapsed-files](docs/img/collapsed-files.png)
 
+### View Files Expanded
 ![expanded-file](docs/img/expanded-file.png)
 
+### Editing a File
 ![expanded-file](docs/img/editing-file.png)
 
+### Searching
 ![expanded-file](docs/img/searching.png)
 
+### Export
 ![export-dialog](docs/img/export-dialog.png)
 
+### Settings
 ![settings-page](docs/img/settings-page.png)
 
 ## Tech Stack
