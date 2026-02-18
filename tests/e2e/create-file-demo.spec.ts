@@ -19,10 +19,10 @@ test.describe('Create File Demo', () => {
     fs.rmSync(screenshotDir, { recursive: true, force: true });
     fs.mkdirSync(screenshotDir, { recursive: true });
 
-    // Clean up any previously created test file to avoid conflicts
-    const testFilePath = path.join(__dirname, '../../test-data/mkbrowser-test/my-journal-entry.md');
-    if (fs.existsSync(testFilePath)) {
-      fs.unlinkSync(testFilePath);
+    // Clean up any previously created test files to avoid conflicts
+    const testDataDir = path.join(__dirname, '../../test-data/mkbrowser-test');
+    for (const file of fs.readdirSync(testDataDir).filter(f => /^my-.*\.md$/.test(f))) {
+      fs.unlinkSync(path.join(testDataDir, file));
     }
 
     let step = 1;
