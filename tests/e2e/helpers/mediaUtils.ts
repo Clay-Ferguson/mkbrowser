@@ -54,10 +54,11 @@ export function writeNarration(
   step: number,
   narrationText: string
 ): void {
-  fs.writeFileSync(
-    path.join(screenshotDir, `${String(step).padStart(3, '0')}-narration.txt`),
-    narrationText
-  );
+  const filePath = path.join(screenshotDir, `${String(step).padStart(3, '0')}-narration.txt`);
+  if (fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf-8') === narrationText) {
+    return;
+  }
+  fs.writeFileSync(filePath, narrationText);
 }
 
 /**
