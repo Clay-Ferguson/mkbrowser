@@ -89,7 +89,10 @@ if [ -n "$SPECIFIC_TEST" ]; then
         echo ""
         echo "Generating video for $SPECIFIC_TEST..."
         CURRENT_FOLDER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        ../kocreator/create-video.sh "$CURRENT_FOLDER" "$SPECIFIC_TEST"
+        KOCREATOR_DIR="$CURRENT_FOLDER/../kocreator"
+        source "$KOCREATOR_DIR/.venv/bin/activate"
+        python "$KOCREATOR_DIR/create-video.py" "$CURRENT_FOLDER" "$SPECIFIC_TEST"
+        deactivate
         echo ""
         # open nautilus at the test-videos
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
