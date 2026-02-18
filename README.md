@@ -23,7 +23,7 @@ This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) 
 
 ## Screenshots
 
-### [Click here for Animated GIFs](docs/img/animaged-gifs/about-animated-gifs.md)
+### [Click here for Animated GIFs](docs/img/animated-gifs/about-animated-gifs.md)
 
 ### View Files Collapsed
 ![collapsed-files](docs/img/collapsed-files.png)
