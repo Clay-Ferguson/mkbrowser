@@ -21,7 +21,7 @@ function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleBackdropClick}>
-      <div className="bg-slate-800 rounded-lg border border-slate-700 p-6 max-w-md mx-4 shadow-xl">
+      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 max-w-md mx-4 shadow-xl">
         <p className="text-slate-200 mb-6">{message}</p>
         <div className="flex justify-end gap-3">
           <button
