@@ -959,6 +959,7 @@ function App() {
           <button
             onClick={handleSelectFolder}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+            data-testid="select-folder-button"
           >
             Select Folder
           </button>
@@ -1055,6 +1056,7 @@ function App() {
                 onClick={handleOpenCreateFolderDialog}
                 className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Create folder"
+                data-testid="create-folder-button"
               >
                 <FolderPlusIcon className="w-5 h-5" />
               </button>
@@ -1065,6 +1067,7 @@ function App() {
                 onClick={() => setShowEditMenu(prev => !prev)}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Edit"
+                data-testid="edit-menu-button"
               >
                 <Squares2X2Icon className="w-5 h-5" />
               </button>
@@ -1075,6 +1078,7 @@ function App() {
                 onClick={() => setShowBookmarksMenu(prev => !prev)}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Bookmarks"
+                data-testid="bookmarks-menu-button"
               >
                 <BookmarkIcon className="w-5 h-5" />
               </button>
@@ -1085,6 +1089,7 @@ function App() {
                 onClick={() => setShowToolsMenu(prev => !prev)}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Tools"
+                data-testid="tools-menu-button"
               >
                 <WrenchIcon className="w-5 h-5" />
               </button>
@@ -1095,6 +1100,7 @@ function App() {
                 onClick={() => setShowSortMenu(prev => !prev)}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Sort order"
+                data-testid="sort-menu-button"
               >
                 <BarsArrowDownIcon className="w-5 h-5" />
               </button>
@@ -1105,6 +1111,7 @@ function App() {
                   onClick={cutSelectedItems}
                   className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                   title="Cut selected items"
+                  data-testid="cut-button"
                 >
                   Cut
                 </button>
@@ -1116,6 +1123,7 @@ function App() {
                   onClick={() => setShowDeleteConfirm(true)}
                   className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
                   title="Delete selected items"
+                  data-testid="delete-button"
                 >
                   Del
                 </button>
@@ -1127,6 +1135,7 @@ function App() {
                   onClick={() => void doPasteCutItems()}
                   className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                   title="Paste cut items"
+                  data-testid="paste-button"
                 >
                   Paste
                 </button>
@@ -1137,6 +1146,7 @@ function App() {
                 onClick={handlePasteFromClipboard}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Paste from clipboard"
+                data-testid="paste-clipboard-button"
               >
                 <ClipboardIcon className="w-5 h-5" />
               </button>
@@ -1147,6 +1157,7 @@ function App() {
                 onClick={() => setShowSearchMenu(prev => !prev)}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Search"
+                data-testid="search-menu-button"
               >
                 <MagnifyingGlassIcon className="w-5 h-5" />
               </button>
@@ -1157,6 +1168,7 @@ function App() {
                   onClick={expandAllItems}
                   className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                   title="Expand all"
+                  data-testid="expand-all-button"
                 >
                   <ChevronDownIcon className="w-5 h-5" />
                 </button>
@@ -1168,6 +1180,7 @@ function App() {
                   onClick={collapseAllItems}
                   className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                   title="Collapse all"
+                  data-testid="collapse-all-button"
                 >
                   <ChevronUpIcon className="w-5 h-5" />
                 </button>
@@ -1178,6 +1191,7 @@ function App() {
                 onClick={refreshDirectory}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Refresh"
+                data-testid="refresh-button"
               >
                 <ArrowPathIcon className="w-5 h-5" />
               </button>
@@ -1188,6 +1202,7 @@ function App() {
                 disabled={currentPath === rootPath}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 title="Go up one level"
+                data-testid="navigate-up-button"
               >
                 <ArrowUpIcon className="w-5 h-5" />
               </button>

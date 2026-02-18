@@ -145,6 +145,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           value={searchQuery}
           onChange={handleQueryChange}
           onKeyDown={handleKeyDown}
+          data-testid="search-query-input"
           rows={4}
           className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm font-mono resize-none ${
             error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
@@ -165,10 +166,12 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               options={searchDefinitionOptions}
               placeholder="Enter a name to save, or select existing..."
               className="flex-1"
+              data-testid="search-name-input"
             />
             <button
               onClick={handleSave}
               disabled={!searchName.trim()}
+              data-testid="save-search-button"
               className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-500 disabled:bg-green-600/50 disabled:cursor-not-allowed rounded transition-colors"
             >
               Save
@@ -180,6 +183,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 }
               }}
               disabled={!searchName.trim()}
+              data-testid="delete-search-button"
               className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-500 disabled:bg-red-600/50 disabled:cursor-not-allowed rounded transition-colors"
             >
               Delete
@@ -197,6 +201,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 name="searchMode"
                 checked={searchMode === 'content'}
                 onChange={() => setSearchMode('content')}
+                data-testid="search-mode-content"
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
               />
               <span className="text-sm text-slate-300">File Contents</span>
@@ -207,6 +212,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 name="searchMode"
                 checked={searchMode === 'filenames'}
                 onChange={() => setSearchMode('filenames')}
+                data-testid="search-mode-filenames"
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
               />
               <span className="text-sm text-slate-300">File Names</span>
@@ -224,6 +230,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 name="searchType"
                 checked={searchType === 'literal'}
                 onChange={() => setSearchType('literal')}
+                data-testid="search-type-literal"
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
               />
               <span className="text-sm text-slate-300">Literal</span>
@@ -234,6 +241,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 name="searchType"
                 checked={searchType === 'wildcard'}
                 onChange={() => setSearchType('wildcard')}
+                data-testid="search-type-wildcard"
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
               />
               <span className="text-sm text-slate-300">Wild Card</span>
@@ -244,6 +252,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 name="searchType"
                 checked={searchType === 'advanced'}
                 onChange={() => setSearchType('advanced')}
+                data-testid="search-type-advanced"
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
               />
               <span className="text-sm text-slate-300">Advanced</span>
@@ -262,6 +271,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 checked={searchBlock === 'entire-file'}
                 onChange={() => setSearchBlock('entire-file')}
                 disabled={searchMode === 'filenames' || searchType !== 'advanced'}
+                data-testid="search-block-entire-file"
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <span className="text-sm text-slate-300">Entire File</span>
@@ -273,6 +283,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 checked={searchBlock === 'file-lines'}
                 onChange={() => setSearchBlock('file-lines')}
                 disabled={searchMode === 'filenames' || searchType !== 'advanced'}
+                data-testid="search-block-file-lines"
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <span className="text-sm text-slate-300">File Lines</span>
@@ -287,6 +298,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SearchSortBy)}
+              data-testid="sort-by-select"
               className="bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
             >
               <option value="modified-time">File Modification Time</option>
@@ -299,6 +311,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             <select
               value={sortDirection}
               onChange={(e) => setSortDirection(e.target.value as SearchSortDirection)}
+              data-testid="sort-direction-select"
               className="bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
             >
               <option value="desc">DESC (newest first)</option>
@@ -325,6 +338,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onCancel}
+            data-testid="cancel-search-button"
             className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
           >
             Cancel
@@ -332,6 +346,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           <button
             onClick={handleSearch}
             disabled={!searchQuery.trim()}
+            data-testid="execute-search-button"
             className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed rounded transition-colors"
           >
             Search
