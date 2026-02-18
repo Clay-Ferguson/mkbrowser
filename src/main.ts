@@ -1,8 +1,9 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, nativeImage } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
-import * as yaml from 'js-yaml';
 import started from 'electron-squirrel-startup';
+import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
+import type { AppConfig } from './configMgr';
 import { calculateRenameOperations, type RenameOperation } from './utils/ordinals';
 import { trimLeadingWhitespaceFromNames } from './utils/fileUtils';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
@@ -20,85 +21,7 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'local-file', privileges: { bypassCSP: true, stream: true, supportFetchAPI: true } }
 ]);
 
-// Config file location (Linux standard: ~/.config/mk-browser/config.yaml)
-const CONFIG_DIR = path.join(app.getPath('home'), '.config', 'mk-browser');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
 
-// Command-line override for browse folder (takes precedence over config file)
-let commandLineFolder: string | null = null;
-
-type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
-type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
-type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
-type SearchMode = 'content' | 'filenames';
-type SearchType = 'literal' | 'wildcard' | 'advanced';
-type SearchBlock = 'entire-file' | 'file-lines';
-
-interface SearchDefinition {
-  name: string;
-  searchText: string;
-  searchTarget: SearchMode;
-  searchMode: SearchType;
-  searchBlock: SearchBlock;
-}
-
-interface AppSettings {
-  fontSize: FontSize;
-  sortOrder: SortOrder;
-  foldersOnTop: boolean;
-  ignoredPaths: string;
-  searchDefinitions: SearchDefinition[];
-  contentWidth: ContentWidth;
-  bookmarks: string[];
-}
-
-interface AppConfig {
-  browseFolder: string;
-  curSubFolder?: string;
-  settings?: AppSettings;
-}
-
-const defaultSettings: AppSettings = {
-  fontSize: 'medium',
-  sortOrder: 'alphabetical',
-  foldersOnTop: true,
-  ignoredPaths: '',
-  searchDefinitions: [],
-  contentWidth: 'medium',
-  bookmarks: [],
-};
-
-function ensureConfigDir(): void {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-}
-
-function loadConfig(): AppConfig {
-  ensureConfigDir();
-  try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      const content = fs.readFileSync(CONFIG_FILE, 'utf-8');
-      const config = yaml.load(content) as AppConfig;
-      if (config) {
-        // Ensure settings has defaults merged in
-        return {
-          ...config,
-          settings: { ...defaultSettings, ...config.settings },
-        };
-      }
-    }
-  } catch {
-    // If config is corrupted, return default
-  }
-  return { browseFolder: '', settings: defaultSettings };
-}
-
-function saveConfig(config: AppConfig): void {
-  ensureConfigDir();
-  const content = yaml.dump(config);
-  fs.writeFileSync(CONFIG_FILE, content, 'utf-8');
-}
 
 // File/folder types for the renderer
 interface FileEntry {
@@ -190,20 +113,14 @@ function setupIpcHandlers(): void {
     return { affData, dicData };
   });
 
-  // Get the configured browse folder (command-line override takes precedence)
+  // Get the in-memory config (no file I/O after startup)
   ipcMain.handle('get-config', (): AppConfig => {
-    const config = loadConfig();
-    if (commandLineFolder) {
-      config.browseFolder = commandLineFolder;
-      // When launched with a command-line folder, ignore any saved subfolder
-      delete config.curSubFolder;
-    }
-    return config;
+    return getConfig();
   });
 
-  // Save configuration
+  // Save configuration — updates in-memory state and flushes to disk
   ipcMain.handle('save-config', (_event, config: AppConfig): void => {
-    saveConfig(config);
+    setConfig(config);
   });
 
   // Set window title
@@ -478,9 +395,8 @@ function setupIpcHandlers(): void {
   // Search and replace in files recursively
   ipcMain.handle('search-and-replace', async (_event, folderPath: string, searchText: string, replaceText: string): Promise<ReplaceResult[]> => {
     try {
-      // Load ignored paths from config
-      const config = loadConfig();
-      const ignoredPathsRaw = config.settings?.ignoredPaths ?? '';
+      // Get ignored paths from in-memory config
+      const ignoredPathsRaw = getConfig().settings?.ignoredPaths ?? '';
       const ignoredPaths = ignoredPathsRaw
         .split('\n')
         .map(p => p.trim())
@@ -527,9 +443,8 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchBlock: 'entire-file' | 'file-lines' = 'entire-file'): Promise<SearchResult[]> => {
     try {
-      // Load ignored paths from config
-      const config = loadConfig();
-      const ignoredPathsRaw = config.settings?.ignoredPaths ?? '';
+      // Get ignored paths from in-memory config
+      const ignoredPathsRaw = getConfig().settings?.ignoredPaths ?? '';
       const ignoredPaths = ignoredPathsRaw
         .split('\n')
         .map(p => p.trim())
@@ -545,9 +460,8 @@ function setupIpcHandlers(): void {
   // Analyze folder for hashtags in .md and .txt files
   ipcMain.handle('analyze-folder-hashtags', async (_event, folderPath: string): Promise<FolderAnalysisResult> => {
     try {
-      // Load ignored paths from config
-      const config = loadConfig();
-      const ignoredPathsRaw = config.settings?.ignoredPaths ?? '';
+      // Get ignored paths from in-memory config
+      const ignoredPathsRaw = getConfig().settings?.ignoredPaths ?? '';
       const ignoredPaths = ignoredPathsRaw
         .split('\n')
         .map(p => p.trim())
@@ -838,14 +752,8 @@ async function handleCommandLineArgs(): Promise<void> {
         // Resolve to absolute path
         const absolutePath = path.resolve(folderPath);
 
-        // Store in memory for immediate use (overrides config file)
-        commandLineFolder = absolutePath;
-
-        // Also update and save config file for persistence
-        const config = loadConfig();
-        config.browseFolder = absolutePath;
-        delete config.curSubFolder;
-        saveConfig(config);
+        // Update in-memory config and persist to disk
+        updateConfig({ browseFolder: absolutePath, curSubFolder: undefined });
 
         console.log(`Opening folder from command line: ${absolutePath}`);
       } else {
@@ -862,6 +770,7 @@ async function handleCommandLineArgs(): Promise<void> {
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
   setupLocalFileProtocol();
+  initConfig();          // Read config file once — all later access is in-memory
   setupIpcHandlers();
   await handleCommandLineArgs();
   createWindow();

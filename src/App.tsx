@@ -594,7 +594,8 @@ function App() {
   const handleSelectFolder = useCallback(async () => {
     const folder = await window.electronAPI.selectFolder();
     if (folder) {
-      await window.electronAPI.saveConfig({ browseFolder: folder });
+      const config = await window.electronAPI.getConfig();
+      await window.electronAPI.saveConfig({ ...config, browseFolder: folder, curSubFolder: undefined });
       setRootPath(folder);
       setCurrentPath(folder);
     }
