@@ -6,7 +6,7 @@
 2. **Created Playwright configuration** at `playwright.config.ts`
 3. **Created test fixtures** at `tests/e2e/fixtures/electronApp.ts` for automatic app launch/teardown
 4. **Created global setup** at `tests/e2e/global-setup.ts` to ensure app is built before tests
-5. **Added test data** folder at `test-data/mkbrowser-test/` with sample files (sample.md, readme.txt, notes.md)
+5. **Added test data** folder at `mkbrowser-test/` with sample files (sample.md, readme.txt, notes.md)
 6. **Added data-testid attributes** to UI elements for reliable test element selection:
    - App logo button: `data-testid="app-logo"`
    - Open Folder menu item: `data-testid="menu-open-folder"`  

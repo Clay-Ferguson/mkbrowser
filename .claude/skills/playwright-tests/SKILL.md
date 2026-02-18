@@ -36,7 +36,7 @@ fs.rmSync(screenshotDir, { recursive: true, force: true });
 fs.mkdirSync(screenshotDir, { recursive: true });
 
 // Clean up any previously created test files to avoid conflicts
-const testDataDir = path.join(__dirname, '../../test-data/mkbrowser-test');
+const testDataDir = path.join(__dirname, '../../mkbrowser-test');
 for (const file of fs.readdirSync(testDataDir).filter(f => /^my-.*\.md$/.test(f))) {
   fs.unlinkSync(path.join(testDataDir, file));
 }
@@ -152,7 +152,7 @@ test.describe('My Feature Demo', () => {
     fs.rmSync(screenshotDir, { recursive: true, force: true });
     fs.mkdirSync(screenshotDir, { recursive: true });
 
-    const testDataDir = path.join(__dirname, '../../test-data/mkbrowser-test');
+    const testDataDir = path.join(__dirname, '../../mkbrowser-test');
     for (const file of fs.readdirSync(testDataDir).filter(f => /^my-.*\.md$/.test(f))) {
       fs.unlinkSync(path.join(testDataDir, file));
     }

@@ -16,7 +16,7 @@ export const test = base.extend<{
    */
   testDataPath: async ({}, use) => {
     // Go up to project root, then into test-data
-    const testDataPath = path.join(__dirname, '../../../test-data/mkbrowser-test');
+    const testDataPath = path.join(__dirname, '../../../mkbrowser-test');
     await use(testDataPath);
   },
 
