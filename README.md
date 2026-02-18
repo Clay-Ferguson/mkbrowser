@@ -23,6 +23,12 @@ This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) 
 
 ## Screenshots
 
+![collapsed-files](docs/img/create-file-demo.gif)
+
+![expanded-file](docs/img/create-latex-demo.gif)
+
+![expanded-file](docs/img/create-mermaid-demo.gif)
+
 ![collapsed-files](docs/img/collapsed-files.png)
 
 ![expanded-file](docs/img/expanded-file.png)
