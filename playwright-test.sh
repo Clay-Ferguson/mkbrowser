@@ -91,6 +91,10 @@ if [ -n "$SPECIFIC_TEST" ]; then
         CURRENT_FOLDER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         ../kocreator/create-video.sh "$CURRENT_FOLDER" "$SPECIFIC_TEST"
         echo ""
+        # open nautilus at the test-videos
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            xdg-open "$CURRENT_FOLDER/../test-videos"
+        fi
     fi
 fi
 

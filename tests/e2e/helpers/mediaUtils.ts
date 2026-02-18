@@ -8,6 +8,16 @@ import * as path from 'path';
  */
 
 /**
+ * Log a summary of generated screenshots and narration files in a directory.
+ */
+export function logScreenshotSummary(screenshotDir: string): void {
+  const files = fs.readdirSync(screenshotDir);
+  const pngCount = files.filter(f => f.endsWith('.png')).length;
+  const txtCount = files.filter(f => f.endsWith('.txt')).length;
+  console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
+}
+
+/**
  * Takes a screenshot with standardized naming.
  * 
  * @param mainWindow - The Playwright Page object

@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo } from './helpers/mediaUtils';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -116,9 +116,6 @@ graph TB
     // Verify save completed
     await expect(mainWindow.getByTestId('entry-save-button')).not.toBeVisible({ timeout: 5000 });
 
-    const files = fs.readdirSync(screenshotDir);
-    const pngCount = files.filter(f => f.endsWith('.png')).length;
-    const txtCount = files.filter(f => f.endsWith('.txt')).length;
-    console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
+    logScreenshotSummary(screenshotDir);
   });
 });
