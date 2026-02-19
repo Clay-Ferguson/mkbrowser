@@ -145,6 +145,7 @@ if [ $? -eq 0 ]; then
     echo "Success! PDF generated:"
     echo "$OUTPUT_FILE"
     echo "========================================"
+    xdg-open "$OUTPUT_FILE" &
 else
     echo ""
     echo "========================================"

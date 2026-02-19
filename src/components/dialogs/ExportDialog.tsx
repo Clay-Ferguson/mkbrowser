@@ -10,11 +10,11 @@ interface ExportDialogProps {
 
 function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: ExportDialogProps) {
   const [outputFolder, setOutputFolder] = useState(defaultFolder);
-  const [fileName, setFileName] = useState(defaultFileName);
+  const [fileName, setFileName] = useState(() => defaultFileName.replace(/\.[a-zA-Z0-9]+$/, ''));
   const [includeSubfolders, setIncludeSubfolders] = useState(false);
   const [includeFilenames, setIncludeFilenames] = useState(true);
   const [includeDividers, setIncludeDividers] = useState(true);
-  const [exportToPdf, setExportToPdf] = useState(false);
+  const [outputFormat, setOutputFormat] = useState<'markdown' | 'pdf'>('markdown');
   const fileNameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -32,14 +32,12 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
   const handleExport = () => {
     const trimmedFolder = outputFolder.trim();
     const trimmedFileName = fileName.trim();
-    if (!trimmedFolder || !trimmedFileName) return;
-    
-    // Strip any extension and add the appropriate one
-    const baseFileName = trimmedFileName.replace(/\.(md|pdf)$/i, '');
-    // Always use .md extension - the caller will handle PDF conversion
-    const finalFileName = `${baseFileName}.md`;
-    
-    onExport(trimmedFolder, finalFileName, includeSubfolders, includeFilenames, includeDividers, exportToPdf);
+    if (!trimmedFolder || !trimmedFileName || fileNameHasExtension) return;
+
+    // Always pass a .md filename — the caller handles PDF conversion from it
+    const finalFileName = `${trimmedFileName}.md`;
+
+    onExport(trimmedFolder, finalFileName, includeSubfolders, includeFilenames, includeDividers, outputFormat === 'pdf');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -52,7 +50,8 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
     }
   };
 
-  const isValid = outputFolder.trim() && fileName.trim();
+  const fileNameHasExtension = /\.[a-zA-Z0-9]+$/.test(fileName.trim());
+  const isValid = outputFolder.trim() && fileName.trim() && !fileNameHasExtension;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -95,15 +94,21 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             value={fileName}
             onChange={(e) => setFileName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
-            placeholder="export.md"
+            className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm ${
+              fileNameHasExtension
+                ? 'border-red-500 focus:border-red-400'
+                : 'border-slate-600 focus:border-blue-500'
+            }`}
+            placeholder="export"
             data-testid="export-file-name"
           />
-          <p className="text-xs text-slate-500 mt-1">
-            {exportToPdf 
-              ? 'The output file will have a .pdf extension.'
-              : 'The output file will have a .md extension.'}
-          </p>
+          {fileNameHasExtension ? (
+            <p className="text-xs text-red-400 mt-1">Do not include a file extension — it will be added automatically.</p>
+          ) : (
+            <p className="text-xs text-slate-500 mt-1">
+              Do not include an extension. The file will be saved as <span className="text-slate-400">.{outputFormat === 'pdf' ? 'pdf' : 'md'}</span>.
+            </p>
+          )}
         </div>
 
         {/* Include Subfolders Checkbox */}
@@ -157,22 +162,41 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
           </p>
         </div>
 
-        {/* Export to PDF Checkbox */}
-        <div className="mb-6">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={exportToPdf}
-              onChange={(e) => setExportToPdf(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
-              data-testid="export-to-pdf"
-            />
-            <span className="text-sm text-slate-300">Export to PDF</span>
-          </label>
-          <p className="text-xs text-slate-500 mt-1 ml-6">
-            When enabled, the markdown file will be converted to PDF using Pandoc.
-            A terminal window will open showing the conversion progress.
-          </p>
+        {/* Output Format Radio Group */}
+        <div className="mb-6 border border-slate-600 rounded p-3">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Output Format</p>
+          <div className="flex flex-row gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="outputFormat"
+                value="markdown"
+                checked={outputFormat === 'markdown'}
+                onChange={() => setOutputFormat('markdown')}
+                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
+                data-testid="export-format-markdown"
+              />
+              <span className="text-sm text-slate-300">Markdown</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="outputFormat"
+                value="pdf"
+                checked={outputFormat === 'pdf'}
+                onChange={() => setOutputFormat('pdf')}
+                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
+                data-testid="export-format-pdf"
+              />
+              <span className="text-sm text-slate-300">PDF</span>
+            </label>
+          </div>
+          {outputFormat === 'pdf' && (
+            <p className="text-xs text-slate-500 mt-2">
+              The markdown file will be converted to PDF using Pandoc.
+              A terminal window will open showing the conversion progress.
+            </p>
+          )}
         </div>
 
         {/* Action Buttons */}
