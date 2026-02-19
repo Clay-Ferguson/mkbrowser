@@ -158,8 +158,11 @@ export async function setCheckboxForDemo(
 ): Promise<void> {
   const page = locator.page();
 
-  // Highlight the element so the action is visually obvious in the recording
-  await highlightElement(page, locator, 1000);
+  // Highlight the parent <label> if one exists, so the outline encompasses both
+  // the checkbox/radio indicator and the label text. Fall back to the input itself.
+  const parentLabel = locator.locator('xpath=ancestor::label[1]');
+  const highlightTarget = (await parentLabel.count()) > 0 ? parentLabel : locator;
+  await highlightElement(page, highlightTarget, 1000);
 
   const isCurrentlyChecked = await locator.isChecked();
   if (isCurrentlyChecked !== shouldBeChecked) {

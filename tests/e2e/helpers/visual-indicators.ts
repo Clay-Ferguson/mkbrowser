@@ -233,17 +233,22 @@ export async function screenshotWithHighlight(
   locator: Locator,
   screenshotPath: string
 ): Promise<void> {
-  // Apply highlight
+  // Apply highlight. For checkbox/radio inputs, walk up to the closest ancestor
+  // <label> so the outline encompasses the indicator and the label text together.
   await locator.evaluate((element, styles) => {
-    // element.dataset.origBorder = element.style.border;
-    element.dataset.origBoxShadow = element.style.boxShadow;
-    element.dataset.origOutline = element.style.outline;
-    element.dataset.origOutlineOffset = element.style.outlineOffset;
+    const target: HTMLElement =
+      (element instanceof HTMLInputElement &&
+        (element.type === 'checkbox' || element.type === 'radio'))
+        ? (element.closest('label') ?? element) as HTMLElement
+        : element as HTMLElement;
 
-    // element.style.setProperty('border', styles.border, 'important');
-    element.style.setProperty('box-shadow', styles.boxShadow, 'important');
-    element.style.setProperty('outline', styles.outline, 'important');
-    element.style.setProperty('outline-offset', styles.outlineOffset, 'important');
+    target.dataset.origBoxShadow = target.style.boxShadow;
+    target.dataset.origOutline = target.style.outline;
+    target.dataset.origOutlineOffset = target.style.outlineOffset;
+
+    target.style.setProperty('box-shadow', styles.boxShadow, 'important');
+    target.style.setProperty('outline', styles.outline, 'important');
+    target.style.setProperty('outline-offset', styles.outlineOffset, 'important');
   }, HIGHLIGHT);
 
   // Wait for the browser to paint the styles
@@ -254,14 +259,18 @@ export async function screenshotWithHighlight(
 
   // Remove highlight
   await locator.evaluate((element) => {
-    // element.style.border = element.dataset.origBorder || '';
-    element.style.boxShadow = element.dataset.origBoxShadow || '';
-    element.style.outline = element.dataset.origOutline || '';
-    element.style.outlineOffset = element.dataset.origOutlineOffset || '';
+    const target: HTMLElement =
+      (element instanceof HTMLInputElement &&
+        (element.type === 'checkbox' || element.type === 'radio'))
+        ? (element.closest('label') ?? element) as HTMLElement
+        : element as HTMLElement;
 
-    // delete element.dataset.origBorder;
-    delete element.dataset.origBoxShadow;
-    delete element.dataset.origOutline;
-    delete element.dataset.origOutlineOffset;
+    target.style.boxShadow = target.dataset.origBoxShadow || '';
+    target.style.outline = target.dataset.origOutline || '';
+    target.style.outlineOffset = target.dataset.origOutlineOffset || '';
+
+    delete target.dataset.origBoxShadow;
+    delete target.dataset.origOutline;
+    delete target.dataset.origOutlineOffset;
   });
 }

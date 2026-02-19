@@ -92,15 +92,26 @@ test.describe('Generate PDF Demo', () => {
     await expect(includeSubfolders).toBeVisible({ timeout: 5000 });
 
     await takeStepScreenshotWithHighlight(mainWindow, includeSubfolders, screenshotDir, step++, 'about-to-click-checkboxes');
-    writeNarration(screenshotDir, step++, 'There are four checkboxes controlling extra export options. We\'ll click all four of them to enable including subfolders, file name headers, section dividers, and PDF conversion.');
+    writeNarration(screenshotDir, step++, 'There are four checkboxes controlling extra export options. We\'ll click all four of them.');
 
     await setCheckboxForDemo(includeSubfolders, true);
+    await takeStepScreenshotWithHighlight(mainWindow, includeSubfolders, screenshotDir, step++, 'checkbox-include-subfolders-checked');
+    writeNarration(screenshotDir, step++, 'The first option, Include Subfolders, is now checked. MkBrowser will recurse into any subfolders when assembling the document.');
+
     await setCheckboxForDemo(includeFilenames, true);
+    await takeStepScreenshotWithHighlight(mainWindow, includeFilenames, screenshotDir, step++, 'checkbox-include-filenames-checked');
+    writeNarration(screenshotDir, step++, 'Include Filenames is now checked. Each file\'s name will appear as a heading in the exported document so readers can easily identify the source of each section.');
+
     await setCheckboxForDemo(includeDividers, true);
+    await takeStepScreenshotWithHighlight(mainWindow, includeDividers, screenshotDir, step++, 'checkbox-include-dividers-checked');
+    writeNarration(screenshotDir, step++, 'Include Dividers is now checked. Horizontal rules will be inserted between sections to give the document a clean, well-structured look.');
+
     await setCheckboxForDemo(exportToPdf, true);
+    await takeStepScreenshotWithHighlight(mainWindow, exportToPdf, screenshotDir, step++, 'checkbox-export-to-pdf-checked');
+    writeNarration(screenshotDir, step++, 'Export to PDF is now checked. After assembling the Markdown, MkBrowser will automatically convert it to a polished PDF file.');
 
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'checkboxes-selected');
-    writeNarration(screenshotDir, step++, 'All four options are now checked. MkBrowser will include subfolders, add each file\'s name as a heading, insert dividers between sections, and convert the result directly to a PDF file.');
+    writeNarration(screenshotDir, step++, 'That\'s everything we need');
 
     // Click the Export button
     const exportSubmitButton = mainWindow.getByTestId('export-submit-button');
