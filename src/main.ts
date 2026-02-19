@@ -648,7 +648,8 @@ function setupIpcHandlers(): void {
   ipcMain.handle('export-to-pdf', async (
     _event,
     markdownPath: string,
-    pdfPath: string
+    pdfPath: string,
+    sourceFolder?: string
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       const { spawn } = await import('node:child_process');
@@ -660,7 +661,7 @@ function setupIpcHandlers(): void {
         ? path.join(process.resourcesPath, 'pdf-export')
         : path.join(app.getAppPath(), 'resources', 'pdf-export');
       
-      const scriptPath = path.join(resourcePath, 'generate-pdf.sh');
+      const scriptPath = path.join(resourcePath, 'generate-pdf.sh'); 
       
       // Check if script exists
       if (!fs.existsSync(scriptPath)) {
@@ -704,8 +705,20 @@ function setupIpcHandlers(): void {
         };
       }
       
-      // Spawn the terminal with the script
-      const child = spawn(terminalCmd, [...terminalArgs, scriptPath, markdownPath, pdfPath], {
+      // Check if a glossary file exists in the source folder
+      let glossaryPath: string | undefined;
+      if (sourceFolder) {
+        const candidate = path.join(sourceFolder, 'Glossary_of_Terms.md');
+        if (fs.existsSync(candidate)) {
+          glossaryPath = candidate;
+        }
+      }
+
+      // Spawn the terminal with the script (optional glossary path as $3)
+      const scriptArgs = glossaryPath
+        ? [...terminalArgs, scriptPath, markdownPath, pdfPath, glossaryPath]
+        : [...terminalArgs, scriptPath, markdownPath, pdfPath];
+      const child = spawn(terminalCmd, scriptArgs, {
         detached: true,
         stdio: 'ignore',
       });

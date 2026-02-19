@@ -19,14 +19,16 @@ _on_exit() {
 trap _on_exit EXIT
 
 # Check arguments
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <input.md> <output.pdf>"
+if [ "$#" -lt 2 ]; then
+    echo "Usage: $0 <input.md> <output.pdf> [glossary.md]"
     echo "Example: $0 /path/to/document.md /path/to/output.pdf"
+    echo "         $0 /path/to/document.md /path/to/output.pdf /path/to/Glossary_of_Terms.md"
     exit 1
 fi
 
 INPUT_FILE="$1"
 OUTPUT_FILE="$2"
+GLOSSARY_FILE="${3:-}"  # Optional third argument: full path to Glossary_of_Terms.md
 
 # Check if input file exists
 if [ ! -f "$INPUT_FILE" ]; then
@@ -39,7 +41,11 @@ echo "MkBrowser PDF Export"
 echo "========================================"
 echo "Input:  $INPUT_FILE"
 echo "Output: $OUTPUT_FILE"
-echo "========================================"
+if [ -n "$GLOSSARY_FILE" ]; then
+    echo "Glossary: $GLOSSARY_FILE"
+    export GLOSSARY_PATH="$GLOSSARY_FILE"
+fi
+echo "======================================="
 echo ""
 
 # Check if pandoc is installed
@@ -124,7 +130,11 @@ PANDOC_CMD="pandoc \"$INPUT_FILE\" -o \"$OUTPUT_FILE\" --pdf-engine=xelatex --me
 # Add glossary filter (Lua filter for {Term} -> link replacement)
 if [ -f "$SCRIPT_DIR/glossary-filter.lua" ]; then
     PANDOC_CMD="$PANDOC_CMD -L \"$SCRIPT_DIR/glossary-filter.lua\""
-    echo "Glossary filter detected - {Term} patterns will be linked."
+    if [ -n "$GLOSSARY_FILE" ]; then
+        echo "Glossary filter enabled - using glossary: $GLOSSARY_FILE"
+    else
+        echo "Glossary filter detected - {Term} patterns will be linked (no glossary file provided)."
+    fi
 fi
 
 # Add mermaid filter if available (must come BEFORE pandoc-crossref)

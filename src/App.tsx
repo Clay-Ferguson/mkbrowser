@@ -577,7 +577,7 @@ function App() {
     if (exportToPdf && result.outputPath) {
       // Convert to PDF - the markdown file path becomes input, generate PDF path
       const pdfPath = result.outputPath.replace(/\.md$/i, '.pdf');
-      const pdfResult = await window.electronAPI.exportToPdf(result.outputPath, pdfPath);
+      const pdfResult = await window.electronAPI.exportToPdf(result.outputPath, pdfPath, currentPath);
       
       if (!pdfResult.success) {
         setError(pdfResult.error || 'Failed to launch PDF export');
