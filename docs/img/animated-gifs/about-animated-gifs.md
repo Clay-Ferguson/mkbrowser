@@ -14,3 +14,6 @@
 
 ## How to create Mermaid Diagrams
 ![expanded-file](./create-mermaid-demo.gif)
+
+## How to Generate a PDF
+![expanded-file](./generate-pdf-demo.gif)
