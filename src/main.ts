@@ -540,75 +540,49 @@ function setupIpcHandlers(): void {
     includeDividers: boolean
   ): Promise<{ success: boolean; outputPath?: string; error?: string }> => {
     try {
-      // Helper function to get text files from a single directory (sorted alphabetically)
-      const getTextFilesFromDir = async (dirPath: string): Promise<Array<{ name: string; path: string }>> => {
-        const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
-        const textFiles: Array<{ name: string; path: string }> = [];
-        
-        for (const entry of entries) {
-          if (entry.name.startsWith('.')) continue;
-          if (entry.isDirectory()) continue;
-          
-          const lowerName = entry.name.toLowerCase();
-          if (lowerName.endsWith('.md') || lowerName.endsWith('.txt')) {
-            textFiles.push({
-              name: entry.name,
-              path: path.join(dirPath, entry.name),
-            });
-          }
-        }
-        
-        // Sort alphabetically by name
-        textFiles.sort((a, b) => a.name.localeCompare(b.name));
-        return textFiles;
-      };
-
-      // Helper function to get subdirectories (sorted alphabetically)
-      const getSubdirs = async (dirPath: string): Promise<Array<{ name: string; path: string }>> => {
-        const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
-        const subdirs: Array<{ name: string; path: string }> = [];
-        
-        for (const entry of entries) {
-          if (entry.name.startsWith('.')) continue;
-          if (entry.isDirectory()) {
-            subdirs.push({
-              name: entry.name,
-              path: path.join(dirPath, entry.name),
-            });
-          }
-        }
-        
-        // Sort alphabetically by name
-        subdirs.sort((a, b) => a.name.localeCompare(b.name));
-        return subdirs;
-      };
-
-      // Recursive function to process a folder and its subfolders
+      // Recursive depth-first function: files and subdirs are sorted together in one
+      // case-insensitive pass so ordinal prefixes (00010_, 999_, etc.) fully control order.
       const processFolder = async (folderPath: string, relativePath: string): Promise<string[]> => {
         const parts: string[] = [];
-        
-        // Get and process files in this folder (sorted alphabetically)
-        const textFiles = await getTextFilesFromDir(folderPath);
-        for (const file of textFiles) {
-          const content = await fs.promises.readFile(file.path, 'utf-8');
-          if (includeFilenames) {
-            const fileLabel = relativePath ? `${relativePath}/${file.name}` : file.name;
-            parts.push(`File: ${fileLabel}\n\n${content}`);
+
+        const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
+
+        // Collect eligible text files and (optionally) subdirs into one list
+        const items: Array<{ name: string; entryPath: string; isDir: boolean }> = [];
+        for (const entry of entries) {
+          if (entry.name.startsWith('.')) continue;
+          const entryPath = path.join(folderPath, entry.name);
+          if (entry.isDirectory()) {
+            if (includeSubfolders) {
+              items.push({ name: entry.name, entryPath, isDir: true });
+            }
           } else {
-            parts.push(content);
+            const lowerName = entry.name.toLowerCase();
+            if (lowerName.endsWith('.md') || lowerName.endsWith('.txt')) {
+              items.push({ name: entry.name, entryPath, isDir: false });
+            }
           }
         }
-        
-        // If including subfolders, recursively process them (sorted alphabetically)
-        if (includeSubfolders) {
-          const subdirs = await getSubdirs(folderPath);
-          for (const subdir of subdirs) {
-            const subRelativePath = relativePath ? `${relativePath}/${subdir.name}` : subdir.name;
-            const subParts = await processFolder(subdir.path, subRelativePath);
+
+        // Single case-insensitive sort — files and folders interleaved by name
+        items.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+        for (const item of items) {
+          if (item.isDir) {
+            const subRelativePath = relativePath ? `${relativePath}/${item.name}` : item.name;
+            const subParts = await processFolder(item.entryPath, subRelativePath);
             parts.push(...subParts);
+          } else {
+            const content = await fs.promises.readFile(item.entryPath, 'utf-8');
+            if (includeFilenames) {
+              const fileLabel = relativePath ? `${relativePath}/${item.name}` : item.name;
+              parts.push(`File: ${fileLabel}\n\n${content}`);
+            } else {
+              parts.push(content);
+            }
           }
         }
-        
+
         return parts;
       };
 
@@ -708,9 +682,15 @@ function setupIpcHandlers(): void {
       // Check if a glossary file exists in the source folder
       let glossaryPath: string | undefined;
       if (sourceFolder) {
-        const candidate = path.join(sourceFolder, 'Glossary_of_Terms.md');
-        if (fs.existsSync(candidate)) {
-          glossaryPath = candidate;
+        try {
+          // Use suffix match so ordinal prefixes like 999_Glossary_of_Terms.md are found
+          const dirEntries = await fs.promises.readdir(sourceFolder);
+          const glossaryFile = dirEntries.find(f => f.endsWith('Glossary_of_Terms.md'));
+          if (glossaryFile) {
+            glossaryPath = path.join(sourceFolder, glossaryFile);
+          }
+        } catch {
+          // sourceFolder unreadable — skip glossary
         }
       }
 

@@ -4,7 +4,7 @@ from whatever quarter, to influence your decision in a matter of the
 utmost moment to your welfare, by any impressions other than those which
 may result from the evidence of truth. You will, no doubt, at the same
 time, have collected from the general scope of them, that they
-proceed from a source not unfriendly to the new Constitution. Yes,
+proceed from a source not unfriendly to the new {Constitution}. Yes,
 my countrymen, I own to you that, after having given it an attentive
 consideration, I am clearly of opinion it is your interest to adopt it.
 I am convinced that this is the safest course for your liberty, your

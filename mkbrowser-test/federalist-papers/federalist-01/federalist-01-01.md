@@ -1,8 +1,8 @@
 AFTER an unequivocal experience of the inefficacy of the subsisting
 federal government, you are called upon to deliberate on a new
-Constitution for the United States of America. The subject speaks its
+{Constitution} for the United States of America. The subject speaks its
 own importance; comprehending in its consequences nothing less than the
-existence of the UNION, the safety and welfare of the parts of which it
+existence of the {UNION}, the safety and welfare of the parts of which it
 is composed, the fate of an empire in many respects the most interesting
 in the world. It has been frequently remarked that it seems to have been
 reserved to the people of this country, by their conduct and example,
