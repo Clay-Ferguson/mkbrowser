@@ -6,6 +6,18 @@
 #
 # Usage: generate-pdf.sh <input.md> <output.pdf>
 
+# Keep the terminal open on error so the user can read the message
+_on_exit() {
+  local code=$?
+  if [ $code -ne 0 ]; then
+    echo ""
+    echo "Script exited with error (code $code)."
+    echo "Press Enter to close this terminal..."
+    read
+  fi
+}
+trap _on_exit EXIT
+
 # Check arguments
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <input.md> <output.pdf>"
@@ -89,8 +101,7 @@ if ! command -v mermaid-filter &> /dev/null; then
         fi
         
         echo "Installing mermaid-filter..."
-        # Install globally for the current user (works better with nvm)
-        npm install --global mermaid-filter
+        sudo npm install --global mermaid-filter
         
         if [ $? -ne 0 ]; then
             echo "Error: Failed to install mermaid-filter."
