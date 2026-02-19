@@ -4,6 +4,11 @@ sansfont: "DejaVu Sans"
 monofont: "DejaVu Sans Mono"
 mathfont: "DejaVu Math TeX Gyre"
 
+# Hyperlink styling - makes internal links (glossary terms) and URLs visible
+colorlinks: true
+linkcolor: RoyalBlue
+urlcolor: RoyalBlue
+
 # Page margins (default LaTeX is ~1 inch, we're using ~0.5 inch)
 geometry:
   - top=0.75in

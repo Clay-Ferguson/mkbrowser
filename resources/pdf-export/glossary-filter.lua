@@ -1,6 +1,6 @@
 -- Glossary Filter for Pandoc
 -- Automatically replaces {Term} with [Term](#term) links
--- Reads glossary terms from Glossary_of_Terms.md
+-- Reads glossary terms from Glossary_of_Terms.md 
 
 local glossary = {}
 
