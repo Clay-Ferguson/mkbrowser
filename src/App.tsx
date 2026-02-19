@@ -83,6 +83,7 @@ function App() {
   const [replaceResultMessage, setReplaceResultMessage] = useState<string | null>(null);
   const [searchDialogInitialValues, setSearchDialogInitialValues] = useState<SearchDialogInitialValues | undefined>(undefined);
   const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
+  const [lastExportFolder, setLastExportFolder] = useState<string>('');
   const [showToolsMenu, setShowToolsMenu] = useState<boolean>(false);
   const [showEditMenu, setShowEditMenu] = useState<boolean>(false);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
@@ -128,6 +129,7 @@ function App() {
   useEffect(() => {
     const initConfig = async () => {
       const result = await loadConfig();
+      setLastExportFolder(result.lastExportFolder);
       if (result.error) {
         setError(result.error);
         setLoading(false);
@@ -558,6 +560,11 @@ function App() {
     
     setShowExportDialog(false);
     setError(null);
+
+    // Persist the output folder to config
+    setLastExportFolder(outputFolder);
+    const config = await window.electronAPI.getConfig();
+    await window.electronAPI.saveConfig({ ...config, lastExportFolder: outputFolder });
 
     // First, export to markdown
     const result = await window.electronAPI.exportFolderContents(currentPath, outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers);
@@ -1301,7 +1308,7 @@ function App() {
 
       {showExportDialog && currentPath && (
         <ExportDialog
-          defaultFolder={currentPath}
+          defaultFolder={lastExportFolder}
           defaultFileName={generateExportFileName()}
           onExport={handleExport}
           onCancel={handleCancelExport}
