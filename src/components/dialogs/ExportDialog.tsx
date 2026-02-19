@@ -74,6 +74,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
               onKeyDown={handleKeyDown}
               className="flex-1 bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
               placeholder="/path/to/output/folder"
+              data-testid="export-output-folder"
             />
             <button
               onClick={handleSelectFolder}
@@ -96,6 +97,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             onKeyDown={handleKeyDown}
             className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
             placeholder="export.md"
+            data-testid="export-file-name"
           />
           <p className="text-xs text-slate-500 mt-1">
             {exportToPdf 
@@ -112,6 +114,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
               checked={includeSubfolders}
               onChange={(e) => setIncludeSubfolders(e.target.checked)}
               className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
+              data-testid="export-include-subfolders"
             />
             <span className="text-sm text-slate-300">Include Subfolders</span>
           </label>
@@ -128,6 +131,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
               checked={includeFilenames}
               onChange={(e) => setIncludeFilenames(e.target.checked)}
               className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
+              data-testid="export-include-filenames"
             />
             <span className="text-sm text-slate-300">Include Filenames</span>
           </label>
@@ -144,6 +148,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
               checked={includeDividers}
               onChange={(e) => setIncludeDividers(e.target.checked)}
               className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
+              data-testid="export-include-dividers"
             />
             <span className="text-sm text-slate-300">Divider Lines</span>
           </label>
@@ -160,6 +165,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
               checked={exportToPdf}
               onChange={(e) => setExportToPdf(e.target.checked)}
               className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
+              data-testid="export-to-pdf"
             />
             <span className="text-sm text-slate-300">Export to PDF</span>
           </label>
@@ -174,6 +180,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
           <button
             onClick={onCancel}
             className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+            data-testid="export-cancel-button"
           >
             Cancel
           </button>
@@ -181,6 +188,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             onClick={handleExport}
             disabled={!isValid}
             className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed rounded transition-colors"
+            data-testid="export-submit-button"
           >
             Export
           </button>

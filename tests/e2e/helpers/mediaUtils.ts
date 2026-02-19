@@ -1,5 +1,5 @@
 import type { Page, Locator } from '@playwright/test';
-import { screenshotWithHighlight, demonstrateTyping, insertText } from './visual-indicators';
+import { screenshotWithHighlight, demonstrateTyping, insertText, highlightElement } from './visual-indicators';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -107,6 +107,10 @@ export async function insertTextForDemo(
 ): Promise<void> {
   if (focusTarget) {
     await focusTarget.focus();
+
+    // we have to select all, so that when we past it overwrites, because our system
+    // is designed to write the entire content in one go, rather than character by character.
+    await mainWindow.keyboard.press('Control+a');
   }
   await insertText(mainWindow, text, {
     showHighlight,
@@ -130,4 +134,37 @@ export async function demonstrateClickForDemo(
   await locator.page().waitForTimeout(300);
   await locator.click();
   await locator.page().waitForTimeout(1000);
+}
+
+/**
+ * Ensures a checkbox or radio button is in the specified checked state for demo recordings.
+ * Highlights the element with a red border, then clicks it only if its current state
+ * differs from the desired state. Works identically for both checkboxes and radio buttons.
+ *
+ * Note: unchecking a radio button via this function is a no-op if clicking it cannot
+ * deselect it (standard HTML radio behaviour). Use it to turn radio buttons *on*.
+ *
+ * @param locator - The checkbox or radio button element
+ * @param shouldBeChecked - true to ensure the element ends up checked, false to ensure unchecked
+ *
+ * @example
+ * await setCheckboxForDemo(includeSubfolders, true);   // ensure checked
+ * await setCheckboxForDemo(includeSubfolders, false);  // ensure unchecked
+ * await setCheckboxForDemo(radioOption, true);         // select a radio button
+ */
+export async function setCheckboxForDemo(
+  locator: Locator,
+  shouldBeChecked: boolean
+): Promise<void> {
+  const page = locator.page();
+
+  // Highlight the element so the action is visually obvious in the recording
+  await highlightElement(page, locator, 1000);
+
+  const isCurrentlyChecked = await locator.isChecked();
+  if (isCurrentlyChecked !== shouldBeChecked) {
+    await locator.click();
+  }
+
+  await page.waitForTimeout(700);
 }
