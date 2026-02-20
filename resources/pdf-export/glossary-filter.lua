@@ -31,8 +31,8 @@ local function load_glossary()
     end
     
     for line in file:lines() do
-        -- Match lines that start with # (heading level 1)
-        local term = line:match("^#%s+(.+)%s*$")
+        -- Match lines that start with ### (heading level 3)
+        local term = line:match("^###%s+(.+)%s*$")
         if term then
             -- Trim whitespace
             term = term:gsub("^%s*(.-)%s*$", "%1")
