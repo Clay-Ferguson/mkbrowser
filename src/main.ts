@@ -679,18 +679,17 @@ function setupIpcHandlers(): void {
         };
       }
       
-      // Check if a glossary file exists in the source folder
+      // Check if a glossary file exists anywhere under the source folder (recursive)
       let glossaryPath: string | undefined;
       if (sourceFolder) {
-        try {
-          // Use suffix match so ordinal prefixes like 999_Glossary_of_Terms.md are found
-          const dirEntries = await fs.promises.readdir(sourceFolder);
-          const glossaryFile = dirEntries.find(f => f.endsWith('Glossary_of_Terms.md'));
-          if (glossaryFile) {
-            glossaryPath = path.join(sourceFolder, glossaryFile);
-          }
-        } catch {
-          // sourceFolder unreadable — skip glossary
+        const { fdir } = await import('fdir');
+        const matches = await new fdir()
+          .withFullPaths()
+          .filter((f) => path.basename(f).endsWith('Glossary_of_Terms.md'))
+          .crawl(sourceFolder)
+          .withPromise();
+        if (matches.length > 0) {
+          glossaryPath = matches[0];
         }
       }
 

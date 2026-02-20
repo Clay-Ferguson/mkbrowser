@@ -14,21 +14,13 @@ local function load_glossary()
     -- Find the glossary file
     local glossary_path = nil
 
-    -- First, check if the app passed the glossary path explicitly via environment variable
+    -- Check if the app passed the glossary path explicitly via environment variable
     local env_path = os.getenv("GLOSSARY_PATH")
     if env_path and env_path ~= "" then
         glossary_path = env_path
-    else
-        -- Fallback: wildcard search in pandoc's CWD (for standalone / legacy use)
-        local handle = io.popen('ls -1 *Glossary_of_Terms.md 2>/dev/null')
-        if handle then
-            glossary_path = handle:read("*l")  -- Read first matching line
-            handle:close()
-        end
     end
 
     if not glossary_path then
-        io.stderr:write("Warning: Could not find *Glossary_of_Terms.md\n")
         return
     end
     
