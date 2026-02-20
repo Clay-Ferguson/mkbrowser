@@ -747,6 +747,29 @@ function setupIpcHandlers(): void {
       return { error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
+
+  // Reply to AI: create an H subfolder with an empty HUMAN.md for the user to write in
+  ipcMain.handle('reply-to-ai', async (
+    _event,
+    parentFolderPath: string
+  ): Promise<{ folderPath: string; filePath: string } | { error: string }> => {
+    try {
+      // Find the next available human folder: H/, H1/, H2/, ...
+      const humanFolder = await findNextNumberedFolder(parentFolderPath, 'H');
+
+      // Create the folder
+      await fs.promises.mkdir(humanFolder, { recursive: true });
+
+      // Create an empty HUMAN.md inside it
+      const filePath = path.join(humanFolder, 'HUMAN.md');
+      await fs.promises.writeFile(filePath, '', 'utf-8');
+
+      return { folderPath: humanFolder, filePath };
+    } catch (error) {
+      console.error('Error in reply-to-ai handler:', error);
+      return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
 }
 
 // Handle command-line arguments to set initial browse folder

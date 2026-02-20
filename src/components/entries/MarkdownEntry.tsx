@@ -16,6 +16,7 @@ import {
   clearItemGoToLine,
   toggleItemExpanded,
   navigateToBrowserPath,
+  setPendingEditFile,
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
@@ -371,7 +372,9 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
   };
 
   const isHumanFile = entry.name === 'HUMAN.md';
+  const isAiFile = entry.name === 'AI.md';
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isReplyLoading, setIsReplyLoading] = useState(false);
 
   const handleAskAi = async () => {
     if (!content) return;
@@ -386,6 +389,22 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
       }
     } finally {
       setIsAiLoading(false);
+    }
+  };
+
+  const handleReply = async () => {
+    setIsReplyLoading(true);
+    try {
+      const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
+      const result = await window.electronAPI.replyToAi(parentFolder);
+      if ('error' in result) {
+        console.error('Reply error:', result.error);
+      } else {
+        navigateToBrowserPath(result.folderPath, 'HUMAN.md');
+        setPendingEditFile(result.filePath);
+      }
+    } finally {
+      setIsReplyLoading(false);
     }
   };
 
@@ -446,6 +465,15 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
                 className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
               >
                 {isAiLoading ? 'Thinking...' : 'Ask AI'}
+              </button>
+            )}
+            {isAiFile && (
+              <button
+                onClick={handleReply}
+                disabled={isReplyLoading}
+                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
+              >
+                {isReplyLoading ? 'Creating...' : 'Reply'}
               </button>
             )}
             <EntryActionBar

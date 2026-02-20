@@ -88,6 +88,7 @@ export interface ElectronAPI {
   collectAncestorTags: (filePath: string) => Promise<string[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
   askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string } | { error: string }>;
+  replyToAi: (parentFolderPath: string) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
 }
 
 // Expose protected methods to the renderer process
@@ -124,4 +125,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('export-to-pdf', markdownPath, pdfPath, sourceFolder),
   askAi: (prompt: string, parentFolderPath: string) =>
     ipcRenderer.invoke('ask-ai', prompt, parentFolderPath),
+  replyToAi: (parentFolderPath: string) =>
+    ipcRenderer.invoke('reply-to-ai', parentFolderPath),
 } as ElectronAPI);
