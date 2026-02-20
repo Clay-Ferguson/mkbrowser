@@ -155,7 +155,7 @@ if [ $? -eq 0 ]; then
     echo "Success! PDF generated:"
     echo "$OUTPUT_FILE"
     echo "========================================"
-    xdg-open "$OUTPUT_FILE" &
+    setsid xdg-open "$OUTPUT_FILE" > /dev/null 2>&1 &
 else
     echo ""
     echo "========================================"
