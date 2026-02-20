@@ -370,6 +370,25 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
     toggleItemExpanded(entry.path);
   };
 
+  const isHumanFile = entry.name === 'HUMAN.md';
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  const handleAskAi = async () => {
+    if (!content) return;
+    setIsAiLoading(true);
+    try {
+      const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
+      const result = await window.electronAPI.askAi(content, parentFolder);
+      if ('error' in result) {
+        console.error('Ask AI error:', result.error);
+      } else {
+        navigateToBrowserPath(parentFolder + '/A');
+      }
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
   return (
     <div className={`bg-slate-800 rounded-lg border ${isHighlighted ? 'border-2 border-purple-500' : 'border-slate-700'} overflow-hidden`}>
       <div className="flex items-center gap-3 pl-4 pr-2 py-1 bg-slate-700/50 border-b border-slate-700">
@@ -419,21 +438,32 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
             </button>
           </div>
         ) : !isRenaming && (
-          <EntryActionBar
-            path={entry.path}
-            showInsertIcons={showInsertIcons}
-            nextOrdinalPrefix={nextOrdinalPrefix}
-            isBookmarked={isBookmarked}
-            deleting={del.deleting}
-            onRenameClick={rename.handleRenameClick}
-            onDeleteClick={del.handleDeleteClick}
-            onInsertFileBelow={onInsertFileBelow}
-            onInsertFolderBelow={onInsertFolderBelow}
-            onSaveSettings={onSaveSettings}
-            showEditButton
-            onEditClick={edit.handleEditClick}
-            className="-mr-1.5"
-          />
+          <>
+            {isHumanFile && (
+              <button
+                onClick={handleAskAi}
+                disabled={isAiLoading || !content}
+                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
+              >
+                {isAiLoading ? 'Thinking...' : 'Ask AI'}
+              </button>
+            )}
+            <EntryActionBar
+              path={entry.path}
+              showInsertIcons={showInsertIcons}
+              nextOrdinalPrefix={nextOrdinalPrefix}
+              isBookmarked={isBookmarked}
+              deleting={del.deleting}
+              onRenameClick={rename.handleRenameClick}
+              onDeleteClick={del.handleDeleteClick}
+              onInsertFileBelow={onInsertFileBelow}
+              onInsertFolderBelow={onInsertFolderBelow}
+              onSaveSettings={onSaveSettings}
+              showEditButton
+              onEditClick={edit.handleEditClick}
+              className="-mr-1.5"
+            />
+          </>
         )}
       </div>
       {isExpanded && (

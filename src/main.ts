@@ -10,6 +10,7 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { HASHTAG_REGEX } from './utils/hashtagRegex';
+import { invokeAI, findNextNumberedFile } from './ai/aiUtil';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -712,6 +713,34 @@ function setupIpcHandlers(): void {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
+    }
+  });
+
+  // Ask AI: submit a prompt and write the response to A/AI.md (or AI1.md, etc.)
+  ipcMain.handle('ask-ai', async (
+    _event,
+    prompt: string,
+    parentFolderPath: string
+  ): Promise<{ outputPath: string } | { error: string }> => {
+    try {
+      const aFolder = path.join(parentFolderPath, 'A');
+
+      // Create the A/ subfolder if it doesn't exist
+      await fs.promises.mkdir(aFolder, { recursive: true });
+
+      // Find the next available AI.md / AI1.md / AI2.md ...
+      const outputPath = await findNextNumberedFile(aFolder, 'AI');
+
+      // Invoke the AI
+      const response = await invokeAI(prompt);
+
+      // Write the response
+      await fs.promises.writeFile(outputPath, response, 'utf-8');
+
+      return { outputPath };
+    } catch (error) {
+      console.error('Error in ask-ai handler:', error);
+      return { error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
 }

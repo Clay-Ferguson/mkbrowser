@@ -121,4 +121,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('export-folder-contents', sourceFolder, outputFolder, outputFileName, includeSubfolders, includeFilenames, includeDividers),
   exportToPdf: (markdownPath: string, pdfPath: string, sourceFolder?: string) =>
     ipcRenderer.invoke('export-to-pdf', markdownPath, pdfPath, sourceFolder),
+  askAi: (prompt: string, parentFolderPath: string) =>
+    ipcRenderer.invoke('ask-ai', prompt, parentFolderPath),
 } as ElectronAPI);
