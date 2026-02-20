@@ -87,6 +87,7 @@ export interface ElectronAPI {
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   collectAncestorTags: (filePath: string) => Promise<string[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
+  askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string } | { error: string }>;
 }
 
 // Expose protected methods to the renderer process

@@ -120,7 +120,7 @@ export interface ElectronAPI {
   selectExportFolder: () => Promise<string | null>;
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;
   exportToPdf: (markdownPath: string, pdfPath: string, sourceFolder?: string) => Promise<{ success: boolean; error?: string }>;
-  askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string } | { error: string }>;
+  askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string } | { error: string }>;
 }
 
 declare global {

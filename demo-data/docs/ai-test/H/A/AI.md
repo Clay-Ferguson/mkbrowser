@@ -1,1 +1,1 @@
-The capital of Texas is Austin.
+The capital of Utah is Salt Lake City.

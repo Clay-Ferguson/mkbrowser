@@ -6,6 +6,7 @@ import { ChatAnthropic } from '@langchain/anthropic';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 import { HumanMessage } from '@langchain/core/messages';
 import { fdir } from 'fdir';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 /**
@@ -31,6 +32,24 @@ export async function invokeAI(prompt: string): Promise<string> {
   return typeof lastMessage.content === 'string'
     ? lastMessage.content
     : JSON.stringify(lastMessage.content);
+}
+
+/**
+ * Find the first available folder name of the form `<baseName>`, `<baseName>1`,
+ * `<baseName>2`, etc. inside `parentDir`. Uses fdir to scan existing subdirectory names.
+ *
+ * @param parentDir  Directory to scan for existing numbered subfolders.
+ * @param baseName   Base folder name, e.g. "A".
+ * @returns          Full absolute path for the first available folder.
+ */
+export async function findNextNumberedFolder(parentDir: string, baseName: string): Promise<string> {
+  for (let i = 1; i <= 20; i++) {
+    const candidate = path.join(parentDir, `${baseName}${i}`);
+    if (!existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(`No available folder name found for "${baseName}" in "${parentDir}" (tried 1–20)`);
 }
 
 /**

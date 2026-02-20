@@ -10,7 +10,7 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { HASHTAG_REGEX } from './utils/hashtagRegex';
-import { invokeAI, findNextNumberedFile } from './ai/aiUtil';
+import { invokeAI, findNextNumberedFile, findNextNumberedFolder } from './ai/aiUtil';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -721,15 +721,16 @@ function setupIpcHandlers(): void {
     _event,
     prompt: string,
     parentFolderPath: string
-  ): Promise<{ outputPath: string } | { error: string }> => {
+  ): Promise<{ outputPath: string; responseFolder: string } | { error: string }> => {
     try {
-      const aFolder = path.join(parentFolderPath, 'A');
+      // Find the next available response folder: A/, A1/, A2/, ...
+      const responseFolder = await findNextNumberedFolder(parentFolderPath, 'A');
 
-      // Create the A/ subfolder if it doesn't exist
-      await fs.promises.mkdir(aFolder, { recursive: true });
+      // Create the response folder
+      await fs.promises.mkdir(responseFolder, { recursive: true });
 
-      // Find the next available AI.md / AI1.md / AI2.md ...
-      const outputPath = await findNextNumberedFile(aFolder, 'AI');
+      // Response always goes into AI.md inside the numbered folder
+      const outputPath = path.join(responseFolder, 'AI.md');
 
       // Invoke the AI
       const response = await invokeAI(prompt);
@@ -737,7 +738,7 @@ function setupIpcHandlers(): void {
       // Write the response
       await fs.promises.writeFile(outputPath, response, 'utf-8');
 
-      return { outputPath };
+      return { outputPath, responseFolder };
     } catch (error) {
       console.error('Error in ask-ai handler:', error);
       return { error: error instanceof Error ? error.message : 'Unknown error' };

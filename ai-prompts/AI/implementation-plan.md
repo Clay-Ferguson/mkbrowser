@@ -10,7 +10,11 @@ Based on the assumption that we're going to eventually be building a full-featur
 
 # Step 2 (done)
 
-Now we're going to begin our GUI work. We're going to make it where any markdown file named `HUMAN.md` we will automatically have an "Ask AI" button in the header of the `MarkdownEntry.tsx` component. If the user clicks this button, we will submit the entire content of the markdown file as an AI prompt, and when we get the response back from the AI, we will write the text representation (which will likely also be markdown) into a file named `AI.md` and in a subfolder named "A" (A==Agent), underneath the folder that contained `HUMAN.md` (creating the "A" folder, if it doesn't already exist). in other words, all of the responses from the AI always go into the subfolder named "A" and into a file named "AI.md". If an "AI.md" file already exists we look for the next numbered file to use "AI1.md, AI2.md, etc", using the first available numbered filename we find.
+Now we're going to begin our GUI work. We're going to make it where any markdown file named `HUMAN.md` we will automatically have an "Ask AI" button in the header of the `MarkdownEntry.tsx` component. If the user clicks this button, we will submit the entire content of the markdown file as an AI prompt, and when we get the response back from the AI, we will write the text representation (which will likely also be markdown) into a file named `AI.md` and in a subfolder named "A" (A==Agent), underneath the folder that contained `HUMAN.md` (creating the "A" folder, if it doesn't already exist). in other words, all of the responses from the AI always go into the subfolder named "A" and into a file named "AI.md". If an "A" folder already exists we look for the next numbered folder to use ("AI1, AI2, etc"), using the first available numbered folder we find.
 
 Now because I can foresee that there's going to be significant amount of code that we will have related to AI functionality, let's create a new project folder for all of the AI source, and put it in a folder named `src/ai`. for now you can simply put everything in `src/ai/aiUti.ts`, but try to put anything AI specific that you can, into that file. Since we've already accomplished step one above, you can look inside `ai.test.ts` if you have any questions about how to interact with the AI.
 
+# Step 3
+
+
+ 

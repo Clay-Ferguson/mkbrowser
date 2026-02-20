@@ -382,7 +382,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
       if ('error' in result) {
         console.error('Ask AI error:', result.error);
       } else {
-        navigateToBrowserPath(parentFolder + '/A');
+        navigateToBrowserPath(result.responseFolder);
       }
     } finally {
       setIsAiLoading(false);
