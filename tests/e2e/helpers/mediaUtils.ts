@@ -18,6 +18,27 @@ export function logScreenshotSummary(screenshotDir: string): void {
 }
 
 /**
+ * Cleans up screenshot files in a directory, preserving any subdirectories.
+ * Creates the directory if it does not yet exist.
+ *
+ * @param screenshotDir - Directory to clean screenshot files from
+ *
+ * @example
+ * cleanupScreenshots(screenshotDir);
+ */
+export function cleanupScreenshots(screenshotDir: string): void {
+  if (fs.existsSync(screenshotDir)) {
+    for (const entry of fs.readdirSync(screenshotDir, { withFileTypes: true })) {
+      if (entry.isFile()) {
+        fs.unlinkSync(path.join(screenshotDir, entry.name));
+      }
+    }
+  } else {
+    fs.mkdirSync(screenshotDir, { recursive: true });
+  }
+}
+
+/**
  * Takes a screenshot with standardized naming.
  * 
  * @param mainWindow - The Playwright Page object
@@ -55,9 +76,6 @@ export function writeNarration(
   narrationText: string
 ): void {
   const filePath = path.join(screenshotDir, `${String(step).padStart(3, '0')}-narration.txt`);
-  if (fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf-8') === narrationText) {
-    return;
-  }
   fs.writeFileSync(filePath, narrationText);
 }
 

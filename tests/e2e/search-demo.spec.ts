@@ -1,6 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
-import * as fs from 'fs';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
 import * as path from 'path';
 
 /**
@@ -15,9 +14,7 @@ test.describe('Search Demo', () => {
     const testName = path.basename(__filename, '.spec.ts');
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
 
-    // Clean and recreate screenshot directory on each run
-    fs.rmSync(screenshotDir, { recursive: true, force: true });
-    fs.mkdirSync(screenshotDir, { recursive: true });
+    cleanupScreenshots(screenshotDir);
 
     let step = 1;
 

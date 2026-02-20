@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -16,9 +16,7 @@ test.describe('Create Mermaid Demo', () => {
     const testName = path.basename(__filename, '.spec.ts');
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
 
-    // Clean and recreate screenshot directory on each run
-    fs.rmSync(screenshotDir, { recursive: true, force: true });
-    fs.mkdirSync(screenshotDir, { recursive: true });
+    cleanupScreenshots(screenshotDir);
 
     // Clean up any previously created test files to avoid conflicts
     const testDataDir = path.join(__dirname, '../../mkbrowser-test');
