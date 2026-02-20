@@ -18,7 +18,7 @@ Here's the flow for the test (i.e. action is taken in the GUI), below.
 
 - Find 'Output Folder' text field (data-testid=export-output-folder), and enter the string "/home/clay/exports" into it.
 
-- Find 'File Name' text field (data-textid=export-file-name), and enter "federalist-papers.md" into it.
+- Find 'File Name' text field (data-textid=export-file-name), and enter "federalist-papers" into it.
 
 - There are 4 checkboxes on the page , and you can click them all, but you don't need to explain each one in the narrative, you can just say we're clicking all four checkboxes. Their data-testids are: export-include-subfolders, export-include-filenames, export-include-dividers, export-to-pdf.
 

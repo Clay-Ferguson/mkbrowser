@@ -39,7 +39,27 @@ test.describe('Generate PDF Demo', () => {
 
     await mainWindow.waitForTimeout(1000);
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'federalist-folder-open');
-    writeNarration(screenshotDir, step++, 'We are now inside the federalist-papers folder. You can see all of its documents listed here. Now let\'s open the Tools menu to access the Export feature.');
+    writeNarration(screenshotDir, step++, 'We are now inside the federalist-papers folder. You can see all of its documents listed here, including a glossary folder. Let\'s take a quick look inside the glossary before we export.');
+
+    // Highlight and click the glossary folder
+    const glossaryFolder = mainWindow.getByText('glossary');
+    await takeStepScreenshotWithHighlight(mainWindow, glossaryFolder, screenshotDir, step++, 'about-to-click-glossary-folder');
+    writeNarration(screenshotDir, step++, 'Here is the glossary folder. Let\'s click on it to see what glossary items are defined inside.');
+
+    await demonstrateClickForDemo(glossaryFolder);
+
+    await mainWindow.waitForTimeout(1000);
+    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'glossary-folder-open');
+    writeNarration(screenshotDir, step++, 'Inside the glossary folder we can see a glossary of terms file. These definitions will be included when we export the documents. Now let\'s navigate back to the federalist-papers folder.');
+
+    // Highlight and click breadcrumb to navigate back to federalist-papers
+    const federalistBreadcrumb = mainWindow.getByText('federalist-papers');
+    await takeStepScreenshotWithHighlight(mainWindow, federalistBreadcrumb, screenshotDir, step++, 'about-to-click-federalist-breadcrumb');
+    writeNarration(screenshotDir, step++, 'To navigate back, we can click the federalist-papers breadcrumb at the top of the screen.');
+
+    await demonstrateClickForDemo(federalistBreadcrumb);
+
+    await mainWindow.waitForTimeout(1000);
 
     // Click the Tools menu button
     const toolsMenuButton = mainWindow.getByTestId('tools-menu-button');
@@ -78,16 +98,16 @@ test.describe('Generate PDF Demo', () => {
     await takeStepScreenshotWithHighlight(mainWindow, fileNameInput, screenshotDir, step++, 'about-to-enter-file-name');
     writeNarration(screenshotDir, step++, 'Now we\'ll fill in the File Name field with a descriptive name for our exported file.');
 
-    await insertTextForDemo(mainWindow, 'federalist-papers.md', true, fileNameInput);
+    await insertTextForDemo(mainWindow, 'federalist-papers', true, fileNameInput);
 
     await takeStepScreenshotWithHighlight(mainWindow, fileNameInput, screenshotDir, step++, 'file-name-entered');
-    writeNarration(screenshotDir, step++, 'We\'ve entered "federalist-papers.md" as the filename. Now let\'s look at the export options and enable all of them for our demo.');
+    writeNarration(screenshotDir, step++, 'We\'ve entered "federalist-papers" as the filename.');
 
     // Click all four checkboxes
     const includeSubfolders = mainWindow.getByTestId('export-include-subfolders');
     const includeFilenames = mainWindow.getByTestId('export-include-filenames');
     const includeDividers = mainWindow.getByTestId('export-include-dividers');
-    const exportToPdf = mainWindow.getByTestId('export-to-pdf');
+    const exportToPdf = mainWindow.getByTestId('export-format-pdf');
 
     await expect(includeSubfolders).toBeVisible({ timeout: 5000 });
 
@@ -107,7 +127,7 @@ test.describe('Generate PDF Demo', () => {
     writeNarration(screenshotDir, step++, 'Include Dividers is now checked. Horizontal rules will be inserted between sections to give the document a clean, well-structured look.');
 
     await setCheckboxForDemo(exportToPdf, true);
-    await takeStepScreenshotWithHighlight(mainWindow, exportToPdf, screenshotDir, step++, 'checkbox-export-to-pdf-checked');
+    await takeStepScreenshotWithHighlight(mainWindow, exportToPdf, screenshotDir, step++, 'export-format-pdf');
     writeNarration(screenshotDir, step++, 'Export to PDF is now checked. After assembling the Markdown, MkBrowser will automatically convert it to a polished PDF file.');
 
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'checkboxes-selected');
@@ -123,7 +143,7 @@ test.describe('Generate PDF Demo', () => {
 
     await mainWindow.waitForTimeout(1500);
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'export-launched');
-    writeNarration(screenshotDir, step++, 'MkBrowser has launched an external terminal window to run the export. You would see that terminal processing the files and converting them to a PDF. Once it finishes, you can navigate to the output folder at "/home/clay/exports" to find the completed PDF file. That\'s all there is to it — MkBrowser makes it easy to compile and export an entire folder of documents to a polished PDF in just a few clicks.');
+    writeNarration(screenshotDir, step++, 'MkBrowser has launched an external terminal window to run the export.');
 
     logScreenshotSummary(screenshotDir);
   });
