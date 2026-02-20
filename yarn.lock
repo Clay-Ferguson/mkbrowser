@@ -1023,7 +1023,7 @@
     "@anthropic-ai/sdk" "^0.74.0"
     zod "^3.25.76 || ^4"
 
-"@langchain/core@^1.0.1", "@langchain/core@^1.1.16", "@langchain/core@^1.1.27":
+"@langchain/core@^1.0.0", "@langchain/core@^1.0.1", "@langchain/core@^1.1.16", "@langchain/core@^1.1.27":
   version "1.1.27"
   resolved "https://registry.npmjs.org/@langchain/core/-/core-1.1.27.tgz"
   integrity sha512-YVtEz3nqCh8WxtdVXUICmt2BR2An+mn4YRJUBwcHX47Yrh2VwxpO0l97B2N/sNi658m65HnGyz2/hAjF3fzc1w==
@@ -1064,6 +1064,14 @@
     "@langchain/langgraph-checkpoint" "^1.0.0"
     "@langchain/langgraph-sdk" "~2.0.0"
     "@standard-schema/spec" "1.1.0"
+    uuid "^10.0.0"
+
+"@langchain/ollama@^1.2.4":
+  version "1.2.4"
+  resolved "https://registry.npmjs.org/@langchain/ollama/-/ollama-1.2.4.tgz"
+  integrity sha512-Cn29iRvjhojuOP0BczEKtcu+8zyS+jiFu1OVpOFSuXAYQVxrk8UrGjwWpdVaD9yPBKTO6Qm4wL+c3jfadQcL+A==
+  dependencies:
+    ollama "^0.6.3"
     uuid "^10.0.0"
 
 "@lezer/common@^1.0.0", "@lezer/common@^1.0.2", "@lezer/common@^1.1.0", "@lezer/common@^1.2.0", "@lezer/common@^1.2.1", "@lezer/common@^1.3.0", "@lezer/common@^1.5.0":
@@ -6034,6 +6042,13 @@ obug@^2.1.1:
   resolved "https://registry.npmjs.org/obug/-/obug-2.1.1.tgz"
   integrity sha512-uTqF9MuPraAQ+IsnPf366RG4cP9RtUi7MLO1N3KEc+wb0a6yKpeL0lmk2IB1jY5KHPAlTc6T/JRdC/YqxHNwkQ==
 
+ollama@^0.6.3:
+  version "0.6.3"
+  resolved "https://registry.npmjs.org/ollama/-/ollama-0.6.3.tgz"
+  integrity sha512-KEWEhIqE5wtfzEIZbDCLH51VFZ6Z3ZSa6sIOg/E/tBV8S51flyqBOXi+bRxlOYKDf8i327zG9eSTb8IJxvm3Zg==
+  dependencies:
+    whatwg-fetch "^3.6.20"
+
 once@^1.3.0, once@^1.3.1, once@^1.4.0:
   version "1.4.0"
   resolved "https://registry.npmjs.org/once/-/once-1.4.0.tgz"
@@ -7891,6 +7906,11 @@ webpack@^5.1.0, webpack@^5.69.1:
     terser-webpack-plugin "^5.3.16"
     watchpack "^2.4.4"
     webpack-sources "^3.3.3"
+
+whatwg-fetch@^3.6.20:
+  version "3.6.20"
+  resolved "https://registry.npmjs.org/whatwg-fetch/-/whatwg-fetch-3.6.20.tgz"
+  integrity sha512-EqhiFU6daOA8kpjOWTL0olhVOF3i7OrFzSYiGsEMB8GcXS+RrzauAERX65xMeNWVqxA6HXH2m69Z9LaKKdisfg==
 
 whatwg-url@^5.0.0:
   version "5.0.0"

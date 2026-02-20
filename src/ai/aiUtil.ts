@@ -3,6 +3,7 @@
  * This module runs in the main process only — never import from the renderer.
  */
 import { ChatAnthropic } from '@langchain/anthropic';
+import { ChatOllama } from '@langchain/ollama';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
 import { fdir } from 'fdir';
@@ -10,12 +11,20 @@ import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+// NOTE: See 'ollama' folder for instructions on setting up a local Ollama server and 
+// downloading/running the Qwen2.5 model.
+
+/** Switch between 'ANTHROPIC' (cloud) and 'OLLAMA' (local) */
+const AI_PROVIDER: 'ANTHROPIC' | 'OLLAMA' = 'OLLAMA';
+
 /**
  * Invoke the AI with a prompt and return the text response.
  * Optionally accepts prior conversation history to provide context.
  */
 export async function invokeAI(prompt: string, history: BaseMessage[] = []): Promise<string> {
-  const model = new ChatAnthropic({ model: 'claude-3-haiku-20240307' });
+  const model = AI_PROVIDER === 'OLLAMA'
+    ? new ChatOllama({ model: 'qwen2.5:7b', baseUrl: 'http://localhost:11434' })
+    : new ChatAnthropic({ model: 'claude-3-haiku-20240307' });
 
   const graph = new StateGraph(MessagesAnnotation)
     .addNode('chat', async (state) => {
