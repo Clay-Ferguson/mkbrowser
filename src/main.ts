@@ -10,7 +10,7 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { HASHTAG_REGEX } from './utils/hashtagRegex';
-import { invokeAI, findNextNumberedFile, findNextNumberedFolder } from './ai/aiUtil';
+import { invokeAI, findNextNumberedFile, findNextNumberedFolder, gatherConversationHistory } from './ai/aiUtil';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -732,8 +732,11 @@ function setupIpcHandlers(): void {
       // Response always goes into AI.md inside the numbered folder
       const outputPath = path.join(responseFolder, 'AI.md');
 
-      // Invoke the AI
-      const response = await invokeAI(prompt);
+      // Gather conversation history from the folder hierarchy
+      const history = await gatherConversationHistory(parentFolderPath);
+
+      // Invoke the AI with context
+      const response = await invokeAI(prompt, history);
 
       // Write the response
       await fs.promises.writeFile(outputPath, response, 'utf-8');

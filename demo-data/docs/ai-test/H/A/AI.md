@@ -1,1 +1,1 @@
-The capital of Utah is Salt Lake City.
+Okay, got it. The first number you gave me is 6.
