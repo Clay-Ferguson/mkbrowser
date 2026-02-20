@@ -105,7 +105,7 @@ if [ -n "$SPECIFIC_TEST" ]; then
         echo ""
         # open nautilus at the test-videos
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            xdg-open "$CURRENT_FOLDER/../test-videos"
+            xdg-open "$CURRENT_FOLDER/test-videos"
         fi
     fi
 fi
