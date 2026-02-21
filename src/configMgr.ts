@@ -59,6 +59,7 @@ export interface AppConfig {
   browseFolder: string;
   curSubFolder?: string;
   settings?: AppSettings;
+  aiEnabled?: boolean;
   aiModels?: AIModelConfig[];
   aiModel?: string;
   ollamaBaseUrl?: string;
@@ -109,6 +110,11 @@ export function createDefaultAISettings(config: AppConfig): boolean {
 
   if (!config.ollamaBaseUrl) {
     config.ollamaBaseUrl = DEFAULT_OLLAMA_BASE_URL;
+    changed = true;
+  }
+
+  if (config.aiEnabled === undefined) {
+    config.aiEnabled = false;
     changed = true;
   }
 

@@ -41,6 +41,7 @@ export interface AppConfig {
   curSubFolder?: string;
   settings?: AppSettings;
   lastExportFolder?: string;
+  aiEnabled?: boolean;
   aiModels?: AIModelConfig[];
   aiModel?: string;
   ollamaBaseUrl?: string;

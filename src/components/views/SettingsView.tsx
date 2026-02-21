@@ -45,6 +45,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const settings = useSettings();
 
   // AI config state (lives on AppConfig, not AppSettings)
+  const [aiEnabled, setAiEnabled] = useState<boolean>(false);
   const [aiModels, setAiModels] = useState<AIModelConfig[]>([]);
   const [selectedAiModel, setSelectedAiModel] = useState<string>('');
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState<string>('http://localhost:11434');
@@ -52,6 +53,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   // Load AI config on mount
   useEffect(() => {
     window.electronAPI.getConfig().then((config: AppConfig) => {
+      if (config.aiEnabled !== undefined) setAiEnabled(config.aiEnabled);
       if (config.aiModels) setAiModels(config.aiModels);
       if (config.aiModel) setSelectedAiModel(config.aiModel);
       if (config.ollamaBaseUrl) setOllamaBaseUrl(config.ollamaBaseUrl);
@@ -66,6 +68,11 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
       // Silently fail — config will be stale until next save
     }
   }, []);
+
+  const handleAiEnabledChange = useCallback((enabled: boolean) => {
+    setAiEnabled(enabled);
+    void saveAiConfigField({ aiEnabled: enabled });
+  }, [saveAiConfigField]);
 
   const handleAiModelChange = useCallback((modelName: string) => {
     setSelectedAiModel(modelName);
@@ -191,37 +198,48 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
           {/* AI Settings */}
           <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
             <h2 className="text-lg font-semibold text-slate-100 mb-2">AI Settings</h2>
-            <p className="text-sm text-slate-400 mb-4">
-              Configure the AI model and provider used for chat conversations.
-            </p>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <label className="text-slate-300 text-sm">AI Model:</label>
-                <select
-                  value={selectedAiModel}
-                  onChange={(e) => handleAiModelChange(e.target.value)}
-                  className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                >
-                  {aiModels.map((m) => (
-                    <option key={m.name} value={m.name}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={aiEnabled}
+                  onChange={(e) => handleAiEnabledChange(e.target.checked)}
+                  className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                />
+                <span className="text-slate-200">Enable AI Features</span>
+              </label>
 
-              {aiModels.find((m) => m.name === selectedAiModel)?.provider === 'OLLAMA' && (
-                <div className="flex items-center gap-2">
-                  <label className="text-slate-300 text-sm">Ollama Base URL:</label>
-                  <input
-                    type="text"
-                    value={ollamaBaseUrl}
-                    onChange={(e) => handleOllamaBaseUrlChange(e.target.value)}
-                    onBlur={handleOllamaBaseUrlBlur}
-                    className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 font-mono text-sm"
-                  />
-                </div>
+              {aiEnabled && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <label className="text-slate-300 text-sm">AI Model:</label>
+                    <select
+                      value={selectedAiModel}
+                      onChange={(e) => handleAiModelChange(e.target.value)}
+                      className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                    >
+                      {aiModels.map((m) => (
+                        <option key={m.name} value={m.name}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {aiModels.find((m) => m.name === selectedAiModel)?.provider === 'OLLAMA' && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-slate-300 text-sm">Ollama Base URL:</label>
+                      <input
+                        type="text"
+                        value={ollamaBaseUrl}
+                        onChange={(e) => handleOllamaBaseUrlChange(e.target.value)}
+                        onBlur={handleOllamaBaseUrlBlur}
+                        className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 font-mono text-sm"
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </section>
