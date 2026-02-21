@@ -1,3 +1,4 @@
+import { useEffect, useState, useCallback } from 'react';
 import {
   setFontSize,
   setFoldersOnTop,
@@ -9,6 +10,7 @@ import {
   type FontSize,
   type ContentWidth,
 } from '../../store';
+import type { AIModelConfig, AppConfig } from '../../global.d.ts';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 
 interface FontSizeOption {
@@ -41,6 +43,42 @@ interface SettingsViewProps {
 
 function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const settings = useSettings();
+
+  // AI config state (lives on AppConfig, not AppSettings)
+  const [aiModels, setAiModels] = useState<AIModelConfig[]>([]);
+  const [selectedAiModel, setSelectedAiModel] = useState<string>('');
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState<string>('http://localhost:11434');
+
+  // Load AI config on mount
+  useEffect(() => {
+    window.electronAPI.getConfig().then((config: AppConfig) => {
+      if (config.aiModels) setAiModels(config.aiModels);
+      if (config.aiModel) setSelectedAiModel(config.aiModel);
+      if (config.ollamaBaseUrl) setOllamaBaseUrl(config.ollamaBaseUrl);
+    });
+  }, []);
+
+  const saveAiConfigField = useCallback(async (updates: Partial<AppConfig>) => {
+    try {
+      const config = await window.electronAPI.getConfig();
+      await window.electronAPI.saveConfig({ ...config, ...updates });
+    } catch {
+      // Silently fail — config will be stale until next save
+    }
+  }, []);
+
+  const handleAiModelChange = useCallback((modelName: string) => {
+    setSelectedAiModel(modelName);
+    void saveAiConfigField({ aiModel: modelName });
+  }, [saveAiConfigField]);
+
+  const handleOllamaBaseUrlChange = useCallback((url: string) => {
+    setOllamaBaseUrl(url);
+  }, []);
+
+  const handleOllamaBaseUrlBlur = useCallback(() => {
+    void saveAiConfigField({ ollamaBaseUrl });
+  }, [ollamaBaseUrl, saveAiConfigField]);
   
   // Scroll position persistence
   const { containerRef: mainContainerRef, handleScroll: handleMainScroll } = useScrollPersistence(
@@ -148,6 +186,42 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               rows={6}
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
             />
+          </section>
+
+          {/* AI Settings */}
+          <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-100 mb-2">AI Settings</h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Configure the AI model and provider used for chat conversations.
+            </p>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <label className="text-slate-300 text-sm">AI Model:</label>
+                <select
+                  value={selectedAiModel}
+                  onChange={(e) => handleAiModelChange(e.target.value)}
+                  className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                >
+                  {aiModels.map((m) => (
+                    <option key={m.name} value={m.name}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-slate-300 text-sm">Ollama Base URL:</label>
+                <input
+                  type="text"
+                  value={ollamaBaseUrl}
+                  onChange={(e) => handleOllamaBaseUrlChange(e.target.value)}
+                  onBlur={handleOllamaBaseUrlBlur}
+                  className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 font-mono text-sm"
+                />
+              </div>
+            </div>
           </section>
         </div>
         </div>

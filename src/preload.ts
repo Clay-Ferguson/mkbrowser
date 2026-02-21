@@ -26,9 +26,18 @@ export interface AppSettings {
   bookmarks: string[];
 }
 
+export interface AIModelConfig {
+  name: string;
+  provider: 'ANTHROPIC' | 'OLLAMA';
+  model: string;
+}
+
 export interface AppConfig {
   browseFolder: string;
   settings?: AppSettings;
+  aiModels?: AIModelConfig[];
+  aiModel?: string;
+  ollamaBaseUrl?: string;
 }
 
 export interface FileEntry {

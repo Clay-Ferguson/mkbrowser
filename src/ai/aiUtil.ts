@@ -14,16 +14,44 @@ import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { aiTools } from './tools';
+import { getConfig } from '../configMgr';
 
 // NOTE: See 'ollama' folder for instructions on setting up a local Ollama server and 
 // downloading/running the Qwen2.5 model.
 
-/** Switch between 'ANTHROPIC' (cloud) and 'OLLAMA' (local) */
-const AI_PROVIDER: 'ANTHROPIC' | 'OLLAMA' = 'OLLAMA';
-
 // Set to true to use the ReAct agent with tools (Ollama only for now). Set to false to bypass the agent and call the model directly.
 // When Agent Mode is being used use the Modelfile named `Modelfile-for-Agents`.
 const AGENTIC_MODE = false;
+
+/**
+ * Resolve the active AI provider and model name from the config.
+ * Falls back to Anthropic Claude Haiku if nothing is configured.
+ */
+function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA'; model: string; ollamaBaseUrl: string } {
+  const config = getConfig();
+  const ollamaBaseUrl = config.ollamaBaseUrl || 'http://localhost:11434';
+
+  if (config.aiModel && config.aiModels) {
+    const entry = config.aiModels.find((m) => m.name === config.aiModel);
+    if (entry) {
+      return { provider: entry.provider, model: entry.model, ollamaBaseUrl };
+    }
+  }
+
+  // Fallback defaults
+  return { provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', ollamaBaseUrl };
+}
+
+/**
+ * Create the appropriate LangChain chat model based on the active config.
+ */
+function createChatModel() {
+  const { provider, model, ollamaBaseUrl } = getActiveModelConfig();
+  if (provider === 'OLLAMA') {
+    return new ChatOllama({ model, baseUrl: ollamaBaseUrl });
+  }
+  return new ChatAnthropic({ model });
+}
 
 /**
  * Invoke the AI with a prompt and return the text response.
@@ -34,16 +62,15 @@ const AGENTIC_MODE = false;
  * Optionally accepts prior conversation history to provide context.
  */
 export async function invokeAI(prompt: string, history: BaseMessage[] = []): Promise<string> {
+  const { provider } = getActiveModelConfig();
+
   // Anthropic path — no tools wired up yet, use the simple non-agentic flow
-  if (AI_PROVIDER === 'ANTHROPIC' || !AGENTIC_MODE) {
+  if (provider === 'ANTHROPIC' || !AGENTIC_MODE) {
     return invokeAINonAgentic(prompt, history);
   }
 
   // Ollama path — ReAct agent with file-system tools
-  const model = new ChatOllama({
-    model: 'qwen-silent',
-    baseUrl: 'http://localhost:11434',
-  });
+  const model = createChatModel();
 
   const agent = createReactAgent({
     llm: model,
@@ -67,19 +94,7 @@ export async function invokeAI(prompt: string, history: BaseMessage[] = []): Pro
  * Optionally accepts prior conversation history to provide context.
  */
 export async function invokeAINonAgentic(prompt: string, history: BaseMessage[] = []): Promise<string> {
-  const model = AI_PROVIDER === 'OLLAMA'
-    ? new ChatOllama({ 
-      // if you have run the `ollama/setup.sh` then this model should work out of the box.
-      //model: 'qwen2.5:7b', 
-
-      // assuming that you had first run `ollama/setup.sh` (which is required), then you can run `ollama/configure.sh`
-      // switch to our more customized model (defined in `ollama/Modelfile`) which has parameters geared towards limiting 
-      // CPU usage memory consumption to have a good balance of power.
-      // This model is based on `qwen2.5:7b`, but just has parametres controlling context window size and system prompt, etc.
-      model: 'qwen-silent',
-
-      baseUrl: 'http://localhost:11434' })
-    : new ChatAnthropic({ model: 'claude-3-haiku-20240307' });
+  const model = createChatModel();
 
   const graph = new StateGraph(MessagesAnnotation)
     .addNode('chat', async (state) => {

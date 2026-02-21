@@ -49,10 +49,19 @@ export interface AppSettings {
   bookmarks: string[];
 }
 
+export interface AIModelConfig {
+  name: string;
+  provider: 'ANTHROPIC' | 'OLLAMA';
+  model: string;
+}
+
 export interface AppConfig {
   browseFolder: string;
   curSubFolder?: string;
   settings?: AppSettings;
+  aiModels?: AIModelConfig[];
+  aiModel?: string;
+  ollamaBaseUrl?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -68,6 +77,43 @@ export const defaultSettings: AppSettings = {
   contentWidth: 'medium',
   bookmarks: [],
 };
+
+// ---------------------------------------------------------------------------
+// AI defaults
+// ---------------------------------------------------------------------------
+
+const DEFAULT_AI_MODELS: AIModelConfig[] = [
+  { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307' },
+  { name: 'Qwen Silent (Ollama)', provider: 'OLLAMA', model: 'qwen-silent' },
+];
+
+const DEFAULT_AI_MODEL = 'Claude Haiku';
+const DEFAULT_OLLAMA_BASE_URL = 'http://localhost:11434';
+
+/**
+ * Ensure AI-related config fields exist with sensible defaults.
+ * Returns true if any value was populated (caller should persist).
+ */
+export function createDefaultAISettings(config: AppConfig): boolean {
+  let changed = false;
+
+  if (!config.aiModels || config.aiModels.length === 0) {
+    config.aiModels = [...DEFAULT_AI_MODELS];
+    changed = true;
+  }
+
+  if (!config.aiModel) {
+    config.aiModel = DEFAULT_AI_MODEL;
+    changed = true;
+  }
+
+  if (!config.ollamaBaseUrl) {
+    config.ollamaBaseUrl = DEFAULT_OLLAMA_BASE_URL;
+    changed = true;
+  }
+
+  return changed;
+}
 
 // ---------------------------------------------------------------------------
 // In-memory state (single source of truth after init)
@@ -108,6 +154,9 @@ export function initConfig(): void {
           ...parsed,
           settings: { ...defaultSettings, ...parsed.settings },
         };
+        if (createDefaultAISettings(_config)) {
+          persistConfig();
+        }
         return;
       }
     }

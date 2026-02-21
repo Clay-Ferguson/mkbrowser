@@ -30,11 +30,20 @@ export interface AppSettings {
   bookmarks: string[];
 }
 
+export interface AIModelConfig {
+  name: string;
+  provider: 'ANTHROPIC' | 'OLLAMA';
+  model: string;
+}
+
 export interface AppConfig {
   browseFolder: string;
   curSubFolder?: string;
   settings?: AppSettings;
   lastExportFolder?: string;
+  aiModels?: AIModelConfig[];
+  aiModel?: string;
+  ollamaBaseUrl?: string;
 }
 
 export interface FileEntry {
