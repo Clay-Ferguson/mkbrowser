@@ -7,6 +7,7 @@ interface ToolsPopupMenuProps {
   onFolderAnalysis: () => void;
   onRenumberFiles: () => void;
   onExport: () => void;
+  onNewAiChat: () => void;
 }
 
 export default function ToolsPopupMenu({
@@ -15,9 +16,15 @@ export default function ToolsPopupMenu({
   onFolderAnalysis,
   onRenumberFiles,
   onExport,
+  onNewAiChat,
 }: ToolsPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
+      <PopupMenuItem
+        label="New AI Chat"
+        onClick={() => { onNewAiChat(); onClose(); }}
+      />
+      <PopupMenuDivider />
       <PopupMenuItem
         label="Folder Analysis"
         onClick={() => { onFolderAnalysis(); onClose(); }}

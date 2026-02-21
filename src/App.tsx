@@ -44,6 +44,7 @@ import {
   clearPendingScrollToFile,
   setPendingScrollToFile,
   clearPendingEditFile,
+  setPendingEditFile,
   setHighlightItem,
   setSearchResults,
   setSettings,
@@ -1417,6 +1418,22 @@ function App() {
           }}
           onRenumberFiles={() => void handleRenumberFiles()}
           onExport={() => setShowExportDialog(true)}
+          onNewAiChat={() => {
+            if (!currentPath) return;
+            void (async () => {
+              try {
+                const result = await window.electronAPI.replyToAi(currentPath);
+                if ('error' in result) {
+                  setError('Failed to create AI chat: ' + result.error);
+                } else {
+                  navigateToBrowserPath(result.folderPath, 'HUMAN.md');
+                  setPendingEditFile(result.filePath);
+                }
+              } catch (err) {
+                setError('Failed to create AI chat: ' + (err instanceof Error ? err.message : String(err)));
+              }
+            })();
+          }}
         />
       )}
 
