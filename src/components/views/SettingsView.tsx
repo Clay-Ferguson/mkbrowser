@@ -211,16 +211,18 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
-                <label className="text-slate-300 text-sm">Ollama Base URL:</label>
-                <input
-                  type="text"
-                  value={ollamaBaseUrl}
-                  onChange={(e) => handleOllamaBaseUrlChange(e.target.value)}
-                  onBlur={handleOllamaBaseUrlBlur}
-                  className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 font-mono text-sm"
-                />
-              </div>
+              {aiModels.find((m) => m.name === selectedAiModel)?.provider === 'OLLAMA' && (
+                <div className="flex items-center gap-2">
+                  <label className="text-slate-300 text-sm">Ollama Base URL:</label>
+                  <input
+                    type="text"
+                    value={ollamaBaseUrl}
+                    onChange={(e) => handleOllamaBaseUrlChange(e.target.value)}
+                    onBlur={handleOllamaBaseUrlBlur}
+                    className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 font-mono text-sm"
+                  />
+                </div>
+              )}
             </div>
           </section>
         </div>
