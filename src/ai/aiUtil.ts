@@ -15,9 +15,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { aiTools, setToolsEnabled } from './tools';
 import { getConfig } from '../configMgr';
-import { preprocessPrompt } from './promptPreprocess';
+import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 
 export { preprocessPrompt, wildcardToRegex, FILE_DIRECTIVE_REGEX } from './promptPreprocess';
+export type { PreprocessResult, ImageAttachment } from './promptPreprocess';
 
 /** Matches AI conversation folders: "A", "A1", "A2", etc. (case-sensitive) */
 export const AI_FOLDER_REGEX = /^A\d*$/;
@@ -63,14 +64,42 @@ function createChatModel() {
 }
 
 /**
- * Invoke the AI with a prompt and return the text response.
+ * Build a HumanMessage from a PreprocessResult. When the result contains
+ * images the message uses LangChain's multimodal content-array format;
+ * otherwise it's a plain text message.
+ */
+function buildHumanMessage(result: PreprocessResult): HumanMessage {
+  if (result.images.length === 0) {
+    return new HumanMessage(result.text);
+  }
+
+  // Multimodal content array: text first, then image_url parts
+  const content: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }> = [
+    { type: 'text', text: result.text },
+  ];
+
+  for (const img of result.images) {
+    content.push({
+      type: 'image_url',
+      image_url: { url: `data:${img.mimeType};base64,${img.base64Data}` },
+    });
+  }
+
+  return new HumanMessage({ content });
+}
+
+/**
+ * Invoke the AI with a preprocessed prompt and return the text response.
  * Uses a ReAct agent (Ollama) that can call file-system tools (read_file,
  * list_directory) scoped to ~/. Falls back to the non-agentic path for
  * the Anthropic provider.
  *
+ * The prompt may include image attachments which are sent as multimodal
+ * content parts when the model supports vision.
+ *
  * Optionally accepts prior conversation history to provide context.
  */
-export async function invokeAI(prompt: string, history: BaseMessage[] = []): Promise<string> {
+export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<string> {
   const { provider } = getActiveModelConfig();
 
   // Anthropic path — no tools wired up yet, use the simple non-agentic flow
@@ -86,8 +115,9 @@ export async function invokeAI(prompt: string, history: BaseMessage[] = []): Pro
     tools: aiTools,
   });
 
+  const humanMsg = buildHumanMessage(prompt);
   const result = await agent.invoke({
-    messages: [...history, new HumanMessage(prompt)],
+    messages: [...history, humanMsg],
   });
 
   const lastMessage = result.messages[result.messages.length - 1];
@@ -102,7 +132,7 @@ export async function invokeAI(prompt: string, history: BaseMessage[] = []): Pro
  *
  * Optionally accepts prior conversation history to provide context.
  */
-export async function invokeAINonAgentic(prompt: string, history: BaseMessage[] = []): Promise<string> {
+export async function invokeAINonAgentic(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<string> {
   const model = createChatModel();
 
   const graph = new StateGraph(MessagesAnnotation)
@@ -114,8 +144,9 @@ export async function invokeAINonAgentic(prompt: string, history: BaseMessage[] 
     .addEdge('chat', '__end__')
     .compile();
 
+  const humanMsg = buildHumanMessage(prompt);
   const result = await graph.invoke({
-    messages: [...history, new HumanMessage(prompt)],
+    messages: [...history, humanMsg],
   });
 
   const lastMessage = result.messages[result.messages.length - 1];
@@ -225,8 +256,9 @@ export async function gatherConversationHistory(
       const humanFile = path.join(walker, 'HUMAN.md');
       try {
         const rawContent = await fs.readFile(humanFile, 'utf-8');
-        const processed = await preprocessPrompt(rawContent, walker);
-        history.unshift(new HumanMessage(processed));
+        // Historical turns: includeImages=false to avoid re-sending costly images
+        const processed = await preprocessPrompt(rawContent, walker, false);
+        history.unshift(new HumanMessage(processed.text));
       } catch {
         // HUMAN.md missing or unreadable — stop here
         break;

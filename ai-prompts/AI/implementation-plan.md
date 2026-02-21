@@ -65,3 +65,35 @@ User's prompt text here...
 </file>
 </attached_files>
 ```
+
+# Step 9 (done)
+
+We completed step 8 above, intentionally without considering the possibility for attaching images to our context. in step 9 (this step) we want to design a way to be able to send images to the AI. for now, we will leave it up to the user to be responsible for knowing whether their selected AI provider supports images or not, but for our initial testing, can you please recommend which Anthropic model would be the cheapest for us to use for testing purposes. for testing, we just want the simplest, cheapest model we can use that supports images. to be clear, I'm, of course, talking about image uploading, not image generation. we will be sending the image to the AI, and for the moment, we won't be considering any cases where the AI might send an image back to us (although that feature will  come later, in case it helps you to know that now). i'm pretty sure Langchain will already have the support for image uploading in their API, and as long as the model provider we're using supports images then everything should work smoothly. the way this will work is that we will simply detect when any of the attachment files that we're processing (per step 8 above), happen to be images, and if so, then rather than including those as "<attached_files>" we will be doing something different to add the images to the context in whatever way is done in the Langchain API.  
+
+## Decisions
+- **Same `#file:` directive**: auto-detects images by file extension (no separate `#image:` directive).
+- **Current turn only**: Images are attached only for the current prompt; historical turns use `includeImages: false` to avoid re-sending costly image data.
+- **SVGs as images**: SVG files are sent as `image/svg+xml` base64 data URLs (not as text attachments).
+- **10 MB limit**: Per-image size cap via `MAX_IMAGE_SIZE_BYTES`; oversized files are skipped with a note in the prompt text.
+- **Cheapest model**: Claude 3 Haiku (`claude-3-haiku-20240307`) — already the app's default — supports vision at $0.25/MTok input.
+
+## Implementation
+- Updated `src/ai/promptPreprocess.ts`:
+  - Added `IMAGE_EXTENSIONS` set, `getImageMimeType()`, `isImageFile()`, `MAX_IMAGE_SIZE_BYTES` constant.
+  - Added `ImageAttachment` and `PreprocessResult` interfaces.
+  - Changed `preprocessPrompt()` return type from `string` to `PreprocessResult` (`{ text, images }`).
+  - Image files matched by `#file:` are read as binary, base64-encoded, and returned in the `images` array.
+  - Text files continue to go into the `<attached_files>` XML block in `text`.
+  - Added `includeImages` parameter (default `true`); when `false`, image files are skipped entirely.
+  - Images exceeding 10 MB are skipped with a note like `[Skipped image "file.png": exceeds 10 MB limit]`.
+- Updated `src/ai/aiUtil.ts`:
+  - Added `buildHumanMessage()` helper that creates a plain `HumanMessage` for text-only or a multimodal content-array `HumanMessage` with `image_url` parts for prompts with images.
+  - Changed `invokeAI()` and `invokeAINonAgentic()` to accept `PreprocessResult` instead of `string`.
+  - `gatherConversationHistory()` now passes `includeImages: false` for historical `HUMAN.md` turns.
+  - Re-exports `PreprocessResult` and `ImageAttachment` types.
+- Updated `src/main.ts` `ask-ai` handler — no signature change needed since `preprocessPrompt()` now returns `PreprocessResult` which is passed directly to `invokeAI()`.
+- Updated `tests/preprocess.test.ts`:
+  - All 10 existing tests adapted for `PreprocessResult` return type (accessing `.text` and `.images`).
+  - Added 13 new tests: `getImageMimeType` (3), `isImageFile` (2), image handling (8) covering image separation, PNG/JPG/SVG attachment, base64 encoding, `includeImages: false`, oversized image skipping, and mixed text/image directives.
+  - Replaced fake `image.png` text fixture with real tiny PNG and added `diagram.jpg` and `icon.svg` fixtures.
+  - Total: 33 tests, all passing.

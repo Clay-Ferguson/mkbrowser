@@ -756,10 +756,10 @@ function setupIpcHandlers(): void {
       // Gather conversation history from the folder hierarchy
       const history = await gatherConversationHistory(parentFolderPath);
 
-      // Preprocess the prompt: expand #file: directives and strip them
+      // Preprocess the prompt: expand #file: directives, separate text/images
       const processedPrompt = await preprocessPrompt(prompt, parentFolderPath);
 
-      // Invoke the AI with context
+      // Invoke the AI with context (images are sent as multimodal content parts)
       const response = await invokeAI(processedPrompt, history);
 
       // Write the response
