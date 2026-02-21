@@ -23,7 +23,16 @@ const AI_PROVIDER: 'ANTHROPIC' | 'OLLAMA' = 'OLLAMA';
  */
 export async function invokeAI(prompt: string, history: BaseMessage[] = []): Promise<string> {
   const model = AI_PROVIDER === 'OLLAMA'
-    ? new ChatOllama({ model: 'qwen2.5:7b', baseUrl: 'http://localhost:11434' })
+    ? new ChatOllama({ 
+      // if you have run the `ollama/setup.sh` then this model should work out of the box.
+      //model: 'qwen2.5:7b', 
+
+      // assuming that you had first run `ollama/setup.sh` (which is required), then you can run `ollama/configure.sh`
+      // switch to our more customized model (defined in `ollama/Modelfile`) which has parameters geared towards limiting 
+      // CPU usage memory consumption to have a good balance of power.
+      model: 'qwen-silent',
+
+      baseUrl: 'http://localhost:11434' })
     : new ChatAnthropic({ model: 'claude-3-haiku-20240307' });
 
   const graph = new StateGraph(MessagesAnnotation)

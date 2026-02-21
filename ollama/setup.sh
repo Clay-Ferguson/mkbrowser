@@ -136,3 +136,12 @@ ollama pull phi3.5:3.8b
 
 # Remove a model
 ollama rm qwen2.5:7b
+
+# =========================================================
+# NOTES: 
+# To see what models are currently running:
+#    ollama ps
+# To stop a model:
+#    ollama stop qwen2.5:7b
+#
+# =========================================================

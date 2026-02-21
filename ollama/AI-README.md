@@ -1,5 +1,13 @@
 # Per Gemini AI about Qwen
 
+[Ollama Website](https://ollama.com)
+
+[Ollama Github](github.com/ollama/ollama)
+
+[Qwen Model Info](https://ollama.com/library/qwen2.5)
+
+[Huggingface Model Info](https://huggingface.co/Qwen/Qwen2.5-7B)
+
 **Qwen2.5:7b significantly outperforms GPT-3.5.**
 
 In fact, the AI landscape has moved so fast that a 7-billion parameter model like Qwen2.5 now matches or beats the original **GPT-4** (the 2023 version) on many technical benchmarks, particularly in coding and mathematics.
