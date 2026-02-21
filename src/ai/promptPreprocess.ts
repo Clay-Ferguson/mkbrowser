@@ -8,6 +8,8 @@ import { fdir } from 'fdir';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+const debug = false;
+
 /** Matches a #file: directive on its own line. Captures the pattern after the colon. */
 export const FILE_DIRECTIVE_REGEX = /^\s*#file:(.+?)\s*$/;
 
@@ -114,5 +116,9 @@ export async function preprocessPrompt(
   }
 
   const attachedBlock = `<attached_files>\n${fileBlocks.join('\n')}\n</attached_files>`;
-  return `${promptLines.join('\n')}\n\n${attachedBlock}`;
+  const finalPrompt = `${promptLines.join('\n')}\n\n${attachedBlock}`;
+  if (debug) {
+    console.log('[preprocessPrompt] Final prompt with attached files:\n', finalPrompt);
+  }
+  return finalPrompt;
 }
