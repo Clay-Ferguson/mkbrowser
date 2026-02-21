@@ -376,12 +376,13 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isReplyLoading, setIsReplyLoading] = useState(false);
 
-  const handleAskAi = async () => {
-    if (!content) return;
+  const handleAskAi = async (promptContent?: string) => {
+    const textToSend = promptContent || content;
+    if (!textToSend) return;
     setIsAiLoading(true);
     try {
       const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
-      const result = await window.electronAPI.askAi(content, parentFolder);
+      const result = await window.electronAPI.askAi(textToSend, parentFolder);
       if ('error' in result) {
         console.error('Ask AI error:', result.error);
       } else {
@@ -455,12 +456,24 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
             >
               {edit.saving ? 'Saving...' : 'Save'}
             </button>
+            {isHumanFile && (
+              <button
+                onClick={async () => {
+                  await edit.handleSave();
+                  await handleAskAi(edit.editContent);
+                }}
+                disabled={edit.saving || isAiLoading}
+                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
+              >
+                {isAiLoading ? 'Thinking...' : 'Ask AI'}
+              </button>
+            )}
           </div>
         ) : !isRenaming && (
           <>
             {isHumanFile && (
               <button
-                onClick={handleAskAi}
+                onClick={() => handleAskAi()}
                 disabled={isAiLoading || !content}
                 className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
               >
