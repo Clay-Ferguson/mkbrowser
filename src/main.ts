@@ -10,7 +10,7 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { HASHTAG_REGEX } from './utils/hashtagRegex';
-import { invokeAI, findNextNumberedFile, findNextNumberedFolder, gatherConversationHistory } from './ai/aiUtil';
+import { invokeAI, findNextNumberedFolder, gatherConversationHistory, AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './ai/aiUtil';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -199,9 +199,9 @@ function setupIpcHandlers(): void {
       if (isDirectory && getConfig().aiEnabled) {
         const folderName = entry.name;
         let hintFile: string | undefined;
-        if (/^H\d*$/.test(folderName)) {
+        if (HUMAN_FOLDER_REGEX.test(folderName)) {
           hintFile = 'HUMAN.md';
-        } else if (/^A\d*$/.test(folderName)) {
+        } else if (AI_FOLDER_REGEX.test(folderName)) {
           hintFile = 'AI.md';
         }
         if (hintFile) {

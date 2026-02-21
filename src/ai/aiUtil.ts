@@ -16,6 +16,11 @@ import path from 'node:path';
 import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 
+/** Matches AI conversation folders: "A", "A1", "A2", etc. (case-insensitive) */
+export const AI_FOLDER_REGEX = /^A\d*$/i;
+/** Matches Human conversation folders: "H", "H1", "H2", etc. (case-insensitive) */
+export const HUMAN_FOLDER_REGEX = /^H\d*$/i;
+
 // NOTE: See 'ollama' folder for instructions on setting up a local Ollama server and 
 // downloading/running the Qwen2.5 model.
 
@@ -201,7 +206,7 @@ export async function gatherConversationHistory(
   while (true) {
     const folderName = path.basename(walker);
 
-    if (/^A\d*$/i.test(folderName)) {
+    if (AI_FOLDER_REGEX.test(folderName)) {
       // Agent folder — look for AI.md
       const aiFile = path.join(walker, 'AI.md');
       try {
@@ -211,7 +216,7 @@ export async function gatherConversationHistory(
         // AI.md missing or unreadable — stop here
         break;
       }
-    } else if (/^H\d*$/i.test(folderName)) {
+    } else if (HUMAN_FOLDER_REGEX.test(folderName)) {
       // Human folder — look for HUMAN.md
       const humanFile = path.join(walker, 'HUMAN.md');
       try {
