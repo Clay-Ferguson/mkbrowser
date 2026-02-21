@@ -39,3 +39,29 @@ when loading the configs, we need to check if this array is missing , and if it'
 so that takes care of the data availability, and after you've done those changes, you can now populate the `SettingsView.tsx` combo box model selection combo box inside the "AI Settings" section of the settings view, by displaying the model names in the combo box , and of course, when the user selects an item in the combo box , you'll not only update the `aiModel` value in memory , but you'll also write out the config file to update that in the file. 
 
 and of course the final step of this will be to make the changes in the `aiUtils.ts` module so that it uses the `aiModel` name to find the proper configuration object it matches that name , wish it will then use to initialize the LLM connection every time an AI inference is executed .
+
+# Step 8 (done)
+
+## Initial question to AI Planning Mode:
+Next, we need to design a way for the user to specify which files from the current folder they would like to include in the AI prompt, when they click the "Ask AI" button. is there already a convention for this that AI agents are using, that would be some type of directive embedded into a prompt that would not be evaluated as prompt text but would be used for constructing the context for the prompt ? if there is a coding standard that has been established for either Github Copilot or Claude Code for this, then let me know what the standard is, but my first idea would be something like "/include all" which would be a line that we could allow the users to put as the last line in their prompt, which would trigger the system to include all of the files in the current folder into the conversation context somehow , and then of course the "/include all" would be stripped out of the text before it's embedded into the prompt itself.  
+
+## Outcome/Decision
+We designed the `#file:<pattern>` directive syntax, inspired by VSCode Copilot's `#file:` references. Directives must appear on their own line in a `HUMAN.md` file. The pattern supports simple wildcards (`*` matches any string). Examples: `#file:*` (all files), `#file:*.md` (all markdown files), `#file:notes.txt` (specific file). `HUMAN.md` is always excluded. Directive lines are stripped before sending the prompt, and matched file contents are appended in an `<attached_files>` XML block. Directives in historical conversation turns are also expanded.
+
+## Implementation
+- Created `src/ai/promptPreprocess.ts` — pure functions (`wildcardToRegex`, `preprocessPrompt`, `FILE_DIRECTIVE_REGEX`) with no Electron/LangChain dependencies, testable in plain Node.
+- Updated `src/ai/aiUtil.ts` — re-exports from `promptPreprocess.ts`; `gatherConversationHistory` now expands `#file:` directives in historical HUMAN.md turns.
+- Updated `src/main.ts` — the `ask-ai` handler calls `preprocessPrompt` on the current prompt before passing it to `invokeAI`.
+- Created `tests/preprocess.test.ts` — 20 unit tests covering `wildcardToRegex`, `FILE_DIRECTIVE_REGEX`, and `preprocessPrompt`.
+
+Prompt gets altered to include this:
+
+```
+User's prompt text here...
+
+<attached_files>
+<file path="notes.txt">
+...content...
+</file>
+</attached_files>
+```

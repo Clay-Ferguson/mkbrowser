@@ -10,6 +10,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 
+/** When false, all tool invocations throw immediately — an extra safeguard on top of AGENTIC_MODE. */
+let toolsEnabled = false;
+
+/** Enable or disable all AI tools at runtime. */
+export function setToolsEnabled(enabled: boolean): void {
+  toolsEnabled = enabled;
+}
+
 /** Maximum file size (in bytes) the read_file tool will return.  Larger files are truncated. */
 const MAX_READ_BYTES = 50 * 1024; // 50 KB
 
@@ -61,6 +69,9 @@ async function validatePath(rawPath: string): Promise<string> {
  */
 export const readFileTool = tool(
   async ({ filePath }) => {
+    if (!toolsEnabled) {
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). read_file cannot be called.');
+    }
     const safe = await validatePath(filePath);
     const stat = await fs.stat(safe);
 
@@ -104,6 +115,9 @@ export const readFileTool = tool(
  */
 export const listDirectoryTool = tool(
   async ({ directoryPath }) => {
+    if (!toolsEnabled) {
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). list_directory cannot be called.');
+    }
     const safe = await validatePath(directoryPath);
     const stat = await fs.stat(safe);
 

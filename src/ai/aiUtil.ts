@@ -13,8 +13,11 @@ import { fdir } from 'fdir';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { aiTools } from './tools';
+import { aiTools, setToolsEnabled } from './tools';
 import { getConfig } from '../configMgr';
+import { preprocessPrompt } from './promptPreprocess';
+
+export { preprocessPrompt, wildcardToRegex, FILE_DIRECTIVE_REGEX } from './promptPreprocess';
 
 /** Matches AI conversation folders: "A", "A1", "A2", etc. (case-sensitive) */
 export const AI_FOLDER_REGEX = /^A\d*$/;
@@ -27,6 +30,7 @@ export const HUMAN_FOLDER_REGEX = /^H\d*$/;
 // Set to true to use the ReAct agent with tools (Ollama only for now). Set to false to bypass the agent and call the model directly.
 // When Agent Mode is being used use the Modelfile named `Modelfile-for-Agents`.
 const AGENTIC_MODE = false;
+setToolsEnabled(AGENTIC_MODE);
 
 /**
  * Resolve the active AI provider and model name from the config.
@@ -220,8 +224,9 @@ export async function gatherConversationHistory(
       // Human folder — look for HUMAN.md
       const humanFile = path.join(walker, 'HUMAN.md');
       try {
-        const content = await fs.readFile(humanFile, 'utf-8');
-        history.unshift(new HumanMessage(content));
+        const rawContent = await fs.readFile(humanFile, 'utf-8');
+        const processed = await preprocessPrompt(rawContent, walker);
+        history.unshift(new HumanMessage(processed));
       } catch {
         // HUMAN.md missing or unreadable — stop here
         break;
