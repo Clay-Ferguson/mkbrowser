@@ -4,6 +4,7 @@ import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 interface ToolsPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
+  aiEnabled: boolean;
   onFolderAnalysis: () => void;
   onRenumberFiles: () => void;
   onExport: () => void;
@@ -13,6 +14,7 @@ interface ToolsPopupMenuProps {
 export default function ToolsPopupMenu({
   anchorRef,
   onClose,
+  aiEnabled,
   onFolderAnalysis,
   onRenumberFiles,
   onExport,
@@ -20,11 +22,15 @@ export default function ToolsPopupMenu({
 }: ToolsPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
-      <PopupMenuItem
-        label="New AI Chat"
-        onClick={() => { onNewAiChat(); onClose(); }}
-      />
-      <PopupMenuDivider />
+      {aiEnabled && (
+        <>
+          <PopupMenuItem
+            label="New AI Chat"
+            onClick={() => { onNewAiChat(); onClose(); }}
+          />
+          <PopupMenuDivider />
+        </>
+      )}
       <PopupMenuItem
         label="Folder Analysis"
         onClick={() => { onFolderAnalysis(); onClose(); }}

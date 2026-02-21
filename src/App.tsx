@@ -90,6 +90,7 @@ function App() {
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
   const [showSearchMenu, setShowSearchMenu] = useState<boolean>(false);
   const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
+  const [aiEnabled, setAiEnabled] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
   const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
   const items = useItems();
@@ -131,6 +132,7 @@ function App() {
     const initConfig = async () => {
       const result = await loadConfig();
       setLastExportFolder(result.lastExportFolder);
+      setAiEnabled(result.aiEnabled);
       if (result.error) {
         setError(result.error);
         setLoading(false);
@@ -1400,6 +1402,7 @@ function App() {
         <ToolsPopupMenu
           anchorRef={toolsButtonRef}
           onClose={() => setShowToolsMenu(false)}
+          aiEnabled={aiEnabled}
           onFolderAnalysis={() => {
             if (!currentPath) return;
             void (async () => {

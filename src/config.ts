@@ -5,6 +5,7 @@ export interface LoadConfigResult {
   loaded: boolean;
   error: string | null;
   lastExportFolder: string;
+  aiEnabled: boolean;
 }
 
 /**
@@ -30,14 +31,14 @@ export async function loadConfig(): Promise<LoadConfigResult> {
           }
         }
         setCurrentPath(initialPath);
-        return { rootPath: config.browseFolder, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '' };
+        return { rootPath: config.browseFolder, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled };
       } else {
-        return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '' };
+        return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled };
       }
     } else {
-      return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '' };
+      return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled };
     }
   } catch (err) {
-    return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '' };
+    return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '', aiEnabled: false };
   }
 }

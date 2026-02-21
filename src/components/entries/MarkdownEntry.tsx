@@ -371,8 +371,15 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
     toggleItemExpanded(entry.path);
   };
 
-  const isHumanFile = entry.name === 'HUMAN.md';
-  const isAiFile = entry.name === 'AI.md';
+  const [aiEnabled, setAiEnabled] = useState(false);
+  useEffect(() => {
+    window.electronAPI.getConfig().then((config) => {
+      setAiEnabled(!!config.aiEnabled);
+    });
+  }, []);
+
+  const isHumanFile = aiEnabled && entry.name === 'HUMAN.md';
+  const isAiFile = aiEnabled && entry.name === 'AI.md';
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isReplyLoading, setIsReplyLoading] = useState(false);
 
