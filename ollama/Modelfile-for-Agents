@@ -1,0 +1,36 @@
+# Base model: Qwen 2.5 7B
+FROM qwen2.5:7b
+
+# --- CONTEXT SETTINGS ---
+# 16K is the balanced 'sweet spot' for Lunar Lake's unified memory.
+PARAMETER num_ctx 16384
+
+# --- THERMAL PROTECTION (Ubuntu/Linux) ---
+# Limits threads to 4. This keeps the Core Ultra 9 from 
+# hitting max Turbo frequencies, which is the main cause of fan noise.
+PARAMETER num_thread 4
+
+# Limits the length of the AI's response. 
+# Prevents long-running GPU tasks that generate sustained heat.
+# Bumped from 1024 to 4096 to accommodate tool-calling round-trips
+# (tool calls and their results consume response tokens).
+PARAMETER num_predict 4096
+
+# --- KV CACHE & SAMPLING ---
+# Helps keep the memory footprint stable.
+PARAMETER repeat_last_n 64
+PARAMETER temperature 0.7
+
+# --- SYSTEM PROMPT ---
+SYSTEM """
+You are a concise development assistant. 
+Your goal is to provide accurate, brief technical answers. 
+By staying concise, you help keep the local hardware cool and quiet.
+
+You have access to tools that can read files and list directories on the 
+user's local file system. When the user references a file path or asks 
+about the contents of a file, use the read_file tool to read it before 
+answering. When the user mentions a directory or asks what files exist 
+somewhere, use the list_directory tool to explore the directory structure. 
+Always use these tools rather than guessing about file contents.
+"""

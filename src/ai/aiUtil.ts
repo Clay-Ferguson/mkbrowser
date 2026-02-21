@@ -5,11 +5,15 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatOllama } from '@langchain/ollama';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore — TS moduleResolution:"node" can't resolve subpath exports; works at runtime
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
 import { fdir } from 'fdir';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { aiTools } from './tools';
 
 // NOTE: See 'ollama' folder for instructions on setting up a local Ollama server and 
 // downloading/running the Qwen2.5 model.
@@ -17,11 +21,52 @@ import path from 'node:path';
 /** Switch between 'ANTHROPIC' (cloud) and 'OLLAMA' (local) */
 const AI_PROVIDER: 'ANTHROPIC' | 'OLLAMA' = 'OLLAMA';
 
+// Set to true to use the ReAct agent with tools (Ollama only for now). Set to false to bypass the agent and call the model directly.
+// When Agent Mode is being used use the Modelfile named `Modelfile-for-Agents`.
+const AGENTIC_MODE = false;
+
 /**
  * Invoke the AI with a prompt and return the text response.
+ * Uses a ReAct agent (Ollama) that can call file-system tools (read_file,
+ * list_directory) scoped to ~/. Falls back to the non-agentic path for
+ * the Anthropic provider.
+ *
  * Optionally accepts prior conversation history to provide context.
  */
 export async function invokeAI(prompt: string, history: BaseMessage[] = []): Promise<string> {
+  // Anthropic path — no tools wired up yet, use the simple non-agentic flow
+  if (AI_PROVIDER === 'ANTHROPIC' || !AGENTIC_MODE) {
+    return invokeAINonAgentic(prompt, history);
+  }
+
+  // Ollama path — ReAct agent with file-system tools
+  const model = new ChatOllama({
+    model: 'qwen-silent',
+    baseUrl: 'http://localhost:11434',
+  });
+
+  const agent = createReactAgent({
+    llm: model,
+    tools: aiTools,
+  });
+
+  const result = await agent.invoke({
+    messages: [...history, new HumanMessage(prompt)],
+  });
+
+  const lastMessage = result.messages[result.messages.length - 1];
+  return typeof lastMessage.content === 'string'
+    ? lastMessage.content
+    : JSON.stringify(lastMessage.content);
+}
+
+/**
+ * Non-agentic AI invocation (no tool calling). Kept as a simpler fallback.
+ * Uses a single-node StateGraph that sends messages straight to the model.
+ *
+ * Optionally accepts prior conversation history to provide context.
+ */
+export async function invokeAINonAgentic(prompt: string, history: BaseMessage[] = []): Promise<string> {
   const model = AI_PROVIDER === 'OLLAMA'
     ? new ChatOllama({ 
       // if you have run the `ollama/setup.sh` then this model should work out of the box.
@@ -30,6 +75,7 @@ export async function invokeAI(prompt: string, history: BaseMessage[] = []): Pro
       // assuming that you had first run `ollama/setup.sh` (which is required), then you can run `ollama/configure.sh`
       // switch to our more customized model (defined in `ollama/Modelfile`) which has parameters geared towards limiting 
       // CPU usage memory consumption to have a good balance of power.
+      // This model is based on `qwen2.5:7b`, but just has parametres controlling context window size and system prompt, etc.
       model: 'qwen-silent',
 
       baseUrl: 'http://localhost:11434' })
@@ -122,7 +168,7 @@ export async function findNextNumberedFile(dir: string, baseName: string): Promi
  * Walking stops at the first folder whose name doesn't match either pattern.
  *
  * Returns messages in chronological order (oldest first), ready to pass as
- * the `history` parameter to `invokeAI`.
+ * the `history` parameter to `invokeAI` / `invokeAINonAgentic`.
  *
  * @param currentHumanFolder  Absolute path of the folder containing the
  *                            current HUMAN.md (the one the user clicked
