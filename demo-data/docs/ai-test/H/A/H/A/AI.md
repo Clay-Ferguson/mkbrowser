@@ -1,1 +1,0 @@
-Okay, the numbers you've given me so far are: 6, 9.

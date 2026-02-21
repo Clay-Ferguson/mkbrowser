@@ -1,1 +1,0 @@
-Okay, got it. The first number you gave me is 6.

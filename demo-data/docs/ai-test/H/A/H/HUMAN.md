@@ -1,1 +1,0 @@
-Next number: 9
