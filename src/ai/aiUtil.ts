@@ -16,10 +16,10 @@ import path from 'node:path';
 import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 
-/** Matches AI conversation folders: "A", "A1", "A2", etc. (case-insensitive) */
-export const AI_FOLDER_REGEX = /^A\d*$/i;
-/** Matches Human conversation folders: "H", "H1", "H2", etc. (case-insensitive) */
-export const HUMAN_FOLDER_REGEX = /^H\d*$/i;
+/** Matches AI conversation folders: "A", "A1", "A2", etc. (case-sensitive) */
+export const AI_FOLDER_REGEX = /^A\d*$/;
+/** Matches Human conversation folders: "H", "H1", "H2", etc. (case-sensitive) */
+export const HUMAN_FOLDER_REGEX = /^H\d*$/;
 
 // NOTE: See 'ollama' folder for instructions on setting up a local Ollama server and 
 // downloading/running the Qwen2.5 model.
