@@ -35,6 +35,8 @@ interface FileEntry {
   /** Created timestamp in milliseconds since epoch */
   createdTime: number;
   content?: string; // Only populated for markdown files
+  /** Preview text from HUMAN.md or AI.md for AI conversation folders */
+  aiHint?: string;
 }
 
 let mainWindow: BrowserWindow | null = null;
@@ -192,6 +194,25 @@ function setupIpcHandlers(): void {
         modifiedTime,
         createdTime,
       };
+
+      // Load AI conversation hint for H*/A* folders when aiEnabled
+      if (isDirectory && getConfig().aiEnabled) {
+        const folderName = entry.name;
+        let hintFile: string | undefined;
+        if (/^H\d*$/.test(folderName)) {
+          hintFile = 'HUMAN.md';
+        } else if (/^A\d*$/.test(folderName)) {
+          hintFile = 'AI.md';
+        }
+        if (hintFile) {
+          try {
+            const hintContent = await fs.promises.readFile(path.join(fullPath, hintFile), 'utf8');
+            fileEntry.aiHint = hintContent.slice(0, 120).trim();
+          } catch {
+            // File doesn't exist or can't be read — no hint
+          }
+        }
+      }
 
       // Note: We no longer read markdown content here.
       // Content will be loaded on-demand with caching in the renderer.

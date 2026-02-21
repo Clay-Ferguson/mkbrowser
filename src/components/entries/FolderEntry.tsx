@@ -1,7 +1,7 @@
 import { ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
-import { useHasCutItems } from '../../store';
+import { useHasCutItems, useItem } from '../../store';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { ENTRY_CONTAINER_CLASSES } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -36,6 +36,8 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
   } = useEntryCore({ path: entry.path, name: entry.name });
 
   const hasCutItems = useHasCutItems();
+  const item = useItem(entry.path);
+  const aiHint = item?.aiHint;
   const rename = useRename({
     path: entry.path,
     name: entry.name,
@@ -83,7 +85,13 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
           className="font-medium"
         />
       ) : (
-        <span id={buildEntryHeaderId(entry.name)} className="text-slate-200 font-medium truncate flex-1">{entry.name}</span>
+        <>
+          <span id={buildEntryHeaderId(entry.name)} className="text-slate-200 font-medium truncate flex-shrink-0">{entry.name}</span>
+          {aiHint && (
+            <span className="text-slate-400 italic text-sm truncate min-w-0" title={aiHint}>{aiHint}</span>
+          )}
+          <span className="flex-1" />
+        </>
       )}
       {isRenaming ? (
         <div className="flex-shrink-0" />

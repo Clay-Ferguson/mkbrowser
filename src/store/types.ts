@@ -62,7 +62,11 @@ export interface ItemData {
    */
   goToLine?: number;
 
-
+  /**
+   * Preview text from HUMAN.md or AI.md for AI conversation folders.
+   * Only populated when aiEnabled is true in AppConfig.
+   */
+  aiHint?: string;
 }
 
 /**
@@ -308,7 +312,8 @@ export function createItemData(
   name: string,
   isDirectory: boolean,
   modifiedTime: number,
-  createdTime: number = modifiedTime
+  createdTime: number = modifiedTime,
+  aiHint?: string
 ): ItemData {
   const isMarkdownFile = !isDirectory && name.toLowerCase().endsWith('.md');
   const isImage = !isDirectory && isImageFile(name);
@@ -322,5 +327,6 @@ export function createItemData(
     isSelected: false,
     isCut: false,
     isExpanded: isMarkdownFile || isImage,
+    aiHint,
   };
 }

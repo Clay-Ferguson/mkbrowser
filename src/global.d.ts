@@ -57,6 +57,8 @@ export interface FileEntry {
   /** Created timestamp in milliseconds since epoch */
   createdTime: number;
   content?: string;
+  /** Preview text from HUMAN.md or AI.md for AI conversation folders */
+  aiHint?: string;
 }
 
 export interface SearchResult {

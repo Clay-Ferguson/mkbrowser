@@ -165,6 +165,7 @@ function App() {
           isDirectory: file.isDirectory,
           modifiedTime: file.modifiedTime,
           createdTime: file.createdTime,
+          aiHint: file.aiHint,
         }))
       );
     } catch (err) {

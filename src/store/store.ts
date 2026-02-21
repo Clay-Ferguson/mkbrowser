@@ -241,7 +241,7 @@ export function upsertItem(
  * Batch upsert multiple items at once (more efficient for directory loads)
  */
 export function upsertItems(
-  items: Array<{ path: string; name: string; isDirectory: boolean; modifiedTime: number; createdTime?: number }>
+  items: Array<{ path: string; name: string; isDirectory: boolean; modifiedTime: number; createdTime?: number; aiHint?: string }>
 ): void {
   const newItems = new Map(state.items);
 
@@ -256,6 +256,7 @@ export function upsertItems(
         isDirectory: item.isDirectory,
         modifiedTime: item.modifiedTime,
         createdTime,
+        aiHint: item.aiHint,
       };
 
       if (existing.contentCachedAt && item.modifiedTime > existing.contentCachedAt) {
@@ -265,7 +266,7 @@ export function upsertItems(
 
       newItems.set(item.path, updatedItem);
     } else {
-      newItems.set(item.path, createItemData(item.path, item.name, item.isDirectory, item.modifiedTime, createdTime));
+      newItems.set(item.path, createItemData(item.path, item.name, item.isDirectory, item.modifiedTime, createdTime, item.aiHint));
     }
   }
 

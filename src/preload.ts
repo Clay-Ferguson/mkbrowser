@@ -46,6 +46,7 @@ export interface FileEntry {
   isDirectory: boolean;
   isMarkdown: boolean;
   content?: string;
+  aiHint?: string;
 }
 
 export interface SearchResult {
