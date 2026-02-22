@@ -5,6 +5,7 @@
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatOllama } from '@langchain/ollama';
 import { ChatOpenAI } from '@langchain/openai';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — TS moduleResolution:"node" can't resolve subpath exports; works at runtime
@@ -26,6 +27,13 @@ export const AI_FOLDER_REGEX = /^A\d*$/;
 /** Matches Human conversation folders: "H", "H1", "H2", etc. (case-sensitive) */
 export const HUMAN_FOLDER_REGEX = /^H\d*$/;
 
+// Set to true to enable verbose debug logging for AI invocations.
+const DEBUG = true;
+
+function debugLog(...args: unknown[]) {
+  if (DEBUG) console.log('[aiUtil DEBUG]', ...args);
+}
+
 // NOTE: See 'ollama' folder for instructions on setting up a local Ollama server and 
 // downloading/running the Qwen2.5 model.
 
@@ -38,18 +46,20 @@ setToolsEnabled(AGENTIC_MODE);
  * Resolve the active AI provider and model name from the config.
  * Falls back to Anthropic Claude Haiku if nothing is configured.
  */
-function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI'; model: string; ollamaBaseUrl: string } {
+function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE'; model: string; ollamaBaseUrl: string } {
   const config = getConfig();
   const ollamaBaseUrl = config.ollamaBaseUrl || 'http://localhost:11434';
 
   if (config.aiModel && config.aiModels) {
     const entry = config.aiModels.find((m) => m.name === config.aiModel);
     if (entry) {
+      debugLog('getActiveModelConfig → provider:', entry.provider, 'model:', entry.model);
       return { provider: entry.provider, model: entry.model, ollamaBaseUrl };
     }
   }
 
   // Fallback defaults
+  debugLog('getActiveModelConfig → using fallback: ANTHROPIC / claude-3-haiku-20240307');
   return { provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', ollamaBaseUrl };
 }
 
@@ -58,11 +68,18 @@ function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI'; 
  */
 function createChatModel() {
   const { provider, model, ollamaBaseUrl } = getActiveModelConfig();
+  debugLog('createChatModel → provider:', provider, 'model:', model);
   if (provider === 'OLLAMA') {
     return new ChatOllama({ model, baseUrl: ollamaBaseUrl });
   }
   if (provider === 'OPENAI') {
     return new ChatOpenAI({ model });
+  }
+  if (provider === 'GOOGLE') {
+    const apiKey = process.env.GOOGLE_API_KEY;
+    debugLog('createChatModel → GOOGLE_API_KEY is', apiKey ? `set (${apiKey.length} chars)` : 'NOT SET — this will likely cause a hang or error');
+    // maxRetries: 2 to fail faster on quota/auth errors instead of silently retrying many times
+    return new ChatGoogleGenerativeAI({ model, maxRetries: 2 });
   }
   return new ChatAnthropic({ model });
 }
@@ -105,25 +122,31 @@ function buildHumanMessage(result: PreprocessResult): HumanMessage {
  */
 export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<string> {
   const { provider } = getActiveModelConfig();
+  debugLog('invokeAI called — provider:', provider, 'AGENTIC_MODE:', AGENTIC_MODE, 'history length:', history.length);
 
   // Anthropic path — no tools wired up yet, use the simple non-agentic flow
   if (provider === 'ANTHROPIC' || !AGENTIC_MODE) {
+    debugLog('invokeAI → routing to invokeAINonAgentic');
     return invokeAINonAgentic(prompt, history);
   }
 
   // Ollama path — ReAct agent with file-system tools
+  debugLog('invokeAI → creating agentic model');
   const model = createChatModel();
 
+  debugLog('invokeAI → creating ReAct agent');
   const agent = createReactAgent({
     llm: model,
     tools: aiTools,
   });
 
   const humanMsg = buildHumanMessage(prompt);
+  debugLog('invokeAI → invoking agent with', history.length + 1, 'messages');
   const result = await agent.invoke({
     messages: [...history, humanMsg],
   });
 
+  debugLog('invokeAI → agent finished, extracting response');
   const lastMessage = result.messages[result.messages.length - 1];
   return typeof lastMessage.content === 'string'
     ? lastMessage.content
@@ -137,26 +160,45 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
  * Optionally accepts prior conversation history to provide context.
  */
 export async function invokeAINonAgentic(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<string> {
+  debugLog('invokeAINonAgentic → creating model');
   const model = createChatModel();
 
+  debugLog('invokeAINonAgentic → building StateGraph');
   const graph = new StateGraph(MessagesAnnotation)
     .addNode('chat', async (state) => {
-      const response = await model.invoke(state.messages);
-      return { messages: [response] };
+      debugLog('invokeAINonAgentic [graph:chat] → invoking model with', state.messages.length, 'messages');
+      try {
+        const response = await model.invoke(state.messages);
+        debugLog('invokeAINonAgentic [graph:chat] → model responded, content type:', typeof response.content,
+          'length:', typeof response.content === 'string' ? response.content.length : JSON.stringify(response.content).length);
+        return { messages: [response] };
+      } catch (err) {
+        debugLog('invokeAINonAgentic [graph:chat] → ERROR during model.invoke:', err);
+        throw err;
+      }
     })
     .addEdge('__start__', 'chat')
     .addEdge('chat', '__end__')
     .compile();
 
   const humanMsg = buildHumanMessage(prompt);
-  const result = await graph.invoke({
-    messages: [...history, humanMsg],
-  });
+  debugLog('invokeAINonAgentic → invoking graph with', history.length + 1, 'messages (prompt text length:', prompt.text.length, ', images:', prompt.images.length, ')');
+  try {
+    const result = await graph.invoke({
+      messages: [...history, humanMsg],
+    });
 
-  const lastMessage = result.messages[result.messages.length - 1];
-  return typeof lastMessage.content === 'string'
-    ? lastMessage.content
-    : JSON.stringify(lastMessage.content);
+    debugLog('invokeAINonAgentic → graph finished successfully');
+    const lastMessage = result.messages[result.messages.length - 1];
+    const content = typeof lastMessage.content === 'string'
+      ? lastMessage.content
+      : JSON.stringify(lastMessage.content);
+    debugLog('invokeAINonAgentic → returning response, length:', content.length);
+    return content;
+  } catch (err) {
+    debugLog('invokeAINonAgentic → ERROR during graph.invoke:', err);
+    throw err;
+  }
 }
 
 /**

@@ -51,7 +51,7 @@ export interface AppSettings {
 
 export interface AIModelConfig {
   name: string;
-  provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI';
+  provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE';
   model: string;
 }
 
@@ -86,6 +86,7 @@ export const defaultSettings: AppSettings = {
 const DEFAULT_AI_MODELS: AIModelConfig[] = [
   { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307' },
   { name: 'GPT-4.1 Nano', provider: 'OPENAI', model: 'gpt-4.1-nano' },
+  { name: 'Gemini Flash Lite', provider: 'GOOGLE', model: 'gemini-2.0-flash-lite' },
   { name: 'Qwen (Ollama)', provider: 'OLLAMA', model: 'qwen-silent' },
 ];
 
