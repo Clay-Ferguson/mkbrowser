@@ -4,6 +4,7 @@
  */
 import { ChatAnthropic } from '@langchain/anthropic';
 import { ChatOllama } from '@langchain/ollama';
+import { ChatOpenAI } from '@langchain/openai';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — TS moduleResolution:"node" can't resolve subpath exports; works at runtime
@@ -37,7 +38,7 @@ setToolsEnabled(AGENTIC_MODE);
  * Resolve the active AI provider and model name from the config.
  * Falls back to Anthropic Claude Haiku if nothing is configured.
  */
-function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA'; model: string; ollamaBaseUrl: string } {
+function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI'; model: string; ollamaBaseUrl: string } {
   const config = getConfig();
   const ollamaBaseUrl = config.ollamaBaseUrl || 'http://localhost:11434';
 
@@ -59,6 +60,9 @@ function createChatModel() {
   const { provider, model, ollamaBaseUrl } = getActiveModelConfig();
   if (provider === 'OLLAMA') {
     return new ChatOllama({ model, baseUrl: ollamaBaseUrl });
+  }
+  if (provider === 'OPENAI') {
+    return new ChatOpenAI({ model });
   }
   return new ChatAnthropic({ model });
 }

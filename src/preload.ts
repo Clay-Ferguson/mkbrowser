@@ -28,7 +28,7 @@ export interface AppSettings {
 
 export interface AIModelConfig {
   name: string;
-  provider: 'ANTHROPIC' | 'OLLAMA';
+  provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI';
   model: string;
 }
 

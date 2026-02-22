@@ -51,7 +51,7 @@ export interface AppSettings {
 
 export interface AIModelConfig {
   name: string;
-  provider: 'ANTHROPIC' | 'OLLAMA';
+  provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI';
   model: string;
 }
 
@@ -85,7 +85,8 @@ export const defaultSettings: AppSettings = {
 
 const DEFAULT_AI_MODELS: AIModelConfig[] = [
   { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307' },
-  { name: 'Qwen Silent (Ollama)', provider: 'OLLAMA', model: 'qwen-silent' },
+  { name: 'GPT-4.1 Nano', provider: 'OPENAI', model: 'gpt-4.1-nano' },
+  { name: 'Qwen (Ollama)', provider: 'OLLAMA', model: 'qwen-silent' },
 ];
 
 const DEFAULT_AI_MODEL = 'Claude Haiku';
