@@ -38,7 +38,7 @@ function debugLog(...args: unknown[]) {
 // downloading/running the Qwen2.5 model.
 
 // Set to true to use the ReAct agent with tools (Ollama only for now). Set to false to bypass the agent and call the model directly.
-// When Agent Mode is being used use the Modelfile named `Modelfile-for-Agents`.
+// When Agent Mode is being used use the Modelfile named `Modelfile-for-Agents`, if you're running the local Ollama models.
 const AGENTIC_MODE = false;
 setToolsEnabled(AGENTIC_MODE);
 
@@ -109,6 +109,35 @@ function buildHumanMessage(result: PreprocessResult): HumanMessage {
   return new HumanMessage({ content });
 }
 
+/** Token usage metadata returned alongside AI responses. */
+export interface AIUsageInfo {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+}
+
+/** Result of an AI invocation: the text content plus optional token usage. */
+export interface AIInvokeResult {
+  content: string;
+  usage?: AIUsageInfo;
+}
+
+/**
+ * Extract usage metadata from a LangChain AIMessage, if present.
+ */
+function extractUsage(message: BaseMessage): AIUsageInfo | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const meta = (message as any).usage_metadata;
+  if (meta && typeof meta.input_tokens === 'number') {
+    return {
+      input_tokens: meta.input_tokens,
+      output_tokens: meta.output_tokens ?? 0,
+      total_tokens: meta.total_tokens ?? (meta.input_tokens + (meta.output_tokens ?? 0)),
+    };
+  }
+  return undefined;
+}
+
 /**
  * Invoke the AI with a preprocessed prompt and return the text response.
  * Uses a ReAct agent (Ollama) that can call file-system tools (read_file,
@@ -120,7 +149,7 @@ function buildHumanMessage(result: PreprocessResult): HumanMessage {
  *
  * Optionally accepts prior conversation history to provide context.
  */
-export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<string> {
+export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<AIInvokeResult> {
   const { provider } = getActiveModelConfig();
   debugLog('invokeAI called — provider:', provider, 'AGENTIC_MODE:', AGENTIC_MODE, 'history length:', history.length);
 
@@ -148,9 +177,12 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
 
   debugLog('invokeAI → agent finished, extracting response');
   const lastMessage = result.messages[result.messages.length - 1];
-  return typeof lastMessage.content === 'string'
+  const content = typeof lastMessage.content === 'string'
     ? lastMessage.content
     : JSON.stringify(lastMessage.content);
+  const usage = extractUsage(lastMessage);
+  debugLog('invokeAI → usage:', usage);
+  return { content, usage };
 }
 
 /**
@@ -159,7 +191,7 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
  *
  * Optionally accepts prior conversation history to provide context.
  */
-export async function invokeAINonAgentic(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<string> {
+export async function invokeAINonAgentic(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<AIInvokeResult> {
   debugLog('invokeAINonAgentic → creating model');
   const model = createChatModel();
 
@@ -193,8 +225,9 @@ export async function invokeAINonAgentic(prompt: PreprocessResult, history: Base
     const content = typeof lastMessage.content === 'string'
       ? lastMessage.content
       : JSON.stringify(lastMessage.content);
-    debugLog('invokeAINonAgentic → returning response, length:', content.length);
-    return content;
+    const usage = extractUsage(lastMessage);
+    debugLog('invokeAINonAgentic → returning response, length:', content.length, 'usage:', usage);
+    return { content, usage };
   } catch (err) {
     debugLog('invokeAINonAgentic → ERROR during graph.invoke:', err);
     throw err;

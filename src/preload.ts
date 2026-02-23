@@ -76,6 +76,21 @@ export interface FolderAnalysisResult {
   totalFiles: number;
 }
 
+export interface ProviderUsage {
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+}
+
+export interface AIUsageWithCosts {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalRequests: number;
+  byProvider: Record<string, ProviderUsage>;
+  estimatedCosts: Record<string, number>;
+  totalEstimatedCost: number;
+}
+
 export interface ElectronAPI {
   getConfig: () => Promise<AppConfig>;
   saveConfig: (config: AppConfig) => Promise<void>;
@@ -97,8 +112,10 @@ export interface ElectronAPI {
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   collectAncestorTags: (filePath: string) => Promise<string[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
-  askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string } | { error: string }>;
+  askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   replyToAi: (parentFolderPath: string) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
+  getAiUsage: () => Promise<AIUsageWithCosts>;
+  resetAiUsage: () => Promise<void>;
 }
 
 // Expose protected methods to the renderer process
@@ -137,4 +154,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('ask-ai', prompt, parentFolderPath),
   replyToAi: (parentFolderPath: string) =>
     ipcRenderer.invoke('reply-to-ai', parentFolderPath),
+  getAiUsage: () => ipcRenderer.invoke('get-ai-usage'),
+  resetAiUsage: () => ipcRenderer.invoke('reset-ai-usage'),
 } as ElectronAPI);

@@ -11,6 +11,7 @@ import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { HASHTAG_REGEX } from './utils/hashtagRegex';
 import { invokeAI, findNextNumberedFolder, gatherConversationHistory, preprocessPrompt, AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './ai/aiUtil';
+import { recordUsage, getUsageWithCosts, resetUsage } from './ai/usageTracker';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -760,16 +761,34 @@ function setupIpcHandlers(): void {
       const processedPrompt = await preprocessPrompt(prompt, parentFolderPath);
 
       // Invoke the AI with context (images are sent as multimodal content parts)
-      const response = await invokeAI(processedPrompt, history);
+      const { content, usage } = await invokeAI(processedPrompt, history);
+
+      // Record token usage if available
+      if (usage) {
+        const config = getConfig();
+        const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
+        const provider = activeModel?.provider ?? 'ANTHROPIC';
+        recordUsage(provider, usage.input_tokens, usage.output_tokens);
+      }
 
       // Write the response
-      await fs.promises.writeFile(outputPath, response, 'utf-8');
+      await fs.promises.writeFile(outputPath, content, 'utf-8');
 
-      return { outputPath, responseFolder };
+      return { outputPath, responseFolder, usage };
     } catch (error) {
       console.error('Error in ask-ai handler:', error);
       return { error: error instanceof Error ? error.message : 'Unknown error' };
     }
+  });
+
+  // Get AI usage statistics
+  ipcMain.handle('get-ai-usage', async () => {
+    return getUsageWithCosts();
+  });
+
+  // Reset AI usage statistics
+  ipcMain.handle('reset-ai-usage', async () => {
+    resetUsage();
   });
 
   // Reply to AI: create an H subfolder with an empty HUMAN.md for the user to write in

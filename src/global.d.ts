@@ -104,6 +104,21 @@ export interface FolderAnalysisResult {
   totalFiles: number;
 }
 
+export interface ProviderUsage {
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+}
+
+export interface AIUsageWithCosts {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalRequests: number;
+  byProvider: Record<string, ProviderUsage>;
+  estimatedCosts: Record<string, number>;
+  totalEstimatedCost: number;
+}
+
 export interface ElectronAPI {
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
@@ -132,8 +147,10 @@ export interface ElectronAPI {
   selectExportFolder: () => Promise<string | null>;
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;
   exportToPdf: (markdownPath: string, pdfPath: string, sourceFolder?: string) => Promise<{ success: boolean; error?: string }>;
-  askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string } | { error: string }>;
+  askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   replyToAi: (parentFolderPath: string) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
+  getAiUsage: () => Promise<AIUsageWithCosts>;
+  resetAiUsage: () => Promise<void>;
 }
 
 declare global {
