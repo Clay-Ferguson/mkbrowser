@@ -44,8 +44,39 @@ function getAllowedFolders(): string[] {
  * Resolve `rawPath` to an absolute, symlink-resolved path and verify it lives
  * under one of the user-configured allowed folders.  Throws if the path is
  * outside every whitelisted folder or if no folders are configured.
+ *
+ * If the path contains a `*` wildcard (allowed only in the final path
+ * component), the concrete directory prefix is validated recursively and the
+ * result is the validated directory joined with the wildcard filename portion.
  */
-async function validatePath(rawPath: string): Promise<string> {
+export async function validatePath(rawPath: string): Promise<string> {
+  // --- Wildcard handling (recursive) ---
+  const starIdx = rawPath.indexOf('*');
+  if (starIdx !== -1) {
+    // Wildcards are only allowed in the last path component (the filename).
+    if (rawPath.indexOf('/', starIdx) !== -1) {
+      throw new Error(
+        `Wildcards are only allowed in the filename portion of the path. "${rawPath}" has a wildcard in a directory component.`
+      );
+    }
+
+    // Find the directory portion: everything before the last '/' preceding the '*'.
+    const lastSlash = rawPath.lastIndexOf('/', starIdx);
+    if (lastSlash === -1) {
+      throw new Error(
+        `Cannot determine directory for wildcard path "${rawPath}". Provide an absolute path.`
+      );
+    }
+
+    const dirPortion = rawPath.substring(0, lastSlash);
+    const wildcardPortion = rawPath.substring(lastSlash + 1); // e.g. "*.md"
+
+    // Recursively validate the directory (guaranteed no '*' in dirPortion).
+    const validatedDir = await validatePath(dirPortion);
+    return path.join(validatedDir, wildcardPortion);
+  }
+
+  // --- Standard (non-wildcard) handling ---
   const allowedFolders = getAllowedFolders();
 
   if (allowedFolders.length === 0) {
@@ -79,6 +110,48 @@ async function validatePath(rawPath: string): Promise<string> {
   }
 
   return real;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Delete one or more files matching a (possibly wildcard) path.
+ * The path must already be validated via `validatePath`.
+ * Returns the number of files deleted.  Throws if zero files match.
+ */
+async function globDelete(validatedPath: string): Promise<number> {
+  const starIdx = validatedPath.indexOf('*');
+
+  if (starIdx === -1) {
+    // No wildcard — single-file delete.
+    const stat = await fs.stat(validatedPath);
+    if (!stat.isFile()) {
+      throw new Error(`"${validatedPath}" is not a regular file.`);
+    }
+    await fs.unlink(validatedPath);
+    return 1;
+  }
+
+  // Wildcard — split into directory + filename pattern.
+  const dir = path.dirname(validatedPath);
+  const pattern = path.basename(validatedPath);
+
+  // Convert the simple wildcard pattern to a regex:
+  // escape regex-special chars, then replace literal '*' with '.*'.
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp('^' + escaped.replace(/\*/g, '.*') + '$');
+
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const matches = entries.filter((e) => e.isFile() && regex.test(e.name));
+
+  if (matches.length === 0) {
+    throw new Error(`No files matched the pattern "${pattern}" in "${dir}".`);
+  }
+
+  await Promise.all(matches.map((e) => fs.unlink(path.join(dir, e.name))));
+  return matches.length;
 }
 
 // ---------------------------------------------------------------------------
@@ -300,5 +373,80 @@ export const createFileTool = tool(
   }
 );
 
+/**
+ * Delete one or more files from the local file system.
+ * Supports simple `*` wildcards in the filename portion of the path
+ * (e.g. `/path/to/dir/*.md`).  The wildcard must only appear in the last
+ * path component — using `*` in directory names is not allowed.
+ * All matched paths must reside under the user-configured allowed folders.
+ */
+export const deleteFileTool = tool(
+  async ({ filePath }) => {
+    if (!toolsEnabled) {
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). delete_file cannot be called.');
+    }
+    const validated = await validatePath(filePath);
+    if (DEBUG) console.log(`[ai/tools] delete_file: ${filePath}  (validated: ${validated})`);
+
+    const count = await globDelete(validated);
+    const dir = path.dirname(validated);
+    return `Deleted ${count} file${count === 1 ? '' : 's'} from ${dir}`;
+  },
+  {
+    name: 'delete_file',
+    description:
+      'Delete one or more files from the local file system. ' +
+      'Supports simple `*` wildcards in the filename portion of the path ' +
+      '(e.g. `/home/user/docs/*.tmp`). ' +
+      'Wildcards are only allowed in the last path component — not in directory names. ' +
+      'Only files under the user-configured allowed folders can be deleted. ' +
+      'Directories cannot be deleted with this tool.',
+    schema: z.object({
+      filePath: z
+        .string()
+        .describe(
+          'Absolute path of the file(s) to delete. ' +
+          'May include a `*` wildcard in the filename (e.g. `/path/to/dir/*.log`).'
+        ),
+    }),
+  }
+);
+
+/**
+ * Delete a folder (and all of its contents) from the local file system.
+ * The folder must reside under one of the user-configured allowed folders.
+ * This performs a recursive delete — the folder does NOT need to be empty.
+ */
+export const deleteFolderTool = tool(
+  async ({ folderPath }) => {
+    if (!toolsEnabled) {
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). delete_folder cannot be called.');
+    }
+    const safe = await validatePath(folderPath);
+    if (DEBUG) console.log(`[ai/tools] delete_folder: ${folderPath}  (validated: ${safe})`);
+
+    const stat = await fs.stat(safe);
+    if (!stat.isDirectory()) {
+      throw new Error(`"${folderPath}" is not a directory. Use delete_file to remove regular files.`);
+    }
+
+    await fs.rm(safe, { recursive: true, force: true });
+    return `Successfully deleted folder ${folderPath} and all of its contents.`;
+  },
+  {
+    name: 'delete_folder',
+    description:
+      'Delete a folder and all of its contents (files and subdirectories) from the local file system. ' +
+      'The folder does NOT need to be empty — all contents are removed recursively. ' +
+      'Provide an absolute path or a path starting with `~/`. ' +
+      'Only folders under the user-configured allowed folders can be deleted.',
+    schema: z.object({
+      folderPath: z
+        .string()
+        .describe('Absolute path (or ~/relative path) of the folder to delete.'),
+    }),
+  }
+);
+
 /** All tools available to the AI agent. */
-export const aiTools = [readFileTool, listDirectoryTool, writeFileTool, createFileTool];
+export const aiTools = [readFileTool, listDirectoryTool, writeFileTool, createFileTool, deleteFileTool, deleteFolderTool];
