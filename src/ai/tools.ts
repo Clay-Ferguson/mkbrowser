@@ -178,5 +178,127 @@ export const listDirectoryTool = tool(
   }
 );
 
+/**
+ * Write content to an existing file on the local file system, replacing its
+ * contents entirely.  The file must already exist and must reside under one of
+ * the user-configured allowed folders.  This tool cannot create new files — if
+ * the target path does not exist, an error is returned.
+ */
+export const writeFileTool = tool(
+  async ({ filePath, content }) => {
+    if (!toolsEnabled) {
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). write_file cannot be called.');
+    }
+    const safe = await validatePath(filePath);
+    if (DEBUG) console.log(`[ai/tools] write_file: ${path.basename(safe)}  (${safe})`);
+
+    // Ensure the file already exists — this tool must not create new files.
+    let stat: Awaited<ReturnType<typeof fs.stat>>;
+    try {
+      stat = await fs.stat(safe);
+    } catch {
+      throw new Error(
+        `File not found: "${filePath}" does not exist. This tool can only overwrite existing files, not create new ones.`
+      );
+    }
+
+    if (!stat.isFile()) {
+      return `Error: "${filePath}" is not a regular file.`;
+    }
+
+    await fs.writeFile(safe, content, 'utf-8');
+    return `Successfully wrote ${content.length} characters to ${filePath}`;
+  },
+  {
+    name: 'write_file',
+    description:
+      'Overwrite the contents of an existing file on the local file system. ' +
+      'The file MUST already exist — this tool cannot create new files. ' +
+      'Provide an absolute path or a path starting with `~/`. ' +
+      'Only files under the user-configured allowed folders are accessible. ' +
+      'The entire file content is replaced with the provided text.',
+    schema: z.object({
+      filePath: z
+        .string()
+        .describe('Absolute path (or ~/relative path) of the existing file to overwrite.'),
+      content: z
+        .string()
+        .describe('The full new content to write to the file, replacing all existing content.'),
+    }),
+  }
+);
+
+/**
+ * Create a new file on the local file system with the provided content.
+ * The file must NOT already exist — this tool is for creating new files only.
+ * The parent directory must exist and reside under one of the user-configured
+ * allowed folders.
+ */
+export const createFileTool = tool(
+  async ({ filePath, content }) => {
+    if (!toolsEnabled) {
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). create_file cannot be called.');
+    }
+    const resolved = path.resolve(filePath);
+
+    // Validate the parent directory is under an allowed folder.
+    const parentDir = path.dirname(resolved);
+    await validatePath(parentDir);
+
+    if (DEBUG) console.log(`[ai/tools] create_file: ${path.basename(resolved)}  (${resolved})`);
+
+    // Ensure the file does NOT already exist.
+    try {
+      await fs.stat(resolved);
+      // If stat succeeds, the file exists — that's an error for this tool.
+      throw new Error(
+        `File already exists: "${filePath}". This tool can only create new files. ` +
+        'Use write_file to overwrite an existing file.'
+      );
+    } catch (err: unknown) {
+      // Re-throw our own "already exists" error.
+      if (err instanceof Error && err.message.startsWith('File already exists:')) {
+        throw err;
+      }
+      // stat threw because the file doesn't exist — that's what we want.
+    }
+
+    // Ensure the parent directory exists.
+    try {
+      const parentStat = await fs.stat(parentDir);
+      if (!parentStat.isDirectory()) {
+        throw new Error(`Parent path "${parentDir}" is not a directory.`);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.startsWith('Parent path')) {
+        throw err;
+      }
+      throw new Error(
+        `Parent directory "${parentDir}" does not exist. Cannot create file.`
+      );
+    }
+
+    await fs.writeFile(resolved, content, 'utf-8');
+    return `Successfully created ${filePath} (${content.length} characters)`;
+  },
+  {
+    name: 'create_file',
+    description:
+      'Create a new file on the local file system with the provided content. ' +
+      'The file must NOT already exist — this tool cannot overwrite existing files. ' +
+      'Use write_file instead to update an existing file. ' +
+      'Provide an absolute path or a path starting with `~/`. ' +
+      'The parent directory must already exist and be under the user-configured allowed folders.',
+    schema: z.object({
+      filePath: z
+        .string()
+        .describe('Absolute path (or ~/relative path) for the new file to create. Must not already exist.'),
+      content: z
+        .string()
+        .describe('The content to write to the new file.'),
+    }),
+  }
+);
+
 /** All tools available to the AI agent. */
-export const aiTools = [readFileTool, listDirectoryTool];
+export const aiTools = [readFileTool, listDirectoryTool, writeFileTool, createFileTool];
