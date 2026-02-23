@@ -38,6 +38,7 @@ export interface AppConfig {
   aiModels?: AIModelConfig[];
   aiModel?: string;
   ollamaBaseUrl?: string;
+  agenticMode?: boolean;
 }
 
 export interface FileEntry {

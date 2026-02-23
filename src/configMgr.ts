@@ -63,6 +63,7 @@ export interface AppConfig {
   aiModels?: AIModelConfig[];
   aiModel?: string;
   ollamaBaseUrl?: string;
+  agenticMode?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,6 +118,11 @@ export function createDefaultAISettings(config: AppConfig): boolean {
 
   if (config.aiEnabled === undefined) {
     config.aiEnabled = false;
+    changed = true;
+  }
+
+  if (config.agenticMode === undefined) {
+    config.agenticMode = false;
     changed = true;
   }
 

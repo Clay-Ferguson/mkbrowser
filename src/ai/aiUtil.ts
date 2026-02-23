@@ -37,11 +37,6 @@ function debugLog(...args: unknown[]) {
 // NOTE: See 'ollama' folder for instructions on setting up a local Ollama server and 
 // downloading/running the Qwen2.5 model.
 
-// Set to true to use the ReAct agent with tools (Ollama only for now). Set to false to bypass the agent and call the model directly.
-// When Agent Mode is being used use the Modelfile named `Modelfile-for-Agents`, if you're running the local Ollama models.
-const AGENTIC_MODE = false;
-setToolsEnabled(AGENTIC_MODE);
-
 /**
  * Resolve the active AI provider and model name from the config.
  * Falls back to Anthropic Claude Haiku if nothing is configured.
@@ -151,10 +146,11 @@ function extractUsage(message: BaseMessage): AIUsageInfo | undefined {
  */
 export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<AIInvokeResult> {
   const { provider } = getActiveModelConfig();
-  debugLog('invokeAI called — provider:', provider, 'AGENTIC_MODE:', AGENTIC_MODE, 'history length:', history.length);
+  const agenticMode = getConfig().agenticMode ?? false;
+  setToolsEnabled(agenticMode);
+  debugLog('invokeAI called — provider:', provider, 'agenticMode:', agenticMode, 'history length:', history.length);
 
-  // Anthropic path — no tools wired up yet, use the simple non-agentic flow
-  if (provider === 'ANTHROPIC' || !AGENTIC_MODE) {
+  if (!agenticMode) {
     debugLog('invokeAI → routing to invokeAINonAgentic');
     return invokeAINonAgentic(prompt, history);
   }

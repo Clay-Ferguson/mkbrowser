@@ -51,6 +51,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const [aiModels, setAiModels] = useState<AIModelConfig[]>([]);
   const [selectedAiModel, setSelectedAiModel] = useState<string>('');
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState<string>('http://localhost:11434');
+  const [agenticMode, setAgenticMode] = useState<boolean>(false);
 
   // AI model CRUD dialog state
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -70,6 +71,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
       if (config.aiModels) setAiModels(config.aiModels);
       if (config.aiModel) setSelectedAiModel(config.aiModel);
       if (config.ollamaBaseUrl) setOllamaBaseUrl(config.ollamaBaseUrl);
+      if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
     });
     // Load AI usage stats
     window.electronAPI.getAiUsage().then(setUsageData);
@@ -308,6 +310,19 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
 
               {aiEnabled && (
                 <>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={agenticMode}
+                      onChange={(e) => {
+                        setAgenticMode(e.target.checked);
+                        saveAiConfigField({ agenticMode: e.target.checked });
+                      }}
+                      className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                    />
+                    <span className="text-slate-200">Agentic Mode</span>
+                  </label>
+
                   <div className="flex items-center gap-2">
                     <label className="text-slate-300 text-sm">AI Model:</label>
                     <select
