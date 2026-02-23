@@ -80,6 +80,24 @@ export function writeNarration(
 }
 
 /**
+ * Copies an existing file from screenshotDir/<fileName> to screenshotDir/<step>-<filename> 
+ * 
+ * @param screenshotDir 
+ * @param step 
+ * @param fileName
+ */
+export function addExternalFile(
+  screenshotDir: string,
+  step: number,
+  fileName: string
+): void {
+  const srcPath = path.join(screenshotDir, fileName);
+  const baseName = path.basename(fileName);
+  const destPath = path.join(screenshotDir, `${String(step).padStart(3, '0')}-${baseName}`);
+  fs.copyFileSync(srcPath, destPath);
+}
+
+/**
  * Takes a screenshot with highlight and standardized naming.
  * 
  * @param mainWindow - The Playwright Page object

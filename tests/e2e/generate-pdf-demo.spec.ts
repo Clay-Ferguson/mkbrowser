@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, setCheckboxForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, setCheckboxForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, addExternalFile } from './helpers/mediaUtils';
 import * as path from 'path';
 
 /**
@@ -140,7 +140,12 @@ test.describe('Generate PDF Demo', () => {
 
     await mainWindow.waitForTimeout(1500);
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'export-launched');
-    writeNarration(screenshotDir, step++, 'MkBrowser has launched an external terminal window to run the export.');
+
+    await addExternalFile(screenshotDir, step++, 'external/pdf-generation.png');
+    writeNarration(screenshotDir, step++, 'A terminal window will appear automatically. MkBrowser is running Pandoc behind the scenes to convert the assembled Markdown into a PDF. You can see the progress as it processes each section of the Federalist Papers.');
+
+    await addExternalFile(screenshotDir, step++, 'external/pdf-complete.png');
+    writeNarration(screenshotDir, step++, 'Here is the finished PDF. All of the Federalist Papers have been combined into a single, cleanly formatted document complete with section headings, dividers, and the glossary we saw earlier. The export is complete!');
 
     logScreenshotSummary(screenshotDir);
   });

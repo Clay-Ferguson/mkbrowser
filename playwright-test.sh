@@ -65,7 +65,7 @@ case $choice in
             exit 1
         fi
         echo "Cleaning up screenshots for $SPECIFIC_TEST..."
-        rm -rf screenshots/$SPECIFIC_TEST
+        rm -f screenshots/$SPECIFIC_TEST/*
         echo "Running specific test: $SPECIFIC_TEST.spec.ts..."
         npx playwright test tests/e2e/$SPECIFIC_TEST.spec.ts
         ;;
