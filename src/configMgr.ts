@@ -64,6 +64,7 @@ export interface AppConfig {
   aiModel?: string;
   ollamaBaseUrl?: string;
   agenticMode?: boolean;
+  agenticAllowedFolders?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -123,6 +124,11 @@ export function createDefaultAISettings(config: AppConfig): boolean {
 
   if (config.agenticMode === undefined) {
     config.agenticMode = false;
+    changed = true;
+  }
+
+  if (config.agenticAllowedFolders === undefined) {
+    config.agenticAllowedFolders = '';
     changed = true;
   }
 

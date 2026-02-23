@@ -8,7 +8,10 @@ import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
+import { getConfig } from '../configMgr';
+
+/** When true, log file-access tool invocations (file names read / listed) to the console. */
+const DEBUG = true;
 
 /** When false, all tool invocations throw immediately — an extra safeguard on top of AGENTIC_MODE. */
 let toolsEnabled = false;
@@ -21,24 +24,37 @@ export function setToolsEnabled(enabled: boolean): void {
 /** Maximum file size (in bytes) the read_file tool will return.  Larger files are truncated. */
 const MAX_READ_BYTES = 50 * 1024; // 50 KB
 
-/** The root directory that all tool file access is scoped to. */
-const ALLOWED_ROOT = os.homedir();
-
 // ---------------------------------------------------------------------------
 // Path validation helper
 // ---------------------------------------------------------------------------
 
 /**
+ * Parse the agenticAllowedFolders config string into an array of absolute paths.
+ * Splits on newlines, trims whitespace, and filters out blank lines.
+ */
+function getAllowedFolders(): string[] {
+  const raw = getConfig().agenticAllowedFolders ?? '';
+  return raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+/**
  * Resolve `rawPath` to an absolute, symlink-resolved path and verify it lives
- * under `ALLOWED_ROOT`.  Throws if the path escapes the allowed scope.
+ * under one of the user-configured allowed folders.  Throws if the path is
+ * outside every whitelisted folder or if no folders are configured.
  */
 async function validatePath(rawPath: string): Promise<string> {
-  // Expand ~ at the start of the path
-  const expanded = rawPath.startsWith('~')
-    ? path.join(ALLOWED_ROOT, rawPath.slice(1))
-    : rawPath;
+  const allowedFolders = getAllowedFolders();
 
-  const resolved = path.resolve(expanded);
+  if (allowedFolders.length === 0) {
+    throw new Error(
+      'Access denied: no allowed folders configured. Add at least one folder in Settings → AI Settings → Allowed Folders.'
+    );
+  }
+
+  const resolved = path.resolve(rawPath);
 
   // Use realpath to chase symlinks so a cleverly placed link can't escape
   let real: string;
@@ -50,9 +66,15 @@ async function validatePath(rawPath: string): Promise<string> {
     real = resolved;
   }
 
-  if (!real.startsWith(ALLOWED_ROOT)) {
+  // Check that the resolved path is under at least one allowed folder
+  const isAllowed = allowedFolders.some((folder) => {
+    const normalizedFolder = folder.endsWith('/') ? folder : folder + '/';
+    return real === folder || real.startsWith(normalizedFolder);
+  });
+
+  if (!isAllowed) {
     throw new Error(
-      `Access denied: "${rawPath}" resolves to "${real}" which is outside the allowed scope (${ALLOWED_ROOT}).`
+      `Access denied: "${rawPath}" resolves to "${real}" which is outside all allowed folders.`
     );
   }
 
@@ -73,6 +95,7 @@ export const readFileTool = tool(
       throw new Error('AI tools are disabled (AGENTIC_MODE is off). read_file cannot be called.');
     }
     const safe = await validatePath(filePath);
+    if (DEBUG) console.log(`[ai/tools] read_file: ${path.basename(safe)}  (${safe})`);
     const stat = await fs.stat(safe);
 
     if (!stat.isFile()) {
@@ -119,6 +142,7 @@ export const listDirectoryTool = tool(
       throw new Error('AI tools are disabled (AGENTIC_MODE is off). list_directory cannot be called.');
     }
     const safe = await validatePath(directoryPath);
+    if (DEBUG) console.log(`[ai/tools] list_directory: ${path.basename(safe)}  (${safe})`);
     const stat = await fs.stat(safe);
 
     if (!stat.isDirectory()) {

@@ -39,6 +39,7 @@ export interface AppConfig {
   aiModel?: string;
   ollamaBaseUrl?: string;
   agenticMode?: boolean;
+  agenticAllowedFolders?: string;
 }
 
 export interface FileEntry {

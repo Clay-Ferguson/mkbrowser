@@ -52,6 +52,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const [selectedAiModel, setSelectedAiModel] = useState<string>('');
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState<string>('http://localhost:11434');
   const [agenticMode, setAgenticMode] = useState<boolean>(false);
+  const [agenticAllowedFolders, setAgenticAllowedFolders] = useState<string>('');
 
   // AI model CRUD dialog state
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -72,6 +73,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
       if (config.aiModel) setSelectedAiModel(config.aiModel);
       if (config.ollamaBaseUrl) setOllamaBaseUrl(config.ollamaBaseUrl);
       if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
+      if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
     });
     // Load AI usage stats
     window.electronAPI.getAiUsage().then(setUsageData);
@@ -322,6 +324,20 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                     />
                     <span className="text-slate-200">Agentic Mode</span>
                   </label>
+
+                  {agenticMode && (
+                    <div>
+                      <label className="text-slate-300 text-sm block mb-1">Allowed Folders (one absolute path per line):</label>
+                      <textarea
+                        value={agenticAllowedFolders}
+                        onChange={(e) => setAgenticAllowedFolders(e.target.value)}
+                        onBlur={() => saveAiConfigField({ agenticAllowedFolders })}
+                        placeholder={"/home/user/projects\n/home/user/documents"}
+                        rows={4}
+                        className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
+                      />
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2">
                     <label className="text-slate-300 text-sm">AI Model:</label>
