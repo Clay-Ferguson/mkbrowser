@@ -7,15 +7,14 @@ import { ChatOllama } from '@langchain/ollama';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — TS moduleResolution:"node" can't resolve subpath exports; works at runtime
-import { createReactAgent } from '@langchain/langgraph/prebuilt';
+// @ts-expect-error — moduleResolution "node" can't resolve subpath exports; works at runtime
+import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
 import { fdir } from 'fdir';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { aiTools, setToolsEnabled } from './tools';
+import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 
@@ -137,98 +136,78 @@ function extractUsage(message: BaseMessage): AIUsageInfo | undefined {
 }
 
 /**
- * Invoke the AI with a preprocessed prompt and return the text response.
- * Uses a ReAct agent (Ollama) that can call file-system tools (read_file,
- * list_directory) scoped to ~/. Falls back to the non-agentic path for
- * the Anthropic provider.
- *
- * The prompt may include image attachments which are sent as multimodal
- * content parts when the model supports vision.
+ * Non-agentic AI invocation with optional tool support.
+ * Uses a StateGraph that sends messages to the model and, when tools are
+ * enabled, loops back through a ToolNode to execute any tool calls the
+ * model requests before producing a final text response.
  *
  * Optionally accepts prior conversation history to provide context.
  */
 export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<AIInvokeResult> {
-  const { provider } = getActiveModelConfig();
-  const agenticMode = getConfig().agenticMode ?? false;
-  setToolsEnabled(agenticMode);
-  debugLog('invokeAI called — provider:', provider, 'agenticMode:', agenticMode, 'history length:', history.length);
-
-  if (!agenticMode) {
-    debugLog('invokeAI → routing to invokeAINonAgentic');
-    return invokeAINonAgentic(prompt, history);
-  }
-
-  // Ollama path — ReAct agent with file-system tools
-  debugLog('invokeAI → creating agentic model');
+  debugLog('invokeAI → creating model');
   const model = createChatModel();
 
-  debugLog('invokeAI → creating ReAct agent');
-  const agent = createReactAgent({
-    llm: model,
-    tools: aiTools,
-  });
+  const useTools = aiTools.length > 0 && getConfig().agenticMode;
+  const boundModel = useTools ? model.bindTools(aiTools) : model;
+  debugLog('invokeAI → tools bound:', useTools, '(', aiTools.length, 'tools)');
 
-  const humanMsg = buildHumanMessage(prompt);
-  debugLog('invokeAI → invoking agent with', history.length + 1, 'messages');
-  const result = await agent.invoke({
-    messages: [...history, humanMsg],
-  });
-
-  debugLog('invokeAI → agent finished, extracting response');
-  const lastMessage = result.messages[result.messages.length - 1];
-  const content = typeof lastMessage.content === 'string'
-    ? lastMessage.content
-    : JSON.stringify(lastMessage.content);
-  const usage = extractUsage(lastMessage);
-  debugLog('invokeAI → usage:', usage);
-  return { content, usage };
-}
-
-/**
- * Non-agentic AI invocation (no tool calling). Kept as a simpler fallback.
- * Uses a single-node StateGraph that sends messages straight to the model.
- *
- * Optionally accepts prior conversation history to provide context.
- */
-export async function invokeAINonAgentic(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<AIInvokeResult> {
-  debugLog('invokeAINonAgentic → creating model');
-  const model = createChatModel();
-
-  debugLog('invokeAINonAgentic → building StateGraph');
-  const graph = new StateGraph(MessagesAnnotation)
+  debugLog('invokeAI → building StateGraph');
+  const builder = new StateGraph(MessagesAnnotation)
     .addNode('chat', async (state) => {
-      debugLog('invokeAINonAgentic [graph:chat] → invoking model with', state.messages.length, 'messages');
+      debugLog('invokeAI [graph:chat] → invoking model with', state.messages.length, 'messages');
       try {
-        const response = await model.invoke(state.messages);
-        debugLog('invokeAINonAgentic [graph:chat] → model responded, content type:', typeof response.content,
+        const response = await boundModel.invoke(state.messages);
+        debugLog('invokeAI [graph:chat] → model responded, content type:', typeof response.content,
           'length:', typeof response.content === 'string' ? response.content.length : JSON.stringify(response.content).length);
         return { messages: [response] };
       } catch (err) {
-        debugLog('invokeAINonAgentic [graph:chat] → ERROR during model.invoke:', err);
+        debugLog('invokeAI [graph:chat] → ERROR during model.invoke:', err);
         throw err;
       }
-    })
-    .addEdge('__start__', 'chat')
-    .addEdge('chat', '__end__')
-    .compile();
+    });
+
+  if (useTools) {
+    const toolNode = new ToolNode(aiTools);
+    builder
+      .addNode('tools', toolNode)
+      .addEdge('__start__', 'chat')
+      .addConditionalEdges('chat', (state) => {
+        const lastMsg = state.messages[state.messages.length - 1];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const toolCalls = (lastMsg as any).tool_calls;
+        if (toolCalls && toolCalls.length > 0) {
+          debugLog('invokeAI [router] → tool calls detected, routing to tools node');
+          return 'tools';
+        }
+        debugLog('invokeAI [router] → no tool calls, finishing');
+        return '__end__';
+      })
+      .addEdge('tools', 'chat');
+  } else {
+    builder
+      .addEdge('__start__', 'chat')
+      .addEdge('chat', '__end__');
+  }
+
+  const graph = builder.compile();
 
   const humanMsg = buildHumanMessage(prompt);
-  debugLog('invokeAINonAgentic → invoking graph with', history.length + 1, 'messages (prompt text length:', prompt.text.length, ', images:', prompt.images.length, ')');
+  debugLog('invokeAI → invoking graph with', history.length + 1, 'messages (prompt text length:', prompt.text.length, ', images:', prompt.images.length, ')');
   try {
     const result = await graph.invoke({
       messages: [...history, humanMsg],
     });
 
-    debugLog('invokeAINonAgentic → graph finished successfully');
+    debugLog('invokeAI → graph finished successfully');
     const lastMessage = result.messages[result.messages.length - 1];
     const content = typeof lastMessage.content === 'string'
       ? lastMessage.content
       : JSON.stringify(lastMessage.content);
     const usage = extractUsage(lastMessage);
-    debugLog('invokeAINonAgentic → returning response, length:', content.length, 'usage:', usage);
+    debugLog('invokeAI → returning response, length:', content.length, 'usage:', usage);
     return { content, usage };
   } catch (err) {
-    debugLog('invokeAINonAgentic → ERROR during graph.invoke:', err);
+    debugLog('invokeAI → ERROR during graph.invoke:', err);
     throw err;
   }
 }
@@ -301,7 +280,7 @@ export async function findNextNumberedFile(dir: string, baseName: string): Promi
  * Walking stops at the first folder whose name doesn't match either pattern.
  *
  * Returns messages in chronological order (oldest first), ready to pass as
- * the `history` parameter to `invokeAI` / `invokeAINonAgentic`.
+ * the `history` parameter to `invokeAI` / `invokeAI`.
  *
  * @param currentHumanFolder  Absolute path of the folder containing the
  *                            current HUMAN.md (the one the user clicked

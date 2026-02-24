@@ -14,7 +14,7 @@ import { getConfig } from '../configMgr';
 const DEBUG = true;
 
 /** When false, all tool invocations throw immediately — an extra safeguard on top of AGENTIC_MODE. */
-let toolsEnabled = false;
+let toolsEnabled = true;
 
 /** Enable or disable all AI tools at runtime. */
 export function setToolsEnabled(enabled: boolean): void {
