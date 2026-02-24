@@ -296,53 +296,84 @@ function AISettingsView() {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2">
-                    <label className="text-slate-300 text-sm">AI Model:</label>
-                    <select
-                      value={selectedAiModel}
-                      onChange={(e) => handleAiModelChange(e.target.value)}
-                      className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-                    >
-                      {aiModels.map((m) => (
-                        <option key={m.name} value={m.name}>
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* Create / Edit / Delete buttons */}
-                    <button
-                      onClick={handleCreateModel}
-                      title="Create new model"
-                      className="p-1.5 text-slate-400 hover:text-green-400 hover:bg-slate-700 rounded transition-colors"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                        <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={handleEditModel}
-                      title="Edit selected model"
-                      disabled={aiModels.length === 0}
-                      className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                        <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (!selectedModelIsReadonly) setShowDeleteConfirm(true);
-                      }}
-                      title="Delete selected model"
-                      disabled={aiModels.length === 0 || selectedModelIsReadonly}
-                      className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                        <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 01.78.72l.5 6a.75.75 0 01-1.49.12l-.5-6a.75.75 0 01.71-.84zm3.62.72a.75.75 0 10-1.49-.12l-.5 6a.75.75 0 101.49.12l.5-6z" clipRule="evenodd" />
-                      </svg>
-                    </button>
+                  {/* AI Models header with action buttons */}
+                  <div className="flex items-center justify-between">
+                    <label className="text-slate-300 text-sm font-medium">AI Models</label>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={handleCreateModel}
+                        title="Create new model"
+                        className="p-1.5 text-slate-400 hover:text-green-400 hover:bg-slate-700 rounded transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                          <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={handleEditModel}
+                        title="Edit selected model"
+                        disabled={aiModels.length === 0}
+                        className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                          <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (!selectedModelIsReadonly) setShowDeleteConfirm(true);
+                        }}
+                        title="Delete selected model"
+                        disabled={aiModels.length === 0 || selectedModelIsReadonly}
+                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                          <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 01.78.72l.5 6a.75.75 0 01-1.49.12l-.5-6a.75.75 0 01.71-.84zm3.62.72a.75.75 0 10-1.49-.12l-.5 6a.75.75 0 101.49.12l.5-6z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
+
+                  {/* AI Models table with radio selection */}
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-slate-400 text-left">
+                        <th className="pb-2 w-8"></th>
+                        <th className="pb-2 font-medium">Name</th>
+                        <th className="pb-2 font-medium">Provider</th>
+                        <th className="pb-2 font-medium">Model</th>
+                        <th className="pb-2 font-medium text-right">Input $/1M</th>
+                        <th className="pb-2 font-medium text-right">Output $/1M</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {aiModels.map((m) => {
+                        const isSelected = normalizeModelKey(m.name) === normalizeModelKey(selectedAiModel);
+                        return (
+                          <tr
+                            key={m.name}
+                            onClick={() => handleAiModelChange(m.name)}
+                            className={`text-slate-200 border-t border-slate-700 cursor-pointer transition-colors hover:bg-slate-700/30 ${isSelected ? 'bg-slate-700/50' : ''}`}
+                          >
+                            <td className="py-2 text-center">
+                              <input
+                                type="radio"
+                                name="ai-model-select"
+                                checked={isSelected}
+                                onChange={() => handleAiModelChange(m.name)}
+                                className="cursor-pointer accent-blue-500"
+                              />
+                            </td>
+                            <td className="py-2 font-mono text-xs">{m.name}</td>
+                            <td className="py-2 font-mono text-xs">{m.provider}</td>
+                            <td className="py-2 font-mono text-xs">{m.model}</td>
+                            <td className="py-2 text-right text-green-400">${m.inputPer1M.toFixed(2)}</td>
+                            <td className="py-2 text-right text-green-400">${m.outputPer1M.toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
 
                   {selectedModel?.provider === 'OLLAMA' && (
                     <div className="flex items-center gap-2">
