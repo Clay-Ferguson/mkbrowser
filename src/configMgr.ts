@@ -93,9 +93,77 @@ export const defaultSettings: AppSettings = {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_AI_MODELS: AIModelConfig[] = [
+  // Anthropic — Claude 4 generation
+  // Model IDs: https://platform.claude.com/docs/en/about-claude/models/overview
+  // Pricing:   https://platform.claude.com/docs/en/about-claude/pricing
+  { name: 'Claude Opus 4.6', provider: 'ANTHROPIC', model: 'claude-opus-4-6', inputPer1M: 5.00, outputPer1M: 25.00, readonly: true },
+  { name: 'Claude Opus 4.5', provider: 'ANTHROPIC', model: 'claude-opus-4-5', inputPer1M: 5.00, outputPer1M: 25.00, readonly: true },
+  { name: 'Claude Opus 4.1', provider: 'ANTHROPIC', model: 'claude-opus-4-1-20250805', inputPer1M: 15.00, outputPer1M: 75.00, readonly: true },
+  { name: 'Claude Sonnet 4.6', provider: 'ANTHROPIC', model: 'claude-sonnet-4-6', inputPer1M: 3.00, outputPer1M: 15.00, readonly: true },
+  { name: 'Claude Sonnet 4.5', provider: 'ANTHROPIC', model: 'claude-sonnet-4-5-20250929', inputPer1M: 3.00, outputPer1M: 15.00, readonly: true },
+  { name: 'Claude Sonnet 4', provider: 'ANTHROPIC', model: 'claude-sonnet-4-20250514', inputPer1M: 3.00, outputPer1M: 15.00, readonly: true },
+  { name: 'Claude Haiku 4.5', provider: 'ANTHROPIC', model: 'claude-haiku-4-5-20251001', inputPer1M: 1.00, outputPer1M: 5.00, readonly: true },
+  // Anthropic — Claude 3.x generation (legacy)
+  // Model IDs: https://platform.claude.com/docs/en/about-claude/models/migration-guide
+  // Pricing:   https://platform.claude.com/docs/en/about-claude/pricing
+  { name: 'Claude Sonnet 3.7', provider: 'ANTHROPIC', model: 'claude-3-7-sonnet-20250219', inputPer1M: 3.00, outputPer1M: 15.00, readonly: true },
+  { name: 'Claude Haiku 3.5', provider: 'ANTHROPIC', model: 'claude-3-5-haiku-20241022', inputPer1M: 0.80, outputPer1M: 4.00, readonly: true },
   { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', inputPer1M: 0.25, outputPer1M: 1.25, readonly: true },
+  { name: 'Claude Opus 3', provider: 'ANTHROPIC', model: 'claude-3-opus-20240229', inputPer1M: 15.00, outputPer1M: 75.00, readonly: true },
+  // OpenAI — GPT-5 generation
+  // Model IDs: https://developers.openai.com/api/docs/models
+  // Pricing:   https://developers.openai.com/api/docs/pricing
+  { name: 'GPT-5.2', provider: 'OPENAI', model: 'gpt-5.2', inputPer1M: 1.75, outputPer1M: 14.00, readonly: true },
+  { name: 'GPT-5.2 Pro', provider: 'OPENAI', model: 'gpt-5.2-pro', inputPer1M: 21.00, outputPer1M: 168.00, readonly: true },
+  { name: 'GPT-5.1', provider: 'OPENAI', model: 'gpt-5.1', inputPer1M: 1.25, outputPer1M: 10.00, readonly: true },
+  { name: 'GPT-5', provider: 'OPENAI', model: 'gpt-5', inputPer1M: 1.25, outputPer1M: 10.00, readonly: true },
+  { name: 'GPT-5 Mini', provider: 'OPENAI', model: 'gpt-5-mini', inputPer1M: 0.25, outputPer1M: 2.00, readonly: true },
+  { name: 'GPT-5 Nano', provider: 'OPENAI', model: 'gpt-5-nano', inputPer1M: 0.05, outputPer1M: 0.40, readonly: true },
+  // OpenAI — GPT-4.1 generation
+  // Model IDs: https://developers.openai.com/api/docs/models
+  // Pricing:   https://developers.openai.com/api/docs/pricing
+  { name: 'GPT-4.1', provider: 'OPENAI', model: 'gpt-4.1', inputPer1M: 2.00, outputPer1M: 8.00, readonly: true },
+  { name: 'GPT-4.1 Mini', provider: 'OPENAI', model: 'gpt-4.1-mini', inputPer1M: 0.40, outputPer1M: 1.60, readonly: true },
   { name: 'GPT-4.1 Nano', provider: 'OPENAI', model: 'gpt-4.1-nano', inputPer1M: 0.10, outputPer1M: 0.40, readonly: true },
+  // OpenAI — GPT-4o generation
+  // Model IDs: https://developers.openai.com/api/docs/models
+  // Pricing:   https://developers.openai.com/api/docs/pricing
+  { name: 'GPT-4o', provider: 'OPENAI', model: 'gpt-4o', inputPer1M: 2.50, outputPer1M: 10.00, readonly: true },
+  { name: 'GPT-4o Mini', provider: 'OPENAI', model: 'gpt-4o-mini', inputPer1M: 0.15, outputPer1M: 0.60, readonly: true },
+  // OpenAI — o-series reasoning models
+  // Model IDs: https://developers.openai.com/api/docs/models
+  // Pricing:   https://developers.openai.com/api/docs/pricing
+  { name: 'o1', provider: 'OPENAI', model: 'o1', inputPer1M: 15.00, outputPer1M: 60.00, readonly: true },
+  { name: 'o1 Pro', provider: 'OPENAI', model: 'o1-pro', inputPer1M: 150.00, outputPer1M: 600.00, readonly: true },
+  { name: 'o1 Mini', provider: 'OPENAI', model: 'o1-mini', inputPer1M: 1.10, outputPer1M: 4.40, readonly: true },
+  { name: 'o3', provider: 'OPENAI', model: 'o3', inputPer1M: 2.00, outputPer1M: 8.00, readonly: true },
+  { name: 'o3 Pro', provider: 'OPENAI', model: 'o3-pro', inputPer1M: 20.00, outputPer1M: 80.00, readonly: true },
+  { name: 'o3 Mini', provider: 'OPENAI', model: 'o3-mini', inputPer1M: 1.10, outputPer1M: 4.40, readonly: true },
+  { name: 'o4 Mini', provider: 'OPENAI', model: 'o4-mini', inputPer1M: 1.10, outputPer1M: 4.40, readonly: true },
+  // OpenAI — legacy models
+  // Model IDs: https://developers.openai.com/api/docs/models
+  // Pricing:   https://developers.openai.com/api/docs/pricing (Legacy models section)
+  { name: 'GPT-4 Turbo', provider: 'OPENAI', model: 'gpt-4-turbo-2024-04-09', inputPer1M: 10.00, outputPer1M: 30.00, readonly: true },
+  { name: 'GPT-4', provider: 'OPENAI', model: 'gpt-4-0613', inputPer1M: 30.00, outputPer1M: 60.00, readonly: true },
+  { name: 'GPT-3.5 Turbo', provider: 'OPENAI', model: 'gpt-3.5-turbo', inputPer1M: 0.50, outputPer1M: 1.50, readonly: true },
+  // Google — Gemini 3 generation (preview)
+  // Model IDs: https://ai.google.dev/gemini-api/docs/models
+  // Pricing:   https://ai.google.dev/gemini-api/docs/pricing
+  { name: 'Gemini 3.1 Pro Preview', provider: 'GOOGLE', model: 'gemini-3.1-pro-preview', inputPer1M: 2.00, outputPer1M: 12.00, readonly: true },
+  { name: 'Gemini 3 Pro Preview', provider: 'GOOGLE', model: 'gemini-3-pro-preview', inputPer1M: 2.00, outputPer1M: 12.00, readonly: true },
+  { name: 'Gemini 3 Flash Preview', provider: 'GOOGLE', model: 'gemini-3-flash-preview', inputPer1M: 0.50, outputPer1M: 3.00, readonly: true },
+  // Google — Gemini 2.5 generation
+  // Model IDs: https://ai.google.dev/gemini-api/docs/models
+  // Pricing:   https://ai.google.dev/gemini-api/docs/pricing
+  { name: 'Gemini 2.5 Pro', provider: 'GOOGLE', model: 'gemini-2.5-pro', inputPer1M: 1.25, outputPer1M: 10.00, readonly: true },
+  { name: 'Gemini 2.5 Flash', provider: 'GOOGLE', model: 'gemini-2.5-flash', inputPer1M: 0.30, outputPer1M: 2.50, readonly: true },
+  { name: 'Gemini 2.5 Flash-Lite', provider: 'GOOGLE', model: 'gemini-2.5-flash-lite', inputPer1M: 0.10, outputPer1M: 0.40, readonly: true },
+  // Google — Gemini 2.0 generation (deprecated)
+  // Model IDs: https://ai.google.dev/gemini-api/docs/models
+  // Pricing:   https://ai.google.dev/gemini-api/docs/pricing
+  { name: 'Gemini 2.0 Flash', provider: 'GOOGLE', model: 'gemini-2.0-flash', inputPer1M: 0.10, outputPer1M: 0.40, readonly: true },
   { name: 'Gemini Flash Lite', provider: 'GOOGLE', model: 'gemini-2.0-flash-lite', inputPer1M: 0.075, outputPer1M: 0.30, readonly: true },
+  // Ollama
   { name: 'Qwen (Ollama)', provider: 'OLLAMA', model: 'qwen-silent', inputPer1M: 0, outputPer1M: 0, readonly: true },
 ];
 
