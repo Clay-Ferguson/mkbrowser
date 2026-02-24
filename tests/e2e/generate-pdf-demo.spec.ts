@@ -125,7 +125,8 @@ Let's click it to open the Export dialog where we can configure our output setti
       screenshotDir,
       step++,
       `The Export dialog has appeared.
-Here we can configure where our output will be saved, the name of the file, and several options that control how MkBrowser assembles the exported document.`
+Here we can configure where our output will be saved, the name of the file, 
+and several options that control how MkBrowser assembles the exported document.`
     );
 
     // Fill in the Output Folder field
@@ -251,7 +252,8 @@ You can see the progress as it processes each section of the Federalist Papers.`
       screenshotDir,
       step++,
       `Here is the finished PDF.
-All of the Federalist Papers have been combined into a single, cleanly formatted document complete with section headings, dividers, and the glossary we saw earlier.
+All of the Federalist Papers have been combined into a single, cleanly formatted document complete with section headings, 
+dividers, and the glossary we saw earlier.
 The export is complete!`
     );
 

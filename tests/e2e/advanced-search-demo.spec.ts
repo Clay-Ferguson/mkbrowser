@@ -170,7 +170,8 @@ Let's click the Search button to run the boolean query across the Federalist Pap
       screenshotDir,
       step++,
       `The search completed successfully.
-MkBrowser has identified all files in the federalist-papers folder that contain both "political" and "free people", and the matching results are displayed here with their surrounding context.`
+MkBrowser has identified all files in the federalist-papers folder that contain both "political" and "free people", 
+and the matching results are displayed here with their surrounding context.`
     );
 
     // Click back to the Browse tab so the search icon becomes visible again
