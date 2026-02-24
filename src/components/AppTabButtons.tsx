@@ -19,6 +19,7 @@ const allTabs: TabConfig[] = [
   { id: 'search-results', label: 'Search' },
   { id: 'folder-analysis', label: 'Analysis' },
   { id: 'settings', label: 'Settings' },
+  { id: 'ai-settings', label: 'AI Settings' },
 ];
 
 function AppTabButtons({ onSelectFolder, onQuit }: AppTabButtonsProps) {
@@ -31,6 +32,7 @@ function AppTabButtons({ onSelectFolder, onQuit }: AppTabButtonsProps) {
   const visibleIds = new Set<AppView>([
     'browser',
     'settings',
+    'ai-settings',
     ...(searchResults.length > 0 ? ['search-results' as AppView] : []),
     ...(folderAnalysis ? ['folder-analysis' as AppView] : []),
   ]);

@@ -37,6 +37,7 @@ const initialState: AppState = {
     'search-results': 0,
     settings: 0,
     'folder-analysis': 0,
+    'ai-settings': 0,
   },
   highlightedSearchResult: null,
   folderAnalysis: null,
@@ -854,6 +855,27 @@ export function setFolderAnalysisScrollPosition(position: number): void {
  */
 export function getFolderAnalysisScrollPosition(): number {
   return state.scrollPositions['folder-analysis'];
+}
+
+/**
+ * Set scroll position for the AI settings view
+ */
+export function setAiSettingsScrollPosition(position: number): void {
+  state = {
+    ...state,
+    scrollPositions: {
+      ...state.scrollPositions,
+      'ai-settings': position,
+    },
+  };
+  // Don't emit change for scroll position updates
+}
+
+/**
+ * Get scroll position for the AI settings view
+ */
+export function getAiSettingsScrollPosition(): number {
+  return state.scrollPositions['ai-settings'];
 }
 
 /**

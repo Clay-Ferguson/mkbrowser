@@ -39,6 +39,8 @@ export {
   getSettingsScrollPosition,
   setFolderAnalysisScrollPosition,
   getFolderAnalysisScrollPosition,
+  setAiSettingsScrollPosition,
+  getAiSettingsScrollPosition,
   setFolderAnalysis,
   navigateToBrowserPath,
   clearPendingScrollToFile,

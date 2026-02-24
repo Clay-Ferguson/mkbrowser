@@ -25,6 +25,7 @@ import ExportDialog from './components/dialogs/ExportDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
 import FolderAnalysisView from './components/views/FolderAnalysisView';
+import AISettingsView from './components/views/AISettingsView';
 import AppTabButtons from './components/AppTabButtons';
 import PathBreadcrumb from './components/PathBreadcrumb';
 import {
@@ -1008,6 +1009,22 @@ function App() {
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <SettingsView onSaveSettings={handleSaveSettings} />
+        {error && (
+          <ErrorDialog
+            message={error}
+            onClose={() => setError(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Show AI settings view
+  if (currentView === 'ai-settings') {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+        <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+        <AISettingsView />
         {error && (
           <ErrorDialog
             message={error}
