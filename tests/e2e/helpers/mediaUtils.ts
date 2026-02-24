@@ -68,7 +68,7 @@ export async function takeStepScreenshot(
  * @param narrationText - The narration content to write
  * 
  * @example
- * writeNarration(screenshotDir, step++, 'Welcome to MkBrowser...');
+ * writeNarration(screenshotDir, step++, `Welcome to MkBrowser...`);
  */
 export function writeNarration(
   screenshotDir: string,

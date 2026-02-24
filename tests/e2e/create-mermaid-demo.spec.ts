@@ -32,34 +32,61 @@ test.describe('Create Mermaid Demo', () => {
     // Verify files are visible
     await expect(mainWindow.getByText('sample.md')).toBeVisible({ timeout: 10000 });
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
-    writeNarration(screenshotDir, step++, 'Welcome back to MkBrowser. In this demo, we\'ll explore another powerful feature: automatic Mermaid diagram rendering. Mermaid lets you create professional diagrams using simple text-based syntax. Let\'s create a software architecture diagram to see this in action.');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Welcome back to MkBrowser.
+In this demo, we'll explore another powerful feature: automatic Mermaid diagram rendering.
+Mermaid lets you create professional diagrams using simple text-based syntax.
+Let's create a software architecture diagram to see this in action.`
+    );
 
     // Click the create file button
     const createButton = mainWindow.getByTestId('create-file-button');
     await takeStepScreenshotWithHighlight(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create');
-    writeNarration(screenshotDir, step++, 'We\'ll start by creating a new file for our architecture diagram.');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We'll start by creating a new file for our architecture diagram.`
+    );
 
     await demonstrateClickForDemo(createButton);
 
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'create-dialog-open');
-    writeNarration(screenshotDir, step++, 'The Create File dialog opens. Let\'s give our file a descriptive name that reflects its content.');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `The Create File dialog opens.
+Let's give our file a descriptive name that reflects its content.`
+    );
 
     // Type the filename
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
     await insertTextForDemo(mainWindow, 'my-architecture-diagram', true, filenameInput);
 
     await takeStepScreenshotWithHighlight(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
-    writeNarration(screenshotDir, step++, 'We\'ve named it "my-architecture-diagram". Now let\'s create the file and add our diagram content.');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We've named it "my-architecture-diagram".
+Now let's create the file and add our diagram content.`
+    );
 
     // Click Create button in dialog
     const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
     await takeStepScreenshotWithHighlight(mainWindow, createDialogButton, screenshotDir, step++, 'about-to-create-file');
-    writeNarration(screenshotDir, step++, 'Clicking Create to open our new file.');
+    writeNarration(screenshotDir, step++, `Clicking Create to open our new file.`);
 
     await demonstrateClickForDemo(createDialogButton);
 
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'new-file-created');
-    writeNarration(screenshotDir, step++, 'Perfect! Our file is created and the editor is ready. Now let\'s add a Mermaid diagram. We\'ll create a diagram showing a modern web application architecture with multiple interconnected components.');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Perfect! Our file is created and the editor is ready.
+Now let's add a Mermaid diagram.
+We'll create a diagram showing a modern web application architecture with multiple interconnected components.`
+    );
 
     // Type the Mermaid diagram content with explanation
     const mermaidContent = `A modern web application typically has several interconnected components:
@@ -96,12 +123,24 @@ graph TB
     // Take screenshot with the content typed
     const cmEditor = mainWindow.locator('.cm-editor').first();
     await takeStepScreenshotWithHighlight(mainWindow, cmEditor, screenshotDir, step++, 'diagram-typed');
-    writeNarration(screenshotDir, step++, 'We\'ve entered our diagram description and the Mermaid code. Notice the code is surrounded by triple backticks with "mermaid" as the language identifier — this tells MkBrowser to render it as a diagram. The code itself uses simple text syntax: nodes in brackets, arrows for connections, and optional styling. It\'s much easier than drawing diagrams manually! Now watch what happens when we save.');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We've entered our diagram description and the Mermaid code.
+Notice the code is surrounded by triple backticks with "mermaid" as the language identifier — this tells MkBrowser to render it as a diagram.
+The code itself uses simple text syntax: nodes in brackets, arrows for connections, and optional styling.
+It's much easier than drawing diagrams manually!
+Now watch what happens when we save.`
+    );
 
     // Click Save button
     const saveButton = mainWindow.getByTestId('entry-save-button');
     await takeStepScreenshotWithHighlight(mainWindow, saveButton, screenshotDir, step++, 'about-to-save');
-    writeNarration(screenshotDir, step++, 'Let\'s save the file and see the Mermaid magic happen.');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Let's save the file and see the Mermaid magic happen.`
+    );
 
     await demonstrateClickForDemo(saveButton);
 
@@ -109,7 +148,15 @@ graph TB
     await mainWindow.waitForTimeout(1000);
 
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'diagram-rendered');
-    writeNarration(screenshotDir, step++, 'Incredible! The simple text code has been transformed into a beautiful, professional diagram. You can see all the components of our web application — the browser, frontend React app, backend API, database, cache, message queue, and background worker — all connected with labeled arrows showing how data flows through the system. The color-coded components make it even easier to understand. This makes MkBrowser perfect for documenting system architectures, planning new features, or explaining technical designs to your team. No special diagram tools needed — just write your Mermaid code and MkBrowser handles the rest.');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Incredible! The simple text code has been transformed into a beautiful, professional diagram.
+You can see all the components of our web application — the browser, frontend React app, backend API, database, cache, message queue, and background worker — all connected with labeled arrows showing how data flows through the system.
+The color-coded components make it even easier to understand.
+This makes MkBrowser perfect for documenting system architectures, planning new features, or explaining technical designs to your team.
+No special diagram tools needed — just write your Mermaid code and MkBrowser handles the rest.`
+    );
 
     // Verify save completed
     await expect(mainWindow.getByTestId('entry-save-button')).not.toBeVisible({ timeout: 5000 });
