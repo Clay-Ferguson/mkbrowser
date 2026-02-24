@@ -190,6 +190,68 @@ function AISettingsView() {
       >
         <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="space-y-6">
+          {/* AI Usage Statistics */}
+          {aiEnabled && usageData && usageData.totalRequests > 0 && (
+            <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-100">AI Usage Statistics</h2>
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="text-sm text-slate-400 hover:text-red-400 transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
+
+              {/* Summary row */}
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="bg-slate-750 rounded-lg p-3 border border-slate-600">
+                  <div className="text-2xl font-bold text-slate-100">{usageData.totalRequests.toLocaleString()}</div>
+                  <div className="text-xs text-slate-400 mt-1">Total Requests</div>
+                </div>
+                <div className="bg-slate-750 rounded-lg p-3 border border-slate-600">
+                  <div className="text-2xl font-bold text-slate-100">{(usageData.totalInputTokens + usageData.totalOutputTokens).toLocaleString()}</div>
+                  <div className="text-xs text-slate-400 mt-1">Total Tokens</div>
+                </div>
+                <div className="bg-slate-750 rounded-lg p-3 border border-slate-600">
+                  <div className="text-2xl font-bold text-green-400">${usageData.totalEstimatedCost.toFixed(4)}</div>
+                  <div className="text-xs text-slate-400 mt-1">Est. Total Cost</div>
+                </div>
+              </div>
+
+              {/* Per-provider breakdown */}
+              {Object.keys(usageData.byProvider).length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-slate-300 mb-2">By Provider</h3>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-slate-400 text-left">
+                        <th className="pb-2 font-medium">Provider</th>
+                        <th className="pb-2 font-medium text-right">Requests</th>
+                        <th className="pb-2 font-medium text-right">Input Tokens</th>
+                        <th className="pb-2 font-medium text-right">Output Tokens</th>
+                        <th className="pb-2 font-medium text-right">Est. Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(usageData.byProvider).map(([provider, usage]) => (
+                        <tr key={provider} className="text-slate-200 border-t border-slate-700">
+                          <td className="py-2 font-mono text-xs">{provider}</td>
+                          <td className="py-2 text-right">{usage.requests.toLocaleString()}</td>
+                          <td className="py-2 text-right">{usage.inputTokens.toLocaleString()}</td>
+                          <td className="py-2 text-right">{usage.outputTokens.toLocaleString()}</td>
+                          <td className="py-2 text-right text-green-400">
+                            ${(usageData.estimatedCosts[provider] ?? 0).toFixed(4)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
+
           {/* AI Settings */}
           <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
             <h2 className="text-lg font-semibold text-slate-100 mb-2">AI Settings</h2>
@@ -298,68 +360,6 @@ function AISettingsView() {
               )}
             </div>
           </section>
-
-          {/* AI Usage Statistics */}
-          {aiEnabled && usageData && usageData.totalRequests > 0 && (
-            <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-100">AI Usage Statistics</h2>
-                <button
-                  onClick={() => setShowResetConfirm(true)}
-                  className="text-sm text-slate-400 hover:text-red-400 transition-colors"
-                >
-                  Reset
-                </button>
-              </div>
-
-              {/* Summary row */}
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="bg-slate-750 rounded-lg p-3 border border-slate-600">
-                  <div className="text-2xl font-bold text-slate-100">{usageData.totalRequests.toLocaleString()}</div>
-                  <div className="text-xs text-slate-400 mt-1">Total Requests</div>
-                </div>
-                <div className="bg-slate-750 rounded-lg p-3 border border-slate-600">
-                  <div className="text-2xl font-bold text-slate-100">{(usageData.totalInputTokens + usageData.totalOutputTokens).toLocaleString()}</div>
-                  <div className="text-xs text-slate-400 mt-1">Total Tokens</div>
-                </div>
-                <div className="bg-slate-750 rounded-lg p-3 border border-slate-600">
-                  <div className="text-2xl font-bold text-green-400">${usageData.totalEstimatedCost.toFixed(4)}</div>
-                  <div className="text-xs text-slate-400 mt-1">Est. Total Cost</div>
-                </div>
-              </div>
-
-              {/* Per-provider breakdown */}
-              {Object.keys(usageData.byProvider).length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-slate-300 mb-2">By Provider</h3>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-slate-400 text-left">
-                        <th className="pb-2 font-medium">Provider</th>
-                        <th className="pb-2 font-medium text-right">Requests</th>
-                        <th className="pb-2 font-medium text-right">Input Tokens</th>
-                        <th className="pb-2 font-medium text-right">Output Tokens</th>
-                        <th className="pb-2 font-medium text-right">Est. Cost</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(usageData.byProvider).map(([provider, usage]) => (
-                        <tr key={provider} className="text-slate-200 border-t border-slate-700">
-                          <td className="py-2 font-mono text-xs">{provider}</td>
-                          <td className="py-2 text-right">{usage.requests.toLocaleString()}</td>
-                          <td className="py-2 text-right">{usage.inputTokens.toLocaleString()}</td>
-                          <td className="py-2 text-right">{usage.outputTokens.toLocaleString()}</td>
-                          <td className="py-2 text-right text-green-400">
-                            ${(usageData.estimatedCosts[provider] ?? 0).toFixed(4)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
-          )}
         </div>
         </div>
       </main>
