@@ -34,6 +34,8 @@ export interface AIModelConfig {
   name: string;
   provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE';
   model: string;
+  /** Built-in model that cannot be edited or deleted in the UI. */
+  readonly: boolean;
 }
 
 export interface AppConfig {

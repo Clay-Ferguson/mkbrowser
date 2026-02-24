@@ -45,8 +45,11 @@ function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' |
   const config = getConfig();
   const ollamaBaseUrl = config.ollamaBaseUrl || 'http://localhost:11434';
 
+  const normalizeKey = (name: string) => name.trim().toLowerCase();
+
   if (config.aiModel && config.aiModels) {
-    const entry = config.aiModels.find((m) => m.name === config.aiModel);
+    const selectedKey = normalizeKey(config.aiModel);
+    const entry = config.aiModels.find((m) => normalizeKey(m.name) === selectedKey);
     if (entry) {
       debugLog('getActiveModelConfig → provider:', entry.provider, 'model:', entry.model);
       return { provider: entry.provider, model: entry.model, ollamaBaseUrl };

@@ -10,6 +10,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import * as yaml from 'js-yaml';
 import { app } from 'electron';
+import { enforceDefaultAIModels } from './utils/aiModelEnforcement';
 
 // Config file location (Linux XDG standard: ~/.config/mk-browser/config.yaml)
 const CONFIG_DIR = path.join(app.getPath('home'), '.config', 'mk-browser');
@@ -53,6 +54,8 @@ export interface AIModelConfig {
   name: string;
   provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE';
   model: string;
+  /** Built-in model that cannot be edited or deleted in the UI. */
+  readonly: boolean;
 }
 
 export interface AppConfig {
@@ -86,10 +89,10 @@ export const defaultSettings: AppSettings = {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_AI_MODELS: AIModelConfig[] = [
-  { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307' },
-  { name: 'GPT-4.1 Nano', provider: 'OPENAI', model: 'gpt-4.1-nano' },
-  { name: 'Gemini Flash Lite', provider: 'GOOGLE', model: 'gemini-2.0-flash-lite' },
-  { name: 'Qwen (Ollama)', provider: 'OLLAMA', model: 'qwen-silent' },
+  { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', readonly: true },
+  { name: 'GPT-4.1 Nano', provider: 'OPENAI', model: 'gpt-4.1-nano', readonly: true },
+  { name: 'Gemini Flash Lite', provider: 'GOOGLE', model: 'gemini-2.0-flash-lite', readonly: true },
+  { name: 'Qwen (Ollama)', provider: 'OLLAMA', model: 'qwen-silent', readonly: true },
 ];
 
 const DEFAULT_AI_MODEL = 'Claude Haiku';
@@ -102,15 +105,21 @@ const DEFAULT_OLLAMA_BASE_URL = 'http://localhost:11434';
 export function createDefaultAISettings(config: AppConfig): boolean {
   let changed = false;
 
-  if (!config.aiModels || config.aiModels.length === 0) {
-    config.aiModels = [...DEFAULT_AI_MODELS];
+  // Always enforce built-in default models (case-insensitive name matching).
+  // Defaults overwrite any user-defined model with the same name.
+  const enforced = enforceDefaultAIModels<AIModelConfig>({
+    existingModels: config.aiModels,
+    defaultModels: DEFAULT_AI_MODELS,
+    selectedModelName: config.aiModel,
+    defaultSelectedModelName: DEFAULT_AI_MODEL,
+  });
+
+  if (enforced.changed) {
     changed = true;
   }
 
-  if (!config.aiModel) {
-    config.aiModel = DEFAULT_AI_MODEL;
-    changed = true;
-  }
+  config.aiModels = enforced.models as AIModelConfig[];
+  config.aiModel = enforced.selectedModel;
 
   if (!config.ollamaBaseUrl) {
     config.ollamaBaseUrl = DEFAULT_OLLAMA_BASE_URL;
@@ -183,7 +192,13 @@ export function initConfig(): void {
   } catch {
     // Corrupted config — fall through to defaults
   }
+
+  // First-run (or corrupted config): initialize a full default config,
+  // including AI defaults, then persist so subsequent reads are consistent.
   _config = { browseFolder: '', settings: { ...defaultSettings } };
+  if (createDefaultAISettings(_config)) {
+    persistConfig();
+  }
 }
 
 /**
@@ -197,6 +212,8 @@ export function getConfig(): AppConfig {
  * Replace the entire in-memory config and persist to disk.
  */
 export function setConfig(config: AppConfig): void {
+  // Enforce defaults and normalize AI model selection before persisting.
+  createDefaultAISettings(config);
   _config = config;
   persistConfig();
 }
@@ -211,5 +228,8 @@ export function updateConfig(updates: Partial<AppConfig>): void {
   if ('curSubFolder' in updates && updates.curSubFolder === undefined) {
     delete _config.curSubFolder;
   }
+
+  // Enforce defaults and normalize AI model selection before persisting.
+  createDefaultAISettings(_config);
   persistConfig();
 }

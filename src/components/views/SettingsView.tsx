@@ -14,6 +14,7 @@ import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../global.d.
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
+import MessageDialog from '../dialogs/MessageDialog';
 
 interface FontSizeOption {
   value: FontSize;
@@ -60,6 +61,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showOverwriteConfirm, setShowOverwriteConfirm] = useState(false);
   const [pendingSaveModel, setPendingSaveModel] = useState<AIModelConfig | null>(null);
+  const [readonlyNameMessage, setReadonlyNameMessage] = useState<string | null>(null);
 
   // AI usage stats state
   const [usageData, setUsageData] = useState<AIUsageWithCosts | null>(null);
@@ -108,22 +110,28 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
 
   // --- AI Model CRUD handlers ---
 
+  const normalizeModelKey = useCallback((name: string) => name.trim().toLowerCase(), []);
+
+  const selectedModel = aiModels.find((m) => normalizeModelKey(m.name) === normalizeModelKey(selectedAiModel));
+  const selectedModelIsReadonly = Boolean(selectedModel?.readonly);
+
   const handleCreateModel = useCallback(() => {
     setEditingModel(undefined);
     setShowEditDialog(true);
   }, []);
 
   const handleEditModel = useCallback(() => {
-    const current = aiModels.find((m) => m.name === selectedAiModel);
+    const current = aiModels.find((m) => normalizeModelKey(m.name) === normalizeModelKey(selectedAiModel));
     if (current) {
       setEditingModel(current);
       setShowEditDialog(true);
     }
-  }, [aiModels, selectedAiModel]);
+  }, [aiModels, selectedAiModel, normalizeModelKey]);
 
   const applyModelSave = useCallback((model: AIModelConfig) => {
     setAiModels((prev) => {
-      const idx = prev.findIndex((m) => m.name === model.name);
+      const modelKey = normalizeModelKey(model.name);
+      const idx = prev.findIndex((m) => normalizeModelKey(m.name) === modelKey);
       const updated = idx >= 0
         ? prev.map((m, i) => (i === idx ? model : m))
         : [...prev, model];
@@ -133,13 +141,23 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
     setSelectedAiModel(model.name);
     setShowEditDialog(false);
     setPendingSaveModel(null);
-  }, [saveAiConfigField]);
+  }, [saveAiConfigField, normalizeModelKey]);
 
   const handleDialogSave = useCallback((model: AIModelConfig) => {
     // Check for name collision (only matters if it's a different entry than what we're editing)
     const isCreate = !editingModel;
     const nameChanged = editingModel && editingModel.name !== model.name;
-    const nameExists = aiModels.some((m) => m.name === model.name);
+    const modelKey = normalizeModelKey(model.name);
+    const existingMatch = aiModels.find((m) => normalizeModelKey(m.name) === modelKey);
+    const nameExists = Boolean(existingMatch);
+
+    // Never allow overwriting a readonly (built-in) model via the UI.
+    if (existingMatch?.readonly && (isCreate || nameChanged)) {
+      setReadonlyNameMessage(
+        `A built-in model named "${existingMatch.name}" already exists and cannot be overwritten.\n\nChoose a different name.`
+      );
+      return;
+    }
 
     if (nameExists && (isCreate || nameChanged)) {
       // Duplicate name — ask for overwrite confirmation
@@ -155,7 +173,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
     }
 
     applyModelSave(model);
-  }, [editingModel, aiModels, applyModelSave]);
+  }, [editingModel, aiModels, applyModelSave, normalizeModelKey]);
 
   const handleOverwriteConfirm = useCallback(() => {
     if (pendingSaveModel) {
@@ -172,13 +190,18 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   }, []);
 
   const handleDeleteModel = useCallback(() => {
+    const current = aiModels.find((m) => normalizeModelKey(m.name) === normalizeModelKey(selectedAiModel));
+    if (current?.readonly) {
+      setShowDeleteConfirm(false);
+      return;
+    }
     const updated = aiModels.filter((m) => m.name !== selectedAiModel);
     setAiModels(updated);
     const newSelected = updated.length > 0 ? updated[0].name : '';
     setSelectedAiModel(newSelected);
     void saveAiConfigField({ aiModels: updated, aiModel: newSelected });
     setShowDeleteConfirm(false);
-  }, [aiModels, selectedAiModel, saveAiConfigField]);
+  }, [aiModels, selectedAiModel, saveAiConfigField, normalizeModelKey]);
 
   const handleResetUsage = useCallback(async () => {
     await window.electronAPI.resetAiUsage();
@@ -374,9 +397,11 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                       </svg>
                     </button>
                     <button
-                      onClick={() => setShowDeleteConfirm(true)}
+                      onClick={() => {
+                        if (!selectedModelIsReadonly) setShowDeleteConfirm(true);
+                      }}
                       title="Delete selected model"
-                      disabled={aiModels.length === 0}
+                      disabled={aiModels.length === 0 || selectedModelIsReadonly}
                       className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -385,7 +410,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                     </button>
                   </div>
 
-                  {aiModels.find((m) => m.name === selectedAiModel)?.provider === 'OLLAMA' && (
+                  {selectedModel?.provider === 'OLLAMA' && (
                     <div className="flex items-center gap-2">
                       <label className="text-slate-300 text-sm">Ollama Base URL:</label>
                       <input
@@ -473,6 +498,15 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
           initialModel={editingModel}
           onSave={handleDialogSave}
           onCancel={() => setShowEditDialog(false)}
+        />
+      )}
+
+      {/* Readonly name collision message */}
+      {readonlyNameMessage && (
+        <MessageDialog
+          title="Cannot Overwrite Model"
+          message={readonlyNameMessage}
+          onClose={() => setReadonlyNameMessage(null)}
         />
       )}
 
