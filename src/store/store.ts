@@ -41,6 +41,7 @@ const initialState: AppState = {
   },
   highlightedSearchResult: null,
   folderAnalysis: null,
+  visibleTabs: new Set<AppView>(['browser']),
 };
 
 /**
@@ -189,6 +190,13 @@ function getHighlightedSearchResultSnapshot(): { path: string; lineNumber?: numb
  */
 function getFolderAnalysisSnapshot(): FolderAnalysisState | null {
   return state.folderAnalysis;
+}
+
+/**
+ * Get snapshot of visible tabs
+ */
+function getVisibleTabsSnapshot(): Set<AppView> {
+  return state.visibleTabs;
 }
 
 // ============================================================================
@@ -1238,4 +1246,23 @@ export function useHasCutItems(): boolean {
  */
 export function useFolderAnalysis(): FolderAnalysisState | null {
   return useSyncExternalStore(subscribe, getFolderAnalysisSnapshot);
+}
+
+/**
+ * Show a tab in the tab bar (adds it to visibleTabs).
+ * Does not persist — resets on restart.
+ */
+export function showTab(tab: AppView): void {
+  if (state.visibleTabs.has(tab)) return;
+  const next = new Set(state.visibleTabs);
+  next.add(tab);
+  state = { ...state, visibleTabs: next };
+  emitChange();
+}
+
+/**
+ * Hook to subscribe to visible tabs
+ */
+export function useVisibleTabs(): Set<AppView> {
+  return useSyncExternalStore(subscribe, getVisibleTabsSnapshot);
 }

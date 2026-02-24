@@ -55,6 +55,7 @@ import {
   getBrowserScrollPosition,
   toggleBookmark,
   setFolderAnalysis,
+  showTab,
   useItems,
   useCurrentView,
   useCurrentPath,
@@ -1439,6 +1440,14 @@ function App() {
           }}
           onRenumberFiles={() => void handleRenumberFiles()}
           onExport={() => setShowExportDialog(true)}
+          onSettings={() => {
+            showTab('settings');
+            setCurrentView('settings');
+          }}
+          onAiSettings={() => {
+            showTab('ai-settings');
+            setCurrentView('ai-settings');
+          }}
           onNewAiChat={() => {
             if (!currentPath) return;
             void (async () => {

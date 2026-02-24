@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, type AppView } from '../store';
+import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, useVisibleTabs, type AppView } from '../store';
 import appLogo from '../../public/icon-256.png';
 import FilePopupMenu from './menus/FilePopupMenu';
 
@@ -29,10 +29,10 @@ function AppTabButtons({ onSelectFolder, onQuit }: AppTabButtonsProps) {
   const logoRef = useRef<HTMLButtonElement>(null);
   const [showFileMenu, setShowFileMenu] = useState(false);
 
+  const visibleTabs = useVisibleTabs();
+
   const visibleIds = new Set<AppView>([
-    'browser',
-    'settings',
-    'ai-settings',
+    ...visibleTabs,
     ...(searchResults.length > 0 ? ['search-results' as AppView] : []),
     ...(folderAnalysis ? ['folder-analysis' as AppView] : []),
   ]);

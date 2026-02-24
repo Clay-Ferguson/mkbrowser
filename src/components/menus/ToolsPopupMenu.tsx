@@ -9,6 +9,8 @@ interface ToolsPopupMenuProps {
   onRenumberFiles: () => void;
   onExport: () => void;
   onNewAiChat: () => void;
+  onSettings: () => void;
+  onAiSettings: () => void;
 }
 
 export default function ToolsPopupMenu({
@@ -19,6 +21,8 @@ export default function ToolsPopupMenu({
   onRenumberFiles,
   onExport,
   onNewAiChat,
+  onSettings,
+  onAiSettings,
 }: ToolsPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
@@ -28,23 +32,34 @@ export default function ToolsPopupMenu({
             label="New AI Chat"
             onClick={() => { onNewAiChat(); onClose(); }}
           />
-          <PopupMenuDivider />
         </>
       )}
       <PopupMenuItem
         label="Folder Analysis"
         onClick={() => { onFolderAnalysis(); onClose(); }}
       />
-      <PopupMenuDivider />
       <PopupMenuItem
         label="Re-Number Files"
         onClick={() => { onRenumberFiles(); onClose(); }}
       />
-      <PopupMenuDivider />
       <PopupMenuItem
         label="Export..."
         onClick={() => { onExport(); onClose(); }}
       />
+      <PopupMenuDivider />
+
+      <PopupMenuItem
+        label="Settings"
+        onClick={() => { onSettings(); onClose(); }}
+      />
+      {aiEnabled && (
+        <>
+          <PopupMenuItem
+            label="AI Settings"
+            onClick={() => { onAiSettings(); onClose(); }}
+          />
+        </>
+      )}
     </PopupMenu>
   );
 }

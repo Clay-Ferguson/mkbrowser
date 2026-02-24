@@ -294,6 +294,12 @@ export interface AppState {
    * Folder analysis results (null until an analysis is run)
    */
   folderAnalysis: FolderAnalysisState | null;
+
+  /**
+   * Set of tab IDs that should be visible in the tab bar.
+   * Not persisted — resets to defaults on restart.
+   */
+  visibleTabs: Set<AppView>;
 }
 
 /**
