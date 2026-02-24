@@ -164,4 +164,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('reply-to-ai', parentFolderPath),
   getAiUsage: () => ipcRenderer.invoke('get-ai-usage'),
   resetAiUsage: () => ipcRenderer.invoke('reset-ai-usage'),
+  queueScriptedAnswer: (answer: string) => ipcRenderer.invoke('queue-scripted-answer', answer),
 } as ElectronAPI);

@@ -136,6 +136,23 @@ function extractUsage(message: BaseMessage): AIUsageInfo | undefined {
 }
 
 /**
+ * Single-slot scripted answer for Playwright demo tests.
+ * When set, `invokeAI` returns this text (after a short delay) instead of
+ * calling the real AI model. Cleared after each use.
+ */
+let scriptedAnswer: string | null = null;
+
+/**
+ * Queue a scripted answer that `invokeAI` will return on its next call
+ * instead of invoking the real AI model. The slot is single-use: it resets
+ * to `null` after being consumed. Intended for Playwright demo tests.
+ */
+export function queueScriptedAnswer(answer: string): void {
+  debugLog('queueScriptedAnswer → queued', answer.length, 'chars');
+  scriptedAnswer = answer;
+}
+
+/**
  * Non-agentic AI invocation with optional tool support.
  * Uses a StateGraph that sends messages to the model and, when tools are
  * enabled, loops back through a ToolNode to execute any tool calls the
@@ -144,6 +161,15 @@ function extractUsage(message: BaseMessage): AIUsageInfo | undefined {
  * Optionally accepts prior conversation history to provide context.
  */
 export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<AIInvokeResult> {
+  // Check for a scripted answer (queued by Playwright tests)
+  if (scriptedAnswer !== null) {
+    const answer = scriptedAnswer;
+    scriptedAnswer = null;
+    debugLog('invokeAI → returning scripted answer (' + answer.length + ' chars), sleeping 2s');
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    return { content: answer, usage: undefined };
+  }
+
   debugLog('invokeAI → creating model');
   const model = createChatModel();
 

@@ -10,7 +10,7 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { HASHTAG_REGEX } from './utils/hashtagRegex';
-import { invokeAI, findNextNumberedFolder, gatherConversationHistory, preprocessPrompt, AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './ai/aiUtil';
+import { invokeAI, queueScriptedAnswer, findNextNumberedFolder, gatherConversationHistory, preprocessPrompt, AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './ai/aiUtil';
 import { recordUsage, getUsageWithCosts, resetUsage } from './ai/usageTracker';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -779,6 +779,11 @@ function setupIpcHandlers(): void {
       console.error('Error in ask-ai handler:', error);
       return { error: error instanceof Error ? error.message : 'Unknown error' };
     }
+  });
+
+  // Queue a scripted AI answer for Playwright demo tests
+  ipcMain.handle('queue-scripted-answer', (_event, answer: string) => {
+    queueScriptedAnswer(answer);
   });
 
   // Get AI usage statistics

@@ -159,6 +159,7 @@ export interface ElectronAPI {
   replyToAi: (parentFolderPath: string) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
   getAiUsage: () => Promise<AIUsageWithCosts>;
   resetAiUsage: () => Promise<void>;
+  queueScriptedAnswer: (answer: string) => Promise<void>;
 }
 
 declare global {
