@@ -30,32 +30,38 @@ export default function ToolsPopupMenu({
         <>
           <PopupMenuItem
             label="New AI Chat"
+            data-testid="menu-new-ai-chat"
             onClick={() => { onNewAiChat(); onClose(); }}
           />
         </>
       )}
       <PopupMenuItem
         label="Folder Analysis"
+        data-testid="menu-folder-analysis"
         onClick={() => { onFolderAnalysis(); onClose(); }}
       />
       <PopupMenuItem
         label="Re-Number Files"
+        data-testid="menu-renumber-files"
         onClick={() => { onRenumberFiles(); onClose(); }}
       />
       <PopupMenuItem
         label="Export..."
+        data-testid="menu-export"
         onClick={() => { onExport(); onClose(); }}
       />
       <PopupMenuDivider />
 
       <PopupMenuItem
         label="Settings"
+        data-testid="menu-settings"
         onClick={() => { onSettings(); onClose(); }}
       />
       {aiEnabled && (
         <>
           <PopupMenuItem
             label="AI Settings"
+            data-testid="menu-ai-settings"
             onClick={() => { onAiSettings(); onClose(); }}
           />
         </>

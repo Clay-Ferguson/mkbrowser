@@ -465,6 +465,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
             </button>
             {isHumanFile && (
               <button
+                data-testid="ask-ai-button"
                 onClick={async () => {
                   await edit.handleSave();
                   await handleAskAi(edit.editContent);
@@ -480,6 +481,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
           <>
             {isHumanFile && (
               <button
+                data-testid="ask-ai-button"
                 onClick={() => handleAskAi()}
                 disabled={isAiLoading || !content}
                 className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
@@ -489,6 +491,7 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
             )}
             {isAiFile && (
               <button
+                data-testid="ai-reply-button"
                 onClick={handleReply}
                 disabled={isReplyLoading}
                 className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
