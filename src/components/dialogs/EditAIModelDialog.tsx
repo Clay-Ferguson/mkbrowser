@@ -14,6 +14,12 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
   const [name, setName] = useState(initialModel?.name ?? '');
   const [provider, setProvider] = useState<AIModelConfig['provider']>(initialModel?.provider ?? 'ANTHROPIC');
   const [model, setModel] = useState(initialModel?.model ?? '');
+  const [inputPer1MText, setInputPer1MText] = useState(
+    initialModel ? String(initialModel.inputPer1M ?? 0) : '0'
+  );
+  const [outputPer1MText, setOutputPer1MText] = useState(
+    initialModel ? String(initialModel.outputPer1M ?? 0) : '0'
+  );
   const nameRef = useRef<HTMLInputElement>(null);
   const isReadonly = Boolean(initialModel?.readonly);
 
@@ -22,12 +28,35 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
     nameRef.current?.focus();
   }, []);
 
-  const isValid = name.trim().length > 0 && model.trim().length > 0;
+  const parseNonNegative = (value: string): number | null => {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return null;
+    const parsed = Number.parseFloat(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) return null;
+    return parsed;
+  };
+
+  const inputPer1M = parseNonNegative(inputPer1MText);
+  const outputPer1M = parseNonNegative(outputPer1MText);
+
+  const isValid =
+    name.trim().length > 0 &&
+    model.trim().length > 0 &&
+    inputPer1M !== null &&
+    outputPer1M !== null;
 
   const handleSave = useCallback(() => {
     if (!isValid || isReadonly) return;
-    onSave({ name: name.trim(), provider, model: model.trim(), readonly: false });
-  }, [isValid, isReadonly, name, provider, model, onSave]);
+    // isValid guarantees these are non-null.
+    onSave({
+      name: name.trim(),
+      provider,
+      model: model.trim(),
+      inputPer1M: inputPer1M as number,
+      outputPer1M: outputPer1M as number,
+      readonly: false,
+    });
+  }, [isValid, isReadonly, name, provider, model, inputPer1M, outputPer1M, onSave]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -98,6 +127,33 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               value={model}
               onChange={(e) => setModel(e.target.value)}
               placeholder="e.g. claude-3-haiku-20240307"
+              disabled={isReadonly}
+              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          {/* Pricing fields */}
+          <div>
+            <label className="block text-slate-300 text-sm mb-1">Input $/1M tokens</label>
+            <input
+              type="number"
+              step="any"
+              min={0}
+              value={inputPer1MText}
+              onChange={(e) => setInputPer1MText(e.target.value)}
+              disabled={isReadonly}
+              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-slate-300 text-sm mb-1">Output $/1M tokens</label>
+            <input
+              type="number"
+              step="any"
+              min={0}
+              value={outputPer1MText}
+              onChange={(e) => setOutputPer1MText(e.target.value)}
               disabled={isReadonly}
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed"
             />

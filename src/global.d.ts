@@ -34,6 +34,10 @@ export interface AIModelConfig {
   name: string;
   provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE';
   model: string;
+  /** USD per 1M input tokens */
+  inputPer1M: number;
+  /** USD per 1M output tokens */
+  outputPer1M: number;
   /** Built-in model that cannot be edited or deleted in the UI. */
   readonly: boolean;
 }

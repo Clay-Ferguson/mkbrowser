@@ -54,6 +54,10 @@ export interface AIModelConfig {
   name: string;
   provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE';
   model: string;
+  /** USD per 1M input tokens */
+  inputPer1M: number;
+  /** USD per 1M output tokens */
+  outputPer1M: number;
   /** Built-in model that cannot be edited or deleted in the UI. */
   readonly: boolean;
 }
@@ -89,10 +93,10 @@ export const defaultSettings: AppSettings = {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_AI_MODELS: AIModelConfig[] = [
-  { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', readonly: true },
-  { name: 'GPT-4.1 Nano', provider: 'OPENAI', model: 'gpt-4.1-nano', readonly: true },
-  { name: 'Gemini Flash Lite', provider: 'GOOGLE', model: 'gemini-2.0-flash-lite', readonly: true },
-  { name: 'Qwen (Ollama)', provider: 'OLLAMA', model: 'qwen-silent', readonly: true },
+  { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', inputPer1M: 0.25, outputPer1M: 1.25, readonly: true },
+  { name: 'GPT-4.1 Nano', provider: 'OPENAI', model: 'gpt-4.1-nano', inputPer1M: 0.10, outputPer1M: 0.40, readonly: true },
+  { name: 'Gemini Flash Lite', provider: 'GOOGLE', model: 'gemini-2.0-flash-lite', inputPer1M: 0.075, outputPer1M: 0.30, readonly: true },
+  { name: 'Qwen (Ollama)', provider: 'OLLAMA', model: 'qwen-silent', inputPer1M: 0, outputPer1M: 0, readonly: true },
 ];
 
 const DEFAULT_AI_MODEL = 'Claude Haiku';
@@ -104,6 +108,15 @@ const DEFAULT_OLLAMA_BASE_URL = 'http://localhost:11434';
  */
 export function createDefaultAISettings(config: AppConfig): boolean {
   let changed = false;
+
+  const coerceNonNegativeNumber = (value: unknown): number | undefined => {
+    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return value;
+    if (typeof value === 'string' && value.trim()) {
+      const parsed = Number.parseFloat(value);
+      if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+    }
+    return undefined;
+  };
 
   // Always enforce built-in default models (case-insensitive name matching).
   // Defaults overwrite any user-defined model with the same name.
@@ -120,6 +133,22 @@ export function createDefaultAISettings(config: AppConfig): boolean {
 
   config.aiModels = enforced.models as AIModelConfig[];
   config.aiModel = enforced.selectedModel;
+
+  // Ensure pricing fields exist and are valid numbers for all models.
+  // Older configs won't have these fields; we normalize and persist once.
+  if (config.aiModels) {
+    config.aiModels = config.aiModels.map((m) => {
+      const inputPer1M = coerceNonNegativeNumber((m as unknown as Record<string, unknown>).inputPer1M) ?? 0;
+      const outputPer1M = coerceNonNegativeNumber((m as unknown as Record<string, unknown>).outputPer1M) ?? 0;
+
+      if (m.inputPer1M !== inputPer1M || m.outputPer1M !== outputPer1M) {
+        changed = true;
+        return { ...m, inputPer1M, outputPer1M };
+      }
+
+      return m;
+    });
+  }
 
   if (!config.ollamaBaseUrl) {
     config.ollamaBaseUrl = DEFAULT_OLLAMA_BASE_URL;

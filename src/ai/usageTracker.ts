@@ -40,32 +40,8 @@ export interface AIUsageWithCosts extends AIUsageData {
 
 interface PricingEntry {
   inputPer1M: number;   // USD per 1M input tokens
-  outputPer1M: number;  // USD per 1M output tokens
+  outputPer1M: number;  // USD per 1M output tokens 
 }
-
-/**
- * Known per-model pricing. Keys should match model identifiers used in
- * AIModelConfig.model. Checked first before falling back to provider defaults.
- */
-const MODEL_PRICING: Record<string, PricingEntry> = {
-  // Anthropic
-  'claude-3-haiku-20240307':    { inputPer1M: 0.25,  outputPer1M: 1.25  },
-  'claude-3-5-haiku-20241022':  { inputPer1M: 0.80,  outputPer1M: 4.00  },
-  'claude-3-5-sonnet-20241022': { inputPer1M: 3.00,  outputPer1M: 15.00 },
-  'claude-sonnet-4-20250514':   { inputPer1M: 3.00,  outputPer1M: 15.00 },
-  'claude-4-opus-20260715':     { inputPer1M: 15.00, outputPer1M: 75.00 },
-  // OpenAI
-  'gpt-4.1-nano':              { inputPer1M: 0.10,  outputPer1M: 0.40  },
-  'gpt-4.1-mini':              { inputPer1M: 0.40,  outputPer1M: 1.60  },
-  'gpt-4.1':                   { inputPer1M: 2.00,  outputPer1M: 8.00  },
-  'gpt-4o':                    { inputPer1M: 2.50,  outputPer1M: 10.00 },
-  'gpt-4o-mini':               { inputPer1M: 0.15,  outputPer1M: 0.60  },
-  // Google
-  'gemini-2.0-flash-lite':     { inputPer1M: 0.075, outputPer1M: 0.30  },
-  'gemini-2.0-flash':          { inputPer1M: 0.10,  outputPer1M: 0.40  },
-  'gemini-1.5-flash':          { inputPer1M: 0.075, outputPer1M: 0.30  },
-  'gemini-1.5-pro':            { inputPer1M: 1.25,  outputPer1M: 5.00  },
-};
 
 /**
  * Fallback pricing per provider when the specific model isn't in MODEL_PRICING.
@@ -160,12 +136,12 @@ export function resetUsage(): void {
  * Estimate the USD cost for a given number of tokens with a specific model/provider.
  */
 export function estimateCost(
-  model: string,
+  _model: string,
   provider: string,
   inputTokens: number,
   outputTokens: number
 ): number {
-  const pricing = MODEL_PRICING[model] ?? PROVIDER_DEFAULT_PRICING[provider] ?? PROVIDER_DEFAULT_PRICING.OLLAMA;
+  const pricing = PROVIDER_DEFAULT_PRICING[provider] ?? PROVIDER_DEFAULT_PRICING.OLLAMA;
   return (inputTokens / 1_000_000) * pricing.inputPer1M
        + (outputTokens / 1_000_000) * pricing.outputPer1M;
 }
