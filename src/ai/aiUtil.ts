@@ -17,14 +17,11 @@ import path from 'node:path';
 import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
+import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from '../utils/aiPatterns';
 
 export { preprocessPrompt, wildcardToRegex, FILE_DIRECTIVE_REGEX } from './promptPreprocess';
 export type { PreprocessResult, ImageAttachment } from './promptPreprocess';
-
-/** Matches AI conversation folders: "A", "A1", "A2", etc. (case-sensitive) */
-export const AI_FOLDER_REGEX = /^A\d*$/;
-/** Matches Human conversation folders: "H", "H1", "H2", etc. (case-sensitive) */
-export const HUMAN_FOLDER_REGEX = /^H\d*$/;
+export { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from '../utils/aiPatterns';
 
 // Set to true to enable verbose debug logging for AI invocations.
 const DEBUG = true;

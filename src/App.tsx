@@ -26,6 +26,7 @@ import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
 import FolderAnalysisView from './components/views/FolderAnalysisView';
 import AISettingsView from './components/views/AISettingsView';
+import ThreadView from './components/views/ThreadView';
 import AppTabButtons from './components/AppTabButtons';
 import PathBreadcrumb from './components/PathBreadcrumb';
 import {
@@ -1052,6 +1053,22 @@ function App() {
     );
   }
 
+  // Show thread view for AI conversation threads
+  if (currentView === 'thread') {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+        <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+        <ThreadView onSaveSettings={handleSaveSettings} />
+        {error && (
+          <ErrorDialog
+            message={error}
+            onClose={() => setError(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
       {/* Tab navigation */}
@@ -1457,6 +1474,7 @@ function App() {
                   setError('Failed to create AI chat: ' + result.error);
                 } else {
                   navigateToBrowserPath(result.folderPath, 'HUMAN.md');
+                  showTab('thread');
                   setPendingEditFile(result.filePath);
                 }
               } catch (err) {

@@ -38,6 +38,7 @@ const initialState: AppState = {
     settings: 0,
     'folder-analysis': 0,
     'ai-settings': 0,
+    thread: 0,
   },
   highlightedSearchResult: null,
   folderAnalysis: null,
@@ -884,6 +885,27 @@ export function setAiSettingsScrollPosition(position: number): void {
  */
 export function getAiSettingsScrollPosition(): number {
   return state.scrollPositions['ai-settings'];
+}
+
+/**
+ * Set scroll position for the thread view
+ */
+export function setThreadScrollPosition(position: number): void {
+  state = {
+    ...state,
+    scrollPositions: {
+      ...state.scrollPositions,
+      thread: position,
+    },
+  };
+  // Don't emit change for scroll position updates
+}
+
+/**
+ * Get scroll position for the thread view
+ */
+export function getThreadScrollPosition(): number {
+  return state.scrollPositions.thread;
 }
 
 /**

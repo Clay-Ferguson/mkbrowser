@@ -124,6 +124,7 @@ export interface ElectronAPI {
   replyToAi: (parentFolderPath: string) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
   getAiUsage: () => Promise<AIUsageWithCosts>;
   resetAiUsage: () => Promise<void>;
+  gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }>;
 }
 
 // Expose protected methods to the renderer process
@@ -165,4 +166,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAiUsage: () => ipcRenderer.invoke('get-ai-usage'),
   resetAiUsage: () => ipcRenderer.invoke('reset-ai-usage'),
   queueScriptedAnswer: (answer: string) => ipcRenderer.invoke('queue-scripted-answer', answer),
+  gatherThreadEntries: (folderPath: string) => ipcRenderer.invoke('gather-thread-entries', folderPath),
 } as ElectronAPI);

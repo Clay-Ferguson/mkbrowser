@@ -818,9 +818,70 @@ function setupIpcHandlers(): void {
       return { error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
-}
 
-// Handle command-line arguments to set initial browse folder
+  // Gather AI conversation thread entries for the ThreadView.
+  // Walks up the H*/A* folder hierarchy from folderPath, collecting FileEntry
+  // objects for each HUMAN.md / AI.md file in chronological order.
+  ipcMain.handle('gather-thread-entries', async (
+    _event,
+    folderPath: string
+  ): Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }> => {
+    const folderName = path.basename(folderPath);
+
+    // If the current folder doesn't match H*/A*, it's not a thread
+    if (!AI_FOLDER_REGEX.test(folderName) && !HUMAN_FOLDER_REGEX.test(folderName)) {
+      return { isThread: false, entries: [] };
+    }
+
+    const entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> = [];
+    let walker = folderPath;
+
+    while (true) {
+      const name = path.basename(walker);
+
+      if (AI_FOLDER_REGEX.test(name)) {
+        const aiFile = path.join(walker, 'AI.md');
+        try {
+          const stat = await fs.promises.stat(aiFile);
+          entries.unshift({
+            role: 'ai',
+            folderPath: walker,
+            filePath: aiFile,
+            fileName: 'AI.md',
+            modifiedTime: stat.mtimeMs,
+            createdTime: stat.birthtimeMs,
+          });
+        } catch {
+          // AI.md missing — still record placeholder? No — stop walking.
+          break;
+        }
+      } else if (HUMAN_FOLDER_REGEX.test(name)) {
+        const humanFile = path.join(walker, 'HUMAN.md');
+        try {
+          const stat = await fs.promises.stat(humanFile);
+          entries.unshift({
+            role: 'human',
+            folderPath: walker,
+            filePath: humanFile,
+            fileName: 'HUMAN.md',
+            modifiedTime: stat.mtimeMs,
+            createdTime: stat.birthtimeMs,
+          });
+        } catch {
+          break;
+        }
+      } else {
+        // Reached conversation root
+        break;
+      }
+
+      // Move up one level
+      walker = path.dirname(walker);
+    }
+
+    return { isThread: true, entries };
+  });
+}
 async function handleCommandLineArgs(): Promise<void> {
   // process.argv structure differs between dev and production:
   // Development: [electron, main.js, ...userArgs] - use slice(2)

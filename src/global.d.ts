@@ -160,6 +160,7 @@ export interface ElectronAPI {
   getAiUsage: () => Promise<AIUsageWithCosts>;
   resetAiUsage: () => Promise<void>;
   queueScriptedAnswer: (answer: string) => Promise<void>;
+  gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }>;
 }
 
 declare global {

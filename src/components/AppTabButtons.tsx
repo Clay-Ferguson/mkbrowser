@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, useVisibleTabs, type AppView } from '../store';
+import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, useVisibleTabs, useCurrentPath, type AppView } from '../store';
+import { isAiThreadFolder } from '../utils/aiPatterns';
 import appLogo from '../../public/icon-256.png';
 import FilePopupMenu from './menus/FilePopupMenu';
 
@@ -13,9 +14,10 @@ interface AppTabButtonsProps {
   onQuit: () => void;
 }
 
-// Canonical tab order: Browse, Search, Analysis, Settings
+// Canonical tab order: Browse, Thread, Search, Analysis, Settings
 const allTabs: TabConfig[] = [
   { id: 'browser', label: 'Browse' },
+  { id: 'thread', label: 'Thread' },
   { id: 'search-results', label: 'Search' },
   { id: 'folder-analysis', label: 'Analysis' },
   { id: 'settings', label: 'Settings' },
@@ -30,11 +32,17 @@ function AppTabButtons({ onSelectFolder, onQuit }: AppTabButtonsProps) {
   const [showFileMenu, setShowFileMenu] = useState(false);
 
   const visibleTabs = useVisibleTabs();
+  const currentPath = useCurrentPath();
+
+  // Determine whether the thread tab should be visible based on the current path
+  const currentFolderName = currentPath ? currentPath.substring(currentPath.lastIndexOf('/') + 1) : '';
+  const isInAiThread = isAiThreadFolder(currentFolderName);
 
   const visibleIds = new Set<AppView>([
     ...visibleTabs,
     ...(searchResults.length > 0 ? ['search-results' as AppView] : []),
     ...(folderAnalysis ? ['folder-analysis' as AppView] : []),
+    ...(isInAiThread ? ['thread' as AppView] : []),
   ]);
 
   const tabs = allTabs.filter((tab) => visibleIds.has(tab.id));

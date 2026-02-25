@@ -72,7 +72,7 @@ export interface ItemData {
 /**
  * Represents which application page (aka view or panel) is currently displayed
  */
-export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings';
+export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread';
 
 /**
  * A single hashtag entry with its occurrence count
@@ -203,6 +203,8 @@ export interface ScrollPositions {
   'folder-analysis': number;
   /** AI settings view scroll position */
   'ai-settings': number;
+  /** Thread view scroll position */
+  thread: number;
 }
 
 /**
@@ -300,6 +302,26 @@ export interface AppState {
    * Not persisted — resets to defaults on restart.
    */
   visibleTabs: Set<AppView>;
+}
+
+/**
+ * A single entry in an AI conversation thread.
+ * Designed for extensibility — future versions may include
+ * image attachments or other artifacts alongside the markdown content.
+ */
+export interface ThreadEntry {
+  /** Role of this conversation turn */
+  role: 'human' | 'ai';
+  /** Absolute path to the H or A folder containing this turn */
+  folderPath: string;
+  /** Absolute path to the HUMAN.md or AI.md file */
+  filePath: string;
+  /** File name (HUMAN.md or AI.md) */
+  fileName: string;
+  /** Last modified timestamp in milliseconds since epoch */
+  modifiedTime: number;
+  /** Created timestamp in milliseconds since epoch */
+  createdTime: number;
 }
 
 /**
