@@ -433,6 +433,15 @@ The **Ollama Base URL** field is only shown when the selected model’s **Provid
 
 This setting is saved when the field loses focus (click away / tab out).
 
+### AI Settings View
+
+![AI Settings](./img/ai-settings.png)
+
+### Supported Models
+
+![Models Page 1](./img/models-part1.png)
+![Models Page 2](./img/models-part2.png)
+
 ### Agentic Mode
 
 When **Agentic Mode** is enabled, MkBrowser allows the AI to call built-in tools that interact with your file system while it is generating a response.
