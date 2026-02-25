@@ -58,8 +58,9 @@ export function useScrollPersistence(
       clearTimeout(scrollSaveTimerRef.current);
     }
     // Debounce: save scroll position after 150ms of no scrolling
+    const scrollTop = e.currentTarget.scrollTop;
     scrollSaveTimerRef.current = setTimeout(() => {
-      setPosition(e.currentTarget.scrollTop);
+      setPosition(scrollTop);
     }, 150);
   }, [setPosition]);
   

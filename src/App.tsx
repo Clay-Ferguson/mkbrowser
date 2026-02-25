@@ -234,6 +234,13 @@ function App() {
   // Handle pending scroll after directory loads, or restore scroll position on folder navigation
   useEffect(() => {
     if (!loading) {
+      // Skip browser scroll handling when not in browser view — ThreadView
+      // manages its own scrolling and we don't want to interfere.
+      if (currentView !== 'browser') {
+        previousPathRef.current = currentPath;
+        return;
+      }
+
       const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
       
       // Save scroll position for the previous folder before switching
@@ -271,7 +278,7 @@ function App() {
         }
       }, 100);
     }
-  }, [loading, pendingScrollToFile, pendingEditFile, pendingEditView, currentPath]);
+  }, [loading, pendingScrollToFile, pendingEditFile, pendingEditView, currentPath, currentView]);
 
   // Handle scroll events on the main container (debounced save)
   const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {

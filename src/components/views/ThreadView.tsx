@@ -120,19 +120,30 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
 
     const lineNumber = pendingEditLineNumber ?? undefined;
     const filePath = pendingEditFile;
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setItemExpanded(filePath, true);
       setItemEditing(filePath, true, lineNumber);
       clearPendingEditFile();
+
+      // The editor (CodeMirror) takes up significant vertical space once it
+      // mounts.  The earlier scroll-to-bottom fired before the editor existed,
+      // so we need a second scroll once the editor has had time to render.
+      setTimeout(() => {
+        const el = mainContainerRef.current;
+        if (el) {
+          el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
+        }
+      }, 300);
     }, 100);
-  }, [loading, pendingEditFile, pendingEditView, pendingEditLineNumber]);
+    return () => clearTimeout(timer);
+  }, [loading, pendingEditFile, pendingEditView, pendingEditLineNumber, mainContainerRef]);
 
   // No-ops for actions not meaningful in thread context
   const noopInsert = useCallback((_defaultName: string) => {}, []);
 
   // --- Render ---
 
-  if (loading) {
+  if (loading && threadEntries.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-900">
         <p className="text-slate-400">Loading thread…</p>
