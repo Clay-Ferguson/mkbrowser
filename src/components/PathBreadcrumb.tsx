@@ -1,16 +1,17 @@
 import { HomeIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+import type { AppView } from '../store/types';
 
-// todo-0: need to make this component only show the bookmark icon if it's not on the thread view 
 export type PathBreadcrumbProps = {
   rootPath: string;
   currentPath: string;
   onNavigate: (path: string) => void;
   isBookmarked: boolean;
   onToggleBookmark: () => void;
+  view?: AppView;
 };
 
-function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onToggleBookmark }: PathBreadcrumbProps) {
+function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onToggleBookmark, view }: PathBreadcrumbProps) {
   const normalizedRoot = rootPath.replace(/\/+$/, '');
   const normalizedCurrent = currentPath.replace(/\/+$/, '');
   const relativePath = normalizedCurrent.startsWith(normalizedRoot)
@@ -66,7 +67,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
         );
       })}
 
-      {parts.length > 0 && (
+      {parts.length > 0 && view !== 'thread' && (
         <button
           type="button"
           onClick={onToggleBookmark}

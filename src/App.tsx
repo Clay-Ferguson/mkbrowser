@@ -1092,6 +1092,7 @@ function App() {
             onNavigate={navigateTo}
             isBookmarked={(settings.bookmarks || []).includes(currentPath)}
             onToggleBookmark={handleToggleCurrentFolderBookmark}
+            view="browser"
           />
         </div>
 
