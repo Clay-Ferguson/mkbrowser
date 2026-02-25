@@ -88,33 +88,31 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
     void loadThread();
   }, [loadThread]);
 
-  // When pendingScrollToBottom becomes true, schedule a delayed scroll to bottom.
-  // We store the timer in a ref so that effect re-runs (caused by clearing the flag
-  // or loading state changes) don't cancel the pending scroll via cleanup.
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // When pendingScrollToBottom becomes true, remember the intent in a ref.
+  // The actual scroll happens once loading finishes (content is rendered).
+  const wantScrollToBottomRef = useRef(false);
 
   useEffect(() => {
     if (!pendingScrollToBottom) return;
     clearPendingThreadScrollToBottom();
+    wantScrollToBottomRef.current = true;
+  }, [pendingScrollToBottom]);
 
-    // Cancel any existing scroll timer before scheduling a new one
-    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+  // Once loading finishes and we want to scroll to bottom, do it after a short
+  // DOM-settle delay so the new entries are painted.
+  useEffect(() => {
+    if (loading || !wantScrollToBottomRef.current) return;
+    wantScrollToBottomRef.current = false;
 
-    scrollTimerRef.current = setTimeout(() => {
-      scrollTimerRef.current = null;
+    // Short delay for the DOM to settle after React renders the new entries
+    const timer = setTimeout(() => {
       const el = mainContainerRef.current;
       if (el) {
-        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+        el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
       }
-    }, 300);
-  }, [pendingScrollToBottom, mainContainerRef]);
-
-  // Clean up scroll timer on unmount only
-  useEffect(() => {
-    return () => {
-      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-    };
-  }, []);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [loading, mainContainerRef]);
 
   // Handle pending edit for thread view (e.g., after Reply creates a new HUMAN.md)
   useEffect(() => {
