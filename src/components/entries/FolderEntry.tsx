@@ -75,6 +75,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
       {isRenaming ? (
         <RenameInput
           ref={rename.inputRef}
+          path={entry.path}
           name={entry.name}
           value={rename.newName}
           onChange={rename.setNewName}
@@ -86,7 +87,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
         />
       ) : (
         <>
-          <span id={buildEntryHeaderId(entry.name)} className="text-slate-200 font-medium truncate flex-shrink-0">{entry.name}</span>
+          <span id={buildEntryHeaderId(entry.path)} className="text-slate-200 font-medium truncate flex-shrink-0">{entry.name}</span>
           {aiHint && (
             <span className="text-slate-400 italic text-sm truncate min-w-0" title={aiHint}>{aiHint}</span>
           )}

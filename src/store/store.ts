@@ -694,7 +694,7 @@ export function setItemEditing(path: string, editing: boolean, goToLine?: number
   state = {
     ...state,
     items: newItems,
-    ...(editing ? { highlightItem: existing.name } : {}),
+    ...(editing ? { highlightItem: path } : {}),
   };
   emitChange();
 }
@@ -755,19 +755,17 @@ export function setItemRenaming(path: string, renaming: boolean): void {
   state = {
     ...state,
     items: newItems,
-    ...(renaming ? { highlightItem: existing.name } : {}),
+    ...(renaming ? { highlightItem: path } : {}),
   };
   emitChange();
 }
 
 /**
- * Set the currently highlighted item name
- * 
- * todo-0: this needs to be the FULL path, now that ThreadView exists and has duplicate filenames.
+ * Set the currently highlighted item (by full path)
  */
-export function setHighlightItem(name: string | null): void {
-  if (state.highlightItem === name) return;
-  state = { ...state, highlightItem: name };
+export function setHighlightItem(path: string | null): void {
+  if (state.highlightItem === path) return;
+  state = { ...state, highlightItem: path };
   emitChange();
 }
 
@@ -946,7 +944,6 @@ export function navigateToBrowserPath(path: string, scrollToFile?: string, view:
     currentView: view,
   };
   if (scrollToFile !== undefined) {
-    // todo-0: warning! this won't work for the ThreadView because files aren't unique!
     newState.pendingScrollToFile = scrollToFile;
   }
   state = { ...state, ...newState };

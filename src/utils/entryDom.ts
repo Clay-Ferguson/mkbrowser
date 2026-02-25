@@ -1,12 +1,12 @@
-export const buildEntryHeaderId = (fileName: string) => `entry-${encodeURIComponent(fileName)}`;
+export const buildEntryHeaderId = (filePath: string) => `entry-${encodeURIComponent(filePath)}`;
 
 /**
  * Scrolls an item into view within the main content area.
  * Uses manual scroll calculation to avoid scrollIntoView's side effect
  * of scrolling all ancestors (which can break the layout in Electron).
  */
-export const scrollItemIntoView = (fileName: string) => {
-  const targetId = buildEntryHeaderId(fileName);
+export const scrollItemIntoView = (filePath: string) => {
+  const targetId = buildEntryHeaderId(filePath);
   const element = document.getElementById(targetId);
   if (!element) return;
 

@@ -173,22 +173,22 @@ function createCustomAnchor(entryPath: string) {
   return function CustomAnchor({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (!href) return;
-      
+
       // Handle external URLs - open in system browser
       if (href.startsWith('http://') || href.startsWith('https://')) {
         e.preventDefault();
         window.electronAPI.openExternalUrl(href);
         return;
       }
-      
+
       // Handle relative links (./file.md, ../folder/file.md, or just file.md)
       // Skip anchor-only links and other protocols
       if (!href.startsWith('#') && !href.includes('://')) {
         e.preventDefault();
-        
+
         // Get the directory containing this markdown file
         const currentDir = entryPath.substring(0, entryPath.lastIndexOf('/'));
-        
+
         // Resolve the relative path
         let targetPath: string;
         if (href.startsWith('/')) {
@@ -198,7 +198,7 @@ function createCustomAnchor(entryPath: string) {
           // Relative path - resolve from current directory
           const parts = currentDir.split('/');
           const hrefParts = href.split('/');
-          
+
           for (const part of hrefParts) {
             if (part === '..') {
               parts.pop();
@@ -208,15 +208,14 @@ function createCustomAnchor(entryPath: string) {
           }
           targetPath = parts.join('/');
         }
-        
+
         // Extract folder and filename from the resolved path
         const lastSlash = targetPath.lastIndexOf('/');
         const folderPath = lastSlash > 0 ? targetPath.substring(0, lastSlash) : targetPath;
-        const fileName = lastSlash > 0 ? targetPath.substring(lastSlash + 1) : targetPath;
-        
+
         // Navigate to the folder and scroll to/highlight the file
-        setHighlightItem(fileName);
-        navigateToBrowserPath(folderPath, fileName);
+        setHighlightItem(targetPath);
+        navigateToBrowserPath(folderPath, targetPath);
         return;
       }
     };
@@ -334,7 +333,7 @@ interface MarkdownEntryProps extends BaseEntryProps {
 
 function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: MarkdownEntryProps) {
   const item = useItem(entry.path);
-  
+
   const {
     isRenaming,
     isExpanded,
@@ -396,7 +395,12 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
       if ('error' in result) {
         console.error('Ask AI error:', result.error);
       } else {
-        navigateToBrowserPath(result.responseFolder);
+        if (view === 'thread') {
+          navigateToBrowserPath(result.responseFolder, undefined, 'thread');
+          setPendingThreadScrollToBottom();
+        } else {
+          navigateToBrowserPath(result.responseFolder);
+        }
       }
     } finally {
       setIsAiLoading(false);
@@ -415,7 +419,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
           navigateToBrowserPath(result.folderPath, undefined, 'thread');
           setPendingThreadScrollToBottom();
         } else {
-          navigateToBrowserPath(result.folderPath, 'HUMAN.md', view);
+          navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
         }
         setPendingEditFile(result.filePath, undefined, view);
       }
@@ -436,6 +440,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
         {isRenaming ? (
           <RenameInput
             ref={rename.inputRef}
+            path={entry.path}
             name={entry.name}
             value={rename.newName}
             onChange={rename.setNewName}
@@ -446,7 +451,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
           />
         ) : (
           <span
-            id={buildEntryHeaderId(entry.name)}
+            id={buildEntryHeaderId(entry.path)}
             onClick={handleToggleExpanded}
             className="text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline"
             title={isExpanded ? 'Collapse content' : 'Expand content'}
@@ -543,8 +548,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
               <TagsPicker filePath={entry.path} />
             </>
           ) : (
-            <article 
-              className="prose prose-invert prose-base max-w-none cursor-pointer" 
+            <article
+              className="prose prose-invert prose-base max-w-none cursor-pointer"
               onDoubleClick={edit.handleEditClick}
               title="Double-click to edit"
             >

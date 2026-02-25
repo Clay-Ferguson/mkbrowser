@@ -82,7 +82,7 @@ export function useRename({
         // Move the item entry from old path to new path in the store,
         // preserving selection and other state (prevents phantom selections)
         renameItem(path, newPath, trimmedName);
-        setHighlightItem(trimmedName);
+        setHighlightItem(newPath);
         onRename();
       }
     } finally {

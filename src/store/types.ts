@@ -228,7 +228,7 @@ export interface AppState {
   currentView: AppView;
 
   /**
-   * File name to scroll into view after navigation completes.
+   * Full file path to scroll into view after navigation completes.
    * Set when navigating from search results, cleared after scrolling.
    */
   pendingScrollToFile: string | null;
@@ -264,7 +264,7 @@ export interface AppState {
   settings: AppSettings;
 
   /**
-   * Name of the currently highlighted item in the browser view
+   * Full path of the currently highlighted item in the browser view
    */
   highlightItem: string | null;
 

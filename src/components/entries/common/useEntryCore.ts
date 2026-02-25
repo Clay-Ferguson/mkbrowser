@@ -23,7 +23,7 @@ export function useEntryCore({ path, name, defaultExpanded = false }: UseEntryCo
   const isRenaming = item?.renaming ?? false;
   const isExpanded = item?.isExpanded ?? defaultExpanded;
   const isSelected = item?.isSelected ?? false;
-  const isHighlighted = highlightItem === name;
+  const isHighlighted = highlightItem === path;
   const isBookmarked = (settings.bookmarks || []).includes(path);
   const showInsertIcons = hasOrdinalPrefix(name);
   const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(name) : null;

@@ -23,7 +23,7 @@ import { getContentWidthClasses } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
 interface SearchResultsViewProps {
-  onNavigateToResult: (folderPath: string, fileName: string) => void;
+  onNavigateToResult: (folderPath: string, resultPath: string) => void;
 }
 
 function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
@@ -84,15 +84,14 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     // Track this as the highlighted search result
     setHighlightedSearchResult({ path: resultPath, lineNumber });
     
-    // Extract the parent folder and file name from the result path
+    // Extract the parent folder from the result path
     const lastSlashIndex = resultPath.lastIndexOf('/');
     const folderPath = resultPath.substring(0, lastSlashIndex);
-    const fileName = resultPath.substring(lastSlashIndex + 1);
     
     // Highlight the item in the browser view with purple border
-    setHighlightItem(fileName);
+    setHighlightItem(resultPath);
     
-    onNavigateToResult(folderPath, fileName);
+    onNavigateToResult(folderPath, resultPath);
   };
 
   // Detect if a search has actually been executed
@@ -120,14 +119,13 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     // Track this as the highlighted search result
     setHighlightedSearchResult({ path: resultPath, lineNumber });
 
-    // Extract the parent folder and file name from the result path
+    // Extract the parent folder from the result path
     const lastSlashIndex = resultPath.lastIndexOf('/');
     const folderPath = resultPath.substring(0, lastSlashIndex);
-    const fileName = resultPath.substring(lastSlashIndex + 1);
 
     // Set highlight and navigate to browser view
-    setHighlightItem(fileName);
-    navigateToBrowserPath(folderPath, fileName);
+    setHighlightItem(resultPath);
+    navigateToBrowserPath(folderPath, resultPath);
 
     // Set the pending edit so App.tsx will start editing after items load
     // Include the line number if available (for scrolling to the match)

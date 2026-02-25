@@ -83,8 +83,8 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
         const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
         setIsFullscreen(false);
         setFullscreenImagePath(entry.path); // Reset to this entry's image
-        setHighlightItem(currentImage.name);
-        setPendingScrollToFile(currentImage.name);
+        setHighlightItem(currentImage.path);
+        setPendingScrollToFile(currentImage.path);
       }
     };
     
@@ -158,6 +158,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
         {isRenaming ? (
           <RenameInput
             ref={rename.inputRef}
+            path={entry.path}
             name={entry.name}
             value={rename.newName}
             onChange={rename.setNewName}
@@ -167,7 +168,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
           />
         ) : (
           <span
-            id={buildEntryHeaderId(entry.name)}
+            id={buildEntryHeaderId(entry.path)}
             onClick={handleToggleExpanded}
             className="text-green-400 truncate flex-1 cursor-pointer no-underline"
             title={isExpanded ? 'Collapse image' : 'Expand image'}

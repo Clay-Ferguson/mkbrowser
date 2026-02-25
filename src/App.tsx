@@ -328,7 +328,7 @@ function App() {
 
     // If pasting a single item, scroll to it in the new location
     if (result.pastedItemName) {
-      setPendingScrollToFile(result.pastedItemName);
+      setPendingScrollToFile(`${currentPath}/${result.pastedItemName}`);
     }
 
     // Remove old paths for moved items and clear cut state
@@ -538,7 +538,6 @@ function App() {
 
     // Determine if it's a file or folder by checking if it has a file extension
     // or by trying to read it as a directory
-    const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
     const parentPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
     
     // Try to read the path as a directory to determine if it's a folder
@@ -551,8 +550,8 @@ function App() {
       // It's a file - navigate to parent folder and highlight the file
       setCurrentPath(parentPath);
       setCurrentView('browser');
-      setHighlightItem(fileName);
-      setPendingScrollToFile(fileName);
+      setHighlightItem(fullPath);
+      setPendingScrollToFile(fullPath);
     }
   }, []);
 
@@ -638,8 +637,8 @@ function App() {
     if (result.success) {
       setShowCreateDialog(false);
       setCreateFileDefaultName('');
-      setHighlightItem(fileName);
-      setPendingScrollToFile(fileName);
+      setHighlightItem(filePath);
+      setPendingScrollToFile(filePath);
       refreshDirectory();
       const isMarkdown = fileName.toLowerCase().endsWith('.md');
       const isText = fileName.toLowerCase().endsWith('.txt');
@@ -678,8 +677,8 @@ function App() {
     if (result.success) {
       setShowCreateFolderDialog(false);
       setCreateFolderDefaultName('');
-      setHighlightItem(folderName);
-      setPendingScrollToFile(folderName);
+      setHighlightItem(folderPath);
+      setPendingScrollToFile(folderPath);
       refreshDirectory();
     } else {
       setShowCreateFolderDialog(false);
@@ -699,8 +698,8 @@ function App() {
     setShowSearchDialog(true);
   }, []);
 
-  const handleNavigateToSearchResult = useCallback((folderPath: string, fileName: string) => {
-    navigateToBrowserPath(folderPath, fileName);
+  const handleNavigateToSearchResult = useCallback((folderPath: string, resultPath: string) => {
+    navigateToBrowserPath(folderPath, resultPath);
   }, []);
 
   const handleSearch = useCallback(async (options: SearchOptions) => {
@@ -914,7 +913,7 @@ function App() {
 
     if (result.success && result.fileName) {
       const filePath = `${currentPath}/${result.fileName}`;
-      setPendingScrollToFile(result.fileName);
+      setPendingScrollToFile(filePath);
       refreshDirectory();
       // Set expanded after refresh
       setTimeout(() => {
@@ -935,11 +934,10 @@ function App() {
     if (currentPath === rootPath) return;
     const parent = currentPath.substring(0, currentPath.lastIndexOf('/'));
     if (parent.length >= rootPath.length) {
-      // Get the name of the folder we're leaving (to highlight and scroll to it)
-      const currentFolderName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+      // Highlight and scroll to the folder we're leaving
       setCurrentPath(parent);
-      setHighlightItem(currentFolderName);
-      setPendingScrollToFile(currentFolderName);
+      setHighlightItem(currentPath);
+      setPendingScrollToFile(currentPath);
     }
   }, [currentPath, rootPath]);
 
@@ -1475,7 +1473,7 @@ function App() {
                 if ('error' in result) {
                   setError('Failed to create AI chat: ' + result.error);
                 } else {
-                  navigateToBrowserPath(result.folderPath, 'HUMAN.md', currentView);
+                  navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, currentView);
                   setPendingEditFile(result.filePath, undefined, currentView);
                 }
               } catch (err) {

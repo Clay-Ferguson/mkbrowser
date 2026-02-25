@@ -3,7 +3,9 @@ import { buildEntryHeaderId } from '../../../utils/entryDom';
 import { RENAME_INPUT_CLASSES } from '../../../utils/styles';
 
 interface RenameInputProps {
-  /** Entry name (used for element ID) */
+  /** Full path of the entry (used for element ID) */
+  path: string;
+  /** Entry name (used for element ID fallback) */
   name: string;
   /** Current value of the input */
   value: string;
@@ -27,14 +29,14 @@ interface RenameInputProps {
  */
 export const RenameInput = forwardRef<HTMLInputElement, RenameInputProps>(
   function RenameInput(
-    { name, value, onChange, onKeyDown, onBlur, disabled = false, onClick, className = '' },
+    { path, name: _name, value, onChange, onKeyDown, onBlur, disabled = false, onClick, className = '' },
     ref
   ) {
     return (
       <input
         ref={ref}
         type="text"
-        id={buildEntryHeaderId(name)}
+        id={buildEntryHeaderId(path)}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}

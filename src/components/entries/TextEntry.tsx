@@ -76,6 +76,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
         {isRenaming ? (
           <RenameInput
             ref={rename.inputRef}
+            path={entry.path}
             name={entry.name}
             value={rename.newName}
             onChange={rename.setNewName}
@@ -86,7 +87,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
           />
         ) : (
           <span
-            id={buildEntryHeaderId(entry.name)}
+            id={buildEntryHeaderId(entry.path)}
             onClick={handleToggleExpanded}
             className="text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline"
             title={isExpanded ? 'Collapse content' : 'Expand content'}
