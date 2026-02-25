@@ -63,6 +63,7 @@ import {
   usePendingScrollToFile,
   usePendingEditFile,
   usePendingEditLineNumber,
+  usePendingEditView,
   useSettings,
   useExpansionCounts,
   type SearchDefinition,
@@ -102,6 +103,7 @@ function App() {
   const pendingScrollToFile = usePendingScrollToFile();
   const pendingEditFile = usePendingEditFile();
   const pendingEditLineNumber = usePendingEditLineNumber();
+  const pendingEditView = usePendingEditView();
   const settings = useSettings();
   const expansionCounts = useExpansionCounts();
 
@@ -257,7 +259,7 @@ function App() {
         }
 
         // Handle pending edit (e.g., from search results edit button)
-        if (pendingEditFile) {
+        if (pendingEditFile && pendingEditView === 'browser') {
           // Capture the line number before clearing (it will be stored in ItemData)
           const lineNumber = pendingEditLineNumber ?? undefined;
           // Start editing the file after a slight delay for the scroll to complete
@@ -269,7 +271,7 @@ function App() {
         }
       }, 100);
     }
-  }, [loading, pendingScrollToFile, pendingEditFile, currentPath]);
+  }, [loading, pendingScrollToFile, pendingEditFile, pendingEditView, currentPath]);
 
   // Handle scroll events on the main container (debounced save)
   const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
@@ -1295,7 +1297,7 @@ function App() {
                   {entry.isDirectory ? (
                     <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
                   ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
+                    <MarkdownEntry entry={entry} view="browser" onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : isImageFile(entry.name) ? (
                     <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
                   ) : isTextFile(entry.name) ? (
@@ -1473,9 +1475,8 @@ function App() {
                 if ('error' in result) {
                   setError('Failed to create AI chat: ' + result.error);
                 } else {
-                  navigateToBrowserPath(result.folderPath, 'HUMAN.md');
-                  showTab('thread');
-                  setPendingEditFile(result.filePath);
+                  navigateToBrowserPath(result.folderPath, 'HUMAN.md', currentView);
+                  setPendingEditFile(result.filePath, undefined, currentView);
                 }
               } catch (err) {
                 setError('Failed to create AI chat: ' + (err instanceof Error ? err.message : String(err)));

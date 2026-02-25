@@ -9,6 +9,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import mermaid from 'mermaid';
 import type { FileEntry } from '../../global';
+import type { AppView } from '../../store/types';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
   useItem,
@@ -17,6 +18,7 @@ import {
   toggleItemExpanded,
   navigateToBrowserPath,
   setPendingEditFile,
+  setPendingThreadScrollToBottom,
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
@@ -327,9 +329,10 @@ function CustomPre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>)
 
 interface MarkdownEntryProps extends BaseEntryProps {
   entry: FileEntry;
+  view: AppView;
 }
 
-function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: MarkdownEntryProps) {
+function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: MarkdownEntryProps) {
   const item = useItem(entry.path);
   
   const {
@@ -408,8 +411,13 @@ function MarkdownEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertF
       if ('error' in result) {
         console.error('Reply error:', result.error);
       } else {
-        navigateToBrowserPath(result.folderPath, 'HUMAN.md');
-        setPendingEditFile(result.filePath);
+        if (view === 'thread') {
+          navigateToBrowserPath(result.folderPath, undefined, 'thread');
+          setPendingThreadScrollToBottom();
+        } else {
+          navigateToBrowserPath(result.folderPath, 'HUMAN.md', view);
+        }
+        setPendingEditFile(result.filePath, undefined, view);
       }
     } finally {
       setIsReplyLoading(false);

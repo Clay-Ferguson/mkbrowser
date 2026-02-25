@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { FileEntry } from '../../global';
 import type { ThreadEntry } from '../../store';
 import {
@@ -6,6 +6,14 @@ import {
   upsertItems,
   setThreadScrollPosition,
   getThreadScrollPosition,
+  usePendingThreadScrollToBottom,
+  clearPendingThreadScrollToBottom,
+  usePendingEditFile,
+  usePendingEditLineNumber,
+  usePendingEditView,
+  clearPendingEditFile,
+  setItemExpanded,
+  setItemEditing,
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import MarkdownEntry from '../entries/MarkdownEntry';
@@ -22,6 +30,10 @@ interface ThreadViewProps {
  */
 function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const currentPath = useCurrentPath();
+  const pendingScrollToBottom = usePendingThreadScrollToBottom();
+  const pendingEditFile = usePendingEditFile();
+  const pendingEditLineNumber = usePendingEditLineNumber();
+  const pendingEditView = usePendingEditView();
   const [threadEntries, setThreadEntries] = useState<ThreadEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isThread, setIsThread] = useState(true);
@@ -75,6 +87,47 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const refreshThread = useCallback(() => {
     void loadThread();
   }, [loadThread]);
+
+  // When pendingScrollToBottom becomes true, schedule a delayed scroll to bottom.
+  // We store the timer in a ref so that effect re-runs (caused by clearing the flag
+  // or loading state changes) don't cancel the pending scroll via cleanup.
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!pendingScrollToBottom) return;
+    clearPendingThreadScrollToBottom();
+
+    // Cancel any existing scroll timer before scheduling a new one
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+
+    scrollTimerRef.current = setTimeout(() => {
+      scrollTimerRef.current = null;
+      const el = mainContainerRef.current;
+      if (el) {
+        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+      }
+    }, 300);
+  }, [pendingScrollToBottom, mainContainerRef]);
+
+  // Clean up scroll timer on unmount only
+  useEffect(() => {
+    return () => {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
+  }, []);
+
+  // Handle pending edit for thread view (e.g., after Reply creates a new HUMAN.md)
+  useEffect(() => {
+    if (loading || !pendingEditFile || pendingEditView !== 'thread') return;
+
+    const lineNumber = pendingEditLineNumber ?? undefined;
+    const filePath = pendingEditFile;
+    setTimeout(() => {
+      setItemExpanded(filePath, true);
+      setItemEditing(filePath, true, lineNumber);
+      clearPendingEditFile();
+    }, 100);
+  }, [loading, pendingEditFile, pendingEditView, pendingEditLineNumber]);
 
   // No-ops for actions not meaningful in thread context
   const noopInsert = useCallback((_defaultName: string) => {}, []);
@@ -133,6 +186,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
             >
               <MarkdownEntry
                 entry={fileEntry}
+                view="thread"
                 onRename={refreshThread}
                 onDelete={refreshThread}
                 onInsertFileBelow={noopInsert}

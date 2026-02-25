@@ -281,6 +281,12 @@ export interface AppState {
   pendingEditLineNumber: number | null;
 
   /**
+   * Which view should consume the pending edit.
+   * Set alongside pendingEditFile so only the correct view acts on it.
+   */
+  pendingEditView: AppView | null;
+
+  /**
    * Scroll positions for each view.
    * Browser view stores per-path positions, other views store a single position.
    */
@@ -296,6 +302,12 @@ export interface AppState {
    * Folder analysis results (null until an analysis is run)
    */
   folderAnalysis: FolderAnalysisState | null;
+
+  /**
+   * When true, ThreadView should scroll to the bottom after a short delay.
+   * Set by actions like "Reply" that append new content to the thread.
+   */
+  pendingThreadScrollToBottom: boolean;
 
   /**
    * Set of tab IDs that should be visible in the tab bar.

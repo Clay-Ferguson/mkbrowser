@@ -32,6 +32,7 @@ const initialState: AppState = {
   highlightItem: null,
   pendingEditFile: null,
   pendingEditLineNumber: null,
+  pendingEditView: null,
   scrollPositions: {
     browser: new Map(),
     'search-results': 0,
@@ -42,6 +43,7 @@ const initialState: AppState = {
   },
   highlightedSearchResult: null,
   folderAnalysis: null,
+  pendingThreadScrollToBottom: false,
   visibleTabs: new Set<AppView>(['browser']),
 };
 
@@ -170,6 +172,20 @@ function getPendingEditFileSnapshot(): string | null {
  */
 function getPendingEditLineNumberSnapshot(): number | null {
   return state.pendingEditLineNumber;
+}
+
+/**
+ * Get snapshot of pending edit view
+ */
+function getPendingEditViewSnapshot(): AppView | null {
+  return state.pendingEditView;
+}
+
+/**
+ * Get snapshot of pendingThreadScrollToBottom
+ */
+function getPendingThreadScrollToBottomSnapshot(): boolean {
+  return state.pendingThreadScrollToBottom;
 }
 
 /**
@@ -746,6 +762,8 @@ export function setItemRenaming(path: string, renaming: boolean): void {
 
 /**
  * Set the currently highlighted item name
+ * 
+ * todo-0: this needs to be the FULL path, now that ThreadView exists and has duplicate filenames.
  */
 export function setHighlightItem(name: string | null): void {
   if (state.highlightItem === name) return;
@@ -919,13 +937,16 @@ export function setFolderAnalysis(data: FolderAnalysisState): void {
 /**
  * Navigate to a path and switch to browser view in a single state update.
  * Optionally set a file to scroll to after render completes.
+ * 
+ * Optionally accepts a 'view' parameter to specify which view to navigate to (default is 'browser').
  */
-export function navigateToBrowserPath(path: string, scrollToFile?: string): void {
+export function navigateToBrowserPath(path: string, scrollToFile?: string, view: AppView = 'browser'): void {
   const newState: Partial<AppState> = {
     currentPath: path,
-    currentView: 'browser',
+    currentView: view,
   };
   if (scrollToFile !== undefined) {
+    // todo-0: warning! this won't work for the ThreadView because files aren't unique!
     newState.pendingScrollToFile = scrollToFile;
   }
   state = { ...state, ...newState };
@@ -954,8 +975,8 @@ export function setPendingScrollToFile(fileName: string): void {
  * @param filePath - The full path of the file to edit
  * @param lineNumber - Optional 1-based line number to scroll to
  */
-export function setPendingEditFile(filePath: string, lineNumber?: number): void {
-  state = { ...state, pendingEditFile: filePath, pendingEditLineNumber: lineNumber ?? null };
+export function setPendingEditFile(filePath: string, lineNumber?: number, view?: AppView): void {
+  state = { ...state, pendingEditFile: filePath, pendingEditLineNumber: lineNumber ?? null, pendingEditView: view ?? 'browser' };
   emitChange();
 }
 
@@ -963,8 +984,25 @@ export function setPendingEditFile(filePath: string, lineNumber?: number): void 
  * Clear the pending edit file and line number (call after editing starts)
  */
 export function clearPendingEditFile(): void {
-  if (state.pendingEditFile === null && state.pendingEditLineNumber === null) return;
-  state = { ...state, pendingEditFile: null, pendingEditLineNumber: null };
+  if (state.pendingEditFile === null && state.pendingEditLineNumber === null && state.pendingEditView === null) return;
+  state = { ...state, pendingEditFile: null, pendingEditLineNumber: null, pendingEditView: null };
+  emitChange();
+}
+
+/**
+ * Request ThreadView to scroll to bottom after its next render.
+ */
+export function setPendingThreadScrollToBottom(): void {
+  state = { ...state, pendingThreadScrollToBottom: true };
+  emitChange();
+}
+
+/**
+ * Clear the pending thread scroll-to-bottom flag (call after the scroll timer is created).
+ */
+export function clearPendingThreadScrollToBottom(): void {
+  if (!state.pendingThreadScrollToBottom) return;
+  state = { ...state, pendingThreadScrollToBottom: false };
   emitChange();
 }
 
@@ -1237,6 +1275,20 @@ export function usePendingEditFile(): string | null {
  */
 export function usePendingEditLineNumber(): number | null {
   return useSyncExternalStore(subscribe, getPendingEditLineNumberSnapshot);
+}
+
+/**
+ * Hook to subscribe to pending edit view
+ */
+export function usePendingEditView(): AppView | null {
+  return useSyncExternalStore(subscribe, getPendingEditViewSnapshot);
+}
+
+/**
+ * Hook to subscribe to pendingThreadScrollToBottom
+ */
+export function usePendingThreadScrollToBottom(): boolean {
+  return useSyncExternalStore(subscribe, getPendingThreadScrollToBottomSnapshot);
 }
 /**
  * Hook to subscribe to scroll positions
