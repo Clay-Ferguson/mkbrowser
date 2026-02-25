@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { ArrowPathIcon, DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -510,6 +510,19 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                 className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
               >
                 {isReplyLoading ? 'Creating...' : 'Reply'}
+              </button>
+            )}
+            {view === 'thread' && (
+              <button
+                onClick={() => {
+                  const folderPath = entry.path.substring(0, entry.path.lastIndexOf('/'));
+                  setHighlightItem(entry.path);
+                  navigateToBrowserPath(folderPath, entry.path);
+                }}
+                className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors"
+                title="Show in browser"
+              >
+                <ViewfinderCircleIcon className="w-5 h-5" />
               </button>
             )}
             <EntryActionBar
