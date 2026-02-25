@@ -310,6 +310,12 @@ export interface AppState {
   pendingThreadScrollToBottom: boolean;
 
   /**
+   * The root folder path for the current browsing session.
+   * Set at startup from config or when user picks a new folder.
+   */
+  rootPath: string;
+
+  /**
    * Set of tab IDs that should be visible in the tab bar.
    * Not persisted — resets to defaults on restart.
    */

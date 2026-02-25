@@ -3,6 +3,10 @@ import type { FileEntry } from '../../global';
 import type { ThreadEntry } from '../../store';
 import {
   useCurrentPath,
+  useRootPath,
+  useSettings,
+  navigateToBrowserPath,
+  toggleBookmark,
   upsertItems,
   setThreadScrollPosition,
   getThreadScrollPosition,
@@ -17,6 +21,7 @@ import {
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import MarkdownEntry from '../entries/MarkdownEntry';
+import PathBreadcrumb from '../PathBreadcrumb';
 
 interface ThreadViewProps {
   onSaveSettings: () => void;
@@ -30,6 +35,8 @@ interface ThreadViewProps {
  */
 function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const currentPath = useCurrentPath();
+  const rootPath = useRootPath();
+  const settings = useSettings();
   const pendingScrollToBottom = usePendingThreadScrollToBottom();
   const pendingEditFile = usePendingEditFile();
   const pendingEditLineNumber = usePendingEditLineNumber();
@@ -141,34 +148,70 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   // No-ops for actions not meaningful in thread context
   const noopInsert = useCallback((_defaultName: string) => {}, []);
 
+  // Navigate breadcrumb — switches to browser view at the given path
+  const handleBreadcrumbNavigate = useCallback((path: string) => {
+    navigateToBrowserPath(path);
+  }, []);
+
+  const handleToggleBookmark = useCallback(() => {
+    if (!currentPath) return;
+    toggleBookmark(currentPath);
+    void onSaveSettings();
+  }, [currentPath, onSaveSettings]);
+
+  const breadcrumbHeader = (
+    <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
+      <div className="flex items-center gap-3 min-w-0">
+        <PathBreadcrumb
+          rootPath={rootPath}
+          currentPath={currentPath}
+          onNavigate={handleBreadcrumbNavigate}
+          isBookmarked={(settings.bookmarks || []).includes(currentPath)}
+          onToggleBookmark={handleToggleBookmark}
+        />
+      </div>
+    </header>
+  );
+
   // --- Render ---
 
   if (loading && threadEntries.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
-        <p className="text-slate-400">Loading thread…</p>
-      </div>
+      <>
+        {breadcrumbHeader}
+        <div className="flex-1 flex items-center justify-center bg-slate-900">
+          <p className="text-slate-400">Loading thread…</p>
+        </div>
+      </>
     );
   }
 
   if (!isThread) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
-        <p className="text-slate-400">Not an AI Thread</p>
-      </div>
+      <>
+        {breadcrumbHeader}
+        <div className="flex-1 flex items-center justify-center bg-slate-900">
+          <p className="text-slate-400">Not an AI Thread</p>
+        </div>
+      </>
     );
   }
 
   if (threadEntries.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
-        <p className="text-slate-400">Thread is empty — no HUMAN.md or AI.md files found.</p>
-      </div>
+      <>
+        {breadcrumbHeader}
+        <div className="flex-1 flex items-center justify-center bg-slate-900">
+          <p className="text-slate-400">Thread is empty — no HUMAN.md or AI.md files found.</p>
+        </div>
+      </>
     );
   }
 
   return (
-    <main
+    <>
+      {breadcrumbHeader}
+      <main
       ref={mainContainerRef}
       onScroll={handleMainScroll}
       className="flex-1 min-h-0 overflow-y-auto pb-4"
@@ -207,6 +250,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
         })}
       </div>
     </main>
+    </>
   );
 }
 

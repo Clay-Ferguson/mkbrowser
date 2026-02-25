@@ -87,6 +87,8 @@ export {
   useScrollPositions,
   useHasCutItems,
   useFolderAnalysis,
+  setRootPath,
+  useRootPath,
   showTab,
   useVisibleTabs,
 } from './store';

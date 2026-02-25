@@ -1,6 +1,7 @@
 import { HomeIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 
+// todo-0: need to make this component only show the bookmark icon if it's not on the thread view 
 export type PathBreadcrumbProps = {
   rootPath: string;
   currentPath: string;

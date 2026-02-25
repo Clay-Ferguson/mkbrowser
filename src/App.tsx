@@ -57,6 +57,8 @@ import {
   toggleBookmark,
   setFolderAnalysis,
   showTab,
+  setRootPath,
+  useRootPath,
   useItems,
   useCurrentView,
   useCurrentPath,
@@ -76,7 +78,7 @@ import { loadConfig } from './config';
 import { getContentWidthClasses } from './utils/styles';
 
 function App() {
-  const [rootPath, setRootPath] = useState<string>('');
+  const rootPath = useRootPath();
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);

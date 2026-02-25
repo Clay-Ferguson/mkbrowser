@@ -44,6 +44,7 @@ const initialState: AppState = {
   highlightedSearchResult: null,
   folderAnalysis: null,
   pendingThreadScrollToBottom: false,
+  rootPath: '',
   visibleTabs: new Set<AppView>(['browser']),
 };
 
@@ -207,6 +208,13 @@ function getHighlightedSearchResultSnapshot(): { path: string; lineNumber?: numb
  */
 function getFolderAnalysisSnapshot(): FolderAnalysisState | null {
   return state.folderAnalysis;
+}
+
+/**
+ * Get snapshot of rootPath
+ */
+function getRootPathSnapshot(): string {
+  return state.rootPath;
 }
 
 /**
@@ -1320,6 +1328,15 @@ export function useFolderAnalysis(): FolderAnalysisState | null {
 }
 
 /**
+ * Set the root folder path.
+ */
+export function setRootPath(path: string): void {
+  if (state.rootPath === path) return;
+  state = { ...state, rootPath: path };
+  emitChange();
+}
+
+/**
  * Show a tab in the tab bar (adds it to visibleTabs).
  * Does not persist — resets on restart.
  */
@@ -1329,6 +1346,13 @@ export function showTab(tab: AppView): void {
   next.add(tab);
   state = { ...state, visibleTabs: next };
   emitChange();
+}
+
+/**
+ * Hook to subscribe to rootPath
+ */
+export function useRootPath(): string {
+  return useSyncExternalStore(subscribe, getRootPathSnapshot);
 }
 
 /**
