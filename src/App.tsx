@@ -1483,8 +1483,9 @@ function App() {
                 if ('error' in result) {
                   setError('Failed to create AI chat: ' + result.error);
                 } else {
-                  navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, currentView);
-                  setPendingEditFile(result.filePath, undefined, currentView);
+                  const view = 'thread'; // NOTE: also works with 'currentView' if you want to stay in 'browser' view.
+                  navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
+                  setPendingEditFile(result.filePath, undefined, view);
                 }
               } catch (err) {
                 setError('Failed to create AI chat: ' + (err instanceof Error ? err.message : String(err)));
