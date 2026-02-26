@@ -21,6 +21,7 @@ import {
   setPendingThreadScrollToBottom,
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
+import ErrorDialog from '../dialogs/ErrorDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import TagsPicker from './TagsPicker';
 import { createCustomImage } from './markdownImgResolver';
@@ -384,6 +385,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
   const isAiFile = aiEnabled && entry.name === 'AI.md';
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isReplyLoading, setIsReplyLoading] = useState(false);
+  const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
 
   const handleAskAi = async (promptContent?: string) => {
     const textToSend = promptContent || content;
@@ -393,7 +395,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
       const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
       const result = await window.electronAPI.askAi(textToSend, parentFolder);
       if ('error' in result) {
-        console.error('Ask AI error:', result.error);
+        setAiErrorMessage(result.error);
       } else {
         if (view === 'thread') {
           navigateToBrowserPath(result.responseFolder, undefined, 'thread');
@@ -589,6 +591,12 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
           message={`Are you sure you want to delete "${entry.name}"?`}
           onConfirm={del.handleDeleteConfirm}
           onCancel={del.handleDeleteCancel}
+        />
+      )}
+      {aiErrorMessage && (
+        <ErrorDialog
+          message={aiErrorMessage}
+          onClose={() => setAiErrorMessage(null)}
         />
       )}
     </div>

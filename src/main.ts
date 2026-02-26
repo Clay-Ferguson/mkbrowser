@@ -743,8 +743,23 @@ function setupIpcHandlers(): void {
     _event,
     prompt: string,
     parentFolderPath: string
-  ): Promise<{ outputPath: string; responseFolder: string } | { error: string }> => {
+  ): Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }> => {
     try {
+      // Preprocess the prompt first (before creating folders) so we can
+      // detect images and validate vision support before any side effects.
+      const processedPrompt = await preprocessPrompt(prompt, parentFolderPath);
+
+      // If the prompt contains images, verify the selected model supports vision
+      if (processedPrompt.images.length > 0) {
+        const config = getConfig();
+        const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
+        if (activeModel && !activeModel.vision) {
+          return {
+            error: `The selected model "${activeModel.name}" does not support images. Please select a vision-capable model or remove image files from your prompt.`,
+          };
+        }
+      }
+
       // Find the next available response folder: A/, A1/, A2/, ...
       const responseFolder = await findNextNumberedFolder(parentFolderPath, 'A');
 
@@ -756,9 +771,6 @@ function setupIpcHandlers(): void {
 
       // Gather conversation history from the folder hierarchy
       const history = await gatherConversationHistory(parentFolderPath);
-
-      // Preprocess the prompt: expand #file: directives, separate text/images
-      const processedPrompt = await preprocessPrompt(prompt, parentFolderPath);
 
       // Invoke the AI with context (images are sent as multimodal content parts)
       const { content, usage } = await invokeAI(processedPrompt, history);
