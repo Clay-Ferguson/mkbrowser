@@ -194,6 +194,14 @@ function App() {
     loadDirectory();
   }, [loadDirectory]);
 
+  // Remove entries that were deleted from the store (e.g. via SearchResultsView)
+  useEffect(() => {
+    setEntries(prev => {
+      const filtered = prev.filter(entry => items.has(entry.path));
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, [items]);
+
   // Clear selection whenever navigating to a different folder
   useEffect(() => {
     if (currentPath) {
