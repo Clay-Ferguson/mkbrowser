@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import {
   setAiSettingsScrollPosition,
   getAiSettingsScrollPosition,
@@ -309,14 +310,9 @@ function AISettingsView() {
                       onClick={() => setModelTableExpanded((v) => !v)}
                       className="flex items-center gap-2 text-slate-300 text-sm font-medium hover:text-slate-100 transition-colors"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
+                      <ChevronRightIcon
                         className={`w-4 h-4 transition-transform ${modelTableExpanded ? 'rotate-90' : ''}`}
-                      >
-                        <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
-                      </svg>
+                      />
                       <span>{modelTableExpanded ? 'Hide models' : 'Change model'}</span>
                     </button>
                   </div>
@@ -330,9 +326,7 @@ function AISettingsView() {
                           title="Create new model"
                           className="p-1.5 text-slate-400 hover:text-green-400 hover:bg-slate-700 rounded transition-colors"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                            <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-                          </svg>
+                          <PlusIcon className="w-5 h-5" />
                         </button>
                         <button
                           onClick={handleEditModel}
@@ -340,9 +334,7 @@ function AISettingsView() {
                           disabled={aiModels.length === 0}
                           className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                            <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
-                          </svg>
+                          <PencilIcon className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => {
@@ -352,9 +344,7 @@ function AISettingsView() {
                           disabled={aiModels.length === 0 || selectedModelIsReadonly}
                           className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                            <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.519.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 01.78.72l.5 6a.75.75 0 01-1.49.12l-.5-6a.75.75 0 01.71-.84zm3.62.72a.75.75 0 10-1.49-.12l-.5 6a.75.75 0 101.49.12l.5-6z" clipRule="evenodd" />
-                          </svg>
+                          <TrashIcon className="w-5 h-5" />
                         </button>
                       </div>
 
