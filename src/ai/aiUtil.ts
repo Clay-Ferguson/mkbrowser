@@ -298,8 +298,8 @@ export async function findNextNumberedFile(dir: string, baseName: string): Promi
 
 /**
  * Walk up the folder hierarchy from the current HUMAN.md's parent folder to
- * gather all prior conversation turns. Folders starting with "H" are expected
- * to contain HUMAN.md; folders starting with "A" are expected to contain AI.md.
+ * gather all prior conversation turns. Folders are expected
+ * to contain HUMAN.md (if they're part of a thread), and the same is true for folders containing AI.md
  * Walking stops at the first folder whose name doesn't match either pattern.
  *
  * Returns messages in chronological order (oldest first), ready to pass as
@@ -321,7 +321,15 @@ export async function gatherConversationHistory(
   while (true) {
     const folderName = path.basename(walker);
 
-    if (AI_FOLDER_REGEX.test(folderName)) {
+    const aiFileExists = existsSync(path.join(walker, 'AI.md'));
+    const humanFileExists = existsSync(path.join(walker, 'HUMAN.md'));
+
+    if (aiFileExists && humanFileExists) {
+      // throw error to user saying there cannot be both files
+      throw new Error(`Folder "${walker}" contains BOTH AI.md and HUMAN.md, which is unexpected. Please ensure each conversation turn folder contains only one of these files.`);
+    }
+
+    if (aiFileExists) {
       // Agent folder — look for AI.md
       const aiFile = path.join(walker, 'AI.md');
       try {
@@ -331,7 +339,7 @@ export async function gatherConversationHistory(
         // AI.md missing or unreadable — stop here
         break;
       }
-    } else if (HUMAN_FOLDER_REGEX.test(folderName)) {
+    } else if (humanFileExists) {
       // Human folder — look for HUMAN.md
       const humanFile = path.join(walker, 'HUMAN.md');
       try {
