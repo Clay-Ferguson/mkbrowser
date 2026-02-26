@@ -1,0 +1,1 @@
+Perfect. Is there a quiet spot nearby to grab a drink afterward?
