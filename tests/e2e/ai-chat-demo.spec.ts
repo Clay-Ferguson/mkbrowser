@@ -91,7 +91,7 @@ test.describe('AI Chat Demo', () => {
       screenshotDir,
       step++,
       `A new AI chat folder has been created, and the editor is open and ready for our question. 
-      Let's type our first message.`
+      Let's ask a question.`
     );
 
     await insertTextForDemo(mainWindow, humanMessage1, true);
