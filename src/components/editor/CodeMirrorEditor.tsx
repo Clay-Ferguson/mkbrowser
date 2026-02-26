@@ -13,7 +13,7 @@ import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spe
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
 
 const STORAGE_KEY = 'codemirror-editor-height';
-const DEFAULT_HEIGHT = 256;
+const DEFAULT_HEIGHT = 180;
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT = 800;
 
