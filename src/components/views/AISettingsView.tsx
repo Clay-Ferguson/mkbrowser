@@ -376,7 +376,7 @@ function AISettingsView() {
                                     name="ai-model-select"
                                     checked={isSelected}
                                     onChange={() => handleAiModelChange(m.name)}
-                                    className="cursor-pointer accent-blue-500"
+                                    className="w-5 h-5 cursor-pointer accent-blue-500"
                                   />
                                 </td>
                                 <td className="py-2 font-mono text-xs">{m.name}</td>
