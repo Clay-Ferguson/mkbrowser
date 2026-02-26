@@ -167,7 +167,7 @@ test.describe('AI Chat Demo', () => {
       screenshotDir,
       step++,
       `We've typed our follow-up: is there a quiet spot nearby for a drink? 
-      Let's send it off.`
+      Let's send it.`
     );
 
     // ── 9. Queue second scripted answer, then click "Ask AI" ──────────

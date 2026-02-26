@@ -36,7 +36,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
   const visibleTabs = useVisibleTabs();
 
   // Determine whether the thread tab should be visible based on loaded entries
-  const isInAiThread = isAiThreadByEntries(entries);
+  const isInAiThread = isAiThreadByEntries(entries) || currentView === 'thread';
 
   const visibleIds = new Set<AppView>([
     ...visibleTabs,

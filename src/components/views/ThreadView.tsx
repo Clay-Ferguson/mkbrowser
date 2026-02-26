@@ -217,7 +217,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
       onScroll={handleMainScroll}
       className="flex-1 min-h-0 overflow-y-auto pb-4"
     >
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-2">
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-2">
         {threadEntries.map((entry) => {
           const fileEntry: FileEntry = {
             name: entry.fileName,
