@@ -199,7 +199,65 @@ test.describe('AI Chat Demo', () => {
       As you can see, having a multi-turn conversation with the AI is quick and seamless`
     );
 
-    
+    // ── 11. Explain Chat tab vs file system, highlight "Show in Browser" ──
+    writeNarration(
+      screenshotDir,
+      step++,
+      `This entire conversation was conducted in the Chat tab, but under the hood MkBrowser stores each exchange in real file system folders. That means you can browse, edit, or add files to any part of the conversation. Let's click one of the "Show in Browser" icons to jump into the underlying folders.`
+    );
+
+    const showInBrowserButton = mainWindow.getByTestId('show-in-browser-button').last();
+    await expect(showInBrowserButton).toBeVisible({ timeout: 5000 });
+    await takeStepScreenshotWithHighlight(mainWindow, showInBrowserButton, screenshotDir, step++, 'highlight-show-in-browser');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Here's the "Show in Browser" button. Clicking it will take us from the Chat tab into the actual folder on disk where this part of the conversation lives.`
+    );
+
+    await demonstrateClickForDemo(showInBrowserButton);
+
+    // ── 12. Now in browser view ─────────────────
+    await mainWindow.waitForTimeout(1000);
+
+    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'browser-view-with-images');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We're now in the Browser tab, looking at the actual files and folders that make up this conversation.`
+    );
+
+    // ── 13. Highlight "Up Level" and navigate up ──────────────────────
+    const upLevelButton = mainWindow.getByTestId('navigate-up-button');
+    await expect(upLevelButton).toBeVisible({ timeout: 5000 });
+    await takeStepScreenshotWithHighlight(mainWindow, upLevelButton, screenshotDir, step++, 'highlight-up-level');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We can explore earlier parts of the conversation by navigating up through the folder hierarchy. Let's click the "Up Level" button to go to the parent folder.`
+    );
+
+    await demonstrateClickForDemo(upLevelButton);
+    await mainWindow.waitForTimeout(1000);
+
+    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'parent-folder');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We've moved up one level. Let's go up once more to see an earlier turn of the conversation.`
+    );
+
+    // ── 14. Click "Up Level" again  ────────────
+    await demonstrateClickForDemo(upLevelButton);
+    await mainWindow.waitForTimeout(1000);
+
+    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'earlier-turn-with-images');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Here we can see another turn of the conversation. 
+      The ability to attach images, documents, or any other files alongside your chat makes MkBrowser's file-system-based conversation design uniquely powerful. Each exchange is a real folder you can organize, back up, share, and extend however you like.`
+    );
 
     logScreenshotSummary(screenshotDir);
   });

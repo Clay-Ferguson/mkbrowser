@@ -86,6 +86,7 @@ export function EntryActionBar({
           }}
           className={BUTTON_CLZ_RENAME}
           title="Edit content"
+          data-testid="entry-edit-button"
         >
           <PencilSquareIcon className="w-5 h-5" />
         </button>
@@ -94,6 +95,7 @@ export function EntryActionBar({
         onClick={onRenameClick}
         className={BUTTON_CLZ_RENAME}
         title="Rename"
+        data-testid="entry-rename-button"
       >
         <PencilIcon className="w-5 h-5" />
       </button>
@@ -103,6 +105,7 @@ export function EntryActionBar({
             onClick={handleInsertFileBelow}
             className={BUTTON_CLZ_INSERT_FILE}
             title="Insert file below"
+            data-testid="entry-insert-file-button"
           >
             <DocumentPlusIcon className="w-5 h-5" />
           </button>
@@ -110,6 +113,7 @@ export function EntryActionBar({
             onClick={handleInsertFolderBelow}
             className={BUTTON_CLZ_INSERT_FOLDER}
             title="Insert folder below"
+            data-testid="entry-insert-folder-button"
           >
             <FolderPlusIcon className="w-5 h-5" />
           </button>
@@ -119,6 +123,7 @@ export function EntryActionBar({
         onClick={handleOpenExternal}
         className={BUTTON_CLZ_OPEN_EXTERNAL}
         title="Open with system default"
+        data-testid="entry-open-external-button"
       >
         <ArrowTopRightOnSquareIcon className="w-5 h-5" />
       </button>
@@ -127,6 +132,7 @@ export function EntryActionBar({
         disabled={deleting}
         className={BUTTON_CLZ_DELETE}
         title="Delete"
+        data-testid="entry-delete-button"
       >
         <TrashIcon className="w-5 h-5" />
       </button>
@@ -134,6 +140,7 @@ export function EntryActionBar({
         onClick={handleBookmarkClick}
         className={BUTTON_CLZ_BOOKMARK}
         title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+        data-testid="entry-bookmark-button"
       >
         {isBookmarked ? (
           <BookmarkSolidIcon className="w-5 h-5 text-blue-400" />

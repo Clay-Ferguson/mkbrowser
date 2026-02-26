@@ -27,12 +27,14 @@ function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogProps) {
           <button
             onClick={handleCancel}
             className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+            data-testid="confirm-dialog-cancel-button"
           >
             No
           </button>
           <button
             onClick={handleConfirm}
             className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-500 rounded transition-colors"
+            data-testid="confirm-dialog-confirm-button"
           >
             Yes
           </button>

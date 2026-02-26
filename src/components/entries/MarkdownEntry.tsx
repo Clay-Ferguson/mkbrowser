@@ -465,6 +465,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
               onClick={edit.handleCancel}
               disabled={edit.saving}
               className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
+              data-testid="entry-cancel-button"
             >
               Cancel
             </button>
@@ -521,6 +522,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                 }}
                 className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors"
                 title="Show in browser"
+                data-testid="show-in-browser-button"
               >
                 <ViewfinderCircleIcon className="w-5 h-5" />
               </button>
