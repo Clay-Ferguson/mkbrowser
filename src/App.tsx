@@ -76,6 +76,7 @@ import { pasteFromClipboard } from './utils/clipboard';
 import { isImageFile, isTextFile, sortEntries } from './utils/fileUtils';
 import { loadConfig } from './config';
 import { getContentWidthClasses } from './utils/styles';
+import { isHumanAiThreadFolder } from './utils/aiPatterns';
 
 function App() {
   const rootPath = useRootPath();
@@ -1477,6 +1478,10 @@ function App() {
           }}
           onNewAiChat={() => {
             if (!currentPath) return;
+            if (isHumanAiThreadFolder(currentPath)) {
+              setError('This folder already contains an AI conversation. Please navigate to a different folder to start a new chat.');
+              return;
+            }
             void (async () => {
               try {
                 const result = await window.electronAPI.replyToAi(currentPath);

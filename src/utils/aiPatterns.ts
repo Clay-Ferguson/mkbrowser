@@ -13,3 +13,9 @@ export const HUMAN_FOLDER_REGEX = /^H\d*$/;
 export function isAiThreadFolder(folderName: string): boolean {
   return AI_FOLDER_REGEX.test(folderName) || HUMAN_FOLDER_REGEX.test(folderName);
 }
+
+/** Returns true when the given path ends with a Human conversation folder name (H, H1, H2, etc.). */
+export function isHumanAiThreadFolder(path: string): boolean {
+  const folderName = path.substring(path.lastIndexOf('/') + 1);
+  return HUMAN_FOLDER_REGEX.test(folderName);
+}
