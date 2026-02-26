@@ -342,6 +342,7 @@ function AISettingsView() {
                         <th className="pb-2 font-medium">Name</th>
                         <th className="pb-2 font-medium">Provider</th>
                         <th className="pb-2 font-medium">Model</th>
+                        <th className="pb-2 font-medium text-center">Vision</th>
                         <th className="pb-2 font-medium text-right">Input $/1M</th>
                         <th className="pb-2 font-medium text-right">Output $/1M</th>
                       </tr>
@@ -367,6 +368,7 @@ function AISettingsView() {
                             <td className="py-2 font-mono text-xs">{m.name}</td>
                             <td className="py-2 font-mono text-xs">{m.provider}</td>
                             <td className="py-2 font-mono text-xs">{m.model}</td>
+                            <td className="py-2 text-center text-green-400">{m.vision ? '✓' : ''}</td>
                             <td className="py-2 text-right text-green-400">${m.inputPer1M.toFixed(2)}</td>
                             <td className="py-2 text-right text-green-400">${m.outputPer1M.toFixed(2)}</td>
                           </tr>

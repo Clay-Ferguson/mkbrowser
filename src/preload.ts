@@ -34,6 +34,8 @@ export interface AIModelConfig {
   inputPer1M: number;
   /** USD per 1M output tokens */
   outputPer1M: number;
+  /** Whether the model supports image/vision input. */
+  vision: boolean;
   /** Built-in model that cannot be edited or deleted in the UI. */
   readonly: boolean;
 }

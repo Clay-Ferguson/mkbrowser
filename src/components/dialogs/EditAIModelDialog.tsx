@@ -54,6 +54,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
       model: model.trim(),
       inputPer1M: inputPer1M as number,
       outputPer1M: outputPer1M as number,
+      vision: initialModel?.vision ?? false,
       readonly: false,
     });
   }, [isValid, isReadonly, name, provider, model, inputPer1M, outputPer1M, onSave]);
