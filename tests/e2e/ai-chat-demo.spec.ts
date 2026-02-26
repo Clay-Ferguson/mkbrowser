@@ -49,7 +49,9 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. Today we're going to try out the built-in AI Chat feature. This lets you have a back-and-forth conversation with an AI, right inside your file browser.`
+      `Welcome to MkBrowser. 
+      Today we're going to try out the built-in AI Chat feature. 
+      This lets you have a back-and-forth conversation with an AI, right inside your file browser.`
     );
 
     // ── 2. Open Tools menu ────────────────────────────────────────────
@@ -71,7 +73,9 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `The Tools menu is open. We can see a "New AI Chat" option. Let's click it to start a conversation.`
+      `The Tools menu is open. 
+      We can see a "New AI Chat" option. 
+      Let's click it to start a conversation.`
     );
 
     await demonstrateClickForDemo(newAiChatItem);
@@ -86,7 +90,8 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `A new AI chat folder has been created, and the editor is open and ready for our question. Let's type our first message.`
+      `A new AI chat folder has been created, and the editor is open and ready for our question. 
+      Let's type our first message.`
     );
 
     await insertTextForDemo(mainWindow, humanMessage1, true);
@@ -95,7 +100,8 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed our question: we're in Tokyo, it's raining, we're tired of sushi, and we want something Cyberpunk. Let's ask the AI for a recommendation.`
+      `We've typed our question: we're in Tokyo, it's raining, we're tired of sushi, and we want something Cyberpunk. 
+      Let's ask the AI for a recommendation.`
     );
 
     // ── 5. Queue scripted answer, then click "Ask AI" ─────────────────
@@ -104,7 +110,7 @@ test.describe('AI Chat Demo', () => {
       aiAnswer1
     );
 
-    const askAiButton = mainWindow.getByTestId('ask-ai-button');
+    const askAiButton = mainWindow.getByTestId('ask-ai-button').last();
     await takeStepScreenshotWithHighlight(mainWindow, askAiButton, screenshotDir, step++, 'highlight-ask-ai');
     writeNarration(
       screenshotDir,
@@ -122,7 +128,10 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `The AI has responded. It suggests heading to Akihabara and visiting an upper-floor retro arcade. Neon reflections on wet pavement and 80s synth sounds — sounds like peak Cyberpunk. Now let's ask a follow-up question.`
+      `The AI has responded. 
+      It suggests heading to Akihabara and visiting an upper-floor retro arcade. 
+      Neon reflections on wet pavement and 80s synth sounds — sounds like peak Cyberpunk. 
+      Now let's ask a follow-up question.`
     );
 
     // ── 7. Click the "Reply" button ───────────────────────────────────
@@ -147,7 +156,8 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `A new editor has opened for our follow-up message. Let's ask about a place to grab a drink afterward.`
+      `A new editor has opened for our follow-up message. 
+      Let's ask about a place to grab a drink afterward.`
     );
 
     await insertTextForDemo(mainWindow, humanMessage2, true);
@@ -156,7 +166,8 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed our follow-up: is there a quiet spot nearby for a drink? Let's send it off.`
+      `We've typed our follow-up: is there a quiet spot nearby for a drink? 
+      Let's send it off.`
     );
 
     // ── 9. Queue second scripted answer, then click "Ask AI" ──────────
@@ -165,7 +176,7 @@ test.describe('AI Chat Demo', () => {
       aiAnswer2
     );
 
-    const askAiButton2 = mainWindow.getByTestId('ask-ai-button');
+    const askAiButton2 = mainWindow.getByTestId('ask-ai-button').last();
     await takeStepScreenshotWithHighlight(mainWindow, askAiButton2, screenshotDir, step++, 'highlight-ask-ai-2');
     writeNarration(
       screenshotDir,
@@ -183,8 +194,12 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `And there's our second answer. The AI recommends Bar Sekirei, a hidden gem with a library-like atmosphere — the perfect calm after the storm to end the trip. That wraps up our AI Chat demo. As you can see, having a multi-turn conversation with the AI is quick and seamless, all without leaving MkBrowser.`
+      `And there's our second answer. 
+      The AI recommends Bar Sekirei, a hidden gem with a library-like atmosphere — the perfect calm after the storm to end the trip. 
+      As you can see, having a multi-turn conversation with the AI is quick and seamless`
     );
+
+    
 
     logScreenshotSummary(screenshotDir);
   });

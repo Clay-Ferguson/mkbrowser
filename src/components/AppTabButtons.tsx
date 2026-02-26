@@ -17,7 +17,7 @@ interface AppTabButtonsProps {
 // Canonical tab order: Browse, Thread, Search, Analysis, Settings
 const allTabs: TabConfig[] = [
   { id: 'browser', label: 'Browse' },
-  { id: 'thread', label: 'Thread' },
+  { id: 'thread', label: 'Chat' },
   { id: 'search-results', label: 'Search' },
   { id: 'folder-analysis', label: 'Analysis' },
   { id: 'settings', label: 'Settings' },
