@@ -811,20 +811,37 @@ function setupIpcHandlers(): void {
   // Reply to AI: create an H subfolder with an empty HUMAN.md for the user to write in
   ipcMain.handle('reply-to-ai', async (
     _event,
-    parentFolderPath: string
+    parentFolderPath: string,
+    createSubFolder: boolean
   ): Promise<{ folderPath: string; filePath: string } | { error: string }> => {
     try {
-      // Find the next available human folder: H/, H1/, H2/, ...
-      const humanFolder = await findNextNumberedFolder(parentFolderPath, 'H');
+      if (createSubFolder) {
+        // Find the next available human folder: H/, H1/, H2/, ...
+        const humanFolder = await findNextNumberedFolder(parentFolderPath, 'H');
 
-      // Create the folder
-      await fs.promises.mkdir(humanFolder, { recursive: true });
+        // Create the folder
+        await fs.promises.mkdir(humanFolder, { recursive: true });
 
-      // Create an empty HUMAN.md inside it
-      const filePath = path.join(humanFolder, 'HUMAN.md');
-      await fs.promises.writeFile(filePath, '', 'utf-8');
+        // Create an empty HUMAN.md inside it
+        const filePath = path.join(humanFolder, 'HUMAN.md');
+        await fs.promises.writeFile(filePath, '', 'utf-8');
 
-      return { folderPath: humanFolder, filePath };
+        return { folderPath: humanFolder, filePath };
+      } else {
+        // Create HUMAN.md directly in the parent folder
+        const filePath = path.join(parentFolderPath, 'HUMAN.md');
+
+        // Throw if HUMAN.md already exists
+        try {
+          await fs.promises.access(filePath);
+          return { error: 'HUMAN.md already exists in this folder' };
+        } catch {
+          // File doesn't exist — proceed
+        }
+
+        await fs.promises.writeFile(filePath, '', 'utf-8');
+        return { folderPath: parentFolderPath, filePath };
+      }
     } catch (error) {
       console.error('Error in reply-to-ai handler:', error);
       return { error: error instanceof Error ? error.message : 'Unknown error' };
@@ -838,10 +855,16 @@ function setupIpcHandlers(): void {
     _event,
     folderPath: string
   ): Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }> => {
-    const folderName = path.basename(folderPath);
 
-    // If the current folder doesn't match H*/A*, it's not a thread
-    if (!AI_FOLDER_REGEX.test(folderName) && !HUMAN_FOLDER_REGEX.test(folderName)) {
+    // set isHumanFolder if HUMAN.md exists in the current folder, regardless of the folder name
+    const humanFilePath = path.join(folderPath, 'HUMAN.md');
+    const isHumanFolder = await fs.promises.access(humanFilePath).then(() => true).catch(() => false);
+
+    // set isAIFolder if AI.md exists in the current folder, regardless of the folder name
+    const aiFilePath = path.join(folderPath, 'AI.md');
+    const isAIFolder = await fs.promises.access(aiFilePath).then(() => true).catch(() => false);
+
+    if (!isHumanFolder && !isAIFolder) {
       return { isThread: false, entries: [] };
     }
 
@@ -849,32 +872,35 @@ function setupIpcHandlers(): void {
     let walker = folderPath;
 
     while (true) {
-      const name = path.basename(walker);
+      // Recheck which marker file exists in the current walker folder
+      const walkerHumanFile = path.join(walker, 'HUMAN.md');
+      const walkerIsHuman = await fs.promises.access(walkerHumanFile).then(() => true).catch(() => false);
 
-      if (AI_FOLDER_REGEX.test(name)) {
-        const aiFile = path.join(walker, 'AI.md');
+      const walkerAiFile = path.join(walker, 'AI.md');
+      const walkerIsAI = await fs.promises.access(walkerAiFile).then(() => true).catch(() => false);
+
+      if (walkerIsAI) {
         try {
-          const stat = await fs.promises.stat(aiFile);
+          const stat = await fs.promises.stat(walkerAiFile);
           entries.unshift({
             role: 'ai',
             folderPath: walker,
-            filePath: aiFile,
+            filePath: walkerAiFile,
             fileName: 'AI.md',
             modifiedTime: stat.mtimeMs,
             createdTime: stat.birthtimeMs,
           });
         } catch {
-          // AI.md missing — still record placeholder? No — stop walking.
+          // AI.md missing — stop walking.
           break;
         }
-      } else if (HUMAN_FOLDER_REGEX.test(name)) {
-        const humanFile = path.join(walker, 'HUMAN.md');
+      } else if (walkerIsHuman) {
         try {
-          const stat = await fs.promises.stat(humanFile);
+          const stat = await fs.promises.stat(walkerHumanFile);
           entries.unshift({
             role: 'human',
             folderPath: walker,
-            filePath: humanFile,
+            filePath: walkerHumanFile,
             fileName: 'HUMAN.md',
             modifiedTime: stat.mtimeMs,
             createdTime: stat.birthtimeMs,

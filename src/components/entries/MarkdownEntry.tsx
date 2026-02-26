@@ -413,7 +413,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
     setIsReplyLoading(true);
     try {
       const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
-      const result = await window.electronAPI.replyToAi(parentFolder);
+      const result = await window.electronAPI.replyToAi(parentFolder, true);
       if ('error' in result) {
         console.error('Reply error:', result.error);
       } else {

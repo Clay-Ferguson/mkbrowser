@@ -123,7 +123,7 @@ export interface ElectronAPI {
   collectAncestorTags: (filePath: string) => Promise<string[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
   askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
-  replyToAi: (parentFolderPath: string) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
+  replyToAi: (parentFolderPath: string, createSubFolder: boolean) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
   getAiUsage: () => Promise<AIUsageWithCosts>;
   resetAiUsage: () => Promise<void>;
   gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }>;
@@ -163,8 +163,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('export-to-pdf', markdownPath, pdfPath, sourceFolder),
   askAi: (prompt: string, parentFolderPath: string) =>
     ipcRenderer.invoke('ask-ai', prompt, parentFolderPath),
-  replyToAi: (parentFolderPath: string) =>
-    ipcRenderer.invoke('reply-to-ai', parentFolderPath),
+  replyToAi: (parentFolderPath: string, createSubFolder: boolean) =>
+    ipcRenderer.invoke('reply-to-ai', parentFolderPath, createSubFolder),
   getAiUsage: () => ipcRenderer.invoke('get-ai-usage'),
   resetAiUsage: () => ipcRenderer.invoke('reset-ai-usage'),
   queueScriptedAnswer: (answer: string) => ipcRenderer.invoke('queue-scripted-answer', answer),

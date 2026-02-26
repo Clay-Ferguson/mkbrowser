@@ -1484,7 +1484,7 @@ function App() {
             }
             void (async () => {
               try {
-                const result = await window.electronAPI.replyToAi(currentPath);
+                const result = await window.electronAPI.replyToAi(currentPath, false);
                 if ('error' in result) {
                   setError('Failed to create AI chat: ' + result.error);
                 } else {
