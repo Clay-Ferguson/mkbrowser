@@ -6,6 +6,9 @@
 ## How to Chat with an AI
 ![collapsed-files](./create-file-demo.gif)
 
+## How to use AI Vision
+![collapsed-files](./ai-vision-demo.gif)
+
 ## How to do Simple Search
 ![collapsed-files](./search-demo.gif)
 
