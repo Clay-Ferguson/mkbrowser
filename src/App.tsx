@@ -76,7 +76,7 @@ import { pasteFromClipboard } from './utils/clipboard';
 import { isImageFile, isTextFile, sortEntries } from './utils/fileUtils';
 import { loadConfig } from './config';
 import { getContentWidthClasses } from './utils/styles';
-import { isHumanAiThreadFolder } from './utils/aiPatterns';
+import { hasHumanMd } from './utils/aiPatterns';
 
 function App() {
   const rootPath = useRootPath();
@@ -1003,7 +1003,7 @@ function App() {
   if (currentView === 'search-results') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
         {error && (
           <ErrorDialog
@@ -1019,7 +1019,7 @@ function App() {
   if (currentView === 'settings') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <SettingsView onSaveSettings={handleSaveSettings} />
         {error && (
           <ErrorDialog
@@ -1035,7 +1035,7 @@ function App() {
   if (currentView === 'ai-settings') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <AISettingsView />
         {error && (
           <ErrorDialog
@@ -1051,7 +1051,7 @@ function App() {
   if (currentView === 'folder-analysis') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
         {error && (
           <ErrorDialog
@@ -1067,7 +1067,7 @@ function App() {
   if (currentView === 'thread') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <ThreadView onSaveSettings={handleSaveSettings} />
         {error && (
           <ErrorDialog
@@ -1082,7 +1082,7 @@ function App() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
       {/* Tab navigation */}
-      <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+      <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
 
       {/* Combined header: breadcrumbs left, actions right, wraps responsively */}
       <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
@@ -1478,7 +1478,7 @@ function App() {
           }}
           onNewAiChat={() => {
             if (!currentPath) return;
-            if (isHumanAiThreadFolder(currentPath)) {
+            if (hasHumanMd(entries)) {
               setError('This folder already contains an AI conversation. Please navigate to a different folder to start a new chat.');
               return;
             }
