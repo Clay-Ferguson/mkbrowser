@@ -72,7 +72,7 @@ export interface ItemData {
 /**
  * Represents which application page (aka view or panel) is currently displayed
  */
-export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread';
+export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread' | 'terminal';
 
 /**
  * A single hashtag entry with its occurrence count
@@ -205,6 +205,8 @@ export interface ScrollPositions {
   'ai-settings': number;
   /** Thread view scroll position */
   thread: number;
+  /** Terminal view scroll position */
+  terminal: number;
 }
 
 /**

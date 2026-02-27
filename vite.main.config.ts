@@ -11,6 +11,7 @@ export default defineConfig({
         /^@langchain\/.*/,
         /^@anthropic-ai\/.*/,
         /^langsmith\/.*/,
+        'node-pty',
       ],
     },
   },

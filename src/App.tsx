@@ -27,6 +27,7 @@ import SettingsView from './components/views/SettingsView';
 import FolderAnalysisView from './components/views/FolderAnalysisView';
 import AISettingsView from './components/views/AISettingsView';
 import ThreadView from './components/views/ThreadView';
+import TerminalView from './components/views/TerminalView';
 import AppTabButtons from './components/AppTabButtons';
 import PathBreadcrumb from './components/PathBreadcrumb';
 import {
@@ -1077,6 +1078,22 @@ function App() {
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <ThreadView onSaveSettings={handleSaveSettings} />
+        {error && (
+          <ErrorDialog
+            message={error}
+            onClose={() => setError(null)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Show integrated terminal
+  if (currentView === 'terminal') {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+        <TerminalView />
         {error && (
           <ErrorDialog
             message={error}

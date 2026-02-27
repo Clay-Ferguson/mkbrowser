@@ -40,12 +40,13 @@ const initialState: AppState = {
     'folder-analysis': 0,
     'ai-settings': 0,
     thread: 0,
+    terminal: 0,
   },
   highlightedSearchResult: null,
   folderAnalysis: null,
   pendingThreadScrollToBottom: false,
   rootPath: '',
-  visibleTabs: new Set<AppView>(['browser']),
+  visibleTabs: new Set<AppView>(['browser', 'terminal']),
 };
 
 /**

@@ -127,6 +127,14 @@ export interface ElectronAPI {
   getAiUsage: () => Promise<AIUsageWithCosts>;
   resetAiUsage: () => Promise<void>;
   gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }>;
+
+  // Terminal (xterm.js + node-pty)
+  terminalSpawn: (cwd: string) => Promise<{ success: boolean; error?: string }>;
+  terminalWrite: (data: string) => Promise<void>;
+  terminalResize: (cols: number, rows: number) => Promise<void>;
+  terminalKill: () => Promise<void>;
+  onTerminalOutput: (callback: (data: string) => void) => () => void;
+  onTerminalExit: (callback: (exitCode: number) => void) => () => void;
 }
 
 // Expose protected methods to the renderer process
@@ -169,4 +177,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resetAiUsage: () => ipcRenderer.invoke('reset-ai-usage'),
   queueScriptedAnswer: (answer: string) => ipcRenderer.invoke('queue-scripted-answer', answer),
   gatherThreadEntries: (folderPath: string) => ipcRenderer.invoke('gather-thread-entries', folderPath),
+
+  // Terminal (xterm.js + node-pty)
+  terminalSpawn: (cwd: string) => ipcRenderer.invoke('terminal-spawn', cwd),
+  terminalWrite: (data: string) => ipcRenderer.invoke('terminal-write', data),
+  terminalResize: (cols: number, rows: number) => ipcRenderer.invoke('terminal-resize', cols, rows),
+  terminalKill: () => ipcRenderer.invoke('terminal-kill'),
+  onTerminalOutput: (callback: (data: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: string) => callback(data);
+    ipcRenderer.on('terminal-output', listener);
+    return () => { ipcRenderer.removeListener('terminal-output', listener); };
+  },
+  onTerminalExit: (callback: (exitCode: number) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, code: number) => callback(code);
+    ipcRenderer.on('terminal-exit', listener);
+    return () => { ipcRenderer.removeListener('terminal-exit', listener); };
+  },
 } as ElectronAPI);
