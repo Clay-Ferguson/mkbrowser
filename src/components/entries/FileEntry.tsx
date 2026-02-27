@@ -44,7 +44,7 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
   };
 
   return (
-    <div className={`${ENTRY_CONTAINER_CLASSES} ${isHighlighted ? 'border-2 border-purple-500' : 'border-slate-700'}`}>
+    <div className={`${ENTRY_CONTAINER_CLASSES} ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700'}`}>
       <SelectionCheckbox
         path={entry.path}
         name={entry.name}

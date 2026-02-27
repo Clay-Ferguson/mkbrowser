@@ -1313,8 +1313,10 @@ function App() {
           </div>
         )}
 
+        {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line */}
         {!loading && entries.filter((entry) => !items.get(entry.path)?.isCut).length > 0 && (
-          <div className="space-y-2"> 
+          
+          <div className="[&>div+div]:-mt-px">
             {(() => {
               const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
               // Use in-memory store timestamps (updated on save) so sort reflects recent edits

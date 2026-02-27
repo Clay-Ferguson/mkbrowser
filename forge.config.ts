@@ -14,7 +14,7 @@ import { execSync } from 'child_process';
  * so we must re-install these external deps inside the build directory before
  * the asar is created.
  * 
- * TODO-0: Need to check to see if this entire 'packageAfterCopy' stuff is really the best
+ * TODO: Need to check to see if this entire 'packageAfterCopy' stuff is really the best
  * way to handle this.  It works, but it feels a bit hacky.  Maybe there's a better way to
  * tell Forge "hey, these deps aren't bundled, make sure they get included in the final package"?
  */
