@@ -90,5 +90,6 @@ export {
   setRootPath,
   useRootPath,
   showTab,
+  isTabVisible,
   useVisibleTabs,
 } from './store';

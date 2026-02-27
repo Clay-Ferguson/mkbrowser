@@ -58,6 +58,7 @@ import {
   toggleBookmark,
   setFolderAnalysis,
   showTab,
+  isTabVisible,
   setRootPath,
   useRootPath,
   useItems,
@@ -1493,6 +1494,16 @@ function App() {
           }}
           onRenumberFiles={() => void handleRenumberFiles()}
           onExport={() => setShowExportDialog(true)}
+          onOpenTerminal={() => {
+            const terminalAlreadyVisible = isTabVisible('terminal');
+            showTab('terminal');
+            setCurrentView('terminal');
+            if (terminalAlreadyVisible && currentPath) {
+              // Send cd command to the running PTY (shell-escape single quotes)
+              const escapedPath = currentPath.replace(/'/g, "'\\''");
+              void window.electronAPI.terminalWrite(`cd '${escapedPath}'\n`);
+            }
+          }}
           onSettings={() => {
             showTab('settings');
             setCurrentView('settings');

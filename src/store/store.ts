@@ -46,7 +46,7 @@ const initialState: AppState = {
   folderAnalysis: null,
   pendingThreadScrollToBottom: false,
   rootPath: '',
-  visibleTabs: new Set<AppView>(['browser', 'terminal']),
+  visibleTabs: new Set<AppView>(['browser']),
 };
 
 /**
@@ -1335,6 +1335,13 @@ export function setRootPath(path: string): void {
   if (state.rootPath === path) return;
   state = { ...state, rootPath: path };
   emitChange();
+}
+
+/**
+ * Check whether a tab is currently visible in the tab bar.
+ */
+export function isTabVisible(tab: AppView): boolean {
+  return state.visibleTabs.has(tab);
 }
 
 /**
