@@ -34,14 +34,20 @@ select_specific_test() {
     fi
 }
 
-# Build the app first so the Playwright fixture loads the latest code
-echo "Building app with electron-forge..."
-npm run build
-if [ $? -ne 0 ]; then
-    echo "Build failed. Exiting."
-    exit 1
+# Optionally build the app so the Playwright fixture loads the latest code
+read -p "Build app before running tests? [Y/n]: " do_build
+if [[ ! "$do_build" =~ ^[Nn]$ ]]; then
+    echo "Building app with electron-forge..."
+    npm run build
+    if [ $? -ne 0 ]; then
+        echo "Build failed. Exiting."
+        exit 1
+    fi
+    echo ""
+else
+    echo "Skipping build, using existing build output."
+    echo ""
 fi
-echo ""
 
 # Prompt user to choose test scope
 echo ""
