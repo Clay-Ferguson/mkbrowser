@@ -174,17 +174,31 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
   const boundModel = useTools ? model.bindTools(aiTools) : model;
   debugLog('invokeAI → tools bound:', useTools, '(', aiTools.length, 'tools)');
 
-  debugLog('invokeAI → building StateGraph');
+  // 3-minute hard timeout for a single model round-trip.  Ollama can silently
+  // hang forever if the model is still loading or if tool-calling confuses it,
+  // so we race against an explicit timeout and surface a clear error instead.
+  const MODEL_TIMEOUT_MS = 3 * 60 * 1000;
+
+  debugLog('invokeAI → building StateGraph (timeout:', MODEL_TIMEOUT_MS / 1000, 's, useTools:', useTools, ')');
   const builder = new StateGraph(MessagesAnnotation)
     .addNode('chat', async (state) => {
       debugLog('invokeAI [graph:chat] → invoking model with', state.messages.length, 'messages');
+      debugLog('invokeAI [graph:chat] → first message role:', state.messages[0]?.constructor?.name ?? '?',
+        '| useTools:', useTools, '| model type:', model.constructor?.name ?? '?');
       try {
-        const response = await boundModel.invoke(state.messages);
+        const invokePromise = boundModel.invoke(state.messages);
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`AI model request timed out after ${MODEL_TIMEOUT_MS / 1000}s. Ollama may still be loading the model — try again in a moment.`)),
+            MODEL_TIMEOUT_MS
+          )
+        );
+        const response = await Promise.race([invokePromise, timeoutPromise]);
         debugLog('invokeAI [graph:chat] → model responded, content type:', typeof response.content,
           'length:', typeof response.content === 'string' ? response.content.length : JSON.stringify(response.content).length);
         return { messages: [response] };
       } catch (err) {
-        debugLog('invokeAI [graph:chat] → ERROR during model.invoke:', err);
+        debugLog('invokeAI [graph:chat] → ERROR during model.invoke:', err instanceof Error ? err.message : err);
         throw err;
       }
     });
@@ -215,7 +229,9 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
   const graph = builder.compile();
 
   const humanMsg = buildHumanMessage(prompt);
+  const { provider, model: modelName, ollamaBaseUrl } = getActiveModelConfig();
   debugLog('invokeAI → invoking graph with', history.length + 1, 'messages (prompt text length:', prompt.text.length, ', images:', prompt.images.length, ')');
+  debugLog('invokeAI → provider:', provider, '| model:', modelName, '| ollamaBaseUrl:', ollamaBaseUrl);
   try {
     const result = await graph.invoke({
       messages: [...history, humanMsg],

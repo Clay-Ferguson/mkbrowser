@@ -77,6 +77,12 @@ echo "  ollama stop qwen2.5:7b   # unload model from memory"
 echo "  ollama serve             # start server (usually auto-starts via systemd)"
 echo "  systemctl status ollama  # check systemd service status"
 echo "  journalctl -u ollama     # view server logs"
+
+exit 0
+
+# ===========================================================
+# The rest of this file is documentation / reference notes.
+# ===========================================================
 ```
 
 ## Manual Verification
