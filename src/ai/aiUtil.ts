@@ -31,7 +31,7 @@ function debugLog(...args: unknown[]) {
 }
 
 // NOTE: See 'ollama' folder for instructions on setting up a local Ollama server and 
-// downloading/running the Qwen2.5 model.
+// downloading/running the Qwen3 model.
 
 /**
  * Resolve the active AI provider and model name from the config.

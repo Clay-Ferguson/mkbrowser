@@ -1,5 +1,5 @@
-# Base model: Qwen 2.5 7B
-FROM qwen2.5:7b
+# Base model: Qwen 3 4B
+FROM qwen3:4b
 
 # --- CONTEXT SETTINGS ---
 # 16K is the balanced 'sweet spot' for Lunar Lake's unified memory.
