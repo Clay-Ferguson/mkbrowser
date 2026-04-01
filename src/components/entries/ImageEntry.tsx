@@ -145,9 +145,9 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   console.log('[ImageEntry] Image URL:', imageUrl);
 
   return (
-    <div className={`bg-slate-800 border ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700'} overflow-hidden`}>
+    <div className={`bg-slate-800 border group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700'} overflow-hidden`}>
       {/* Header row */}
-      <div className="flex items-center gap-3 pl-4 pr-2 py-1">
+      <div className="flex items-center gap-3 pl-4 pr-2 py-1 group-hover:bg-slate-700 transition-colors">
         <SelectionCheckbox
           path={entry.path}
           name={entry.name}

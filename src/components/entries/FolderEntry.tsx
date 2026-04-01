@@ -63,7 +63,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
   return (
     <div
       onClick={() => !isRenaming && onNavigate(entry.path)}
-      className={`w-full ${ENTRY_CONTAINER_CLASSES} ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700 hover:border-slate-600'} hover:bg-slate-750 transition-colors text-left cursor-pointer`}
+      className={`w-full ${ENTRY_CONTAINER_CLASSES} ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700 hover:bg-slate-700'} transition-colors text-left cursor-pointer`}
     >
       <SelectionCheckbox
         path={entry.path}

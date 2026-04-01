@@ -64,8 +64,8 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
   };
 
   return (
-    <div className={`bg-slate-800 border ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700'} overflow-hidden`}>
-      <div className="flex items-center gap-3 pl-4 pr-2 py-1 bg-slate-700/50 border-b border-slate-700">
+    <div className={`bg-slate-800 border group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700'} overflow-hidden`}>
+      <div className="flex items-center gap-3 pl-4 pr-2 py-1 bg-slate-700/50 group-hover:bg-slate-700 border-b border-slate-700 transition-colors">
         <SelectionCheckbox
           path={entry.path}
           name={entry.name}
