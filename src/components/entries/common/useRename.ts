@@ -63,7 +63,13 @@ export function useRename({
   }, [name, path]);
 
   const handleSave = useCallback(async () => {
-    const trimmedName = newName.trim();
+    // Trim leading/trailing whitespace from the whole name, then also trim
+    // the stem separately so spaces before the extension are removed too.
+    const full = newName.trim();
+    const dotIndex = full.lastIndexOf('.');
+    const trimmedName = dotIndex > 0
+      ? full.substring(0, dotIndex).trim() + full.substring(dotIndex)
+      : full;
     if (!trimmedName || trimmedName === name) {
       handleCancel();
       return;
