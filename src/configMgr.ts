@@ -167,6 +167,7 @@ const DEFAULT_AI_MODELS: AIModelConfig[] = [
   { name: 'Gemini Flash Lite', provider: 'GOOGLE', model: 'gemini-2.0-flash-lite', inputPer1M: 0.075, outputPer1M: 0.30, vision: true, readonly: true },
   // Ollama
   { name: 'Qwen3 (Ollama)', provider: 'OLLAMA', model: 'qwen3-silent', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
+  { name: 'Gemma 4 (Ollama)', provider: 'OLLAMA', model: 'gemma4-silent', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
 ];
 
 const DEFAULT_AI_MODEL = 'Claude Haiku';

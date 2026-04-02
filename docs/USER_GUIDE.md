@@ -336,7 +336,7 @@ This course costs $99.
 
 # AI Chat
 
-MkBrowser includes an integrated AI chat feature that organizes each conversation into a folder-based history. Each turn in the conversation is saved in its own folder as the chat progresses: your prompt is written to HUMAN.md, and MkBrowser saves the AI’s reply to AI.md.
+MkBrowser includes an integrated AI chat feature that organizes each conversation into a folder-based history. Each turn in the conversation is saved in its own folder as the chat progresses: your prompt is written to `HUMAN.md`, and MkBrowser saves the AI’s reply to `AI.md`.
 
 ## Benefits of Folder-based Chat History
 

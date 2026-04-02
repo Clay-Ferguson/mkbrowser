@@ -109,3 +109,15 @@ ollama ps
 # Stop/unload a model from memory
 ollama stop gemma4:e2b
 ```
+
+# Other commands
+
+```
+Quick reference:
+  ollama list                   # list installed models
+  ollama run gemma4:e2b         # interactive chat in terminal
+  ollama stop gemma4:e2b        # unload model from memory
+  ollama serve                  # start server (usually auto-starts via systemd)
+  systemctl status ollama       # check systemd service status
+  journalctl -u ollama          # view server logs
+```
