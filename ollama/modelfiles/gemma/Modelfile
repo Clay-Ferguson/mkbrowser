@@ -1,0 +1,31 @@
+# Base model: Gemma 4 E2B (Effective 2B)
+FROM gemma4:e2b
+
+# --- CONTEXT SETTINGS ---
+# 16K is the balanced 'sweet spot' for Lunar Lake's unified memory.
+PARAMETER num_ctx 16384
+
+# --- THERMAL PROTECTION (Ubuntu/Linux) ---
+# Limits threads to 4. This keeps the Core Ultra 9 from 
+# hitting max Turbo frequencies, which is the main cause of fan noise.
+PARAMETER num_thread 4
+
+# Limits the length of the AI's response. 
+# Prevents long-running GPU tasks that generate sustained heat.
+PARAMETER num_predict 1024
+
+# --- KV CACHE & SAMPLING ---
+# Helps keep the memory footprint stable.
+PARAMETER repeat_last_n 64
+
+# Google-recommended sampling parameters for Gemma 4:
+PARAMETER temperature 1.0
+PARAMETER top_p 0.95
+PARAMETER top_k 64
+
+# --- SYSTEM PROMPT ---
+SYSTEM """
+You are a concise development assistant. 
+Your goal is to provide accurate, brief technical answers. 
+By staying concise, you help keep the local hardware cool and quiet.
+"""
