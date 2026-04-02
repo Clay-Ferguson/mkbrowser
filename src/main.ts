@@ -773,7 +773,7 @@ function setupIpcHandlers(): void {
       const history = await gatherConversationHistory(parentFolderPath);
 
       // Invoke the AI with context (images are sent as multimodal content parts)
-      const { content, usage } = await invokeAI(processedPrompt, history);
+      const { content, thinking, usage } = await invokeAI(processedPrompt, history);
 
       // Record token usage if available
       if (usage) {
@@ -785,6 +785,12 @@ function setupIpcHandlers(): void {
 
       // Write the response
       await fs.promises.writeFile(outputPath, content, 'utf-8');
+
+      // Write thinking content (if any) to THINK.md alongside AI.md
+      if (thinking && thinking.length > 0) {
+        const thinkingPath = path.join(responseFolder, 'THINK.md');
+        await fs.promises.writeFile(thinkingPath, thinking, 'utf-8');
+      }
 
       return { outputPath, responseFolder, usage };
     } catch (error) {

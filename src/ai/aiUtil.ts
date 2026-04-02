@@ -110,9 +110,10 @@ export interface AIUsageInfo {
   total_tokens: number;
 }
 
-/** Result of an AI invocation: the text content plus optional token usage. */
+/** Result of an AI invocation: the text content plus optional token usage and thinking. */
 export interface AIInvokeResult {
   content: string;
+  thinking?: string;
   usage?: AIUsageInfo;
 }
 
@@ -243,8 +244,13 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
       ? lastMessage.content
       : JSON.stringify(lastMessage.content);
     const usage = extractUsage(lastMessage);
-    debugLog('invokeAI → returning response, length:', content.length, 'usage:', usage);
-    return { content, usage };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const additionalKwargs = (lastMessage as any).additional_kwargs ?? {};
+    debugLog('invokeAI → additional_kwargs keys:', Object.keys(additionalKwargs));
+    const rawThinking = additionalKwargs.reasoning_content;
+    const thinking = typeof rawThinking === 'string' && rawThinking.length > 0 ? rawThinking : undefined;
+    debugLog('invokeAI → returning response, length:', content.length, 'thinking:', thinking ? thinking.length + ' chars' : 'none', 'usage:', usage);
+    return { content, thinking, usage };
   } catch (err) {
     debugLog('invokeAI → ERROR during graph.invoke:', err);
     throw err;
