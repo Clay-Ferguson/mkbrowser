@@ -32,7 +32,7 @@ export interface AppSettings {
 
 export interface AIModelConfig {
   name: string;
-  provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE';
+  provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
   model: string;
   /** USD per 1M input tokens */
   inputPer1M: number;
@@ -53,6 +53,7 @@ export interface AppConfig {
   aiModels?: AIModelConfig[];
   aiModel?: string;
   ollamaBaseUrl?: string;
+  llamacppBaseUrl?: string;
   agenticMode?: boolean;
   agenticAllowedFolders?: string;
 }

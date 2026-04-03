@@ -16,6 +16,7 @@ function AISettingsView() {
   const [aiModels, setAiModels] = useState<AIModelConfig[]>([]);
   const [selectedAiModel, setSelectedAiModel] = useState<string>('');
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState<string>('http://localhost:11434');
+  const [llamacppBaseUrl, setLlamacppBaseUrl] = useState<string>('http://localhost:8080/v1');
   const [agenticMode, setAgenticMode] = useState<boolean>(false);
   const [agenticAllowedFolders, setAgenticAllowedFolders] = useState<string>('');
 
@@ -41,6 +42,7 @@ function AISettingsView() {
       if (config.aiModels) setAiModels(config.aiModels);
       if (config.aiModel) setSelectedAiModel(config.aiModel);
       if (config.ollamaBaseUrl) setOllamaBaseUrl(config.ollamaBaseUrl);
+      if (config.llamacppBaseUrl) setLlamacppBaseUrl(config.llamacppBaseUrl);
       if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
       if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
     });
@@ -74,6 +76,14 @@ function AISettingsView() {
   const handleOllamaBaseUrlBlur = useCallback(() => {
     void saveAiConfigField({ ollamaBaseUrl });
   }, [ollamaBaseUrl, saveAiConfigField]);
+
+  const handleLlamacppBaseUrlChange = useCallback((url: string) => {
+    setLlamacppBaseUrl(url);
+  }, []);
+
+  const handleLlamacppBaseUrlBlur = useCallback(() => {
+    void saveAiConfigField({ llamacppBaseUrl });
+  }, [llamacppBaseUrl, saveAiConfigField]);
 
   // --- AI Model CRUD handlers ---
 
@@ -401,6 +411,19 @@ function AISettingsView() {
                         value={ollamaBaseUrl}
                         onChange={(e) => handleOllamaBaseUrlChange(e.target.value)}
                         onBlur={handleOllamaBaseUrlBlur}
+                        className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 font-mono text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {selectedModel?.provider === 'LLAMACPP' && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-slate-300 text-sm">llama.cpp Base URL:</label>
+                      <input
+                        type="text"
+                        value={llamacppBaseUrl}
+                        onChange={(e) => handleLlamacppBaseUrlChange(e.target.value)}
+                        onBlur={handleLlamacppBaseUrlBlur}
                         className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 font-mono text-sm"
                       />
                     </div>

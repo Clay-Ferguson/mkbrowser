@@ -52,7 +52,7 @@ export interface AppSettings {
 
 export interface AIModelConfig {
   name: string;
-  provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE';
+  provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
   model: string;
   /** USD per 1M input tokens */
   inputPer1M: number;
@@ -72,6 +72,7 @@ export interface AppConfig {
   aiModels?: AIModelConfig[];
   aiModel?: string;
   ollamaBaseUrl?: string;
+  llamacppBaseUrl?: string;
   agenticMode?: boolean;
   agenticAllowedFolders?: string;
 }
@@ -168,6 +169,8 @@ const DEFAULT_AI_MODELS: AIModelConfig[] = [
   // Ollama
   { name: 'Qwen3 (Ollama)', provider: 'OLLAMA', model: 'qwen3-silent', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
   { name: 'Gemma 4 (Ollama)', provider: 'OLLAMA', model: 'gemma4-silent', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
+  // llama.cpp (local)
+  { name: 'Gemma 4 (llama.cpp)', provider: 'LLAMACPP', model: 'gemma-4', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
 ];
 
 const DEFAULT_AI_MODEL = 'Claude Haiku';

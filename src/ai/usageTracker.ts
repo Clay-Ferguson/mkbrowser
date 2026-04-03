@@ -52,6 +52,7 @@ const PROVIDER_DEFAULT_PRICING: Record<string, PricingEntry> = {
   OPENAI:    { inputPer1M: 0.10,  outputPer1M: 0.40 },
   GOOGLE:    { inputPer1M: 0.075, outputPer1M: 0.30 },
   OLLAMA:    { inputPer1M: 0,     outputPer1M: 0    },
+  LLAMACPP:  { inputPer1M: 0,     outputPer1M: 0    },
 };
 
 // ---------------------------------------------------------------------------

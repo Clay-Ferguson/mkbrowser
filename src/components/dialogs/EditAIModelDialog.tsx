@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { AIModelConfig } from '../../global.d.ts';
 
-const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'OLLAMA'] as const;
+const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'OLLAMA', 'LLAMACPP'] as const;
 
 interface EditAIModelDialogProps {
   /** Pre-populated for Edit mode; undefined for Create mode */

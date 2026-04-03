@@ -32,14 +32,16 @@ function debugLog(...args: unknown[]) {
 
 // NOTE: See 'ollama' folder for instructions on setting up a local Ollama server and 
 // downloading/running the Qwen3 model.
+// See 'llamacpp' folder for instructions on setting up llama.cpp as an alternative.
 
 /**
  * Resolve the active AI provider and model name from the config.
  * Falls back to Anthropic Claude Haiku if nothing is configured.
  */
-function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE'; model: string; ollamaBaseUrl: string } {
+function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP'; model: string; ollamaBaseUrl: string; llamacppBaseUrl: string } {
   const config = getConfig();
   const ollamaBaseUrl = config.ollamaBaseUrl || 'http://localhost:11434';
+  const llamacppBaseUrl = config.llamacppBaseUrl || 'http://localhost:8080/v1';
 
   const normalizeKey = (name: string) => name.trim().toLowerCase();
 
@@ -48,23 +50,26 @@ function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' |
     const entry = config.aiModels.find((m) => normalizeKey(m.name) === selectedKey);
     if (entry) {
       debugLog('getActiveModelConfig → provider:', entry.provider, 'model:', entry.model);
-      return { provider: entry.provider, model: entry.model, ollamaBaseUrl };
+      return { provider: entry.provider, model: entry.model, ollamaBaseUrl, llamacppBaseUrl };
     }
   }
 
   // Fallback defaults
   debugLog('getActiveModelConfig → using fallback: ANTHROPIC / claude-3-haiku-20240307');
-  return { provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', ollamaBaseUrl };
+  return { provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', ollamaBaseUrl, llamacppBaseUrl };
 }
 
 /**
  * Create the appropriate LangChain chat model based on the active config.
  */
 function createChatModel() {
-  const { provider, model, ollamaBaseUrl } = getActiveModelConfig();
+  const { provider, model, ollamaBaseUrl, llamacppBaseUrl } = getActiveModelConfig();
   debugLog('createChatModel → provider:', provider, 'model:', model);
   if (provider === 'OLLAMA') {
     return new ChatOllama({ model, baseUrl: ollamaBaseUrl });
+  }
+  if (provider === 'LLAMACPP') {
+    return new ChatOpenAI({ model, configuration: { baseURL: llamacppBaseUrl } });
   }
   if (provider === 'OPENAI') {
     return new ChatOpenAI({ model });
