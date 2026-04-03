@@ -10,7 +10,7 @@ MkBrowser connects to via the `LLAMACPP` provider.
 # 1. Install llama.cpp (downloads prebuilt binaries)
 ./setup.sh
 
-# 2. Download the Gemma 4 model (E4B ~5.0 GB, E2B ~3.1 GB)
+# 2. Download the Gemma 4 model (see model selection in script)
 ./download-model.sh
 
 # 3. Start the server
@@ -24,7 +24,7 @@ Then in MkBrowser **Settings → AI**:
 ## Prerequisites
 
 - **Linux x86_64** (Ubuntu or similar)
-- **32 GB RAM** recommended (E4B Q4_K_M is ~5.0 GB, E2B Q4_K_M is ~3.1 GB)
+- **32 GB RAM** recommended (model sizes range from ~3.1 GB to ~13.4 GB)
 - `curl`, `unzip`, `bc` (standard on most Ubuntu installs)
 
 ## Files
@@ -55,26 +55,40 @@ curl http://localhost:8080/v1/chat/completions \
 
 ## Switching Models
 
-Two Gemma 4 model variants are supported:
+Three Gemma 4 model variants are supported:
 
-| Variant | Effective Params | Q4_K_M Size | Notes |
-|---------|-----------------|-------------|-------|
-| **E4B** | 4.5B (8B total) | ~5.0 GB | Higher quality, default |
-| **E2B** | 2.3B (5.1B total) | ~3.1 GB | Lighter, faster |
+| Variant | Params | Quant | File Size | Context | Notes |
+|---------|--------|-------|-----------|---------|-------|
+| **26B-A4B** | 3.8B active / 25.2B total (MoE) | UD-IQ4_XS | ~13.4 GB | 8192 | Highest quality, default |
+| **E4B** | 4.5B effective (8B total) | Q4_K_M | ~5.0 GB | 16384 | Good balance |
+| **E2B** | 2.3B effective (5.1B total) | Q4_K_M | ~3.1 GB | 16384 | Lightest, fastest |
 
-To switch variants, edit the `MODEL_VARIANT` line near the top of **both**
-`download-model.sh` and `start-server.sh`. Comment out the active variant and
+To switch variants, edit the model selection block near the top of **both**
+`download-model.sh` and `start-server.sh`. Comment out the active group and
 uncomment the other:
 
 ```bash
-# Uncomment ONE of the following model variants:
-MODEL_VARIANT="E2B"    # ← active
-#MODEL_VARIANT="E4B"   # ← inactive
+# Uncomment ONE group of settings below.
+
+# Gemma 4 E2B: 2.3B effective params (~3.1 GB)
+MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"         # ← active
+CTX_SIZE="16384"                                  # ← active
+
+# Gemma 4 E4B: 4.5B effective params (~5.0 GB)
+#MODEL_FILE="gemma-4-E4B-it-Q4_K_M.gguf"         # ← inactive
+#CTX_SIZE="16384"                                  # ← inactive
+
+# Gemma 4 26B-A4B (MoE): 3.8B active params (~13.4 GB)
+#MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"  # ← inactive
+#CTX_SIZE="8192"                                   # ← inactive
 ```
 
-Both model files can coexist on disk (they have different filenames), so you
+All model files can coexist on disk (they have different filenames), so you
 only need to run `./download-model.sh` once per variant. After switching, just
 restart `./start-server.sh`.
+
+> **Note:** The 26B-A4B model uses a reduced context size (8192) to fit
+> comfortably in 32 GB RAM alongside OS and KV cache overhead.
 
 ## Customization
 
@@ -89,7 +103,7 @@ settings on the command line:
 
 Common flags:
 - `--port N` — HTTP port (default: 8080)
-- `--ctx-size N` — Context window size in tokens (default: 16384)
+- `--ctx-size N` — Context window size in tokens (default: varies by model)
 - `--threads N` — CPU threads (default: auto-detect)
 - `--n-gpu-layers N` — Offload layers to GPU (for CUDA/ROCm builds)
 

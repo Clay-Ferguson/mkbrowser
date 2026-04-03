@@ -16,16 +16,24 @@ MODELS_DIR="$HOME/.local/share/llama.cpp/models"
 LIB_DIR="$HOME/.local/lib/llama.cpp"
 
 # ── Model Selection ──────────────────────────────────────────────────────
-# Uncomment ONE of the following model variants:
-#MODEL_VARIANT="E2B"   # Gemma 4 E2B: 2.3B effective params (~3.1 GB Q4_K_M)
-MODEL_VARIANT="E4B"    # Gemma 4 E4B: 4.5B effective params (~5.0 GB Q4_K_M)
+# Uncomment ONE group of settings below.
+
+# Gemma 4 E2B: 2.3B effective params (~3.1 GB)
+#MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"
+#CTX_SIZE="16384"
+
+# Gemma 4 E4B: 4.5B effective params (~5.0 GB)
+#MODEL_FILE="gemma-4-E4B-it-Q4_K_M.gguf"
+#CTX_SIZE="16384"
+
+# Gemma 4 26B-A4B (MoE): 3.8B active params (~13.4 GB)
+MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
+CTX_SIZE="8192"
 # ─────────────────────────────────────────────────────────────────────────
 
 # ── Server Configuration ─────────────────────────────────────────────────
 HOST="127.0.0.1"
 PORT="8080"
-CTX_SIZE="16384"
-MODEL_FILE="gemma-4-${MODEL_VARIANT}-it-Q4_K_M.gguf"
 # ─────────────────────────────────────────────────────────────────────────
 
 MODEL_PATH="$MODELS_DIR/$MODEL_FILE"

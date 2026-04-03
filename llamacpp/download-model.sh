@@ -11,21 +11,26 @@ MODELS_DIR="$HOME/.local/share/llama.cpp/models"
 mkdir -p "$MODELS_DIR"
 
 # ── Model Selection ──────────────────────────────────────────────────────
-# Uncomment ONE of the following model variants:
-#MODEL_VARIANT="E2B"   # Gemma 4 E2B: 2.3B effective params (~3.1 GB Q4_K_M)
-MODEL_VARIANT="E4B"    # Gemma 4 E4B: 4.5B effective params (~5.0 GB Q4_K_M)
+# Uncomment ONE group of settings below.
+# All model files can coexist on disk — download each variant once.
+
+# Gemma 4 E2B: 2.3B effective params (5.1B total with embeddings)
+#MODEL_REPO="unsloth/gemma-4-E2B-it-GGUF"
+#MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"
+#MODEL_SIZE_HINT="~3.1 GB"
+
+# Gemma 4 E4B: 4.5B effective params (8B total with embeddings)
+#MODEL_REPO="unsloth/gemma-4-E4B-it-GGUF"
+#MODEL_FILE="gemma-4-E4B-it-Q4_K_M.gguf"
+#MODEL_SIZE_HINT="~5.0 GB"
+
+# Gemma 4 26B-A4B (MoE): 3.8B active params (25.2B total)
+MODEL_REPO="unsloth/gemma-4-26B-A4B-it-GGUF"
+MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
+MODEL_SIZE_HINT="~13.4 GB"
 # ─────────────────────────────────────────────────────────────────────────
 
-# ── Derived model settings (no need to edit below) ───────────────────────
-case "$MODEL_VARIANT" in
-  E2B) MODEL_SIZE_HINT="~3.1 GB" ;;
-  E4B) MODEL_SIZE_HINT="~5.0 GB" ;;
-  *)   echo "ERROR: Unknown MODEL_VARIANT='$MODEL_VARIANT'. Use E2B or E4B."; exit 1 ;;
-esac
-MODEL_REPO="unsloth/gemma-4-${MODEL_VARIANT}-it-GGUF"
-MODEL_FILE="gemma-4-${MODEL_VARIANT}-it-Q4_K_M.gguf"
 MODEL_URL="https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}"
-# ─────────────────────────────────────────────────────────────────────────
 
 DEST="$MODELS_DIR/$MODEL_FILE"
 
