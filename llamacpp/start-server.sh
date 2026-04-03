@@ -15,11 +15,17 @@ set -euo pipefail
 MODELS_DIR="$HOME/.local/share/llama.cpp/models"
 LIB_DIR="$HOME/.local/lib/llama.cpp"
 
+# ── Model Selection ──────────────────────────────────────────────────────
+# Uncomment ONE of the following model variants:
+#MODEL_VARIANT="E2B"   # Gemma 4 E2B: 2.3B effective params (~3.1 GB Q4_K_M)
+MODEL_VARIANT="E4B"    # Gemma 4 E4B: 4.5B effective params (~5.0 GB Q4_K_M)
+# ─────────────────────────────────────────────────────────────────────────
+
 # ── Server Configuration ─────────────────────────────────────────────────
 HOST="127.0.0.1"
 PORT="8080"
 CTX_SIZE="16384"
-MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"
+MODEL_FILE="gemma-4-${MODEL_VARIANT}-it-Q4_K_M.gguf"
 # ─────────────────────────────────────────────────────────────────────────
 
 MODEL_PATH="$MODELS_DIR/$MODEL_FILE"

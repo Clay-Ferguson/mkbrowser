@@ -10,16 +10,20 @@ set -euo pipefail
 MODELS_DIR="$HOME/.local/share/llama.cpp/models"
 mkdir -p "$MODELS_DIR"
 
-# ── Model Configuration ──────────────────────────────────────────────────
-# Edit these variables to change the model or quantization.
-#
-# Gemma 4 E2B: 2.3B effective parameters (5.1B total with embeddings).
-# Matches the Ollama "gemma4:e2b" model. Q4_K_M quantization (~3.1 GB)
-# is a good balance of quality and size for 32GB RAM / CPU-only.
-# See the HuggingFace repo for other quantization options.
-#
-MODEL_REPO="unsloth/gemma-4-E2B-it-GGUF"
-MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"
+# ── Model Selection ──────────────────────────────────────────────────────
+# Uncomment ONE of the following model variants:
+#MODEL_VARIANT="E2B"   # Gemma 4 E2B: 2.3B effective params (~3.1 GB Q4_K_M)
+MODEL_VARIANT="E4B"    # Gemma 4 E4B: 4.5B effective params (~5.0 GB Q4_K_M)
+# ─────────────────────────────────────────────────────────────────────────
+
+# ── Derived model settings (no need to edit below) ───────────────────────
+case "$MODEL_VARIANT" in
+  E2B) MODEL_SIZE_HINT="~3.1 GB" ;;
+  E4B) MODEL_SIZE_HINT="~5.0 GB" ;;
+  *)   echo "ERROR: Unknown MODEL_VARIANT='$MODEL_VARIANT'. Use E2B or E4B."; exit 1 ;;
+esac
+MODEL_REPO="unsloth/gemma-4-${MODEL_VARIANT}-it-GGUF"
+MODEL_FILE="gemma-4-${MODEL_VARIANT}-it-Q4_K_M.gguf"
 MODEL_URL="https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}"
 # ─────────────────────────────────────────────────────────────────────────
 
@@ -43,7 +47,7 @@ if [[ -f "$DEST" ]]; then
   fi
 fi
 
-echo "Downloading (~3.1 GB, this may take a while)..."
+echo "Downloading (${MODEL_SIZE_HINT}, this may take a while)..."
 echo ""
 
 # Use curl with resume support in case of interruption

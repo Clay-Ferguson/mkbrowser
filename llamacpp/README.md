@@ -10,7 +10,7 @@ MkBrowser connects to via the `LLAMACPP` provider.
 # 1. Install llama.cpp (downloads prebuilt binaries)
 ./setup.sh
 
-# 2. Download the Gemma 4 E2B model (~3.1 GB)
+# 2. Download the Gemma 4 model (E4B ~5.0 GB, E2B ~3.1 GB)
 ./download-model.sh
 
 # 3. Start the server
@@ -24,7 +24,7 @@ Then in MkBrowser **Settings → AI**:
 ## Prerequisites
 
 - **Linux x86_64** (Ubuntu or similar)
-- **32 GB RAM** recommended (the Gemma 4 E2B Q4_K_M model is ~3.1 GB)
+- **32 GB RAM** recommended (E4B Q4_K_M is ~5.0 GB, E2B Q4_K_M is ~3.1 GB)
 - `curl`, `unzip`, `bc` (standard on most Ubuntu installs)
 
 ## Files
@@ -53,12 +53,30 @@ curl http://localhost:8080/v1/chat/completions \
   }'
 ```
 
+## Switching Models
+
+Two Gemma 4 model variants are supported:
+
+| Variant | Effective Params | Q4_K_M Size | Notes |
+|---------|-----------------|-------------|-------|
+| **E4B** | 4.5B (8B total) | ~5.0 GB | Higher quality, default |
+| **E2B** | 2.3B (5.1B total) | ~3.1 GB | Lighter, faster |
+
+To switch variants, edit the `MODEL_VARIANT` line near the top of **both**
+`download-model.sh` and `start-server.sh`. Comment out the active variant and
+uncomment the other:
+
+```bash
+# Uncomment ONE of the following model variants:
+MODEL_VARIANT="E2B"    # ← active
+#MODEL_VARIANT="E4B"   # ← inactive
+```
+
+Both model files can coexist on disk (they have different filenames), so you
+only need to run `./download-model.sh` once per variant. After switching, just
+restart `./start-server.sh`.
+
 ## Customization
-
-### Using a different model
-
-Edit the `MODEL_REPO`, `MODEL_FILE`, and `MODEL_URL` variables in `download-model.sh`,
-and update `MODEL_FILE` in `start-server.sh` to match.
 
 ### Server parameters
 
