@@ -53,6 +53,8 @@ export interface AppConfig {
   aiModels?: AIModelConfig[];
   aiModel?: string;
   llamacppBaseUrl?: string;
+  llamacppStartScript?: string;
+  llamacppStopScript?: string;
   agenticMode?: boolean;
   agenticAllowedFolders?: string;
 }
@@ -163,6 +165,11 @@ export interface ElectronAPI {
   resetAiUsage: () => Promise<void>;
   queueScriptedAnswer: (answer: string) => Promise<void>;
   gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }>;
+
+  // llama.cpp server lifecycle
+  checkLlamaHealth: () => Promise<string>;
+  startLlamaServer: () => Promise<{ success: boolean; error?: string }>;
+  stopLlamaServer: () => Promise<{ success: boolean; error?: string }>;
 
   // Terminal (xterm.js + node-pty)
   terminalSpawn: (cwd: string) => Promise<{ success: boolean; error?: string }>;

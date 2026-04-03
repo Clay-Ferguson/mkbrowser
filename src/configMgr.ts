@@ -72,6 +72,8 @@ export interface AppConfig {
   aiModels?: AIModelConfig[];
   aiModel?: string;
   llamacppBaseUrl?: string;
+  llamacppStartScript?: string;
+  llamacppStopScript?: string;
   agenticMode?: boolean;
   agenticAllowedFolders?: string;
 }

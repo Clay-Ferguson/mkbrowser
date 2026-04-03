@@ -18,6 +18,10 @@ function AISettingsView() {
   const [llamacppBaseUrl, setLlamacppBaseUrl] = useState<string>('http://localhost:8080/v1');
   const [agenticMode, setAgenticMode] = useState<boolean>(false);
   const [agenticAllowedFolders, setAgenticAllowedFolders] = useState<string>('');
+  const [llamacppStartScript, setLlamacppStartScript] = useState<string>('');
+  const [llamacppStopScript, setLlamacppStopScript] = useState<string>('');
+  const [llamaServerStatus, setLlamaServerStatus] = useState<string>('stopped');
+  const [llamaServerBusy, setLlamaServerBusy] = useState(false);
 
   // AI model CRUD dialog state
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -41,11 +45,15 @@ function AISettingsView() {
       if (config.aiModels) setAiModels(config.aiModels);
       if (config.aiModel) setSelectedAiModel(config.aiModel);
       if (config.llamacppBaseUrl) setLlamacppBaseUrl(config.llamacppBaseUrl);
+      if (config.llamacppStartScript) setLlamacppStartScript(config.llamacppStartScript);
+      if (config.llamacppStopScript) setLlamacppStopScript(config.llamacppStopScript);
       if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
       if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
     });
     // Load AI usage stats
     window.electronAPI.getAiUsage().then(setUsageData);
+    // Check llama.cpp server status
+    window.electronAPI.checkLlamaHealth().then(setLlamaServerStatus);
   }, []);
 
   const saveAiConfigField = useCallback(async (updates: Partial<AppConfig>) => {
@@ -394,15 +402,104 @@ function AISettingsView() {
                   )}
 
                   {selectedModel?.provider === 'LLAMACPP' && (
-                    <div className="flex items-center gap-2">
-                      <label className="text-slate-300 text-sm">llama.cpp Base URL:</label>
-                      <input
-                        type="text"
-                        value={llamacppBaseUrl}
-                        onChange={(e) => handleLlamacppBaseUrlChange(e.target.value)}
-                        onBlur={handleLlamacppBaseUrlBlur}
-                        className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 font-mono text-sm"
-                      />
+                    <div className="space-y-3 bg-slate-750 rounded-lg p-4 border border-slate-600">
+                      <h3 className="text-sm font-medium text-slate-300">llama.cpp Server</h3>
+
+                      {/* Server status + controls */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-400 text-sm">Status:</span>
+                        <span className={`text-sm font-medium ${
+                          llamaServerStatus === 'running' ? 'text-green-400' :
+                          llamaServerStatus === 'loading' ? 'text-yellow-400' :
+                          'text-slate-500'
+                        }`}>
+                          {llamaServerStatus === 'running' ? 'Running' :
+                           llamaServerStatus === 'loading' ? 'Loading model…' :
+                           'Stopped'}
+                        </span>
+                        <button
+                          disabled={llamaServerBusy || llamaServerStatus === 'running' || llamaServerStatus === 'loading'}
+                          onClick={async () => {
+                            setLlamaServerBusy(true);
+                            setLlamaServerStatus('loading');
+                            const result = await window.electronAPI.startLlamaServer();
+                            if (result.success) {
+                              setLlamaServerStatus('running');
+                            } else {
+                              setLlamaServerStatus('stopped');
+                              alert(result.error ?? 'Failed to start server');
+                            }
+                            setLlamaServerBusy(false);
+                          }}
+                          className="px-3 py-1 text-xs bg-green-700 hover:bg-green-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
+                        >
+                          Start
+                        </button>
+                        <button
+                          disabled={llamaServerBusy || llamaServerStatus === 'stopped'}
+                          onClick={async () => {
+                            setLlamaServerBusy(true);
+                            const result = await window.electronAPI.stopLlamaServer();
+                            if (result.success) {
+                              setLlamaServerStatus('stopped');
+                            } else {
+                              alert(result.error ?? 'Failed to stop server');
+                            }
+                            setLlamaServerBusy(false);
+                          }}
+                          className="px-3 py-1 text-xs bg-red-700 hover:bg-red-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
+                        >
+                          Stop
+                        </button>
+                        <button
+                          disabled={llamaServerBusy}
+                          onClick={async () => {
+                            const status = await window.electronAPI.checkLlamaHealth();
+                            setLlamaServerStatus(status);
+                          }}
+                          className="px-3 py-1 text-xs bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:text-slate-500 text-slate-200 rounded transition-colors"
+                        >
+                          Refresh
+                        </button>
+                      </div>
+
+                      {/* Base URL */}
+                      <div className="flex items-center gap-2">
+                        <label className="text-slate-300 text-sm whitespace-nowrap">Base URL:</label>
+                        <input
+                          type="text"
+                          value={llamacppBaseUrl}
+                          onChange={(e) => handleLlamacppBaseUrlChange(e.target.value)}
+                          onBlur={handleLlamacppBaseUrlBlur}
+                          className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
+                        />
+                      </div>
+
+                      {/* Start script path */}
+                      <div className="flex items-center gap-2">
+                        <label className="text-slate-300 text-sm whitespace-nowrap">Start script:</label>
+                        <input
+                          type="text"
+                          value={llamacppStartScript}
+                          onChange={(e) => setLlamacppStartScript(e.target.value)}
+                          onBlur={() => saveAiConfigField({ llamacppStartScript })}
+                          placeholder="/path/to/start-server.sh"
+                          className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
+                        />
+                      </div>
+
+                      {/* Stop script path */}
+                      <div className="flex items-center gap-2">
+                        <label className="text-slate-300 text-sm whitespace-nowrap">Stop script:</label>
+                        <input
+                          type="text"
+                          value={llamacppStopScript}
+                          onChange={(e) => setLlamacppStopScript(e.target.value)}
+                          onBlur={() => saveAiConfigField({ llamacppStopScript })}
+                          placeholder="/path/to/stop-server.sh"
+                          className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
+                        />
+                      </div>
                     </div>
                   )}
                 </>

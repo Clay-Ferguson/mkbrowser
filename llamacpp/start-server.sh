@@ -55,6 +55,11 @@ echo ""
 echo "Press Ctrl+C to stop the server."
 echo ""
 
+# Write PID file so stop-server.sh (and MkBrowser) can find us.
+# exec replaces this shell, so $$ will be the llama-server PID.
+PID_FILE="$HOME/.local/share/llama.cpp/llama-server.pid"
+echo $$ > "$PID_FILE"
+
 exec llama-server \
   --model "$MODEL_PATH" \
   --host "$HOST" \

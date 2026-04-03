@@ -12,6 +12,7 @@ import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalys
 import { HASHTAG_REGEX } from './utils/hashtagRegex';
 import { invokeAI, queueScriptedAnswer, findNextNumberedFolder, gatherConversationHistory, preprocessPrompt, AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './ai/aiUtil';
 import { recordUsage, getUsageWithCosts, resetUsage } from './ai/usageTracker';
+import { checkHealth, ensureRunning, stopServer } from './llamaServer';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -760,6 +761,15 @@ function setupIpcHandlers(): void {
         }
       }
 
+      // If using a LLAMACPP model, ensure the server is running before inference
+      {
+        const config = getConfig();
+        const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
+        if (activeModel?.provider === 'LLAMACPP') {
+          await ensureRunning();
+        }
+      }
+
       // Find the next available response folder: A/, A1/, A2/, ...
       const responseFolder = await findNextNumberedFolder(parentFolderPath, 'A');
 
@@ -812,6 +822,29 @@ function setupIpcHandlers(): void {
   // Reset AI usage statistics
   ipcMain.handle('reset-ai-usage', async () => {
     resetUsage();
+  });
+
+  // llama.cpp server lifecycle — health check, start, stop
+  ipcMain.handle('check-llama-health', async (): Promise<string> => {
+    return checkHealth();
+  });
+
+  ipcMain.handle('start-llama-server', async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await ensureRunning();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+  ipcMain.handle('stop-llama-server', async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await stopServer();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
   });
 
   // Reply to AI: create an H subfolder with an empty HUMAN.md for the user to write in

@@ -46,6 +46,8 @@ export interface AppConfig {
   aiModels?: AIModelConfig[];
   aiModel?: string;
   llamacppBaseUrl?: string;
+  llamacppStartScript?: string;
+  llamacppStopScript?: string;
   agenticMode?: boolean;
   agenticAllowedFolders?: string;
 }
@@ -177,6 +179,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resetAiUsage: () => ipcRenderer.invoke('reset-ai-usage'),
   queueScriptedAnswer: (answer: string) => ipcRenderer.invoke('queue-scripted-answer', answer),
   gatherThreadEntries: (folderPath: string) => ipcRenderer.invoke('gather-thread-entries', folderPath),
+
+  // llama.cpp server lifecycle
+  checkLlamaHealth: () => ipcRenderer.invoke('check-llama-health'),
+  startLlamaServer: () => ipcRenderer.invoke('start-llama-server'),
+  stopLlamaServer: () => ipcRenderer.invoke('stop-llama-server'),
 
   // Terminal (xterm.js + node-pty)
   terminalSpawn: (cwd: string) => ipcRenderer.invoke('terminal-spawn', cwd),
