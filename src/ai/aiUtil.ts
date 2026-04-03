@@ -3,7 +3,6 @@
  * This module runs in the main process only — never import from the renderer.
  */
 import { ChatAnthropic } from '@langchain/anthropic';
-import { ChatOllama } from '@langchain/ollama';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
@@ -30,17 +29,14 @@ function debugLog(...args: unknown[]) {
   if (DEBUG) console.log('[aiUtil DEBUG]', ...args);
 }
 
-// NOTE: See 'ollama' folder for instructions on setting up a local Ollama server and 
-// downloading/running the Qwen3 model.
-// See 'llamacpp' folder for instructions on setting up llama.cpp as an alternative.
+// NOTE: See 'llamacpp' folder for instructions on setting up llama.cpp for local inference.
 
 /**
  * Resolve the active AI provider and model name from the config.
  * Falls back to Anthropic Claude Haiku if nothing is configured.
  */
-function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP'; model: string; ollamaBaseUrl: string; llamacppBaseUrl: string } {
+function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP'; model: string; llamacppBaseUrl: string } {
   const config = getConfig();
-  const ollamaBaseUrl = config.ollamaBaseUrl || 'http://localhost:11434';
   const llamacppBaseUrl = config.llamacppBaseUrl || 'http://localhost:8080/v1';
 
   const normalizeKey = (name: string) => name.trim().toLowerCase();
@@ -50,24 +46,21 @@ function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' |
     const entry = config.aiModels.find((m) => normalizeKey(m.name) === selectedKey);
     if (entry) {
       debugLog('getActiveModelConfig → provider:', entry.provider, 'model:', entry.model);
-      return { provider: entry.provider, model: entry.model, ollamaBaseUrl, llamacppBaseUrl };
+      return { provider: entry.provider, model: entry.model, llamacppBaseUrl };
     }
   }
 
   // Fallback defaults
   debugLog('getActiveModelConfig → using fallback: ANTHROPIC / claude-3-haiku-20240307');
-  return { provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', ollamaBaseUrl, llamacppBaseUrl };
+  return { provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', llamacppBaseUrl };
 }
 
 /**
  * Create the appropriate LangChain chat model based on the active config.
  */
 function createChatModel() {
-  const { provider, model, ollamaBaseUrl, llamacppBaseUrl } = getActiveModelConfig();
+  const { provider, model, llamacppBaseUrl } = getActiveModelConfig();
   debugLog('createChatModel → provider:', provider, 'model:', model);
-  if (provider === 'OLLAMA') {
-    return new ChatOllama({ model, baseUrl: ollamaBaseUrl });
-  }
   if (provider === 'LLAMACPP') {
     return new ChatOpenAI({ model, configuration: { baseURL: llamacppBaseUrl } });
   }
@@ -195,7 +188,7 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
         const invokePromise = boundModel.invoke(state.messages);
         const timeoutPromise = new Promise<never>((_, reject) =>
           setTimeout(
-            () => reject(new Error(`AI model request timed out after ${MODEL_TIMEOUT_MS / 1000}s. Ollama may still be loading the model — try again in a moment.`)),
+            () => reject(new Error(`AI model request timed out after ${MODEL_TIMEOUT_MS / 1000}s. The model may still be loading — try again in a moment.`)),
             MODEL_TIMEOUT_MS
           )
         );
@@ -235,9 +228,9 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
   const graph = builder.compile();
 
   const humanMsg = buildHumanMessage(prompt);
-  const { provider, model: modelName, ollamaBaseUrl } = getActiveModelConfig();
+  const { provider, model: modelName } = getActiveModelConfig();
   debugLog('invokeAI → invoking graph with', history.length + 1, 'messages (prompt text length:', prompt.text.length, ', images:', prompt.images.length, ')');
-  debugLog('invokeAI → provider:', provider, '| model:', modelName, '| ollamaBaseUrl:', ollamaBaseUrl);
+  debugLog('invokeAI → provider:', provider, '| model:', modelName);
   try {
     const result = await graph.invoke({
       messages: [...history, humanMsg],

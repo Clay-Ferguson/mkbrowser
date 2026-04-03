@@ -405,8 +405,8 @@ Use the **AI Model** dropdown to pick which model MkBrowser will use for chat.
 MkBrowser stores a list of named model entries; each entry has:
 
 - **Name**: A friendly label shown in the dropdown (e.g. “Claude Haiku”).
-- **Provider**: One of `ANTHROPIC`, `OPENAI`, `GOOGLE`, or `OLLAMA`.
-- **Model**: The provider’s model identifier string (e.g. `claude-3-haiku-20240307`, `gpt-4.1-nano`, `gemini-2.0-flash-lite`, or an Ollama model name).
+- **Provider**: One of `ANTHROPIC`, `OPENAI`, `GOOGLE`, or `LLAMACPP`.
+- **Model**: The provider's model identifier string (e.g. `claude-3-haiku-20240307`, `gpt-4.1-nano`, `gemini-2.0-flash-lite`, or a llama.cpp model name).
 
 #### Create / Edit / Delete models
 
@@ -424,12 +424,12 @@ When you create or edit a model, you’ll be asked for:
 
 If you try to create a new entry with the same **Name** as an existing entry, MkBrowser will prompt you to confirm overwriting the existing one.
 
-### Ollama Base URL
+### llama.cpp Base URL
 
-The **Ollama Base URL** field is only shown when the selected model’s **Provider** is `OLLAMA`.
+The **llama.cpp Base URL** field is only shown when the selected model's **Provider** is `LLAMACPP`.
 
-- Default: `http://localhost:11434`
-- Change this if your Ollama server is running on a different host or port.
+- Default: `http://localhost:8080/v1`
+- Change this if your llama-server is running on a different host or port.
 
 This setting is saved when the field loses focus (click away / tab out).
 

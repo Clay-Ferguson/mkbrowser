@@ -15,7 +15,6 @@ function AISettingsView() {
   const [aiEnabled, setAiEnabled] = useState<boolean>(false);
   const [aiModels, setAiModels] = useState<AIModelConfig[]>([]);
   const [selectedAiModel, setSelectedAiModel] = useState<string>('');
-  const [ollamaBaseUrl, setOllamaBaseUrl] = useState<string>('http://localhost:11434');
   const [llamacppBaseUrl, setLlamacppBaseUrl] = useState<string>('http://localhost:8080/v1');
   const [agenticMode, setAgenticMode] = useState<boolean>(false);
   const [agenticAllowedFolders, setAgenticAllowedFolders] = useState<string>('');
@@ -41,7 +40,6 @@ function AISettingsView() {
       if (config.aiEnabled !== undefined) setAiEnabled(config.aiEnabled);
       if (config.aiModels) setAiModels(config.aiModels);
       if (config.aiModel) setSelectedAiModel(config.aiModel);
-      if (config.ollamaBaseUrl) setOllamaBaseUrl(config.ollamaBaseUrl);
       if (config.llamacppBaseUrl) setLlamacppBaseUrl(config.llamacppBaseUrl);
       if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
       if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
@@ -68,14 +66,6 @@ function AISettingsView() {
     setSelectedAiModel(modelName);
     void saveAiConfigField({ aiModel: modelName });
   }, [saveAiConfigField]);
-
-  const handleOllamaBaseUrlChange = useCallback((url: string) => {
-    setOllamaBaseUrl(url);
-  }, []);
-
-  const handleOllamaBaseUrlBlur = useCallback(() => {
-    void saveAiConfigField({ ollamaBaseUrl });
-  }, [ollamaBaseUrl, saveAiConfigField]);
 
   const handleLlamacppBaseUrlChange = useCallback((url: string) => {
     setLlamacppBaseUrl(url);
@@ -400,19 +390,6 @@ function AISettingsView() {
                           })}
                         </tbody>
                       </table>
-                    </div>
-                  )}
-
-                  {selectedModel?.provider === 'OLLAMA' && (
-                    <div className="flex items-center gap-2">
-                      <label className="text-slate-300 text-sm">Ollama Base URL:</label>
-                      <input
-                        type="text"
-                        value={ollamaBaseUrl}
-                        onChange={(e) => handleOllamaBaseUrlChange(e.target.value)}
-                        onBlur={handleOllamaBaseUrlBlur}
-                        className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80 font-mono text-sm"
-                      />
                     </div>
                   )}
 

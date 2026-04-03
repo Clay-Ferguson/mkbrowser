@@ -65,7 +65,6 @@
     "@langchain/core": "^1.1.27",
     "@langchain/google-genai": "^2.1.20",
     "@langchain/langgraph": "^1.1.5",
-    "@langchain/ollama": "^1.2.4",
     "@langchain/openai": "^1.2.9",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@xterm/addon-fit": "^0.11.0",

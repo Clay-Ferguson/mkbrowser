@@ -51,7 +51,6 @@ const PROVIDER_DEFAULT_PRICING: Record<string, PricingEntry> = {
   ANTHROPIC: { inputPer1M: 0.25,  outputPer1M: 1.25 },
   OPENAI:    { inputPer1M: 0.10,  outputPer1M: 0.40 },
   GOOGLE:    { inputPer1M: 0.075, outputPer1M: 0.30 },
-  OLLAMA:    { inputPer1M: 0,     outputPer1M: 0    },
   LLAMACPP:  { inputPer1M: 0,     outputPer1M: 0    },
 };
 
@@ -142,7 +141,7 @@ export function estimateCost(
   inputTokens: number,
   outputTokens: number
 ): number {
-  const pricing = PROVIDER_DEFAULT_PRICING[provider] ?? PROVIDER_DEFAULT_PRICING.OLLAMA;
+  const pricing = PROVIDER_DEFAULT_PRICING[provider] ?? PROVIDER_DEFAULT_PRICING.LLAMACPP;
   return (inputTokens / 1_000_000) * pricing.inputPer1M
        + (outputTokens / 1_000_000) * pricing.outputPer1M;
 }
@@ -158,7 +157,7 @@ export function getUsageWithCosts(): AIUsageWithCosts {
   let totalEstimatedCost = 0;
 
   for (const [provider, usage] of Object.entries(data.byProvider)) {
-    const pricing = PROVIDER_DEFAULT_PRICING[provider] ?? PROVIDER_DEFAULT_PRICING.OLLAMA;
+    const pricing = PROVIDER_DEFAULT_PRICING[provider] ?? PROVIDER_DEFAULT_PRICING.LLAMACPP;
     const cost = (usage.inputTokens / 1_000_000) * pricing.inputPer1M
                + (usage.outputTokens / 1_000_000) * pricing.outputPer1M;
     estimatedCosts[provider] = cost;

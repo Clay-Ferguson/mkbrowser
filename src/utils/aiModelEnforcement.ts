@@ -1,4 +1,4 @@
-export type AIProvider = 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
+export type AIProvider = 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
 
 export interface AIModelConfigLike {
   name: string;

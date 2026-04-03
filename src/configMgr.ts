@@ -52,7 +52,7 @@ export interface AppSettings {
 
 export interface AIModelConfig {
   name: string;
-  provider: 'ANTHROPIC' | 'OLLAMA' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
+  provider: 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
   model: string;
   /** USD per 1M input tokens */
   inputPer1M: number;
@@ -71,7 +71,6 @@ export interface AppConfig {
   aiEnabled?: boolean;
   aiModels?: AIModelConfig[];
   aiModel?: string;
-  ollamaBaseUrl?: string;
   llamacppBaseUrl?: string;
   agenticMode?: boolean;
   agenticAllowedFolders?: string;
@@ -166,15 +165,11 @@ const DEFAULT_AI_MODELS: AIModelConfig[] = [
   // Pricing:   https://ai.google.dev/gemini-api/docs/pricing
   { name: 'Gemini 2.0 Flash', provider: 'GOOGLE', model: 'gemini-2.0-flash', inputPer1M: 0.10, outputPer1M: 0.40, vision: true, readonly: true },
   { name: 'Gemini Flash Lite', provider: 'GOOGLE', model: 'gemini-2.0-flash-lite', inputPer1M: 0.075, outputPer1M: 0.30, vision: true, readonly: true },
-  // Ollama
-  { name: 'Qwen3 (Ollama)', provider: 'OLLAMA', model: 'qwen3-silent', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
-  { name: 'Gemma 4 (Ollama)', provider: 'OLLAMA', model: 'gemma4-silent', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
   // llama.cpp (local)
   { name: 'Gemma 4 (llama.cpp)', provider: 'LLAMACPP', model: 'gemma-4', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
 ];
 
 const DEFAULT_AI_MODEL = 'Claude Haiku';
-const DEFAULT_OLLAMA_BASE_URL = 'http://localhost:11434';
 
 /**
  * Ensure AI-related config fields exist with sensible defaults.
@@ -222,11 +217,6 @@ export function createDefaultAISettings(config: AppConfig): boolean {
 
       return m;
     });
-  }
-
-  if (!config.ollamaBaseUrl) {
-    config.ollamaBaseUrl = DEFAULT_OLLAMA_BASE_URL;
-    changed = true;
   }
 
   if (config.aiEnabled === undefined) {
