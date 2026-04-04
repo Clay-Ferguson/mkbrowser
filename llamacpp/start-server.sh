@@ -23,12 +23,12 @@ LIB_DIR="$HOME/.local/lib/llama.cpp"
 #CTX_SIZE="16384"
 
 # Gemma 4 E4B: 4.5B effective params (~5.0 GB)
-#MODEL_FILE="gemma-4-E4B-it-Q4_K_M.gguf"
-#CTX_SIZE="16384"
+MODEL_FILE="gemma-4-E4B-it-Q4_K_M.gguf"
+CTX_SIZE="16384"
 
 # Gemma 4 26B-A4B (MoE): 3.8B active params (~13.4 GB)
-MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
-CTX_SIZE="8192"
+# MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
+# CTX_SIZE="8192"
 # ─────────────────────────────────────────────────────────────────────────
 
 # ── Server Configuration ─────────────────────────────────────────────────
@@ -79,4 +79,6 @@ exec llama-server \
   --host "$HOST" \
   --port "$PORT" \
   --ctx-size "$CTX_SIZE" \
+  -fa on \
+  --reasoning on \
   "${EXTRA_ARGS[@]}"

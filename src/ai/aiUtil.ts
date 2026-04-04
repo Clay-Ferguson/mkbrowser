@@ -238,15 +238,30 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
 
     debugLog('invokeAI → graph finished successfully');
     const lastMessage = result.messages[result.messages.length - 1];
-    const content = typeof lastMessage.content === 'string'
+
+    let content = typeof lastMessage.content === 'string'
       ? lastMessage.content
       : JSON.stringify(lastMessage.content);
     const usage = extractUsage(lastMessage);
+
+    // Extract thinking content. Sources checked in order:
+    // 1. additional_kwargs.reasoning_content (Anthropic, OpenAI o-series via LangChain)
+    // 2. Inline <think>...</think> tags in content (llama.cpp with --reasoning-format none)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const additionalKwargs = (lastMessage as any).additional_kwargs ?? {};
-    debugLog('invokeAI → additional_kwargs keys:', Object.keys(additionalKwargs));
+    let thinking: string | undefined;
     const rawThinking = additionalKwargs.reasoning_content;
-    const thinking = typeof rawThinking === 'string' && rawThinking.length > 0 ? rawThinking : undefined;
+    if (typeof rawThinking === 'string' && rawThinking.length > 0) {
+      thinking = rawThinking;
+    } else {
+      // Check for <think>...</think> tags in content (llama.cpp thinking models)
+      const thinkMatch = content.match(/^<think>([\s\S]*?)<\/think>\s*/);
+      if (thinkMatch) {
+        thinking = thinkMatch[1].trim();
+        content = content.slice(thinkMatch[0].length);
+      }
+    }
+
     debugLog('invokeAI → returning response, length:', content.length, 'thinking:', thinking ? thinking.length + ' chars' : 'none', 'usage:', usage);
     return { content, thinking, usage };
   } catch (err) {
