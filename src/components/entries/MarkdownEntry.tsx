@@ -388,6 +388,15 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
   const [isReplyLoading, setIsReplyLoading] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [showStreamingDialog, setShowStreamingDialog] = useState(false);
+  const pendingNavigationRef = useRef<(() => void) | null>(null);
+
+  const handleStreamingDialogClose = () => {
+    setShowStreamingDialog(false);
+    if (pendingNavigationRef.current) {
+      pendingNavigationRef.current();
+      pendingNavigationRef.current = null;
+    }
+  };
 
   const handleAskAi = async (promptContent?: string) => {
     const textToSend = promptContent || content;
@@ -400,16 +409,17 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
       if ('error' in result) {
         setAiErrorMessage(result.error);
       } else {
-        if (view === 'thread') {
-          navigateToBrowserPath(result.responseFolder, undefined, 'thread');
-          setPendingThreadScrollToBottom();
-        } else {
-          navigateToBrowserPath(result.responseFolder);
-        }
+        pendingNavigationRef.current = () => {
+          if (view === 'thread') {
+            navigateToBrowserPath(result.responseFolder, undefined, 'thread');
+            setPendingThreadScrollToBottom();
+          } else {
+            navigateToBrowserPath(result.responseFolder);
+          }
+        };
       }
     } finally {
       setIsAiLoading(false);
-      setShowStreamingDialog(false);
     }
   };
 
@@ -609,7 +619,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
       )}
       {showStreamingDialog && (
         <StreamingDialog
-          onClose={() => setShowStreamingDialog(false)}
+          onClose={handleStreamingDialogClose}
           onCancel={handleCancelStream}
         />
       )}

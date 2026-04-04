@@ -39,9 +39,14 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
 
     cleanups.push(window.electronAPI.onAiStreamChunk((text) => {
       if (inThinkingRef.current) {
-        // Transition from thinking to content
-        appendText('\n', '');
+        // Transition from thinking to content — add a visible gap
         inThinkingRef.current = false;
+        const output = outputRef.current;
+        if (output) {
+          const divider = document.createElement('div');
+          divider.className = 'my-4 border-t border-slate-600';
+          output.appendChild(divider);
+        }
       }
       appendText(text, 'text-green-300');
     }));
@@ -62,8 +67,6 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
 
     cleanups.push(window.electronAPI.onAiStreamDone(() => {
       setStatus('done');
-      // Auto-close after a brief moment
-      setTimeout(() => onClose(), 600);
     }));
 
     cleanups.push(window.electronAPI.onAiStreamError((message) => {
@@ -88,8 +91,8 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
         {/* Header */}
         <div className="flex justify-between items-center px-4 py-2 border-b border-slate-600 flex-shrink-0">
           <span className="text-slate-300 text-sm">
-            {status === 'streaming' && 'Streaming...'}
-            {status === 'done' && 'Done'}
+            {status === 'streaming' && 'Streaming AI Response...'}
+            {status === 'done' && 'AI Answer'}
             {status === 'error' && 'Error'}
             {status === 'cancelled' && 'Stopping...'}
           </span>
@@ -101,7 +104,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
               Stop
             </button>
           )}
-          {(status === 'error') && (
+          {(status === 'done' || status === 'error' || status === 'cancelled') && (
             <button
               onClick={onClose}
               className="px-3 py-1 text-sm text-white bg-slate-600 hover:bg-slate-500 rounded transition-colors"
