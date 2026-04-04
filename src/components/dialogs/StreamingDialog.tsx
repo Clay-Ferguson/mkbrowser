@@ -43,16 +43,16 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
         appendText('\n', '');
         inThinkingRef.current = false;
       }
-      appendText(text, '');
+      appendText(text, 'text-green-300');
     }));
 
     cleanups.push(window.electronAPI.onAiStreamThinking((text) => {
       if (!inThinkingRef.current) {
         // Add thinking header on first thinking chunk
-        appendText('[Thinking]\n', 'text-slate-500 font-semibold');
+        appendText('[Thinking]\n', 'text-slate-300 font-semibold');
         inThinkingRef.current = true;
       }
-      appendText(text, 'text-slate-500 italic');
+      appendText(text, 'text-slate-200');
     }));
 
     cleanups.push(window.electronAPI.onAiStreamTool((toolName, summary) => {
