@@ -149,6 +149,14 @@ export function queueScriptedAnswer(answer: string): void {
 }
 
 /**
+ * Returns true if a scripted answer is currently queued.
+ * Used by main.ts to bypass streaming when a test answer is pending.
+ */
+export function hasScriptedAnswer(): boolean {
+  return scriptedAnswer !== null;
+}
+
+/**
  * Non-agentic AI invocation with optional tool support.
  * Uses a StateGraph that sends messages to the model and, when tools are
  * enabled, loops back through a ToolNode to execute any tool calls the
@@ -266,6 +274,211 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
     return { content, thinking, usage };
   } catch (err) {
     debugLog('invokeAI → ERROR during graph.invoke:', err);
+    throw err;
+  }
+}
+
+/** Callbacks for streaming AI responses. */
+export interface StreamCallbacks {
+  onChunk: (token: string) => void;
+  onThinkingChunk: (token: string) => void;
+  onToolCall: (toolName: string, summary: string) => void;
+}
+
+/**
+ * Streaming AI invocation. Builds the same StateGraph as `invokeAI` but uses
+ * `graph.streamEvents()` to emit token-level chunks, thinking tokens, and
+ * tool call status lines via callbacks. Accumulates the full response and
+ * returns the same `AIInvokeResult` as `invokeAI`.
+ *
+ * @param prompt   Preprocessed prompt (text + images).
+ * @param history  Prior conversation messages.
+ * @param callbacks  Streaming event callbacks.
+ * @param signal   Optional AbortSignal for cancellation.
+ */
+export async function streamAI(
+  prompt: PreprocessResult,
+  history: BaseMessage[] = [],
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal,
+): Promise<AIInvokeResult> {
+  debugLog('streamAI → creating model');
+  const model = createChatModel();
+
+  const useTools = aiTools.length > 0 && getConfig().agenticMode;
+  const boundModel = useTools ? model.bindTools(aiTools) : model;
+  debugLog('streamAI → tools bound:', useTools, '(', aiTools.length, 'tools)');
+
+  const builder = new StateGraph(MessagesAnnotation)
+    .addNode('chat', async (state) => {
+      debugLog('streamAI [graph:chat] → invoking model with', state.messages.length, 'messages');
+      const response = await boundModel.invoke(state.messages, { signal });
+      return { messages: [response] };
+    });
+
+  if (useTools) {
+    const toolNode = new ToolNode(aiTools);
+    builder
+      .addNode('tools', toolNode)
+      .addEdge('__start__', 'chat')
+      .addConditionalEdges('chat', (state) => {
+        const lastMsg = state.messages[state.messages.length - 1];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const toolCalls = (lastMsg as any).tool_calls;
+        if (toolCalls && toolCalls.length > 0) {
+          debugLog('streamAI [router] → tool calls detected, routing to tools node');
+          return 'tools';
+        }
+        return '__end__';
+      })
+      .addEdge('tools', 'chat');
+  } else {
+    builder
+      .addEdge('__start__', 'chat')
+      .addEdge('chat', '__end__');
+  }
+
+  const graph = builder.compile();
+  const humanMsg = buildHumanMessage(prompt);
+
+  let contentAccum = '';
+  let thinkingAccum = '';
+  let usage: AIUsageInfo | undefined;
+  // Track whether we're inside a <think> block (llama.cpp inline thinking)
+  let insideLlamacppThink = false;
+  let pendingContent = '';
+
+  debugLog('streamAI → starting streamEvents');
+  try {
+    const eventStream = graph.streamEvents(
+      { messages: [...history, humanMsg] },
+      { version: 'v2', signal },
+    );
+
+    for await (const event of eventStream) {
+      // Token-level chunks from the chat model
+      if (event.event === 'on_chat_model_stream') {
+        const chunk = event.data?.chunk;
+        if (!chunk) continue;
+
+        // Check for thinking content in additional_kwargs (Anthropic, OpenAI o-series)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const additionalKwargs = (chunk as any).additional_kwargs ?? {};
+        const reasoningContent = additionalKwargs.reasoning_content;
+        if (typeof reasoningContent === 'string' && reasoningContent.length > 0) {
+          thinkingAccum += reasoningContent;
+          callbacks.onThinkingChunk(reasoningContent);
+          continue;
+        }
+
+        // Extract text content from chunk
+        let text = '';
+        if (typeof chunk.content === 'string') {
+          text = chunk.content;
+        } else if (Array.isArray(chunk.content)) {
+          for (const part of chunk.content) {
+            if (part.type === 'text' && typeof part.text === 'string') {
+              text += part.text;
+            }
+          }
+        }
+
+        if (text.length === 0) continue;
+
+        // Handle llama.cpp inline <think>...</think> tags in streaming content
+        pendingContent += text;
+
+        // Process pending content for think tags
+        while (pendingContent.length > 0) {
+          if (insideLlamacppThink) {
+            const closeIdx = pendingContent.indexOf('</think>');
+            if (closeIdx !== -1) {
+              // Emit everything before </think> as thinking
+              const thinkText = pendingContent.slice(0, closeIdx);
+              if (thinkText.length > 0) {
+                thinkingAccum += thinkText;
+                callbacks.onThinkingChunk(thinkText);
+              }
+              pendingContent = pendingContent.slice(closeIdx + '</think>'.length);
+              insideLlamacppThink = false;
+              // Skip any leading whitespace after </think>
+              const trimmed = pendingContent.replace(/^\s+/, '');
+              pendingContent = trimmed;
+            } else {
+              // Still inside think block, emit all as thinking
+              thinkingAccum += pendingContent;
+              callbacks.onThinkingChunk(pendingContent);
+              pendingContent = '';
+            }
+          } else {
+            const openIdx = pendingContent.indexOf('<think>');
+            if (openIdx !== -1) {
+              // Emit everything before <think> as content
+              const beforeThink = pendingContent.slice(0, openIdx);
+              if (beforeThink.length > 0) {
+                contentAccum += beforeThink;
+                callbacks.onChunk(beforeThink);
+              }
+              pendingContent = pendingContent.slice(openIdx + '<think>'.length);
+              insideLlamacppThink = true;
+            } else {
+              // No think tags — emit as normal content
+              contentAccum += pendingContent;
+              callbacks.onChunk(pendingContent);
+              pendingContent = '';
+            }
+          }
+        }
+      }
+
+      // Tool call events — show a brief status line
+      if (event.event === 'on_tool_start') {
+        const toolName = event.name ?? 'unknown';
+        // Build a brief summary from the input
+        const input = event.data?.input;
+        let summary = '';
+        if (input && typeof input === 'object') {
+          // Take the first string value as a brief summary
+          const values = Object.values(input);
+          const firstStr = values.find((v): v is string => typeof v === 'string');
+          if (firstStr) {
+            summary = firstStr.length > 60 ? firstStr.slice(0, 57) + '...' : firstStr;
+          }
+        } else if (typeof input === 'string') {
+          summary = input.length > 60 ? input.slice(0, 57) + '...' : input;
+        }
+        debugLog('streamAI → tool call:', toolName, summary);
+        callbacks.onToolCall(toolName, summary);
+      }
+
+      // Extract usage from final message
+      if (event.event === 'on_chat_model_end') {
+        const output = event.data?.output;
+        if (output) {
+          const extracted = extractUsage(output);
+          if (extracted) usage = extracted;
+        }
+      }
+    }
+
+    debugLog('streamAI → stream completed, content length:', contentAccum.length,
+      'thinking:', thinkingAccum.length > 0 ? thinkingAccum.length + ' chars' : 'none');
+    return {
+      content: contentAccum,
+      thinking: thinkingAccum.length > 0 ? thinkingAccum : undefined,
+      usage,
+    };
+  } catch (err) {
+    // If aborted, return what we have so far
+    if (signal?.aborted) {
+      debugLog('streamAI → aborted by user, returning partial content (' + contentAccum.length + ' chars)');
+      return {
+        content: contentAccum,
+        thinking: thinkingAccum.length > 0 ? thinkingAccum : undefined,
+        usage,
+      };
+    }
+    debugLog('streamAI → ERROR:', err);
     throw err;
   }
 }

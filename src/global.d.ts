@@ -171,6 +171,14 @@ export interface ElectronAPI {
   startLlamaServer: () => Promise<{ success: boolean; error?: string }>;
   stopLlamaServer: () => Promise<{ success: boolean; error?: string }>;
 
+  // AI streaming events
+  onAiStreamChunk: (callback: (text: string) => void) => () => void;
+  onAiStreamThinking: (callback: (text: string) => void) => () => void;
+  onAiStreamTool: (callback: (toolName: string, summary: string) => void) => () => void;
+  onAiStreamDone: (callback: () => void) => () => void;
+  onAiStreamError: (callback: (message: string) => void) => () => void;
+  cancelAiStream: () => void;
+
   // Terminal (xterm.js + node-pty)
   terminalSpawn: (cwd: string) => Promise<{ success: boolean; error?: string }>;
   terminalWrite: (data: string) => Promise<void>;

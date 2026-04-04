@@ -22,6 +22,7 @@ import {
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
+import StreamingDialog from '../dialogs/StreamingDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import TagsPicker from './TagsPicker';
 import { createCustomImage } from './markdownImgResolver';
@@ -386,11 +387,13 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isReplyLoading, setIsReplyLoading] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
+  const [showStreamingDialog, setShowStreamingDialog] = useState(false);
 
   const handleAskAi = async (promptContent?: string) => {
     const textToSend = promptContent || content;
     if (!textToSend) return;
     setIsAiLoading(true);
+    setShowStreamingDialog(true);
     try {
       const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
       const result = await window.electronAPI.askAi(textToSend, parentFolder);
@@ -406,7 +409,12 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
       }
     } finally {
       setIsAiLoading(false);
+      setShowStreamingDialog(false);
     }
+  };
+
+  const handleCancelStream = () => {
+    window.electronAPI.cancelAiStream();
   };
 
   const handleReply = async () => {
@@ -489,7 +497,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                 disabled={edit.saving || isAiLoading}
                 className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
               >
-                {isAiLoading ? 'Thinking...' : 'Ask AI'}
+                {isAiLoading ? 'Streaming...' : 'Ask AI'}
               </button>
             )}
           </div>
@@ -502,7 +510,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                 disabled={isAiLoading || !content}
                 className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
               >
-                {isAiLoading ? 'Thinking...' : 'Ask AI'}
+                {isAiLoading ? 'Streaming...' : 'Ask AI'}
               </button>
             )}
             {isAiFile && (
@@ -597,6 +605,12 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
         <ErrorDialog
           message={aiErrorMessage}
           onClose={() => setAiErrorMessage(null)}
+        />
+      )}
+      {showStreamingDialog && (
+        <StreamingDialog
+          onClose={() => setShowStreamingDialog(false)}
+          onCancel={handleCancelStream}
         />
       )}
     </div>

@@ -10,9 +10,13 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { HASHTAG_REGEX } from './utils/hashtagRegex';
-import { invokeAI, queueScriptedAnswer, findNextNumberedFolder, gatherConversationHistory, preprocessPrompt, AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './ai/aiUtil';
+import { invokeAI, streamAI, queueScriptedAnswer, hasScriptedAnswer, findNextNumberedFolder, gatherConversationHistory, preprocessPrompt, AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './ai/aiUtil';
+import type { StreamCallbacks } from './ai/aiUtil';
 import { recordUsage, getUsageWithCosts, resetUsage } from './ai/usageTracker';
 import { checkHealth, ensureRunning, stopServer } from './llamaServer';
+
+// Feature flag: set to false to revert to non-streaming AI responses (no popup).
+const ENABLE_STREAM_RESPONSE = true;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -782,8 +786,78 @@ function setupIpcHandlers(): void {
       // Gather conversation history from the folder hierarchy
       const history = await gatherConversationHistory(parentFolderPath);
 
-      // Invoke the AI with context (images are sent as multimodal content parts)
-      const { content, thinking, usage } = await invokeAI(processedPrompt, history);
+      let content: string;
+      let thinking: string | undefined;
+      let usage: { input_tokens: number; output_tokens: number; total_tokens: number } | undefined;
+
+      if (ENABLE_STREAM_RESPONSE && !hasScriptedAnswer()) {
+        // ── Streaming path: send events to the renderer's StreamingDialog ──
+        const abortController = new AbortController();
+
+        // Listen for cancel request from the renderer
+        const cancelHandler = () => {
+          abortController.abort();
+        };
+        ipcMain.once('ai-stream-cancel', cancelHandler);
+
+        try {
+          // Build streaming callbacks that forward to the main renderer window
+          const callbacks: StreamCallbacks = {
+            onChunk: (token: string) => {
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('ai-stream-chunk', token);
+              }
+            },
+            onThinkingChunk: (token: string) => {
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('ai-stream-thinking', token);
+              }
+            },
+            onToolCall: (toolName: string, summary: string) => {
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('ai-stream-tool', toolName, summary);
+              }
+            },
+          };
+
+          // Stream the AI response
+          const result = await streamAI(processedPrompt, history, callbacks, abortController.signal);
+          content = result.content;
+          thinking = result.thinking;
+          usage = result.usage;
+
+          // Handle cancellation: mark partial content
+          if (abortController.signal.aborted && content.length > 0) {
+            content += '\n\n---\n*[Response interrupted by user]*';
+          }
+
+          // Notify renderer that streaming is done
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('ai-stream-done');
+          }
+        } catch (streamErr) {
+          // Send error to renderer
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('ai-stream-error',
+              streamErr instanceof Error ? streamErr.message : 'Unknown error');
+          }
+          throw streamErr;
+        } finally {
+          ipcMain.removeListener('ai-stream-cancel', cancelHandler);
+        }
+
+        // If aborted with no content, clean up the empty response folder
+        if (abortController.signal.aborted && content.length === 0) {
+          try { await fs.promises.rm(responseFolder, { recursive: true }); } catch { /* ignore */ }
+          return { error: 'Response cancelled by user' };
+        }
+      } else {
+        // ── Non-streaming path: original invoke behavior ──
+        const result = await invokeAI(processedPrompt, history);
+        content = result.content;
+        thinking = result.thinking;
+        usage = result.usage;
+      }
 
       // Record token usage if available
       if (usage) {

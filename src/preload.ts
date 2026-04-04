@@ -185,6 +185,34 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startLlamaServer: () => ipcRenderer.invoke('start-llama-server'),
   stopLlamaServer: () => ipcRenderer.invoke('stop-llama-server'),
 
+  // AI streaming events
+  onAiStreamChunk: (callback: (text: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, text: string) => callback(text);
+    ipcRenderer.on('ai-stream-chunk', listener);
+    return () => { ipcRenderer.removeListener('ai-stream-chunk', listener); };
+  },
+  onAiStreamThinking: (callback: (text: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, text: string) => callback(text);
+    ipcRenderer.on('ai-stream-thinking', listener);
+    return () => { ipcRenderer.removeListener('ai-stream-thinking', listener); };
+  },
+  onAiStreamTool: (callback: (toolName: string, summary: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, toolName: string, summary: string) => callback(toolName, summary);
+    ipcRenderer.on('ai-stream-tool', listener);
+    return () => { ipcRenderer.removeListener('ai-stream-tool', listener); };
+  },
+  onAiStreamDone: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('ai-stream-done', listener);
+    return () => { ipcRenderer.removeListener('ai-stream-done', listener); };
+  },
+  onAiStreamError: (callback: (message: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, message: string) => callback(message);
+    ipcRenderer.on('ai-stream-error', listener);
+    return () => { ipcRenderer.removeListener('ai-stream-error', listener); };
+  },
+  cancelAiStream: () => ipcRenderer.send('ai-stream-cancel'),
+
   // Terminal (xterm.js + node-pty)
   terminalSpawn: (cwd: string) => ipcRenderer.invoke('terminal-spawn', cwd),
   terminalWrite: (data: string) => ipcRenderer.invoke('terminal-write', data),
