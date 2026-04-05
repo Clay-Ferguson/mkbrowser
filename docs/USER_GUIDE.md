@@ -279,6 +279,28 @@ You can export the contents of the current folder into a single document.
     - **Export to PDF**: If checked, the application will attempt to generate a PDF file instead of a Markdown file.
 3. Click **Export** to finish.
 
+# Wikilinks
+
+MkBrowser supports wikilink syntax, a popular convention (used by Obsidian, Notion, and other tools) for linking between files using double square brackets. Wikilinks are automatically converted into standard Markdown links when rendered.
+
+## Syntax
+
+- **Basic link**: `[[filename]]` — creates a link to the file, displayed as the filename.
+- **Link with alias**: `[[filename|My Description]]` — creates a link to the file, displayed as "My Description".
+- **Link to section**: `[[filename#section]]` — creates a link to a specific section heading within the file.
+- **Section link with alias**: `[[filename#section|description]]` — creates a link to a section, displayed as "description".
+
+## Examples
+
+| You write | Rendered as |
+|-----------|-------------|
+| `[[readme]]` | A clickable link labeled "readme" pointing to `readme` |
+| `[[notes.md\|My Notes]]` | A clickable link labeled "My Notes" pointing to `notes.md` |
+| `[[guide#installation]]` | A clickable link labeled "guide#installation" pointing to the "installation" section of `guide` |
+| `[[guide#installation\|Setup]]` | A clickable link labeled "Setup" pointing to the "installation" section of `guide` |
+
+Clicking a wikilink navigates to the linked file, just like clicking any other Markdown link in MkBrowser.
+
 # LaTeX Math Support
 
 MkBrowser supports rendering mathematical equations using LaTeX syntax via KaTeX, compatible with GitHub's math rendering.

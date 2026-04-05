@@ -54,6 +54,28 @@ function preprocessMathEscapes(content: string): string {
   return content.replace(/\\\$/g, '&#36;');
 }
 
+/**
+ * Preprocess wikilinks: convert [[target]] and [[target|alias]] syntax
+ * into standard markdown links before rendering.
+ *
+ * Supports:
+ *   [[file]]              → [file](file)
+ *   [[file|description]]  → [description](file)
+ *   [[file#section]]      → [file#section](file#section)
+ *   [[file#section|desc]] → [desc](file#section)
+ */
+function preprocessWikiLinks(content: string): string {
+  return content.replace(/\[\[([^\]]+)\]\]/g, (_match, inner: string) => {
+    const pipeIndex = inner.indexOf('|');
+    if (pipeIndex !== -1) {
+      const target = inner.slice(0, pipeIndex).trim();
+      const alias = inner.slice(pipeIndex + 1).trim();
+      return `[${alias}](${target})`;
+    }
+    return `[${inner}](${inner})`;
+  });
+}
+
 // Render queue to serialize mermaid renders (mermaid can't handle concurrent renders)
 const mermaidRenderQueue: Array<() => Promise<void>> = [];
 let isRenderingMermaid = false;
@@ -598,7 +620,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                   pre: CustomPre,
                 }}
               >
-                {preprocessMathEscapes(content || '')}
+                {preprocessWikiLinks(preprocessMathEscapes(content || ''))}
               </Markdown>
             </article>
           )}
