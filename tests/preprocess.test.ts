@@ -16,7 +16,8 @@ import {
 } from '../src/ai/promptPreprocess';
 
 // ── Test fixture directory ─────────────────────────────────────────
-const FIXTURE_DIR = path.resolve(__dirname, '..', 'test-data', 'ai-preprocess');
+// NOTE: Must NOT live under test-data/ — that directory is wiped by search.test.ts's beforeAll.
+const FIXTURE_DIR = path.resolve(__dirname, 'fixtures', 'ai-preprocess-data');
 
 /** Minimal valid 1×1 red PNG (68 bytes). */
 const TINY_PNG = Buffer.from(
