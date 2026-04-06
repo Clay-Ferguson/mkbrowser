@@ -30,6 +30,41 @@ When a Markdown file is expanded, you can edit its content:
 3. Press `Save` button or use `Ctrl+S` / `Cmd+S` to save your changes.
 4. Click the **Close** button (X icon) to return to the rendered view.
 
+## Tag Picker
+
+While editing a Markdown file, a **tag picker** appears below the editor. It shows a row of clickable checkboxes — one for each hashtag defined in the nearest `.TAGS.md` file(s). You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand.
+
+- **Checked** tags are already present somewhere in the file's content and are highlighted in blue.
+- **Unchecked** tags are not currently in the content.
+- Clicking an unchecked tag **appends** it to the end of the content.
+- Clicking a checked tag **removes** all occurrences of that tag from the content.
+
+The checkboxes stay in sync with the editor as you type, so you can freely mix typing and clicking.
+
+### Setting up `.TAGS.md` files
+
+The tag picker gets its list of available tags from `.TAGS.md` files placed in your folder tree. When you open a file for editing, MkBrowser walks up through that file's ancestor directories and reads every `.TAGS.md` it finds. Hashtags extracted from those files become the options in the tag picker.
+
+**Example:** if your notes folder structure is:
+
+```
+~/notes/
+  .TAGS.md          ← defines #project #personal #archive
+  work/
+    .TAGS.md        ← defines #meeting #action-item
+    q1-review.md
+```
+
+When editing `q1-review.md`, the tag picker will show all five tags: `#project`, `#personal`, `#archive`, `#meeting`, `#action-item`. Tags from the closest directory appear first; duplicates are deduplicated.
+
+**To create a `.TAGS.md` file**, just create a new Markdown file named `.TAGS.md` in any folder and write your desired hashtags inside it — one line, inline in a sentence, or anywhere you like. MkBrowser scans the file for anything that looks like a hashtag (a `#` followed by letters, numbers, underscores, or hyphens) and uses those as the tag list.
+
+```markdown
+#project #personal #archive #in-progress #done
+```
+
+If no `.TAGS.md` files are found anywhere in the ancestor tree, the tag picker is hidden entirely.
+
 ## Renaming
 You can rename any file or folder:
 - **Button**: Click the **Rename** button (pencil icon on the folder row) next to the item.
