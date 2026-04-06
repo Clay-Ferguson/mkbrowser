@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { EditorView, placeholder as placeholderExt, keymap } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
@@ -12,40 +12,12 @@ import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editorD
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
 
-const STORAGE_KEY = 'codemirror-editor-height';
-const DEFAULT_HEIGHT = 180;
-const MIN_HEIGHT = 100;
-const MAX_HEIGHT = 800;
-
 const FONT_SIZE_MAP: Record<FontSize, string> = {
   small: '12px',
   medium: '14px',
   large: '16px',
   xlarge: '18px',
 };
-
-function getStoredHeight(): number {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const height = parseInt(stored, 10);
-      if (!isNaN(height) && height >= MIN_HEIGHT && height <= MAX_HEIGHT) {
-        return height;
-      }
-    }
-  } catch {
-    // localStorage not available
-  }
-  return DEFAULT_HEIGHT;
-}
-
-function setStoredHeight(height: number): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, String(height));
-  } catch {
-    // localStorage not available
-  }
-}
 
 interface CodeMirrorEditorProps {
   value: string;
@@ -68,10 +40,6 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
   const spellCheckCompartment = useRef(new Compartment());
   const typoRef = useRef<Typo | null>(null);
   const settings = useSettings();
-  const [height, setHeight] = useState(getStoredHeight);
-  const isDraggingRef = useRef(false);
-  const startYRef = useRef(0);
-  const startHeightRef = useRef(0);
 
   const {
     contextMenu,
@@ -85,51 +53,16 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
     handleInsertDate,
   } = useEditorContextMenu({ viewRef, typoRef });
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isDraggingRef.current = true;
-    startYRef.current = e.clientY;
-    startHeightRef.current = height;
-    document.body.style.cursor = 'ns-resize';
-    document.body.style.userSelect = 'none';
-  }, [height]);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDraggingRef.current) return;
-      const delta = e.clientY - startYRef.current;
-      const newHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startHeightRef.current + delta));
-      setHeight(newHeight);
-    };
-
-    const handleMouseUp = () => {
-      if (isDraggingRef.current) {
-        isDraggingRef.current = false;
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        // Persist the final height
-        setStoredHeight(height);
-      }
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [height]);
-
   const createFontSizeTheme = useCallback((fontSize: FontSize) => {
     return EditorView.theme({
       '&': {
-        height: '100%',
         fontSize: FONT_SIZE_MAP[fontSize],
       },
       '.cm-scroller': {
-        overflow: 'auto',
         fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+      },
+      '.cm-content, .cm-gutter': {
+        minHeight: '75px',
       },
       '.cm-content': {
         caretColor: '#fff',
@@ -300,17 +233,8 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
     >
       <div
         ref={editorRef}
-        style={{ height: `${height}px` }}
-        className="overflow-hidden"
         onContextMenu={handleContextMenu}
       />
-      <div
-        onMouseDown={handleMouseDown}
-        className="h-2 bg-slate-700 hover:bg-slate-600 cursor-ns-resize flex items-center justify-center border-t border-slate-600"
-        title="Drag to resize"
-      >
-        <div className="w-8 h-0.5 bg-slate-500 rounded-full" />
-      </div>
 
       <EditorContextMenu
         contextMenu={contextMenu}
