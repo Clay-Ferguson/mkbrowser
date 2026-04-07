@@ -8,7 +8,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
 import { extractTimestamp, past, future, today } from './utils/timeUtil';
-import { createContentSearcher } from './utils/searchUtil';
+import { createContentSearcher, findExtraLine } from './utils/searchUtil';
 
 /**
  * Search result from the file search
@@ -19,6 +19,7 @@ export interface SearchResult {
   matchCount: number;
   lineNumber?: number;
   lineText?: string;
+  extraLine?: string;
   foundTime?: number;
   modifiedTime?: number;
   createdTime?: number;
@@ -220,12 +221,14 @@ export async function searchFolder(
             const { matches, matchCount, foundTime } = matchPredicate(line);
 
             if (matches) {
+              const extraLine = findExtraLine(lines, i, matchPredicate);
               results.push({
                 path: filePath,
                 relativePath,
                 matchCount,
                 lineNumber: i + 1,
                 lineText: line,
+                ...(extraLine !== undefined && { extraLine }),
                 ...(foundTime !== undefined && { foundTime }),
                 ...(modifiedTime !== undefined && { modifiedTime }),
                 ...(createdTime !== undefined && { createdTime }),

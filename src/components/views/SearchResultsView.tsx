@@ -240,6 +240,12 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                         {result.lineText}
                       </div>
                     )}
+                    {/* Show extra context line below match if available */}
+                    {result.extraLine && (
+                      <div className="text-sm text-slate-500 truncate font-mono" title={result.extraLine}>
+                        ↳ {result.extraLine}
+                      </div>
+                    )}
                   </div>
 
                   {/* Match count */}

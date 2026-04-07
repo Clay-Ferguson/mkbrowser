@@ -37,3 +37,37 @@ export function createContentSearcher(content: string): {
   
   return { $, getMatchCount };
 }
+
+/**
+ * Finds the first non-empty line below a matched line that isn't itself a match.
+ * Used in file-lines search mode to provide extra context for each result.
+ *
+ * Scans up to maxBlankLines consecutive blank lines before giving up.
+ * If the first non-empty line found is itself a match, returns undefined
+ * (it will appear as its own search result).
+ *
+ * @param lines - All lines of the file
+ * @param fromIndex - 0-based index of the matched line
+ * @param matchPredicate - The same predicate used for the search
+ * @param maxBlankLines - Max consecutive blank lines to scan through (default 5)
+ * @returns The extra context line, or undefined if none qualifies
+ */
+export function findExtraLine(
+  lines: string[],
+  fromIndex: number,
+  matchPredicate: (content: string) => { matches: boolean },
+  maxBlankLines = 5,
+): string | undefined {
+  let blanks = 0;
+  for (let i = fromIndex + 1; i < lines.length; i++) {
+    if (lines[i].trim() === '') {
+      blanks++;
+      if (blanks > maxBlankLines) return undefined;
+      continue;
+    }
+    // Found a non-empty line — check if it's itself a match
+    if (matchPredicate(lines[i]).matches) return undefined;
+    return lines[i];
+  }
+  return undefined;
+}
