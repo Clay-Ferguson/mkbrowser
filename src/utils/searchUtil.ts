@@ -65,7 +65,10 @@ export function findExtraLine(
       if (blanks > maxBlankLines) return undefined;
       continue;
     }
-    // Found a non-empty line — check if it's itself a match
+    // Skip lines without enough alphanumeric content (e.g. '---', '***')
+    const alphanumCount = (lines[i].match(/[a-zA-Z0-9]/g) || []).length;
+    if (alphanumCount < 10) continue;
+    // Found a substantive line — check if it's itself a match
     if (matchPredicate(lines[i]).matches) return undefined;
     return lines[i];
   }
