@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { PhotoIcon } from '@heroicons/react/24/outline';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems } from '../../store';
+import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import {
@@ -54,6 +54,9 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
 
   console.log('[ImageEntry] State:', { isRenaming, isExpanded, isSelected });
 
+  const fullscreenItem = useItem(fullscreenImagePath);
+  const isFullscreenSelected = fullscreenItem?.isSelected ?? false;
+
   // Handle Escape key to close fullscreen overlay and arrow keys for navigation
   useEffect(() => {
     if (!isFullscreen) return;
@@ -78,6 +81,9 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
         }
       } else if (e.key === 'Delete') {
         setShowFullscreenDeleteConfirm(true);
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        setItemSelected(fullscreenImagePath, !fullscreenItem?.isSelected);
       } else if (e.key.toLowerCase() === 'j') {
         // Jump to the current fullscreen image - close fullscreen, scroll to it, and highlight it
         const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
@@ -90,7 +96,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
     
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen, entry.path, fullscreenImagePath, allImages, entry.name]);
+  }, [isFullscreen, entry.path, fullscreenImagePath, allImages, entry.name, fullscreenItem]);
 
   // Get the current image being displayed in fullscreen
   const currentFullscreenImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
@@ -220,7 +226,20 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
             setFullscreenImagePath(entry.path);
           }}
         >
-          <span className="absolute top-2 left-2 text-white/60 text-xs">ESC=Close, J=Jump to Image</span>
+          <span className="absolute top-2 left-2 text-white/60 text-xs">ESC=Close, J=Jump to Image, Space=Select</span>
+          <label
+            className="absolute top-7 left-2 flex items-center gap-2 cursor-pointer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="checkbox"
+              checked={isFullscreenSelected}
+              onChange={(e) => setItemSelected(fullscreenImagePath, e.target.checked)}
+              className="h-5 w-5 accent-blue-500 flex-shrink-0"
+              aria-label={`Select ${currentFullscreenImage.name}`}
+            />
+            <span className="text-white/70 text-sm">{currentFullscreenImage.name}</span>
+          </label>
           <img
             src={fullscreenImageUrl}
             alt={currentFullscreenImage.name}
