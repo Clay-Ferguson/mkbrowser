@@ -10,6 +10,7 @@ interface ToolsPopupMenuProps {
   onExport: () => void;
   onNewAiChat: () => void;
   onOpenTerminal: () => void;
+  onRunOcr: () => void;
   onSettings: () => void;
   onAiSettings: () => void;
 }
@@ -23,6 +24,7 @@ export default function ToolsPopupMenu({
   onExport,
   onNewAiChat,
   onOpenTerminal,
+  onRunOcr,
   onSettings,
   onAiSettings,
 }: ToolsPopupMenuProps) {
@@ -56,6 +58,11 @@ export default function ToolsPopupMenu({
         label="Open Terminal"
         data-testid="menu-open-terminal"
         onClick={() => { onOpenTerminal(); onClose(); }}
+      />
+      <PopupMenuItem
+        label="Run OCR"
+        data-testid="menu-run-ocr"
+        onClick={() => { onRunOcr(); onClose(); }}
       />
       <PopupMenuDivider />
 

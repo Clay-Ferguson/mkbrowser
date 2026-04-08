@@ -292,6 +292,12 @@ export interface AppState {
   pendingEditView: AppView | null;
 
   /**
+   * Command to execute in the terminal after it spawns.
+   * Set when switching to terminal view with a command to run (e.g. OCR).
+   */
+  pendingTerminalCommand: string | null;
+
+  /**
    * Scroll positions for each view.
    * Browser view stores per-path positions, other views store a single position.
    */

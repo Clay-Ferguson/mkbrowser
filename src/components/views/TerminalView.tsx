@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import { useCurrentPath, useRootPath } from '../../store';
+import { useCurrentPath, useRootPath, usePendingTerminalCommand, clearPendingTerminalCommand } from '../../store';
 
 /**
  * Module-level singletons so the terminal session persists across tab switches.
@@ -18,6 +18,7 @@ let terminal: Terminal | null = null;
 let fitAddon: FitAddon | null = null;
 let terminalContainer: HTMLDivElement | null = null; // persistent DOM host for xterm
 let spawned = false;
+let spawnReady = false; // true after PTY spawn IPC resolves successfully
 let exited = false;
 let exitCode: number | null = null;
 
@@ -83,6 +84,7 @@ export default function TerminalView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const currentPath = useCurrentPath();
   const rootPath = useRootPath();
+  const pendingCommand = usePendingTerminalCommand();
   const cwd = currentPath || rootPath || process.env.HOME || '/';
 
   /**
@@ -93,11 +95,14 @@ export default function TerminalView() {
     exited = false;
     exitCode = null;
     spawned = true;
+    spawnReady = false;
 
     const result = await window.electronAPI.terminalSpawn(workingDir);
     if (!result.success) {
       terminal?.writeln(`\r\n\x1b[31mFailed to start terminal: ${result.error}\x1b[0m`);
       spawned = false;
+    } else {
+      spawnReady = true;
     }
   }, []);
 
@@ -111,6 +116,7 @@ export default function TerminalView() {
     exited = false;
     exitCode = null;
     spawned = false;
+    spawnReady = false;
     spawnTerminal(cwd);
   }, [cwd, spawnTerminal]);
 
@@ -170,7 +176,7 @@ export default function TerminalView() {
 
     // Spawn the shell if not already running
     if (!spawned) {
-      spawnTerminal(cwd);
+      void spawnTerminal(cwd);
     } else {
       // Re-attached — inform PTY of current size
       if (terminal && !exited) {
@@ -199,6 +205,34 @@ export default function TerminalView() {
       resizeObserver.disconnect();
     };
   }, [cwd, spawnTerminal, handleRestart]);
+
+  // Execute pending terminal command once the PTY is ready
+  useEffect(() => {
+    if (!pendingCommand) return;
+
+    // If PTY is already ready, send immediately
+    if (spawnReady && !exited) {
+      void window.electronAPI.terminalWrite(pendingCommand);
+      clearPendingTerminalCommand();
+      return;
+    }
+
+    // PTY is still spawning — poll until ready (up to 3 seconds)
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (spawnReady && !exited) {
+        void window.electronAPI.terminalWrite(pendingCommand);
+        clearPendingTerminalCommand();
+        clearInterval(interval);
+      } else if (attempts >= 30) {
+        clearPendingTerminalCommand();
+        clearInterval(interval);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [pendingCommand]);
 
   return (
     <div

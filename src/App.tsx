@@ -57,6 +57,7 @@ import {
   getBrowserScrollPosition,
   toggleBookmark,
   setFolderAnalysis,
+  setPendingTerminalCommand,
   showTab,
   isTabVisible,
   setRootPath,
@@ -1504,6 +1505,25 @@ function App() {
               // Send cd command to the running PTY (shell-escape single quotes)
               const escapedPath = currentPath.replace(/'/g, "'\\''");
               void window.electronAPI.terminalWrite(`cd '${escapedPath}'\n`);
+            }
+          }}
+          onRunOcr={() => {
+            if (!currentPath) return;
+            const ocrFolder = settings.ocrToolsFolder;
+            if (!ocrFolder) {
+              setError('OCR tools folder is not configured. Set it in Settings → OCR.');
+              return;
+            }
+            const escapedOcrFolder = ocrFolder.replace(/'/g, "'\\''");
+            const escapedPath = currentPath.replace(/'/g, "'\\''");
+            const command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'\n`;
+            const terminalAlreadyVisible = isTabVisible('terminal');
+            showTab('terminal');
+            setCurrentView('terminal');
+            if (terminalAlreadyVisible) {
+              void window.electronAPI.terminalWrite(command);
+            } else {
+              setPendingTerminalCommand(command);
             }
           }}
           onSettings={() => {

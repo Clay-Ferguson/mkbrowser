@@ -44,6 +44,7 @@ const initialState: AppState = {
   },
   highlightedSearchResult: null,
   folderAnalysis: null,
+  pendingTerminalCommand: null,
   pendingThreadScrollToBottom: false,
   rootPath: '',
   visibleTabs: new Set<AppView>(['browser']),
@@ -181,6 +182,13 @@ function getPendingEditLineNumberSnapshot(): number | null {
  */
 function getPendingEditViewSnapshot(): AppView | null {
   return state.pendingEditView;
+}
+
+/**
+ * Get snapshot of pending terminal command
+ */
+function getPendingTerminalCommandSnapshot(): string | null {
+  return state.pendingTerminalCommand;
 }
 
 /**
@@ -996,6 +1004,23 @@ export function clearPendingEditFile(): void {
 }
 
 /**
+ * Set a command to execute in the terminal after it spawns.
+ */
+export function setPendingTerminalCommand(command: string): void {
+  state = { ...state, pendingTerminalCommand: command };
+  emitChange();
+}
+
+/**
+ * Clear the pending terminal command (call after the command has been sent).
+ */
+export function clearPendingTerminalCommand(): void {
+  if (state.pendingTerminalCommand === null) return;
+  state = { ...state, pendingTerminalCommand: null };
+  emitChange();
+}
+
+/**
  * Request ThreadView to scroll to bottom after its next render.
  */
 export function setPendingThreadScrollToBottom(): void {
@@ -1299,6 +1324,13 @@ export function usePendingEditLineNumber(): number | null {
  */
 export function usePendingEditView(): AppView | null {
   return useSyncExternalStore(subscribe, getPendingEditViewSnapshot);
+}
+
+/**
+ * Hook to subscribe to pending terminal command
+ */
+export function usePendingTerminalCommand(): string | null {
+  return useSyncExternalStore(subscribe, getPendingTerminalCommandSnapshot);
 }
 
 /**
