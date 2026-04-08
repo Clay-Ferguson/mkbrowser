@@ -3,6 +3,7 @@ import {
   setFoldersOnTop,
   setIgnoredPaths,
   setContentWidth,
+  setOcrToolsFolder,
   setSettingsScrollPosition,
   getSettingsScrollPosition,
   useSettings,
@@ -70,6 +71,12 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
 
   const handleContentWidthChange = (contentWidth: ContentWidth) => {
     setContentWidth(contentWidth);
+    // Trigger save to persist the setting
+    onSaveSettings();
+  };
+
+  const handleOcrToolsFolderChange = (ocrToolsFolder: string) => {
+    setOcrToolsFolder(ocrToolsFolder);
     // Trigger save to persist the setting
     onSaveSettings();
   };
@@ -147,6 +154,22 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               placeholder="node_modules&#10;.git&#10;dist"
               rows={6}
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
+            />
+          </section>
+
+          {/* OCR Setting */}
+          <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-100 mb-2">OCR</h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Optical Character Recognition Tools Folder
+            </p>
+
+            <input
+              type="text"
+              value={settings.ocrToolsFolder}
+              onChange={(e) => handleOcrToolsFolderChange(e.target.value)}
+              placeholder="/path/to/ocr-tools"
+              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
             />
           </section>
         </div>

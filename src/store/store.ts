@@ -1112,6 +1112,17 @@ export function setContentWidth(contentWidth: ContentWidth): void {
 }
 
 /**
+ * Update the OCR tools folder setting
+ */
+export function setOcrToolsFolder(ocrToolsFolder: string): void {
+  state = {
+    ...state,
+    settings: { ...state.settings, ocrToolsFolder },
+  };
+  emitChange();
+}
+
+/**
  * Toggle bookmark for a file path.
  * If the path is bookmarked, removes it. If not, adds it.
  * Returns the new bookmarked state.

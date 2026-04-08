@@ -48,6 +48,7 @@ export interface AppSettings {
   searchDefinitions: SearchDefinition[];
   contentWidth: ContentWidth;
   bookmarks: string[];
+  ocrToolsFolder: string;
 }
 
 export interface AIModelConfig {
@@ -89,6 +90,7 @@ export const defaultSettings: AppSettings = {
   searchDefinitions: [],
   contentWidth: 'medium',
   bookmarks: [],
+  ocrToolsFolder: '',
 };
 
 // ---------------------------------------------------------------------------

@@ -59,6 +59,7 @@ export {
   setFoldersOnTop,
   setIgnoredPaths,
   setContentWidth,
+  setOcrToolsFolder,
   toggleBookmark,
   isBookmarked,
   updateBookmarkPath,

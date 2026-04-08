@@ -187,6 +187,8 @@ export interface AppSettings {
   contentWidth: ContentWidth;
   /** Array of bookmarked file paths */
   bookmarks: string[];
+  /** Folder path where OCR tool utilities are stored */
+  ocrToolsFolder: string;
 }
 
 /**
