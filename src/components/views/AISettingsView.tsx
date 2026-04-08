@@ -18,8 +18,7 @@ function AISettingsView() {
   const [llamacppBaseUrl, setLlamacppBaseUrl] = useState<string>('http://localhost:8080/v1');
   const [agenticMode, setAgenticMode] = useState<boolean>(false);
   const [agenticAllowedFolders, setAgenticAllowedFolders] = useState<string>('');
-  const [llamacppStartScript, setLlamacppStartScript] = useState<string>('');
-  const [llamacppStopScript, setLlamacppStopScript] = useState<string>('');
+  const [llamacppFolder, setLlamacppFolder] = useState<string>('');
   const [llamaServerStatus, setLlamaServerStatus] = useState<string>('stopped');
   const [llamaServerBusy, setLlamaServerBusy] = useState(false);
 
@@ -45,8 +44,7 @@ function AISettingsView() {
       if (config.aiModels) setAiModels(config.aiModels);
       if (config.aiModel) setSelectedAiModel(config.aiModel);
       if (config.llamacppBaseUrl) setLlamacppBaseUrl(config.llamacppBaseUrl);
-      if (config.llamacppStartScript) setLlamacppStartScript(config.llamacppStartScript);
-      if (config.llamacppStopScript) setLlamacppStopScript(config.llamacppStopScript);
+      if (config.llamacppFolder) setLlamacppFolder(config.llamacppFolder);
       if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
       if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
     });
@@ -475,28 +473,15 @@ function AISettingsView() {
                         />
                       </div>
 
-                      {/* Start script path */}
+                      {/* Llama.cpp folder path */}
                       <div className="flex items-center gap-2">
-                        <label className="text-slate-300 text-sm whitespace-nowrap">Start script:</label>
+                        <label className="text-slate-300 text-sm whitespace-nowrap">Llama.cpp folder:</label>
                         <input
                           type="text"
-                          value={llamacppStartScript}
-                          onChange={(e) => setLlamacppStartScript(e.target.value)}
-                          onBlur={() => saveAiConfigField({ llamacppStartScript })}
-                          placeholder="/path/to/start-server.sh"
-                          className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
-                        />
-                      </div>
-
-                      {/* Stop script path */}
-                      <div className="flex items-center gap-2">
-                        <label className="text-slate-300 text-sm whitespace-nowrap">Stop script:</label>
-                        <input
-                          type="text"
-                          value={llamacppStopScript}
-                          onChange={(e) => setLlamacppStopScript(e.target.value)}
-                          onBlur={() => saveAiConfigField({ llamacppStopScript })}
-                          placeholder="/path/to/stop-server.sh"
+                          value={llamacppFolder}
+                          onChange={(e) => setLlamacppFolder(e.target.value)}
+                          onBlur={() => saveAiConfigField({ llamacppFolder })}
+                          placeholder="/path/to/llamacpp"
                           className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
                         />
                       </div>

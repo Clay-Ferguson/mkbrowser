@@ -11,9 +11,13 @@
  */
 
 import { spawn } from 'node:child_process';
+import path from 'node:path';
 import { getConfig } from './configMgr';
 
 export type LlamaServerStatus = 'running' | 'stopped' | 'loading';
+
+const START_SCRIPT = 'start-server.sh';
+const STOP_SCRIPT = 'stop-server.sh';
 
 // ---------------------------------------------------------------------------
 // Health check
@@ -70,12 +74,14 @@ export async function ensureRunning(): Promise<void> {
   if (status === 'running') return;
 
   const config = getConfig();
-  const scriptPath = config.llamacppStartScript;
-  if (!scriptPath) {
+  const folder = config.llamacppFolder;
+  if (!folder) {
     throw new Error(
-      'No llama.cpp start script configured. Set the path in AI Settings.'
+      'No llama.cpp folder configured. Set the path in AI Settings.'
     );
   }
+
+  const scriptPath = path.join(folder, START_SCRIPT);
 
   // Spawn the start script as a fully detached process.
   // It survives MkBrowser restarts. We don't hold the child reference.
@@ -114,12 +120,14 @@ export async function ensureRunning(): Promise<void> {
  */
 export async function stopServer(): Promise<void> {
   const config = getConfig();
-  const scriptPath = config.llamacppStopScript;
-  if (!scriptPath) {
+  const folder = config.llamacppFolder;
+  if (!folder) {
     throw new Error(
-      'No llama.cpp stop script configured. Set the path in AI Settings.'
+      'No llama.cpp folder configured. Set the path in AI Settings.'
     );
   }
+
+  const scriptPath = path.join(folder, STOP_SCRIPT);
 
   return new Promise<void>((resolve, reject) => {
     const child = spawn('bash', [scriptPath], {
