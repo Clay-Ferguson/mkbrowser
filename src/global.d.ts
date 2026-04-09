@@ -139,6 +139,7 @@ export interface ElectronAPI {
   selectFolder: () => Promise<string | null>;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
+  readExif: (filePath: string) => Promise<Record<string, Record<string, string>>>;
   pathExists: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<boolean>;
   getFileSize: (filePath: string) => Promise<number>;

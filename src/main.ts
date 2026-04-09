@@ -14,6 +14,7 @@ import { invokeAI, streamAI, queueScriptedAnswer, hasScriptedAnswer, findNextNum
 import type { StreamCallbacks } from './ai/aiUtil';
 import { recordUsage, getUsageWithCosts, resetUsage } from './ai/usageTracker';
 import { checkHealth, ensureRunning, stopServer } from './llamaServer';
+import ExifReader from 'exifreader';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
 const ENABLE_STREAM_RESPONSE = true;
@@ -244,6 +245,40 @@ function setupIpcHandlers(): void {
     } catch (error) {
       console.error('Error reading file:', error);
       return '';
+    }
+  });
+
+  // Read EXIF metadata from an image file
+  ipcMain.handle('read-exif', async (_event, filePath: string): Promise<Record<string, Record<string, string>>> => {
+    try {
+      const tags = await ExifReader.load(filePath, { expanded: true, length: 128 * 1024 });
+
+      const result: Record<string, Record<string, string>> = {};
+      const skipGroups = new Set(['Thumbnail', 'thumbnail']);
+
+      for (const [groupName, groupTags] of Object.entries(tags)) {
+        if (skipGroups.has(groupName)) continue;
+        if (typeof groupTags !== 'object' || groupTags === null) continue;
+
+        const groupResult: Record<string, string> = {};
+        for (const [tagName, tagValue] of Object.entries(groupTags as Record<string, unknown>)) {
+          if (tagValue && typeof tagValue === 'object' && 'description' in tagValue) {
+            const desc = (tagValue as { description: unknown }).description;
+            if (typeof desc === 'string') {
+              groupResult[tagName] = desc;
+            } else if (typeof desc === 'number') {
+              groupResult[tagName] = String(desc);
+            }
+          }
+        }
+        if (Object.keys(groupResult).length > 0) {
+          result[groupName] = groupResult;
+        }
+      }
+      return result;
+    } catch (error) {
+      console.error('Error reading EXIF data:', error);
+      return {};
     }
   });
 

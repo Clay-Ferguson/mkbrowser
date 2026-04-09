@@ -150,6 +150,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
+  readExif: (filePath: string) => ipcRenderer.invoke('read-exif', filePath),
   pathExists: (checkPath: string) => ipcRenderer.invoke('path-exists', checkPath),
   writeFile: (filePath: string, content: string) => ipcRenderer.invoke('write-file', filePath, content),
   getFileSize: (filePath: string) => ipcRenderer.invoke('get-file-size', filePath),

@@ -12,6 +12,7 @@ export default defineConfig({
         /^@anthropic-ai\/.*/,
         /^langsmith\/.*/,
         'node-pty',
+        'exifreader',
       ],
     },
   },

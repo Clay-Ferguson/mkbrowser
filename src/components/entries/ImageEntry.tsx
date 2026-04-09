@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { PhotoIcon } from '@heroicons/react/24/outline';
+import { PhotoIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
+import ExifDialog from '../dialogs/ExifDialog';
 import {
   useEntryCore,
   useRename,
@@ -51,6 +52,10 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   const [fullscreenImagePath, setFullscreenImagePath] = useState(entry.path);
   const [showEndAlert, setShowEndAlert] = useState(false);
   const [showBeginningAlert, setShowBeginningAlert] = useState(false);
+  const [showExifDialog, setShowExifDialog] = useState(false);
+  const [exifData, setExifData] = useState<Record<string, Record<string, string>> | null>(null);
+  const [exifLoading, setExifLoading] = useState(false);
+  const [exifFileName, setExifFileName] = useState(entry.name);
 
   console.log('[ImageEntry] State:', { isRenaming, isExpanded, isSelected });
 
@@ -146,6 +151,21 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
     toggleItemExpanded(entry.path);
   };
 
+  const handleExifClick = async (e: React.MouseEvent, imagePath: string, imageName: string) => {
+    e.stopPropagation();
+    setExifLoading(true);
+    setExifFileName(imageName);
+    try {
+      const data = await window.electronAPI.readExif(imagePath);
+      setExifData(data);
+      setShowExifDialog(true);
+    } catch (error) {
+      console.error('[ImageEntry] Failed to read EXIF data:', error);
+    } finally {
+      setExifLoading(false);
+    }
+  };
+
   // Convert file path to local-file:// URL for the image src
   const imageUrl = `local-file://${entry.path}`;
   console.log('[ImageEntry] Image URL:', imageUrl);
@@ -203,16 +223,26 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
       {isExpanded && (
         <div className="px-4 pb-4">
           <div className="bg-slate-900 rounded-lg p-4 flex items-center justify-center">
-            <img
-              src={imageUrl}
-              alt={entry.name}
-              className="max-w-full max-h-96 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
-              loading="lazy"
-              onClick={() => setIsFullscreen(true)}
-              title="Click to view fullscreen"
-              onLoad={() => console.log('[ImageEntry] Image loaded successfully:', imageUrl)}
-              onError={(e) => console.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
-            />
+            <div className="relative inline-block">
+              <img
+                src={imageUrl}
+                alt={entry.name}
+                className="max-w-full max-h-96 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
+                loading="lazy"
+                onClick={() => setIsFullscreen(true)}
+                title="Click to view fullscreen"
+                onLoad={() => console.log('[ImageEntry] Image loaded successfully:', imageUrl)}
+                onError={(e) => console.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
+              />
+              <button
+                onClick={(e) => handleExifClick(e, entry.path, entry.name)}
+                disabled={exifLoading}
+                className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors"
+                title="View EXIF metadata"
+              >
+                <InformationCircleIcon className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -246,6 +276,14 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
             className="max-w-[95vw] max-h-[95vh] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
+          <button
+            onClick={(e) => handleExifClick(e, fullscreenImagePath, currentFullscreenImage.name)}
+            disabled={exifLoading}
+            className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors"
+            title="View EXIF metadata"
+          >
+            <InformationCircleIcon className="w-6 h-6" />
+          </button>
         </div>
       )}
 
@@ -281,6 +319,14 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
           message={`Are you sure you want to delete "${entry.name}"?`}
           onConfirm={del.handleDeleteConfirm}
           onCancel={del.handleDeleteCancel}
+        />
+      )}
+
+      {showExifDialog && exifData && (
+        <ExifDialog
+          data={exifData}
+          fileName={exifFileName}
+          onClose={() => { setShowExifDialog(false); setExifData(null); }}
         />
       )}
     </div>
