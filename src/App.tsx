@@ -741,6 +741,7 @@ function App() {
           searchBlock: options.searchBlock,
           sortBy: options.sortBy,
           sortDirection: options.sortDirection,
+          searchImageExif: options.searchImageExif,
         };
         
         // Remove any existing search definition with the same name
@@ -775,7 +776,7 @@ function App() {
     // Decode {{nl}} tokens back to spaces for actual search execution
     const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
     
-    const results = await window.electronAPI.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchBlock);
+    const results = await window.electronAPI.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchBlock, options.searchImageExif);
     setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection);
     setCurrentView('search-results');
   }, [currentPath]);
@@ -1421,7 +1422,8 @@ function App() {
                 searchQuery,
                 definition.searchMode,
                 definition.searchTarget,
-                definition.searchBlock
+                definition.searchBlock,
+                definition.searchImageExif
               );
               setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc');
               setCurrentView('search-results');
@@ -1437,6 +1439,7 @@ function App() {
               searchBlock: definition.searchBlock,
               sortBy: definition.sortBy,
               sortDirection: definition.sortDirection,
+              searchImageExif: definition.searchImageExif,
             });
             setShowSearchDialog(true);
           }}

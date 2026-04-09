@@ -7,8 +7,15 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
+import ExifReader from 'exifreader';
 import { extractTimestamp, past, future, today } from './utils/timeUtil';
 import { createContentSearcher, findExtraLine } from './utils/searchUtil';
+
+/** Image extensions supported by ExifReader for EXIF metadata search */
+const EXIF_IMAGE_EXTENSIONS = new Set([
+  '.png', '.jpg', '.jpeg', '.gif', '.webp',
+  '.bmp', '.ico', '.tiff', '.tif', '.avif',
+]);
 
 /**
  * Search result from the file search
@@ -120,6 +127,37 @@ function buildExcludePredicate(ignoredPaths: string[]): (name: string, fullPath:
 }
 
 /**
+ * Extract all EXIF metadata text from an image file.
+ * Returns a string with one line per tag: "GroupName > TagName: Description"
+ */
+async function extractExifText(filePath: string): Promise<string> {
+  try {
+    const tags = await ExifReader.load(filePath, { expanded: true, length: 128 * 1024 });
+    const skipGroups = new Set(['Thumbnail', 'thumbnail']);
+    const lines: string[] = [];
+
+    for (const [groupName, groupTags] of Object.entries(tags)) {
+      if (skipGroups.has(groupName)) continue;
+      if (typeof groupTags !== 'object' || groupTags === null) continue;
+
+      for (const [tagName, tagValue] of Object.entries(groupTags as Record<string, unknown>)) {
+        if (tagValue && typeof tagValue === 'object' && 'description' in tagValue) {
+          const desc = (tagValue as { description: unknown }).description;
+          if (typeof desc === 'string' && desc.length > 0) {
+            lines.push(`${groupName} > ${tagName}: ${desc}`);
+          } else if (typeof desc === 'number') {
+            lines.push(`${groupName} > ${tagName}: ${String(desc)}`);
+          }
+        }
+      }
+    }
+    return lines.join('\n');
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Search a folder for files matching the given query.
  *
  * @param folderPath   - Root folder to search
@@ -128,6 +166,7 @@ function buildExcludePredicate(ignoredPaths: string[]): (name: string, fullPath:
  * @param searchMode   - 'content' (search file bodies) or 'filenames'
  * @param searchBlock  - 'entire-file' or 'file-lines'
  * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
+ * @param searchImageExif - Whether to include image files and search their EXIF metadata
  * @returns Array of SearchResult sorted by matchCount descending
  */
 export async function searchFolder(
@@ -137,6 +176,7 @@ export async function searchFolder(
   searchMode: SearchMode = 'content',
   searchBlock: SearchBlock = 'entire-file',
   ignoredPaths: string[] = [],
+  searchImageExif = false,
 ): Promise<SearchResult[]> {
   const results: SearchResult[] = [];
   const shouldExcludePath = buildExcludePredicate(ignoredPaths);
@@ -187,7 +227,7 @@ export async function searchFolder(
       }
     }
   } else {
-    // Search file contents - only .md and .txt files
+    // Search file contents - .md and .txt files, plus images when searchImageExif is enabled
     const api = new fdir()
       .withFullPaths()
       .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
@@ -195,7 +235,9 @@ export async function searchFolder(
         const fileName = path.basename(filePath);
         if (shouldExcludePath(fileName, filePath)) return false;
         const ext = path.extname(filePath).toLowerCase();
-        return ext === '.md' || ext === '.txt';
+        if (ext === '.md' || ext === '.txt') return true;
+        if (searchImageExif && EXIF_IMAGE_EXTENSIONS.has(ext)) return true;
+        return false;
       })
       .crawl(folderPath);
 
@@ -203,7 +245,13 @@ export async function searchFolder(
 
     for (const filePath of files) {
       try {
-        const content = await fs.promises.readFile(filePath, 'utf-8');
+        const ext = path.extname(filePath).toLowerCase();
+        const isImage = EXIF_IMAGE_EXTENSIONS.has(ext);
+        const content = isImage
+          ? await extractExifText(filePath)
+          : await fs.promises.readFile(filePath, 'utf-8');
+
+        if (isImage && !content) continue;
 
         if (searchBlock === 'file-lines') {
           const lines = content.split(/\r?\n/);

@@ -120,7 +120,7 @@ export interface ElectronAPI {
   deleteFile: (filePath: string) => Promise<boolean>;
   openExternal: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => Promise<SearchResult[]>;
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines', searchImageExif?: boolean) => Promise<SearchResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   collectAncestorTags: (filePath: string) => Promise<string[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
@@ -162,7 +162,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines') => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchBlock),
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines', searchImageExif?: boolean) => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchBlock, searchImageExif),
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   collectAncestorTags: (filePath: string) => ipcRenderer.invoke('collect-ancestor-tags', filePath),
   renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),

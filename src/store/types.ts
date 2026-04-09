@@ -167,6 +167,8 @@ export interface SearchDefinition {
   sortBy: SearchSortBy;
   /** Sort direction: ascending (oldest first) or descending (newest first) */
   sortDirection: SearchSortDirection;
+  /** Whether to include image EXIF metadata in content search */
+  searchImageExif?: boolean;
 }
 
 /**

@@ -504,7 +504,7 @@ function setupIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchBlock: 'entire-file' | 'file-lines' = 'entire-file'): Promise<SearchResult[]> => {
+  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchBlock: 'entire-file' | 'file-lines' = 'entire-file', searchImageExif = false): Promise<SearchResult[]> => {
     try {
       // Get ignored paths from in-memory config
       const ignoredPathsRaw = getConfig().settings?.ignoredPaths ?? '';
@@ -513,7 +513,7 @@ function setupIpcHandlers(): void {
         .map(p => p.trim())
         .filter(p => p.length > 0);
 
-      return await searchFolder(folderPath, query, searchType, searchMode, searchBlock, ignoredPaths);
+      return await searchFolder(folderPath, query, searchType, searchMode, searchBlock, ignoredPaths, searchImageExif);
     } catch (error) {
       console.error('Error searching folder:', error);
       return [];

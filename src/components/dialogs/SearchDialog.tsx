@@ -17,6 +17,7 @@ export interface SearchOptions {
   searchName: string;
   sortBy: SearchSortBy;
   sortDirection: SearchSortDirection;
+  searchImageExif: boolean;
 }
 
 export interface SearchDialogInitialValues {
@@ -27,6 +28,7 @@ export interface SearchDialogInitialValues {
   searchBlock?: SearchBlock;
   sortBy?: SearchSortBy;
   sortDirection?: SearchSortDirection;
+  searchImageExif?: boolean;
 }
 
 interface SearchDialogProps {
@@ -48,6 +50,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const [searchBlock, setSearchBlock] = useState<SearchBlock>(initialValues?.searchBlock || 'entire-file');
   const [sortBy, setSortBy] = useState<SearchSortBy>(initialValues?.sortBy || 'modified-time');
   const [sortDirection, setSortDirection] = useState<SearchSortDirection>(initialValues?.sortDirection || 'desc');
+  const [searchImageExif, setSearchImageExif] = useState(initialValues?.searchImageExif ?? false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -71,6 +74,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
       setSearchBlock(selectedDef.searchBlock);
       setSortBy(selectedDef.sortBy || 'modified-time');
       setSortDirection(selectedDef.sortDirection || 'desc');
+      setSearchImageExif(selectedDef.searchImageExif ?? false);
       // Adjust textarea height after loading content
       setTimeout(adjustTextareaHeight, 0);
     }
@@ -102,7 +106,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
     
-    onSearch({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection });
+    onSearch({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif });
   };
 
   const handleSave = () => {
@@ -113,7 +117,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
     
-    onSave({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection });
+    onSave({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -190,6 +194,19 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             </button>
           </div>
         </div>
+
+        {/* Search Image EXIF checkbox */}
+        <label className={`flex items-center gap-2 mb-3 ${searchMode === 'filenames' ? 'opacity-50' : 'cursor-pointer'}`}>
+          <input
+            type="checkbox"
+            checked={searchImageExif}
+            onChange={(e) => setSearchImageExif(e.target.checked)}
+            disabled={searchMode === 'filenames'}
+            data-testid="search-image-exif"
+            className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <span className="text-sm text-slate-300">Search Image EXIF</span>
+        </label>
 
         {/* Search mode radio buttons */}
         <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
@@ -330,6 +347,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               <>Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters. Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
             ) : searchMode === 'filenames' ? (
               <>Searches file and folder names recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+            ) : searchImageExif ? (
+              <>Searches .md, .txt, and image EXIF metadata recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
             ) : (
               <>Searches .md and .txt files recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
             )}
