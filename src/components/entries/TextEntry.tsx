@@ -120,7 +120,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
                   }
                 }}
                 disabled={edit.saving || isRewriting}
-                className="px-3 py-1 text-sm text-white bg-amber-600 hover:bg-amber-500 rounded transition-colors disabled:opacity-50"
+                className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
               >
                 {isRewriting ? 'Rewriting...' : 'Rewrite'}
               </button>
@@ -130,7 +130,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
                 <button
                   onClick={edit.handleCancel}
                   disabled={edit.saving}
-                  className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
+                  className="px-3 py-1 text-sm text-white bg-red-600 hover:bg-red-500 rounded transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>

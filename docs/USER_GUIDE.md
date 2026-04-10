@@ -594,7 +594,7 @@ MkBrowser includes an AI-powered **Rewrite** feature that can improve the conten
 
 1. Open a file for editing by clicking the **Edit** button (pencil icon).
 2. Write or modify your content in the editor.
-3. Click the **Rewrite** button (amber/orange). The button text changes to "Rewriting..." while the AI processes your content.
+3. Click the **Rewrite** button. 
 4. When the AI finishes, a **diff review editor** appears showing your original text alongside the AI's suggested changes, with additions and deletions highlighted.
 5. Review the changes, then:
    - Click **Accept All** to replace your editor content with the rewritten version.
