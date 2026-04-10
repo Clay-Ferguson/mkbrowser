@@ -586,6 +586,7 @@ Notes:
 
 - `HUMAN.md` is never attached (even if you try to match it).
 - If a pattern matches zero files, it’s silently ignored.
+
 ## AI Rewrite
 
 MkBrowser includes an AI-powered **Rewrite** feature that can improve the content you're currently editing. When you have a Markdown or text file open in the editor, a **Rewrite** button appears in the toolbar alongside the Save and Cancel buttons.
@@ -603,16 +604,37 @@ MkBrowser includes an AI-powered **Rewrite** feature that can improve the conten
 
 ### Customizing the Rewrite Prompt
 
-By default, the Rewrite feature asks the AI to fix grammar, improve clarity, and enhance readability while preserving your original meaning and structure.
+MkBrowser lets you create multiple **named rewrite prompts** so you can switch between different AI instructions depending on the type of writing you're working on. The currently selected prompt is what gets sent to the AI when you click **Rewrite**.
 
-You can customize this prompt in **Settings → AI Settings** under the **Prompts** section:
+Prompts are managed in **Settings → AI Settings** under the **Prompts** section.
 
-1. Open **Settings → AI Settings**.
-2. Scroll to the **Prompts** section.
-3. Edit the **Rewrite Prompt** textarea to change the instructions sent to the AI.
-4. Click away from the textarea to save your changes.
+#### Creating a new prompt
 
-Use the **Set Default** button to restore the original prompt at any time.
+1. Open **Settings → AI Settings** and scroll to the **Prompts** section.
+2. Type a new name (e.g. `Academic`, `Casual`, `Concise`) into the name field at the top of the section.
+3. Type your instructions into the textarea below.
+4. Click **Save**.
 
-**Tip:** You can tailor the prompt for different writing styles — for example, instruct the AI to use a formal academic tone, simplify language for a general audience, or rewrite content in a specific format.
+#### Selecting the active prompt
+
+Click the dropdown arrow on the name field, or start typing a name, to see your saved prompts. Select one from the list — its text will load into the textarea and it becomes the active prompt used by the **Rewrite** button.
+
+#### Editing an existing prompt
+
+1. Select the prompt you want to change from the name field.
+2. Edit the text in the textarea.
+3. Click **Save** to update it.
+
+#### Deleting a prompt
+
+1. Select the prompt you want to remove.
+2. Click **Delete** and confirm.
+
+#### Reset to Default
+
+While a prompt is selected, the **Reset to Default** button replaces the textarea content with the built-in default instructions (fix grammar, improve clarity, enhance readability). Click **Save** afterwards if you want to keep that as the prompt's new content.
+
+If no prompt is selected, or all prompts have been deleted, the built-in default instructions are used automatically when you click **Rewrite**.
+
+**Tip:** Create a prompt for each writing context you work in — for example, a formal academic tone, plain language for a general audience, or a structured bullet-point format. Switch between them from the name dropdown without leaving your document.
 
