@@ -56,6 +56,7 @@ export interface AppConfig {
   llamacppFolder?: string;
   agenticMode?: boolean;
   agenticAllowedFolders?: string;
+  aiRewritePrompt?: string;
 }
 
 export interface FileEntry {

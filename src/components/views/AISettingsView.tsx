@@ -6,6 +6,7 @@ import {
 } from '../../store';
 import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../global.d.ts';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
+import { DEFAULT_AI_REWRITE_PROMPT } from '../../utils/aiPromptDefaults';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import MessageDialog from '../dialogs/MessageDialog';
@@ -21,6 +22,7 @@ function AISettingsView() {
   const [llamacppFolder, setLlamacppFolder] = useState<string>('');
   const [llamaServerStatus, setLlamaServerStatus] = useState<string>('stopped');
   const [llamaServerBusy, setLlamaServerBusy] = useState(false);
+  const [aiRewritePrompt, setAiRewritePrompt] = useState<string>('');
 
   // AI model CRUD dialog state
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -47,6 +49,7 @@ function AISettingsView() {
       if (config.llamacppFolder) setLlamacppFolder(config.llamacppFolder);
       if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
       if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
+      setAiRewritePrompt(config.aiRewritePrompt ?? '');
     });
     // Load AI usage stats
     window.electronAPI.getAiUsage().then(setUsageData);
@@ -491,6 +494,36 @@ function AISettingsView() {
               )}
             </div>
           </section>
+
+          {/* Prompts */}
+          {aiEnabled && (
+            <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+              <h2 className="text-lg font-semibold text-slate-100 mb-4">Prompts</h2>
+              <div>
+                <label className="text-slate-300 text-sm block mb-1">Rewrite Prompt</label>
+                <textarea
+                  value={aiRewritePrompt || DEFAULT_AI_REWRITE_PROMPT}
+                  onChange={(e) => setAiRewritePrompt(e.target.value)}
+                  onBlur={() => {
+                    const valueToSave = aiRewritePrompt === DEFAULT_AI_REWRITE_PROMPT ? '' : aiRewritePrompt;
+                    void saveAiConfigField({ aiRewritePrompt: valueToSave || undefined });
+                  }}
+                  rows={5}
+                  className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAiRewritePrompt('');
+                    void saveAiConfigField({ aiRewritePrompt: undefined });
+                  }}
+                  className="mt-2 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-slate-100 border border-slate-600 rounded-lg transition-colors"
+                >
+                  Set Default
+                </button>
+              </div>
+            </section>
+          )}
         </div>
         </div>
       </main>

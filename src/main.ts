@@ -10,6 +10,7 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { HASHTAG_REGEX } from './utils/hashtagRegex';
+import { DEFAULT_AI_REWRITE_PROMPT } from './utils/aiPromptDefaults';
 import { invokeAI, streamAI, queueScriptedAnswer, hasScriptedAnswer, findNextNumberedFolder, gatherConversationHistory, preprocessPrompt, AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './ai/aiUtil';
 import type { StreamCallbacks } from './ai/aiUtil';
 import { recordUsage, getUsageWithCosts, resetUsage } from './ai/usageTracker';
@@ -933,8 +934,9 @@ function setupIpcHandlers(): void {
         }
       }
 
+      const rewritePromptTemplate = getConfig().aiRewritePrompt || DEFAULT_AI_REWRITE_PROMPT;
       const prompt = {
-        text: `You are a skilled editor. Rewrite and improve the following content. Fix grammar, improve clarity, and enhance readability while preserving the original meaning and structure. Return ONLY the rewritten content — no preamble, no explanation, no markdown code fences, no wrapping. Just the improved text.\n\n${content}`,
+        text: `${rewritePromptTemplate}\n\n${content}`,
         images: [] as never[],
         fileDirectivesFound: false,
       };
