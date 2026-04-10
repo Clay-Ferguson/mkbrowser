@@ -704,8 +704,8 @@ export function setItemEditing(path: string, editing: boolean, goToLine?: number
     ...existing,
     editing,
     goToLine: editing ? goToLine : undefined,
-    // Clear editContent when exiting edit mode
-    ...(editing ? {} : { editContent: undefined }),
+    // Clear editContent and reviewing state when exiting edit mode
+    ...(editing ? {} : { editContent: undefined, reviewing: undefined, rewrittenContent: undefined }),
   });
 
   state = {
@@ -716,7 +716,23 @@ export function setItemEditing(path: string, editing: boolean, goToLine?: number
   emitChange();
 }
 
+/**
+ * Set the reviewing (diff review) state for a file.
+ */
+export function setItemReviewing(path: string, reviewing: boolean, rewrittenContent?: string): void {
+  const existing = state.items.get(path);
+  if (!existing) return;
 
+  const newItems = new Map(state.items);
+  newItems.set(path, {
+    ...existing,
+    reviewing,
+    rewrittenContent: reviewing ? rewrittenContent : undefined,
+  });
+
+  state = { ...state, items: newItems };
+  emitChange();
+}
 
 /**
  * Set the current edit content for a file (used during editing).

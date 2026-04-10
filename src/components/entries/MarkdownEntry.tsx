@@ -19,11 +19,13 @@ import {
   navigateToBrowserPath,
   setPendingEditFile,
   setPendingThreadScrollToBottom,
+  setItemReviewing,
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import StreamingDialog from '../dialogs/StreamingDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
+import DiffReviewEditor from '../editor/DiffReviewEditor';
 import TagsPicker from './TagsPicker';
 import { createCustomImage } from './markdownImgResolver';
 import {
@@ -37,6 +39,7 @@ import {
   SelectionCheckbox,
   type BaseEntryProps,
 } from './common';
+import { mockRewrite } from '../../utils/mockRewrite';
 
 // Initialize mermaid with dark theme
 mermaid.initialize({
@@ -503,23 +506,39 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
         )}
         {edit.isEditing ? (
           <div className="flex items-center gap-2">
-            <button
-              onClick={edit.handleCancel}
-              disabled={edit.saving}
-              className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
-              data-testid="entry-cancel-button"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={edit.handleSave}
-              disabled={edit.saving}
-              className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-50"
-              data-testid="entry-save-button"
-            >
-              {edit.saving ? 'Saving...' : 'Save'}
-            </button>
-            {isHumanFile && (
+            {!item?.reviewing && (
+              <button
+                onClick={() => {
+                  const rewritten = mockRewrite(edit.editContent);
+                  setItemReviewing(entry.path, true, rewritten);
+                }}
+                disabled={edit.saving}
+                className="px-3 py-1 text-sm text-white bg-amber-600 hover:bg-amber-500 rounded transition-colors disabled:opacity-50"
+              >
+                Rewrite
+              </button>
+            )}
+            {!item?.reviewing && (
+              <>
+                <button
+                  onClick={edit.handleCancel}
+                  disabled={edit.saving}
+                  className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
+                  data-testid="entry-cancel-button"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={edit.handleSave}
+                  disabled={edit.saving}
+                  className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-50"
+                  data-testid="entry-save-button"
+                >
+                  {edit.saving ? 'Saving...' : 'Save'}
+                </button>
+              </>
+            )}
+            {isHumanFile && !item?.reviewing && (
               <button
                 data-testid="ask-ai-button"
                 onClick={async () => {
@@ -593,15 +612,28 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
             <div className="text-slate-400 text-sm">Loading...</div>
           ) : edit.isEditing ? (
             <>
-              <CodeMirrorEditor
-                value={edit.editContent}
-                onChange={edit.setEditContent}
-                placeholder="Enter markdown content..."
-                language="markdown"
-                autoFocus
-                goToLine={item?.goToLine}
-                onGoToLineComplete={() => clearItemGoToLine(entry.path)}
-              />
+              {item?.reviewing && item.rewrittenContent !== undefined ? (
+                <DiffReviewEditor
+                  originalText={edit.editContent}
+                  modifiedText={item.rewrittenContent}
+                  language="markdown"
+                  onAcceptAll={(finalText) => {
+                    edit.setEditContent(finalText);
+                    setItemReviewing(entry.path, false);
+                  }}
+                  onCancel={() => setItemReviewing(entry.path, false)}
+                />
+              ) : (
+                <CodeMirrorEditor
+                  value={edit.editContent}
+                  onChange={edit.setEditContent}
+                  placeholder="Enter markdown content..."
+                  language="markdown"
+                  autoFocus
+                  goToLine={item?.goToLine}
+                  onGoToLineComplete={() => clearItemGoToLine(entry.path)}
+                />
+              )}
               <TagsPicker filePath={entry.path} />
             </>
           ) : (

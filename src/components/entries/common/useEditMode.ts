@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, upsertItem } from '../../../store';
+import { useItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing, upsertItem } from '../../../store';
 import type { EditModeState } from './types';
 
 interface UseEditModeOptions {
@@ -70,6 +70,7 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
   };
 
   const handleCancel = () => {
+    setItemReviewing(path, false);
     setItemEditing(path, false);
   };
 

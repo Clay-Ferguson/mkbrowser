@@ -13,6 +13,7 @@ export {
   setItemExpanded,
   setItemEditing,
   setItemEditContent,
+  setItemReviewing,
   getItemEditContent,
   clearItemGoToLine,
   setItemRenaming,

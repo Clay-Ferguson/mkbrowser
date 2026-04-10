@@ -63,6 +63,16 @@ export interface ItemData {
   goToLine?: number;
 
   /**
+   * Whether the file is currently in diff review mode (showing rewrite diff).
+   */
+  reviewing?: boolean;
+
+  /**
+   * Rewritten content for diff comparison (only set while reviewing).
+   */
+  rewrittenContent?: string;
+
+  /**
    * Preview text from HUMAN.md or AI.md for AI conversation folders.
    * Only populated when aiEnabled is true in AppConfig.
    */
