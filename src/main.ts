@@ -934,7 +934,12 @@ function setupIpcHandlers(): void {
         }
       }
 
-      const rewritePromptTemplate = getConfig().aiRewritePrompt || DEFAULT_AI_REWRITE_PROMPT;
+      const _rwConfig = getConfig();
+      const _selectedPromptName = _rwConfig.aiRewritePrompt;
+      const _namedPrompt = _selectedPromptName
+        ? (_rwConfig.aiRewritePrompts ?? []).find((p) => p.name === _selectedPromptName)
+        : undefined;
+      const rewritePromptTemplate = _namedPrompt?.prompt ?? DEFAULT_AI_REWRITE_PROMPT;
       const prompt = {
         text: `${rewritePromptTemplate}\n\n${content}`,
         images: [] as never[],

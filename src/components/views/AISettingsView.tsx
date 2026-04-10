@@ -4,7 +4,8 @@ import {
   setAiSettingsScrollPosition,
   getAiSettingsScrollPosition,
 } from '../../store';
-import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../global.d.ts';
+import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../global.d.ts';
+import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import { DEFAULT_AI_REWRITE_PROMPT } from '../../utils/aiPromptDefaults';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
@@ -22,7 +23,10 @@ function AISettingsView() {
   const [llamacppFolder, setLlamacppFolder] = useState<string>('');
   const [llamaServerStatus, setLlamaServerStatus] = useState<string>('stopped');
   const [llamaServerBusy, setLlamaServerBusy] = useState(false);
-  const [aiRewritePrompt, setAiRewritePrompt] = useState<string>('');
+  const [selectedPromptName, setSelectedPromptName] = useState<string>('');
+  const [aiRewritePrompts, setAiRewritePrompts] = useState<AIRewritePromptDef[]>([]);
+  const [promptEditorContent, setPromptEditorContent] = useState<string>('');
+  const [showPromptDeleteConfirm, setShowPromptDeleteConfirm] = useState(false);
 
   // AI model CRUD dialog state
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -49,7 +53,12 @@ function AISettingsView() {
       if (config.llamacppFolder) setLlamacppFolder(config.llamacppFolder);
       if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
       if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
-      setAiRewritePrompt(config.aiRewritePrompt ?? '');
+      const savedName = config.aiRewritePrompt ?? '';
+      const savedPrompts = config.aiRewritePrompts ?? [];
+      setSelectedPromptName(savedName);
+      setAiRewritePrompts(savedPrompts);
+      const matched = savedName ? savedPrompts.find((p) => p.name === savedName) : undefined;
+      setPromptEditorContent(matched?.prompt ?? '');
     });
     // Load AI usage stats
     window.electronAPI.getAiUsage().then(setUsageData);
@@ -500,26 +509,68 @@ function AISettingsView() {
             <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
               <h2 className="text-lg font-semibold text-slate-100 mb-4">Prompts</h2>
               <div>
-                <label className="text-slate-300 text-sm block mb-1">Rewrite Prompt</label>
+                <label className="text-slate-300 text-sm block mb-2">Rewrite Prompts</label>
+                {/* Combobox row: name selector + Save + Delete */}
+                <div className="flex gap-3 mb-3">
+                  <EditableCombobox
+                    value={selectedPromptName}
+                    onChange={(name) => {
+                      setSelectedPromptName(name);
+                      // If the typed name no longer matches a saved prompt, clear the editor
+                      const matched = aiRewritePrompts.find((p) => p.name === name);
+                      setPromptEditorContent(matched?.prompt ?? '');
+                    }}
+                    onSelect={(option: ComboboxOption) => {
+                      setSelectedPromptName(option.value);
+                      const matched = aiRewritePrompts.find((p) => p.name === option.value);
+                      setPromptEditorContent(matched?.prompt ?? '');
+                    }}
+                    options={[...aiRewritePrompts]
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((p) => ({ value: p.name, label: p.name }))}
+                    placeholder="Enter a name or select existing..."
+                    className="flex-1"
+                  />
+                  <button
+                    type="button"
+                    disabled={!selectedPromptName.trim()}
+                    onClick={() => {
+                      const name = selectedPromptName.trim();
+                      if (!name) return;
+                      const updated = aiRewritePrompts.filter((p) => p.name !== name);
+                      updated.push({ name, prompt: promptEditorContent });
+                      setAiRewritePrompts(updated);
+                      void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: name });
+                    }}
+                    className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-500 disabled:bg-green-600/50 disabled:cursor-not-allowed rounded transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!selectedPromptName.trim() || !aiRewritePrompts.some((p) => p.name === selectedPromptName)}
+                    onClick={() => setShowPromptDeleteConfirm(true)}
+                    className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-500 disabled:bg-red-600/50 disabled:cursor-not-allowed rounded transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+                {/* Prompt text editor */}
                 <textarea
-                  value={aiRewritePrompt || DEFAULT_AI_REWRITE_PROMPT}
-                  onChange={(e) => setAiRewritePrompt(e.target.value)}
-                  onBlur={() => {
-                    const valueToSave = aiRewritePrompt === DEFAULT_AI_REWRITE_PROMPT ? '' : aiRewritePrompt;
-                    void saveAiConfigField({ aiRewritePrompt: valueToSave || undefined });
-                  }}
+                  value={promptEditorContent}
+                  onChange={(e) => setPromptEditorContent(e.target.value)}
+                  disabled={!selectedPromptName.trim()}
                   rows={5}
-                  className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-sm"
+                  placeholder={DEFAULT_AI_REWRITE_PROMPT}
+                  className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-sm disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-slate-500"
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    setAiRewritePrompt('');
-                    void saveAiConfigField({ aiRewritePrompt: undefined });
-                  }}
-                  className="mt-2 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-slate-100 border border-slate-600 rounded-lg transition-colors"
+                  disabled={!selectedPromptName.trim()}
+                  onClick={() => setPromptEditorContent(DEFAULT_AI_REWRITE_PROMPT)}
+                  className="mt-2 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-slate-100 border border-slate-600 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  Set Default
+                  Reset to Default
                 </button>
               </div>
             </section>
@@ -570,6 +621,22 @@ function AISettingsView() {
           message="Reset all AI usage statistics to zero? This cannot be undone."
           onConfirm={handleResetUsage}
           onCancel={() => setShowResetConfirm(false)}
+        />
+      )}
+
+      {/* Delete rewrite prompt confirmation */}
+      {showPromptDeleteConfirm && (
+        <ConfirmDialog
+          message={`Delete prompt "${selectedPromptName}"?`}
+          onConfirm={() => {
+            const updated = aiRewritePrompts.filter((p) => p.name !== selectedPromptName);
+            setAiRewritePrompts(updated);
+            setSelectedPromptName('');
+            setPromptEditorContent('');
+            setShowPromptDeleteConfirm(false);
+            void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: undefined });
+          }}
+          onCancel={() => setShowPromptDeleteConfirm(false)}
         />
       )}
     </div>

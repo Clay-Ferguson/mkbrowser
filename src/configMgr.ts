@@ -65,6 +65,11 @@ export interface AIModelConfig {
   readonly: boolean;
 }
 
+export interface AIRewritePromptDef {
+  name: string;
+  prompt: string;
+}
+
 export interface AppConfig {
   browseFolder: string;
   curSubFolder?: string;
@@ -76,7 +81,10 @@ export interface AppConfig {
   llamacppFolder?: string;
   agenticMode?: boolean;
   agenticAllowedFolders?: string;
+  /** The name of the currently selected rewrite prompt. */
   aiRewritePrompt?: string;
+  /** Named rewrite prompts available to the user. */
+  aiRewritePrompts?: AIRewritePromptDef[];
 }
 
 // ---------------------------------------------------------------------------
