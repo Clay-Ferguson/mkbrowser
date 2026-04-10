@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
@@ -20,12 +21,13 @@ import {
   SelectionCheckbox,
   type BaseEntryProps,
 } from './common';
-import { mockRewrite } from '../../utils/mockRewrite';
+
 
 type TextEntryProps = BaseEntryProps;
 
 function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: TextEntryProps) {
   const item = useItem(entry.path);
+  const [isRewriting, setIsRewriting] = useState(false);
   
   const {
     isRenaming,
@@ -102,14 +104,25 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
           <div className="flex items-center gap-2">
             {!item?.reviewing && (
               <button
-                onClick={() => {
-                  const rewritten = mockRewrite(edit.editContent);
-                  setItemReviewing(entry.path, true, rewritten);
+                onClick={async () => {
+                  setIsRewriting(true);
+                  try {
+                    const result = await window.electronAPI.rewriteContent(edit.editContent);
+                    if ('error' in result) {
+                      console.error('Rewrite failed:', result.error);
+                    } else {
+                      setItemReviewing(entry.path, true, result.rewrittenContent);
+                    }
+                  } catch (err) {
+                    console.error('Rewrite failed:', err);
+                  } finally {
+                    setIsRewriting(false);
+                  }
                 }}
-                disabled={edit.saving}
+                disabled={edit.saving || isRewriting}
                 className="px-3 py-1 text-sm text-white bg-amber-600 hover:bg-amber-500 rounded transition-colors disabled:opacity-50"
               >
-                Rewrite
+                {isRewriting ? 'Rewriting...' : 'Rewrite'}
               </button>
             )}
             {!item?.reviewing && (

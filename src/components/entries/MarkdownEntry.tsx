@@ -39,7 +39,7 @@ import {
   SelectionCheckbox,
   type BaseEntryProps,
 } from './common';
-import { mockRewrite } from '../../utils/mockRewrite';
+
 
 // Initialize mermaid with dark theme
 mermaid.initialize({
@@ -410,6 +410,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
   const isHumanFile = aiEnabled && entry.name === 'HUMAN.md';
   const isAiFile = aiEnabled && entry.name === 'AI.md';
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isRewriting, setIsRewriting] = useState(false);
   const [isReplyLoading, setIsReplyLoading] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [showStreamingDialog, setShowStreamingDialog] = useState(false);
@@ -508,14 +509,25 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
           <div className="flex items-center gap-2">
             {!item?.reviewing && (
               <button
-                onClick={() => {
-                  const rewritten = mockRewrite(edit.editContent);
-                  setItemReviewing(entry.path, true, rewritten);
+                onClick={async () => {
+                  setIsRewriting(true);
+                  try {
+                    const result = await window.electronAPI.rewriteContent(edit.editContent);
+                    if ('error' in result) {
+                      console.error('Rewrite failed:', result.error);
+                    } else {
+                      setItemReviewing(entry.path, true, result.rewrittenContent);
+                    }
+                  } catch (err) {
+                    console.error('Rewrite failed:', err);
+                  } finally {
+                    setIsRewriting(false);
+                  }
                 }}
-                disabled={edit.saving}
+                disabled={edit.saving || isRewriting}
                 className="px-3 py-1 text-sm text-white bg-amber-600 hover:bg-amber-500 rounded transition-colors disabled:opacity-50"
               >
-                Rewrite
+                {isRewriting ? 'Rewriting...' : 'Rewrite'}
               </button>
             )}
             {!item?.reviewing && (

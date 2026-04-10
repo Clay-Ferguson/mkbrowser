@@ -918,6 +918,44 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Rewrite content via AI: takes raw text, returns improved version
+  ipcMain.handle('rewrite-content', async (
+    _event,
+    content: string
+  ): Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }> => {
+    try {
+      // If using a LLAMACPP model, ensure the server is running before inference
+      {
+        const config = getConfig();
+        const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
+        if (activeModel?.provider === 'LLAMACPP') {
+          await ensureRunning();
+        }
+      }
+
+      const prompt = {
+        text: `You are a skilled editor. Rewrite and improve the following content. Fix grammar, improve clarity, and enhance readability while preserving the original meaning and structure. Return ONLY the rewritten content — no preamble, no explanation, no markdown code fences, no wrapping. Just the improved text.\n\n${content}`,
+        images: [] as never[],
+        fileDirectivesFound: false,
+      };
+
+      const result = await invokeAI(prompt);
+
+      // Record token usage if available
+      if (result.usage) {
+        const config = getConfig();
+        const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
+        const provider = activeModel?.provider ?? 'ANTHROPIC';
+        recordUsage(provider, result.usage.input_tokens, result.usage.output_tokens);
+      }
+
+      return { rewrittenContent: result.content, usage: result.usage };
+    } catch (error) {
+      console.error('Error in rewrite-content handler:', error);
+      return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
   // Queue a scripted AI answer for Playwright demo tests
   ipcMain.handle('queue-scripted-answer', (_event, answer: string) => {
     queueScriptedAnswer(answer);
