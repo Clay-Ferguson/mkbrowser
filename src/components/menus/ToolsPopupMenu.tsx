@@ -71,15 +71,11 @@ export default function ToolsPopupMenu({
         data-testid="menu-settings"
         onClick={() => { onSettings(); onClose(); }}
       />
-      {aiEnabled && (
-        <>
-          <PopupMenuItem
-            label="AI Settings"
-            data-testid="menu-ai-settings"
-            onClick={() => { onAiSettings(); onClose(); }}
-          />
-        </>
-      )}
+      <PopupMenuItem
+        label="AI Settings"
+        data-testid="menu-ai-settings"
+        onClick={() => { onAiSettings(); onClose(); }}
+      />
     </PopupMenu>
   );
 }

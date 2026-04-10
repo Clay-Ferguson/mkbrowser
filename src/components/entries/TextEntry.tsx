@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
@@ -28,6 +28,12 @@ type TextEntryProps = BaseEntryProps;
 function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: TextEntryProps) {
   const item = useItem(entry.path);
   const [isRewriting, setIsRewriting] = useState(false);
+  const [selectedPromptName, setSelectedPromptName] = useState<string>('');
+  useEffect(() => {
+    window.electronAPI.getConfig().then((config) => {
+      setSelectedPromptName(config.aiRewritePrompt ?? '');
+    });
+  }, []);
   
   const {
     isRenaming,
@@ -120,6 +126,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
                   }
                 }}
                 disabled={edit.saving || isRewriting}
+                title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : 'Rewrite'}
                 className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
               >
                 {isRewriting ? 'Rewriting...' : 'Rewrite'}

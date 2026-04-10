@@ -401,9 +401,11 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
   };
 
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [selectedPromptName, setSelectedPromptName] = useState<string>('');
   useEffect(() => {
     window.electronAPI.getConfig().then((config) => {
       setAiEnabled(!!config.aiEnabled);
+      setSelectedPromptName(config.aiRewritePrompt ?? '');
     });
   }, []);
 
@@ -525,6 +527,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                   }
                 }}
                 disabled={edit.saving || isRewriting}
+                title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : 'Rewrite'}
                 className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
               >
                 {isRewriting ? 'Rewriting...' : 'Rewrite'}

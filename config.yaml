@@ -70,3 +70,4 @@ settings:
       sortDirection: desc
   contentWidth: full
   bookmarks: []
+aiEnabled: true

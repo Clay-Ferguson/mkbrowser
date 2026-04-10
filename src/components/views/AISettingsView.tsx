@@ -562,7 +562,7 @@ function AISettingsView() {
                   disabled={!selectedPromptName.trim()}
                   rows={5}
                   placeholder={DEFAULT_AI_REWRITE_PROMPT}
-                  className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-sm disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-slate-500"
+                  className="w-full bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-base font-mono disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-slate-500"
                 />
                 <button
                   type="button"
