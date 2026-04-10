@@ -586,5 +586,33 @@ Notes:
 
 - `HUMAN.md` is never attached (even if you try to match it).
 - If a pattern matches zero files, it’s silently ignored.
+## AI Rewrite
 
+MkBrowser includes an AI-powered **Rewrite** feature that can improve the content you're currently editing. When you have a Markdown or text file open in the editor, a **Rewrite** button appears in the toolbar alongside the Save and Cancel buttons.
+
+### How to use Rewrite
+
+1. Open a file for editing by clicking the **Edit** button (pencil icon).
+2. Write or modify your content in the editor.
+3. Click the **Rewrite** button (amber/orange). The button text changes to "Rewriting..." while the AI processes your content.
+4. When the AI finishes, a **diff review editor** appears showing your original text alongside the AI's suggested changes, with additions and deletions highlighted.
+5. Review the changes, then:
+   - Click **Accept All** to replace your editor content with the rewritten version.
+   - Click **Cancel Rewrite** to discard the suggestions and keep your original text.
+6. After accepting, you can continue editing or click **Save** to write the file to disk.
+
+### Customizing the Rewrite Prompt
+
+By default, the Rewrite feature asks the AI to fix grammar, improve clarity, and enhance readability while preserving your original meaning and structure.
+
+You can customize this prompt in **Settings → AI Settings** under the **Prompts** section:
+
+1. Open **Settings → AI Settings**.
+2. Scroll to the **Prompts** section.
+3. Edit the **Rewrite Prompt** textarea to change the instructions sent to the AI.
+4. Click away from the textarea to save your changes.
+
+Use the **Set Default** button to restore the original prompt at any time.
+
+**Tip:** You can tailor the prompt for different writing styles — for example, instruct the AI to use a formal academic tone, simplify language for a general audience, or rewrite content in a specific format.
 
