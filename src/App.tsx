@@ -1518,8 +1518,31 @@ function App() {
               return;
             }
             const escapedOcrFolder = ocrFolder.replace(/'/g, "'\\''");
-            const escapedPath = currentPath.replace(/'/g, "'\\''");
-            const command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'\n`;
+
+            // Check if any items are selected in the browser view
+            const selectedImages = Array.from(items.values()).filter(
+              (item) => item.isSelected && !item.isDirectory && isImageFile(item.name)
+            );
+            const hasAnySelection = Array.from(items.values()).some((item) => item.isSelected);
+
+            let command: string;
+            if (hasAnySelection) {
+              if (selectedImages.length === 0) {
+                setError('No image files in the current selection. Select one or more image files to run OCR.');
+                return;
+              }
+              // Build a batch command: one ocr.sh invocation per selected image
+              const ocrCalls = selectedImages.map((img, i) => {
+                const escapedImg = img.path.replace(/'/g, "'\\''");
+                return `echo "--- OCR [${i + 1}/${selectedImages.length}]: ${img.name} ---" && ./ocr.sh '${escapedImg}'`;
+              });
+              command = `cd '${escapedOcrFolder}' && ${ocrCalls.join(' && ')}\n`;
+            } else {
+              // No selection — folder-level OCR (existing behavior)
+              const escapedPath = currentPath.replace(/'/g, "'\\''");
+              command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'\n`;
+            }
+
             const terminalAlreadyVisible = isTabVisible('terminal');
             showTab('terminal');
             setCurrentView('terminal');
