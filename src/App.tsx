@@ -1563,7 +1563,7 @@ function App() {
 
       {showDeleteConfirm && (
         <ConfirmDialog
-          message={`Are you sure you want to delete ${getSelectedItems().length} selected item(s)? This cannot be undone.`}
+          message={`Move ${getSelectedItems().length} selected item(s) to trash?`}
           onConfirm={() => void performDelete()}
           onCancel={() => setShowDeleteConfirm(false)}
         />

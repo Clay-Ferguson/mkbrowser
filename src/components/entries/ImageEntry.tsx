@@ -308,7 +308,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
       {/* Fullscreen delete confirmation */}
       {showFullscreenDeleteConfirm && (
         <ConfirmDialog
-          message={`Are you sure you want to delete "${currentFullscreenImage.name}"?`}
+          message={`Move "${currentFullscreenImage.name}" to trash?`}
           onConfirm={handleFullscreenDeleteConfirm}
           onCancel={handleFullscreenDeleteCancel}
         />
@@ -316,7 +316,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
 
       {del.showDeleteConfirm && (
         <ConfirmDialog
-          message={`Are you sure you want to delete "${entry.name}"?`}
+          message={`Move "${entry.name}" to trash?`}
           onConfirm={del.handleDeleteConfirm}
           onCancel={del.handleDeleteCancel}
         />

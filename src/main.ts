@@ -374,13 +374,13 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Delete a file or folder
+  // Delete a file or folder (moves to OS trash)
   ipcMain.handle('delete-file', async (_event, filePath: string): Promise<boolean> => {
     try {
-      await fs.promises.rm(filePath, { recursive: true });
+      await shell.trashItem(filePath);
       return true;
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error('Error moving to trash:', error);
       return false;
     }
   });

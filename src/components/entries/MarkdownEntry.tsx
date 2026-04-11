@@ -675,7 +675,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
       )}
       {del.showDeleteConfirm && (
         <ConfirmDialog
-          message={`Are you sure you want to delete "${entry.name}"?`}
+          message={`Move "${entry.name}" to trash?`}
           onConfirm={del.handleDeleteConfirm}
           onCancel={del.handleDeleteCancel}
         />

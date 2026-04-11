@@ -125,7 +125,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
       )}
       {del.showDeleteConfirm && (
         <ConfirmDialog
-          message={`Are you sure you want to delete the folder "${entry.name}" and all its contents?`}
+          message={`Move the folder "${entry.name}" and all its contents to trash?`}
           onConfirm={del.handleDeleteConfirm}
           onCancel={del.handleDeleteCancel}
         />

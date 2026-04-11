@@ -210,7 +210,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
       )}
       {del.showDeleteConfirm && (
         <ConfirmDialog
-          message={`Are you sure you want to delete "${entry.name}"?`}
+          message={`Move "${entry.name}" to trash?`}
           onConfirm={del.handleDeleteConfirm}
           onCancel={del.handleDeleteCancel}
         />
