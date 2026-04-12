@@ -614,7 +614,9 @@ MkBrowser includes an AI-powered **Rewrite** feature that can improve the conten
 
 ### Customizing the Rewrite Prompt
 
-MkBrowser lets you create multiple **named rewrite prompts** so you can switch between different AI instructions depending on the type of writing you're working on. The currently selected prompt is what gets sent to the AI when you click **Rewrite**.
+MkBrowser lets you create multiple **named rewrite personas** so you can switch between different AI instructions depending on the type of writing you're working on. The currently selected prompt is what gets sent to the AI when you click **Rewrite**.
+
+An example of a "Persona" would be something you could name "Hemmingway" which would contain this text: "You write very elaborately in the style of Ernest Hemmingway, adding your own flair and lengthening significantly the text, by adding your own creative (even if fictitious) ideas."
 
 Prompts are managed in **Settings → AI Settings** under the **Prompts** section.
 

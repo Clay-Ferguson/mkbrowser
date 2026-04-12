@@ -7,7 +7,7 @@ import {
 import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../global.d.ts';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
-import { DEFAULT_AI_REWRITE_PROMPT } from '../../utils/aiPromptDefaults';
+import { DEFAULT_AI_REWRITE_PERSONA } from '../../utils/aiPromptDefaults';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import MessageDialog from '../dialogs/MessageDialog';
@@ -509,7 +509,7 @@ function AISettingsView() {
             <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
               <h2 className="text-lg font-semibold text-slate-100 mb-4">Prompts</h2>
               <div>
-                <label className="text-slate-300 text-sm block mb-2">Rewrite Prompts</label>
+                <label className="text-slate-300 text-sm block mb-2">Rewrite Personas</label>
                 {/* Combobox row: name selector + Save + Delete */}
                 <div className="flex gap-3 mb-3">
                   <EditableCombobox
@@ -561,13 +561,13 @@ function AISettingsView() {
                   onChange={(e) => setPromptEditorContent(e.target.value)}
                   disabled={!selectedPromptName.trim()}
                   rows={5}
-                  placeholder={DEFAULT_AI_REWRITE_PROMPT}
+                  placeholder={DEFAULT_AI_REWRITE_PERSONA}
                   className="w-full bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-base font-mono disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-slate-500"
                 />
                 <button
                   type="button"
                   disabled={!selectedPromptName.trim()}
-                  onClick={() => setPromptEditorContent(DEFAULT_AI_REWRITE_PROMPT)}
+                  onClick={() => setPromptEditorContent(DEFAULT_AI_REWRITE_PERSONA)}
                   className="mt-2 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-slate-100 border border-slate-600 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Reset to Default

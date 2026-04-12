@@ -17,9 +17,8 @@ import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
 import { ensureRunning } from '../llamaServer';
-import { DEFAULT_AI_REWRITE_PROMPT } from '../utils/aiPromptDefaults';
+import { DEFAULT_AI_REWRITE_PERSONA, DEFAULT_AI_REWRITE_PROMPT } from '../utils/aiPromptDefaults';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
-import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from '../utils/aiPatterns';
 
 export { preprocessPrompt, wildcardToRegex, FILE_DIRECTIVE_REGEX } from './promptPreprocess';
 export type { PreprocessResult, ImageAttachment } from './promptPreprocess';
@@ -752,10 +751,10 @@ export async function handleRewriteContent(
   const namedPrompt = selectedPromptName
     ? (config.aiRewritePrompts ?? []).find((p) => p.name === selectedPromptName)
     : undefined;
-  const rewritePromptTemplate = namedPrompt?.prompt ?? DEFAULT_AI_REWRITE_PROMPT;
+  const rewritePromptTemplate = namedPrompt?.prompt ?? DEFAULT_AI_REWRITE_PERSONA;
 
   const prompt = {
-    text: `${rewritePromptTemplate}\n\n${content}`,
+    text: `${rewritePromptTemplate} ${DEFAULT_AI_REWRITE_PROMPT}\n\n<content>\n${content}\n</content>`,
     images: [] as never[],
     fileDirectivesFound: false,
   };
