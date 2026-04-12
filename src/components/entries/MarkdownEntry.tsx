@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { ArrowPathIcon, DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -396,6 +396,12 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
     content,
   });
 
+  const handleEscape = useCallback(() => {
+    if (edit.editContent === content) {
+      edit.handleCancel();
+    }
+  }, [edit.editContent, content, edit.handleCancel]);
+
   const handleToggleExpanded = () => {
     toggleItemExpanded(entry.path);
   };
@@ -647,6 +653,9 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                   autoFocus
                   goToLine={item?.goToLine}
                   onGoToLineComplete={() => clearItemGoToLine(entry.path)}
+                  onEscape={handleEscape}
+                  onForceCancel={edit.handleCancel}
+                  onSave={edit.handleSave}
                 />
               )}
               <TagsPicker filePath={entry.path} />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
@@ -69,6 +69,12 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
     path: entry.path,
     content,
   });
+
+  const handleEscape = useCallback(() => {
+    if (edit.editContent === content) {
+      edit.handleCancel();
+    }
+  }, [edit.editContent, content, edit.handleCancel]);
 
   const handleToggleExpanded = () => {
     toggleItemExpanded(entry.path);
@@ -195,6 +201,9 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
                 autoFocus
                 goToLine={item?.goToLine}
                 onGoToLineComplete={() => clearItemGoToLine(entry.path)}
+                onEscape={handleEscape}
+                onForceCancel={edit.handleCancel}
+                onSave={edit.handleSave}
               />
             )
           ) : (

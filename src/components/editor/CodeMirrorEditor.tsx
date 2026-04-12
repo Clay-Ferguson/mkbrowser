@@ -30,15 +30,27 @@ interface CodeMirrorEditorProps {
   goToLine?: number;
   /** Callback when goToLine has been processed (so parent can clear it) */
   onGoToLineComplete?: () => void;
+  /** Called when Escape is pressed (parent should cancel editing if content is unmodified) */
+  onEscape?: () => void;
+  /** Called when Ctrl-X is pressed — force-cancel editing without saving */
+  onForceCancel?: () => void;
+  /** Called when Ctrl-S is pressed — save and exit editing */
+  onSave?: () => void;
 }
 
-function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const fontSizeCompartment = useRef(new Compartment());
   const spellCheckCompartment = useRef(new Compartment());
   const typoRef = useRef<Typo | null>(null);
+  const onEscapeRef = useRef(onEscape);
+  const onForceCancelRef = useRef(onForceCancel);
+  const onSaveRef = useRef(onSave);
+  onEscapeRef.current = onEscape;
+  onForceCancelRef.current = onForceCancel;
+  onSaveRef.current = onSave;
   const settings = useSettings();
 
   const {
@@ -89,6 +101,36 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
       dateTooltipExtension,
       EditorView.lineWrapping,
       keymap.of([
+        {
+          key: 'Escape',
+          run: () => {
+            if (onEscapeRef.current) {
+              onEscapeRef.current();
+              return true;
+            }
+            return false;
+          },
+        },
+        {
+          key: 'Ctrl-x',
+          run: () => {
+            if (onForceCancelRef.current) {
+              onForceCancelRef.current();
+              return true;
+            }
+            return false;
+          },
+        },
+        {
+          key: 'Ctrl-s',
+          run: () => {
+            if (onSaveRef.current) {
+              onSaveRef.current();
+              return true;
+            }
+            return false;
+          },
+        },
         {
           key: 'Ctrl-t',
           run: (view) => {

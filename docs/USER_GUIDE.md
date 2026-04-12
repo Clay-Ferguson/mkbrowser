@@ -30,6 +30,16 @@ When a Markdown file is expanded, you can edit its content:
 3. Press `Save` button or use `Ctrl+S` / `Cmd+S` to save your changes.
 4. Click the **Close** button (X icon) to return to the rendered view.
 
+### Editor Keyboard Shortcuts
+
+While the code editor has focus, the following keyboard shortcuts are available:
+
+| Shortcut | Action |
+|----------|--------|
+| `Esc` | Exit editing — only works if you have **not** made any changes to the file. |
+| `Ctrl+X` | Abandon editing — discards all unsaved changes and exits without prompting. |
+| `Ctrl+S` | Save and exit — saves your changes to disk and returns to the rendered view. |
+
 ## Tag Picker
 
 While editing a Markdown file, a **tag picker** appears below the editor. It shows a row of clickable checkboxes — one for each hashtag defined in the nearest `.TAGS.md` file(s). You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand.
