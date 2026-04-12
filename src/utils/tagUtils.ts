@@ -46,3 +46,46 @@ export type TagsLoadState =
 export async function loadTagsForFile(filePath: string): Promise<string[]> {
   return window.electronAPI.collectAncestorTags(filePath);
 }
+
+/**
+ * Walk up the directory tree from the given file, reading `.TAGS.md` at each
+ * level and collecting unique hashtags. Returns them sorted case-insensitively.
+ *
+ * This is the main-process implementation behind the `collect-ancestor-tags` IPC.
+ */
+export async function collectAncestorTags(filePath: string): Promise<string[]> {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+
+  const seen = new Set<string>();
+  const tags: string[] = [];
+
+  // Start from the directory containing the file
+  let dir = path.dirname(filePath);
+  const root = path.parse(dir).root;
+
+  // Walk up the directory tree
+  while (true) {
+    const tagsFile = path.join(dir, '.TAGS.md');
+    try {
+      const content = await fs.promises.readFile(tagsFile, 'utf-8');
+      for (const tag of extractTagsFromText(content)) {
+        if (!seen.has(tag)) {
+          seen.add(tag);
+          tags.push(tag);
+        }
+      }
+    } catch {
+      // .TAGS.md doesn't exist at this level — that's fine, keep walking
+    }
+
+    // Stop at filesystem root
+    if (dir === root || dir === path.dirname(dir)) break;
+    dir = path.dirname(dir);
+  }
+
+  // Sort tags alphabetically (case-insensitive)
+  tags.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+  return tags;
+}

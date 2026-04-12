@@ -114,3 +114,58 @@ export function calculateRenameOperations(
 
   return operations;
 }
+
+/**
+ * Read a directory, compute ordinal rename operations, and execute them
+ * using a two-phase temp-rename strategy to avoid conflicts.
+ *
+ * @param dirPath Absolute path to the directory to renumber
+ * @returns Result with success flag, optional error, and the operations performed
+ */
+export async function renumberFiles(
+  dirPath: string
+): Promise<{ success: boolean; error?: string; operations?: RenameOperation[] }> {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+
+  // Read all entries in the directory
+  const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+
+  // Filter out hidden files and create items array
+  const items: Array<{ name: string; path: string }> = [];
+  for (const entry of entries) {
+    if (entry.name.startsWith('.')) continue;
+    items.push({
+      name: entry.name,
+      path: path.join(dirPath, entry.name),
+    });
+  }
+
+  // Sort alphabetically (case-insensitive), mixing files and folders together
+  items.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+
+  // Calculate rename operations
+  const operations = calculateRenameOperations(items, dirPath);
+
+  if (operations.length === 0) {
+    return { success: true, operations: [] };
+  }
+
+  // Perform renames - we need to be careful about order to avoid conflicts
+  // First, rename to temporary names, then to final names
+  const tempSuffix = `_temp_${Date.now()}`;
+
+  // Step 1: Rename all to temporary names
+  for (const op of operations) {
+    const tempPath = op.oldPath + tempSuffix;
+    await fs.promises.rename(op.oldPath, tempPath);
+  }
+
+  // Step 2: Rename from temporary to final names
+  for (const op of operations) {
+    const tempPath = op.oldPath + tempSuffix;
+    await fs.promises.rename(tempPath, op.newPath);
+  }
+
+  return { success: true, operations };
+}

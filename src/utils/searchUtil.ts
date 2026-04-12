@@ -1,4 +1,26 @@
 /**
+ * Parse a newline-delimited ignored-paths string into a trimmed, non-empty array.
+ */
+export function parseIgnoredPaths(raw: string): string[] {
+  return raw
+    .split('\n')
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
+}
+
+/**
+ * Convert an array of wildcard path patterns (e.g. "*.log", "temp*") into
+ * anchored, case-insensitive RegExp objects suitable for matching filenames.
+ */
+export function buildIgnoredPatterns(paths: string[]): RegExp[] {
+  return paths.map(pattern => {
+    const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+    const regexPattern = escaped.replace(/\*/g, '.*');
+    return new RegExp(`^${regexPattern}$`, 'i');
+  });
+}
+
+/**
  * Creates a search function that checks if content contains given text (case-insensitive)
  * and tracks the total number of matches found.
  * 

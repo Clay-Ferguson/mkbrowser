@@ -1,5 +1,8 @@
 import type { FileEntry } from "src/global";
 import type { SortOrder } from "src/store";
+import path from 'node:path';
+import fs from 'node:fs';
+import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './aiPatterns';
 
 interface FsOperations {
   stat: (path: string) => Promise<unknown>;
@@ -93,5 +96,87 @@ export function sortEntries(entries: FileEntry[], sortOrder: SortOrder, foldersO
     // Sort all items together
     return [...entries].sort((a, b) => compareByOrder(a, b, sortOrder));
   }
+}
+
+/**
+ * Read directory contents and return FileEntry[] for the renderer.
+ * Pure file-system logic — no Electron APIs.
+ */
+export async function readDirectory(dirPath: string, aiEnabled: boolean): Promise<FileEntry[]> {
+  // First check if directory exists
+  try {
+    const dirStat = await fs.promises.stat(dirPath);
+    if (!dirStat.isDirectory()) {
+      throw new Error(`Path is not a directory: ${dirPath}`);
+    }
+  } catch {
+    throw new Error(`Directory does not exist: ${dirPath}`);
+  }
+
+  const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+  const fileEntries: FileEntry[] = [];
+
+  // Auto-fix any filenames with leading whitespace by renaming them on disk
+  await trimLeadingWhitespaceFromNames(dirPath, entries, path.join, fs.promises);
+
+  for (const entry of entries) {
+    // Skip hidden files/folders (starting with .)
+    if (entry.name.startsWith('.')) continue;
+
+    const fullPath = path.join(dirPath, entry.name);
+    const isDirectory = entry.isDirectory();
+    const isMarkdown = !isDirectory && entry.name.toLowerCase().endsWith('.md');
+
+    // Get file stats for modification and creation time
+    let modifiedTime = 0;
+    let createdTime = 0;
+    try {
+      const stat = await fs.promises.stat(fullPath);
+      modifiedTime = stat.mtimeMs;
+      createdTime = stat.birthtimeMs;
+    } catch {
+      modifiedTime = Date.now();
+      createdTime = Date.now();
+    }
+
+    const fileEntry: FileEntry = {
+      name: entry.name,
+      path: fullPath,
+      isDirectory,
+      isMarkdown,
+      modifiedTime,
+      createdTime,
+    };
+
+    // Load AI conversation hint for H*/A* folders when aiEnabled
+    if (isDirectory && aiEnabled) {
+      const folderName = entry.name;
+      let hintFile: string | undefined;
+      if (HUMAN_FOLDER_REGEX.test(folderName)) {
+        hintFile = 'HUMAN.md';
+      } else if (AI_FOLDER_REGEX.test(folderName)) {
+        hintFile = 'AI.md';
+      }
+      if (hintFile) {
+        try {
+          const hintContent = await fs.promises.readFile(path.join(fullPath, hintFile), 'utf8');
+          fileEntry.aiHint = hintContent.slice(0, 120).trim();
+        } catch {
+          // File doesn't exist or can't be read — no hint
+        }
+      }
+    }
+
+    fileEntries.push(fileEntry);
+  }
+
+  // Sort: directories first, then files, alphabetically within each group
+  fileEntries.sort((a, b) => {
+    if (a.isDirectory && !b.isDirectory) return -1;
+    if (!a.isDirectory && b.isDirectory) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  return fileEntries;
 }
 
