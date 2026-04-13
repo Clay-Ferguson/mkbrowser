@@ -42,38 +42,52 @@ While the code editor has focus, the following keyboard shortcuts are available:
 
 ## Tag Picker
 
-While editing a Markdown file, a **tag picker** appears below the editor. It shows a row of clickable checkboxes — one for each hashtag defined in the nearest `.TAGS.md` file(s). You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand.
+While editing a Markdown file, a **tag picker** appears below the editor. It shows a row of clickable checkboxes — one for each hashtag defined in any `.TAGS.yaml` file(s) found in the file's ancestor directories. You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand.
 
 - **Checked** tags are already present somewhere in the file's content and are highlighted in blue.
 - **Unchecked** tags are not currently in the content.
 - Clicking an unchecked tag **appends** it to the end of the content.
 - Clicking a checked tag **removes** all occurrences of that tag from the content.
+- **Hover** over any tag to see its description.
 
 The checkboxes stay in sync with the editor as you type, so you can freely mix typing and clicking.
 
-### Setting up `.TAGS.md` files
+### Setting up `.TAGS.yaml` files
 
-The tag picker gets its list of available tags from `.TAGS.md` files placed in your folder tree. When you open a file for editing, MkBrowser walks up through that file's ancestor directories and reads every `.TAGS.md` it finds. Hashtags extracted from those files become the options in the tag picker.
+The tag picker gets its list of available tags from `.TAGS.yaml` files placed in your folder tree. When you open a file for editing, MkBrowser walks up through that file's ancestor directories and reads every `.TAGS.yaml` it finds. The tags defined in those files become the options in the tag picker. Tags are sorted alphabetically.
 
 **Example:** if your notes folder structure is:
 
 ```
 ~/notes/
-  .TAGS.md          ← defines #project #personal #archive
+  .TAGS.yaml          ← defines #project #personal #archive
   work/
-    .TAGS.md        ← defines #meeting #action-item
+    .TAGS.yaml        ← defines #meeting #action-item
     q1-review.md
 ```
 
-When editing `q1-review.md`, the tag picker will show all five tags: `#project`, `#personal`, `#archive`, `#meeting`, `#action-item`. Tags from the closest directory appear first; duplicates are deduplicated.
+When editing `q1-review.md`, the tag picker will show all five tags: `#project`, `#personal`, `#archive`, `#meeting`, `#action-item`, sorted alphabetically. If the same tag name is defined in more than one file, the definition from the furthest ancestor wins.
 
-**To create a `.TAGS.md` file**, just create a new Markdown file named `.TAGS.md` in any folder and write your desired hashtags inside it — one line, inline in a sentence, or anywhere you like. MkBrowser scans the file for anything that looks like a hashtag (a `#` followed by letters, numbers, underscores, or hyphens) and uses those as the tag list.
+**To create a `.TAGS.yaml` file**, create a new file named `.TAGS.yaml` in any folder using the following format:
 
-```markdown
-#project #personal #archive #in-progress #done
+```yaml
+# Hashtag Configuration File
+hashtags:
+  project: |
+    Use for anything related to an active project.
+  personal: |
+    Personal notes and reminders.
+  archive: |
+    Content that is finished and no longer active.
+  in-progress: |
+    Work that is currently underway.
+  done: |
+    Completed items.
 ```
 
-If no `.TAGS.md` files are found anywhere in the ancestor tree, the tag picker is hidden entirely.
+Each key under `hashtags` is a tag name (without the `#` — MkBrowser adds it automatically). The value is a description shown as a tooltip when you hover over the tag in the picker.
+
+If no `.TAGS.yaml` files are found anywhere in the ancestor tree, the tag picker is hidden entirely.
 
 ## Renaming
 You can rename any file or folder:
