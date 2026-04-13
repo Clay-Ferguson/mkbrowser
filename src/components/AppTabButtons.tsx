@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, useVisibleTabs, type AppView } from '../store';
-import { isAiThreadByEntries } from '../utils/aiPatterns';
+import { isAiThreadByEntries } from '../ai/aiPatterns';
 import type { FileEntry } from '../global';
 import appLogo from '../../public/icon-256.png';
 import FilePopupMenu from './menus/FilePopupMenu';

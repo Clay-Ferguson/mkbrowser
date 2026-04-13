@@ -79,7 +79,7 @@ import { pasteFromClipboard } from './utils/clipboard';
 import { isImageFile, isTextFile, sortEntries } from './utils/fileUtils';
 import { loadConfig } from './config';
 import { getContentWidthClasses } from './utils/styles';
-import { hasHumanMd } from './utils/aiPatterns';
+import { hasHumanMd } from './ai/aiPatterns';
 
 function App() {
   const rootPath = useRootPath();

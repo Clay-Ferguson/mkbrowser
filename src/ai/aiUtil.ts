@@ -17,12 +17,12 @@ import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
 import { ensureRunning } from '../llamaServer';
-import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from '../utils/aiPromptDefaults';
+import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 
 export { preprocessPrompt, wildcardToRegex, FILE_DIRECTIVE_REGEX } from './promptPreprocess';
 export type { PreprocessResult, ImageAttachment } from './promptPreprocess';
-export { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from '../utils/aiPatterns';
+export { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './aiPatterns';
 
 // Set to true to enable verbose debug logging for AI invocations.
 const DEBUG = true;
