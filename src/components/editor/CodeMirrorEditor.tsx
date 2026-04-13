@@ -32,7 +32,7 @@ interface CodeMirrorEditorProps {
   onGoToLineComplete?: () => void;
   /** Called when Escape is pressed (parent should cancel editing if content is unmodified) */
   onEscape?: () => void;
-  /** Called when Ctrl-X is pressed — force-cancel editing without saving */
+  /** Called when Ctrl-Q is pressed — force-cancel editing without saving */
   onForceCancel?: () => void;
   /** Called when Ctrl-S is pressed — save and exit editing */
   onSave?: () => void;
@@ -131,7 +131,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
           },
         },
         {
-          key: 'Ctrl-x',
+          key: 'Ctrl-q',
           run: () => {
             if (onForceCancelRef.current) {
               onForceCancelRef.current();

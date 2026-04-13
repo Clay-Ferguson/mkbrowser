@@ -37,7 +37,7 @@ While the code editor has focus, the following keyboard shortcuts are available:
 | Shortcut | Action |
 |----------|--------|
 | `Esc` | Exit editing — only works if you have **not** made any changes to the file. |
-| `Ctrl+X` | Abandon editing — discards all unsaved changes and exits without prompting. |
+| `Ctrl+Q` | Abandon editing — discards all unsaved changes and exits without prompting. |
 | `Ctrl+S` | Save and exit — saves your changes to disk and returns to the rendered view. |
 
 ## Tag Picker
