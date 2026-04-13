@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { enforceDefaultAIModels, type AIModelConfigLike } from '../src/utils/aiModelEnforcement';
+import { enforceDefaultAIModels, type AIModelConfigLike } from '../src/ai/aiModelEnforcement';
 
 describe('enforceDefaultAIModels', () => {
   const defaults = [
