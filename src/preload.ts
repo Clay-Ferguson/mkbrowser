@@ -130,6 +130,7 @@ export interface ElectronAPI {
   resetAiUsage: () => Promise<void>;
   gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }>;
   rewriteContent: (content: string) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
+  rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
 
   // Terminal (xterm.js + node-pty)
   terminalSpawn: (cwd: string) => Promise<{ success: boolean; error?: string }>;
@@ -182,6 +183,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   queueScriptedAnswer: (answer: string) => ipcRenderer.invoke('queue-scripted-answer', answer),
   gatherThreadEntries: (folderPath: string) => ipcRenderer.invoke('gather-thread-entries', folderPath),
   rewriteContent: (content: string) => ipcRenderer.invoke('rewrite-content', content),
+  rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number) => ipcRenderer.invoke('rewrite-content-selection', content, selectionFrom, selectionTo),
 
   // llama.cpp server lifecycle
   checkLlamaHealth: () => ipcRenderer.invoke('check-llama-health'),

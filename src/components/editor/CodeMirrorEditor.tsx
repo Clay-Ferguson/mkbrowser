@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { EditorView, placeholder as placeholderExt, keymap } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
@@ -36,9 +36,16 @@ interface CodeMirrorEditorProps {
   onForceCancel?: () => void;
   /** Called when Ctrl-S is pressed — save and exit editing */
   onSave?: () => void;
+  /** Called when the editor selection changes — reports whether text is selected */
+  onSelectionChange?: (hasSelection: boolean) => void;
 }
 
-function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave }: CodeMirrorEditorProps) {
+export interface CodeMirrorEditorHandle {
+  /** Returns the current selection range, or null if nothing is selected (cursor only). */
+  getSelection(): { from: number; to: number; text: string } | null;
+}
+
+const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -48,10 +55,22 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
   const onEscapeRef = useRef(onEscape);
   const onForceCancelRef = useRef(onForceCancel);
   const onSaveRef = useRef(onSave);
+  const onSelectionChangeRef = useRef(onSelectionChange);
   onEscapeRef.current = onEscape;
   onForceCancelRef.current = onForceCancel;
   onSaveRef.current = onSave;
+  onSelectionChangeRef.current = onSelectionChange;
   const settings = useSettings();
+
+  useImperativeHandle(ref, () => ({
+    getSelection() {
+      const view = viewRef.current;
+      if (!view) return null;
+      const { from, to } = view.state.selection.main;
+      if (from === to) return null;
+      return { from, to, text: view.state.sliceDoc(from, to) };
+    },
+  }));
 
   const {
     contextMenu,
@@ -159,6 +178,10 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           onChange(update.state.doc.toString());
+        }
+        if (update.selectionSet && onSelectionChangeRef.current) {
+          const { from, to } = update.state.selection.main;
+          onSelectionChangeRef.current(from !== to);
         }
       }),
     ];
@@ -290,6 +313,6 @@ function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', aut
       />
     </div>
   );
-}
+});
 
 export default CodeMirrorEditor;

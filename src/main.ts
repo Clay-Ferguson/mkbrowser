@@ -5,13 +5,13 @@ import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 import { renumberFiles, type RenameOperation } from './utils/ordinals';
-import { trimLeadingWhitespaceFromNames, readDirectory } from './utils/fileUtils';
+import { readDirectory } from './utils/fileUtils';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { collectAncestorTags } from './utils/tagUtils';
-import { invokeAI, streamAI, queueScriptedAnswer, hasScriptedAnswer, findNextNumberedFolder, gatherConversationHistory, preprocessPrompt, handleAskAI, handleRewriteContent, handleReplyToAI, gatherThreadEntries, AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './ai/aiUtil';
+import { invokeAI, streamAI, queueScriptedAnswer, hasScriptedAnswer, findNextNumberedFolder, gatherConversationHistory, preprocessPrompt, handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './ai/aiUtil';
 import type { StreamCallbacks } from './ai/aiUtil';
 import { recordUsage, getUsageWithCosts, resetUsage } from './ai/usageTracker';
 import { checkHealth, ensureRunning, stopServer } from './llamaServer';
@@ -487,6 +487,16 @@ function setupIpcHandlers(): void {
       return await handleRewriteContent(content);
     } catch (error) {
       console.error('Error in rewrite-content handler:', error);
+      return { error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+  // Rewrite a selected region of content via AI
+  ipcMain.handle('rewrite-content-selection', async (_event, content: string, selectionFrom: number, selectionTo: number) => {
+    try {
+      return await handleRewriteContentSection(content, selectionFrom, selectionTo);
+    } catch (error) {
+      console.error('Error in rewrite-content-selection handler:', error);
       return { error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });

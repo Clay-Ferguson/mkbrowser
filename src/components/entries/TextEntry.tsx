@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
@@ -9,6 +9,7 @@ import {
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
+import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
 import {
   useEntryCore,
@@ -28,6 +29,8 @@ type TextEntryProps = BaseEntryProps;
 function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: TextEntryProps) {
   const item = useItem(entry.path);
   const [isRewriting, setIsRewriting] = useState(false);
+  const [hasSelection, setHasSelection] = useState(false);
+  const editorRef = useRef<CodeMirrorEditorHandle>(null);
   const [selectedPromptName, setSelectedPromptName] = useState<string>('');
   useEffect(() => {
     window.electronAPI.getConfig().then((config) => {
@@ -117,9 +120,12 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
             {!item?.reviewing && (
               <button
                 onClick={async () => {
+                  const selection = editorRef.current?.getSelection();
                   setIsRewriting(true);
                   try {
-                    const result = await window.electronAPI.rewriteContent(edit.editContent);
+                    const result = selection
+                      ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to)
+                      : await window.electronAPI.rewriteContent(edit.editContent);
                     if ('error' in result) {
                       console.error('Rewrite failed:', result.error);
                     } else {
@@ -132,10 +138,10 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
                   }
                 }}
                 disabled={edit.saving || isRewriting}
-                title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : 'Rewrite'}
+                title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
                 className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
               >
-                {isRewriting ? 'Rewriting...' : 'Rewrite'}
+                {isRewriting ? 'Rewriting...' : (hasSelection ? 'Rewrite Selection' : 'Rewrite')}
               </button>
             )}
             {!item?.reviewing && (
@@ -194,6 +200,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
               />
             ) : (
               <CodeMirrorEditor
+                ref={editorRef}
                 value={edit.editContent}
                 onChange={edit.setEditContent}
                 placeholder="Enter text content..."
@@ -204,6 +211,7 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
                 onEscape={handleEscape}
                 onForceCancel={edit.handleCancel}
                 onSave={edit.handleSave}
+                onSelectionChange={setHasSelection}
               />
             )
           ) : (

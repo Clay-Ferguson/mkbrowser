@@ -17,7 +17,7 @@ import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
 import { ensureRunning } from '../llamaServer';
-import { DEFAULT_AI_REWRITE_PERSONA, DEFAULT_AI_REWRITE_PROMPT } from '../utils/aiPromptDefaults';
+import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from '../utils/aiPromptDefaults';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 
 export { preprocessPrompt, wildcardToRegex, FILE_DIRECTIVE_REGEX } from './promptPreprocess';
@@ -751,10 +751,10 @@ export async function handleRewriteContent(
   const namedPrompt = selectedPromptName
     ? (config.aiRewritePrompts ?? []).find((p) => p.name === selectedPromptName)
     : undefined;
-  const rewritePromptTemplate = namedPrompt?.prompt ?? DEFAULT_AI_REWRITE_PERSONA;
+  const personaPart = namedPrompt?.prompt ?? DEFAULT_AI_REWRITE_PERSONA;
 
   const prompt = {
-    text: `${rewritePromptTemplate} ${DEFAULT_AI_REWRITE_PROMPT}\n\n<content>\n${content}\n</content>`,
+    text: `${personaPart} ${AI_REWRITE_PROMPT}\n\n<content>\n${content}\n</content>`,
     images: [] as never[],
     fileDirectivesFound: false,
   };
@@ -768,6 +768,62 @@ export async function handleRewriteContent(
   }
 
   return { rewrittenContent: result.content, usage: result.usage };
+}
+
+/**
+ * Rewrite a selected region of content using the configured AI rewrite prompt.
+ * The full file content is sent for context, with <rewrite_region> tags marking the
+ * portion to rewrite. The AI returns only the rewritten portion, which is spliced
+ * back into the full content using the original character offsets.
+ */
+export async function handleRewriteContentSection(
+  content: string,
+  selectionFrom: number,
+  selectionTo: number,
+): Promise<{ rewrittenContent: string; usage?: AIUsageInfo } | { error: string }> {
+  // If using a LLAMACPP model, ensure the server is running before inference
+  const config = getConfig();
+  const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
+  if (activeModel?.provider === 'LLAMACPP') {
+    await ensureRunning();
+  }
+
+  // Resolve the rewrite prompt template
+  const selectedPromptName = config.aiRewritePrompt;
+  const namedPrompt = selectedPromptName
+    ? (config.aiRewritePrompts ?? []).find((p) => p.name === selectedPromptName)
+    : undefined;
+  const personaPart = namedPrompt?.prompt ?? DEFAULT_AI_REWRITE_PERSONA;
+
+  // Build content with <rewrite_region> tags wrapping the selected portion
+  const textWithSelection =
+    content.slice(0, selectionFrom) +
+    '<rewrite_region>' +
+    content.slice(selectionFrom, selectionTo) +
+    '</rewrite_region>' +
+    content.slice(selectionTo);
+
+  const prompt = {
+    text: `${personaPart} ${AI_REWRITE_SELECTION_PROMPT}\n\n<content>\n${textWithSelection}\n</content>`,
+    images: [] as never[],
+    fileDirectivesFound: false,
+  };
+
+  const result = await invokeAI(prompt);
+
+  // Record token usage if available
+  if (result.usage) {
+    const provider = activeModel?.provider ?? 'ANTHROPIC';
+    recordUsage(provider, result.usage.input_tokens, result.usage.output_tokens);
+  }
+
+  // Splice the rewritten portion back into the original content using offsets
+  const rewrittenContent =
+    content.slice(0, selectionFrom) +
+    result.content +
+    content.slice(selectionTo);
+
+  return { rewrittenContent, usage: result.usage };
 }
 
 /**

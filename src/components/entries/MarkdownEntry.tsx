@@ -25,6 +25,7 @@ import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import StreamingDialog from '../dialogs/StreamingDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
+import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
 import TagsPicker from './TagsPicker';
 import { createCustomImage } from './markdownImgResolver';
@@ -419,6 +420,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
   const isAiFile = aiEnabled && entry.name === 'AI.md';
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
+  const [hasSelection, setHasSelection] = useState(false);
+  const editorRef = useRef<CodeMirrorEditorHandle>(null);
   const [isReplyLoading, setIsReplyLoading] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [showStreamingDialog, setShowStreamingDialog] = useState(false);
@@ -518,9 +521,12 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
             {!item?.reviewing && (
               <button
                 onClick={async () => {
+                  const selection = editorRef.current?.getSelection();
                   setIsRewriting(true);
                   try {
-                    const result = await window.electronAPI.rewriteContent(edit.editContent);
+                    const result = selection
+                      ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to)
+                      : await window.electronAPI.rewriteContent(edit.editContent);
                     if ('error' in result) {
                       console.error('Rewrite failed:', result.error);
                     } else {
@@ -533,10 +539,10 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                   }
                 }}
                 disabled={edit.saving || isRewriting}
-                title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : 'Rewrite'}
+                title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
                 className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
               >
-                {isRewriting ? 'Rewriting...' : 'Rewrite'}
+                {isRewriting ? 'Rewriting...' : (hasSelection ? 'Rewrite Selection' : 'Rewrite')}
               </button>
             )}
             {!item?.reviewing && (
@@ -646,6 +652,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                 />
               ) : (
                 <CodeMirrorEditor
+                  ref={editorRef}
                   value={edit.editContent}
                   onChange={edit.setEditContent}
                   placeholder="Enter markdown content..."
@@ -656,6 +663,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                   onEscape={handleEscape}
                   onForceCancel={edit.handleCancel}
                   onSave={edit.handleSave}
+                  onSelectionChange={setHasSelection}
                 />
               )}
               <TagsPicker filePath={entry.path} />
