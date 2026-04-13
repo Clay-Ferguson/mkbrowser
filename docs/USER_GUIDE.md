@@ -612,6 +612,19 @@ MkBrowser includes an AI-powered **Rewrite** feature that can improve the conten
    - Click **Cancel Rewrite** to discard the suggestions and keep your original text.
 6. After accepting, you can continue editing or click **Save** to write the file to disk.
 
+### Rewriting a Selection
+
+Instead of rewriting the entire file, you can select a specific portion of text and rewrite just that region:
+
+1. Open a file for editing.
+2. Use your mouse or keyboard to **select a range of text** in the editor.
+3. The button label changes from **Rewrite** to **Rewrite Selection**, indicating the feature is active.
+4. Click **Rewrite Selection**. The AI receives the full file for context but rewrites only the selected portion.
+5. The diff review editor shows the result as a full-file diff, with changes localized to the region you selected.
+6. Accept or cancel as usual.
+
+This is especially useful for long documents where you want to improve a single paragraph or section without affecting the rest of the file.
+
 ### Customizing the Rewrite Prompt
 
 MkBrowser lets you create multiple **named rewrite personas** so you can switch between different AI instructions depending on the type of writing you're working on. The currently selected prompt is what gets sent to the AI when you click **Rewrite**.
