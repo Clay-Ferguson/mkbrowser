@@ -1,64 +1,64 @@
 /**
  * Tag utility module — loads tags for the TagsPicker by walking up the directory
- * tree from a file's location, reading `.TAGS.md` files at each level, and
- * extracting hashtags from their content.
+ * tree from a file's location, reading `.TAGS.yaml` files at each level, and
+ * building a map of hashtag definitions from their content.
  *
- * Tags are deduplicated and returned in the order they are first encountered
- * (closest directory first, then ancestors).
+ * Tags are returned sorted alphabetically (case-insensitive). When the same tag
+ * key appears in multiple files, the last file encountered (furthest ancestor)
+ * wins.
  */
-import { HASHTAG_REGEX } from './hashtagRegex';
 
 /**
- * Extract unique hashtags from a block of text.
- * Returns tags in the order they first appear, without duplicates.
+ * A single hashtag definition loaded from a `.TAGS.yaml` file.
+ * `tag` always includes the `#` prefix (e.g. `"#cooking"`).
+ * `description` is the multi-line description from the YAML value.
  */
-export function extractTagsFromText(text: string): string[] {
-  const seen = new Set<string>();
-  const tags: string[] = [];
-  let match;
-  // Reset lastIndex in case regex was used before
-  HASHTAG_REGEX.lastIndex = 0;
-  while ((match = HASHTAG_REGEX.exec(text)) !== null) {
-    const tag = match[0];
-    if (!seen.has(tag)) {
-      seen.add(tag);
-      tags.push(tag);
-    }
-  }
-  return tags;
+export interface HashtagDefinition {
+  tag: string;
+  description: string;
 }
 
 /** Result of an async tag-loading operation */
 export type TagsLoadState =
   | { status: 'loading' }
-  | { status: 'loaded'; tags: string[] };
+  | { status: 'loaded'; tags: HashtagDefinition[] };
 
 /**
  * Load tags for a given file path by walking up ancestor directories
- * and collecting hashtags from `.TAGS.md` files.
+ * and collecting hashtag definitions from `.TAGS.yaml` files.
  *
  * This calls the `collect-ancestor-tags` IPC which does the actual
  * filesystem work in the main process.
  *
  * @param filePath - Absolute path to the file being edited
- * @returns Array of unique hashtag strings (closest-first order)
+ * @returns Array of unique `HashtagDefinition` objects sorted alphabetically
  */
-export async function loadTagsForFile(filePath: string): Promise<string[]> {
+export async function loadTagsForFile(filePath: string): Promise<HashtagDefinition[]> {
   return window.electronAPI.collectAncestorTags(filePath);
 }
 
 /**
- * Walk up the directory tree from the given file, reading `.TAGS.md` at each
- * level and collecting unique hashtags. Returns them sorted case-insensitively.
+ * Walk up the directory tree from the given file, reading `.TAGS.yaml` at each
+ * level and collecting hashtag definitions. Returns them sorted case-insensitively.
  *
  * This is the main-process implementation behind the `collect-ancestor-tags` IPC.
+ *
+ * Expected YAML format:
+ * ```yaml
+ * hashtags:
+ *   cooking: |
+ *     Use this for all culinary posts.
+ *   travel: |
+ *     Reserved for international trips.
+ * ```
+ * Keys are plain tag names (without `#`); the `#` prefix is added automatically.
  */
-export async function collectAncestorTags(filePath: string): Promise<string[]> {
+export async function collectAncestorTags(filePath: string): Promise<HashtagDefinition[]> {
   const fs = await import('node:fs');
   const path = await import('node:path');
+  const yaml = await import('js-yaml');
 
-  const seen = new Set<string>();
-  const tags: string[] = [];
+  const map = new Map<string, HashtagDefinition>();
 
   // Start from the directory containing the file
   let dir = path.dirname(filePath);
@@ -66,17 +66,19 @@ export async function collectAncestorTags(filePath: string): Promise<string[]> {
 
   // Walk up the directory tree
   while (true) {
-    const tagsFile = path.join(dir, '.TAGS.md');
+    const tagsFile = path.join(dir, '.TAGS.yaml');
     try {
       const content = await fs.promises.readFile(tagsFile, 'utf-8');
-      for (const tag of extractTagsFromText(content)) {
-        if (!seen.has(tag)) {
-          seen.add(tag);
-          tags.push(tag);
+      const parsed = yaml.load(content) as { hashtags?: Record<string, unknown> } | null;
+      const hashtags = parsed?.hashtags;
+      if (hashtags && typeof hashtags === 'object') {
+        for (const [key, value] of Object.entries(hashtags)) {
+          const tag = `#${key}`;
+          map.set(tag, { tag, description: typeof value === 'string' ? value : '' });
         }
       }
     } catch {
-      // .TAGS.md doesn't exist at this level — that's fine, keep walking
+      // .TAGS.yaml doesn't exist at this level — that's fine, keep walking
     }
 
     // Stop at filesystem root
@@ -85,7 +87,7 @@ export async function collectAncestorTags(filePath: string): Promise<string[]> {
   }
 
   // Sort tags alphabetically (case-insensitive)
-  tags.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-
-  return tags;
+  return Array.from(map.values()).sort((a, b) =>
+    a.tag.localeCompare(b.tag, undefined, { sensitivity: 'base' })
+  );
 }

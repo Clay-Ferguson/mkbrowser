@@ -1,4 +1,4 @@
-# MkBrowser User Guide
+# MkBrowser User Guide 
 
 MkBrowser is a file explorer designed for managing Markdown notes with inline rendering.
 

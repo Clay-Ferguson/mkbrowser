@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useItem, getItemEditContent, setItemEditContent } from '../../store';
 import { CHECKBOX_CLASSES } from '../../utils/styles';
-import { loadTagsForFile, type TagsLoadState } from '../../utils/tagUtils';
+import { loadTagsForFile, type TagsLoadState, type HashtagDefinition } from '../../utils/tagUtils';
 
 /**
  * Represents a single hashtag with its checked state.
  */
 export interface TagData {
   tag: string;
+  description: string;
   checked: boolean; 
 }
 
@@ -32,7 +33,7 @@ export function removeTagFromText(text: string, tag: string): string {
     .trim();
 }
 
-interface TagsPickerProps {
+interface TagsPickerProps { 
   /** Full path of the file being edited */
   filePath: string;
 }
@@ -85,9 +86,10 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   }
 
   // Derive checked state from content on every render — no local state needed
-  const tags: TagData[] = loadState.tags.map((tag) => ({
-    tag,
-    checked: editContent.includes(tag),
+  const tags: TagData[] = loadState.tags.map((def: HashtagDefinition) => ({
+    tag: def.tag,
+    description: def.description,
+    checked: editContent.includes(def.tag),
   }));
 
   const handleToggle = (index: number) => {
@@ -116,6 +118,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
       {tags.map((t, i) => (
         <label
           key={t.tag}
+          title={t.description.trim()}
           className={`flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer select-none text-sm transition-colors ${
             t.checked
               ? 'bg-blue-600/50 text-blue-100 border border-slate-400/60'

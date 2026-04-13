@@ -1,3 +1,7 @@
+import type { HashtagDefinition } from './utils/tagUtils';
+
+export type { HashtagDefinition };
+
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
@@ -163,7 +167,7 @@ export interface ElectronAPI {
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines', searchImageExif?: boolean) => Promise<SearchResult[]>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
-  collectAncestorTags: (filePath: string) => Promise<string[]>;
+  collectAncestorTags: (filePath: string) => Promise<HashtagDefinition[]>;
   renumberFiles: (dirPath: string) => Promise<RenumberResult>;
   setWindowTitle: (title: string) => Promise<void>;
   selectExportFolder: () => Promise<string | null>;

@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, nativeImage } from 'electron';
-import path from 'node:path';
+import path from 'node:path'; 
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
@@ -357,8 +357,8 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Collect tags by walking up ancestor directories reading .TAGS.md files
-  ipcMain.handle('collect-ancestor-tags', async (_event, filePath: string): Promise<string[]> => {
+  // Collect tags by walking up ancestor directories reading .TAGS.yaml files
+  ipcMain.handle('collect-ancestor-tags', async (_event, filePath: string): Promise<import('./utils/tagUtils').HashtagDefinition[]> => {
     try {
       return await collectAncestorTags(filePath);
     } catch (error) {
