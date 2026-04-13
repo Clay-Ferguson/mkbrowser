@@ -7,7 +7,7 @@ import {
 import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../global.d.ts';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
-import { DEFAULT_AI_REWRITE_PERSONA } from '../../utils/aiPromptDefaults';
+import { DEFAULT_AI_REWRITE_PERSONA } from '../../utils/aiPrompts';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import MessageDialog from '../dialogs/MessageDialog';
