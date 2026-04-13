@@ -33,6 +33,19 @@ export function removeTagFromText(text: string, tag: string): string {
     .trim();
 }
 
+/**
+ * Insert a hashtag at the position of the first existing hashtag in text.
+ * If no hashtag exists, prepends the tag followed by a space.
+ */
+export function insertTagIntoText(text: string, tag: string): string {
+  const match = /#[a-zA-Z0-9]/.exec(text);
+  if (match !== null) {
+    const i = match.index;
+    return text.slice(0, i) + tag + ' ' + text.slice(i);
+  }
+  return tag + ' ' + text;
+}
+
 interface TagsPickerProps { 
   /** Full path of the file being edited */
   filePath: string;
@@ -100,10 +113,9 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     const currentContent = getItemEditContent(filePath);
 
     if (newChecked) {
-      // Append hashtag to end of content if not already present
+      // Insert hashtag at the position of the first existing hashtag, or prepend
       if (!currentContent.includes(tag.tag)) {
-        const separator = currentContent.length > 0 && !currentContent.endsWith(' ') && !currentContent.endsWith('\n') ? ' ' : '';
-        setItemEditContent(filePath, currentContent + separator + tag.tag);
+        setItemEditContent(filePath, insertTagIntoText(currentContent, tag.tag));
       }
     } else {
       const cleaned = removeTagFromText(currentContent, tag.tag);
