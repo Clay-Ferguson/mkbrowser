@@ -9,6 +9,7 @@ import { loadTagsForFile, type TagsLoadState, type HashtagDefinition } from '../
 export interface TagData {
   tag: string;
   description: string;
+  group?: string;
   checked: boolean; 
 }
 
@@ -56,8 +57,8 @@ interface TagsPickerProps {
  * Displayed beneath a MarkdownEntry when it is in edit mode.
  *
  * Tags are loaded asynchronously by walking up ancestor directories and
- * collecting hashtags from `.TAGS.md` files. While loading, a spinner is shown.
- * If no `.TAGS.md` files are found (or they contain no tags), nothing is rendered.
+ * collecting hashtags from `.TAGS.yaml` files. While loading, a spinner is shown.
+ * If no `.TAGS.yaml` files are found (or they contain no tags), nothing is rendered.
  *
  * Checked state is derived directly from the editor content on every render,
  * so checkboxes stay perfectly in sync whether the user types in the editor
@@ -102,6 +103,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   const tags: TagData[] = loadState.tags.map((def: HashtagDefinition) => ({
     tag: def.tag,
     description: def.description,
+    group: def.group,
     checked: editContent.includes(def.tag),
   }));
 
@@ -110,16 +112,25 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     const newChecked = !tag.checked;
 
     // Read the latest editor content synchronously (avoids render lag)
-    const currentContent = getItemEditContent(filePath);
+    let currentContent = getItemEditContent(filePath);
 
     if (newChecked) {
-      // Insert hashtag at the position of the first existing hashtag, or prepend
-      if (!currentContent.includes(tag.tag)) {
-        setItemEditContent(filePath, insertTagIntoText(currentContent, tag.tag));
+      // Radio-button behaviour: when enabling a grouped tag, remove all other
+      // checked tags in the same group first so only one can be active at a time.
+      if (tag.group) {
+        for (const sibling of tags) {
+          if (sibling.group === tag.group && sibling.tag !== tag.tag && sibling.checked) {
+            currentContent = removeTagFromText(currentContent, sibling.tag);
+          }
+        }
       }
+      // Insert this tag if not already present
+      if (!currentContent.includes(tag.tag)) {
+        currentContent = insertTagIntoText(currentContent, tag.tag);
+      }
+      setItemEditContent(filePath, currentContent);
     } else {
-      const cleaned = removeTagFromText(currentContent, tag.tag);
-      setItemEditContent(filePath, cleaned);
+      setItemEditContent(filePath, removeTagFromText(currentContent, tag.tag));
     }
   };
 

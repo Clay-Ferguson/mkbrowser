@@ -11,11 +11,13 @@
 /**
  * A single hashtag definition loaded from a `.TAGS.yaml` file.
  * `tag` always includes the `#` prefix (e.g. `"#cooking"`).
- * `description` is the multi-line description from the YAML value.
+ * `description` is the multi-line description shown as a tooltip.
+ * `group` (optional) identifies a set of mutually exclusive tags.
  */
 export interface HashtagDefinition {
   tag: string;
   description: string;
+  group?: string;
 }
 
 /** Result of an async tag-loading operation */
@@ -46,12 +48,16 @@ export async function loadTagsForFile(filePath: string): Promise<HashtagDefiniti
  * Expected YAML format:
  * ```yaml
  * hashtags:
- *   cooking: |
- *     Use this for all culinary posts.
- *   travel: |
- *     Reserved for international trips.
+ *   cooking:
+ *     description: |
+ *       Use this for all culinary posts.
+ *     group: category
+ *   travel:
+ *     description: |
+ *       Reserved for international trips.
  * ```
  * Keys are plain tag names (without `#`); the `#` prefix is added automatically.
+ * `group` is optional — omit it for tags that don't belong to a mutually exclusive set.
  */
 export async function collectAncestorTags(filePath: string): Promise<HashtagDefinition[]> {
   const fs = await import('node:fs');
@@ -74,7 +80,14 @@ export async function collectAncestorTags(filePath: string): Promise<HashtagDefi
       if (hashtags && typeof hashtags === 'object') {
         for (const [key, value] of Object.entries(hashtags)) {
           const tag = `#${key}`;
-          map.set(tag, { tag, description: typeof value === 'string' ? value : '' });
+          let description = '';
+          let group: string | undefined;
+          if (typeof value === 'object' && value !== null) {
+            const v = value as Record<string, unknown>;
+            description = typeof v.description === 'string' ? v.description.trim() : '';
+            group = typeof v.group === 'string' ? v.group : undefined;
+          }
+          map.set(tag, { tag, description, group });
         }
       }
     } catch {

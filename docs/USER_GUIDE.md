@@ -73,19 +73,36 @@ When editing `q1-review.md`, the tag picker will show all five tags: `#project`,
 ```yaml
 # Hashtag Configuration File
 hashtags:
-  project: |
-    Use for anything related to an active project.
-  personal: |
-    Personal notes and reminders.
-  archive: |
-    Content that is finished and no longer active.
-  in-progress: |
-    Work that is currently underway.
-  done: |
-    Completed items.
+  project:
+    description: |
+      Use for anything related to an active project.
+    group: category
+  personal:
+    description: |
+      Personal notes and reminders.
+    group: category
+  archive:
+    description: |
+      Content that is finished and no longer active.
+    group: category
+  p1:
+    description: |
+      Highest priority — needs immediate attention.
+    group: priority
+  p2:
+    description: |
+      Medium priority.
+    group: priority
+  p3:
+    description: |
+      Low priority.
+    group: priority
+  done:
+    description: |
+      Completed items.
 ```
 
-Each key under `hashtags` is a tag name (without the `#` — MkBrowser adds it automatically). The value is a description shown as a tooltip when you hover over the tag in the picker.
+Each key under `hashtags` is a tag name (without the `#` — MkBrowser adds it automatically). Each tag has two properties: `description` (shown as a tooltip when you hover) and the optional `group` (a string that identifies a set of mutually exclusive tags — tags sharing the same group name will eventually support radio-button-style selection).
 
 If no `.TAGS.yaml` files are found anywhere in the ancestor tree, the tag picker is hidden entirely.
 
