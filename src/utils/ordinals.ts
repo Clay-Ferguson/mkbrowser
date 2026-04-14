@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 /**
  * Utility functions for ordinal numbering of files and folders.
  * 
@@ -125,9 +128,6 @@ export function calculateRenameOperations(
 export async function renumberFiles(
   dirPath: string
 ): Promise<{ success: boolean; error?: string; operations?: RenameOperation[] }> {
-  const fs = await import('node:fs');
-  const path = await import('node:path');
-
   // Read all entries in the directory
   const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
 

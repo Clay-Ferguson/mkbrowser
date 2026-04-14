@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn, execSync } from 'node:child_process';
+import { fdir } from 'fdir';
 
 /**
  * Concatenate all .md and .txt files in a folder (optionally including subfolders)
@@ -98,8 +100,6 @@ export async function exportToPdf(
   resourcePath: string,
   sourceFolder?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const { spawn, execSync } = await import('node:child_process');
-
   const scriptPath = path.join(resourcePath, 'generate-pdf.sh');
 
   // Check if script exists
@@ -146,7 +146,6 @@ export async function exportToPdf(
   // Check if a glossary file exists anywhere under the source folder (recursive)
   let glossaryPath: string | undefined;
   if (sourceFolder) {
-    const { fdir } = await import('fdir');
     const matches = await new fdir()
       .withFullPaths()
       .filter((f) => path.basename(f).endsWith('Glossary_of_Terms.md'))

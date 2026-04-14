@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import yaml from 'js-yaml';
+
 /**
  * Tag utility module — loads tags for the TagsPicker by walking up the directory
  * tree from a file's location, reading `.TAGS.yaml` files at each level, and
@@ -60,10 +64,6 @@ export async function loadTagsForFile(filePath: string): Promise<HashtagDefiniti
  * `group` is optional — omit it for tags that don't belong to a mutually exclusive set.
  */
 export async function collectAncestorTags(filePath: string): Promise<HashtagDefinition[]> {
-  const fs = await import('node:fs');
-  const path = await import('node:path');
-  const yaml = await import('js-yaml');
-
   const map = new Map<string, HashtagDefinition>();
 
   // Start from the directory containing the file
