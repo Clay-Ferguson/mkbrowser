@@ -136,27 +136,64 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
 
   const MONO_FONT = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
 
+  // Partition tags into groups (sorted alphabetically) and ungrouped
+  const groupMap = new Map<string, TagData[]>();
+  const ungrouped: TagData[] = [];
+  for (const t of tags) {
+    if (t.group) {
+      let arr = groupMap.get(t.group);
+      if (!arr) { arr = []; groupMap.set(t.group, arr); }
+      arr.push(t);
+    } else {
+      ungrouped.push(t);
+    }
+  }
+  const sortedGroupNames = Array.from(groupMap.keys()).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: 'base' })
+  );
+
+  const renderTag = (t: TagData) => (
+    <label
+      key={t.tag}
+      title={t.description.trim()}
+      className={`flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer select-none text-sm transition-colors ${
+        t.checked
+          ? 'bg-blue-600/50 text-blue-100 border border-slate-400/60'
+          : 'text-slate-300 hover:text-slate-100 border border-transparent'
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={t.checked}
+        onChange={() => handleToggle(tags.indexOf(t))}
+        className={`${CHECKBOX_CLASSES} cursor-pointer`}
+      />
+      <span className="whitespace-nowrap">{t.tag}</span>
+    </label>
+  );
+
   return (
-    <div className="flex flex-wrap gap-x-2 gap-y-1 pt-2" style={{ fontFamily: MONO_FONT }}>
-      {tags.map((t, i) => (
-        <label
-          key={t.tag}
-          title={t.description.trim()}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer select-none text-sm transition-colors ${
-            t.checked
-              ? 'bg-blue-600/50 text-blue-100 border border-slate-400/60'
-              : 'text-slate-300 hover:text-slate-100 border border-transparent'
-          }`}
-        >
-          <input
-            type="checkbox"
-            checked={t.checked}
-            onChange={() => handleToggle(i)}
-            className={`${CHECKBOX_CLASSES} cursor-pointer`}
-          />
-          <span className="whitespace-nowrap">{t.tag}</span>
-        </label>
+    <div className="flex flex-col gap-y-2 pt-2" style={{ fontFamily: MONO_FONT }}>
+      {sortedGroupNames.map((groupName) => (
+        <div key={groupName} className="flex items-start gap-2">
+          <span className="min-w-[5rem] text-xs font-bold text-slate-400 uppercase pt-1.5 text-right shrink-0">
+            {groupName}
+          </span>
+          <div className="flex flex-wrap gap-x-2 gap-y-1">
+            {groupMap.get(groupName)!.map(renderTag)}
+          </div>
+        </div>
       ))}
+      {ungrouped.length > 0 && (
+        <div className="flex items-start gap-2">
+          <span className="min-w-[5rem] text-xs font-bold text-slate-400 uppercase pt-1.5 text-right shrink-0">
+            tags
+          </span>
+          <div className="flex flex-wrap gap-x-2 gap-y-1">
+            {ungrouped.map(renderTag)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
