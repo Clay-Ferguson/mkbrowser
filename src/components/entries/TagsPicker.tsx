@@ -176,7 +176,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     <div className="flex flex-col gap-y-2 pt-2" style={{ fontFamily: MONO_FONT }}>
       {sortedGroupNames.map((groupName) => (
         <div key={groupName} className="flex items-start gap-2">
-          <span className="min-w-[5rem] text-xs font-bold text-slate-400 uppercase pt-1.5 text-right shrink-0">
+          <span className="min-w-[4rem] text-xs font-bold text-slate-400 uppercase pt-1.5 shrink-0">
             {groupName}
           </span>
           <div className="flex flex-wrap gap-x-2 gap-y-1">
@@ -186,7 +186,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
       ))}
       {ungrouped.length > 0 && (
         <div className="flex items-start gap-2">
-          <span className="min-w-[5rem] text-xs font-bold text-slate-400 uppercase pt-1.5 text-right shrink-0">
+          <span className="min-w-[4rem] text-xs font-bold text-slate-400 uppercase pt-1.5 shrink-0">
             tags
           </span>
           <div className="flex flex-wrap gap-x-2 gap-y-1">
