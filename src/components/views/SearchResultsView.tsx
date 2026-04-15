@@ -236,7 +236,15 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                     </div>
                     {/* Show matching line text if available */}
                     {result.lineText && (
-                      <div className="text-sm text-slate-400 truncate mt-0.5 font-mono" title={result.lineText}>
+                      <div
+                        className={`text-sm truncate mt-0.5 font-mono ${
+                          /#p1\b/i.test(result.lineText) ? 'text-orange-400' :
+                          /#p2\b/i.test(result.lineText) ? 'text-yellow-400' :
+                          /#p3\b/i.test(result.lineText) ? 'text-blue-400' :
+                          'text-slate-400'
+                        }`}
+                        title={result.lineText}
+                      >
                         {result.lineText}
                       </div>
                     )}
