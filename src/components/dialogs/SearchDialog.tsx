@@ -199,30 +199,30 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           </div>
         </div>
 
-        {/* Search Image EXIF checkbox */}
-        <label className={`flex items-center gap-2 mb-3 ${searchMode === 'filenames' ? 'opacity-50' : 'cursor-pointer'}`}>
-          <input
-            type="checkbox"
-            checked={searchImageExif}
-            onChange={(e) => setSearchImageExif(e.target.checked)}
-            disabled={searchMode === 'filenames'}
-            data-testid="search-image-exif"
-            className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <span className="text-sm text-slate-300">Search Image EXIF</span>
-        </label>
-
-        {/* 500 Most Recent checkbox */}
-        <label className="flex items-center gap-2 mb-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={mostRecent}
-            onChange={(e) => setMostRecent(e.target.checked)}
-            data-testid="search-most-recent"
-            className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded"
-          />
-          <span className="text-sm text-slate-300">Most Recent</span>
-        </label>
+        {/* Search Image EXIF and Most Recent checkboxes */}
+        <div className="flex items-center gap-6 mb-3">
+          <label className={`flex items-center gap-2 ${searchMode === 'filenames' ? 'opacity-50' : 'cursor-pointer'}`}>
+            <input
+              type="checkbox"
+              checked={searchImageExif}
+              onChange={(e) => setSearchImageExif(e.target.checked)}
+              disabled={searchMode === 'filenames'}
+              data-testid="search-image-exif"
+              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            <span className="text-sm text-slate-300">Search Image EXIF</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={mostRecent}
+              onChange={(e) => setMostRecent(e.target.checked)}
+              data-testid="search-most-recent"
+              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded"
+            />
+            <span className="text-sm text-slate-300">Recent Files</span>
+          </label>
+        </div>
 
         {/* Search mode radio buttons */}
         <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
