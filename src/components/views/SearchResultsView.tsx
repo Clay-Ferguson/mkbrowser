@@ -95,7 +95,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   };
 
   // Detect if a search has actually been executed
-  const hasSearched = searchQuery.length > 0;
+  const hasSearched = searchQuery.length > 0 || searchResults.length > 0;
 
   // Get the folder name for display
   const folderName = searchFolder.split('/').pop() || searchFolder;

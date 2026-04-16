@@ -18,6 +18,7 @@ export interface SearchOptions {
   sortBy: SearchSortBy;
   sortDirection: SearchSortDirection;
   searchImageExif: boolean;
+  mostRecent: boolean;
 }
 
 export interface SearchDialogInitialValues {
@@ -29,6 +30,7 @@ export interface SearchDialogInitialValues {
   sortBy?: SearchSortBy;
   sortDirection?: SearchSortDirection;
   searchImageExif?: boolean;
+  mostRecent?: boolean;
 }
 
 interface SearchDialogProps {
@@ -51,6 +53,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const [sortBy, setSortBy] = useState<SearchSortBy>(initialValues?.sortBy || 'modified-time');
   const [sortDirection, setSortDirection] = useState<SearchSortDirection>(initialValues?.sortDirection || 'desc');
   const [searchImageExif, setSearchImageExif] = useState(initialValues?.searchImageExif ?? false);
+  const [mostRecent, setMostRecent] = useState(initialValues?.mostRecent ?? false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -75,6 +78,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
       setSortBy(selectedDef.sortBy || 'modified-time');
       setSortDirection(selectedDef.sortDirection || 'desc');
       setSearchImageExif(selectedDef.searchImageExif ?? false);
+      setMostRecent(selectedDef.mostRecent ?? false);
       // Adjust textarea height after loading content
       setTimeout(adjustTextareaHeight, 0);
     }
@@ -99,14 +103,14 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const handleSearch = () => {
     // Replace newlines with spaces for search execution
     const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
-    if (!cleanedQuery) return;
+    if (!cleanedQuery && !mostRecent) return;
     
     setError(null);
     
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
     
-    onSearch({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif });
+    onSearch({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
   };
 
   const handleSave = () => {
@@ -117,7 +121,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
     
-    onSave({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif });
+    onSave({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -206,6 +210,18 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <span className="text-sm text-slate-300">Search Image EXIF</span>
+        </label>
+
+        {/* 500 Most Recent checkbox */}
+        <label className="flex items-center gap-2 mb-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={mostRecent}
+            onChange={(e) => setMostRecent(e.target.checked)}
+            data-testid="search-most-recent"
+            className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded"
+          />
+          <span className="text-sm text-slate-300">Most Recent</span>
         </label>
 
         {/* Search mode radio buttons */}
@@ -364,7 +380,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           </button>
           <button
             onClick={handleSearch}
-            disabled={!searchQuery.trim()}
+            disabled={!searchQuery.trim() && !mostRecent}
             data-testid="execute-search-button"
             className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed rounded transition-colors"
           >

@@ -336,10 +336,10 @@ function setupIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchBlock: 'entire-file' | 'file-lines' = 'entire-file', searchImageExif = false): Promise<SearchResult[]> => {
+  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchBlock: 'entire-file' | 'file-lines' = 'entire-file', searchImageExif = false, mostRecent = false): Promise<SearchResult[]> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
-      return await searchFolder(folderPath, query, searchType, searchMode, searchBlock, ignoredPaths, searchImageExif);
+      return await searchFolder(folderPath, query, searchType, searchMode, searchBlock, ignoredPaths, searchImageExif, mostRecent);
     } catch (error) {
       console.error('Error searching folder:', error);
       return [];

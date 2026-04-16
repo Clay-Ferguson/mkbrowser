@@ -179,6 +179,8 @@ export interface SearchDefinition {
   sortDirection: SearchSortDirection;
   /** Whether to include image EXIF metadata in content search */
   searchImageExif?: boolean;
+  /** Whether to limit search to the 500 most recently modified files */
+  mostRecent?: boolean;
 }
 
 /**

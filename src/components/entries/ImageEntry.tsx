@@ -21,7 +21,7 @@ interface ImageEntryProps extends BaseEntryProps {
 }
 
 function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: ImageEntryProps) {
-  console.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
+  // console.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
   
   const {
     isRenaming,
@@ -57,7 +57,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
   const [exifLoading, setExifLoading] = useState(false);
   const [exifFileName, setExifFileName] = useState(entry.name);
 
-  console.log('[ImageEntry] State:', { isRenaming, isExpanded, isSelected });
+  // console.log('[ImageEntry] State:', { isRenaming, isExpanded, isSelected });
 
   const fullscreenItem = useItem(fullscreenImagePath);
   const isFullscreenSelected = fullscreenItem?.isSelected ?? false;
@@ -168,7 +168,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
 
   // Convert file path to local-file:// URL for the image src
   const imageUrl = `local-file://${entry.path}`;
-  console.log('[ImageEntry] Image URL:', imageUrl);
+  // console.log('[ImageEntry] Image URL:', imageUrl);
 
   return (
     <div className={`bg-slate-800 border group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700'} overflow-hidden`}>
@@ -231,7 +231,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
                 loading="lazy"
                 onClick={() => setIsFullscreen(true)}
                 title="Click to view fullscreen"
-                onLoad={() => console.log('[ImageEntry] Image loaded successfully:', imageUrl)}
+                onLoad={() => {} /* console.log('[ImageEntry] Image loaded successfully:', imageUrl)*/ } 
                 onError={(e) => console.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
               />
               <button
