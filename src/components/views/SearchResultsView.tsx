@@ -175,7 +175,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
         onScroll={handleMainScroll}
         className="flex-1 min-h-0 overflow-y-auto"
       >
-        <div className={`${getContentWidthClasses(settings.contentWidth)} py-6`}>
+        <div className={`${getContentWidthClasses(settings.contentWidth)} pt-2 pb-6`}>
         {!hasSearched ? (
           <div className="text-center py-12">
             <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
@@ -192,9 +192,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
         ) : (
           <div className="space-y-2">
             {/* Results count */}
-            <div className="text-sm text-slate-500 mb-4">
+            <div className="text-sm text-slate-300 mb-4">
               {searchResults.length} file{searchResults.length !== 1 ? 's' : ''} found
-              <span className="ml-2 text-slate-500">
+              <span className="ml-2 text-slate-300">
                 • Sorted by {searchSortBy === 'line-time' ? 'time on line' : searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortDirection === 'asc' ? 'oldest first' : 'newest first'})
               </span>
             </div>
