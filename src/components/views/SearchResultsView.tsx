@@ -160,13 +160,10 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
       {/* Header - only show search info when a search has been executed */}
       {hasSearched && (
         <header className="flex-shrink-0">
-          <div className="flex items-center gap-3 px-2 py-2">
+          <div className="flex items-center gap-3 px-4 py-2">
             {/* Title */}
-            <div className="flex items-center gap-2 text-sm min-w-0">
-              <span className="text-slate-200 font-medium">Search Results</span>
-              <span className="text-slate-500 truncate">
-                for "{searchQuery}" in {folderName}
-              </span>
+            <div className="text-sm text-slate-300 truncate">
+              Searched for <span className="text-slate-200 font-medium">"{searchQuery}"</span> in {folderName}
             </div>
           </div>
         </header>
