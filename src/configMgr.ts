@@ -85,6 +85,8 @@ export interface AppConfig {
   aiRewritePrompt?: string;
   /** Named rewrite prompts available to the user. */
   aiRewritePrompts?: AIRewritePromptDef[];
+  /** Whether the Tags picker panel is expanded. Defaults to false (collapsed). */
+  tagsPanelVisible?: boolean;
 }
 
 // ---------------------------------------------------------------------------

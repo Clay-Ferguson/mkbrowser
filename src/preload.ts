@@ -50,6 +50,8 @@ export interface AppConfig {
   llamacppFolder?: string;
   agenticMode?: boolean;
   agenticAllowedFolders?: string;
+  /** Whether the Tags picker panel is expanded. Defaults to false (collapsed). */
+  tagsPanelVisible?: boolean;
 }
 
 export interface FileEntry {
