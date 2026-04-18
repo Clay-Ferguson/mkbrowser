@@ -540,9 +540,9 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                 }}
                 disabled={edit.saving || isRewriting}
                 title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
-                className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50"
+                className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-500 hover:bg-slate-400 rounded transition-colors disabled:opacity-50"
               >
-                {isRewriting ? 'Rewriting...' : (hasSelection ? 'Rewrite Selection' : 'Rewrite')}
+                {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
               </button>
             )}
             {!item?.reviewing && (
