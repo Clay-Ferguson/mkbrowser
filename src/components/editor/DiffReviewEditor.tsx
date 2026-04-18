@@ -4,7 +4,7 @@ import { EditorState } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { markdown } from '@codemirror/lang-markdown';
-import { unifiedMergeView, acceptChunk, getChunks } from '@codemirror/merge';
+import { unifiedMergeView, acceptChunk, rejectChunk, getChunks } from '@codemirror/merge';
 import { useSettings, type FontSize } from '../../store';
 
 const FONT_SIZE_MAP: Record<FontSize, string> = {
@@ -100,6 +100,22 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onAcc
     onAcceptAll(view.state.doc.toString());
   };
 
+  const handleDone = () => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    // Reject all remaining chunks from last to first to avoid position shifts
+    let rejected = true;
+    while (rejected) {
+      const result = getChunks(view.state);
+      if (!result || result.chunks.length === 0) break;
+      const lastChunk = result.chunks[result.chunks.length - 1];
+      rejected = rejectChunk(view, lastChunk.fromB);
+    }
+
+    onAcceptAll(view.state.doc.toString());
+  };
+
   return (
     <div className="w-full flex flex-col gap-2">
       <div
@@ -112,6 +128,12 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onAcc
           className="px-3 py-1 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors"
         >
           Accept All
+        </button>
+        <button
+          onClick={handleDone}
+          className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors"
+        >
+          Done
         </button>
         <button
           onClick={onCancel}
