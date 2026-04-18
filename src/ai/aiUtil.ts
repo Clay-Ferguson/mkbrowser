@@ -19,6 +19,7 @@ import { recordUsage } from './usageTracker';
 import { ensureRunning } from '../llamaServer';
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
+import { USE_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
 
 export { preprocessPrompt, wildcardToRegex, FILE_DIRECTIVE_REGEX } from './promptPreprocess';
 export type { PreprocessResult, ImageAttachment } from './promptPreprocess';
@@ -37,7 +38,7 @@ function debugLog(...args: unknown[]) {
  * Resolve the active AI provider and model name from the config.
  * Falls back to Anthropic Claude Haiku if nothing is configured.
  */
-function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP'; model: string; llamacppBaseUrl: string } {
+export function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP'; model: string; llamacppBaseUrl: string } {
   const config = getConfig();
   const llamacppBaseUrl = config.llamacppBaseUrl || 'http://localhost:8080/v1';
 
@@ -60,7 +61,7 @@ function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' |
 /**
  * Create the appropriate LangChain chat model based on the active config.
  */
-function createChatModel() {
+export function createChatModel() {
   const { provider, model, llamacppBaseUrl } = getActiveModelConfig();
   debugLog('createChatModel → provider:', provider, 'model:', model);
   if (provider === 'LLAMACPP') {
@@ -83,7 +84,7 @@ function createChatModel() {
  * images the message uses LangChain's multimodal content-array format;
  * otherwise it's a plain text message.
  */
-function buildHumanMessage(result: PreprocessResult): HumanMessage {
+export function buildHumanMessage(result: PreprocessResult): HumanMessage {
   if (result.images.length === 0) {
     return new HumanMessage(result.text);
   }
@@ -120,7 +121,7 @@ export interface AIInvokeResult {
 /**
  * Extract usage metadata from a LangChain AIMessage, if present.
  */
-function extractUsage(message: BaseMessage): AIUsageInfo | undefined {
+export function extractUsage(message: BaseMessage): AIUsageInfo | undefined {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const meta = (message as any).usage_metadata;
   if (meta && typeof meta.input_tokens === 'number') {
@@ -683,7 +684,9 @@ export async function handleAskAI(
   if (streamCallbacks && !hasScriptedAnswer()) {
     // ── Streaming path ──
     try {
-      const result = await streamAI(processedPrompt, history, streamCallbacks, signal);
+      const result = USE_DEEP_AGENTS
+        ? await streamDeepAgent(processedPrompt, history, streamCallbacks, signal)
+        : await streamAI(processedPrompt, history, streamCallbacks, signal);
       content = result.content;
       thinking = result.thinking;
       usage = result.usage;
@@ -706,7 +709,9 @@ export async function handleAskAI(
     }
   } else {
     // ── Non-streaming path ──
-    const result = await invokeAI(processedPrompt, history);
+    const result = USE_DEEP_AGENTS
+      ? await invokeDeepAgent(processedPrompt, history)
+      : await invokeAI(processedPrompt, history);
     content = result.content;
     thinking = result.thinking;
     usage = result.usage;
@@ -759,7 +764,9 @@ export async function handleRewriteContent(
     fileDirectivesFound: false,
   };
 
-  const result = await invokeAI(prompt);
+  const result = USE_DEEP_AGENTS
+    ? await invokeDeepAgent(prompt)
+    : await invokeAI(prompt);
 
   // Record token usage if available
   if (result.usage) {
@@ -809,7 +816,9 @@ export async function handleRewriteContentSection(
     fileDirectivesFound: false,
   };
 
-  const result = await invokeAI(prompt);
+  const result = USE_DEEP_AGENTS
+    ? await invokeDeepAgent(prompt)
+    : await invokeAI(prompt);
 
   // Record token usage if available
   if (result.usage) {
