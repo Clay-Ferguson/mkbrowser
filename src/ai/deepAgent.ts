@@ -53,14 +53,7 @@ function debugLog(...args: unknown[]) {
   if (DEBUG) console.log('[deepAgent DEBUG]', ...args);
 }
 
-// todo-0: move this system prompt into a prompt's shared constance file and also see if we can incorporate this into our 
-// non-DeepAgent (i.e. plain LangGraph code as well)
-const MKBROWSER_SYSTEM_PROMPT = `You are the MkBrowser AI assistant — a helpful, knowledgeable assistant \
-embedded in a desktop Markdown browser application. You help users with \
-writing, editing, research, analysis, and general questions.
-
-When responding, use well-formatted Markdown. You can use headings, lists, \
-code blocks, tables, and other Markdown constructs as appropriate.`;
+import { MKBROWSER_SYSTEM_PROMPT } from './aiPrompts';
 
 /**
  * Create a Deep Agent configured for MkBrowser.

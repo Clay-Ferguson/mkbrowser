@@ -8,7 +8,7 @@ import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 // @ts-expect-error — moduleResolution "node" can't resolve subpath exports; works at runtime
 import { ToolNode } from '@langchain/langgraph/prebuilt';
-import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
+import { HumanMessage, AIMessage, SystemMessage, type BaseMessage } from '@langchain/core/messages';
 import { fdir } from 'fdir';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
@@ -17,7 +17,7 @@ import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
 import { ensureRunning } from '../llamaServer';
-import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
+import { MKBROWSER_SYSTEM_PROMPT, DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 import { USE_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
 
@@ -244,7 +244,7 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
   debugLog('invokeAI → provider:', provider, '| model:', modelName);
   try {
     const result = await graph.invoke({
-      messages: [...history, humanMsg],
+      messages: [new SystemMessage(MKBROWSER_SYSTEM_PROMPT), ...history, humanMsg],
     });
 
     debugLog('invokeAI → graph finished successfully');
@@ -354,7 +354,7 @@ export async function streamAI(
   debugLog('streamAI → starting streamEvents');
   try {
     const eventStream = graph.streamEvents(
-      { messages: [...history, humanMsg] },
+      { messages: [new SystemMessage(MKBROWSER_SYSTEM_PROMPT), ...history, humanMsg] },
       { version: 'v2', signal },
     );
 
