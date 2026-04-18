@@ -159,7 +159,7 @@ export function hasScriptedAnswer(): boolean {
 }
 
 /**
- * Non-agentic AI invocation with optional tool support.
+ * AI invocation with optional tool support.
  * Uses a StateGraph that sends messages to the model and, when tools are
  * enabled, loops back through a ToolNode to execute any tool calls the
  * model requests before producing a final text response.
