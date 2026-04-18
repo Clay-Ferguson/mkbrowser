@@ -29,11 +29,11 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1 text-sm">
+    <div className="flex flex-wrap items-center gap-1 text-base">
       <button
         type="button"
         onClick={() => onNavigate(normalizedRoot)}
-        className="p-1 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded cursor-pointer flex-shrink-0 transition-colors"
+        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer flex-shrink-0 transition-colors"
         aria-label="Go to root folder"
       >
         <HomeIcon className="w-5 h-5" />
@@ -47,10 +47,10 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
         const isLast = index === parts.length - 1;
         return (
           <div key={`${part}-${index}`} className="flex items-center">
-            <span className="text-slate-500 mx-1">/</span>
+            <span className="text-slate-200 mx-1">/</span>
             {isLast ? (
               <span
-                className="text-slate-200 break-all"
+                className="px-2 py-1 text-slate-200 break-all"
               >
                 {part}
               </span>
@@ -58,7 +58,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
               <button
                 type="button"
                 onClick={() => onNavigate(buildPathForIndex(index))}
-                className="px-1 text-slate-200 hover:text-blue-400 hover:bg-slate-700 rounded cursor-pointer no-underline break-all transition-colors"
+                className="px-2 py-1 text-slate-200 hover:text-blue-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer no-underline break-all transition-colors"
               >
                 {part}
               </button>

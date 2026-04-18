@@ -122,7 +122,7 @@ export function EntryActionBar({
       <button
         onClick={handleOpenExternal}
         className={BUTTON_CLZ_OPEN_EXTERNAL}
-        title="Open with system default"
+        title="Open with OS App"
         data-testid="entry-open-external-button"
       >
         <ArrowTopRightOnSquareIcon className="w-5 h-5" />
