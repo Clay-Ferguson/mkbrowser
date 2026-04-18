@@ -507,9 +507,9 @@ function AISettingsView() {
           {/* Prompts */}
           {aiEnabled && (
             <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-              <h2 className="text-lg font-semibold text-slate-100 mb-4">Prompts</h2>
+              <h2 className="text-lg font-semibold text-slate-100 mb-4">Rewrite Settings</h2>
               <div>
-                <label className="text-slate-300 text-sm block mb-2">Rewrite Personas</label>
+                <label className="text-slate-300 text-sm block mb-2">Persona</label>
                 {/* Combobox row: name selector + Save + Delete */}
                 <div className="flex gap-3 mb-3">
                   <EditableCombobox
