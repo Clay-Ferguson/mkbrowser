@@ -649,8 +649,8 @@ Instead of rewriting the entire file, you can select a specific portion of text 
 
 1. Open a file for editing.
 2. Use your mouse or keyboard to **select a range of text** in the editor.
-3. The button label changes from **Rewrite** to **Rewrite Selection**, indicating the feature is active.
-4. Click **Rewrite Selection**. The AI receives the full file for context but rewrites only the selected portion.
+3. The button label changes from **AI Rewrite** to **AI Rewrite Selection**, indicating the feature is active.
+4. Click **AI Rewrite**. The AI receives the full file for context but rewrites only the selected portion.
 5. The diff review editor shows the result as a full-file diff, with changes localized to the region you selected.
 6. Accept or cancel as usual.
 
