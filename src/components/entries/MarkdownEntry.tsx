@@ -80,6 +80,28 @@ function preprocessWikiLinks(content: string): string {
   });
 }
 
+function splitOnColumnBreaks(content: string): string[] {
+  const lines = content.split('\n');
+  const chunks: string[] = [];
+  let current: string[] = [];
+  let inFence = false;
+
+  for (const line of lines) {
+    const trimmed = line.trimEnd();
+    if (/^(`{3,}|~{3,})/.test(trimmed)) {
+      inFence = !inFence;
+    }
+    if (!inFence && trimmed === '|||') {
+      chunks.push(current.join('\n').trim());
+      current = [];
+    } else {
+      current.push(line);
+    }
+  }
+  chunks.push(current.join('\n').trim());
+  return chunks;
+}
+
 // Render queue to serialize mermaid renders (mermaid can't handle concurrent renders)
 const mermaidRenderQueue: Array<() => Promise<void>> = [];
 let isRenderingMermaid = false;
@@ -485,6 +507,9 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
     }
   };
 
+  const processedContent = preprocessWikiLinks(preprocessMathEscapes(content || ''));
+  const columns = splitOnColumnBreaks(processedContent);
+
   return (
     <div className={`bg-slate-800 border group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700'} overflow-hidden`}>
       <div className="flex items-center gap-3 pl-4 pr-2 py-1 bg-slate-700/50 group-hover:bg-slate-700 border-b border-slate-700 transition-colors">
@@ -669,24 +694,53 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
               <TagsPicker filePath={entry.path} />
             </>
           ) : (
-            <article
-              className="prose prose-invert prose-base max-w-none cursor-pointer"
-              onDoubleClick={edit.handleEditClick}
-              title="Double-click to edit"
-            >
-              <Markdown
-                remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
-                rehypePlugins={[rehypeKatex]}
-                components={{
-                  a: createCustomAnchor(entry.path),
-                  img: createCustomImage(entry.path),
-                  code: CustomCode,
-                  pre: CustomPre,
-                }}
+            columns.length > 1 ? (
+              <div
+                style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}
+                className="cursor-pointer"
+                onDoubleClick={edit.handleEditClick}
+                title="Double-click to edit"
               >
-                {preprocessWikiLinks(preprocessMathEscapes(content || ''))}
-              </Markdown>
-            </article>
+                {columns.map((col, i) => (
+                  <article
+                    key={i}
+                    className={`prose prose-invert prose-base max-w-none${i > 0 ? ' border-l border-slate-600 pl-6' : ''}`}
+                  >
+                    <Markdown
+                      remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
+                      rehypePlugins={[rehypeKatex]}
+                      components={{
+                        a: createCustomAnchor(entry.path),
+                        img: createCustomImage(entry.path),
+                        code: CustomCode,
+                        pre: CustomPre,
+                      }}
+                    >
+                      {col}
+                    </Markdown>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <article
+                className="prose prose-invert prose-base max-w-none cursor-pointer"
+                onDoubleClick={edit.handleEditClick}
+                title="Double-click to edit"
+              >
+                <Markdown
+                  remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={{
+                    a: createCustomAnchor(entry.path),
+                    img: createCustomImage(entry.path),
+                    code: CustomCode,
+                    pre: CustomPre,
+                  }}
+                >
+                  {columns[0]}
+                </Markdown>
+              </article>
+            )
           )}
         </div>
       )}

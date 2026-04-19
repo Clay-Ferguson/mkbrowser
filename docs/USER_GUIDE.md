@@ -355,6 +355,20 @@ You can export the contents of the current folder into a single document.
     - **Export to PDF**: If checked, the application will attempt to generate a PDF file instead of a Markdown file.
 3. Click **Export** to finish.
 
+# Markdown Support
+
+MkBrowser renders Markdown using **GitHub Flavored Markdown (GFM)**, which includes tables, strikethrough, task lists, and autolinks. On top of standard GFM, the following extended features are supported:
+
+- **LaTeX math** — inline (`$...$`) and block (`$$...$$`) equations via KaTeX (see [LaTeX Math Support](#latex-math-support) below).
+- **Wikilinks** — `[[filename]]` and `[[filename|alias]]` syntax for linking between files (see [Wikilinks](#wikilinks) below).
+- **Syntax highlighting** — fenced code blocks with a language tag (e.g., ` ```python `) are rendered with syntax colors.
+- **Mermaid diagrams** — fenced code blocks tagged ` ```mermaid ` are rendered as diagrams.
+- **Escaped dollar signs** — use `\$` to display a literal `$` without triggering math mode.
+
+## Column Layout (`|||`)
+
+Placing `|||` on a line by itself within a Markdown file designates a column break. MkBrowser will split the document at each such delimiter and render the resulting sections side-by-side in an equal-width multi-column layout. Other Markdown renderers that are unaware of this convention will display `|||` as plain text.
+
 # Wikilinks
 
 MkBrowser supports wikilink syntax, a popular convention (used by Obsidian, Notion, and other tools) for linking between files using double square brackets. Wikilinks are automatically converted into standard Markdown links when rendered.
