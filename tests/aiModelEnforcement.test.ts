@@ -1,5 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import { enforceDefaultAIModels, type AIModelConfigLike } from '../src/ai/aiModelEnforcement';
+import { describe, expect, it, vi } from 'vitest';
+
+// Without this mock, importing aiModel.ts causes a crash in the Vitest node environment.
+// The circular dependency is: aiModel.ts → configMgr.ts → electron app.getPath('home')
+// configMgr.ts calls app.getPath() at module-level (not inside a function), so Electron's
+// `app` object (which is undefined outside the main process) is accessed the moment the
+// module is imported, crashing before any tests run.
+vi.mock('../src/configMgr', () => ({ getConfig: vi.fn() }));
+
+import { enforceDefaultAIModels, type AIModelConfigLike } from '../src/ai/aiModel';
 
 describe('enforceDefaultAIModels', () => {
   const defaults = [
