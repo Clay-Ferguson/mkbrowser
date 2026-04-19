@@ -21,14 +21,13 @@
 import { createDeepAgent } from 'deepagents';
 import type { BaseMessage } from '@langchain/core/messages';
 import {
-  createChatModel,
   buildHumanMessage,
   extractUsage,
-  getActiveModelConfig,
   type AIInvokeResult,
   type AIUsageInfo,
   type StreamCallbacks,
 } from './langGraph';
+import { createChatModel, getActiveModelConfig } from './aiModel';
 import type { PreprocessResult } from './promptPreprocess';
 
 import { aiTools } from './tools';

@@ -11,15 +11,9 @@ import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
 import { ensureRunning } from '../llamaServer';
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
-import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
+import { preprocessPrompt } from './promptPreprocess';
 import { USE_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
-import { invokeAI, streamAI, hasScriptedAnswer, type AIUsageInfo, type AIInvokeResult, type StreamCallbacks } from './langGraph';
-
-export { preprocessPrompt, wildcardToRegex, FILE_DIRECTIVE_REGEX } from './promptPreprocess';
-export type { PreprocessResult, ImageAttachment } from './promptPreprocess';
-export { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './aiPatterns';
-export type { AIUsageInfo, AIInvokeResult, StreamCallbacks } from './langGraph';
-export { queueScriptedAnswer, getActiveModelConfig, createChatModel, buildHumanMessage, extractUsage } from './langGraph';
+import { invokeAI, streamAI, hasScriptedAnswer, type AIUsageInfo, type StreamCallbacks } from './langGraph';
 
 /**
  * Find the first available folder name of the form `<baseName>`, `<baseName>1`,

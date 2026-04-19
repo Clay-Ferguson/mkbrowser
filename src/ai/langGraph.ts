@@ -3,9 +3,6 @@
  * Provides `invokeAI` and `streamAI` using a StateGraph with optional tool calling.
  * This module runs in the main process only — never import from the renderer.
  */
-import { ChatAnthropic } from '@langchain/anthropic';
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 // @ts-expect-error — moduleResolution "node" can't resolve subpath exports; works at runtime
 import { ToolNode } from '@langchain/langgraph/prebuilt';
@@ -14,59 +11,13 @@ import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 import { MKBROWSER_SYSTEM_PROMPT } from './aiPrompts';
 import type { PreprocessResult } from './promptPreprocess';
+import { createChatModel, getActiveModelConfig } from './aiModel';
 
 // Set to true to enable verbose debug logging for AI invocations.
 const DEBUG = true;
 
-function debugLog(...args: unknown[]) {
+export function debugLog(...args: unknown[]) {
   if (DEBUG) console.log('[aiUtil DEBUG]', ...args);
-}
-
-// NOTE: See 'llamacpp' folder for instructions on setting up llama.cpp for local inference.
-
-/**
- * Resolve the active AI provider and model name from the config.
- * Falls back to Anthropic Claude Haiku if nothing is configured.
- */
-export function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP'; model: string; llamacppBaseUrl: string } {
-  const config = getConfig();
-  const llamacppBaseUrl = config.llamacppBaseUrl || 'http://localhost:8080/v1';
-
-  const normalizeKey = (name: string) => name.trim().toLowerCase();
-
-  if (config.aiModel && config.aiModels) {
-    const selectedKey = normalizeKey(config.aiModel);
-    const entry = config.aiModels.find((m) => normalizeKey(m.name) === selectedKey);
-    if (entry) {
-      debugLog('getActiveModelConfig → provider:', entry.provider, 'model:', entry.model);
-      return { provider: entry.provider, model: entry.model, llamacppBaseUrl };
-    }
-  }
-
-  // Fallback defaults
-  debugLog('getActiveModelConfig → using fallback: ANTHROPIC / claude-3-haiku-20240307');
-  return { provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', llamacppBaseUrl };
-}
-
-/**
- * Create the appropriate LangChain chat model based on the active config.
- */
-export function createChatModel() {
-  const { provider, model, llamacppBaseUrl } = getActiveModelConfig();
-  debugLog('createChatModel → provider:', provider, 'model:', model);
-  if (provider === 'LLAMACPP') {
-    return new ChatOpenAI({ model, configuration: { baseURL: llamacppBaseUrl } });
-  }
-  if (provider === 'OPENAI') {
-    return new ChatOpenAI({ model });
-  }
-  if (provider === 'GOOGLE') {
-    const apiKey = process.env.GOOGLE_API_KEY;
-    debugLog('createChatModel → GOOGLE_API_KEY is', apiKey ? `set (${apiKey.length} chars)` : 'NOT SET — this will likely cause a hang or error');
-    // maxRetries: 2 to fail faster on quota/auth errors instead of silently retrying many times
-    return new ChatGoogleGenerativeAI({ model, maxRetries: 2 });
-  }
-  return new ChatAnthropic({ model });
 }
 
 /**

@@ -10,7 +10,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import * as yaml from 'js-yaml';
 import { app } from 'electron';
-import { enforceDefaultAIModels } from './ai/aiModelEnforcement';
+import { enforceDefaultAIModels } from './ai/aiModel';
 
 // Config file location (Linux XDG standard: ~/.config/mk-browser/config.yaml)
 const CONFIG_DIR = path.join(app.getPath('home'), '.config', 'mk-browser');
