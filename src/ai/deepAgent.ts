@@ -31,17 +31,8 @@ import {
 } from './aiUtil';
 import type { PreprocessResult } from './promptPreprocess';
 
-// --------------------------------------------------------------------------
-// To pass MkBrowser's own real-filesystem tools to the Deep Agent, uncomment
-// the import below and the `tools` property inside createMkBrowserDeepAgent().
-//
-// IMPORTANT: The app's `read_file` and `write_file` tool names collide with
-// Deep Agents' built-in virtual-filesystem tools of the same name.  Before
-// uncommenting, rename the app's tools (in src/ai/tools.ts) to avoid the
-// collision — e.g. `mk_read_file`, `mk_write_file`.
-//
-// import { aiTools } from './tools';
-// --------------------------------------------------------------------------
+import { aiTools } from './tools';
+import { getConfig } from '../configMgr';
 
 /** Set to true to use Deep Agents; false to use the original StateGraph path. */
 export const USE_DEEP_AGENTS = true;
@@ -65,13 +56,11 @@ function createMkBrowserDeepAgent() {
   const model = createChatModel();
 
   debugLog('createMkBrowserDeepAgent → creating deep agent');
+  const useTools = aiTools.length > 0 && getConfig().agenticMode;
   const agent = createDeepAgent({
     model,
     systemPrompt: MKBROWSER_SYSTEM_PROMPT,
-    // ── Custom tools (commented out until tool names are de-collided) ──
-    // Uncomment after renaming read_file → mk_read_file, write_file → mk_write_file
-    // in src/ai/tools.ts:
-    // tools: aiTools,
+    ...(useTools ? { tools: aiTools } : {}),
   });
 
   return agent;

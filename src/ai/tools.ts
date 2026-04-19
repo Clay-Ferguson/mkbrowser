@@ -21,7 +21,7 @@ export function setToolsEnabled(enabled: boolean): void {
   toolsEnabled = enabled;
 }
 
-/** Maximum file size (in bytes) the read_file tool will return.  Larger files are truncated. */
+/** Maximum file size (in bytes) the mk_read_file tool will return.  Larger files are truncated. */
 const MAX_READ_BYTES = 50 * 1024; // 50 KB
 
 // ---------------------------------------------------------------------------
@@ -165,10 +165,10 @@ async function globDelete(validatedPath: string): Promise<number> {
 export const readFileTool = tool(
   async ({ filePath }) => {
     if (!toolsEnabled) {
-      throw new Error('AI tools are disabled (AGENTIC_MODE is off). read_file cannot be called.');
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). mk_read_file cannot be called.');
     }
     const safe = await validatePath(filePath);
-    if (DEBUG) console.log(`[ai/tools] read_file: ${path.basename(safe)}  (${safe})`);
+    if (DEBUG) console.log(`[ai/tools] mk_read_file: ${path.basename(safe)}  (${safe})`);
     const stat = await fs.stat(safe);
 
     if (!stat.isFile()) {
@@ -192,7 +192,7 @@ export const readFileTool = tool(
     return await fs.readFile(safe, 'utf-8');
   },
   {
-    name: 'read_file',
+    name: 'mk_read_file',
     description:
       'Read the contents of a file on the local file system. ' +
       'Provide an absolute path or a path starting with `~/`. ' +
@@ -260,10 +260,10 @@ export const listDirectoryTool = tool(
 export const writeFileTool = tool(
   async ({ filePath, content }) => {
     if (!toolsEnabled) {
-      throw new Error('AI tools are disabled (AGENTIC_MODE is off). write_file cannot be called.');
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). mk_write_file cannot be called.');
     }
     const safe = await validatePath(filePath);
-    if (DEBUG) console.log(`[ai/tools] write_file: ${path.basename(safe)}  (${safe})`);
+    if (DEBUG) console.log(`[ai/tools] mk_write_file: ${path.basename(safe)}  (${safe})`);
 
     // Ensure the file already exists — this tool must not create new files.
     let stat: Awaited<ReturnType<typeof fs.stat>>;
@@ -283,7 +283,7 @@ export const writeFileTool = tool(
     return `Successfully wrote ${content.length} characters to ${filePath}`;
   },
   {
-    name: 'write_file',
+    name: 'mk_write_file',
     description:
       'Overwrite the contents of an existing file on the local file system. ' +
       'The file MUST already exist — this tool cannot create new files. ' +
@@ -326,7 +326,7 @@ export const createFileTool = tool(
       // If stat succeeds, the file exists — that's an error for this tool.
       throw new Error(
         `File already exists: "${filePath}". This tool can only create new files. ` +
-        'Use write_file to overwrite an existing file.'
+        'Use mk_write_file to overwrite an existing file.'
       );
     } catch (err: unknown) {
       // Re-throw our own "already exists" error.
@@ -359,7 +359,7 @@ export const createFileTool = tool(
     description:
       'Create a new file on the local file system with the provided content. ' +
       'The file must NOT already exist — this tool cannot overwrite existing files. ' +
-      'Use write_file instead to update an existing file. ' +
+      'Use mk_write_file instead to update an existing file. ' +
       'Provide an absolute path or a path starting with `~/`. ' +
       'The parent directory must already exist and be under the user-configured allowed folders.',
     schema: z.object({
