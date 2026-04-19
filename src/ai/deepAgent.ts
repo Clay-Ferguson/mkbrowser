@@ -28,14 +28,14 @@ import {
   type AIInvokeResult,
   type AIUsageInfo,
   type StreamCallbacks,
-} from './aiUtil';
+} from './langGraph';
 import type { PreprocessResult } from './promptPreprocess';
 
 import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 
 /** Set to true to use Deep Agents; false to use the original StateGraph path. */
-export const USE_DEEP_AGENTS = true;
+export const USE_DEEP_AGENTS = true; 
 
 // Set to true to enable verbose debug logging for Deep Agent invocations.
 const DEBUG = true;
