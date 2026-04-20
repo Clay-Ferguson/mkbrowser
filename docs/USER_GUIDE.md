@@ -708,3 +708,43 @@ If no prompt is selected, or all prompts have been deleted, the built-in default
 
 **Tip:** Create a prompt for each writing context you work in — for example, a formal academic tone, plain language for a general audience, or a structured bullet-point format. Switch between them from the name dropdown without leaving your document.
 
+# Automatic Markdown-to-HTML Export (Front Matter Autogen)
+
+MkBrowser supports a powerful feature that lets you automatically generate and maintain an HTML version of any Markdown file, simply by adding a special YAML front matter block at the top of your file. This is especially useful if you want to use your Markdown notes as a browser landing page, or quickly access a set of links and notes in your web browser without opening MkBrowser.
+
+## How It Works
+
+1. **Add a front matter block** to your Markdown file, like this:
+
+   ```markdown
+   ---
+   autogen:
+     outputFile: /path/to/output.html
+   ---
+   # My Links
+   - [Google](https://google.com)
+   - [GitHub](https://github.com)
+   ```
+
+2. **Edit and save** the Markdown file in MkBrowser as usual.
+
+3. **MkBrowser will automatically generate an HTML file** at the location you specify in `outputFile`. The HTML is fully self-contained (no external CSS or JS), styled for readability, and supports all the Markdown features of MkBrowser—including math, tables, and custom column layouts (using `|||` as a column break).
+
+4. **Open the generated HTML file in any web browser**. You don't need MkBrowser to view or use the HTML version.
+
+## Use Case: Browser Landing Page
+
+A great use for this feature is to keep your favorite links and notes in a Markdown file, but use the generated HTML as your browser's home page or a quick-access dashboard. This way, you can edit your links in Markdown (with all the power of MkBrowser's editor and search), but instantly access them in your browser—no need to open MkBrowser just to click a link.
+
+- **Edit in Markdown**: Use MkBrowser for fast editing, search, and organization.
+- **Browse in HTML**: Set the generated HTML file as your browser's start page, or bookmark it for one-click access.
+
+## Technical Details
+- The HTML output is updated every time you save the Markdown file in MkBrowser.
+- The output file path can be absolute or relative (relative paths are resolved against the Markdown file's location).
+- The HTML includes all styling and assets inline—no external dependencies.
+- The special `|||` syntax splits your content into columns in the HTML output.
+- You can use this for any purpose: dashboards, link pages, project overviews, or even as a personal wiki.
+
+**Tip:** You can maintain multiple Markdown files with different `autogen.outputFile` targets, each generating a different HTML dashboard or landing page.
+
