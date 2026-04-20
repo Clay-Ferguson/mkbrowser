@@ -156,6 +156,7 @@ export interface ElectronAPI {
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
   readExif: (filePath: string) => Promise<Record<string, Record<string, string>>>;
+  writeExif: (filePath: string, data: Record<string, Record<string, string>>) => Promise<boolean>;
   pathExists: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<boolean>;
   getFileSize: (filePath: string) => Promise<number>;

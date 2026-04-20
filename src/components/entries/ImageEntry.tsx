@@ -326,6 +326,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
         <ExifDialog
           data={exifData}
           fileName={exifFileName}
+          filePath={isFullscreen ? fullscreenImagePath : entry.path}
           onClose={() => { setShowExifDialog(false); setExifData(null); }}
         />
       )}

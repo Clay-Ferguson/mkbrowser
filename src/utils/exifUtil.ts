@@ -1,3 +1,26 @@
+import { exiftool } from 'exiftool-vendored';
+/**
+ * Write EXIF metadata to an image file. Accepts a grouped tag object (same as readExifMetadata output).
+ * Only string values are supported. Returns true on success, false on error.
+ */
+export async function writeExifMetadata(filePath: string, data: Record<string, Record<string, string>>): Promise<boolean> {
+  // Flatten grouped tags with group prefixes: { "EXIF:TagName": value, ... }
+  // This preserves which metadata section each tag belongs to
+  const tags: Record<string, string> = {};
+  for (const [groupName, groupTags] of Object.entries(data)) {
+    for (const [tag, value] of Object.entries(groupTags)) {
+      // Use group:tag format for exiftool (e.g., "EXIF:ImageDescription")
+      tags[`${groupName}:${tag}`] = value;
+    }
+  }
+  try {
+    await exiftool.write(filePath, tags);
+    return true;
+  } catch (err) {
+    console.error('Error writing EXIF:', err);
+    return false;
+  }
+}
 import ExifReader from 'exifreader';
 
 /**

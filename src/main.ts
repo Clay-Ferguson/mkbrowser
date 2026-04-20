@@ -17,7 +17,16 @@ import { queueScriptedAnswer } from './ai/langGraph';
 import type { StreamCallbacks } from './ai/langGraph';
 import { getUsageWithCosts, resetUsage } from './ai/usageTracker';
 import { checkHealth, ensureRunning, stopServer } from './llamaServer';
-import { readExifMetadata } from './utils/exifUtil';
+import { readExifMetadata, writeExifMetadata } from './utils/exifUtil';
+  // Write EXIF metadata to an image file
+  ipcMain.handle('write-exif', async (_event, filePath: string, data: Record<string, Record<string, string>>): Promise<boolean> => {
+    try {
+      return await writeExifMetadata(filePath, data);
+    } catch (error) {
+      console.error('Error writing EXIF data:', error);
+      return false;
+    }
+  });
 import { exportFolderContents, exportToPdf } from './utils/exportUtils';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
