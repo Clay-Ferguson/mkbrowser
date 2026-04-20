@@ -11,7 +11,7 @@ import { enforceDefaultAIModels, type AIModelConfigLike } from '../src/ai/aiMode
 
 describe('enforceDefaultAIModels', () => {
   const defaults = [
-    { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', readonly: true },
+    { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-haiku-4-5-20251001', readonly: true },
     { name: 'GPT-4.1 Nano', provider: 'OPENAI', model: 'gpt-4.1-nano', readonly: true },
   ] as const;
 
@@ -45,7 +45,7 @@ describe('enforceDefaultAIModels', () => {
     expect(result.models[0]).toMatchObject({
       name: 'Claude Haiku',
       provider: 'ANTHROPIC',
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-haiku-4-5-20251001',
       readonly: true,
     });
 

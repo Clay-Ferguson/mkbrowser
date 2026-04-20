@@ -14,7 +14,7 @@ beforeAll(() => {
 
 describe('AI connectivity', () => {
   it('responds to a simple arithmetic query via a LangGraph graph', async () => {
-    const model = new ChatAnthropic({ model: 'claude-3-haiku-20240307' });
+    const model = new ChatAnthropic({ model: 'claude-haiku-4-5-20251001' });
 
     const graph = new StateGraph(MessagesAnnotation)
       .addNode('chat', async (state) => {

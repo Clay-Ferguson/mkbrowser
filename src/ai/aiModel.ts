@@ -139,8 +139,8 @@ export function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OPENAI' | 'GO
     }
 
     // Fallback defaults
-    debugLog('getActiveModelConfig → using fallback: ANTHROPIC / claude-3-haiku-20240307');
-    return { provider: 'ANTHROPIC', model: 'claude-3-haiku-20240307', llamacppBaseUrl };
+    debugLog('getActiveModelConfig → using fallback: ANTHROPIC / claude-haiku-4-5-20251001');
+    return { provider: 'ANTHROPIC', model: 'claude-haiku-4-5-20251001', llamacppBaseUrl };
 }
 
 /**
