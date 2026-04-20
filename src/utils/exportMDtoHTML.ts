@@ -8,6 +8,42 @@ import rehypeKatex from 'rehype-katex';
 import rehypeStringify from 'rehype-stringify';
 
 // ---------------------------------------------------------------------------
+// Rehype plugin: add target="_blank" to all <a> tags
+// ---------------------------------------------------------------------------
+
+import type { Root, Element } from 'hast';
+
+function rehypeTargetBlank() {
+  return (tree: Root) => {
+    visitLinks(tree, node => {
+      node.properties = node.properties || {};
+      node.properties.target = '_blank';
+      // Security best practice: add rel="noopener"
+      if (typeof node.properties.rel === 'string') {
+        // Merge with existing rel
+        if (!node.properties.rel.includes('noopener')) {
+          node.properties.rel += ' noopener';
+        }
+      } else {
+        node.properties.rel = 'noopener';
+      }
+    });
+  };
+}
+
+function visitLinks(tree: any, cb: (node: Element) => void) {
+  if (!tree || typeof tree !== 'object') return;
+  if (Array.isArray(tree.children)) {
+    for (const child of tree.children) {
+      visitLinks(child, cb);
+    }
+  }
+  if (tree.type === 'element' && tree.tagName === 'a') {
+    cb(tree);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Processor (shared instance — unified processors are stateless after build)
 // ---------------------------------------------------------------------------
 
@@ -18,6 +54,7 @@ const processor = unified()
   .use(remarkMath)                    // $...$ and $$...$$ blocks
   .use(remarkRehype)
   .use(rehypeKatex, { output: 'mathml' }) // fully self-contained — no CDN link required
+  .use(rehypeTargetBlank)             // <-- add target="_blank" to all links
   .use(rehypeStringify);
 
 // ---------------------------------------------------------------------------
