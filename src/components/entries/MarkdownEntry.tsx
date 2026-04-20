@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { ArrowPathIcon, DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import Markdown from 'react-markdown';
+import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -716,7 +717,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                     className={`prose prose-invert prose-base max-w-none${i > 0 ? ' border-l border-slate-600 pl-6' : ''}`}
                   >
                     <Markdown
-                      remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
+                      remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
                       rehypePlugins={[rehypeKatex]}
                       // react-markdown v10 strips any URL whose protocol isn't in its default
                       // whitelist (http, https, mailto, etc.), so file:// links would be silently
@@ -742,7 +743,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                 title="Double-click to edit"
               >
                 <Markdown
-                  remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
+                  remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
                   rehypePlugins={[rehypeKatex]}
                   // react-markdown v10 strips any URL whose protocol isn't in its default
                   // whitelist (http, https, mailto, etc.), so file:// links would be silently
