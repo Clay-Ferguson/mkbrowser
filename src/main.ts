@@ -326,8 +326,8 @@ function setupIpcHandlers(): void {
   // Open URL in external browser (for http/https links)
   ipcMain.handle('open-external-url', async (_event, url: string): Promise<boolean> => {
     try {
-      // Only allow http and https URLs for security
-      if (url.startsWith('http://') || url.startsWith('https://')) {
+      // Allow http, https, and file URLs
+      if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('file://')) {
         await shell.openExternal(url);
         return true;
       }

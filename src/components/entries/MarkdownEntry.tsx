@@ -231,6 +231,13 @@ function createCustomAnchor(entryPath: string) {
         return;
       }
 
+      // Handle file:// URLs - open with system default app
+      if (href.startsWith('file://')) {
+        e.preventDefault();
+        window.electronAPI.openExternalUrl(href);
+        return;
+      }
+
       // Handle relative links (./file.md, ../folder/file.md, or just file.md)
       // Skip anchor-only links and other protocols
       if (!href.startsWith('#') && !href.includes('://')) {
@@ -709,6 +716,11 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                     <Markdown
                       remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
                       rehypePlugins={[rehypeKatex]}
+                      // react-markdown v10 strips any URL whose protocol isn't in its default
+                      // whitelist (http, https, mailto, etc.), so file:// links would be silently
+                      // replaced with an empty string. An identity function bypasses that
+                      // sanitization and lets our CustomAnchor handler receive the full URL intact.
+                      urlTransform={(url) => url}
                       components={{
                         a: createCustomAnchor(entry.path),
                         img: createCustomImage(entry.path),
@@ -730,6 +742,11 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                 <Markdown
                   remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
                   rehypePlugins={[rehypeKatex]}
+                  // react-markdown v10 strips any URL whose protocol isn't in its default
+                  // whitelist (http, https, mailto, etc.), so file:// links would be silently
+                  // replaced with an empty string. An identity function bypasses that
+                  // sanitization and lets our CustomAnchor handler receive the full URL intact.
+                  urlTransform={(url) => url}
                   components={{
                     a: createCustomAnchor(entry.path),
                     img: createCustomImage(entry.path),
