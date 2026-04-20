@@ -33,7 +33,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
       <button
         type="button"
         onClick={() => onNavigate(normalizedRoot)}
-        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer flex-shrink-0 transition-colors"
+        className="p-2 text-slate-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer flex-shrink-0 transition-colors"
         aria-label="Go to root folder"
       >
         <HomeIcon className="w-5 h-5" />
@@ -58,7 +58,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
               <button
                 type="button"
                 onClick={() => onNavigate(buildPathForIndex(index))}
-                className="px-2 py-1 text-slate-200 hover:text-blue-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer no-underline break-all transition-colors"
+                className="px-2 py-1 text-slate-200 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer no-underline break-all transition-colors"
               >
                 {part}
               </button>
@@ -71,7 +71,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
         <button
           type="button"
           onClick={onToggleBookmark}
-          className="p-1 text-slate-400 hover:text-blue-400 rounded cursor-pointer flex-shrink-0 ml-1"
+          className="p-1 text-slate-400 rounded cursor-pointer flex-shrink-0 ml-1"
           aria-label={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
           title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
         >
