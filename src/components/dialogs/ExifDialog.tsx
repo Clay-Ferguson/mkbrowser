@@ -91,9 +91,51 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
     setEditData(null);
   };
 
+  // Add Description field based on file type
+  const handleAddDescription = () => {
+    if (!editData) return;
+
+    // Determine the appropriate group and tag based on file extension
+    // This matches what the OCR script uses (see merlin_ocr.py EMBED_TAG_MAP)
+    const ext = filePath.toLowerCase().split('.').pop();
+    let group: string;
+    let tag: string;
+
+    if (ext === 'png') {
+      group = 'png';
+      tag = 'Description';
+    } else if (ext === 'jpg' || ext === 'jpeg') {
+      group = 'xmp-dc';  // XMP Dublin Core namespace
+      tag = 'Description';
+    } else {
+      alert('Description field is only supported for PNG and JPEG files.');
+      return;
+    }
+
+    // Check if description already exists in any group (check common locations)
+    const existingDesc = editData[group]?.[tag] || editData['png']?.['Description'] || editData['xmp-dc']?.['Description'];
+    if (existingDesc !== undefined) {
+      alert('Description field already exists.');
+      return;
+    }
+
+    // Add the description field with empty value
+    setEditData(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [group]: {
+          ...prev[group],
+          [tag]: '',
+        },
+      };
+    });
+  };
+
   // Save handler
   const handleSave = async () => {
     if (!editData) return;
+
     setSaving(true);
     try {
       const ok = await window.electronAPI.writeExif(filePath, editData);
@@ -106,6 +148,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
       const freshData = await window.electronAPI.readExif(filePath);
       setDisplayData(freshData);
     } catch (err) {
+      console.error('[ExifDialog] Error saving EXIF data:', err);
       alert('Error saving EXIF data.');
     }
     setSaving(false);
@@ -144,7 +187,18 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
         style={{ minWidth: 400 }}
         onClick={handleContentClick}
       >
-        <h2 className="text-slate-100 text-lg font-semibold mb-4">EXIF — {fileName}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-slate-100 text-lg font-semibold">EXIF — {fileName}</h2>
+          {editMode && (
+            <button
+              onClick={handleAddDescription}
+              className="px-3 py-1.5 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors"
+              title="Add description field for storing text"
+            >
+              Add Description
+            </button>
+          )}
+        </div>
 
         {isEmpty ? (
           <p className="text-slate-400 mb-6">No EXIF metadata found in this image.</p>
