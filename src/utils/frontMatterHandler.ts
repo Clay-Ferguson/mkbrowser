@@ -1,5 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import { convertMDtoHTML } from './exportMDtoHTML';
 
 /**
  * Called after a Markdown file has been successfully saved.
@@ -36,7 +37,8 @@ export async function frontMatterFileSaved(
     : path.resolve(path.dirname(sourceFilePath), outputFile);
 
   try {
-    await fs.promises.writeFile(resolvedOutput, content, 'utf-8');
+    const html = await convertMDtoHTML(content);
+    await fs.promises.writeFile(resolvedOutput, html, 'utf-8');
     console.log(`[autogen] Wrote ${resolvedOutput}`);
   } catch (error) {
     console.warn(`[autogen] Failed to write ${resolvedOutput}:`, error);
