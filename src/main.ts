@@ -5,7 +5,8 @@ import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 import { renumberFiles, type RenameOperation } from './utils/ordinals';
-import { readDirectory } from './utils/fileUtils';
+import { readDirectory, parseFrontMatter } from './utils/fileUtils';
+import { frontMatterFileSaved } from './utils/frontMatterHandler';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
 import { searchFolder, type SearchResult } from './search';
@@ -181,6 +182,17 @@ function setupIpcHandlers(): void {
   ipcMain.handle('write-file', async (_event, filePath: string, content: string): Promise<boolean> => {
     try {
       await fs.promises.writeFile(filePath, content, 'utf-8');
+
+      // Post-save: run front-matter autogen for Markdown files
+      if (filePath.toLowerCase().endsWith('.md')) {
+        const { yaml: frontMatter, content: body } = parseFrontMatter(content);
+        if (frontMatter) {
+          frontMatterFileSaved(filePath, frontMatter, body).catch(() => {
+            // errors already logged inside frontMatterFileSaved
+          });
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Error writing file:', error);

@@ -2,7 +2,53 @@ import type { FileEntry } from "src/global";
 import type { SortOrder } from "src/store";
 import path from 'node:path';
 import fs from 'node:fs';
+import yaml from 'js-yaml';
 import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from '../ai/aiPatterns';
+
+export interface FrontMatterResult {
+  /** Parsed YAML front matter as a plain object, or null if none was found. */
+  yaml: Record<string, unknown> | null;
+  /** The body of the file with the front matter block removed. */
+  content: string;
+}
+
+/**
+ * Parses YAML front matter from the beginning of a file's content.
+ *
+ * Front matter is a block delimited by `---` on its own line at the very start
+ * of the content and a closing `---` (or `...`) on its own line. Everything
+ * after the closing delimiter is returned as `content`.
+ *
+ * Returns `yaml: null` when no valid front matter block is detected.
+ */
+export function parseFrontMatter(rawContent: string): FrontMatterResult {
+  // Front matter must start at the very beginning of the file
+  if (!rawContent.startsWith('---')) {
+    return { yaml: null, content: rawContent };
+  }
+
+  // Find the closing delimiter (--- or ...) on its own line
+  const afterOpen = rawContent.slice(3);
+  const closingMatch = afterOpen.match(/\n(---|\.\.\.)\s*(\n|$)/);
+  if (!closingMatch || closingMatch.index === undefined) {
+    return { yaml: null, content: rawContent };
+  }
+
+  const yamlSource = afterOpen.slice(0, closingMatch.index);
+  const bodyStart = closingMatch.index + closingMatch[0].length + 3; // +3 for the opening '---'
+  const body = rawContent.slice(bodyStart);
+
+  try {
+    const parsed = yaml.load(yamlSource);
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return { yaml: parsed as Record<string, unknown>, content: body };
+    }
+  } catch {
+    // Malformed YAML — treat as no front matter
+  }
+
+  return { yaml: null, content: rawContent };
+}
 
 interface FsOperations {
   stat: (path: string) => Promise<unknown>;
