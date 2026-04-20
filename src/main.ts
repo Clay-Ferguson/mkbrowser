@@ -11,7 +11,7 @@ import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { collectAncestorTags } from './utils/tagUtils';
-import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries } from './ai/aiUtil';
+import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
 import { queueScriptedAnswer } from './ai/langGraph';
 import type { StreamCallbacks } from './ai/langGraph';
 import { getUsageWithCosts, resetUsage } from './ai/usageTracker';
@@ -469,14 +469,13 @@ function setupIpcHandlers(): void {
         },
         (err) => {
           if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('ai-stream-error',
-              err instanceof Error ? err.message : 'Unknown error');
+            mainWindow.webContents.send('ai-stream-error', friendlyAIError(err));
           }
         },
       );
     } catch (error) {
       console.error('Error in ask-ai handler:', error);
-      return { error: error instanceof Error ? error.message : 'Unknown error' };
+      return { error: friendlyAIError(error) };
     } finally {
       ipcMain.removeListener('ai-stream-cancel', cancelHandler);
     }
@@ -488,7 +487,7 @@ function setupIpcHandlers(): void {
       return await handleRewriteContent(content);
     } catch (error) {
       console.error('Error in rewrite-content handler:', error);
-      return { error: error instanceof Error ? error.message : 'Unknown error' };
+      return { error: friendlyAIError(error) };
     }
   });
 
@@ -498,7 +497,7 @@ function setupIpcHandlers(): void {
       return await handleRewriteContentSection(content, selectionFrom, selectionTo);
     } catch (error) {
       console.error('Error in rewrite-content-selection handler:', error);
-      return { error: error instanceof Error ? error.message : 'Unknown error' };
+      return { error: friendlyAIError(error) };
     }
   });
 
@@ -546,7 +545,7 @@ function setupIpcHandlers(): void {
       return await handleReplyToAI(parentFolderPath, createSubFolder);
     } catch (error) {
       console.error('Error in reply-to-ai handler:', error);
-      return { error: error instanceof Error ? error.message : 'Unknown error' };
+      return { error: friendlyAIError(error) };
     }
   });
 

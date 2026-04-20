@@ -561,11 +561,13 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
                       : await window.electronAPI.rewriteContent(edit.editContent);
                     if ('error' in result) {
                       console.error('Rewrite failed:', result.error);
+                      setAiErrorMessage(result.error);
                     } else {
                       setItemReviewing(entry.path, true, result.rewrittenContent);
                     }
                   } catch (err) {
                     console.error('Rewrite failed:', err);
+                    setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
                   } finally {
                     setIsRewriting(false);
                   }

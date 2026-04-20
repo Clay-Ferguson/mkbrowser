@@ -8,9 +8,9 @@ interface ErrorDialogProps {
 function ErrorDialog({ message, onClose, title = 'Error', buttonLabel = 'OK' }: ErrorDialogProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 max-w-md mx-4 shadow-xl">
-        <h2 className="text-slate-100 text-lg font-semibold mb-3">{title}</h2>
-        <p className="text-slate-200 mb-6">{message}</p>
+      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 max-w-md mx-4 shadow-xl max-h-[70vh] flex flex-col">
+        <h2 className="text-slate-100 text-lg font-semibold mb-3 flex-shrink-0">{title}</h2>
+        <p className="text-slate-200 mb-6 overflow-y-auto">{message}</p>
         <div className="flex justify-end">
           <button
             onClick={onClose}

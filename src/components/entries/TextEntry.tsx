@@ -8,6 +8,7 @@ import {
   setItemReviewing,
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
+import ErrorDialog from '../dialogs/ErrorDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
@@ -29,6 +30,7 @@ type TextEntryProps = BaseEntryProps;
 function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: TextEntryProps) {
   const item = useItem(entry.path);
   const [isRewriting, setIsRewriting] = useState(false);
+  const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
   const [selectedPromptName, setSelectedPromptName] = useState<string>('');
@@ -128,11 +130,13 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
                       : await window.electronAPI.rewriteContent(edit.editContent);
                     if ('error' in result) {
                       console.error('Rewrite failed:', result.error);
+                      setAiErrorMessage(result.error);
                     } else {
                       setItemReviewing(entry.path, true, result.rewrittenContent);
                     }
                   } catch (err) {
                     console.error('Rewrite failed:', err);
+                    setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
                   } finally {
                     setIsRewriting(false);
                   }
@@ -230,6 +234,12 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
           message={`Move "${entry.name}" to trash?`}
           onConfirm={del.handleDeleteConfirm}
           onCancel={del.handleDeleteCancel}
+        />
+      )}
+      {aiErrorMessage && (
+        <ErrorDialog
+          message={aiErrorMessage}
+          onClose={() => setAiErrorMessage(null)}
         />
       )}
     </div>

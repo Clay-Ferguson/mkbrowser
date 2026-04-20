@@ -2,6 +2,33 @@
  * AI utility functions for MkBrowser.
  * This module runs in the main process only — never import from the renderer.
  */
+
+/**
+ * Convert a raw AI API error into a short, user-friendly message.
+ * Falls back to the original message if no known pattern matches.
+ */
+export function friendlyAIError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+
+  if (/429|quota|rate.?limit/i.test(raw))
+    return 'AI rate limit exceeded — please wait a moment and try again.';
+  if (/401|unauthorized|invalid.*key|api.?key/i.test(raw))
+    return 'AI authentication failed — check your API key in settings.';
+  if (/403|forbidden|permission/i.test(raw))
+    return 'AI access denied — your API key may lack the required permissions.';
+  if (/404|model.*not found/i.test(raw))
+    return 'AI model not found — check the model name in settings.';
+  if (/5\d{2}|server.?error|internal.?error/i.test(raw))
+    return 'AI service is temporarily unavailable — please try again later.';
+  if (/timeout|timed?.?out|ETIMEDOUT|ECONNABORTED/i.test(raw))
+    return 'AI request timed out — please try again.';
+  if (/ENOTFOUND|ECONNREFUSED|network|fetch failed/i.test(raw))
+    return 'Could not reach the AI service — check your network connection.';
+
+  // Strip very long SDK error prefixes to keep the message readable
+  const short = raw.replace(/^\[\w+ Error\]:\s*/i, '').slice(0, 200);
+  return short || 'An unknown AI error occurred.';
+}
 import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
 import { fdir } from 'fdir';
 import { existsSync } from 'node:fs';
