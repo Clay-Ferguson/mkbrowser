@@ -207,10 +207,7 @@ function IndexTree() {
   const rows = flattenVisible(treeRoot.children);
 
   return (
-    <div ref={containerRef} className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto pl-2`}>
-      <div className="px-2 py-1 font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-700 shrink-0">
-        Index
-      </div>
+    <div ref={containerRef} className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto pl-2 pt-2`}>
       <div className="py-1">
         {rows.map(({ node, depth }) => (
           <div
