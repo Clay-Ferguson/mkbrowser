@@ -25,8 +25,36 @@ import {
   useCurrentView,
   useCurrentPath,
   useSettings,
+  getIndexTreeRoot,
+  setIndexTreeRoot,
 } from './store';
+import type { TreeNode } from './store';
 import { loadConfig } from './config';
+
+async function refreshExpandedNodes(node: TreeNode): Promise<TreeNode> {
+  if (!node.isDirectory || !node.isExpanded) return node;
+  try {
+    const entries = await window.electronAPI.readDirectory(node.path);
+    const oldByPath = new Map((node.children ?? []).map(c => [c.path, c]));
+    const newChildren: TreeNode[] = [...entries]
+      .sort((a, b) => {
+        if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      })
+      .map(e => oldByPath.get(e.path) ?? {
+        path: e.path,
+        name: e.name,
+        isDirectory: e.isDirectory,
+        isExpanded: false,
+        isLoading: false,
+        children: null,
+      });
+    const refreshedChildren = await Promise.all(newChildren.map(refreshExpandedNodes));
+    return { ...node, children: refreshedChildren, isLoading: false };
+  } catch {
+    return node;
+  }
+}
 
 function App() {
   const rootPath = useRootPath();
@@ -147,6 +175,10 @@ function App() {
 
   const refreshDirectory = useCallback(() => {
     loadDirectory(false);
+    const root = getIndexTreeRoot();
+    if (root) {
+      refreshExpandedNodes(root).then(newRoot => setIndexTreeRoot(newRoot));
+    }
   }, [loadDirectory]);
 
   const handleSelectFolder = useCallback(async () => {
