@@ -1,128 +1,49 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon, ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BookmarkIcon, BarsArrowDownIcon } from '@heroicons/react/24/outline';
-import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
+import { useState, useEffect, useCallback } from 'react';
+import { FolderIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from './global';
-import FolderEntry from './components/entries/FolderEntry';
-import MarkdownEntry from './components/entries/MarkdownEntry';
-import FileEntryComponent from './components/entries/FileEntry';
-import ImageEntry from './components/entries/ImageEntry';
-import TextEntry from './components/entries/TextEntry'; 
-
-
-import ToolsPopupMenu from './components/menus/ToolsPopupMenu';
-import EditPopupMenu from './components/menus/EditPopupMenu';
-import BookmarksPopupMenu from './components/menus/BookmarksPopupMenu';
-import SearchPopupMenu from './components/menus/SearchPopupMenu';
-import SortPopupMenu from './components/menus/SortPopupMenu';
-import CreateFileDialog from './components/dialogs/CreateFileDialog';
-import CreateFolderDialog from './components/dialogs/CreateFolderDialog';
 import ErrorDialog from './components/dialogs/ErrorDialog';
-import MessageDialog from './components/dialogs/MessageDialog';
-import ConfirmDialog from './components/dialogs/ConfirmDialog';
-import SearchDialog, { type SearchOptions, type SearchDialogInitialValues } from './components/dialogs/SearchDialog';
-import ReplaceDialog from './components/dialogs/ReplaceDialog';
-import ExportDialog from './components/dialogs/ExportDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
 import FolderAnalysisView from './components/views/FolderAnalysisView';
 import AISettingsView from './components/views/AISettingsView';
 import ThreadView from './components/views/ThreadView';
 import TerminalView from './components/views/TerminalView';
+import BrowseView from './components/views/BrowseView';
 import AppTabButtons from './components/AppTabButtons';
-import PathBreadcrumb from './components/PathBreadcrumb';
 import {
-  clearAllSelections,
-  selectItemsByPaths,
-  expandAllItems,
-  collapseAllItems,
-  clearAllCutItems,
-  cutSelectedItems,
-  deleteItems,
   upsertItems,
-  setItemEditing,
-  setItemExpanded,
+  deleteItems,
+  clearAllSelections,
+  setSearchResults,
+  setSettings,
+  getSettings,
   setCurrentView,
   setCurrentPath,
   navigateToBrowserPath,
-  clearPendingScrollToFile,
   setPendingScrollToFile,
-  clearPendingEditFile,
   setPendingEditFile,
   setHighlightItem,
-  setSearchResults,
-  setSettings,
-  setSortOrder,
-  getSettings,
-  setBrowserScrollPosition,
-  getBrowserScrollPosition,
-  toggleBookmark,
   setFolderAnalysis,
-  setPendingTerminalCommand,
-  showTab,
-  isTabVisible,
   setRootPath,
   useRootPath,
   useItems,
   useCurrentView,
   useCurrentPath,
-  usePendingScrollToFile,
-  usePendingEditFile,
-  usePendingEditLineNumber,
-  usePendingEditView,
   useSettings,
-  useExpansionCounts,
-  type SearchDefinition,
 } from './store';
-import { scrollItemIntoView } from './utils/entryDom';
-import { pasteCutItems, deleteSelectedItems, moveFileToFolder, performSplitFile, performJoinFiles } from './edit';
-import { pasteFromClipboard } from './utils/clipboard';
-import { isImageFile, isTextFile, sortEntries } from './utils/fileUtils';
 import { loadConfig } from './config';
-import { getContentWidthClasses } from './utils/styles';
-import { hasHumanMd } from './ai/aiPatterns';
 
 function App() {
   const rootPath = useRootPath();
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
-  const [showCreateFolderDialog, setShowCreateFolderDialog] = useState<boolean>(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
-  const [showSearchDialog, setShowSearchDialog] = useState<boolean>(false);
-  const [showReplaceDialog, setShowReplaceDialog] = useState<boolean>(false);
-  const [replaceResultMessage, setReplaceResultMessage] = useState<string | null>(null);
-  const [searchDialogInitialValues, setSearchDialogInitialValues] = useState<SearchDialogInitialValues | undefined>(undefined);
-  const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
-  const [lastExportFolder, setLastExportFolder] = useState<string>('');
-  const [showToolsMenu, setShowToolsMenu] = useState<boolean>(false);
-  const [showEditMenu, setShowEditMenu] = useState<boolean>(false);
-  const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
-  const [showSearchMenu, setShowSearchMenu] = useState<boolean>(false);
-  const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
   const [aiEnabled, setAiEnabled] = useState<boolean>(false);
-  const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
-  const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
+  const [lastExportFolder, setLastExportFolder] = useState<string>('');
   const items = useItems();
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
-  const pendingScrollToFile = usePendingScrollToFile();
-  const pendingEditFile = usePendingEditFile();
-  const pendingEditLineNumber = usePendingEditLineNumber();
-  const pendingEditView = usePendingEditView();
   const settings = useSettings();
-  const expansionCounts = useExpansionCounts();
-
-  // Determine visibility of expand/collapse buttons
-  const showExpandAll = expansionCounts.totalCount > 0 && expansionCounts.expandedCount < expansionCounts.totalCount;
-  const showCollapseAll = expansionCounts.totalCount > 0 && expansionCounts.collapsedCount < expansionCounts.totalCount;
-
-  // Determine if any items are selected or cut (for Cut/Paste buttons)
-  const hasSelectedItems = Array.from(items.values()).some((item) => item.isSelected);
-  const hasCutItems = Array.from(items.values()).some((item) => item.isCut);
-  const selectedItems = Array.from(items.values()).filter((item) => item.isSelected);
-  const selectedFileCount = selectedItems.filter((item) => !item.isDirectory).length;
-  const hasSelectedFolders = selectedItems.some((item) => item.isDirectory);
 
   // Apply font size globally via data attribute on html element
   useEffect(() => {
@@ -229,404 +150,10 @@ function App() {
     saveCurSubFolder();
   }, [currentPath, rootPath]);
 
-  // Track previous path to detect folder navigation
-  const previousPathRef = useRef<string | null>(null);
-  
-  // Ref to the main scrollable container for scroll position tracking
-  const mainContainerRef = useRef<HTMLElement | null>(null);
-  
-  // Debounce timer for scroll position saving
-  const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Ref for tools popup menu anchor
-  const toolsButtonRef = useRef<HTMLButtonElement>(null);
-  const editButtonRef = useRef<HTMLButtonElement>(null);
-  const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
-  const searchButtonRef = useRef<HTMLButtonElement>(null);
-  const sortButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Handle pending scroll after directory loads, or restore scroll position on folder navigation
-  useEffect(() => {
-    if (!loading) {
-      // Skip browser scroll handling when not in browser view — ThreadView
-      // manages its own scrolling and we don't want to interfere.
-      if (currentView !== 'browser') {
-        previousPathRef.current = currentPath;
-        return;
-      }
-
-      const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
-      
-      // Save scroll position for the previous folder before switching
-      if (isNewFolder && previousPathRef.current && mainContainerRef.current) {
-        setBrowserScrollPosition(previousPathRef.current, mainContainerRef.current.scrollTop);
-      }
-      
-      previousPathRef.current = currentPath;
-
-      // Short timeout just for DOM to settle after React render
-      setTimeout(() => {
-        if (pendingScrollToFile) {
-          // Scroll to specific file (e.g., from search results)
-          scrollItemIntoView(pendingScrollToFile);
-          clearPendingScrollToFile();
-        } else if (isNewFolder) {
-          // Restore saved scroll position for this folder, or scroll to top
-          const savedPosition = getBrowserScrollPosition(currentPath);
-          const mainContainer = mainContainerRef.current;
-          if (mainContainer) {
-            mainContainer.scrollTo({ top: savedPosition, behavior: 'instant' });
-          }
-        }
-
-        // Handle pending edit (e.g., from search results edit button)
-        if (pendingEditFile && pendingEditView === 'browser') {
-          // Capture the line number before clearing (it will be stored in ItemData)
-          const lineNumber = pendingEditLineNumber ?? undefined;
-          // Start editing the file after a slight delay for the scroll to complete
-          setTimeout(() => {
-            setItemExpanded(pendingEditFile, true);
-            setItemEditing(pendingEditFile, true, lineNumber);
-            clearPendingEditFile();
-          }, 100);
-        }
-      }, 100);
-    }
-  }, [loading, pendingScrollToFile, pendingEditFile, pendingEditView, currentPath, currentView]);
-
-  // Handle scroll events on the main container (debounced save)
-  const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
-    // Clear any pending save timer
-    if (scrollSaveTimerRef.current) {
-      clearTimeout(scrollSaveTimerRef.current);
-    }
-    // Debounce: save scroll position after 150ms of no scrolling
-    scrollSaveTimerRef.current = setTimeout(() => {
-      if (currentPath) {
-        setBrowserScrollPosition(currentPath, e.currentTarget.scrollTop);
-      }
-    }, 150);
-  }, [currentPath]);
-  
-  // Cleanup scroll save timer on unmount
-  useEffect(() => {
-    return () => {
-      if (scrollSaveTimerRef.current) {
-        clearTimeout(scrollSaveTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Refresh directory without showing loading indicator (used after rename)
   const refreshDirectory = useCallback(() => {
     loadDirectory(false);
   }, [loadDirectory]);
 
-  // Handle delete from entry components - removes the deleted item and refreshes listing
-  const handleEntryDelete = useCallback(() => {
-    loadDirectory(false);
-  }, [loadDirectory]);
-
-  const doPasteCutItems = useCallback(async () => {
-    if (!currentPath) return;
-
-    const cutItems = Array.from(items.values()).filter((item) => item.isCut);
-    if (cutItems.length === 0) return;
-
-    setError(null);
-
-    const result = await pasteCutItems(
-      cutItems,
-      currentPath,
-      window.electronAPI.pathExists,
-      window.electronAPI.renameFile
-    );
-
-    if (!result.success) {
-      setError(result.error || 'Failed to paste items');
-      return;
-    }
-
-    // If pasting a single item, scroll to it in the new location
-    if (result.pastedItemName) {
-      setPendingScrollToFile(`${currentPath}/${result.pastedItemName}`);
-    }
-
-    // Remove old paths for moved items and clear cut state
-    const movedPaths = cutItems.map(item => item.path);
-    deleteItems(movedPaths);
-    clearAllCutItems();
-    refreshDirectory();
-  }, [currentPath, items, refreshDirectory]);
-
-  // Paste cut items into a specific folder (used by FolderEntry paste buttons)
-  const doPasteIntoFolder = useCallback(async (folderPath: string) => {
-    const cutItems = Array.from(items.values()).filter((item) => item.isCut);
-    if (cutItems.length === 0) return;
-
-    setError(null);
-
-    const result = await pasteCutItems(
-      cutItems,
-      folderPath,
-      window.electronAPI.pathExists,
-      window.electronAPI.renameFile
-    );
-
-    if (!result.success) {
-      setError(result.error || 'Failed to paste items');
-      return;
-    }
-
-    // Remove old paths for moved items and clear cut state
-    const movedPaths = cutItems.map(item => item.path);
-    deleteItems(movedPaths);
-    clearAllCutItems();
-    refreshDirectory();
-  }, [items, refreshDirectory]);
-
-  // Get selected items for delete operation
-  const getSelectedItems = useCallback(() => {
-    return Array.from(items.values()).filter((item) => item.isSelected);
-  }, [items]);
-
-  // Perform the actual delete of selected items
-  const performDelete = useCallback(async () => {
-    const selectedItems = getSelectedItems();
-    if (selectedItems.length === 0) return;
-
-    setShowDeleteConfirm(false);
-
-    const result = await deleteSelectedItems(selectedItems, window.electronAPI.deleteFile);
-
-    if (!result.success && result.failedItem) {
-      setError(`Failed to delete ${result.failedItem}`);
-    }
-
-    // Remove successfully deleted items from the store
-    if (result.deletedPaths.length > 0) {
-      deleteItems(result.deletedPaths);
-      refreshDirectory();
-    }
-  }, [getSelectedItems, refreshDirectory]);
-
-  // Handle "Move to Folder" action - creates a folder with the file's name and moves the file into it
-  const handleMoveToFolder = useCallback(async () => {
-    if (!currentPath) return;
-
-    const selectedItems = getSelectedItems();
-
-    // Check that exactly one item is selected
-    if (selectedItems.length === 0) {
-      setError('Please select a file to move to a folder.');
-      return;
-    }
-    if (selectedItems.length > 1) {
-      setError('Please select only one file for "Move to Folder".');
-      return;
-    }
-
-    const selectedItem = selectedItems[0];
-
-    // Check that the selected item is a file, not a folder
-    if (selectedItem.isDirectory) {
-      setError('Cannot use "Move to Folder" on a folder. Please select a file.');
-      return;
-    }
-
-    const result = await moveFileToFolder(
-      selectedItem.path,
-      selectedItem.name,
-      currentPath,
-      window.electronAPI.pathExists,
-      window.electronAPI.createFolder,
-      window.electronAPI.renameFile
-    );
-
-    if (!result.success) {
-      setError(result.error || 'Failed to move file to folder.');
-      return;
-    }
-
-    // Clear selection and remove the old item from the store
-    clearAllSelections();
-    deleteItems([selectedItem.path]);
-
-    // Refresh the directory to show the new folder
-    refreshDirectory();
-  }, [currentPath, getSelectedItems, refreshDirectory]);
-
-  // Handle "Split" action - splits a text/markdown file into multiple files using double-blank-line delimiter
-  const handleSplitFile = useCallback(async () => {
-    if (!currentPath) return;
-
-    const result = await performSplitFile(
-      getSelectedItems(),
-      window.electronAPI.readFile,
-      window.electronAPI.writeFile,
-      window.electronAPI.createFile,
-      window.electronAPI.renameFile
-    );
-
-    if (!result.success) {
-      setError(result.error || 'Failed to split file.');
-      return;
-    }
-
-    // Clear selection and refresh the directory to show new files
-    clearAllSelections();
-    refreshDirectory();
-  }, [currentPath, getSelectedItems, refreshDirectory]);
-
-  // Handle "Join" action - joins multiple text/markdown files into a single file
-  const handleJoinFiles = useCallback(async () => {
-    if (!currentPath) return;
-
-    const result = await performJoinFiles(
-      getSelectedItems(),
-      window.electronAPI.readFile,
-      window.electronAPI.writeFile,
-      window.electronAPI.deleteFile,
-      window.electronAPI.getFileSize
-    );
-
-    if (!result.success) {
-      setError(result.error || 'Failed to join files.');
-      return;
-    }
-
-    // Clear selection and refresh the directory
-    clearAllSelections();
-    refreshDirectory();
-  }, [currentPath, getSelectedItems, refreshDirectory]);
-
-  // Handle renumbering files in the current directory
-  const handleRenumberFiles = useCallback(async () => {
-    if (!currentPath) return;
-    
-    setError(null);
-    const result = await window.electronAPI.renumberFiles(currentPath);
-    
-    if (!result.success) {
-      setError(result.error || 'Failed to renumber files');
-      return;
-    }
-    
-    // Update settings to alphabetical sort order so the numbering is visible
-    setSettings({ ...settings, sortOrder: 'alphabetical' });
-    
-    // Save the updated settings to config
-    try {
-      const config = await window.electronAPI.getConfig();
-      await window.electronAPI.saveConfig({
-        ...config,
-        settings: { ...settings, sortOrder: 'alphabetical' },
-      });
-    } catch {
-      // Non-critical - settings will still be applied in memory
-    }
-    
-    // Refresh the directory to show the renamed files
-    refreshDirectory();
-  }, [currentPath, settings, refreshDirectory]);
-
-  // Navigate to a bookmarked item - used by popup menu
-  const navigateToBookmark = useCallback(async (fullPath: string) => {
-    // Check if the path exists
-    const exists = await window.electronAPI.pathExists(fullPath);
-    if (!exists) {
-      // Remove the bookmark since it no longer exists
-      const currentSettings = getSettings();
-      const updatedBookmarks = (currentSettings.bookmarks || []).filter(b => b !== fullPath);
-      const updatedSettings = { ...currentSettings, bookmarks: updatedBookmarks };
-      setSettings(updatedSettings);
-      
-      // Persist the updated settings
-      try {
-        const config = await window.electronAPI.getConfig();
-        await window.electronAPI.saveConfig({
-          ...config,
-          settings: updatedSettings,
-        });
-      } catch (err) {
-        console.error('Failed to save settings after removing bookmark:', err);
-      }
-      
-      const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-      setError(`Bookmark "${fileName}" no longer exists and has been removed.`);
-      return;
-    }
-
-    // Determine if it's a file or folder by checking if it has a file extension
-    // or by trying to read it as a directory
-    const parentPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
-    
-    // Try to read the path as a directory to determine if it's a folder
-    try {
-      await window.electronAPI.readDirectory(fullPath);
-      // It's a folder - navigate directly to it
-      setCurrentPath(fullPath);
-      setCurrentView('browser');
-    } catch {
-      // It's a file - navigate to parent folder and highlight the file
-      setCurrentPath(parentPath);
-      setCurrentView('browser');
-      setHighlightItem(fullPath);
-      setPendingScrollToFile(fullPath);
-    }
-  }, []);
-
-  // Generate default export filename from current folder name
-  const generateExportFileName = useCallback(() => {
-    if (!currentPath) return 'export.md';
-    const folderName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
-    return `${folderName}-export.md`;
-  }, [currentPath]);
-
-  // Handle export
-  const handleExport = useCallback(async (outputFolder: string, fileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean, exportToPdf: boolean) => {
-    if (!currentPath) return;
-    
-    setShowExportDialog(false);
-    setError(null);
-
-    // Persist the output folder to config
-    setLastExportFolder(outputFolder);
-    const config = await window.electronAPI.getConfig();
-    await window.electronAPI.saveConfig({ ...config, lastExportFolder: outputFolder });
-
-    // First, export to markdown
-    const result = await window.electronAPI.exportFolderContents(currentPath, outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers);
-    
-    if (!result.success) {
-      setError(result.error || 'Failed to export folder contents');
-      return;
-    }
-
-    if (exportToPdf && result.outputPath) {
-      // Convert to PDF - the markdown file path becomes input, generate PDF path
-      const pdfPath = result.outputPath.replace(/\.md$/i, '.pdf');
-      const pdfResult = await window.electronAPI.exportToPdf(result.outputPath, pdfPath, currentPath);
-      
-      if (!pdfResult.success) {
-        setError(pdfResult.error || 'Failed to launch PDF export');
-        return;
-      }
-      // PDF generation happens in external terminal, no file to open here
-      // The terminal will show the user the result
-    } else {
-      // Open the exported markdown file with the system default viewer
-      if (result.outputPath) {
-        await window.electronAPI.openExternal(result.outputPath);
-      }
-    }
-  }, [currentPath]);
-
-  const handleCancelExport = useCallback(() => {
-    setShowExportDialog(false);
-  }, []);
-
-  // Handle folder selection
   const handleSelectFolder = useCallback(async () => {
     const folder = await window.electronAPI.selectFolder();
     if (folder) {
@@ -641,270 +168,24 @@ function App() {
     void window.electronAPI.quit();
   }, []);
 
-  const handleOpenCreateDialog = useCallback(() => {
-    setCreateFileDefaultName('');
-    setShowCreateDialog(true);
-  }, []);
-
-  const handleOpenCreateFileBelow = useCallback((defaultName: string) => {
-    setCreateFileDefaultName(defaultName);
-    setShowCreateDialog(true);
-  }, []);
-
-  const handleCreateFile = useCallback(async (fileName: string) => {
-    if (!currentPath) return;
-    const filePath = `${currentPath}/${fileName}`;
-    const result = await window.electronAPI.createFile(filePath, '');
-    if (result.success) {
-      setShowCreateDialog(false);
-      setCreateFileDefaultName('');
-      setHighlightItem(filePath);
-      setPendingScrollToFile(filePath);
-      refreshDirectory();
-      const isMarkdown = fileName.toLowerCase().endsWith('.md');
-      const isText = fileName.toLowerCase().endsWith('.txt');
-      if (isMarkdown || isText) {
-        setTimeout(() => {
-          setItemExpanded(filePath, true);
-          setItemEditing(filePath, true);
-        }, 200);
-      }
-    } else {
-      setShowCreateDialog(false);
-      setCreateFileDefaultName('');
-      setError(result.error || 'Failed to create file');
-    }
-  }, [currentPath, refreshDirectory]);
-
-  const handleCancelCreate = useCallback(() => {
-    setShowCreateDialog(false);
-    setCreateFileDefaultName('');
-  }, []);
-
-  const handleOpenCreateFolderDialog = useCallback(() => {
-    setCreateFolderDefaultName('');
-    setShowCreateFolderDialog(true);
-  }, []);
-
-  const handleOpenCreateFolderBelow = useCallback((defaultName: string) => {
-    setCreateFolderDefaultName(defaultName);
-    setShowCreateFolderDialog(true);
-  }, []);
-
-  const handleCreateFolder = useCallback(async (folderName: string) => {
-    if (!currentPath) return;
-    const folderPath = `${currentPath}/${folderName}`;
-    const result = await window.electronAPI.createFolder(folderPath);
-    if (result.success) {
-      setShowCreateFolderDialog(false);
-      setCreateFolderDefaultName('');
-      setHighlightItem(folderPath);
-      setPendingScrollToFile(folderPath);
-      refreshDirectory();
-    } else {
-      setShowCreateFolderDialog(false);
-      setCreateFolderDefaultName('');
-      setError(result.error || 'Failed to create folder');
-    }
-  }, [currentPath, refreshDirectory]);
-
-  const handleCancelCreateFolder = useCallback(() => {
-    setShowCreateFolderDialog(false);
-    setCreateFolderDefaultName('');
-  }, []);
-
-  // Search handlers
-  const handleOpenSearchDialog = useCallback(() => {
-    setSearchDialogInitialValues(undefined);
-    setShowSearchDialog(true);
-  }, []);
-
   const handleNavigateToSearchResult = useCallback((folderPath: string, resultPath: string) => {
     navigateToBrowserPath(folderPath, resultPath);
   }, []);
 
-  const handleSearch = useCallback(async (options: SearchOptions) => {
+  const handleSearchHashtag = useCallback(async (hashtag: string, ctrlKey: boolean) => {
     if (!currentPath) return;
-    
-    // Save search definition if searchName is provided
-    if (options.searchName) {
-      try {
-        const currentSettings = getSettings();
-        const config = await window.electronAPI.getConfig();
-        
-        // Create new search definition
-        const newSearchDefinition: SearchDefinition = {
-          name: options.searchName,
-          searchText: options.query,
-          searchTarget: options.searchMode,
-          searchMode: options.searchType,
-          searchBlock: options.searchBlock,
-          sortBy: options.sortBy,
-          sortDirection: options.sortDirection,
-          searchImageExif: options.searchImageExif,
-          mostRecent: options.mostRecent,
-        };
-        
-        // Remove any existing search definition with the same name
-        const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
-          (def) => def.name !== options.searchName
-        );
-        
-        // Add the new search definition
-        updatedSearchDefinitions.push(newSearchDefinition);
-        
-        // Save updated settings
-        await window.electronAPI.saveConfig({
-          ...config,
-          settings: {
-            ...currentSettings,
-            searchDefinitions: updatedSearchDefinitions,
-          },
-        });
-        
-        // Update local settings state
-        setSettings({
-          ...currentSettings,
-          searchDefinitions: updatedSearchDefinitions,
-        });
-      } catch (err) {
-        console.error('Failed to save search definition:', err);
-      }
+
+    if (ctrlKey) {
+      const advancedQuery = `$("${hashtag}")`;
+      const results = await window.electronAPI.searchFolder(currentPath, advancedQuery, 'advanced', 'content', 'file-lines');
+      setSearchResults(results, advancedQuery, currentPath, 'modified-time', 'desc');
+    } else {
+      const results = await window.electronAPI.searchFolder(currentPath, hashtag, 'literal', 'content', 'entire-file');
+      setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc');
     }
-    
-    setShowSearchDialog(false);
-    
-    // Decode {{nl}} tokens back to spaces for actual search execution
-    const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
-    
-    const results = await window.electronAPI.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchBlock, options.searchImageExif, options.mostRecent);
-    setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection);
     setCurrentView('search-results');
   }, [currentPath]);
 
-  const handleCancelSearch = useCallback(() => {
-    setShowSearchDialog(false);
-    setSearchDialogInitialValues(undefined);
-  }, []);
-
-  // Replace in files handlers
-  const handleReplace = useCallback(async (searchText: string, replaceText: string) => {
-    if (!currentPath) return;
-    
-    setShowReplaceDialog(false);
-    
-    try {
-      const results = await window.electronAPI.searchAndReplace(currentPath, searchText, replaceText);
-      
-      // Calculate summary
-      const successfulFiles = results.filter(r => r.success);
-      const totalReplacements = successfulFiles.reduce((sum, r) => sum + r.replacementCount, 0);
-      const failedFiles = results.filter(r => !r.success);
-      
-      let message = '';
-      if (totalReplacements > 0) {
-        message = `Replaced ${totalReplacements} occurrence${totalReplacements === 1 ? '' : 's'} in ${successfulFiles.length} file${successfulFiles.length === 1 ? '' : 's'}.`;
-      } else {
-        message = 'No matches found.';
-      }
-      
-      if (failedFiles.length > 0) {
-        message += `\n\n${failedFiles.length} file${failedFiles.length === 1 ? '' : 's'} could not be processed.`;
-      }
-      
-      setReplaceResultMessage(message);
-      
-      // Refresh the directory to show updated content
-      if (totalReplacements > 0) {
-        void refreshDirectory();
-      }
-    } catch (err) {
-      setReplaceResultMessage(`Replace failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }, [currentPath, refreshDirectory]);
-
-  const handleCancelReplace = useCallback(() => {
-    setShowReplaceDialog(false);
-  }, []);
-
-  // Save a search definition without executing the search
-  const handleSaveSearchDefinition = useCallback(async (options: SearchOptions) => {
-    if (!options.searchName) return;
-    
-    try {
-      const currentSettings = getSettings();
-      const config = await window.electronAPI.getConfig();
-      
-      // Create new search definition
-      const newSearchDefinition: SearchDefinition = {
-        name: options.searchName,
-        searchText: options.query,
-        searchTarget: options.searchMode,
-        searchMode: options.searchType,
-        searchBlock: options.searchBlock,
-        sortBy: options.sortBy,
-        sortDirection: options.sortDirection,
-        mostRecent: options.mostRecent,
-      };
-      
-      // Remove any existing search definition with the same name
-      const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
-        (def) => def.name !== options.searchName
-      );
-      
-      // Add the new search definition
-      updatedSearchDefinitions.push(newSearchDefinition);
-      
-      // Save updated settings
-      await window.electronAPI.saveConfig({
-        ...config,
-        settings: {
-          ...currentSettings,
-          searchDefinitions: updatedSearchDefinitions,
-        },
-      });
-      
-      // Update local settings state
-      setSettings({
-        ...currentSettings,
-        searchDefinitions: updatedSearchDefinitions,
-      });
-    } catch (err) {
-      console.error('Failed to save search definition:', err);
-    }
-  }, []);
-
-  // Delete a saved search definition by name
-  const handleDeleteSearchDefinition = useCallback(async (name: string) => {
-    try {
-      const currentSettings = getSettings();
-      const config = await window.electronAPI.getConfig();
-      
-      // Filter out the search definition with the matching name
-      const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
-        (def) => def.name !== name
-      );
-      
-      // Save updated settings
-      await window.electronAPI.saveConfig({
-        ...config,
-        settings: {
-          ...currentSettings,
-          searchDefinitions: updatedSearchDefinitions,
-        },
-      });
-      
-      // Update local settings state
-      setSettings({
-        ...currentSettings,
-        searchDefinitions: updatedSearchDefinitions,
-      });
-    } catch (err) {
-      console.error('Failed to delete search definition:', err);
-    }
-  }, []);
-
-  // Save settings to config file
   const handleSaveSettings = useCallback(async () => {
     try {
       const currentSettings = getSettings();
@@ -913,74 +194,10 @@ function App() {
         ...config,
         settings: currentSettings,
       });
-    } catch (err) {
+    } catch {
       setError('Failed to save settings');
     }
   }, []);
-
-  // Toggle bookmark for current folder
-  const handleToggleCurrentFolderBookmark = useCallback(() => {
-    if (!currentPath) return;
-    toggleBookmark(currentPath);
-    void handleSaveSettings();
-  }, [currentPath, handleSaveSettings]);
-
-  // Paste from clipboard handler
-  const handlePasteFromClipboard = useCallback(async () => {
-    if (!currentPath) return;
-
-    const result = await pasteFromClipboard(
-      currentPath,
-      window.electronAPI.writeFileBinary,
-      window.electronAPI.writeFile
-    );
-
-    if (result.success && result.fileName) {
-      const filePath = `${currentPath}/${result.fileName}`;
-      setPendingScrollToFile(filePath);
-      refreshDirectory();
-      // Set expanded after refresh
-      setTimeout(() => {
-        setItemExpanded(filePath, true);
-      }, 200);
-    } else if (result.error) {
-      setError(result.error);
-    }
-  }, [currentPath, refreshDirectory]);
-
-  // Navigate to a subdirectory
-  const navigateTo = useCallback((path: string) => {
-    setCurrentPath(path);
-  }, []);
-
-  // Navigate up one level
-  const navigateUp = useCallback(() => {
-    if (currentPath === rootPath) return;
-    const parent = currentPath.substring(0, currentPath.lastIndexOf('/'));
-    if (parent.length >= rootPath.length) {
-      // Highlight and scroll to the folder we're leaving
-      setCurrentPath(parent);
-      setHighlightItem(currentPath);
-      setPendingScrollToFile(currentPath);
-    }
-  }, [currentPath, rootPath]);
-
-  // Handle searching for a hashtag from the folder analysis view
-  const handleSearchHashtag = useCallback(async (hashtag: string, ctrlKey: boolean) => {
-    if (!currentPath) return;
-    
-    if (ctrlKey) {
-      // Advanced search: $("#hashtag") on file lines
-      const advancedQuery = `$("${hashtag}")`;
-      const results = await window.electronAPI.searchFolder(currentPath, advancedQuery, 'advanced', 'content', 'file-lines');
-      setSearchResults(results, advancedQuery, currentPath, 'modified-time', 'desc');
-    } else {
-      // Simple literal search
-      const results = await window.electronAPI.searchFolder(currentPath, hashtag, 'literal', 'content', 'entire-file');
-      setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc');
-    }
-    setCurrentView('search-results');
-  }, [currentPath]);
 
   // Folder selection prompt (first run or no folder configured)
   if (!currentPath && !loading) {
@@ -1013,601 +230,80 @@ function App() {
     );
   }
 
-  // Show search results view when in search-results mode
   if (currentView === 'search-results') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
-        {error && (
-          <ErrorDialog
-            message={error}
-            onClose={() => setError(null)}
-          />
-        )}
+        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
       </div>
     );
   }
 
-  // Show settings view when in settings mode
   if (currentView === 'settings') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <SettingsView onSaveSettings={handleSaveSettings} />
-        {error && (
-          <ErrorDialog
-            message={error}
-            onClose={() => setError(null)}
-          />
-        )}
+        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
       </div>
     );
   }
 
-  // Show AI settings view
   if (currentView === 'ai-settings') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <AISettingsView />
-        {error && (
-          <ErrorDialog
-            message={error}
-            onClose={() => setError(null)}
-          />
-        )}
+        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
       </div>
     );
   }
 
-  // Show folder analysis view
   if (currentView === 'folder-analysis') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
-        {error && (
-          <ErrorDialog
-            message={error}
-            onClose={() => setError(null)}
-          />
-        )}
+        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
       </div>
     );
   }
 
-  // Show thread view for AI conversation threads
   if (currentView === 'thread') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <ThreadView onSaveSettings={handleSaveSettings} />
-        {error && (
-          <ErrorDialog
-            message={error}
-            onClose={() => setError(null)}
-          />
-        )}
+        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
       </div>
     );
   }
 
-  // Show integrated terminal
   if (currentView === 'terminal') {
     return (
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <TerminalView />
-        {error && (
-          <ErrorDialog
-            message={error}
-            onClose={() => setError(null)}
-          />
-        )}
+        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
       </div>
     );
   }
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-      {/* Tab navigation */}
       <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
-
-      {/* Combined header: breadcrumbs left, actions right, wraps responsively */}
-      <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
-        <div data-id="browser-header-breadcrumbs" className="flex items-center gap-3 min-w-0">
-          <PathBreadcrumb
-            rootPath={rootPath}
-            currentPath={currentPath}
-            onNavigate={navigateTo}
-            isBookmarked={(settings.bookmarks || []).includes(currentPath)}
-            onToggleBookmark={handleToggleCurrentFolderBookmark}
-            view="browser"
-          />
-        </div>
-
-        <div data-id="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
-              {/* Create file button */}
-              <button
-                onClick={handleOpenCreateDialog}
-                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Create file"
-                data-testid="create-file-button"
-              >
-                <DocumentPlusIcon className="w-5 h-5" />
-              </button>
-
-              {/* Create folder button */}
-              <button
-                onClick={handleOpenCreateFolderDialog}
-                className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Create folder"
-                data-testid="create-folder-button"
-              >
-                <FolderPlusIcon className="w-5 h-5" />
-              </button>
-
-              {/* Edit menu button */}
-              <button
-                ref={editButtonRef}
-                onClick={() => setShowEditMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Edit"
-                data-testid="edit-menu-button"
-              >
-                <Squares2X2Icon className="w-5 h-5" />
-              </button>
-
-              {/* Bookmarks menu button */}
-              <button
-                ref={bookmarksButtonRef}
-                onClick={() => setShowBookmarksMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Bookmarks"
-                data-testid="bookmarks-menu-button"
-              >
-                <BookmarkIcon className="w-5 h-5" />
-              </button>
-
-              {/* Tools menu button */}
-              <button
-                ref={toolsButtonRef}
-                onClick={() => setShowToolsMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Tools"
-                data-testid="tools-menu-button"
-              >
-                <WrenchIcon className="w-5 h-5" />
-              </button>
-
-              {/* Sort order menu button */}
-              <button
-                ref={sortButtonRef}
-                onClick={() => setShowSortMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Sort order"
-                data-testid="sort-menu-button"
-              >
-                <BarsArrowDownIcon className="w-5 h-5" />
-              </button>
-
-              {/* Cut button - shown when items are selected and no items are cut */}
-              {hasSelectedItems && !hasCutItems && (
-                <button
-                  onClick={cutSelectedItems}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                  title="Cut selected items"
-                  data-testid="cut-button"
-                >
-                  Cut
-                </button>
-              )}
-
-              {/* Delete button - shown when items are selected and no items are cut */}
-              {hasSelectedItems && !hasCutItems && (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                  title="Delete selected items"
-                  data-testid="delete-button"
-                >
-                  Del
-                </button>
-              )}
-
-              {/* Paste button - shown when items are cut */}
-              {hasCutItems && (
-                <button
-                  onClick={() => void doPasteCutItems()}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                  title="Paste cut items"
-                  data-testid="paste-button"
-                >
-                  Paste
-                </button>
-              )}
-
-              {/* Paste from clipboard button */}
-              <button
-                onClick={handlePasteFromClipboard}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Paste from clipboard"
-                data-testid="paste-clipboard-button"
-              >
-                <ClipboardIcon className="w-5 h-5" />
-              </button>
-
-              {/* Search button */}
-              <button
-                ref={searchButtonRef}
-                onClick={() => setShowSearchMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Search"
-                data-testid="search-menu-button"
-              >
-                <MagnifyingGlassIcon className="w-5 h-5" />
-              </button>
-
-              {/* Expand all button */}
-              {showExpandAll && (
-                <button
-                  onClick={expandAllItems}
-                  className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                  title="Expand all"
-                  data-testid="expand-all-button"
-                >
-                  <ChevronDownIcon className="w-5 h-5" />
-                </button>
-              )}
-
-              {/* Collapse all button */}
-              {showCollapseAll && (
-                <button
-                  onClick={collapseAllItems}
-                  className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                  title="Collapse all"
-                  data-testid="collapse-all-button"
-                >
-                  <ChevronUpIcon className="w-5 h-5" />
-                </button>
-              )}
-
-              {/* Refresh button */}
-              <button
-                onClick={refreshDirectory}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Refresh"
-                data-testid="refresh-button"
-              >
-                <ArrowPathIcon className="w-5 h-5" />
-              </button>
-
-              {/* Up level button */}
-              <button
-                onClick={navigateUp}
-                disabled={currentPath === rootPath}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                title="Go up one level"
-                data-testid="navigate-up-button"
-              >
-                <ArrowUpIcon className="w-5 h-5" />
-              </button>
-        </div>
-      </header>
-
-      {/* Main content */}
-      <main 
-        data-id="browser-main-content"
-        ref={mainContainerRef}
-        onScroll={handleMainScroll}
-        className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1"
-      >
-        <div className={`${getContentWidthClasses(settings.contentWidth)}`}>
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-slate-400">Loading...</div>
-          </div>
-        )}
-
-        {!loading && entries.filter((entry) => !items.get(entry.path)?.isCut).length === 0 && (
-          <div className="text-center py-12">
-            <FolderIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-            <p className="text-slate-400">This folder is empty</p>
-          </div>
-        )}
-
-        {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line */}
-        {!loading && entries.filter((entry) => !items.get(entry.path)?.isCut).length > 0 && (
-          
-          <div className="[&>div+div]:-mt-px">
-            {(() => {
-              const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
-              // Use in-memory store timestamps (updated on save) so sort reflects recent edits
-              const entriesWithCurrentTimes = visibleEntries.map((entry) => {
-                const item = items.get(entry.path);
-                if (item && (item.modifiedTime !== entry.modifiedTime || item.createdTime !== entry.createdTime)) {
-                  return { ...entry, modifiedTime: item.modifiedTime, createdTime: item.createdTime };
-                }
-                return entry;
-              });
-              const sortedEntries = sortEntries(entriesWithCurrentTimes, settings.sortOrder, settings.foldersOnTop);
-              const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
-              return sortedEntries.map((entry) => (
-                <div key={entry.path}>
-                  {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
-                  ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} view="browser" onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
-                  ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
-                  ) : isTextFile(entry.name) ? (
-                    <TextEntry entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
-                  ) : (
-                    <FileEntryComponent entry={entry} onRename={refreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={handleSaveSettings} />
-                  )}
-                </div>
-              ));
-            })()}
-          </div>
-        )}
-        </div>
-      </main>
-
-      {showCreateDialog && (
-        <CreateFileDialog
-          defaultName={createFileDefaultName}
-          onCreate={handleCreateFile}
-          onCancel={handleCancelCreate}
-        />
-      )}
-
-      {showCreateFolderDialog && (
-        <CreateFolderDialog
-          defaultName={createFolderDefaultName}
-          onCreate={handleCreateFolder}
-          onCancel={handleCancelCreateFolder}
-        />
-      )}
-
-      {showSearchDialog && (
-        <SearchDialog
-          onSearch={handleSearch}
-          onSave={handleSaveSearchDefinition}
-          onCancel={handleCancelSearch}
-          onDeleteSearchDefinition={handleDeleteSearchDefinition}
-          initialValues={searchDialogInitialValues}
-          searchDefinitions={settings.searchDefinitions}
-        />
-      )}
-
-      {showReplaceDialog && (
-        <ReplaceDialog
-          onReplace={handleReplace}
-          onCancel={handleCancelReplace}
-        />
-      )}
-
-      {showExportDialog && currentPath && (
-        <ExportDialog
-          defaultFolder={lastExportFolder}
-          defaultFileName={generateExportFileName()}
-          onExport={handleExport}
-          onCancel={handleCancelExport}
-        />
-      )}
-
-      {showSortMenu && (
-        <SortPopupMenu
-          anchorRef={sortButtonRef}
-          onClose={() => setShowSortMenu(false)}
-          currentSortOrder={settings.sortOrder}
-          onSelectSortOrder={(order) => {
-            setSortOrder(order);
-            void handleSaveSettings();
-          }}
-        />
-      )}
-
-      {showSearchMenu && (
-        <SearchPopupMenu
-          anchorRef={searchButtonRef}
-          onClose={() => setShowSearchMenu(false)}
-          searchDefinitions={settings.searchDefinitions || []}
-          onNewSearch={handleOpenSearchDialog}
-          onRunSearch={(definition) => {
-            if (!currentPath) return;
-            void (async () => {
-              const searchQuery = definition.searchText.replace(/\{\{nl\}\}/g, ' ');
-              const results = await window.electronAPI.searchFolder(
-                currentPath,
-                searchQuery,
-                definition.searchMode,
-                definition.searchTarget,
-                definition.searchBlock,
-                definition.searchImageExif
-              );
-              setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc');
-              setCurrentView('search-results');
-            })();
-          }}
-          onEditSearch={(definition) => {
-            setCurrentView('browser');
-            setSearchDialogInitialValues({
-              searchQuery: definition.searchText,
-              searchName: definition.name,
-              searchType: definition.searchMode,
-              searchMode: definition.searchTarget,
-              searchBlock: definition.searchBlock,
-              sortBy: definition.sortBy,
-              sortDirection: definition.sortDirection,
-              searchImageExif: definition.searchImageExif,
-            });
-            setShowSearchDialog(true);
-          }}
-        />
-      )}
-
-      {showBookmarksMenu && (
-        <BookmarksPopupMenu
-          anchorRef={bookmarksButtonRef}
-          onClose={() => setShowBookmarksMenu(false)}
-          bookmarks={settings.bookmarks || []}
-          rootPath={rootPath}
-          onNavigate={(fullPath) => void navigateToBookmark(fullPath)}
-        />
-      )}
-
-      {showEditMenu && (
-        <EditPopupMenu
-          anchorRef={editButtonRef}
-          onClose={() => setShowEditMenu(false)}
-          onUndoCut={() => clearAllCutItems()}
-          onSelectAll={() => {
-            const currentFolderPaths = entries.map((entry) => entry.path);
-            selectItemsByPaths(currentFolderPaths);
-          }}
-          onUnselectAll={() => clearAllSelections()}
-          onMoveToFolder={() => void handleMoveToFolder()}
-          onSplit={() => void handleSplitFile()}
-          onJoin={() => void handleJoinFiles()}
-          onReplaceInFiles={() => setShowReplaceDialog(true)}
-          unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
-          moveToFolderDisabled={selectedFileCount !== 1 || hasSelectedFolders}
-          splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
-          joinDisabled={selectedFileCount < 2 || hasSelectedFolders}
-        />
-      )}
-
-      {showToolsMenu && (
-        <ToolsPopupMenu
-          anchorRef={toolsButtonRef}
-          onClose={() => setShowToolsMenu(false)}
-          aiEnabled={aiEnabled}
-          onFolderAnalysis={() => {
-            if (!currentPath) return;
-            void (async () => {
-              try {
-                const result = await window.electronAPI.analyzeFolderHashtags(currentPath);
-                setFolderAnalysis({
-                  hashtags: result.hashtags,
-                  folderPath: currentPath,
-                  totalFiles: result.totalFiles,
-                });
-                setCurrentView('folder-analysis');
-              } catch (err) {
-                setError('Failed to analyze folder: ' + (err instanceof Error ? err.message : String(err)));
-              }
-            })();
-          }}
-          onRenumberFiles={() => void handleRenumberFiles()}
-          onExport={() => setShowExportDialog(true)}
-          onOpenTerminal={() => {
-            const terminalAlreadyVisible = isTabVisible('terminal');
-            showTab('terminal');
-            setCurrentView('terminal');
-            if (terminalAlreadyVisible && currentPath) {
-              // Send cd command to the running PTY (shell-escape single quotes)
-              const escapedPath = currentPath.replace(/'/g, "'\\''");
-              void window.electronAPI.terminalWrite(`cd '${escapedPath}'\n`);
-            }
-          }}
-          onRunOcr={() => {
-            if (!currentPath) return;
-            const ocrFolder = settings.ocrToolsFolder;
-            if (!ocrFolder) {
-              setError('OCR tools folder is not configured. Set it in Settings → OCR.');
-              return;
-            }
-            const escapedOcrFolder = ocrFolder.replace(/'/g, "'\\''");
-
-            // Check if any items are selected in the browser view
-            const selectedImages = Array.from(items.values()).filter(
-              (item) => item.isSelected && !item.isDirectory && isImageFile(item.name)
-            );
-            const hasAnySelection = Array.from(items.values()).some((item) => item.isSelected);
-
-            let command: string;
-            if (hasAnySelection) {
-              if (selectedImages.length === 0) {
-                setError('No image files in the current selection. Select one or more image files to run OCR.');
-                return;
-              }
-              // Build a batch command: one ocr.sh invocation per selected image
-              const ocrCalls = selectedImages.map((img, i) => {
-                const escapedImg = img.path.replace(/'/g, "'\\''");
-                return `echo "--- OCR [${i + 1}/${selectedImages.length}]: ${img.name} ---" && ./ocr.sh '${escapedImg}'`;
-              });
-              command = `cd '${escapedOcrFolder}' && ${ocrCalls.join(' && ')}\n`;
-            } else {
-              // No selection — folder-level OCR (existing behavior)
-              const escapedPath = currentPath.replace(/'/g, "'\\''");
-              command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'\n`;
-            }
-
-            const terminalAlreadyVisible = isTabVisible('terminal');
-            showTab('terminal');
-            setCurrentView('terminal');
-            if (terminalAlreadyVisible) {
-              void window.electronAPI.terminalWrite(command);
-            } else {
-              setPendingTerminalCommand(command);
-            }
-          }}
-          onSettings={() => {
-            showTab('settings');
-            setCurrentView('settings');
-          }}
-          onAiSettings={() => {
-            showTab('ai-settings');
-            setCurrentView('ai-settings');
-          }}
-          onNewAiChat={() => {
-            if (!currentPath) return;
-            if (hasHumanMd(entries)) {
-              setError('This folder already contains an AI conversation. Please navigate to a different folder to start a new chat.');
-              return;
-            }
-            void (async () => {
-              try {
-                const result = await window.electronAPI.replyToAi(currentPath, false);
-                if ('error' in result) {
-                  setError('Failed to create AI chat: ' + result.error);
-                } else {
-                  const view = 'thread'; // NOTE: also works with 'currentView' if you want to stay in 'browser' view.
-                  navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
-                  setPendingEditFile(result.filePath, undefined, view);
-                }
-              } catch (err) {
-                setError('Failed to create AI chat: ' + (err instanceof Error ? err.message : String(err)));
-              }
-            })();
-          }}
-        />
-      )}
-
-      {showDeleteConfirm && (
-        <ConfirmDialog
-          message={`Move ${getSelectedItems().length} selected item(s) to trash?`}
-          onConfirm={() => void performDelete()}
-          onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {replaceResultMessage && (
-        <MessageDialog
-          title="Replace Results"
-          message={replaceResultMessage}
-          onClose={() => setReplaceResultMessage(null)}
-        />
-      )}
-
-      {error && (
-        <ErrorDialog
-          message={error}
-          onClose={() => setError(null)}
-        />
-      )}
+      <BrowseView
+        entries={entries}
+        loading={loading}
+        aiEnabled={aiEnabled}
+        lastExportFolder={lastExportFolder}
+        onSetLastExportFolder={setLastExportFolder}
+        onRefreshDirectory={refreshDirectory}
+        onSetError={setError}
+        onSaveSettings={handleSaveSettings}
+      />
+      {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
     </div>
   );
 }
