@@ -17,12 +17,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: slategray;
-  border: 1px solid silver;
+  background-color: #444c56; /* darker gray */
+  border: 1px solid #888;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: darkgray;
+  background: #22262b;
 }
 
 /* Prevent Dark Reader extension from overriding scrollbar colors */
