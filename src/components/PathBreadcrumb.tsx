@@ -1,6 +1,7 @@
-import { HomeIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, BookmarkIcon as BookmarkOutlineIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import type { AppView } from '../store/types';
+import { useSettings, setPendingIndexTreeReveal } from '../store';
 
 export type PathBreadcrumbProps = {
   rootPath: string;
@@ -12,6 +13,7 @@ export type PathBreadcrumbProps = {
 };
 
 function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onToggleBookmark, view }: PathBreadcrumbProps) {
+  const settings = useSettings();
   const normalizedRoot = rootPath.replace(/\/+$/, '');
   const normalizedCurrent = currentPath.replace(/\/+$/, '');
   const relativePath = normalizedCurrent.startsWith(normalizedRoot)
@@ -66,6 +68,18 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
           </div>
         );
       })}
+
+      {settings.indexTreeWidth !== 'hidden' && (
+        <button
+          type="button"
+          onClick={() => setPendingIndexTreeReveal(currentPath)}
+          className="p-2 text-slate-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer flex-shrink-0 transition-colors"
+          aria-label="Reveal in folder tree"
+          title="Reveal in folder tree"
+        >
+          <ViewfinderCircleIcon className="w-5 h-5" />
+        </button>
+      )}
 
       {parts.length > 0 && view !== 'thread' && (
         <button

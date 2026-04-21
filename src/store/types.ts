@@ -356,6 +356,12 @@ export interface AppState {
   indexTreeRoot: TreeNode | null;
 
   /**
+   * When set, IndexTree should expand to reveal this path and scroll it into view.
+   * Cleared immediately when the IndexTree picks it up.
+   */
+  pendingIndexTreeReveal: string | null;
+
+  /**
    * When true, ThreadView should scroll to the bottom after a short delay.
    * Set by actions like "Reply" that append new content to the thread.
    */

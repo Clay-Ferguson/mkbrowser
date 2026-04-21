@@ -103,4 +103,8 @@ export {
   expandIndexTreeNode,
   collapseIndexTreeNode,
   useIndexTreeRoot,
+  getIndexTreeRoot,
+  setPendingIndexTreeReveal,
+  clearPendingIndexTreeReveal,
+  usePendingIndexTreeReveal,
 } from './store';

@@ -51,6 +51,7 @@ const initialState: AppState = {
   rootPath: '',
   visibleTabs: new Set<AppView>(['browser']),
   indexTreeRoot: null,
+  pendingIndexTreeReveal: null,
 };
 
 /**
@@ -1525,4 +1526,39 @@ export function collapseIndexTreeNode(path: string): void {
  */
 export function useIndexTreeRoot(): TreeNode | null {
   return useSyncExternalStore(subscribe, getIndexTreeRootSnapshot);
+}
+
+/**
+ * Get the current IndexTree root node without subscribing (for use in async callbacks).
+ */
+export function getIndexTreeRoot(): TreeNode | null {
+  return state.indexTreeRoot;
+}
+
+function getPendingIndexTreeRevealSnapshot(): string | null {
+  return state.pendingIndexTreeReveal;
+}
+
+/**
+ * Signal IndexTree to expand to the given path and scroll it into view.
+ */
+export function setPendingIndexTreeReveal(path: string): void {
+  state = { ...state, pendingIndexTreeReveal: path };
+  emitChange();
+}
+
+/**
+ * Clear the pending reveal signal (called by IndexTree when it picks it up).
+ */
+export function clearPendingIndexTreeReveal(): void {
+  if (state.pendingIndexTreeReveal === null) return;
+  state = { ...state, pendingIndexTreeReveal: null };
+  emitChange();
+}
+
+/**
+ * Hook to subscribe to the pending IndexTree reveal path.
+ */
+export function usePendingIndexTreeReveal(): string | null {
+  return useSyncExternalStore(subscribe, getPendingIndexTreeRevealSnapshot);
 }

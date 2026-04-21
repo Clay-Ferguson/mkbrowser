@@ -1,13 +1,16 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import {
   useRootPath,
   useCurrentPath,
   useIndexTreeRoot,
   useSettings,
+  usePendingIndexTreeReveal,
   setIndexTreeRoot,
   setIndexTreeNodeLoading,
   expandIndexTreeNode,
   collapseIndexTreeNode,
+  clearPendingIndexTreeReveal,
+  getIndexTreeRoot,
   navigateToBrowserPath,
   setHighlightItem,
 } from '../../store';
@@ -49,11 +52,23 @@ function flattenVisible(
   return result;
 }
 
+function findNodeByPath(root: TreeNode, path: string): TreeNode | null {
+  if (root.path === path) return root;
+  if (!root.children) return null;
+  for (const child of root.children) {
+    const found = findNodeByPath(child, path);
+    if (found) return found;
+  }
+  return null;
+}
+
 function IndexTree() {
   const rootPath = useRootPath();
   const currentPath = useCurrentPath();
   const treeRoot = useIndexTreeRoot();
   const settings = useSettings();
+  const pendingReveal = usePendingIndexTreeReveal();
+  const containerRef = useRef<HTMLDivElement>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
   useEffect(() => {
@@ -77,6 +92,52 @@ function IndexTree() {
     };
     void load();
   }, [rootPath, treeRoot?.path]);
+
+  const expandToPath = useCallback(async (targetPath: string) => {
+    if (!rootPath || !targetPath.startsWith(rootPath)) return;
+
+    const relative = targetPath.slice(rootPath.length).replace(/^\//, '');
+    const segments = relative ? relative.split('/') : [];
+
+    // Expand each ancestor directory from root down to targetPath
+    let ancestorPath = rootPath;
+    for (const segment of segments) {
+      const root = getIndexTreeRoot();
+      if (!root) return;
+
+      const node = findNodeByPath(root, ancestorPath);
+      if (!node || !node.isDirectory) return;
+
+      if (!node.isExpanded || node.children === null) {
+        setIndexTreeNodeLoading(ancestorPath, true);
+        try {
+          const entries = await window.electronAPI.readDirectory(ancestorPath);
+          expandIndexTreeNode(ancestorPath, makeNodes(entries));
+        } catch {
+          setIndexTreeNodeLoading(ancestorPath, false);
+          return;
+        }
+      }
+
+      ancestorPath = ancestorPath + '/' + segment;
+    }
+
+    // Scroll to the target node after React has rendered the expanded tree
+    setTimeout(() => {
+      const container = containerRef.current;
+      if (!container) return;
+      const el = container.querySelector(`[data-tree-path="${CSS.escape(targetPath)}"]`);
+      if (el) {
+        el.scrollIntoView({ block: 'center' });
+      }
+    }, 750);
+  }, [rootPath]);
+
+  useEffect(() => {
+    if (!pendingReveal) return;
+    clearPendingIndexTreeReveal();
+    void expandToPath(pendingReveal);
+  }, [pendingReveal, expandToPath]);
 
   const handleNodeClick = useCallback(async (node: TreeNode) => {
     if (!node.isDirectory) return;
@@ -106,7 +167,7 @@ function IndexTree() {
   const rows = flattenVisible(treeRoot.children);
 
   return (
-    <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto`}>
+    <div ref={containerRef} className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto`}>
       <div className="px-2 py-1 text-sm font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-700 shrink-0">
         Index
       </div>
@@ -114,6 +175,7 @@ function IndexTree() {
         {rows.map(({ node, depth }) => (
           <div
             key={node.path}
+            data-tree-path={node.path}
             className={`flex items-center gap-1 py-0.5 text-sm whitespace-nowrap select-none
               ${node.isDirectory && node.path === currentPath
                 ? 'text-slate-100 bg-blue-700/50 border-l-2 border-blue-500 cursor-pointer'
