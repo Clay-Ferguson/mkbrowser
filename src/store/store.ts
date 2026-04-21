@@ -682,6 +682,13 @@ export function getItem(path: string): ItemData | undefined {
 }
 
 /**
+ * Get all currently cut items (direct access, not a hook)
+ */
+export function getCutItems(): ItemData[] {
+  return Array.from(state.items.values()).filter(item => item.isCut);
+}
+
+/**
  * Check if cached content is valid for an item
  */
 export function isCacheValid(path: string): boolean {

@@ -1,20 +1,26 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import {
   useRootPath,
   useCurrentPath,
   useIndexTreeRoot,
   useSettings,
   usePendingIndexTreeReveal,
+  useHasCutItems,
   setIndexTreeRoot,
   setIndexTreeNodeLoading,
   expandIndexTreeNode,
   collapseIndexTreeNode,
   clearPendingIndexTreeReveal,
   getIndexTreeRoot,
+  getCutItems,
+  deleteItems,
+  clearAllCutItems,
   navigateToBrowserPath,
   setHighlightItem,
 } from '../../store';
 import type { TreeNode } from '../../store';
+import { pasteCutItems } from '../../edit';
 
 function sortNodes(nodes: TreeNode[]): TreeNode[] {
   return [...nodes].sort((a, b) => {
@@ -72,6 +78,7 @@ function IndexTree() {
   const treeRoot = useIndexTreeRoot();
   const settings = useSettings();
   const pendingReveal = usePendingIndexTreeReveal();
+  const hasCutItems = useHasCutItems();
   const containerRef = useRef<HTMLDivElement>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
@@ -160,6 +167,35 @@ function IndexTree() {
     }
   }, []);
 
+  const handlePasteIntoFolder = useCallback(async (node: TreeNode, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const cutItems = getCutItems();
+    if (cutItems.length === 0) return;
+
+    const result = await pasteCutItems(
+      cutItems,
+      node.path,
+      window.electronAPI.pathExists,
+      window.electronAPI.renameFile
+    );
+
+    if (!result.success) return;
+
+    const movedPaths = cutItems.map(item => item.path);
+    deleteItems(movedPaths);
+    clearAllCutItems();
+
+    // Refresh children only if the folder is already expanded
+    if (node.isExpanded) {
+      try {
+        const entries = await window.electronAPI.readDirectory(node.path);
+        expandIndexTreeNode(node.path, makeNodes(entries));
+      } catch {
+        // leave tree as-is
+      }
+    }
+  }, []);
+
   if (!treeRoot?.children) {
     return (
       <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 items-center justify-center`}>
@@ -208,7 +244,17 @@ function IndexTree() {
                 : '·'
               }
             </span>
-            <span className="truncate">{node.name}</span>
+            <span className="truncate flex-1 min-w-0">{node.name}</span>
+            {hasCutItems && node.isDirectory && (
+              <button
+                type="button"
+                onClick={e => void handlePasteIntoFolder(node, e)}
+                className="shrink-0 p-0.5 mr-1 text-slate-500 hover:text-slate-100 hover:bg-slate-600 rounded"
+                title="Paste cut items here"
+              >
+                <ClipboardDocumentIcon className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         ))}
       </div>
