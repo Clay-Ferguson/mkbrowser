@@ -227,6 +227,20 @@ export interface ScrollPositions {
 }
 
 /**
+ * A single node in the IndexTree file/folder hierarchy.
+ * Children are null until the node has been expanded for the first time.
+ */
+export interface TreeNode {
+  path: string;
+  name: string;
+  isDirectory: boolean;
+  isExpanded: boolean;
+  isLoading: boolean;
+  /** null = never loaded; populated array = loaded (may be empty) */
+  children: TreeNode[] | null;
+}
+
+/**
  * Global application state
  */
 export interface AppState {
@@ -329,6 +343,12 @@ export interface AppState {
   folderAnalysis: FolderAnalysisState | null;
 
   /**
+   * Root node of the IndexTree sidebar.
+   * Null until the tree has been initialized for a root path.
+   */
+  indexTreeRoot: TreeNode | null;
+
+  /**
    * When true, ThreadView should scroll to the bottom after a short delay.
    * Set by actions like "Reply" that append new content to the thread.
    */
@@ -345,6 +365,12 @@ export interface AppState {
    * Not persisted — resets to defaults on restart.
    */
   visibleTabs: Set<AppView>;
+
+  /**
+   * Whether the IndexTree sidebar panel is currently visible.
+   * When false the component is not rendered at all.
+   */
+  showIndexTree: boolean;
 }
 
 /**

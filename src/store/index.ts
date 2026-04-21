@@ -1,4 +1,4 @@
-export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, HashtagEntry, ThreadEntry } from './types';
+export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, HashtagEntry, ThreadEntry, TreeNode } from './types';
 export type { ExpansionCounts } from './store';
 export { createItemData } from './types';
 
@@ -97,4 +97,11 @@ export {
   showTab,
   isTabVisible,
   useVisibleTabs,
+  setShowIndexTree,
+  useShowIndexTree,
+  setIndexTreeRoot,
+  setIndexTreeNodeLoading,
+  expandIndexTreeNode,
+  collapseIndexTreeNode,
+  useIndexTreeRoot,
 } from './store';

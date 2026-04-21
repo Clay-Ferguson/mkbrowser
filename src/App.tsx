@@ -9,27 +9,23 @@ import AISettingsView from './components/views/AISettingsView';
 import ThreadView from './components/views/ThreadView';
 import TerminalView from './components/views/TerminalView';
 import BrowseView from './components/views/BrowseView';
+import IndexTree from './components/views/IndexTree';
 import AppTabButtons from './components/AppTabButtons';
 import {
   upsertItems,
-  deleteItems,
   clearAllSelections,
   setSearchResults,
-  setSettings,
   getSettings,
   setCurrentView,
   setCurrentPath,
   navigateToBrowserPath,
-  setPendingScrollToFile,
-  setPendingEditFile,
-  setHighlightItem,
-  setFolderAnalysis,
   setRootPath,
   useRootPath,
   useItems,
   useCurrentView,
   useCurrentPath,
   useSettings,
+  useShowIndexTree,
 } from './store';
 import { loadConfig } from './config';
 
@@ -44,6 +40,7 @@ function App() {
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
   const settings = useSettings();
+  const showIndexTree = useShowIndexTree();
 
   // Apply font size globally via data attribute on html element
   useEffect(() => {
@@ -293,16 +290,21 @@ function App() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
       <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
-      <BrowseView
-        entries={entries}
-        loading={loading}
-        aiEnabled={aiEnabled}
-        lastExportFolder={lastExportFolder}
-        onSetLastExportFolder={setLastExportFolder}
-        onRefreshDirectory={refreshDirectory}
-        onSetError={setError}
-        onSaveSettings={handleSaveSettings}
-      />
+      <div className="flex-1 flex flex-row min-h-0">
+        {showIndexTree && <IndexTree />}
+        <div className="flex-1 flex flex-col min-h-0 min-w-0">
+          <BrowseView
+            entries={entries}
+            loading={loading}
+            aiEnabled={aiEnabled}
+            lastExportFolder={lastExportFolder}
+            onSetLastExportFolder={setLastExportFolder}
+            onRefreshDirectory={refreshDirectory}
+            onSetError={setError}
+            onSaveSettings={handleSaveSettings}
+          />
+        </div>
+      </div>
       {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
     </div>
   );

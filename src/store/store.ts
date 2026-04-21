@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, TreeNode } from './types';
 import { createItemData } from './types';
 
 /**
@@ -13,6 +13,7 @@ const defaultSettings: AppSettings = {
   searchDefinitions: [],
   contentWidth: 'medium',
   bookmarks: [],
+  ocrToolsFolder: ''
 };
 
 /**
@@ -48,6 +49,8 @@ const initialState: AppState = {
   pendingThreadScrollToBottom: false,
   rootPath: '',
   visibleTabs: new Set<AppView>(['browser']),
+  showIndexTree: true,
+  indexTreeRoot: null,
 };
 
 /**
@@ -1427,4 +1430,111 @@ export function useRootPath(): string {
  */
 export function useVisibleTabs(): Set<AppView> {
   return useSyncExternalStore(subscribe, getVisibleTabsSnapshot);
+}
+
+/**
+ * Get snapshot of showIndexTree flag
+ */
+function getShowIndexTreeSnapshot(): boolean {
+  return state.showIndexTree;
+}
+
+/**
+ * Set whether the IndexTree sidebar is visible
+ */
+export function setShowIndexTree(show: boolean): void {
+  if (state.showIndexTree === show) return;
+  state = { ...state, showIndexTree: show };
+  emitChange();
+}
+
+/**
+ * Hook to subscribe to showIndexTree flag
+ */
+export function useShowIndexTree(): boolean {
+  return useSyncExternalStore(subscribe, getShowIndexTreeSnapshot);
+}
+
+// ============================================================================
+// IndexTree
+// ============================================================================
+
+/**
+ * Recursively find and update a single node by path, returning a new tree root.
+ * Returns the original node unchanged if the path is not found.
+ */
+function updateNodeByPath(
+  node: TreeNode,
+  targetPath: string,
+  updater: (n: TreeNode) => TreeNode
+): TreeNode {
+  if (node.path === targetPath) return updater(node);
+  if (!node.children) return node;
+  let changed = false;
+  const newChildren = node.children.map(child => {
+    const updated = updateNodeByPath(child, targetPath, updater);
+    if (updated !== child) changed = true;
+    return updated;
+  });
+  return changed ? { ...node, children: newChildren } : node;
+}
+
+function getIndexTreeRootSnapshot(): TreeNode | null {
+  return state.indexTreeRoot;
+}
+
+/**
+ * Replace the entire index tree root (used on initialization or rootPath change).
+ */
+export function setIndexTreeRoot(root: TreeNode | null): void {
+  state = { ...state, indexTreeRoot: root };
+  emitChange();
+}
+
+/**
+ * Mark a directory node as loading (spinner while re-reading its children).
+ */
+export function setIndexTreeNodeLoading(path: string, loading: boolean): void {
+  if (!state.indexTreeRoot) return;
+  const newRoot = updateNodeByPath(state.indexTreeRoot, path, n => ({ ...n, isLoading: loading }));
+  if (newRoot === state.indexTreeRoot) return;
+  state = { ...state, indexTreeRoot: newRoot };
+  emitChange();
+}
+
+/**
+ * Set a directory node's children and mark it as expanded (called after a directory read).
+ */
+export function expandIndexTreeNode(path: string, children: TreeNode[]): void {
+  if (!state.indexTreeRoot) return;
+  const newRoot = updateNodeByPath(state.indexTreeRoot, path, n => ({
+    ...n,
+    isExpanded: true,
+    isLoading: false,
+    children,
+  }));
+  if (newRoot === state.indexTreeRoot) return;
+  state = { ...state, indexTreeRoot: newRoot };
+  emitChange();
+}
+
+/**
+ * Collapse a directory node (does not clear its cached children).
+ */
+export function collapseIndexTreeNode(path: string): void {
+  if (!state.indexTreeRoot) return;
+  const newRoot = updateNodeByPath(state.indexTreeRoot, path, n => ({
+    ...n,
+    isExpanded: false,
+  }));
+  if (newRoot === state.indexTreeRoot) return;
+  state = { ...state, indexTreeRoot: newRoot };
+  emitChange();
+}
+
+/**
+ * Hook to subscribe to the IndexTree root node.
+ */
+export function useIndexTreeRoot(): TreeNode | null {
+  return useSyncExternalStore(subscribe, getIndexTreeRootSnapshot);
 }
