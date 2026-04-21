@@ -199,7 +199,7 @@ function IndexTree() {
   if (!treeRoot?.children) {
     return (
       <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 items-center justify-center`}>
-        <span className="text-sm text-slate-500">Loading…</span>
+        <span className="text-slate-500">Loading…</span>
       </div>
     );
   }
@@ -207,8 +207,8 @@ function IndexTree() {
   const rows = flattenVisible(treeRoot.children);
 
   return (
-    <div ref={containerRef} className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto`}>
-      <div className="px-2 py-1 text-sm font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-700 shrink-0">
+    <div ref={containerRef} className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto pl-2`}>
+      <div className="px-2 py-1 font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-700 shrink-0">
         Index
       </div>
       <div className="py-1">
@@ -216,7 +216,7 @@ function IndexTree() {
           <div
             key={node.path}
             data-tree-path={node.path}
-            className={`flex items-center gap-1 py-0.5 text-sm whitespace-nowrap select-none
+            className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
               ${node.isDirectory && node.path === currentPath
                 ? 'text-slate-100 bg-blue-700/50 border-l-2 border-blue-500 cursor-pointer'
                 : node.isDirectory && isParentOf(node.path, currentPath)
@@ -238,10 +238,15 @@ function IndexTree() {
               }
             }}
           >
-            <span className="shrink-0 w-3 text-center text-slate-400">
+            <span
+              className={
+                `shrink-0 w-3 text-center mr-1 ` +
+                (node.isDirectory ? 'text-yellow-400' : 'text-slate-400')
+              }
+            >
               {node.isDirectory
-                ? (node.isLoading ? '⋯' : node.isExpanded ? '▾' : '▸')
-                : '·'
+                ? (node.isLoading ? '⋯' : node.isExpanded ? '▼' : '▶')
+                : '●'
               }
             </span>
             <span className="truncate flex-1 min-w-0">{node.name}</span>
