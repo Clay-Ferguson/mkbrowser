@@ -1,11 +1,14 @@
 import { useEffect, useCallback } from 'react';
 import {
   useRootPath,
+  useCurrentPath,
   useIndexTreeRoot,
   setIndexTreeRoot,
   setIndexTreeNodeLoading,
   expandIndexTreeNode,
   collapseIndexTreeNode,
+  navigateToBrowserPath,
+  setHighlightItem,
 } from '../../store';
 import type { TreeNode } from '../../store';
 
@@ -47,6 +50,7 @@ function flattenVisible(
 
 function IndexTree() {
   const rootPath = useRootPath();
+  const currentPath = useCurrentPath();
   const treeRoot = useIndexTreeRoot();
 
   useEffect(() => {
@@ -90,8 +94,8 @@ function IndexTree() {
 
   if (!treeRoot?.children) {
     return (
-      <div className="flex flex-col w-56 shrink-0 border-r border-slate-700 bg-slate-800 items-center justify-center">
-        <span className="text-xs text-slate-500">Loading…</span>
+      <div className="flex flex-col w-1/3 shrink-0 border-r border-slate-700 bg-slate-800 items-center justify-center">
+        <span className="text-sm text-slate-500">Loading…</span>
       </div>
     );
   }
@@ -99,21 +103,33 @@ function IndexTree() {
   const rows = flattenVisible(treeRoot.children);
 
   return (
-    <div className="flex flex-col w-56 shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto">
-      <div className="px-2 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-700 shrink-0">
+    <div className="flex flex-col w-1/3 shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto">
+      <div className="px-2 py-1 text-sm font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-700 shrink-0">
         Index
       </div>
       <div className="py-1">
         {rows.map(({ node, depth }) => (
           <div
             key={node.path}
-            className={`flex items-center gap-1 py-0.5 text-xs whitespace-nowrap select-none
-              ${node.isDirectory
-                ? 'text-slate-200 hover:bg-slate-700 cursor-pointer'
-                : 'text-slate-400 cursor-default'
+            className={`flex items-center gap-1 py-0.5 text-sm whitespace-nowrap select-none
+              ${node.isDirectory && node.path === currentPath
+                ? 'text-slate-100 bg-blue-900/50 border-l-2 border-blue-500 cursor-pointer'
+                : node.isDirectory
+                  ? 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
+                  : 'text-slate-400 border-l-2 border-transparent cursor-default'
               }`}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
             onClick={() => { if (node.isDirectory) void handleNodeClick(node); }}
+            onContextMenu={e => {
+              e.preventDefault();
+              if (node.isDirectory) {
+                navigateToBrowserPath(node.path);
+              } else {
+                const folderPath = node.path.substring(0, node.path.lastIndexOf('/'));
+                setHighlightItem(node.path);
+                navigateToBrowserPath(folderPath, node.path);
+              }
+            }}
           >
             <span className="shrink-0 w-3 text-center text-slate-400">
               {node.isDirectory
