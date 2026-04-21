@@ -3,6 +3,7 @@ import {
   useRootPath,
   useCurrentPath,
   useIndexTreeRoot,
+  useSettings,
   setIndexTreeRoot,
   setIndexTreeNodeLoading,
   expandIndexTreeNode,
@@ -52,6 +53,8 @@ function IndexTree() {
   const rootPath = useRootPath();
   const currentPath = useCurrentPath();
   const treeRoot = useIndexTreeRoot();
+  const settings = useSettings();
+  const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
   useEffect(() => {
     if (!rootPath) return;
@@ -94,7 +97,7 @@ function IndexTree() {
 
   if (!treeRoot?.children) {
     return (
-      <div className="flex flex-col w-1/3 shrink-0 border-r border-slate-700 bg-slate-800 items-center justify-center">
+      <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 items-center justify-center`}>
         <span className="text-sm text-slate-500">Loading…</span>
       </div>
     );
@@ -103,7 +106,7 @@ function IndexTree() {
   const rows = flattenVisible(treeRoot.children);
 
   return (
-    <div className="flex flex-col w-1/3 shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto">
+    <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto`}>
       <div className="px-2 py-1 text-sm font-semibold text-slate-400 uppercase tracking-wide border-b border-slate-700 shrink-0">
         Index
       </div>
@@ -113,7 +116,7 @@ function IndexTree() {
             key={node.path}
             className={`flex items-center gap-1 py-0.5 text-sm whitespace-nowrap select-none
               ${node.isDirectory && node.path === currentPath
-                ? 'text-slate-100 bg-blue-900/50 border-l-2 border-blue-500 cursor-pointer'
+                ? 'text-slate-100 bg-blue-700/50 border-l-2 border-blue-500 cursor-pointer'
                 : node.isDirectory
                   ? 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
                   : 'text-slate-400 border-l-2 border-transparent cursor-default'

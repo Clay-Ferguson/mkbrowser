@@ -135,6 +135,11 @@ export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | '
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 
 /**
+ * Folder tree sidebar visibility and width options
+ */
+export type IndexTreeWidth = 'hidden' | 'narrow' | 'medium' | 'wide';
+
+/**
  * Search mode: content or filenames
  */
 export type SearchMode = 'content' | 'filenames';
@@ -203,6 +208,8 @@ export interface AppSettings {
   bookmarks: string[];
   /** Folder path where OCR tool utilities are stored */
   ocrToolsFolder: string;
+  /** Folder tree sidebar visibility and width */
+  indexTreeWidth: IndexTreeWidth;
 }
 
 /**
@@ -366,11 +373,6 @@ export interface AppState {
    */
   visibleTabs: Set<AppView>;
 
-  /**
-   * Whether the IndexTree sidebar panel is currently visible.
-   * When false the component is not rendered at all.
-   */
-  showIndexTree: boolean;
 }
 
 /**

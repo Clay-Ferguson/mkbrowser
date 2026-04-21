@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, TreeNode } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, TreeNode } from './types';
 import { createItemData } from './types';
 
 /**
@@ -13,7 +13,8 @@ const defaultSettings: AppSettings = {
   searchDefinitions: [],
   contentWidth: 'medium',
   bookmarks: [],
-  ocrToolsFolder: ''
+  ocrToolsFolder: '',
+  indexTreeWidth: 'narrow',
 };
 
 /**
@@ -49,7 +50,6 @@ const initialState: AppState = {
   pendingThreadScrollToBottom: false,
   rootPath: '',
   visibleTabs: new Set<AppView>(['browser']),
-  showIndexTree: true,
   indexTreeRoot: null,
 };
 
@@ -1433,26 +1433,14 @@ export function useVisibleTabs(): Set<AppView> {
 }
 
 /**
- * Get snapshot of showIndexTree flag
+ * Update the index tree width setting
  */
-function getShowIndexTreeSnapshot(): boolean {
-  return state.showIndexTree;
-}
-
-/**
- * Set whether the IndexTree sidebar is visible
- */
-export function setShowIndexTree(show: boolean): void {
-  if (state.showIndexTree === show) return;
-  state = { ...state, showIndexTree: show };
+export function setIndexTreeWidth(indexTreeWidth: IndexTreeWidth): void {
+  state = {
+    ...state,
+    settings: { ...state.settings, indexTreeWidth },
+  };
   emitChange();
-}
-
-/**
- * Hook to subscribe to showIndexTree flag
- */
-export function useShowIndexTree(): boolean {
-  return useSyncExternalStore(subscribe, getShowIndexTreeSnapshot);
 }
 
 // ============================================================================

@@ -25,7 +25,6 @@ import {
   useCurrentView,
   useCurrentPath,
   useSettings,
-  useShowIndexTree,
 } from './store';
 import { loadConfig } from './config';
 
@@ -40,7 +39,6 @@ function App() {
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
   const settings = useSettings();
-  const showIndexTree = useShowIndexTree();
 
   // Apply font size globally via data attribute on html element
   useEffect(() => {
@@ -291,7 +289,7 @@ function App() {
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
       <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
       <div className="flex-1 flex flex-row min-h-0">
-        {showIndexTree && <IndexTree />}
+        {settings.indexTreeWidth !== 'hidden' && <IndexTree />}
         <div className="flex-1 flex flex-col min-h-0 min-w-0">
           <BrowseView
             entries={entries}

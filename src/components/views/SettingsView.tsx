@@ -4,11 +4,13 @@ import {
   setIgnoredPaths,
   setContentWidth,
   setOcrToolsFolder,
+  setIndexTreeWidth,
   setSettingsScrollPosition,
   getSettingsScrollPosition,
   useSettings,
   type FontSize,
   type ContentWidth,
+  type IndexTreeWidth,
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 
@@ -34,6 +36,18 @@ const contentWidthOptions: ContentWidthOption[] = [
   { value: 'medium', label: 'Medium' },
   { value: 'wide', label: 'Wide' },
   { value: 'full', label: 'Full Width' },
+];
+
+interface IndexTreeWidthOption {
+  value: IndexTreeWidth;
+  label: string;
+}
+
+const indexTreeWidthOptions: IndexTreeWidthOption[] = [
+  { value: 'hidden', label: 'Not Visible' },
+  { value: 'narrow', label: 'Narrow' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'wide', label: 'Wide' },
 ];
 
 interface SettingsViewProps {
@@ -72,6 +86,11 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const handleContentWidthChange = (contentWidth: ContentWidth) => {
     setContentWidth(contentWidth);
     // Trigger save to persist the setting
+    onSaveSettings();
+  };
+
+  const handleIndexTreeWidthChange = (indexTreeWidth: IndexTreeWidth) => {
+    setIndexTreeWidth(indexTreeWidth);
     onSaveSettings();
   };
 
@@ -129,6 +148,22 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                   ))}
                 </select>
               </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-slate-300 text-sm">Folder Tree:</label>
+                <select
+                  value={settings.indexTreeWidth ?? 'narrow'}
+                  onChange={(e) => handleIndexTreeWidthChange(e.target.value as IndexTreeWidth)}
+                  className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                >
+                  {indexTreeWidthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
