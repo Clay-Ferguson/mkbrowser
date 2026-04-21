@@ -52,6 +52,10 @@ function flattenVisible(
   return result;
 }
 
+function isParentOf(candidatePath: string, currentPath: string): boolean {
+  return currentPath.startsWith(candidatePath + '/');
+}
+
 function findNodeByPath(root: TreeNode, path: string): TreeNode | null {
   if (root.path === path) return root;
   if (!root.children) return null;
@@ -179,9 +183,11 @@ function IndexTree() {
             className={`flex items-center gap-1 py-0.5 text-sm whitespace-nowrap select-none
               ${node.isDirectory && node.path === currentPath
                 ? 'text-slate-100 bg-blue-700/50 border-l-2 border-blue-500 cursor-pointer'
-                : node.isDirectory
-                  ? 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
-                  : 'text-slate-400 border-l-2 border-transparent cursor-default'
+                : node.isDirectory && isParentOf(node.path, currentPath)
+                  ? 'text-slate-200 bg-slate-600/50 border-l-2 border-transparent cursor-pointer'
+                  : node.isDirectory
+                    ? 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
+                    : 'text-slate-400 border-l-2 border-transparent cursor-default'
               }`}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
             onClick={() => { if (node.isDirectory) void handleNodeClick(node); }}
