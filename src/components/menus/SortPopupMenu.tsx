@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import type { SortOrder } from '../../store/types';
-import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
+import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
 const sortOptions: { value: SortOrder; label: string }[] = [
   { value: 'alphabetical', label: 'Filename' },
@@ -16,6 +16,7 @@ interface SortPopupMenuProps {
   currentSortOrder: SortOrder;
   hasIndexOrder?: boolean;
   onSelectSortOrder: (order: SortOrder) => void;
+  onEnableCustomOrdering?: () => void;
 }
 
 export default function SortPopupMenu({
@@ -24,6 +25,7 @@ export default function SortPopupMenu({
   currentSortOrder,
   hasIndexOrder,
   onSelectSortOrder,
+  onEnableCustomOrdering,
 }: SortPopupMenuProps) {
   if (hasIndexOrder) {
     return (
@@ -49,6 +51,15 @@ export default function SortPopupMenu({
           />
         );
       })}
+      {onEnableCustomOrdering && (
+        <>
+          <PopupMenuDivider />
+          <PopupMenuItem
+            label="Enable Custom Ordering"
+            onClick={() => { onEnableCustomOrdering(); onClose(); }}
+          />
+        </>
+      )}
     </PopupMenu>
   );
 }

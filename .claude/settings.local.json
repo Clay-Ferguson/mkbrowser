@@ -23,7 +23,8 @@
       "Bash(timeout 30 npm start:*)",
       "Bash(timeout 15 npm start:*)",
       "Bash(timeout 20 npm start:*)",
-      "WebSearch"
+      "WebSearch",
+      "Read(//home/clay/ferguson/AI Testing/**)"
     ]
   }
 }

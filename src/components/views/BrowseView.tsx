@@ -77,17 +77,17 @@ function IndexInsertBar({ onInsertFile, onInsertFolder }: { onInsertFile: () => 
     <div className="flex justify-center gap-2 py-0.5">
       <button
         onClick={onInsertFile}
-        className="p-1 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded transition-colors"
+        className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors"
         title="Insert file here"
       >
-        <DocumentPlusIcon className="w-4 h-4" />
+        <DocumentPlusIcon className="w-5 h-5" />
       </button>
       <button
         onClick={onInsertFolder}
-        className="p-1 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded transition-colors"
+        className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
         title="Insert folder here"
       >
-        <FolderPlusIcon className="w-4 h-4" />
+        <FolderPlusIcon className="w-5 h-5" />
       </button>
     </div>
   );
@@ -125,13 +125,21 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const hasIndexFile = useHasIndexFile();
 
-  useEffect(() => {
-    setHasIndexFile(entries.some((e) => e.indexOrder !== undefined));
-  }, [entries]);
-
   const items = useItems();
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
+
+  // Detect whether the current folder uses index ordering
+  useEffect(() => {
+    const hasIndex = entries.some((e) => e.indexOrder !== undefined);
+    setHasIndexFile(hasIndex);
+  }, [entries]);
+
+  // Reconcile on folder navigation only (not on every file-operation refresh)
+  useEffect(() => {
+    if (!currentPath) return;
+    void window.electronAPI.reconcileIndexedFiles(currentPath, false);
+  }, [currentPath]);
   const pendingScrollToFile = usePendingScrollToFile();
   const pendingEditFile = usePendingEditFile();
   const pendingEditLineNumber = usePendingEditLineNumber();
@@ -839,25 +847,27 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         </div>
 
         <div data-id="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
-              {/* Create file button */}
-              <button
-                onClick={handleOpenCreateDialog}
-                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Create file"
-                data-testid="create-file-button"
-              >
-                <DocumentPlusIcon className="w-5 h-5" />
-              </button>
-
-              {/* Create folder button */}
-              <button
-                onClick={handleOpenCreateFolderDialog}
-                className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Create folder"
-                data-testid="create-folder-button"
-              >
-                <FolderPlusIcon className="w-5 h-5" />
-              </button>
+              {/* Create file/folder buttons — hidden in index-ordered mode (inline insert bars replace them) */}
+              {!hasIndexFile && (
+                <>
+                  <button
+                    onClick={handleOpenCreateDialog}
+                    className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors"
+                    title="Create file"
+                    data-testid="create-file-button"
+                  >
+                    <DocumentPlusIcon className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleOpenCreateFolderDialog}
+                    className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
+                    title="Create folder"
+                    data-testid="create-folder-button"
+                  >
+                    <FolderPlusIcon className="w-5 h-5" />
+                  </button>
+                </>
+              )}
 
               {/* Edit menu button */}
               <button
@@ -1126,6 +1136,10 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             setSortOrder(order);
             void onSaveSettings();
           }}
+          onEnableCustomOrdering={currentPath ? async () => {
+            await window.electronAPI.reconcileIndexedFiles(currentPath, true);
+            onRefreshDirectory();
+          } : undefined}
         />
       )}
 

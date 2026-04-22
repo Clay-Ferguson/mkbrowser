@@ -78,6 +78,7 @@
     "katex": "^0.16.28",
     "langchain": "^1.2.26",
     "mermaid": "^11.12.2",
+    "nanoid": "^5.1.9",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-markdown": "^10.1.0",

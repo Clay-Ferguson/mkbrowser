@@ -203,6 +203,7 @@ export interface ElectronAPI {
 
   runInExternalTerminal: (command: string) => Promise<{ success: boolean; error?: string }>;
   insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
+  reconcileIndexedFiles: (dirPath: string, createIfMissing?: boolean) => Promise<void>;
 }
 
 declare global {
