@@ -258,9 +258,26 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     };
   }, []);
 
-  const handleEntryDelete = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
+    if (currentPath && hasIndexFile) {
+      await window.electronAPI.reconcileIndexedFiles(currentPath, false);
+    }
     onRefreshDirectory();
-  }, [onRefreshDirectory]);
+  }, [currentPath, hasIndexFile, onRefreshDirectory]);
+
+  const handleEntryRename = useCallback(async () => {
+    if (currentPath && hasIndexFile) {
+      await window.electronAPI.reconcileIndexedFiles(currentPath, false);
+    }
+    onRefreshDirectory();
+  }, [currentPath, hasIndexFile, onRefreshDirectory]);
+
+  const handleEntryDelete = useCallback(async () => {
+    if (currentPath && hasIndexFile) {
+      await window.electronAPI.reconcileIndexedFiles(currentPath, false);
+    }
+    onRefreshDirectory();
+  }, [currentPath, hasIndexFile, onRefreshDirectory]);
 
   const doPasteCutItems = useCallback(async () => {
     if (!currentPath) return;
@@ -286,9 +303,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       setPendingScrollToFile(`${currentPath}/${result.pastedItemName}`);
     }
 
+    const sourceFolder = cutItems[0].path.substring(0, cutItems[0].path.lastIndexOf('/'));
     const movedPaths = cutItems.map(item => item.path);
     deleteItems(movedPaths);
     clearAllCutItems();
+    await Promise.all([
+      window.electronAPI.reconcileIndexedFiles(sourceFolder, false),
+      window.electronAPI.reconcileIndexedFiles(currentPath, false),
+    ]);
     onRefreshDirectory();
   }, [currentPath, items, onRefreshDirectory, onSetError]);
 
@@ -310,9 +332,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       return;
     }
 
+    const sourceFolder = cutItems[0].path.substring(0, cutItems[0].path.lastIndexOf('/'));
     const movedPaths = cutItems.map(item => item.path);
     deleteItems(movedPaths);
     clearAllCutItems();
+    await Promise.all([
+      window.electronAPI.reconcileIndexedFiles(sourceFolder, false),
+      window.electronAPI.reconcileIndexedFiles(folderPath, false),
+    ]);
     onRefreshDirectory();
   }, [items, onRefreshDirectory, onSetError]);
 
@@ -334,9 +361,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
     if (result.deletedPaths.length > 0) {
       deleteItems(result.deletedPaths);
+      if (currentPath && hasIndexFile) {
+        await window.electronAPI.reconcileIndexedFiles(currentPath, false);
+      }
       onRefreshDirectory();
     }
-  }, [getSelectedItems, onRefreshDirectory, onSetError]);
+  }, [currentPath, getSelectedItems, hasIndexFile, onRefreshDirectory, onSetError]);
 
   const handleMoveToFolder = useCallback(async () => {
     if (!currentPath) return;
@@ -808,6 +838,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     if (result.success && result.fileName) {
       const filePath = `${currentPath}/${result.fileName}`;
       setPendingScrollToFile(filePath);
+      await window.electronAPI.reconcileIndexedFiles(currentPath, false);
       onRefreshDirectory();
       setTimeout(() => {
         setItemExpanded(filePath, true);
@@ -996,7 +1027,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
               {/* Refresh button */}
               <button
-                onClick={onRefreshDirectory}
+                onClick={() => void handleRefresh()}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
                 title="Refresh"
                 data-testid="refresh-button"
@@ -1046,15 +1077,15 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               {sortedEntries.map((entry, idx) => (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
                   ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} view="browser" onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
                   ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
                   ) : isTextFile(entry.name) ? (
-                    <TextEntry entry={entry} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
                   ) : (
-                    <FileEntryComponent entry={entry} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
                   )}
                   <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
                 </div>
@@ -1065,15 +1096,15 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               {sortedEntries.map((entry) => (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
                   ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} view="browser" onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
                   ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
                   ) : isTextFile(entry.name) ? (
-                    <TextEntry entry={entry} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
                   ) : (
-                    <FileEntryComponent entry={entry} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
                   )}
                 </div>
               ))}

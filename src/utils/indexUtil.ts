@@ -33,6 +33,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
 
   // Mirror BrowseView's visibility rule: exclude hidden entries only
   const visibleEntries = dirEntries.filter((e) => !e.name.startsWith('.'));
+  const visibleNames = new Set(visibleEntries.map((e) => e.name));
 
   // For markdown files: ensure each has an id in its front matter; build bidirectional maps
   const nameToId = new Map<string, string>();
@@ -87,13 +88,19 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
         entry.name = actualName;
         handledNames.add(actualName);
       }
-      // If no actualName: file was deleted — keep entry for now
+      // If no actualName: file was deleted — will be filtered out below
     } else {
       handledNames.add(entry.name);
       const id = nameToId.get(entry.name);
       if (id) entry.id = id;
     }
   }
+
+  // Remove entries for files/folders that no longer exist on disk
+  files = files.filter((entry) => {
+    if (entry.id) return idToName.has(entry.id) || visibleNames.has(entry.name);
+    return visibleNames.has(entry.name);
+  });
 
   // Append visible entries not yet in the index (folders, images, PDFs, etc. get no id)
   for (const entry of visibleEntries) {
@@ -106,7 +113,9 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   }
 
   const newContent = yaml.dump({ files }, { indent: 2 });
-  await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+  if (newContent !== existingIndexContent) {
+    await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+  }
 }
 
 /**

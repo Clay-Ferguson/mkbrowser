@@ -185,9 +185,14 @@ function IndexTree() {
 
     if (!result.success) return;
 
+    const sourceFolder = cutItems[0].path.substring(0, cutItems[0].path.lastIndexOf('/'));
     const movedPaths = cutItems.map(item => item.path);
     deleteItems(movedPaths);
     clearAllCutItems();
+    await Promise.all([
+      window.electronAPI.reconcileIndexedFiles(sourceFolder, false),
+      window.electronAPI.reconcileIndexedFiles(node.path, false),
+    ]);
 
     // Refresh children only if the folder is already expanded
     if (node.isExpanded) {
