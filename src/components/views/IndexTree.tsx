@@ -244,7 +244,7 @@ function IndexTree() {
           </button>
         )}
       </div>
-      <div ref={containerRef} className="flex-1 overflow-y-auto pl-2 pt-2">
+      <div ref={containerRef} className="flex-1 overflow-y-auto pl-2 pr-2 pt-2">
       <div className="py-1">
         {rows.map(({ node, depth }) => (
           <div
