@@ -142,6 +142,7 @@ export interface ElectronAPI {
   terminalKill: () => Promise<void>;
   onTerminalOutput: (callback: (data: string) => void) => () => void;
   onTerminalExit: (callback: (exitCode: number) => void) => () => void;
+  runInExternalTerminal: (command: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 // Expose protected methods to the renderer process
@@ -237,4 +238,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('terminal-exit', listener);
     return () => { ipcRenderer.removeListener('terminal-exit', listener); };
   },
+  runInExternalTerminal: (command: string) => ipcRenderer.invoke('run-in-external-terminal', command),
 } as ElectronAPI);

@@ -631,6 +631,50 @@ function setupIpcHandlers(): void {
       ptyProcess = null;
     }
   });
+
+  ipcMain.handle('run-in-external-terminal', async (_event, command: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { spawn, execSync } = await import('node:child_process');
+
+      const terminals = [
+        { cmd: 'x-terminal-emulator', args: ['-e'] },
+        { cmd: 'gnome-terminal', args: ['--'] },
+        { cmd: 'konsole', args: ['-e'] },
+        { cmd: 'xfce4-terminal', args: ['-e'] },
+        { cmd: 'xterm', args: ['-e'] },
+        { cmd: 'kitty', args: ['--'] },
+        { cmd: 'alacritty', args: ['-e'] },
+      ];
+
+      let terminalCmd: string | null = null;
+      let terminalArgs: string[] = [];
+
+      for (const terminal of terminals) {
+        try {
+          execSync(`which ${terminal.cmd}`, { stdio: 'ignore' });
+          terminalCmd = terminal.cmd;
+          terminalArgs = terminal.args;
+          break;
+        } catch {
+          // Terminal not found, try next
+        }
+      }
+
+      if (!terminalCmd) {
+        return { success: false, error: 'No terminal emulator found. Please install gnome-terminal, konsole, xterm, or another terminal emulator.' };
+      }
+
+      const child = spawn(terminalCmd, [...terminalArgs, 'bash', '-c', `${command}; exec bash`], {
+        detached: true,
+        stdio: 'ignore',
+      });
+      child.unref();
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
 }
 async function handleCommandLineArgs(): Promise<void> {
   // process.argv structure differs between dev and production:

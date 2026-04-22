@@ -50,7 +50,6 @@ import {
   getBrowserScrollPosition,
   toggleBookmark,
   setFolderAnalysis,
-  setPendingTerminalCommand,
   showTab,
   isTabVisible,
   useRootPath,
@@ -1163,20 +1162,18 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 const escapedImg = img.path.replace(/'/g, "'\\''");
                 return `echo "--- OCR [${i + 1}/${selectedImages.length}]: ${img.name} ---" && ./ocr.sh '${escapedImg}'`;
               });
-              command = `cd '${escapedOcrFolder}' && ${ocrCalls.join(' && ')}\n`;
+              command = `cd '${escapedOcrFolder}' && ${ocrCalls.join(' && ')}`;
             } else {
               const escapedPath = currentPath.replace(/'/g, "'\\''");
-              command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'\n`;
+              command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'`;
             }
 
-            const terminalAlreadyVisible = isTabVisible('terminal');
-            showTab('terminal');
-            setCurrentView('terminal');
-            if (terminalAlreadyVisible) {
-              void window.electronAPI.terminalWrite(command);
-            } else {
-              setPendingTerminalCommand(command);
-            }
+            void (async () => {
+              const result = await window.electronAPI.runInExternalTerminal(command);
+              if (!result.success) {
+                onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
+              }
+            })();
           }}
           onSettings={() => {
             showTab('settings');
