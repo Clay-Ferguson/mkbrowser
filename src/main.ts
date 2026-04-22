@@ -18,6 +18,7 @@ import type { StreamCallbacks } from './ai/langGraph';
 import { getUsageWithCosts, resetUsage } from './ai/usageTracker';
 import { checkHealth, ensureRunning, stopServer } from './llamaServer';
 import { readExifMetadata, writeExifMetadata } from './utils/exifUtil';
+import yaml from 'js-yaml';
   // Write EXIF metadata to an image file
   ipcMain.handle('write-exif', async (_event, filePath: string, data: Record<string, Record<string, string>>): Promise<boolean> => {
     try {
@@ -319,6 +320,39 @@ function setupIpcHandlers(): void {
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error occurred' 
       };
+    }
+  });
+
+  // Insert a new entry into .INDEX.yaml at the specified position
+  ipcMain.handle('insert-into-index-yaml', async (_event, dirPath: string, newName: string, insertAfterName: string | null): Promise<{ success: boolean; error?: string }> => {
+    const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+    try {
+      let files: Array<{ name: string; id?: string }> = [];
+      try {
+        const content = await fs.promises.readFile(indexFilePath, 'utf8');
+        const parsed = yaml.load(content) as { files?: Array<{ name: string; id?: string }> };
+        if (parsed && Array.isArray(parsed.files)) {
+          files = parsed.files;
+        }
+      } catch {
+        // No existing file or parse error — start with empty list
+      }
+      const newEntry: { name: string } = { name: newName };
+      if (insertAfterName === null) {
+        files.unshift(newEntry);
+      } else {
+        const idx = files.findIndex((f) => f.name === insertAfterName);
+        if (idx === -1) {
+          files.push(newEntry);
+        } else {
+          files.splice(idx + 1, 0, newEntry);
+        }
+      }
+      const newContent = yaml.dump({ files }, { indent: 2 });
+      await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   });
 

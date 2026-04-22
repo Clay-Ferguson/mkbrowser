@@ -371,6 +371,12 @@ export interface AppState {
    */
   visibleTabs: Set<AppView>;
 
+  /**
+   * True when the current directory contains a .INDEX.yaml file.
+   * Controls sort behavior and related UI across the app.
+   */
+  hasIndexFile: boolean;
+
 }
 
 /**

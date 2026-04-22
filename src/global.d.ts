@@ -86,6 +86,8 @@ export interface FileEntry {
   content?: string;
   /** Preview text from HUMAN.md or AI.md for AI conversation folders */
   aiHint?: string;
+  /** Position from .INDEX.yaml; undefined means not listed (appears after indexed entries) */
+  indexOrder?: number;
 }
 
 export interface SearchResult {
@@ -200,6 +202,7 @@ export interface ElectronAPI {
   cancelAiStream: () => void;
 
   runInExternalTerminal: (command: string) => Promise<{ success: boolean; error?: string }>;
+  insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

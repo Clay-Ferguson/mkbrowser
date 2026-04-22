@@ -106,4 +106,6 @@ export {
   setPendingIndexTreeReveal,
   clearPendingIndexTreeReveal,
   usePendingIndexTreeReveal,
+  setHasIndexFile,
+  useHasIndexFile,
 } from './store';

@@ -50,6 +50,7 @@ const initialState: AppState = {
   visibleTabs: new Set<AppView>(['browser']),
   indexTreeRoot: null,
   pendingIndexTreeReveal: null,
+  hasIndexFile: false,
 };
 
 /**
@@ -191,6 +192,10 @@ function getPendingEditViewSnapshot(): AppView | null {
  */
 function getPendingThreadScrollToBottomSnapshot(): boolean {
   return state.pendingThreadScrollToBottom;
+}
+
+function getHasIndexFileSnapshot(): boolean {
+  return state.hasIndexFile;
 }
 
 /**
@@ -1094,6 +1099,14 @@ export function setFontSize(fontSize: FontSize): void {
 }
 
 /**
+ * Set whether the current directory contains a .INDEX.yaml file.
+ */
+export function setHasIndexFile(hasIndexFile: boolean): void {
+  state = { ...state, hasIndexFile };
+  emitChange();
+}
+
+/**
  * Update the sort order setting
  */
 export function setSortOrder(sortOrder: SortOrder): void {
@@ -1332,6 +1345,13 @@ export function usePendingEditView(): AppView | null {
  */
 export function usePendingThreadScrollToBottom(): boolean {
   return useSyncExternalStore(subscribe, getPendingThreadScrollToBottomSnapshot);
+}
+
+/**
+ * Hook to subscribe to hasIndexFile
+ */
+export function useHasIndexFile(): boolean {
+  return useSyncExternalStore(subscribe, getHasIndexFileSnapshot);
 }
 /**
  * Hook to subscribe to scroll positions

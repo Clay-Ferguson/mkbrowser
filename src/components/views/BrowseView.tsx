@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
   ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, Squares2X2Icon,
@@ -51,6 +51,7 @@ import {
   toggleBookmark,
   setFolderAnalysis,
   showTab,
+  setHasIndexFile,
   useRootPath,
   useItems,
   useCurrentView,
@@ -61,6 +62,7 @@ import {
   usePendingEditView,
   useSettings,
   useExpansionCounts,
+  useHasIndexFile,
   type SearchDefinition,
 } from '../../store';
 import { scrollItemIntoView } from '../../utils/entryDom';
@@ -69,6 +71,27 @@ import { pasteFromClipboard } from '../../utils/clipboard';
 import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtils';
 import { getContentWidthClasses } from '../../utils/styles';
 import { hasHumanMd } from '../../ai/aiPatterns';
+
+function IndexInsertBar({ onInsertFile, onInsertFolder }: { onInsertFile: () => void; onInsertFolder: () => void }) {
+  return (
+    <div className="flex justify-center gap-2 py-0.5">
+      <button
+        onClick={onInsertFile}
+        className="p-1 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded transition-colors"
+        title="Insert file here"
+      >
+        <DocumentPlusIcon className="w-4 h-4" />
+      </button>
+      <button
+        onClick={onInsertFolder}
+        className="p-1 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded transition-colors"
+        title="Insert folder here"
+      >
+        <FolderPlusIcon className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
 
 interface BrowseViewProps {
   entries: FileEntry[];
@@ -98,6 +121,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
   const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
+  const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null);
+
+  const hasIndexFile = useHasIndexFile();
+
+  useEffect(() => {
+    setHasIndexFile(entries.some((e) => e.indexOrder !== undefined));
+  }, [entries]);
 
   const items = useItems();
   const currentView = useCurrentView();
@@ -111,6 +141,31 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const showExpandAll = expansionCounts.totalCount > 0 && expansionCounts.expandedCount < expansionCounts.totalCount;
   const showCollapseAll = expansionCounts.totalCount > 0 && expansionCounts.collapsedCount < expansionCounts.totalCount;
+
+  const sortedEntries = useMemo(() => {
+    const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
+    const entriesWithCurrentTimes = visibleEntries.map((entry) => {
+      const item = items.get(entry.path);
+      if (item && (item.modifiedTime !== entry.modifiedTime || item.createdTime !== entry.createdTime)) {
+        return { ...entry, modifiedTime: item.modifiedTime, createdTime: item.createdTime };
+      }
+      return entry;
+    });
+    if (hasIndexFile) {
+      return [...entriesWithCurrentTimes].sort((a, b) => {
+        const aOrder = a.indexOrder ?? Infinity;
+        const bOrder = b.indexOrder ?? Infinity;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return a.name.localeCompare(b.name);
+      });
+    }
+    return sortEntries(entriesWithCurrentTimes, settings.sortOrder, settings.foldersOnTop);
+  }, [entries, items, hasIndexFile, settings.sortOrder, settings.foldersOnTop]);
+
+  const allImages = useMemo(
+    () => sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name)),
+    [sortedEntries]
+  );
 
   const hasSelectedItems = Array.from(items.values()).some((item) => item.isSelected);
   const hasCutItems = Array.from(items.values()).some((item) => item.isCut);
@@ -461,12 +516,20 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   }, []);
 
   const handleOpenCreateDialog = useCallback(() => {
+    setInsertAtIndex(null);
     setCreateFileDefaultName('');
     setShowCreateDialog(true);
   }, []);
 
   const handleOpenCreateFileBelow = useCallback((defaultName: string) => {
+    setInsertAtIndex(null);
     setCreateFileDefaultName(defaultName);
+    setShowCreateDialog(true);
+  }, []);
+
+  const handleInsertFileAt = useCallback((insertIndex: number) => {
+    setInsertAtIndex(insertIndex);
+    setCreateFileDefaultName('');
     setShowCreateDialog(true);
   }, []);
 
@@ -477,6 +540,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     if (result.success) {
       setShowCreateDialog(false);
       setCreateFileDefaultName('');
+      if (insertAtIndex !== null) {
+        const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1].name : null;
+        await window.electronAPI.insertIntoIndexYaml(currentPath, fileName, insertAfterName);
+        setInsertAtIndex(null);
+      }
       setHighlightItem(filePath);
       setPendingScrollToFile(filePath);
       onRefreshDirectory();
@@ -491,22 +559,32 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     } else {
       setShowCreateDialog(false);
       setCreateFileDefaultName('');
+      setInsertAtIndex(null);
       onSetError(result.error || 'Failed to create file');
     }
-  }, [currentPath, onRefreshDirectory, onSetError]);
+  }, [currentPath, onRefreshDirectory, onSetError, insertAtIndex, sortedEntries]);
 
   const handleCancelCreate = useCallback(() => {
     setShowCreateDialog(false);
     setCreateFileDefaultName('');
+    setInsertAtIndex(null);
   }, []);
 
   const handleOpenCreateFolderDialog = useCallback(() => {
+    setInsertAtIndex(null);
     setCreateFolderDefaultName('');
     setShowCreateFolderDialog(true);
   }, []);
 
   const handleOpenCreateFolderBelow = useCallback((defaultName: string) => {
+    setInsertAtIndex(null);
     setCreateFolderDefaultName(defaultName);
+    setShowCreateFolderDialog(true);
+  }, []);
+
+  const handleInsertFolderAt = useCallback((insertIndex: number) => {
+    setInsertAtIndex(insertIndex);
+    setCreateFolderDefaultName('');
     setShowCreateFolderDialog(true);
   }, []);
 
@@ -517,19 +595,26 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     if (result.success) {
       setShowCreateFolderDialog(false);
       setCreateFolderDefaultName('');
+      if (insertAtIndex !== null) {
+        const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1].name : null;
+        await window.electronAPI.insertIntoIndexYaml(currentPath, folderName, insertAfterName);
+        setInsertAtIndex(null);
+      }
       setHighlightItem(folderPath);
       setPendingScrollToFile(folderPath);
       onRefreshDirectory();
     } else {
       setShowCreateFolderDialog(false);
       setCreateFolderDefaultName('');
+      setInsertAtIndex(null);
       onSetError(result.error || 'Failed to create folder');
     }
-  }, [currentPath, onRefreshDirectory, onSetError]);
+  }, [currentPath, onRefreshDirectory, onSetError, insertAtIndex, sortedEntries]);
 
   const handleCancelCreateFolder = useCallback(() => {
     setShowCreateFolderDialog(false);
     setCreateFolderDefaultName('');
+    setInsertAtIndex(null);
   }, []);
 
   const handleOpenSearchDialog = useCallback(() => {
@@ -936,7 +1021,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           </div>
         )}
 
-        {!loading && entries.filter((entry) => !items.get(entry.path)?.isCut).length === 0 && (
+        {!loading && sortedEntries.length === 0 && (
           <div className="text-center py-12">
             <FolderIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
             <p className="text-slate-400">This folder is empty</p>
@@ -944,22 +1029,30 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         )}
 
         {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line */}
-        {!loading && entries.filter((entry) => !items.get(entry.path)?.isCut).length > 0 && (
-
-          <div className="[&>div+div]:-mt-px">
-            {(() => {
-              const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
-              // Use in-memory store timestamps (updated on save) so sort reflects recent edits
-              const entriesWithCurrentTimes = visibleEntries.map((entry) => {
-                const item = items.get(entry.path);
-                if (item && (item.modifiedTime !== entry.modifiedTime || item.createdTime !== entry.createdTime)) {
-                  return { ...entry, modifiedTime: item.modifiedTime, createdTime: item.createdTime };
-                }
-                return entry;
-              });
-              const sortedEntries = sortEntries(entriesWithCurrentTimes, settings.sortOrder, settings.foldersOnTop);
-              const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
-              return sortedEntries.map((entry) => (
+        {!loading && sortedEntries.length > 0 && (
+          hasIndexFile ? (
+            <div>
+              <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />
+              {sortedEntries.map((entry, idx) => (
+                <div key={entry.path}>
+                  {entry.isDirectory ? (
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
+                  ) : entry.isMarkdown ? (
+                    <MarkdownEntry entry={entry} view="browser" onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                  ) : isImageFile(entry.name) ? (
+                    <ImageEntry entry={entry} allImages={allImages} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                  ) : isTextFile(entry.name) ? (
+                    <TextEntry entry={entry} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                  ) : (
+                    <FileEntryComponent entry={entry} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                  )}
+                  <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="[&>div+div]:-mt-px">
+              {sortedEntries.map((entry) => (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
                     <FolderEntry entry={entry} onNavigate={navigateTo} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
@@ -973,9 +1066,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                     <FileEntryComponent entry={entry} onRename={onRefreshDirectory} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
                   )}
                 </div>
-              ));
-            })()}
-          </div>
+              ))}
+            </div>
+          )
         )}
         </div>
       </main>
@@ -1028,6 +1121,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           anchorRef={sortButtonRef}
           onClose={() => setShowSortMenu(false)}
           currentSortOrder={settings.sortOrder}
+          hasIndexOrder={hasIndexFile}
           onSelectSortOrder={(order) => {
             setSortOrder(order);
             void onSaveSettings();

@@ -223,6 +223,28 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     return a.name.localeCompare(b.name);
   });
 
+  // Check for .INDEX.yaml to override display ordering
+  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  try {
+    const indexContent = await fs.promises.readFile(indexFilePath, 'utf8');
+    const parsed = yaml.load(indexContent) as { files?: Array<{ name: string; id?: string }> };
+    if (parsed && Array.isArray(parsed.files)) {
+      const nameToOrder = new Map(parsed.files.map((f, i) => [f.name, i]));
+      for (const entry of fileEntries) {
+        const order = nameToOrder.get(entry.name);
+        if (order !== undefined) entry.indexOrder = order;
+      }
+      fileEntries.sort((a, b) => {
+        const aOrder = a.indexOrder ?? Infinity;
+        const bOrder = b.indexOrder ?? Infinity;
+        if (aOrder !== bOrder) return aOrder - bOrder;
+        return a.name.localeCompare(b.name);
+      });
+    }
+  } catch {
+    // No .INDEX.yaml or parse error — use default ordering
+  }
+
   return fileEntries;
 }
 

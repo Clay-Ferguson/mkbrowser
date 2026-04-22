@@ -217,4 +217,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cancelAiStream: () => ipcRenderer.send('ai-stream-cancel'),
 
   runInExternalTerminal: (command: string) => ipcRenderer.invoke('run-in-external-terminal', command),
+  insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) =>
+    ipcRenderer.invoke('insert-into-index-yaml', dirPath, newName, insertAfterName),
 } as ElectronAPI);
