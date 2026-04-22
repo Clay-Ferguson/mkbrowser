@@ -575,63 +575,6 @@ function setupIpcHandlers(): void {
     return gatherThreadEntries(folderPath);
   });
 
-  // ── Terminal (xterm.js + node-pty) ──────────────────────────────
-  // We lazy-import node-pty so the app still launches if the native
-  // module isn't compiled for this platform.
-  let ptyProcess: import('node-pty').IPty | null = null;
-
-  ipcMain.handle('terminal-spawn', async (_event, cwd: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      // Kill any existing session first
-      if (ptyProcess) {
-        ptyProcess.kill();
-        ptyProcess = null;
-      }
-
-      const pty = await import('node-pty');
-      ptyProcess = pty.spawn('/bin/bash', [], {
-        name: 'xterm-256color',
-        cols: 80,
-        rows: 24,
-        cwd,
-        env: process.env as Record<string, string>,
-      });
-
-      ptyProcess.onData((data: string) => {
-        mainWindow?.webContents.send('terminal-output', data);
-      });
-
-      ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
-        mainWindow?.webContents.send('terminal-exit', exitCode);
-        ptyProcess = null;
-      });
-
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to spawn terminal:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
-
-  ipcMain.handle('terminal-write', (_event, data: string): void => {
-    ptyProcess?.write(data);
-  });
-
-  ipcMain.handle('terminal-resize', (_event, cols: number, rows: number): void => {
-    try {
-      ptyProcess?.resize(cols, rows);
-    } catch {
-      // Ignore resize errors (e.g. if process already exited)
-    }
-  });
-
-  ipcMain.handle('terminal-kill', (): void => {
-    if (ptyProcess) {
-      ptyProcess.kill();
-      ptyProcess = null;
-    }
-  });
-
   ipcMain.handle('run-in-external-terminal', async (_event, command: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const { spawn, execSync } = await import('node:child_process');

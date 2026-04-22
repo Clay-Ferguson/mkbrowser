@@ -51,7 +51,6 @@ import {
   toggleBookmark,
   setFolderAnalysis,
   showTab,
-  isTabVisible,
   useRootPath,
   useItems,
   useCurrentView,
@@ -1129,15 +1128,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           }}
           onRenumberFiles={() => void handleRenumberFiles()}
           onExport={() => setShowExportDialog(true)}
-          onOpenTerminal={() => {
-            const terminalAlreadyVisible = isTabVisible('terminal');
-            showTab('terminal');
-            setCurrentView('terminal');
-            if (terminalAlreadyVisible && currentPath) {
-              const escapedPath = currentPath.replace(/'/g, "'\\''");
-              void window.electronAPI.terminalWrite(`cd '${escapedPath}'\n`);
-            }
-          }}
           onRunOcr={() => {
             if (!currentPath) return;
             const ocrFolder = settings.ocrToolsFolder;

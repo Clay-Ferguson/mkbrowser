@@ -7,7 +7,6 @@ import SettingsView from './components/views/SettingsView';
 import FolderAnalysisView from './components/views/FolderAnalysisView';
 import AISettingsView from './components/views/AISettingsView';
 import ThreadView from './components/views/ThreadView';
-import TerminalView from './components/views/TerminalView';
 import BrowseView from './components/views/BrowseView';
 import IndexTree from './components/views/IndexTree';
 import AppTabButtons from './components/AppTabButtons';
@@ -302,16 +301,6 @@ function App() {
       <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
         <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
         <ThreadView onSaveSettings={handleSaveSettings} />
-        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
-      </div>
-    );
-  }
-
-  if (currentView === 'terminal') {
-    return (
-      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
-        <TerminalView />
         {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
       </div>
     );

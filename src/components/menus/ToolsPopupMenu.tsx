@@ -9,7 +9,6 @@ interface ToolsPopupMenuProps {
   onRenumberFiles: () => void;
   onExport: () => void;
   onNewAiChat: () => void;
-  onOpenTerminal: () => void;
   onRunOcr: () => void;
   onSettings: () => void;
   onAiSettings: () => void;
@@ -23,7 +22,6 @@ export default function ToolsPopupMenu({
   onRenumberFiles,
   onExport,
   onNewAiChat,
-  onOpenTerminal,
   onRunOcr,
   onSettings,
   onAiSettings,
@@ -53,11 +51,6 @@ export default function ToolsPopupMenu({
         label="Export..."
         data-testid="menu-export"
         onClick={() => { onExport(); onClose(); }}
-      />
-      <PopupMenuItem
-        label="Open Terminal"
-        data-testid="menu-open-terminal"
-        onClick={() => { onOpenTerminal(); onClose(); }}
       />
       <PopupMenuItem
         label="Run OCR"

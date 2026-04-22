@@ -135,13 +135,6 @@ export interface ElectronAPI {
   rewriteContent: (content: string) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
 
-  // Terminal (xterm.js + node-pty)
-  terminalSpawn: (cwd: string) => Promise<{ success: boolean; error?: string }>;
-  terminalWrite: (data: string) => Promise<void>;
-  terminalResize: (cols: number, rows: number) => Promise<void>;
-  terminalKill: () => Promise<void>;
-  onTerminalOutput: (callback: (data: string) => void) => () => void;
-  onTerminalExit: (callback: (exitCode: number) => void) => () => void;
   runInExternalTerminal: (command: string) => Promise<{ success: boolean; error?: string }>;
 }
 
@@ -223,20 +216,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   cancelAiStream: () => ipcRenderer.send('ai-stream-cancel'),
 
-  // Terminal (xterm.js + node-pty)
-  terminalSpawn: (cwd: string) => ipcRenderer.invoke('terminal-spawn', cwd),
-  terminalWrite: (data: string) => ipcRenderer.invoke('terminal-write', data),
-  terminalResize: (cols: number, rows: number) => ipcRenderer.invoke('terminal-resize', cols, rows),
-  terminalKill: () => ipcRenderer.invoke('terminal-kill'),
-  onTerminalOutput: (callback: (data: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, data: string) => callback(data);
-    ipcRenderer.on('terminal-output', listener);
-    return () => { ipcRenderer.removeListener('terminal-output', listener); };
-  },
-  onTerminalExit: (callback: (exitCode: number) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, code: number) => callback(code);
-    ipcRenderer.on('terminal-exit', listener);
-    return () => { ipcRenderer.removeListener('terminal-exit', listener); };
-  },
   runInExternalTerminal: (command: string) => ipcRenderer.invoke('run-in-external-terminal', command),
 } as ElectronAPI);

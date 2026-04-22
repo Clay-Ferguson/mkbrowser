@@ -82,7 +82,7 @@ export interface ItemData {
 /**
  * Represents which application page (aka view or panel) is currently displayed
  */
-export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread' | 'terminal';
+export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread';
 
 /**
  * A single hashtag entry with its occurrence count
@@ -229,8 +229,6 @@ export interface ScrollPositions {
   'ai-settings': number;
   /** Thread view scroll position */
   thread: number;
-  /** Terminal view scroll position */
-  terminal: number;
 }
 
 /**
@@ -325,12 +323,6 @@ export interface AppState {
    * Set alongside pendingEditFile so only the correct view acts on it.
    */
   pendingEditView: AppView | null;
-
-  /**
-   * Command to execute in the terminal after it spawns.
-   * Set when switching to terminal view with a command to run (e.g. OCR).
-   */
-  pendingTerminalCommand: string | null;
 
   /**
    * Scroll positions for each view.

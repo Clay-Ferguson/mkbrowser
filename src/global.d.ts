@@ -199,13 +199,7 @@ export interface ElectronAPI {
   onAiStreamError: (callback: (message: string) => void) => () => void;
   cancelAiStream: () => void;
 
-  // Terminal (xterm.js + node-pty)
-  terminalSpawn: (cwd: string) => Promise<{ success: boolean; error?: string }>;
-  terminalWrite: (data: string) => Promise<void>;
-  terminalResize: (cols: number, rows: number) => Promise<void>;
-  terminalKill: () => Promise<void>;
-  onTerminalOutput: (callback: (data: string) => void) => () => void;
-  onTerminalExit: (callback: (exitCode: number) => void) => () => void;
+  runInExternalTerminal: (command: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {
