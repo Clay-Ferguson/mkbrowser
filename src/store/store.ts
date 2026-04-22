@@ -1514,6 +1514,27 @@ export function expandIndexTreeNode(path: string, children: TreeNode[]): void {
   emitChange();
 }
 
+function collapseAllNodes(node: TreeNode): TreeNode {
+  if (!node.isDirectory) return node;
+  const collapsedChildren = node.children
+    ? node.children.map(collapseAllNodes)
+    : node.children;
+  return { ...node, isExpanded: false, children: collapsedChildren };
+}
+
+/**
+ * Collapse all expanded directory nodes in the tree (preserves root expansion).
+ */
+export function collapseAllIndexTreeNodes(): void {
+  if (!state.indexTreeRoot) return;
+  const newChildren = state.indexTreeRoot.children
+    ? state.indexTreeRoot.children.map(collapseAllNodes)
+    : state.indexTreeRoot.children;
+  const newRoot = { ...state.indexTreeRoot, children: newChildren };
+  state = { ...state, indexTreeRoot: newRoot };
+  emitChange();
+}
+
 /**
  * Collapse a directory node (does not clear its cached children).
  */

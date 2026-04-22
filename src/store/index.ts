@@ -103,6 +103,7 @@ export {
   setIndexTreeNodeLoading,
   expandIndexTreeNode,
   collapseIndexTreeNode,
+  collapseAllIndexTreeNodes,
   useIndexTreeRoot,
   getIndexTreeRoot,
   setPendingIndexTreeReveal,

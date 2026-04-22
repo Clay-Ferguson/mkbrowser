@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { ClipboardDocumentIcon, MinusSmallIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from '@heroicons/react/24/outline';
 import {
   useRootPath,
   useCurrentPath,
@@ -7,10 +7,12 @@ import {
   useSettings,
   usePendingIndexTreeReveal,
   useHasCutItems,
+  useHighlightItem,
   setIndexTreeRoot,
   setIndexTreeNodeLoading,
   expandIndexTreeNode,
   collapseIndexTreeNode,
+  collapseAllIndexTreeNodes,
   clearPendingIndexTreeReveal,
   getIndexTreeRoot,
   getCutItems,
@@ -18,6 +20,7 @@ import {
   clearAllCutItems,
   navigateToBrowserPath,
   setHighlightItem,
+  setIndexTreeWidth,
 } from '../../store';
 import type { TreeNode } from '../../store';
 import { pasteCutItems } from '../../edit';
@@ -79,6 +82,7 @@ function IndexTree() {
   const settings = useSettings();
   const pendingReveal = usePendingIndexTreeReveal();
   const hasCutItems = useHasCutItems();
+  const highlightItem = useHighlightItem();
   const containerRef = useRef<HTMLDivElement>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
@@ -207,20 +211,55 @@ function IndexTree() {
   const rows = flattenVisible(treeRoot.children);
 
   return (
-    <div ref={containerRef} className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 overflow-y-auto pl-2 pt-2`}>
+    <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800`}>
+      <div className="flex items-center justify-end gap-1 px-2 py-1 border-b border-slate-700 shrink-0">
+        <button
+          type="button"
+          onClick={collapseAllIndexTreeNodes}
+          className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
+          title="Collapse All"
+        >
+          <span className="flex items-center justify-center w-5 h-5 border border-current rounded-sm">
+            <MinusSmallIcon className="w-3.5 h-3.5" />
+          </span>
+        </button>
+        {settings.indexTreeWidth !== 'narrow' && (
+          <button
+            type="button"
+            onClick={() => setIndexTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow')}
+            className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
+            title="Narrow tree"
+          >
+            <ChevronDoubleLeftIcon className="w-5 h-5" />
+          </button>
+        )}
+        {settings.indexTreeWidth !== 'wide' && (
+          <button
+            type="button"
+            onClick={() => setIndexTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide')}
+            className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
+            title="Widen tree"
+          >
+            <ChevronDoubleRightIcon className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+      <div ref={containerRef} className="flex-1 overflow-y-auto pl-2 pt-2">
       <div className="py-1">
         {rows.map(({ node, depth }) => (
           <div
             key={node.path}
             data-tree-path={node.path}
             className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
-              ${node.isDirectory && node.path === currentPath
-                ? 'text-slate-100 bg-blue-700/50 border-l-2 border-blue-500 cursor-pointer'
-                : node.isDirectory && isParentOf(node.path, currentPath)
-                  ? 'text-slate-200 bg-slate-600/50 border-l-2 border-transparent cursor-pointer'
-                  : node.isDirectory
-                    ? 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
-                    : 'text-slate-400 border-l-2 border-transparent cursor-default'
+              ${node.path === highlightItem
+                ? 'text-purple-400 border-l-2 border-transparent ' + (node.isDirectory ? 'cursor-pointer' : 'cursor-default')
+                : node.isDirectory && node.path === currentPath
+                  ? 'text-slate-100 bg-blue-700/50 border-l-2 border-blue-500 cursor-pointer'
+                  : node.isDirectory && isParentOf(node.path, currentPath)
+                    ? 'text-slate-200 bg-slate-600/50 border-l-2 border-transparent cursor-pointer'
+                    : node.isDirectory
+                      ? 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
+                      : 'text-slate-400 border-l-2 border-transparent cursor-default'
               }`}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
             onClick={() => { if (node.isDirectory) void handleNodeClick(node); }}
@@ -238,7 +277,7 @@ function IndexTree() {
             <span
               className={
                 `shrink-0 w-3 text-center mr-1 ` +
-                (node.isDirectory ? 'text-yellow-400' : 'text-slate-400')
+                (node.path === highlightItem ? 'text-purple-400' : node.isDirectory && node.isExpanded ? 'text-purple-400' : node.isDirectory ? 'text-yellow-400' : 'text-slate-400')
               }
             >
               {node.isDirectory
@@ -259,6 +298,7 @@ function IndexTree() {
             )}
           </div>
         ))}
+      </div>
       </div>
     </div>
   );
