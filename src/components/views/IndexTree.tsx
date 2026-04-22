@@ -254,11 +254,13 @@ function IndexTree() {
               ${node.path === highlightItem
                 ? 'text-purple-400 border-l-2 border-transparent ' + (node.isDirectory ? 'cursor-pointer' : 'cursor-default')
                 : node.isDirectory && node.path === currentPath
-                  ? 'text-slate-100 bg-blue-700/50 border-l-2 border-blue-500 cursor-pointer'
+                  ? 'text-slate-100 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer'
                   : node.isDirectory && isParentOf(node.path, currentPath)
-                    ? 'text-slate-200 bg-slate-600/50 border-l-2 border-transparent cursor-pointer'
+                    ? 'text-slate-200 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer'
                     : node.isDirectory
-                      ? 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
+                      ? node.isExpanded
+                        ? 'text-slate-200 bg-slate-700 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
+                        : 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
                       : 'text-slate-400 border-l-2 border-transparent cursor-default'
               }`}
             style={{ paddingLeft: `${8 + depth * 12}px` }}
@@ -277,7 +279,7 @@ function IndexTree() {
             <span
               className={
                 `shrink-0 w-3 text-center mr-1 ` +
-                (node.path === highlightItem ? 'text-purple-400' : node.isDirectory && node.isExpanded ? 'text-purple-400' : node.isDirectory ? 'text-yellow-400' : 'text-slate-400')
+                (node.path === highlightItem ? 'text-purple-400' : node.isDirectory ? 'text-yellow-400' : 'text-slate-400')
               }
             >
               {node.isDirectory
