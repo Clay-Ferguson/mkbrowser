@@ -100,10 +100,12 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
 
   // Parse existing index (already read above) or start fresh
   let files: Array<{ name: string; id?: string }> = [];
+  let existingOptions: IndexOptions = {};
   if (existingIndexContent !== null) {
     try {
-      const parsed = yaml.load(existingIndexContent) as { files?: Array<{ name: string; id?: string }> };
+      const parsed = yaml.load(existingIndexContent) as IndexYaml;
       if (parsed && Array.isArray(parsed.files)) files = parsed.files;
+      if (parsed?.options && typeof parsed.options === 'object') existingOptions = parsed.options;
     } catch {
       // Parse error — start fresh
     }
@@ -142,7 +144,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
     }
   }
 
-  const newContent = yaml.dump({ files }, { indent: 2 });
+  const newContent = yaml.dump({ files, options: existingOptions }, { indent: 2 });
   if (newContent !== existingIndexContent) {
     await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
   }
