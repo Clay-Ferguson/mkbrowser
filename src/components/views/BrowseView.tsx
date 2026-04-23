@@ -127,6 +127,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
+  const editMode = indexYaml?.options?.edit_mode ?? false;
 
   const items = useItems();
   const currentView = useCurrentView();
@@ -868,182 +869,170 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         </div>
 
         <div data-id="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
-              {/* Create file/folder buttons — hidden in index-ordered mode (inline insert bars replace them) */}
-              {!hasIndexFile && (
-                <>
-                  <button
-                    onClick={handleOpenCreateDialog}
-                    className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors"
-                    title="Create file"
-                    data-testid="create-file-button"
-                  >
-                    <DocumentPlusIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
-                  </button>
-                  <button
-                    onClick={handleOpenCreateFolderDialog}
-                    className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
-                    title="Create folder"
-                    data-testid="create-folder-button"
-                  >
-                    <FolderPlusIcon className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
-                  </button>
-                </>
-              )}
-
-              {/* Edit menu button */}
+          {/* Create file/folder buttons — hidden in index-ordered mode (inline insert bars replace them) */}
+          {!hasIndexFile && (
+            <>
               <button
-                ref={editButtonRef}
-                onClick={() => setShowEditMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Edit"
-                data-testid="edit-menu-button"
+                onClick={handleOpenCreateDialog}
+                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Create file"
+                data-testid="create-file-button"
               >
-                <Squares2X2Icon className="w-5 h-5" />
+                <DocumentPlusIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
               </button>
-
-              {/* Bookmarks menu button (now uses ListBulletIcon for menu distinction) */}
               <button
-                ref={bookmarksButtonRef}
-                onClick={() => setShowBookmarksMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Bookmarks menu"
-                data-testid="bookmarks-menu-button"
+                onClick={handleOpenCreateFolderDialog}
+                className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors"
+                title="Create folder"
+                data-testid="create-folder-button"
               >
-                <ListBulletIcon className="w-5 h-5" />
+                <FolderPlusIcon className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
               </button>
+            </>
+          )}
 
-              {/* Tools menu button */}
-              <button
-                ref={toolsButtonRef}
-                onClick={() => setShowToolsMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Tools"
-                data-testid="tools-menu-button"
-              >
-                <WrenchIcon className="w-5 h-5" />
-              </button>
+          {/* Edit menu button */}
+          <button
+            ref={editButtonRef}
+            onClick={() => setShowEditMenu(prev => !prev)}
+            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Edit"
+            data-testid="edit-menu-button"
+          >
+            <Squares2X2Icon className="w-5 h-5" />
+          </button>
 
-              {/* Sort order menu button */}
-              <button
-                ref={sortButtonRef}
-                onClick={() => setShowSortMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Sort order"
-                data-testid="sort-menu-button"
-              >
-                <BarsArrowDownIcon className="w-5 h-5" />
-              </button>
+          {/* Bookmarks menu button (now uses ListBulletIcon for menu distinction) */}
+          <button
+            ref={bookmarksButtonRef}
+            onClick={() => setShowBookmarksMenu(prev => !prev)}
+            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Bookmarks menu"
+            data-testid="bookmarks-menu-button"
+          >
+            <ListBulletIcon className="w-5 h-5" />
+          </button>
 
-              {/* Cut button - shown when items are selected and no items are cut */}
-              {hasSelectedItems && !hasCutItems && (
-                <button
-                  onClick={cutSelectedItems}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                  title="Cut selected items"
-                  data-testid="cut-button"
-                >
-                  Cut
-                </button>
-              )}
+          {/* Tools menu button */}
+          <button
+            ref={toolsButtonRef}
+            onClick={() => setShowToolsMenu(prev => !prev)}
+            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Tools"
+            data-testid="tools-menu-button"
+          >
+            <WrenchIcon className="w-5 h-5" />
+          </button>
 
-              {/* Delete button - shown when items are selected and no items are cut */}
-              {hasSelectedItems && !hasCutItems && (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                  title="Delete selected items"
-                  data-testid="delete-button"
-                >
-                  Del
-                </button>
-              )}
+          {/* Sort order menu button */}
+          <button
+            ref={sortButtonRef}
+            onClick={() => setShowSortMenu(prev => !prev)}
+            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Sort order"
+            data-testid="sort-menu-button"
+          >
+            <BarsArrowDownIcon className="w-5 h-5" />
+          </button>
 
-              {/* Paste button - shown when items are cut */}
-              {hasCutItems && (
-                <button
-                  onClick={() => void doPasteCutItems()}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                  title="Paste cut items"
-                  data-testid="paste-button"
-                  aria-label="Paste cut items"
-                >
-                  <ClipboardDocumentIcon className="w-5 h-5 text-white" />
-                </button>
-              )}
+          {/* Cut button - shown when items are selected and no items are cut */}
+          {hasSelectedItems && !hasCutItems && (
+            <button
+              onClick={cutSelectedItems}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              title="Cut selected items"
+              data-testid="cut-button"
+            >
+              Cut
+            </button>
+          )}
 
-              {/* Paste from clipboard button */}
-              <button
-                onClick={handlePasteFromClipboard}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Paste from clipboard"
-                data-testid="paste-clipboard-button"
-              >
-                <ClipboardIcon className="w-5 h-5" />
-              </button>
+          {/* Delete button - shown when items are selected and no items are cut */}
+          {hasSelectedItems && !hasCutItems && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              title="Delete selected items"
+              data-testid="delete-button"
+            >
+              Del
+            </button>
+          )}
 
-              {/* Search button */}
-              <button
-                ref={searchButtonRef}
-                onClick={() => setShowSearchMenu(prev => !prev)}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Search"
-                data-testid="search-menu-button"
-              >
-                <MagnifyingGlassIcon className="w-5 h-5" />
-              </button>
+          {/* Paste button - shown when items are cut */}
+          {hasCutItems && (
+            <button
+              onClick={() => void doPasteCutItems()}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              title="Paste cut items"
+              data-testid="paste-button"
+              aria-label="Paste cut items"
+            >
+              <ClipboardDocumentIcon className="w-5 h-5 text-white" />
+            </button>
+          )}
 
-              {/* Expand all button */}
-              {showExpandAll && (
-                <button
-                  onClick={expandAllItems}
-                  className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                  title="Expand all"
-                  data-testid="expand-all-button"
-                >
-                  <ChevronDownIcon className="w-5 h-5" />
-                </button>
-              )}
+          {/* Paste from clipboard button */}
+          <button
+            onClick={handlePasteFromClipboard}
+            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Paste from clipboard"
+            data-testid="paste-clipboard-button"
+          >
+            <ClipboardIcon className="w-5 h-5" />
+          </button>
 
-              {/* Collapse all button */}
-              {showCollapseAll && (
-                <button
-                  onClick={collapseAllItems}
-                  className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                  title="Collapse all"
-                  data-testid="collapse-all-button"
-                >
-                  <ChevronUpIcon className="w-5 h-5" />
-                </button>
-              )}
+          {/* Search button */}
+          <button
+            ref={searchButtonRef}
+            onClick={() => setShowSearchMenu(prev => !prev)}
+            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Search"
+            data-testid="search-menu-button"
+          >
+            <MagnifyingGlassIcon className="w-5 h-5" />
+          </button>
 
-              {/* Refresh button */}
-              <button
-                onClick={() => void handleRefresh()}
-                className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Refresh"
-                data-testid="refresh-button"
-              >
-                <ArrowPathIcon className="w-5 h-5" />
-              </button>
+          {/* Expand all button */}
+          {showExpandAll && (
+            <button
+              onClick={expandAllItems}
+              className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+              title="Expand all"
+              data-testid="expand-all-button"
+            >
+              <ChevronDownIcon className="w-5 h-5" />
+            </button>
+          )}
 
+          {/* Collapse all button */}
+          {showCollapseAll && (
+            <button
+              onClick={collapseAllItems}
+              className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+              title="Collapse all"
+              data-testid="collapse-all-button"
+            >
+              <ChevronUpIcon className="w-5 h-5" />
+            </button>
+          )}
 
-        </div>
-      </header>
+          {/* Refresh button */}
+          <button
+            onClick={() => void handleRefresh()}
+            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Refresh"
+            data-testid="refresh-button"
+          >
+            <ArrowPathIcon className="w-5 h-5" />
+          </button>
 
-      {/* Main content */}
-      <main
-        data-id="browser-main-content"
-        ref={mainContainerRef}
-        onScroll={handleMainScroll}
-        className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1 relative"
-      >
-        {/* Edit checkbox floats at top right of scrollable area, inside main */}
-        {hasIndexFile && (
-          <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }} className="flex items-center select-none mt-2 pr-4">
+          {/* Edit checkbox floats at top right of scrollable area, inside main */}
+          {hasIndexFile && (
             <label className="flex items-center gap-1 cursor-pointer">
               <input
                 type="checkbox"
-                className="w-6 h-6"
+                className="w-5 h-5"
                 style={{ accentColor: '#38bdf8' }}
                 checked={indexYaml?.options?.edit_mode ?? false}
                 onChange={(e) => {
@@ -1055,68 +1044,78 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               />
               <span className="text-slate-200 text-sm">Edit</span>
             </label>
-          </div>
-        )}
+          )}
+
+        </div>
+      </header>
+
+      {/* Main content */}
+      <main
+        data-id="browser-main-content"
+        ref={mainContainerRef}
+        onScroll={handleMainScroll}
+        className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1 relative"
+      >
         <div className={`${getContentWidthClasses(settings.contentWidth)}`}>
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-slate-400">Loading...</div>
-          </div>
-        )}
-
-        {!loading && sortedEntries.length === 0 && (
-          <div className="text-center py-12">
-            <FolderIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-            <p className="text-slate-400">This folder is empty</p>
-          </div>
-        )}
-
-        {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line */}
-        {!loading && sortedEntries.length > 0 && (
-          hasIndexFile ? (
-            <div>
-              <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />
-              {sortedEntries.map((entry, idx) => {
-                const moveUp = idx > 0 ? () => void handleMoveEntry(entry.name, 'up') : undefined;
-                const moveDown = idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
-                return (
-                <div key={entry.path}>
-                  {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} />
-                  ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
-                  ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
-                  ) : isTextFile(entry.name) ? (
-                    <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
-                  ) : (
-                    <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
-                  )}
-                  <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
-                </div>
-                );
-              })}
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-slate-400">Loading...</div>
             </div>
-          ) : (
-            <div className="[&>div+div]:-mt-px">
-              {sortedEntries.map((entry) => (
-                <div key={entry.path}>
-                  {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
-                  ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
-                  ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
-                  ) : isTextFile(entry.name) ? (
-                    <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
-                  ) : (
-                    <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
-                  )}
-                </div>
-              ))}
+          )}
+
+          {!loading && sortedEntries.length === 0 && (
+            <div className="text-center py-12">
+              <FolderIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
+              <p className="text-slate-400">This folder is empty</p>
             </div>
-          )
-        )}
+          )}
+
+          {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line */}
+          {!loading && sortedEntries.length > 0 && (
+            hasIndexFile ? (
+              <div>
+                {editMode && <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />}
+                {sortedEntries.map((entry, idx) => {
+                  const moveUp = idx > 0 ? () => void handleMoveEntry(entry.name, 'up') : undefined;
+                  const moveDown = idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
+                  return (
+                    <div key={entry.path}>
+                      {entry.isDirectory ? (
+                        <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} />
+                      ) : entry.isMarkdown ? (
+                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                      ) : isImageFile(entry.name) ? (
+                        <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                      ) : isTextFile(entry.name) ? (
+                        <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                      ) : (
+                        <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                      )}
+                      {editMode && <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="[&>div+div]:-mt-px">
+                {sortedEntries.map((entry) => (
+                  <div key={entry.path}>
+                    {entry.isDirectory ? (
+                      <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
+                    ) : entry.isMarkdown ? (
+                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
+                    ) : isImageFile(entry.name) ? (
+                      <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
+                    ) : isTextFile(entry.name) ? (
+                      <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
+                    ) : (
+                      <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          )}
         </div>
       </main>
 

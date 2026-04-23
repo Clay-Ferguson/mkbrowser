@@ -1,7 +1,7 @@
 import { DocumentIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { ENTRY_CONTAINER_CLASSES } from '../../utils/styles';
-import { toggleItemExpanded } from '../../store';
+import { toggleItemExpanded, useHasIndexFile, useIndexYaml } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useEntryCore,
@@ -24,6 +24,10 @@ function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
     isBookmarked,
   } = useEntryCore({ path: entry.path, name: entry.name });
 
+  const hasIndexFile = useHasIndexFile();
+  const indexYaml = useIndexYaml();
+  const editMode = indexYaml?.options?.edit_mode ?? false;
+
   const rename = useRename({
     path: entry.path,
     name: entry.name,
@@ -43,11 +47,13 @@ function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
 
   return (
     <div className={`${ENTRY_CONTAINER_CLASSES} ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700 hover:bg-slate-700 transition-colors'}`}>
-      <SelectionCheckbox
-        path={entry.path}
-        name={entry.name}
-        isSelected={isSelected}
-      />
+      {(!hasIndexFile || editMode) && (
+        <SelectionCheckbox
+          path={entry.path}
+          name={entry.name}
+          isSelected={isSelected}
+        />
+      )}
       <DocumentIcon className="w-5 h-5 text-slate-500 flex-shrink-0" />
       {isRenaming ? (
         <RenameInput

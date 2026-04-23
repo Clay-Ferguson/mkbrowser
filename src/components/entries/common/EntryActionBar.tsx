@@ -1,7 +1,7 @@
 import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../../utils/styles';
-import { toggleBookmark, toggleItemExpanded } from '../../../store';
+import { toggleBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml } from '../../../store';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
@@ -45,6 +45,11 @@ export function EntryActionBar({
   onMoveDown,
   className = '',
 }: EntryActionBarProps) {
+  const hasIndexFile = useHasIndexFile();
+  const indexYaml = useIndexYaml();
+  const editMode = indexYaml?.options?.edit_mode ?? false;
+  const showEditActions = !hasIndexFile || editMode;
+
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleBookmark(path);
@@ -58,7 +63,7 @@ export function EntryActionBar({
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      {showEditButton && onEditClick && (
+      {showEditActions && showEditButton && onEditClick && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -71,14 +76,27 @@ export function EntryActionBar({
           <PencilSquareIcon className="w-5 h-5" />
         </button>
       )}
-      <button
-        onClick={onRenameClick}
-        className={BUTTON_CLZ_RENAME}
-        title="Rename"
-        data-testid="entry-rename-button"
-      >
-        <PencilIcon className="w-5 h-5" />
-      </button>
+      {showEditActions && (
+        <button
+          onClick={onRenameClick}
+          className={BUTTON_CLZ_RENAME}
+          title="Rename"
+          data-testid="entry-rename-button"
+        >
+          <PencilIcon className="w-5 h-5" />
+        </button>
+      )}
+      {showEditActions && (
+        <button
+          onClick={onDeleteClick}
+          disabled={deleting}
+          className={BUTTON_CLZ_DELETE}
+          title="Delete"
+          data-testid="entry-delete-button"
+        >
+          <TrashIcon className="w-5 h-5" />
+        </button>
+      )}
       <button
         onClick={handleOpenExternal}
         className={BUTTON_CLZ_OPEN_EXTERNAL}
@@ -86,15 +104,6 @@ export function EntryActionBar({
         data-testid="entry-open-external-button"
       >
         <ArrowTopRightOnSquareIcon className="w-5 h-5" />
-      </button>
-      <button
-        onClick={onDeleteClick}
-        disabled={deleting}
-        className={BUTTON_CLZ_DELETE}
-        title="Delete"
-        data-testid="entry-delete-button"
-      >
-        <TrashIcon className="w-5 h-5" />
       </button>
       <button
         onClick={handleBookmarkClick}
@@ -108,7 +117,7 @@ export function EntryActionBar({
           <BookmarkOutlineIcon className="w-5 h-5" />
         )}
       </button>
-      {onMoveUp && (
+      {showEditActions && onMoveUp && (
         <button
           onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
           className={BUTTON_CLZ_RENAME}
@@ -118,7 +127,7 @@ export function EntryActionBar({
           <ArrowUpIcon className="w-5 h-5" />
         </button>
       )}
-      {onMoveDown && (
+      {showEditActions && onMoveDown && (
         <button
           onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
           className={BUTTON_CLZ_RENAME}

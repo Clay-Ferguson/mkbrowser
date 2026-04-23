@@ -1,7 +1,7 @@
 import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
 import { FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
-import { useHasCutItems, useItem } from '../../store';
+import { useHasCutItems, useItem, useHasIndexFile, useIndexYaml } from '../../store';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { ENTRY_CONTAINER_CLASSES } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -35,6 +35,9 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
 
   const hasCutItems = useHasCutItems();
   const item = useItem(entry.path);
+  const hasIndexFile = useHasIndexFile();
+  const indexYaml = useIndexYaml();
+  const editMode = indexYaml?.options?.edit_mode ?? false;
   const aiHint = item?.aiHint;
   const rename = useRename({
     path: entry.path,
@@ -63,12 +66,14 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
       onClick={() => !isRenaming && onNavigate(entry.path)}
       className={`w-full ${ENTRY_CONTAINER_CLASSES} ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700 hover:bg-slate-700'} transition-colors text-left cursor-pointer`}
     >
-      <SelectionCheckbox
-        path={entry.path}
-        name={entry.name}
-        isSelected={isSelected}
-        onClick={handleCheckboxClick}
-      />
+      {(!hasIndexFile || editMode) && (
+        <SelectionCheckbox
+          path={entry.path}
+          name={entry.name}
+          isSelected={isSelected}
+          onClick={handleCheckboxClick}
+        />
+      )}
       <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
       {isRenaming ? (
         <RenameInput

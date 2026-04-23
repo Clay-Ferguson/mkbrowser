@@ -6,6 +6,8 @@ import {
   clearItemGoToLine,
   toggleItemExpanded,
   setItemReviewing,
+  useHasIndexFile,
+  useIndexYaml,
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
@@ -48,6 +50,10 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
     isBookmarked,
   } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
 
+  const hasIndexFile = useHasIndexFile();
+  const indexYaml = useIndexYaml();
+  const editMode = indexYaml?.options?.edit_mode ?? false;
+
   const rename = useRename({
     path: entry.path,
     name: entry.name,
@@ -86,11 +92,13 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   return (
     <div className={`bg-slate-800 border group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700'} overflow-hidden`}>
       <div className="flex items-center gap-3 pl-4 pr-2 py-1 bg-slate-700/50 group-hover:bg-slate-700 border-b border-slate-700 transition-colors">
-        <SelectionCheckbox
-          path={entry.path}
-          name={entry.name}
-          isSelected={isSelected}
-        />
+        {(!hasIndexFile || editMode) && (
+          <SelectionCheckbox
+            path={entry.path}
+            name={entry.name}
+            isSelected={isSelected}
+          />
+        )}
         {/* Text file icon - document with lines */}
         <DocumentTextIcon className="w-5 h-5 text-emerald-400 flex-shrink-0" />
         {isRenaming ? (
