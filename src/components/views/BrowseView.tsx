@@ -63,6 +63,8 @@ import {
   useSettings,
   useExpansionCounts,
   useHasIndexFile,
+  setIndexYaml,
+  useIndexYaml,
   type SearchDefinition,
 } from '../../store';
 import { scrollItemIntoView } from '../../utils/entryDom';
@@ -124,16 +126,24 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null);
 
   const hasIndexFile = useHasIndexFile();
+  const indexYaml = useIndexYaml();
 
   const items = useItems();
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
 
-  // Detect whether the current folder uses index ordering
+  // Detect whether the current folder uses index ordering, and load the yaml into the store
   useEffect(() => {
     const hasIndex = entries.some((e) => e.indexOrder !== undefined);
     setHasIndexFile(hasIndex);
-  }, [entries]);
+    if (hasIndex && currentPath) {
+      void window.electronAPI.readIndexYaml(currentPath).then((yaml) => {
+        setIndexYaml(yaml);
+      });
+    } else {
+      setIndexYaml(null);
+    }
+  }, [entries, currentPath]);
 
   // Reconcile on folder navigation only (not on every file-operation refresh)
   useEffect(() => {
@@ -1033,9 +1043,15 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             <label className="flex items-center gap-1 cursor-pointer">
               <input
                 type="checkbox"
-                className="w-6 h-6" // Larger size, matches other checkboxes
+                className="w-6 h-6"
                 style={{ accentColor: '#38bdf8' }}
-                onChange={() => { /* dummy for now */ }}
+                checked={indexYaml?.options?.edit_mode ?? false}
+                onChange={(e) => {
+                  const newEditMode = e.target.checked;
+                  const updated = { ...(indexYaml ?? {}), options: { ...(indexYaml?.options ?? {}), edit_mode: newEditMode } };
+                  setIndexYaml(updated);
+                  void window.electronAPI.writeIndexOptions(currentPath, { edit_mode: newEditMode });
+                }}
               />
               <span className="text-slate-200 text-sm">Edit</span>
             </label>

@@ -108,4 +108,6 @@ export {
   usePendingIndexTreeReveal,
   setHasIndexFile,
   useHasIndexFile,
+  setIndexYaml,
+  useIndexYaml,
 } from './store';

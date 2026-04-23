@@ -51,6 +51,7 @@ const initialState: AppState = {
   indexTreeRoot: null,
   pendingIndexTreeReveal: null,
   hasIndexFile: false,
+  indexYaml: null,
 };
 
 /**
@@ -196,6 +197,10 @@ function getPendingThreadScrollToBottomSnapshot(): boolean {
 
 function getHasIndexFileSnapshot(): boolean {
   return state.hasIndexFile;
+}
+
+function getIndexYamlSnapshot(): AppState['indexYaml'] {
+  return state.indexYaml;
 }
 
 /**
@@ -1107,6 +1112,14 @@ export function setHasIndexFile(hasIndexFile: boolean): void {
 }
 
 /**
+ * Set the parsed .INDEX.yaml for the current directory.
+ */
+export function setIndexYaml(indexYaml: AppState['indexYaml']): void {
+  state = { ...state, indexYaml };
+  emitChange();
+}
+
+/**
  * Update the sort order setting
  */
 export function setSortOrder(sortOrder: SortOrder): void {
@@ -1352,6 +1365,13 @@ export function usePendingThreadScrollToBottom(): boolean {
  */
 export function useHasIndexFile(): boolean {
   return useSyncExternalStore(subscribe, getHasIndexFileSnapshot);
+}
+
+/**
+ * Hook to subscribe to the current directory's parsed .INDEX.yaml
+ */
+export function useIndexYaml(): AppState['indexYaml'] {
+  return useSyncExternalStore(subscribe, getIndexYamlSnapshot);
 }
 /**
  * Hook to subscribe to scroll positions

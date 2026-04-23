@@ -192,6 +192,8 @@ export interface ElectronAPI {
   insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;
   reconcileIndexedFiles: (dirPath: string, createIfMissing?: boolean) => Promise<void>;
+  readIndexYaml: (dirPath: string) => Promise<{ files?: { name: string; id?: string }[]; options?: { edit_mode?: boolean } } | null>;
+  writeIndexOptions: (dirPath: string, options: { edit_mode?: boolean }) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

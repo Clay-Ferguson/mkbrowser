@@ -6,7 +6,7 @@ import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 
 import { readDirectory, parseFrontMatter } from './utils/fileUtils';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml } from './utils/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, readIndexYaml, writeIndexOptions } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
@@ -324,6 +324,16 @@ function setupIpcHandlers(): void {
   // Reconcile .INDEX.yaml with the filesystem (phase 1: ensure all markdown files have a front-matter id)
   ipcMain.handle('reconcile-indexed-files', async (_event, dirPath: string, createIfMissing = false): Promise<void> => {
     await reconcileIndexedFiles(dirPath, createIfMissing);
+  });
+
+  // Read .INDEX.yaml for a directory
+  ipcMain.handle('read-index-yaml', async (_event, dirPath: string) => {
+    return readIndexYaml(dirPath);
+  });
+
+  // Write options section of .INDEX.yaml
+  ipcMain.handle('write-index-options', async (_event, dirPath: string, options: { edit_mode?: boolean }): Promise<{ success: boolean; error?: string }> => {
+    return writeIndexOptions(dirPath, options);
   });
 
   // Search and replace in files recursively

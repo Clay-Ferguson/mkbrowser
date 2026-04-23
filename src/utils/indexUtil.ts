@@ -9,7 +9,7 @@ const generateId = customAlphabet('0123456789ABCDEF', 9);
 export type IndexEntry = { name: string; id?: string };
 
 export interface IndexOptions {
-  edit_mode?: string;
+  edit_mode?: boolean;
 }
 
 export interface IndexYaml {
@@ -145,6 +145,24 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   const newContent = yaml.dump({ files }, { indent: 2 });
   if (newContent !== existingIndexContent) {
     await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+  }
+}
+
+/**
+ * Writes the options section of .INDEX.yaml, preserving the files array.
+ */
+export async function writeIndexOptions(
+  dirPath: string,
+  options: IndexOptions,
+): Promise<{ success: boolean; error?: string }> {
+  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  try {
+    const existing = (await readIndexYaml(dirPath)) ?? {};
+    const updated: IndexYaml = { ...existing, options: { ...existing.options, ...options } };
+    await fs.promises.writeFile(indexFilePath, yaml.dump(updated, { indent: 2 }), 'utf8');
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
