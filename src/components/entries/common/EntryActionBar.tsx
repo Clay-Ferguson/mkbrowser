@@ -1,15 +1,11 @@
-import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
-import { BUTTON_CLZ_INSERT_FILE, BUTTON_CLZ_INSERT_FOLDER, BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../../utils/styles';
+import { BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../../utils/styles';
 import { toggleBookmark, toggleItemExpanded } from '../../../store';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
   path: string;
-  /** Whether to show insert file/folder buttons */
-  showInsertIcons: boolean;
-  /** Next ordinal prefix for insert operations */
-  nextOrdinalPrefix: string | null;
   /** Whether the item is bookmarked */
   isBookmarked: boolean;
   /** Whether delete is in progress */
@@ -18,10 +14,6 @@ interface EntryActionBarProps {
   onRenameClick: (e?: React.MouseEvent) => void;
   /** Handler to show delete confirmation */
   onDeleteClick: (e?: React.MouseEvent) => void;
-  /** Handler to insert a file below */
-  onInsertFileBelow: (defaultName: string) => void;
-  /** Handler to insert a folder below */
-  onInsertFolderBelow: (defaultName: string) => void;
   /** Handler to persist settings after bookmark toggle */
   onSaveSettings: () => void;
   /** Whether to show an edit button (for editable files) */
@@ -42,14 +34,10 @@ interface EntryActionBarProps {
  */
 export function EntryActionBar({
   path,
-  showInsertIcons,
-  nextOrdinalPrefix,
   isBookmarked,
   deleting,
   onRenameClick,
   onDeleteClick,
-  onInsertFileBelow,
-  onInsertFolderBelow,
   onSaveSettings,
   showEditButton = false,
   onEditClick,
@@ -61,20 +49,6 @@ export function EntryActionBar({
     e.stopPropagation();
     toggleBookmark(path);
     onSaveSettings();
-  };
-
-  const handleInsertFileBelow = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (nextOrdinalPrefix) {
-      onInsertFileBelow(nextOrdinalPrefix);
-    }
-  };
-
-  const handleInsertFolderBelow = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (nextOrdinalPrefix) {
-      onInsertFolderBelow(nextOrdinalPrefix);
-    }
   };
 
   const handleOpenExternal = (e: React.MouseEvent) => {
@@ -105,26 +79,6 @@ export function EntryActionBar({
       >
         <PencilIcon className="w-5 h-5" />
       </button>
-      {showInsertIcons && (
-        <>
-          <button
-            onClick={handleInsertFileBelow}
-            className={BUTTON_CLZ_INSERT_FILE}
-            title="Insert file below"
-            data-testid="entry-insert-file-button"
-          >
-            <DocumentPlusIcon className="w-5 h-5" />
-          </button>
-          <button
-            onClick={handleInsertFolderBelow}
-            className={BUTTON_CLZ_INSERT_FOLDER}
-            title="Insert folder below"
-            data-testid="entry-insert-folder-button"
-          >
-            <FolderPlusIcon className="w-5 h-5" />
-          </button>
-        </>
-      )}
       <button
         onClick={handleOpenExternal}
         className={BUTTON_CLZ_OPEN_EXTERNAL}

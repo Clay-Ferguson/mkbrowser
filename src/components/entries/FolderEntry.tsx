@@ -19,22 +19,18 @@ interface FolderEntryProps {
   onNavigate: (path: string) => void;
   onRename: () => void;
   onDelete: () => void;
-  onInsertFileBelow: (defaultName: string) => void;
-  onInsertFolderBelow: (defaultName: string) => void;
   onSaveSettings: () => void;
   onPasteIntoFolder?: (folderPath: string) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
 }
 
-function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onPasteIntoFolder, onMoveUp, onMoveDown }: FolderEntryProps) {
+function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder, onMoveUp, onMoveDown }: FolderEntryProps) {
   const {
     isRenaming,
     isSelected,
     isHighlighted,
     isBookmarked,
-    showInsertIcons,
-    nextOrdinalPrefix,
   } = useEntryCore({ path: entry.path, name: entry.name });
 
   const hasCutItems = useHasCutItems();
@@ -112,14 +108,10 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
         )}
         <EntryActionBar
           path={entry.path}
-          showInsertIcons={showInsertIcons}
-          nextOrdinalPrefix={nextOrdinalPrefix}
           isBookmarked={isBookmarked}
           deleting={del.deleting}
           onRenameClick={rename.handleRenameClick}
           onDeleteClick={del.handleDeleteClick}
-          onInsertFileBelow={onInsertFileBelow}
-          onInsertFolderBelow={onInsertFolderBelow}
           onSaveSettings={onSaveSettings}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}

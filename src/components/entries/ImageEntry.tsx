@@ -20,7 +20,7 @@ interface ImageEntryProps extends BaseEntryProps {
   allImages: FileEntryType[];
 }
 
-function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onMoveUp, onMoveDown }: ImageEntryProps) {
+function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown }: ImageEntryProps) {
   // console.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
   
   const {
@@ -29,8 +29,6 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
     isSelected,
     isHighlighted,
     isBookmarked,
-    showInsertIcons,
-    nextOrdinalPrefix,
   } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
 
   const rename = useRename({
@@ -205,14 +203,10 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onInsertFileBelow, o
         {!isRenaming && (
           <EntryActionBar
             path={entry.path}
-            showInsertIcons={showInsertIcons}
-            nextOrdinalPrefix={nextOrdinalPrefix}
             isBookmarked={isBookmarked}
             deleting={del.deleting}
             onRenameClick={rename.handleRenameClick}
             onDeleteClick={del.handleDeleteClick}
-            onInsertFileBelow={onInsertFileBelow}
-            onInsertFolderBelow={onInsertFolderBelow}
             onSaveSettings={onSaveSettings}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}

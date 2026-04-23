@@ -1,5 +1,4 @@
 import { useItem, useHighlightItem, useSettings } from '../../../store';
-import { hasOrdinalPrefix, getNextOrdinalPrefix } from '../../../utils/ordinals';
 import type { EntryCoreState } from './types';
 
 interface UseEntryCoreOptions {
@@ -25,8 +24,6 @@ export function useEntryCore({ path, name, defaultExpanded = false }: UseEntryCo
   const isSelected = item?.isSelected ?? false;
   const isHighlighted = highlightItem === path;
   const isBookmarked = (settings.bookmarks || []).includes(path);
-  const showInsertIcons = hasOrdinalPrefix(name);
-  const nextOrdinalPrefix = showInsertIcons ? getNextOrdinalPrefix(name) : null;
 
   return {
     isRenaming,
@@ -34,7 +31,5 @@ export function useEntryCore({ path, name, defaultExpanded = false }: UseEntryCo
     isSelected,
     isHighlighted,
     isBookmarked,
-    showInsertIcons,
-    nextOrdinalPrefix,
   };
 }

@@ -11,10 +11,6 @@ export interface BaseEntryProps {
   onRename: () => void;
   /** Callback when entry is deleted */
   onDelete: () => void;
-  /** Callback to insert a new file below this entry */
-  onInsertFileBelow: (defaultName: string) => void;
-  /** Callback to insert a new folder below this entry */
-  onInsertFolderBelow: (defaultName: string) => void;
   /** Callback to persist settings after bookmark changes */
   onSaveSettings: () => void;
   /** Move entry up one position in .INDEX.yaml (only provided in indexed mode, undefined for first entry) */
@@ -37,10 +33,6 @@ export interface EntryCoreState {
   isHighlighted: boolean;
   /** Whether item is bookmarked */
   isBookmarked: boolean;
-  /** Whether to show insert file/folder buttons (has ordinal prefix) */
-  showInsertIcons: boolean;
-  /** Next ordinal prefix for insert operations */
-  nextOrdinalPrefix: string | null;
 }
 
 /**

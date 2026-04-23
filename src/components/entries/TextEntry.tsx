@@ -27,7 +27,7 @@ import {
 
 type TextEntryProps = BaseEntryProps;
 
-function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onMoveUp, onMoveDown }: TextEntryProps) {
+function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown }: TextEntryProps) {
   const item = useItem(entry.path);
   const [isRewriting, setIsRewriting] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
@@ -46,8 +46,6 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
     isSelected,
     isHighlighted,
     isBookmarked,
-    showInsertIcons,
-    nextOrdinalPrefix,
   } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
 
   const rename = useRename({
@@ -171,14 +169,10 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
         ) : !isRenaming && (
           <EntryActionBar
             path={entry.path}
-            showInsertIcons={showInsertIcons}
-            nextOrdinalPrefix={nextOrdinalPrefix}
             isBookmarked={isBookmarked}
             deleting={del.deleting}
             onRenameClick={rename.handleRenameClick}
             onDeleteClick={del.handleDeleteClick}
-            onInsertFileBelow={onInsertFileBelow}
-            onInsertFolderBelow={onInsertFolderBelow}
             onSaveSettings={onSaveSettings}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}

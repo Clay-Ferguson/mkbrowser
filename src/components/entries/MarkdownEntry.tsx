@@ -389,7 +389,7 @@ interface MarkdownEntryProps extends BaseEntryProps {
   view: AppView;
 }
 
-function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onMoveUp, onMoveDown }: MarkdownEntryProps) {
+function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown }: MarkdownEntryProps) {
   const item = useItem(entry.path);
 
   const {
@@ -398,8 +398,6 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
     isSelected,
     isHighlighted,
     isBookmarked,
-    showInsertIcons,
-    nextOrdinalPrefix,
   } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
 
   const rename = useRename({
@@ -652,14 +650,10 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
             )}
             <EntryActionBar
               path={entry.path}
-              showInsertIcons={showInsertIcons}
-              nextOrdinalPrefix={nextOrdinalPrefix}
               isBookmarked={isBookmarked}
               deleting={del.deleting}
               onRenameClick={rename.handleRenameClick}
               onDeleteClick={del.handleDeleteClick}
-              onInsertFileBelow={onInsertFileBelow}
-              onInsertFolderBelow={onInsertFolderBelow}
               onSaveSettings={onSaveSettings}
               onMoveUp={onMoveUp}
               onMoveDown={onMoveDown}

@@ -145,9 +145,6 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
     return () => clearTimeout(timer);
   }, [loading, pendingEditFile, pendingEditView, pendingEditLineNumber, mainContainerRef]);
 
-  // No-ops for actions not meaningful in thread context
-  const noopInsert = useCallback((_defaultName: string) => {}, []);
-
   // Navigate breadcrumb — switches to browser view at the given path
   const handleBreadcrumbNavigate = useCallback((path: string) => {
     navigateToBrowserPath(path);
@@ -242,8 +239,6 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
                 view="thread"
                 onRename={refreshThread}
                 onDelete={refreshThread}
-                onInsertFileBelow={noopInsert}
-                onInsertFolderBelow={noopInsert}
                 onSaveSettings={onSaveSettings}
               />
             </div>

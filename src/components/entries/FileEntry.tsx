@@ -15,15 +15,13 @@ import {
 
 type FileEntryProps = BaseEntryProps;
 
-function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onMoveUp, onMoveDown }: FileEntryProps) {
+function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown }: FileEntryProps) {
   const {
     isRenaming,
     isExpanded,
     isSelected,
     isHighlighted,
     isBookmarked,
-    showInsertIcons,
-    nextOrdinalPrefix,
   } = useEntryCore({ path: entry.path, name: entry.name });
 
   const rename = useRename({
@@ -75,14 +73,10 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
       {!isRenaming && (
         <EntryActionBar
           path={entry.path}
-          showInsertIcons={showInsertIcons}
-          nextOrdinalPrefix={nextOrdinalPrefix}
           isBookmarked={isBookmarked}
           deleting={del.deleting}
           onRenameClick={rename.handleRenameClick}
           onDeleteClick={del.handleDeleteClick}
-          onInsertFileBelow={onInsertFileBelow}
-          onInsertFolderBelow={onInsertFolderBelow}
           onSaveSettings={onSaveSettings}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}

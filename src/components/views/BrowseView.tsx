@@ -565,12 +565,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setShowCreateDialog(true);
   }, []);
 
-  const handleOpenCreateFileBelow = useCallback((defaultName: string) => {
-    setInsertAtIndex(null);
-    setCreateFileDefaultName(defaultName);
-    setShowCreateDialog(true);
-  }, []);
-
   const handleInsertFileAt = useCallback((insertIndex: number) => {
     setInsertAtIndex(insertIndex);
     setCreateFileDefaultName('');
@@ -617,12 +611,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const handleOpenCreateFolderDialog = useCallback(() => {
     setInsertAtIndex(null);
     setCreateFolderDefaultName('');
-    setShowCreateFolderDialog(true);
-  }, []);
-
-  const handleOpenCreateFolderBelow = useCallback((defaultName: string) => {
-    setInsertAtIndex(null);
-    setCreateFolderDefaultName(defaultName);
     setShowCreateFolderDialog(true);
   }, []);
 
@@ -1088,15 +1076,15 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 return (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} />
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} />
                   ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                    <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
                   ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                    <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
                   ) : isTextFile(entry.name) ? (
-                    <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                    <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
                   ) : (
-                    <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                    <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
                   )}
                   <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
                 </div>
@@ -1108,15 +1096,15 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               {sortedEntries.map((entry) => (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
                   ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                   ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                   ) : isTextFile(entry.name) ? (
-                    <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                   ) : (
-                    <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                   )}
                 </div>
               ))}
