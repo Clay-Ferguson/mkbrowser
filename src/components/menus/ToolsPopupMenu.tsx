@@ -6,7 +6,6 @@ interface ToolsPopupMenuProps {
   onClose: () => void;
   aiEnabled: boolean;
   onFolderAnalysis: () => void;
-  onRenumberFiles: () => void;
   onExport: () => void;
   onNewAiChat: () => void;
   onRunOcr: () => void;
@@ -19,7 +18,6 @@ export default function ToolsPopupMenu({
   onClose,
   aiEnabled,
   onFolderAnalysis,
-  onRenumberFiles,
   onExport,
   onNewAiChat,
   onRunOcr,
@@ -41,11 +39,6 @@ export default function ToolsPopupMenu({
         label="Folder Analysis"
         data-testid="menu-folder-analysis"
         onClick={() => { onFolderAnalysis(); onClose(); }}
-      />
-      <PopupMenuItem
-        label="Re-Number Files"
-        data-testid="menu-renumber-files"
-        onClick={() => { onRenumberFiles(); onClose(); }}
       />
       <PopupMenuItem
         label="Export..."

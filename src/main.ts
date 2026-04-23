@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
-import { renumberFiles, type RenameOperation } from './utils/ordinals';
+
 import { readDirectory, parseFrontMatter } from './utils/fileUtils';
 import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
@@ -310,18 +310,6 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Re-number files in a directory with ordinal prefixes
-  ipcMain.handle('renumber-files', async (_event, dirPath: string): Promise<{ success: boolean; error?: string; operations?: RenameOperation[] }> => {
-    try {
-      return await renumberFiles(dirPath);
-    } catch (error) {
-      console.error('Error renumbering files:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
-      };
-    }
-  });
 
   // Insert a new entry into .INDEX.yaml at the specified position
   ipcMain.handle('insert-into-index-yaml', async (_event, dirPath: string, newName: string, insertAfterName: string | null): Promise<{ success: boolean; error?: string }> => {

@@ -454,32 +454,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     onRefreshDirectory();
   }, [currentPath, getSelectedItems, onRefreshDirectory, onSetError]);
 
-  const handleRenumberFiles = useCallback(async () => {
-    if (!currentPath) return;
-
-    onSetError(null);
-    const result = await window.electronAPI.renumberFiles(currentPath);
-
-    if (!result.success) {
-      onSetError(result.error || 'Failed to renumber files');
-      return;
-    }
-
-    setSettings({ ...settings, sortOrder: 'alphabetical' });
-
-    try {
-      const config = await window.electronAPI.getConfig();
-      await window.electronAPI.saveConfig({
-        ...config,
-        settings: { ...settings, sortOrder: 'alphabetical' },
-      });
-    } catch {
-      // Non-critical — settings will still be applied in memory
-    }
-
-    onRefreshDirectory();
-  }, [currentPath, settings, onRefreshDirectory, onSetError]);
-
   const navigateToBookmark = useCallback(async (fullPath: string) => {
     const exists = await window.electronAPI.pathExists(fullPath);
     if (!exists) {
@@ -1265,7 +1239,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               }
             })();
           }}
-          onRenumberFiles={() => void handleRenumberFiles()}
+
           onExport={() => setShowExportDialog(true)}
           onRunOcr={() => {
             if (!currentPath) return;

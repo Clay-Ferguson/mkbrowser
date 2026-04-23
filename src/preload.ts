@@ -73,18 +73,6 @@ export interface SearchResult {
   foundTime?: number; // Timestamp found by ts() function in advanced search (milliseconds since epoch)
 }
 
-export interface RenameOperation {
-  oldPath: string;
-  newPath: string;
-  oldName: string;
-  newName: string;
-}
-
-export interface RenumberResult {
-  success: boolean;
-  error?: string;
-  operations?: RenameOperation[];
-}
 
 export interface FolderAnalysisResult {
   hashtags: Array<{ tag: string; count: number }>;
@@ -126,7 +114,6 @@ export interface ElectronAPI {
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines', searchImageExif?: boolean, mostRecent?: boolean) => Promise<SearchResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   collectAncestorTags: (filePath: string) => Promise<string[]>;
-  renumberFiles: (dirPath: string) => Promise<RenumberResult>;
   askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   replyToAi: (parentFolderPath: string, createSubFolder: boolean) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
   getAiUsage: () => Promise<AIUsageWithCosts>;
@@ -165,7 +152,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines', searchImageExif?: boolean, mostRecent?: boolean) => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchBlock, searchImageExif, mostRecent),
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   collectAncestorTags: (filePath: string) => ipcRenderer.invoke('collect-ancestor-tags', filePath),
-  renumberFiles: (dirPath: string) => ipcRenderer.invoke('renumber-files', dirPath),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
   selectExportFolder: () => ipcRenderer.invoke('select-export-folder'),
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => 

@@ -102,18 +102,6 @@ export interface SearchResult {
   createdTime?: number; // File creation timestamp (milliseconds since epoch)
 }
 
-export interface RenameOperation {
-  oldPath: string;
-  newPath: string;
-  oldName: string;
-  newName: string;
-}
-
-export interface RenumberResult {
-  success: boolean;
-  error?: string;
-  operations?: RenameOperation[];
-}
 
 export interface ReplaceResult {
   path: string;
@@ -174,7 +162,6 @@ export interface ElectronAPI {
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   collectAncestorTags: (filePath: string) => Promise<HashtagDefinition[]>;
-  renumberFiles: (dirPath: string) => Promise<RenumberResult>;
   setWindowTitle: (title: string) => Promise<void>;
   selectExportFolder: () => Promise<string | null>;
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;
