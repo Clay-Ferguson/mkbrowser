@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { ClipboardDocumentIcon, MinusSmallIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from '@heroicons/react/24/outline';
+import { MinusSmallIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from '@heroicons/react/24/outline';
+import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
 import {
   useRootPath,
   useCurrentPath,
@@ -297,10 +298,11 @@ function IndexTree() {
               <button
                 type="button"
                 onClick={e => void handlePasteIntoFolder(node, e)}
-                className="shrink-0 p-0.5 mr-1 text-slate-500 hover:text-slate-100 hover:bg-slate-600 rounded"
+                className="shrink-0 p-1 mr-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
                 title="Paste cut items here"
+                aria-label="Paste cut items here"
               >
-                <ClipboardDocumentIcon className="w-3.5 h-3.5" />
+                <ClipboardDocumentIcon className="w-4 h-4 text-white" />
               </button>
             )}
           </div>

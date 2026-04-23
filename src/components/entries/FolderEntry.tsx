@@ -1,4 +1,4 @@
-import { ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
 import { FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import { useHasCutItems, useItem } from '../../store';
@@ -99,11 +99,11 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
         {hasCutItems && onPasteIntoFolder && (
           <button
             onClick={(e) => { e.stopPropagation(); onPasteIntoFolder(entry.path); }}
-            className="flex-shrink-0 px-2 py-0.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+            className="flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
             title="Paste cut items into this folder"
+            aria-label="Paste cut items into this folder"
           >
-            <ClipboardDocumentIcon className="w-4 h-4 inline -mt-0.5 mr-0.5" />
-            Paste
+            <ClipboardDocumentIcon className="w-4 h-4 text-white" />
           </button>
         )}
         <EntryActionBar

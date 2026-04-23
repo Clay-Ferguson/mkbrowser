@@ -4,7 +4,7 @@ import {
   ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, Squares2X2Icon,
   BookmarkIcon, BarsArrowDownIcon,
 } from '@heroicons/react/24/outline';
-import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/solid';
+import { FolderPlusIcon, DocumentPlusIcon, ClipboardDocumentIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import FolderEntry from '../entries/FolderEntry';
 import MarkdownEntry from '../entries/MarkdownEntry';
@@ -954,8 +954,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                   className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                   title="Paste cut items"
                   data-testid="paste-button"
+                  aria-label="Paste cut items"
                 >
-                  Paste
+                  <ClipboardDocumentIcon className="w-5 h-5 text-white" />
                 </button>
               )}
 

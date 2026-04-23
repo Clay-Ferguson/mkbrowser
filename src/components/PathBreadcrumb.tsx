@@ -53,7 +53,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
             <span className="text-slate-200 mx-1">/</span>
             {isLast ? (
               <span
-                className="px-2 py-1 text-slate-200 break-all"
+                className="px-2 py-1 text-purple-400 font-bold break-all"
               >
                 {part}
               </span>
