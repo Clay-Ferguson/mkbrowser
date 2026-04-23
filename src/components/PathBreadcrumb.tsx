@@ -31,13 +31,20 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
     return `${normalizedRoot}/${segmentPath}`;
   };
 
+  const atRoot = normalizedCurrent === normalizedRoot;
   return (
     <div className="flex flex-wrap items-center gap-1 text-base">
       <button
         type="button"
-        onClick={() => onNavigate(normalizedRoot)}
-        className="p-2 text-slate-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer flex-shrink-0 transition-colors"
+        onClick={() => !atRoot && onNavigate(normalizedRoot)}
+        disabled={atRoot}
+        className={
+          `p-2 text-slate-400 flex-shrink-0 transition-colors cursor-pointer bg-transparent border-none outline-none
+          hover:bg-slate-800/20 active:bg-slate-800/30 disabled:opacity-30 disabled:cursor-not-allowed`
+        }
         aria-label="Go to root folder"
+        title="Go to root folder"
+        style={{ background: 'none', border: 'none', outline: 'none' }}
       >
         <HomeIcon className="w-5 h-5" />
       </button>
