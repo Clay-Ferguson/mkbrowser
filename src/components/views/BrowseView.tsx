@@ -74,17 +74,17 @@ import { hasHumanMd } from '../../ai/aiPatterns';
 
 function IndexInsertBar({ onInsertFile, onInsertFolder }: { onInsertFile: () => void; onInsertFolder: () => void }) {
   return (
-    <div className="flex justify-center gap-2 py-0.5">
+    <div className="flex justify-center gap-2 py-0">
       <button
         onClick={onInsertFile}
-        className="p-2 text-slate-400 hover:text-slate-300 hover:bg-slate-700 rounded-lg transition-colors"
+        className="p-2 text-slate-400 hover:text-slate-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
         title="Insert file here"
       >
         <DocumentPlusIcon className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
       </button>
       <button
         onClick={onInsertFolder}
-        className="p-2 text-slate-400 hover:text-slate-300 hover:bg-slate-700 rounded-lg transition-colors"
+        className="p-2 text-slate-400 hover:text-slate-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
         title="Insert folder here"
       >
         <FolderPlusIcon className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
