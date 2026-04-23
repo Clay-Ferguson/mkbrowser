@@ -4,7 +4,8 @@ import {
   ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, Squares2X2Icon,
   BookmarkIcon, BarsArrowDownIcon,
 } from '@heroicons/react/24/outline';
-import { FolderPlusIcon, DocumentPlusIcon, ClipboardDocumentIcon } from '@heroicons/react/24/solid';
+import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
+import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from '../../global';
 import FolderEntry from '../entries/FolderEntry';
 import MarkdownEntry from '../entries/MarkdownEntry';
@@ -77,17 +78,17 @@ function IndexInsertBar({ onInsertFile, onInsertFolder }: { onInsertFile: () => 
     <div className="flex justify-center gap-2 py-0">
       <button
         onClick={onInsertFile}
-        className="p-2 text-slate-400 hover:text-slate-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+        className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
         title="Insert file here"
       >
-        <DocumentPlusIcon className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+        <DocumentPlusIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
       </button>
       <button
         onClick={onInsertFolder}
-        className="p-2 text-slate-400 hover:text-slate-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+        className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
         title="Insert folder here"
       >
-        <FolderPlusIcon className="w-5 h-5 text-slate-400 group-hover:text-slate-300" />
+        <FolderPlusIcon className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
       </button>
     </div>
   );
@@ -866,7 +867,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                     title="Create file"
                     data-testid="create-file-button"
                   >
-                    <DocumentPlusIcon className="w-5 h-5" />
+                    <DocumentPlusIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
                   </button>
                   <button
                     onClick={handleOpenCreateFolderDialog}
@@ -874,7 +875,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                     title="Create folder"
                     data-testid="create-folder-button"
                   >
-                    <FolderPlusIcon className="w-5 h-5" />
+                    <FolderPlusIcon className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
                   </button>
                 </>
               )}
