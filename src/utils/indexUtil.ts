@@ -6,6 +6,33 @@ import { parseFrontMatter } from './fileUtils';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
 
+export type IndexEntry = { name: string; id?: string };
+
+export interface IndexOptions {
+  edit_mode?: string;
+}
+
+export interface IndexYaml {
+  files?: IndexEntry[];
+  options?: IndexOptions;
+}
+
+/**
+ * Reads and parses .INDEX.yaml from dirPath. Returns the parsed object, or null
+ * if the file doesn't exist or can't be parsed.
+ */
+export async function readIndexYaml(dirPath: string): Promise<IndexYaml | null> {
+  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  try {
+    const content = await fs.promises.readFile(indexFilePath, 'utf8');
+    const parsed = yaml.load(content) as IndexYaml;
+    if (parsed && typeof parsed === 'object') return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Reconciles a directory's .INDEX.yaml with the actual markdown files on disk.
  * - Ensures every .md file has a unique `id` in its YAML front matter.
@@ -14,7 +41,6 @@ const generateId = customAlphabet('0123456789ABCDEF', 9);
  * - Appends any new files not yet listed in the index.
  */
 export async function reconcileIndexedFiles(dirPath: string, createIfMissing = false): Promise<void> {
-  // Check for .INDEX.yaml first — bail early for non-indexed folders unless creating
   const indexFilePath = path.join(dirPath, '.INDEX.yaml');
   let existingIndexContent: string | null = null;
   try {
@@ -34,6 +60,10 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   // Mirror BrowseView's visibility rule: exclude hidden entries only
   const visibleEntries = dirEntries.filter((e) => !e.name.startsWith('.'));
   const visibleNames = new Set(visibleEntries.map((e) => e.name));
+
+  // todo-0: we need to make sure that we're not actually reading the files every time we open a folder or run the reconcile function,
+  // so for performance, I think we might need to have a global map which can allow us to assign a map entry every time we detect 
+  // or generate an ID associated with any markdown file.
 
   // For markdown files: ensure each has an id in its front matter; build bidirectional maps
   const nameToId = new Map<string, string>();
@@ -128,14 +158,9 @@ export async function moveInIndexYaml(
 ): Promise<{ success: boolean; error?: string }> {
   const indexFilePath = path.join(dirPath, '.INDEX.yaml');
   try {
-    let files: Array<{ name: string; id?: string }> = [];
-    try {
-      const content = await fs.promises.readFile(indexFilePath, 'utf8');
-      const parsed = yaml.load(content) as { files?: Array<{ name: string; id?: string }> };
-      if (parsed && Array.isArray(parsed.files)) files = parsed.files;
-    } catch {
-      return { success: false, error: '.INDEX.yaml not found or unreadable' };
-    }
+    const indexYaml = await readIndexYaml(dirPath);
+    if (!indexYaml) return { success: false, error: '.INDEX.yaml not found or unreadable' };
+    const files = indexYaml.files ?? [];
 
     const idx = files.findIndex((f) => f.name === name);
     if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
@@ -145,7 +170,7 @@ export async function moveInIndexYaml(
 
     [files[idx], files[swapIdx]] = [files[swapIdx], files[idx]];
 
-    const newContent = yaml.dump({ files }, { indent: 2 });
+    const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
     await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
     return { success: true };
   } catch (err) {
@@ -165,14 +190,8 @@ export async function insertIntoIndexYaml(
 ): Promise<{ success: boolean; error?: string }> {
   const indexFilePath = path.join(dirPath, '.INDEX.yaml');
   try {
-    let files: Array<{ name: string; id?: string }> = [];
-    try {
-      const content = await fs.promises.readFile(indexFilePath, 'utf8');
-      const parsed = yaml.load(content) as { files?: Array<{ name: string; id?: string }> };
-      if (parsed && Array.isArray(parsed.files)) files = parsed.files;
-    } catch {
-      // No existing file or parse error — start fresh
-    }
+    const indexYaml = (await readIndexYaml(dirPath)) ?? {};
+    const files = indexYaml.files ?? [];
 
     const newEntry: { name: string } = { name: newName };
     if (insertAfterName === null) {
@@ -186,7 +205,7 @@ export async function insertIntoIndexYaml(
       }
     }
 
-    const newContent = yaml.dump({ files }, { indent: 2 });
+    const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
     await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
     return { success: true };
   } catch (err) {

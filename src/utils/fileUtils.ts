@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import yaml from 'js-yaml';
 import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from '../ai/aiPatterns';
+import { readIndexYaml } from './indexUtil';
 
 export interface FrontMatterResult {
   /** Parsed YAML front matter as a plain object, or null if none was found. */
@@ -223,26 +224,20 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     return a.name.localeCompare(b.name);
   });
 
-  // Check for .INDEX.yaml to override display ordering
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
-  try {
-    const indexContent = await fs.promises.readFile(indexFilePath, 'utf8');
-    const parsed = yaml.load(indexContent) as { files?: Array<{ name: string; id?: string }> };
-    if (parsed && Array.isArray(parsed.files)) {
-      const nameToOrder = new Map(parsed.files.map((f, i) => [f.name, i]));
-      for (const entry of fileEntries) {
-        const order = nameToOrder.get(entry.name);
-        if (order !== undefined) entry.indexOrder = order;
-      }
-      fileEntries.sort((a, b) => {
-        const aOrder = a.indexOrder ?? Infinity;
-        const bOrder = b.indexOrder ?? Infinity;
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        return a.name.localeCompare(b.name);
-      });
+  const indexYaml = await readIndexYaml(dirPath);
+  const indexFiles = indexYaml?.files;
+  if (indexFiles) {
+    const nameToOrder = new Map(indexFiles.map((f, i) => [f.name, i]));
+    for (const entry of fileEntries) {
+      const order = nameToOrder.get(entry.name);
+      if (order !== undefined) entry.indexOrder = order;
     }
-  } catch {
-    // No .INDEX.yaml or parse error — use default ordering
+    fileEntries.sort((a, b) => {
+      const aOrder = a.indexOrder ?? Infinity;
+      const bOrder = b.indexOrder ?? Infinity;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return a.name.localeCompare(b.name);
+    });
   }
 
   return fileEntries;
