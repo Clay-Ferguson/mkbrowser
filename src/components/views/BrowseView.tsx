@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
-  ArrowPathIcon, ArrowUpIcon, FolderIcon, WrenchIcon, Squares2X2Icon,
-  BookmarkIcon, BarsArrowDownIcon,
+  ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon, ListBulletIcon,
 } from '@heroicons/react/24/outline';
 import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
 import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/outline';
@@ -834,6 +833,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   return (
     <>
       {/* Combined header: breadcrumbs left, actions right, wraps responsively */}
+
       <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
 
         <div data-id="browser-header-breadcrumbs" className="flex items-center gap-3 min-w-0">
@@ -891,15 +891,15 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 <Squares2X2Icon className="w-5 h-5" />
               </button>
 
-              {/* Bookmarks menu button */}
+              {/* Bookmarks menu button (now uses ListBulletIcon for menu distinction) */}
               <button
                 ref={bookmarksButtonRef}
                 onClick={() => setShowBookmarksMenu(prev => !prev)}
                 className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-                title="Bookmarks"
+                title="Bookmarks menu"
                 data-testid="bookmarks-menu-button"
               >
-                <BookmarkIcon className="w-5 h-5" />
+                <ListBulletIcon className="w-5 h-5" />
               </button>
 
               {/* Tools menu button */}
@@ -1025,8 +1025,22 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         data-id="browser-main-content"
         ref={mainContainerRef}
         onScroll={handleMainScroll}
-        className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1"
+        className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1 relative"
       >
+        {/* Edit checkbox floats at top right of scrollable area, inside main */}
+        {hasIndexFile && (
+          <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 10 }} className="flex items-center select-none mt-2 pr-4">
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="checkbox"
+                className="w-6 h-6" // Larger size, matches other checkboxes
+                style={{ accentColor: '#38bdf8' }}
+                onChange={() => { /* dummy for now */ }}
+              />
+              <span className="text-slate-200 text-sm">Edit</span>
+            </label>
+          </div>
+        )}
         <div className={`${getContentWidthClasses(settings.contentWidth)}`}>
         {loading && (
           <div className="flex items-center justify-center py-12">
