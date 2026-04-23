@@ -15,7 +15,7 @@ import {
 
 type FileEntryProps = BaseEntryProps;
 
-function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: FileEntryProps) {
+function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onMoveUp, onMoveDown }: FileEntryProps) {
   const {
     isRenaming,
     isExpanded,
@@ -84,6 +84,8 @@ function FileEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
           onInsertFileBelow={onInsertFileBelow}
           onInsertFolderBelow={onInsertFolderBelow}
           onSaveSettings={onSaveSettings}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
           className="-mr-1.5"
         />
       )}

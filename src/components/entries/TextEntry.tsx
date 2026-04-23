@@ -27,7 +27,7 @@ import {
 
 type TextEntryProps = BaseEntryProps;
 
-function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: TextEntryProps) {
+function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onMoveUp, onMoveDown }: TextEntryProps) {
   const item = useItem(entry.path);
   const [isRewriting, setIsRewriting] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
@@ -180,6 +180,8 @@ function TextEntry({ entry, onRename, onDelete, onInsertFileBelow, onInsertFolde
             onInsertFileBelow={onInsertFileBelow}
             onInsertFolderBelow={onInsertFolderBelow}
             onSaveSettings={onSaveSettings}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
             showEditButton
             onEditClick={edit.handleEditClick}
             className="-mr-1.5"

@@ -1,4 +1,4 @@
-import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, BookmarkIcon as BookmarkOutlineIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, DocumentPlusIcon, FolderPlusIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { BUTTON_CLZ_INSERT_FILE, BUTTON_CLZ_INSERT_FOLDER, BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../../utils/styles';
 import { toggleBookmark, toggleItemExpanded } from '../../../store';
@@ -28,6 +28,10 @@ interface EntryActionBarProps {
   showEditButton?: boolean;
   /** Handler for edit button */
   onEditClick?: () => void;
+  /** Move up in .INDEX.yaml (only provided in indexed mode; undefined hides the button) */
+  onMoveUp?: () => void;
+  /** Move down in .INDEX.yaml (only provided in indexed mode; undefined hides the button) */
+  onMoveDown?: () => void;
   /** Extra className for the container */
   className?: string;
 }
@@ -49,6 +53,8 @@ export function EntryActionBar({
   onSaveSettings,
   showEditButton = false,
   onEditClick,
+  onMoveUp,
+  onMoveDown,
   className = '',
 }: EntryActionBarProps) {
   const handleBookmarkClick = (e: React.MouseEvent) => {
@@ -148,6 +154,27 @@ export function EntryActionBar({
           <BookmarkOutlineIcon className="w-5 h-5" />
         )}
       </button>
+      {onMoveUp && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+          className={BUTTON_CLZ_RENAME}
+          title="Move up"
+          data-testid="entry-move-up-button"
+        >
+          <ArrowUpIcon className="w-5 h-5" />
+        </button>
+      )}
+      {onMoveDown && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+          className={BUTTON_CLZ_RENAME}
+          title="Move down"
+          data-testid="entry-move-down-button"
+        >
+          <ArrowDownIcon className="w-5 h-5" />
+        </button>
+      )}
+
     </div>
   );
 }

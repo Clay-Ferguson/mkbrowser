@@ -6,7 +6,7 @@ import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 import { renumberFiles, type RenameOperation } from './utils/ordinals';
 import { readDirectory, parseFrontMatter } from './utils/fileUtils';
-import { reconcileIndexedFiles, insertIntoIndexYaml } from './utils/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
@@ -326,6 +326,11 @@ function setupIpcHandlers(): void {
   // Insert a new entry into .INDEX.yaml at the specified position
   ipcMain.handle('insert-into-index-yaml', async (_event, dirPath: string, newName: string, insertAfterName: string | null): Promise<{ success: boolean; error?: string }> => {
     return insertIntoIndexYaml(dirPath, newName, insertAfterName);
+  });
+
+  // Move an entry up or down one position in .INDEX.yaml
+  ipcMain.handle('move-in-index-yaml', async (_event, dirPath: string, name: string, direction: 'up' | 'down'): Promise<{ success: boolean; error?: string }> => {
+    return moveInIndexYaml(dirPath, name, direction);
   });
 
   // Reconcile .INDEX.yaml with the filesystem (phase 1: ensure all markdown files have a front-matter id)

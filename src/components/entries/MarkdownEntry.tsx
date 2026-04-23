@@ -389,7 +389,7 @@ interface MarkdownEntryProps extends BaseEntryProps {
   view: AppView;
 }
 
-function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings }: MarkdownEntryProps) {
+function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onMoveUp, onMoveDown }: MarkdownEntryProps) {
   const item = useItem(entry.path);
 
   const {
@@ -661,6 +661,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onInsertFileBelow, onI
               onInsertFileBelow={onInsertFileBelow}
               onInsertFolderBelow={onInsertFolderBelow}
               onSaveSettings={onSaveSettings}
+              onMoveUp={onMoveUp}
+              onMoveDown={onMoveDown}
               showEditButton
               onEditClick={edit.handleEditClick}
               className="-mr-1.5"

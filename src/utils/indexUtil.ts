@@ -119,6 +119,41 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
 }
 
 /**
+ * Moves an entry up or down one position in .INDEX.yaml by swapping it with its neighbor.
+ */
+export async function moveInIndexYaml(
+  dirPath: string,
+  name: string,
+  direction: 'up' | 'down',
+): Promise<{ success: boolean; error?: string }> {
+  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  try {
+    let files: Array<{ name: string; id?: string }> = [];
+    try {
+      const content = await fs.promises.readFile(indexFilePath, 'utf8');
+      const parsed = yaml.load(content) as { files?: Array<{ name: string; id?: string }> };
+      if (parsed && Array.isArray(parsed.files)) files = parsed.files;
+    } catch {
+      return { success: false, error: '.INDEX.yaml not found or unreadable' };
+    }
+
+    const idx = files.findIndex((f) => f.name === name);
+    if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
+
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= files.length) return { success: true };
+
+    [files[idx], files[swapIdx]] = [files[swapIdx], files[idx]];
+
+    const newContent = yaml.dump({ files }, { indent: 2 });
+    await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
  * Inserts a new entry into the .INDEX.yaml files array at the position
  * immediately after insertAfterName (or at position 0 when null).
  * Existing entries and their id fields are preserved.

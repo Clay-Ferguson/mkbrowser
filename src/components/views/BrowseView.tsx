@@ -279,6 +279,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     onRefreshDirectory();
   }, [currentPath, hasIndexFile, onRefreshDirectory]);
 
+  const handleMoveEntry = useCallback(async (name: string, direction: 'up' | 'down') => {
+    if (!currentPath) return;
+    await window.electronAPI.moveInIndexYaml(currentPath, name, direction);
+    onRefreshDirectory();
+  }, [currentPath, onRefreshDirectory]);
+
   const doPasteCutItems = useCallback(async () => {
     if (!currentPath) return;
 
@@ -1074,22 +1080,26 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           hasIndexFile ? (
             <div>
               <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />
-              {sortedEntries.map((entry, idx) => (
+              {sortedEntries.map((entry, idx) => {
+                const moveUp = idx > 0 ? () => void handleMoveEntry(entry.name, 'up') : undefined;
+                const moveDown = idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
+                return (
                 <div key={entry.path}>
                   {entry.isDirectory ? (
-                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
+                    <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} />
                   ) : entry.isMarkdown ? (
-                    <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
                   ) : isImageFile(entry.name) ? (
-                    <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
                   ) : isTextFile(entry.name) ? (
-                    <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
                   ) : (
-                    <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} />
+                    <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onInsertFileBelow={handleOpenCreateFileBelow} onInsertFolderBelow={handleOpenCreateFolderBelow} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
                   )}
                   <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="[&>div+div]:-mt-px">

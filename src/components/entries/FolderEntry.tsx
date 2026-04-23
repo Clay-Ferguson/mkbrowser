@@ -23,9 +23,11 @@ interface FolderEntryProps {
   onInsertFolderBelow: (defaultName: string) => void;
   onSaveSettings: () => void;
   onPasteIntoFolder?: (folderPath: string) => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
-function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onPasteIntoFolder }: FolderEntryProps) {
+function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow, onInsertFolderBelow, onSaveSettings, onPasteIntoFolder, onMoveUp, onMoveDown }: FolderEntryProps) {
   const {
     isRenaming,
     isSelected,
@@ -119,6 +121,8 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onInsertFileBelow,
           onInsertFileBelow={onInsertFileBelow}
           onInsertFolderBelow={onInsertFolderBelow}
           onSaveSettings={onSaveSettings}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
           className="-mr-1.5"
         />
         </>
