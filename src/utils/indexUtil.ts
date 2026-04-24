@@ -6,7 +6,7 @@ import { parseFrontMatter } from './fileUtils';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
 
-export type IndexEntry = { name: string; id?: string };
+export type IndexEntry = { name: string; id?: string; create_time?: number; size?: number };
 
 export interface IndexOptions {
   edit_mode?: boolean;
@@ -62,8 +62,27 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   const visibleNames = new Set(visibleEntries.map((e) => e.name));
 
   // todo-0: we need to make sure that we're not actually reading the files every time we open a folder or run the reconcile function,
-  // so for performance, I think we might need to have a global map which can allow us to assign a map entry every time we detect 
+  // so for performance, I think we might need to have a global map which can allow us to assign a map entry every time we detect
   // or generate an ID associated with any markdown file.
+
+  // For non-markdown files: stat each one to build a fingerprint map keyed by "createTime:size:ext".
+  // This lets us detect renames of non-markdown files during reconciliation.
+  const nameToStat = new Map<string, { createTime: number; size: number }>();
+  const fingerprintToVisibleName = new Map<string, string>();
+  for (const entry of visibleEntries) {
+    if (!entry.isDirectory() && !entry.name.toLowerCase().endsWith('.md')) {
+      try {
+        const stat = await fs.promises.stat(path.join(dirPath, entry.name));
+        const createTime = Math.round(stat.birthtimeMs);
+        const size = stat.size;
+        nameToStat.set(entry.name, { createTime, size });
+        const ext = path.extname(entry.name).toLowerCase();
+        fingerprintToVisibleName.set(`${createTime}:${size}:${ext}`, entry.name);
+      } catch {
+        // Skip files that can't be stat'd
+      }
+    }
+  }
 
   // For markdown files: ensure each has an id in its front matter; build bidirectional maps
   const nameToId = new Map<string, string>();
@@ -99,7 +118,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   }
 
   // Parse existing index (already read above) or start fresh
-  let files: Array<{ name: string; id?: string }> = [];
+  let files: IndexEntry[] = [];
   let existingOptions: IndexOptions = {};
   if (existingIndexContent !== null) {
     try {
@@ -111,17 +130,28 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
     }
   }
 
-  // Reconcile existing entries: detect renames via id, assign ids to untagged md entries
+  // Reconcile existing entries: detect renames via id (markdown) or fingerprint (non-markdown)
   const handledNames = new Set<string>();
   for (const entry of files) {
     if (entry.id) {
+      // Markdown entry: match by id to detect renames
       const actualName = idToName.get(entry.id);
       if (actualName) {
         entry.name = actualName;
         handledNames.add(actualName);
       }
       // If no actualName: file was deleted — will be filtered out below
+    } else if (entry.create_time !== undefined && entry.size !== undefined) {
+      // Fingerprinted non-markdown entry: match by (create_time, size, ext) to detect renames
+      const ext = path.extname(entry.name).toLowerCase();
+      const actualName = fingerprintToVisibleName.get(`${entry.create_time}:${entry.size}:${ext}`);
+      if (actualName) {
+        entry.name = actualName;
+        handledNames.add(actualName);
+      }
+      // If no actualName: file was deleted — will be filtered out below
     } else {
+      // Name-only entry (folder or old-style non-markdown without fingerprint)
       handledNames.add(entry.name);
       const id = nameToId.get(entry.name);
       if (id) entry.id = id;
@@ -131,15 +161,28 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   // Remove entries for files/folders that no longer exist on disk
   files = files.filter((entry) => {
     if (entry.id) return idToName.has(entry.id) || visibleNames.has(entry.name);
+    if (entry.create_time !== undefined && entry.size !== undefined) {
+      const ext = path.extname(entry.name).toLowerCase();
+      return fingerprintToVisibleName.has(`${entry.create_time}:${entry.size}:${ext}`);
+    }
     return visibleNames.has(entry.name);
   });
 
-  // Append visible entries not yet in the index (folders, images, PDFs, etc. get no id)
+  // Append visible entries not yet in the index.
+  // Markdown files get an id; non-markdown files get a create_time+size fingerprint for rename detection.
   for (const entry of visibleEntries) {
     if (!handledNames.has(entry.name)) {
+      const newEntry: IndexEntry = { name: entry.name };
       const id = nameToId.get(entry.name);
-      const newEntry: { name: string; id?: string } = { name: entry.name };
-      if (id) newEntry.id = id;
+      if (id) {
+        newEntry.id = id;
+      } else if (!entry.isDirectory()) {
+        const stat = nameToStat.get(entry.name);
+        if (stat) {
+          newEntry.create_time = stat.createTime;
+          newEntry.size = stat.size;
+        }
+      }
       files.push(newEntry);
     }
   }

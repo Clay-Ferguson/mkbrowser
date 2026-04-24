@@ -8,7 +8,11 @@ By default, files and folders in a directory are sorted by one of several automa
 
 ## The `.INDEX.yaml` File
 
-`.INDEX.yaml` is a hidden YAML file placed directly inside the directory it controls. It contains a single top-level key `files`, whose value is an ordered list of entries. Each entry has at minimum a `name` field (the exact filename or folder name as it appears on disk). Markdown files also carry an `id` field — a 9-character uppercase hex string used as a stable identity across renames.
+`.INDEX.yaml` is a hidden YAML file placed directly inside the directory it controls. It has two top-level keys:
+
+- **`files`** — an ordered list of entries. Each entry has at minimum a `name` field (the exact filename or folder name as it appears on disk). Markdown files also carry an `id` field — a 9-character uppercase hex string used as a stable identity across renames.
+- **`options`** _(optional)_ — a map of directory-level settings. Currently supports:
+  - `edit_mode` (`boolean`) — when `true`, the directory opens in edit mode by default.
 
 ### Example
 
@@ -22,6 +26,8 @@ files:
     id: F5E6D7C8B
   - name: cover.png
   - name: notes.txt
+options:
+  edit_mode: true
 ```
 
 Key points:
@@ -30,6 +36,7 @@ Key points:
 - **Only markdown files have `id`** — non-markdown files have no front matter, so no stable ID can be derived from them. They are tracked by name only.
 - **Order is authoritative** — the display order in the app exactly follows the sequence in this file.
 - **Hidden entries are excluded** — files and folders whose names begin with `.` (including `.INDEX.yaml` itself) are never listed.
+- **`options` is preserved across reconciliation** — when `reconcileIndexedFiles` rewrites `.INDEX.yaml`, it reads the existing `options` block and writes it back unchanged, so directory settings are never lost.
 
 ---
 
@@ -151,7 +158,7 @@ The ID is generated with `customAlphabet('0123456789ABCDEF', 9)` from the `nanoi
 
 | Concern | File |
 |---|---|
-| Reconcile + insert-into-index logic | `src/utils/indexUtil.ts` |
+| Reconcile, insert-into-index, and write-options logic | `src/utils/indexUtil.ts` |
 | IPC handlers (`reconcile-indexed-files`, `insert-into-index-yaml`) | `src/main.ts` |
 | Preload bridge | `src/preload.ts` |
 | API type declarations | `src/global.d.ts` |
