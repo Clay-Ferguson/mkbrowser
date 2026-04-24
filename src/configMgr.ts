@@ -87,6 +87,7 @@ export interface AppConfig {
   aiRewritePrompts?: AIRewritePromptDef[];
   /** Whether the Tags picker panel is expanded. Defaults to false (collapsed). */
   tagsPanelVisible?: boolean;
+  fullDocContext?: boolean;
 }
 
 // ---------------------------------------------------------------------------

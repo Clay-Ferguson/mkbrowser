@@ -27,6 +27,7 @@ function AISettingsView() {
   const [aiRewritePrompts, setAiRewritePrompts] = useState<AIRewritePromptDef[]>([]);
   const [promptEditorContent, setPromptEditorContent] = useState<string>('');
   const [showPromptDeleteConfirm, setShowPromptDeleteConfirm] = useState(false);
+  const [fullDocContext, setFullDocContext] = useState<boolean>(false);
 
   // AI model CRUD dialog state
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -53,6 +54,7 @@ function AISettingsView() {
       if (config.llamacppFolder) setLlamacppFolder(config.llamacppFolder);
       if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
       if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
+      if (config.fullDocContext !== undefined) setFullDocContext(config.fullDocContext);
       const savedName = config.aiRewritePrompt ?? '';
       const savedPrompts = config.aiRewritePrompts ?? [];
       setSelectedPromptName(savedName);
@@ -573,6 +575,18 @@ function AISettingsView() {
                   Reset to Default
                 </button>
               </div>
+              <label className="flex items-center gap-2 cursor-pointer mt-4">
+                <input
+                  type="checkbox"
+                  checked={fullDocContext}
+                  onChange={(e) => {
+                    setFullDocContext(e.target.checked);
+                    void saveAiConfigField({ fullDocContext: e.target.checked });
+                  }}
+                  className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                />
+                <span className="text-slate-200">Full Document Context</span>
+              </label>
             </section>
           )}
         </div>

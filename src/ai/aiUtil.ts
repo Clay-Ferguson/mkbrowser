@@ -40,6 +40,7 @@ import { ensureRunning } from '../llamaServer';
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
 import { preprocessPrompt } from './promptPreprocess';
 import { USE_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
+import { readIndexYaml } from '../utils/indexUtil';
 import { invokeAI, streamAI, hasScriptedAnswer, type AIUsageInfo, type StreamCallbacks } from './langGraph';
 
 /**
@@ -294,11 +295,62 @@ export async function handleAskAI(
 }
 
 /**
+ * Builds above/below document context from sibling md/txt files ordered by .INDEX.yaml.
+ * Skips the current file and non-markdown/text files. Returns empty strings if the index
+ * can't be read or fullDocContext is disabled.
+ */
+async function buildDocumentContext(
+  filePath: string,
+  hasIndexFile: boolean,
+): Promise<{ aboveContent: string; belowContent: string }> {
+  const empty = { aboveContent: '', belowContent: '' };
+  if (!hasIndexFile) return empty;
+
+  const config = getConfig();
+  if (!config.fullDocContext) return empty;
+
+  const folderPath = path.dirname(filePath);
+  const currentFileName = path.basename(filePath);
+  const indexYaml = await readIndexYaml(folderPath);
+  if (!indexYaml?.files) return empty;
+
+  const supportedExts = new Set(['.md', '.txt']);
+  const currentIndex = indexYaml.files.findIndex((e) => e.name === currentFileName);
+
+  const readFile = async (name: string): Promise<string> => {
+    try {
+      return await fs.readFile(path.join(folderPath, name), 'utf8');
+    } catch {
+      return '';
+    }
+  };
+
+  const aboveParts: string[] = [];
+  const belowParts: string[] = [];
+
+  for (let i = 0; i < indexYaml.files.length; i++) {
+    const entry = indexYaml.files[i];
+    if (entry.name === currentFileName) continue;
+    if (!supportedExts.has(path.extname(entry.name).toLowerCase())) continue;
+    const text = await readFile(entry.name);
+    if (!text) continue;
+    if (i < currentIndex) aboveParts.push(text);
+    else belowParts.push(text);
+  }
+
+  const aboveContent = aboveParts.length > 0 ? aboveParts.join('\n\n') + '\n\n' : '';
+  const belowContent = belowParts.length > 0 ? '\n\n' + belowParts.join('\n\n') : '';
+  return { aboveContent, belowContent };
+}
+
+/**
  * Rewrite content using the configured AI rewrite prompt.
  * Returns the rewritten text and optional usage info.
  */
 export async function handleRewriteContent(
   content: string,
+  filePath: string,
+  hasIndexFile: boolean,
 ): Promise<{ rewrittenContent: string; usage?: AIUsageInfo } | { error: string }> {
   // If using a LLAMACPP model, ensure the server is running before inference
   const config = getConfig();
@@ -314,8 +366,10 @@ export async function handleRewriteContent(
     : undefined;
   const personaPart = namedPrompt?.prompt ?? DEFAULT_AI_REWRITE_PERSONA;
 
+  const { aboveContent, belowContent } = await buildDocumentContext(filePath, hasIndexFile);
+
   const prompt = {
-    text: `${personaPart} ${AI_REWRITE_PROMPT}\n\n<content>\n${content}\n</content>`,
+    text: `${personaPart} ${AI_REWRITE_PROMPT}\n\n${aboveContent}<content>\n${content}\n</content>${belowContent}`,
     images: [] as never[],
     fileDirectivesFound: false,
   };
@@ -343,6 +397,8 @@ export async function handleRewriteContentSection(
   content: string,
   selectionFrom: number,
   selectionTo: number,
+  filePath: string,
+  hasIndexFile: boolean,
 ): Promise<{ rewrittenContent: string; usage?: AIUsageInfo } | { error: string }> {
   // If using a LLAMACPP model, ensure the server is running before inference
   const config = getConfig();
@@ -366,8 +422,10 @@ export async function handleRewriteContentSection(
     '</rewrite_region>' +
     content.slice(selectionTo);
 
+  const { aboveContent, belowContent } = await buildDocumentContext(filePath, hasIndexFile);
+
   const prompt = {
-    text: `${personaPart} ${AI_REWRITE_SELECTION_PROMPT}\n\n<content>\n${textWithSelection}\n</content>`,
+    text: `${personaPart} ${AI_REWRITE_SELECTION_PROMPT}\n\n${aboveContent}<content>\n${textWithSelection}\n</content>${belowContent}`,
     images: [] as never[],
     fileDirectivesFound: false,
   };

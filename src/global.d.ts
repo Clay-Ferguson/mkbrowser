@@ -70,6 +70,8 @@ export interface AppConfig {
   aiRewritePrompt?: string;
   /** Named rewrite prompts available to the user. */
   aiRewritePrompts?: AIRewritePromptDef[];
+  /** Whether to include the full document as context when rewriting. */
+  fullDocContext?: boolean;
   /** Whether the Tags picker panel is expanded. Defaults to false (collapsed). */
   tagsPanelVisible?: boolean;
 }
@@ -172,8 +174,8 @@ export interface ElectronAPI {
   resetAiUsage: () => Promise<void>;
   queueScriptedAnswer: (answer: string) => Promise<void>;
   gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }>;
-  rewriteContent: (content: string) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
-  rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
+  rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
+  rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
 
   // llama.cpp server lifecycle
   checkLlamaHealth: () => Promise<string>;

@@ -119,8 +119,8 @@ export interface ElectronAPI {
   getAiUsage: () => Promise<AIUsageWithCosts>;
   resetAiUsage: () => Promise<void>;
   gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }>;
-  rewriteContent: (content: string) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
-  rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
+  rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
+  rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
 
   runInExternalTerminal: (command: string) => Promise<{ success: boolean; error?: string }>;
 }
@@ -166,8 +166,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resetAiUsage: () => ipcRenderer.invoke('reset-ai-usage'),
   queueScriptedAnswer: (answer: string) => ipcRenderer.invoke('queue-scripted-answer', answer),
   gatherThreadEntries: (folderPath: string) => ipcRenderer.invoke('gather-thread-entries', folderPath),
-  rewriteContent: (content: string) => ipcRenderer.invoke('rewrite-content', content),
-  rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number) => ipcRenderer.invoke('rewrite-content-selection', content, selectionFrom, selectionTo),
+  rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => ipcRenderer.invoke('rewrite-content', content, filePath, hasIndexFile),
+  rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => ipcRenderer.invoke('rewrite-content-selection', content, selectionFrom, selectionTo, filePath, hasIndexFile),
 
   // llama.cpp server lifecycle
   checkLlamaHealth: () => ipcRenderer.invoke('check-llama-health'),

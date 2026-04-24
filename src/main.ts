@@ -522,9 +522,9 @@ function setupIpcHandlers(): void {
   });
 
   // Rewrite content via AI: takes raw text, returns improved version
-  ipcMain.handle('rewrite-content', async (_event, content: string) => {
+  ipcMain.handle('rewrite-content', async (_event, content: string, filePath: string, hasIndexFile: boolean) => {
     try {
-      return await handleRewriteContent(content);
+      return await handleRewriteContent(content, filePath, hasIndexFile);
     } catch (error) {
       console.error('Error in rewrite-content handler:', error);
       return { error: friendlyAIError(error) };
@@ -532,9 +532,9 @@ function setupIpcHandlers(): void {
   });
 
   // Rewrite a selected region of content via AI
-  ipcMain.handle('rewrite-content-selection', async (_event, content: string, selectionFrom: number, selectionTo: number) => {
+  ipcMain.handle('rewrite-content-selection', async (_event, content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => {
     try {
-      return await handleRewriteContentSection(content, selectionFrom, selectionTo);
+      return await handleRewriteContentSection(content, selectionFrom, selectionTo, filePath, hasIndexFile);
     } catch (error) {
       console.error('Error in rewrite-content-selection handler:', error);
       return { error: friendlyAIError(error) };

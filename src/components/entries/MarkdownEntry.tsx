@@ -564,8 +564,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                   setIsRewriting(true);
                   try {
                     const result = selection
-                      ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to)
-                      : await window.electronAPI.rewriteContent(edit.editContent);
+                      ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
+                      : await window.electronAPI.rewriteContent(edit.editContent, entry.path, hasIndexFile);
                     if ('error' in result) {
                       console.error('Rewrite failed:', result.error);
                       setAiErrorMessage(result.error);
