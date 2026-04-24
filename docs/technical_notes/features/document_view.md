@@ -1,12 +1,13 @@
 # Document View (i.e. Document Mode)
 
-This application supports something called `Document Mode` which is the ability to do "block based" document editing, similar idea to Jupyter Notebooks, but where we're using individual files (in a particular folder) as the "blocks", and we let the containing folder of those files represent the whole document. The user experience is Jupyter-like, but we're using individual markdown files and/or images as the document content. any folder that contains a file named `.INDEX.yaml` is considered to be a "Document" and so when the user navigates to one of these folders, it triggers our GUI to begin displaying and editing the files and folders in a particular order, with a unique set of features that is not available to the standard file system type editing that we do for ordinary folders. the key innovation that we accomplish with the `.INDEX.yaml` is to have the yam will be able to define a custom file ordering (ordinal positioning) for each file in the document, so that the document structure is maintained.
-
 ## Overview
 
-By default, files and folders in a directory are sorted by one of several automatic criteria (filename, creation time, modification time, etc.), in the `BrowseView.tsx` component. The **Custom File Ordering** feature lets the user lock the display order of entries in a specific directory by means of a `.INDEX.yaml` file stored in that directory. When this file is present, the normal sort controls are disabled and entries are rendered in the sequence declared in the file.
+This application supports something called `Document Mode` which is the ability to do "block based" document editing (in `BrowseView.tsx` component), similar idea to Jupyter Notebooks, but where we're using individual files (in a particular folder) as the "blocks", and we let the containing folder of those files represent the whole document. The user experience is Jupyter-like, but we're using individual markdown files and/or images as the document content. any folder that contains a file named `.INDEX.yaml` is considered to be a "Document" and so when the user navigates to one of these folders, it triggers our GUI to begin displaying and editing the files and folders in a particular order, with a unique set of features that is not available to the standard file system type editing that we do for ordinary folders. the key innovation that we accomplish with the `.INDEX.yaml` is to have the yam will be able to define a custom file ordering (ordinal positioning) for each file in the document, so that the document structure is maintained.
 
----
+The way a user would initialize this special "Document View" for any given folder is simply by navigating to that folder and then picking, **Custom File Ordering** from the sort options menu (`SortPopupMenu.tsx`). This will automatically create the `.INDEX.yaml` file (and initializle it) and switch the user into the Document View mode. The react global state variable that indicates we're in document mode is `hasIndexFile`.
+
+Whenever a folder is a document there will also be an additional mode flag called "Edit Mode", which can be turned on and off by a checkbox at the top right of the screen (labeled "Edit"). When the user has Edit Mode enabled there will be additional icon buttons on the screen that allow certain features (related to ordering and creating of new files) to appear on the screen which are helpful for editing a document. The react global state variable for edit mode is named `indexYaml?.options?.edit_mode`.
+
 
 ## The `.INDEX.yaml` File
 
@@ -40,8 +41,6 @@ Key points:
 - **Hidden entries are excluded** — files and folders whose names begin with `.` (including `.INDEX.yaml` itself) are never listed.
 - **`options` is preserved across reconciliation** — when `reconcileIndexedFiles` rewrites `.INDEX.yaml`, it reads the existing `options` block and writes it back unchanged, so directory settings are never lost.
 
----
-
 ## Enabling Custom Ordering
 
 Custom ordering is enabled via the **Sort menu**, accessible from the sort button in the BrowseView toolbar. When no `.INDEX.yaml` exists in the current folder, the menu shows the standard sort options (Filename, Created Time, etc.) plus an additional item at the bottom:
@@ -58,7 +57,6 @@ After the refresh, BrowseView detects entries with `indexOrder` values and switc
 
 Once a `.INDEX.yaml` exists, the **Enable Custom Ordering** item no longer appears in the sort menu.
 
----
 
 ## Insert Bars
 
@@ -71,7 +69,6 @@ Clicking either button opens the standard create dialog. On confirmation, the ne
 
 The header-level create buttons (previously the only way to create files/folders) are hidden in indexed mode because the inline insert bars replace them.
 
----
 
 ## Reconciliation
 
@@ -138,7 +135,6 @@ Also in `src/utils/indexUtil.ts`. Used by the insert bars to add a single new en
 
 Existing `id` fields on all other entries are preserved.
 
----
 
 ## Stable Identity via Front-Matter IDs
 
@@ -154,33 +150,18 @@ id: A1B2C3D4E
 
 The ID is generated with `customAlphabet('0123456789ABCDEF', 9)` from the `nanoid` library, producing a 9-character uppercase hex string. IDs are stored in both the file's front matter and in the corresponding `.INDEX.yaml` entry. This makes it possible to detect renames: even after a file is moved to a different name, its `id` in the front matter matches an existing index entry, allowing the entry's `name` to be corrected automatically on the next reconcile.
 
----
+
 
 ## Code Locations
 
-| Concern | File |
+| Concern                                                             | File |
 |---|---|
-| Reconcile, insert-into-index, and write-options logic | `src/utils/indexUtil.ts` |
-| IPC handlers (`reconcile-indexed-files`, `insert-into-index-yaml`) | `src/main.ts` |
-| Preload bridge | `src/preload.ts` |
-| API type declarations | `src/global.d.ts` |
-| BrowseView — insert bars, indexed-mode rendering, useEffects | `src/components/views/BrowseView.tsx` |
-| Sort menu — Enable Custom Ordering item | `src/components/menus/SortPopupMenu.tsx` |
-| Directory reading + indexOrder injection | `src/utils/fileUtils.ts` |
+| Reconcile, insert-into-index, and write-options logic               | `src/utils/indexUtil.ts` |
+| IPC handlers (`reconcile-indexed-files`, `insert-into-index-yaml`)  | `src/main.ts` |
+| Preload bridge                                                      | `src/preload.ts` |
+| API type declarations                                               | `src/global.d.ts` |
+| BrowseView — insert bars, indexed-mode rendering, useEffects        | `src/components/views/BrowseView.tsx` |
+| Sort menu — Enable Custom Ordering item                             | `src/components/menus/SortPopupMenu.tsx` |
+| Directory reading + indexOrder injection                            | `src/utils/fileUtils.ts` |
 
----
 
-## TODO
-
-### Handle deleted files in the index
-
-Currently, when `reconcileIndexedFiles` processes an index entry whose `id` is not found in any file on disk (and whose `name` also does not exist), the entry is silently kept. This is intentional short-term behavior ("file was deleted — keep entry for now"), but it means stale entries accumulate in `.INDEX.yaml` over time.
-
-**Planned work:**
-
-1. After the reconcile loop (step 4 in the algorithm above), identify index entries that were neither matched by `id` nor by `name` to any file currently on disk.
-2. Remove those entries from the `files` list before writing `.INDEX.yaml`.
-
-The condition for "deleted" vs "renamed" is:
-- **Renamed**: `id` found in `idToName` but `entry.name` differs → update name (already handled).
-- **Deleted**: `id` NOT found in `idToName` AND `entry.name` NOT found in the visible directory listing → remove entry.
