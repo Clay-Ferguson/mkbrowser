@@ -714,6 +714,31 @@ Instead of rewriting the entire file, you can select a specific portion of text 
 
 This is especially useful for long documents where you want to improve a single paragraph or section without affecting the rest of the file.
 
+### Full Document Context
+
+When you are working in **Document Mode** (a folder that has custom file ordering enabled), you can give the AI awareness of the entire document — not just the file you are editing — by enabling **Full Document Context**.
+
+#### What it does
+
+Normally, when you rewrite a file, the AI only sees the content of that single file. With Full Document Context enabled, the AI also receives the content of all other Markdown and text files in the same folder, arranged in document order (as defined by the folder's ordering). The file you are editing sits at the center; files that come before it in the document appear above your content, and files that come after appear below. This gives the AI the full picture of where your content sits within the larger document, so it can produce rewrites that are consistent in tone, terminology, and narrative flow with the surrounding material.
+
+The same context is applied whether you are rewriting an entire file or just a selected region.
+
+#### Requirements
+
+- The folder you are browsing must be in **Document Mode** (i.e. it must have custom file ordering enabled). If it is not, the setting has no effect and the AI only sees the file being edited — the same behavior as when the option is off.
+- The feature applies to files in the **current folder only**. Files inside subfolders are not included.
+
+#### Enabling Full Document Context
+
+1. Open **Settings → AI Settings**.
+2. Scroll to the **Prompts** section.
+3. Check the **Full Document Context** checkbox.
+
+The setting is saved automatically. It remains active across sessions until you uncheck it.
+
+**Note:** Loading every file in a large document into the AI prompt can use significantly more tokens and may increase cost and response time. Consider enabling this option selectively for documents where cross-file consistency matters most.
+
 ### Customizing the Rewrite Prompt
 
 MkBrowser lets you create multiple **named rewrite personas** so you can switch between different AI instructions depending on the type of writing you're working on. The currently selected prompt is what gets sent to the AI when you click **Rewrite**.
