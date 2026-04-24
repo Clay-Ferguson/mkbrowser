@@ -29,7 +29,7 @@ import {
 
 type TextEntryProps = BaseEntryProps;
 
-function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown }: TextEntryProps) {
+function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom }: TextEntryProps) {
   const item = useItem(entry.path);
   const [isRewriting, setIsRewriting] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
@@ -184,6 +184,8 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
             onSaveSettings={onSaveSettings}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
+            onMoveToTop={onMoveToTop}
+            onMoveToBottom={onMoveToBottom}
             showEditButton
             onEditClick={edit.handleEditClick}
             className="-mr-1.5"

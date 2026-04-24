@@ -17,6 +17,10 @@ export interface BaseEntryProps {
   onMoveUp?: () => void;
   /** Move entry down one position in .INDEX.yaml (only provided in indexed mode, undefined for last entry) */
   onMoveDown?: () => void;
+  /** Move entry to top of .INDEX.yaml (Ctrl+Move Up) */
+  onMoveToTop?: () => void;
+  /** Move entry to bottom of .INDEX.yaml (Ctrl+Move Down) */
+  onMoveToBottom?: () => void;
 }
 
 /**

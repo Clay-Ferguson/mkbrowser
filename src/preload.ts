@@ -207,6 +207,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('insert-into-index-yaml', dirPath, newName, insertAfterName),
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') =>
     ipcRenderer.invoke('move-in-index-yaml', dirPath, name, direction),
+  moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') =>
+    ipcRenderer.invoke('move-to-edge-in-index-yaml', dirPath, name, edge),
   reconcileIndexedFiles: (dirPath: string, createIfMissing?: boolean) =>
     ipcRenderer.invoke('reconcile-indexed-files', dirPath, createIfMissing),
   readIndexYaml: (dirPath: string) =>

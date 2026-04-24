@@ -6,7 +6,7 @@ import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 
 import { readDirectory, parseFrontMatter } from './utils/fileUtils';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, readIndexYaml, writeIndexOptions } from './utils/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
@@ -319,6 +319,11 @@ function setupIpcHandlers(): void {
   // Move an entry up or down one position in .INDEX.yaml
   ipcMain.handle('move-in-index-yaml', async (_event, dirPath: string, name: string, direction: 'up' | 'down'): Promise<{ success: boolean; error?: string }> => {
     return moveInIndexYaml(dirPath, name, direction);
+  });
+
+  // Move an entry to the top or bottom of .INDEX.yaml
+  ipcMain.handle('move-to-edge-in-index-yaml', async (_event, dirPath: string, name: string, edge: 'top' | 'bottom'): Promise<{ success: boolean; error?: string }> => {
+    return moveToEdgeInIndexYaml(dirPath, name, edge);
   });
 
   // Reconcile .INDEX.yaml with the filesystem (phase 1: ensure all markdown files have a front-matter id)

@@ -241,6 +241,35 @@ export async function moveInIndexYaml(
   }
 }
 
+export async function moveToEdgeInIndexYaml(
+  dirPath: string,
+  name: string,
+  edge: 'top' | 'bottom',
+): Promise<{ success: boolean; error?: string }> {
+  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  try {
+    const indexYaml = await readIndexYaml(dirPath);
+    if (!indexYaml) return { success: false, error: '.INDEX.yaml not found or unreadable' };
+    const files = indexYaml.files ?? [];
+
+    const idx = files.findIndex((f) => f.name === name);
+    if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
+
+    const [entry] = files.splice(idx, 1);
+    if (edge === 'top') {
+      files.unshift(entry);
+    } else {
+      files.push(entry);
+    }
+
+    const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
+    await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 /**
  * Inserts a new entry into the .INDEX.yaml files array at the position
  * immediately after insertAfterName (or at position 0 when null).

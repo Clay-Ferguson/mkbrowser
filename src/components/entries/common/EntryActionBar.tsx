@@ -24,6 +24,10 @@ interface EntryActionBarProps {
   onMoveUp?: () => void;
   /** Move down in .INDEX.yaml (only provided in indexed mode; undefined hides the button) */
   onMoveDown?: () => void;
+  /** Move to top of .INDEX.yaml (Ctrl+Move Up) */
+  onMoveToTop?: () => void;
+  /** Move to bottom of .INDEX.yaml (Ctrl+Move Down) */
+  onMoveToBottom?: () => void;
   /** Extra className for the container */
   className?: string;
 }
@@ -43,6 +47,8 @@ export function EntryActionBar({
   onEditClick,
   onMoveUp,
   onMoveDown,
+  onMoveToTop,
+  onMoveToBottom,
   className = '',
 }: EntryActionBarProps) {
   const hasIndexFile = useHasIndexFile();
@@ -119,9 +125,16 @@ export function EntryActionBar({
       </button>
       {showEditActions && onMoveUp && (
         <button
-          onClick={(e) => { e.stopPropagation(); onMoveUp(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (e.ctrlKey && onMoveToTop) {
+              onMoveToTop();
+            } else {
+              onMoveUp();
+            }
+          }}
           className={BUTTON_CLZ_RENAME}
-          title="Move up"
+          title="Move up (Ctrl: move to top)"
           data-testid="entry-move-up-button"
         >
           <ArrowUpIcon className="w-5 h-5" />
@@ -129,9 +142,16 @@ export function EntryActionBar({
       )}
       {showEditActions && onMoveDown && (
         <button
-          onClick={(e) => { e.stopPropagation(); onMoveDown(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (e.ctrlKey && onMoveToBottom) {
+              onMoveToBottom();
+            } else {
+              onMoveDown();
+            }
+          }}
           className={BUTTON_CLZ_RENAME}
-          title="Move down"
+          title="Move down (Ctrl: move to bottom)"
           data-testid="entry-move-down-button"
         >
           <ArrowDownIcon className="w-5 h-5" />

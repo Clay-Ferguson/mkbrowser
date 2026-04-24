@@ -20,7 +20,7 @@ interface ImageEntryProps extends BaseEntryProps {
   allImages: FileEntryType[];
 }
 
-function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown }: ImageEntryProps) {
+function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom }: ImageEntryProps) {
   // console.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
   
   const {
@@ -216,6 +216,8 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
             onSaveSettings={onSaveSettings}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
+            onMoveToTop={onMoveToTop}
+            onMoveToBottom={onMoveToBottom}
             className="-mr-1.5"
           />
         )}

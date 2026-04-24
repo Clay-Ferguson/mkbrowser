@@ -296,6 +296,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     onRefreshDirectory();
   }, [currentPath, onRefreshDirectory]);
 
+  const handleMoveEntryToEdge = useCallback(async (name: string, edge: 'top' | 'bottom') => {
+    if (!currentPath) return;
+    await window.electronAPI.moveToEdgeInIndexYaml(currentPath, name, edge);
+    onRefreshDirectory();
+  }, [currentPath, onRefreshDirectory]);
+
   const doPasteCutItems = useCallback(async () => {
     if (!currentPath) return;
 
@@ -1078,18 +1084,20 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 {sortedEntries.map((entry, idx) => {
                   const moveUp = idx > 0 ? () => void handleMoveEntry(entry.name, 'up') : undefined;
                   const moveDown = idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
+                  const moveToTop = idx > 0 ? () => void handleMoveEntryToEdge(entry.name, 'top') : undefined;
+                  const moveToBottom = idx < sortedEntries.length - 1 ? () => void handleMoveEntryToEdge(entry.name, 'bottom') : undefined;
                   return (
                     <div key={entry.path}>
                       {entry.isDirectory ? (
-                        <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} />
+                        <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       ) : entry.isMarkdown ? (
-                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       ) : isImageFile(entry.name) ? (
-                        <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                        <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       ) : isTextFile(entry.name) ? (
-                        <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                        <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       ) : (
-                        <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} />
+                        <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       )}
                       {editMode && <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />}
                     </div>
