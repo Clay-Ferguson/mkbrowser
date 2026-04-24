@@ -217,6 +217,50 @@ Third part
 
 **Safety:** The Join operation verifies that the combined content was written correctly by checking the file size before deleting the other files. This ensures no data is lost.
 
+# Document Mode
+
+Document Mode lets you treat any folder as a structured document, where each file (or subfolder) in that folder represents a block of content. Instead of files appearing in some arbitrary filesystem order, Document Mode gives you full control over the sequence — so you can arrange your content exactly as it should read.
+
+This is useful any time a folder represents something with a meaningful order: a book where each chapter is a file, a course where each lesson is a subfolder, a report broken into sections, or any collection where sequence matters.
+
+## Enabling Document Mode
+
+1. Navigate into the folder you want to treat as a document.
+2. Open the **Sort** menu (the sort button in the toolbar).
+3. Click **Enable Custom Ordering** at the bottom of the menu.
+
+MkBrowser will immediately switch the folder into Document Mode. A hidden file named `.INDEX.yaml` is created in that folder — this file records and maintains the display order of all the entries. You don't need to edit this file directly; MkBrowser manages it for you automatically.
+
+Once Document Mode is active, the sort controls are replaced by an informational note confirming that files are ordered by `.INDEX.yaml`.
+
+## Editing Mode
+
+By default, Document Mode displays your content in a read-only view. To reveal the controls for rearranging and creating content, enable editing:
+
+- Check the **Edit** checkbox in the folder's toolbar.
+
+With editing enabled, the following controls appear on each entry:
+
+- **Move Up** (arrow up icon): Moves the file or folder one position earlier in the document order.
+- **Move Down** (arrow down icon): Moves the file or folder one position later.
+- **Ctrl + Move Up**: Moves the entry all the way to the top of the list in one click.
+- **Ctrl + Move Down**: Moves the entry all the way to the bottom of the list in one click.
+
+## Inserting New Files and Folders
+
+When editing is enabled, **insert bars** appear between every pair of entries (and at the very top of the list). Each insert bar has two icon buttons:
+
+- **Create File here** — opens the new-file dialog and inserts the file at that exact position.
+- **Create Folder here** — opens the new-folder dialog and inserts the folder at that position.
+
+This lets you add new content at any point in the document without having to move things around afterwards.
+
+## Disabling Document Mode
+
+If you want to go back to treating the folder as ordinary files — with normal sort options — you can disable Document Mode by deleting the `.INDEX.yaml` file from the folder.
+
+You can do this from within MkBrowser (enable editing, then delete the file using the trash icon) or from your operating system's file manager or terminal. Once `.INDEX.yaml` is gone, the folder returns to standard sort behavior.
+
 # Searching
 
 MkBrowser includes a powerful search feature to help you find content across your notes.
