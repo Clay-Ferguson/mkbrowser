@@ -1,10 +1,4 @@
-```skill
----
-name: popup-menus
-description: Pattern for creating popup menus anchored to icon buttons
----
-
-# Instructions
+# Pattern for creating popup menus anchored to icon buttons
 
 ## Overview
 
@@ -133,4 +127,4 @@ All popup menus use these consistent Tailwind classes (defined in `PopupMenu.tsx
 ## Existing Example
 
 `ToolsPopupMenu.tsx` is the canonical reference implementation. It provides three menu items (Folder Analysis, Re-Number Files, Export) with dividers between them, triggered by a `WrenchIcon` button in the `data-id="browser-header-actions"` div in `App.tsx`.
-```
+

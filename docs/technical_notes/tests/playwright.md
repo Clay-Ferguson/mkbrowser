@@ -1,9 +1,8 @@
----
-name: playwright-tests
-description: Pattern for writing Playwright E2E tests that capture screenshots and narration for GIF/MP4 generation
----
+# Playwright E2E Tests
 
-# Instructions
+## Overview
+This is the pattern for writing Playwright E2E tests that capture screenshots and narration for GIF/MP4 generation.
+
 
 Demo tests follow a strict pattern: they walk through a user-visible workflow step by step, capturing screenshots at each step and writing companion narration text files. Downstream tooling assembles these into a GIF and an MP4 with audio narration. The goal is to create clear, engaging demo videos that show off features in a tutorial style. We also do use these tests for basic E2E verification, so they have dual purpose: video createion and automated testing.
 

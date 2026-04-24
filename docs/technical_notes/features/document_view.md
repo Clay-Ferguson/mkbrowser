@@ -1,4 +1,6 @@
-# Custom File Ordering
+# Document View (i.e. Document Mode)
+
+This application supports something called `Document Mode` which is the ability to do "block based" document editing, similar idea to Jupyter Notebooks, but where we're using individual files (in a particular folder) as the "blocks", and we let the containing folder of those files represent the whole document. The user experience is Jupyter-like, but we're using individual markdown files and/or images as the document content. any folder that contains a file named `.INDEX.yaml` is considered to be a "Document" and so when the user navigates to one of these folders, it triggers our GUI to begin displaying and editing the files and folders in a particular order, with a unique set of features that is not available to the standard file system type editing that we do for ordinary folders. the key innovation that we accomplish with the `.INDEX.yaml` is to have the yam will be able to define a custom file ordering (ordinal positioning) for each file in the document, so that the document structure is maintained.
 
 ## Overview
 

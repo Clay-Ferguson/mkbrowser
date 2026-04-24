@@ -1,13 +1,8 @@
----
-name: app-pages
-description: Pattern for application pages
----
+# Pattern for Application Pages (i.e. Views, Tabs, Panels)
 
-# Instructions
+## Overview 
 
-## Page Name and Component Location
-
-Pages are the different top level views (aka panels) that we display in the application. Their names are defined in file `src/store/types.ts` in the following line of code.
+Pages are the different top level views (aka panels) that we display in the application. Their names are defined in file `src/store/types.ts` in the following line of code. 
 
 ```
 export type AppView = 'browser' | 'search-results' | 'settings';
