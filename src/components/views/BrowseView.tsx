@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
-  ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon, ListBulletIcon,
+  ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
 } from '@heroicons/react/24/outline';
 import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
 import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/outline';
@@ -13,7 +13,6 @@ import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import ToolsPopupMenu from '../menus/ToolsPopupMenu';
 import EditPopupMenu from '../menus/EditPopupMenu';
-import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import SearchPopupMenu from '../menus/SearchPopupMenu';
 import SortPopupMenu from '../menus/SortPopupMenu';
 import CreateFileDialog from '../dialogs/CreateFileDialog';
@@ -118,7 +117,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
   const [showToolsMenu, setShowToolsMenu] = useState<boolean>(false);
   const [showEditMenu, setShowEditMenu] = useState<boolean>(false);
-  const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
   const [showSearchMenu, setShowSearchMenu] = useState<boolean>(false);
   const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
@@ -197,7 +195,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toolsButtonRef = useRef<HTMLButtonElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
-  const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const sortButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -908,17 +905,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             <Squares2X2Icon className="w-5 h-5" />
           </button>
 
-          {/* Bookmarks menu button (now uses ListBulletIcon for menu distinction) */}
-          <button
-            ref={bookmarksButtonRef}
-            onClick={() => setShowBookmarksMenu(prev => !prev)}
-            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors"
-            title="Bookmarks menu"
-            data-testid="bookmarks-menu-button"
-          >
-            <ListBulletIcon className="w-5 h-5" />
-          </button>
-
           {/* Tools menu button */}
           <button
             ref={toolsButtonRef}
@@ -1223,16 +1209,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             });
             setShowSearchDialog(true);
           }}
-        />
-      )}
-
-      {showBookmarksMenu && (
-        <BookmarksPopupMenu
-          anchorRef={bookmarksButtonRef}
-          onClose={() => setShowBookmarksMenu(false)}
-          bookmarks={settings.bookmarks || []}
-          rootPath={rootPath}
-          onNavigate={(fullPath) => void navigateToBookmark(fullPath)}
         />
       )}
 

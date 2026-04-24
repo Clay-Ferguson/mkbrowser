@@ -44,7 +44,6 @@ interface IndexTreeWidthOption {
 }
 
 const indexTreeWidthOptions: IndexTreeWidthOption[] = [
-  { value: 'hidden', label: 'Not Visible' },
   { value: 'narrow', label: 'Narrow' },
   { value: 'medium', label: 'Medium' },
   { value: 'wide', label: 'Wide' },

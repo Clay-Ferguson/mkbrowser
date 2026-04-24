@@ -1,6 +1,7 @@
-import { useEffect, useCallback, useRef } from 'react';
-import { MinusSmallIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from '@heroicons/react/24/outline';
+import { useEffect, useCallback, useRef, useState } from 'react';
+import { MinusSmallIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
+import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import {
   useRootPath,
   useCurrentPath,
@@ -85,6 +86,8 @@ function IndexTree() {
   const hasCutItems = useHasCutItems();
   const highlightItem = useHighlightItem();
   const containerRef = useRef<HTMLDivElement>(null);
+  const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
+  const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
   useEffect(() => {
@@ -218,7 +221,18 @@ function IndexTree() {
 
   return (
     <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800`}>
-      <div className="flex items-center justify-end gap-1 px-2 py-1 border-b border-slate-700 shrink-0">
+      <div className="flex items-center justify-between gap-1 px-2 py-1 border-b border-slate-700 shrink-0">
+        <button
+          ref={bookmarksButtonRef}
+          type="button"
+          onClick={() => setShowBookmarksMenu(prev => !prev)}
+          className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
+          title="Bookmarks menu"
+          data-testid="bookmarks-menu-button"
+        >
+          <ListBulletIcon className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={collapseAllIndexTreeNodes}
@@ -249,7 +263,17 @@ function IndexTree() {
             <ChevronDoubleRightIcon className="w-5 h-5" />
           </button>
         )}
+        </div>
       </div>
+      {showBookmarksMenu && (
+        <BookmarksPopupMenu
+          anchorRef={bookmarksButtonRef}
+          onClose={() => setShowBookmarksMenu(false)}
+          bookmarks={settings.bookmarks || []}
+          rootPath={rootPath ?? ''}
+          onNavigate={(fullPath) => void navigateToBrowserPath(fullPath)}
+        />
+      )}
       <div ref={containerRef} className="flex-1 overflow-y-auto pl-2 pr-2 pt-2">
       <div className="py-1">
         {rows.map(({ node, depth }) => (
