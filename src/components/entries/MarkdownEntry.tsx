@@ -62,6 +62,10 @@ function preprocessMathEscapes(content: string): string {
   return content.replace(/\\\$/g, '&#36;');
 }
 
+function stripHtmlComments(content: string): string {
+  return content.replace(/<!--[\s\S]*?-->/g, '');
+}
+
 /**
  * Preprocess wikilinks: convert [[target]] and [[target|alias]] syntax
  * into standard markdown links before rendering.
@@ -247,7 +251,7 @@ function createCustomAnchor(entryPath: string) {
       if (href.startsWith('#')) {
         e.preventDefault();
         const target = document.getElementById(href.slice(1));
-        if (target) target.scrollIntoView({ behavior: 'smooth' });
+        if (target) target.scrollIntoView();
         return;
       }
 
@@ -529,7 +533,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     }
   };
 
-  const processedContent = preprocessWikiLinks(preprocessMathEscapes(content || ''));
+  const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(content || '')));
   const columns = splitOnColumnBreaks(processedContent);
 
   return (

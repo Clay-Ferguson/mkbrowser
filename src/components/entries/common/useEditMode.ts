@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing, upsertItem } from '../../../store';
+import { removeTOC } from '../../../utils/tocUtils';
 import type { EditModeState } from './types';
 
 interface UseEditModeOptions {
@@ -41,7 +42,7 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
   // This handles external triggers (e.g., from search results edit button)
   useEffect(() => {
     if (isEditing && !editInitialized.current && item?.content !== undefined) {
-      setItemEditContent(path, item.content);
+      setItemEditContent(path, removeTOC(item.content));
       editInitialized.current = true;
     }
   }, [isEditing, item?.content, path]);
@@ -56,13 +57,13 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
         // Update the store with the new modifiedTime and content
         upsertItem(path, item.name, item.isDirectory, diskMtime, item.createdTime);
         setItemContent(path, freshContent);
-        setItemEditContent(path, freshContent);
+        setItemEditContent(path, removeTOC(freshContent));
       } catch {
         // If re-read fails, fall back to cached content
-        setItemEditContent(path, content);
+        setItemEditContent(path, removeTOC(content));
       }
     } else {
-      setItemEditContent(path, content);
+      setItemEditContent(path, removeTOC(content));
     }
     editInitialized.current = true;
     setItemExpanded(path, true);
