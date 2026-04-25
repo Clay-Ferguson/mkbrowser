@@ -21,7 +21,7 @@ export interface PasteFromClipboardResult {
 export async function pasteFromClipboard(
   currentPath: string,
   writeFileBinary: (path: string, base64: string) => Promise<boolean>,
-  writeFile: (path: string, content: string) => Promise<boolean>
+  writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>
 ): Promise<PasteFromClipboardResult> {
   try {
     // Try to read clipboard items (modern Clipboard API)
@@ -62,15 +62,15 @@ export async function pasteFromClipboard(
         const fileName = generateTimestampFilename('.md');
         const filePath = `${currentPath}/${fileName}`;
         
-        const success = await writeFile(filePath, text);
-        if (success) {
+        const result = await writeFile(filePath, text);
+        if (result.ok) {
           return { success: true, fileName };
         } else {
           return { success: false, error: 'Failed to paste text from clipboard' };
         }
       }
     }
-    
+
     return { success: false, error: 'Clipboard is empty or contains unsupported content' };
   } catch {
     // Fallback to older clipboard API for text
@@ -79,9 +79,9 @@ export async function pasteFromClipboard(
       if (text) {
         const fileName = generateTimestampFilename('.md');
         const filePath = `${currentPath}/${fileName}`;
-        
-        const success = await writeFile(filePath, text);
-        if (success) {
+
+        const result = await writeFile(filePath, text);
+        if (result.ok) {
           return { success: true, fileName };
         } else {
           return { success: false, error: 'Failed to paste text from clipboard' };

@@ -8,6 +8,7 @@ import type { AppConfig } from './configMgr';
 import { readDirectory, parseFrontMatter } from './utils/fileUtils';
 import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
+import { processTOC } from './utils/tocUtils';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
 import { searchFolder, type SearchResult } from './search';
@@ -189,13 +190,19 @@ function setupIpcHandlers(): void {
   });
 
   // Write content to a file
-  ipcMain.handle('write-file', async (_event, filePath: string, content: string): Promise<boolean> => {
+  ipcMain.handle('write-file', async (_event, filePath: string, content: string): Promise<{ ok: boolean; content: string }> => {
     try {
-      await fs.promises.writeFile(filePath, content, 'utf-8');
+      let finalContent = content;
+
+      if (filePath.toLowerCase().endsWith('.md')) {
+        finalContent = await processTOC(content);
+      }
+
+      await fs.promises.writeFile(filePath, finalContent, 'utf-8');
 
       // Post-save: run front-matter autogen for Markdown files
       if (filePath.toLowerCase().endsWith('.md')) {
-        const { yaml: frontMatter, content: body } = parseFrontMatter(content);
+        const { yaml: frontMatter, content: body } = parseFrontMatter(finalContent);
         if (frontMatter) {
           frontMatterFileSaved(filePath, frontMatter, body).catch(() => {
             // errors already logged inside frontMatterFileSaved
@@ -203,10 +210,10 @@ function setupIpcHandlers(): void {
         }
       }
 
-      return true;
+      return { ok: true, content: finalContent };
     } catch (error) {
       console.error('Error writing file:', error);
-      return false;
+      return { ok: false, content };
     }
   });
 

@@ -150,7 +150,7 @@ export interface ElectronAPI {
   readExif: (filePath: string) => Promise<Record<string, Record<string, string>>>;
   writeExif: (filePath: string, data: Record<string, Record<string, string>>) => Promise<boolean>;
   pathExists: (checkPath: string) => Promise<boolean>;
-  writeFile: (filePath: string, content: string) => Promise<boolean>;
+  writeFile: (filePath: string, content: string) => Promise<{ ok: boolean; content: string }>;
   getFileSize: (filePath: string) => Promise<number>;
   getFileMtime: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;

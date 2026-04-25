@@ -5,6 +5,7 @@ import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -724,7 +725,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                   >
                     <Markdown
                       remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
-                      rehypePlugins={[rehypeKatex]}
+                      rehypePlugins={[rehypeKatex, rehypeSlug]}
                       // react-markdown v10 strips any URL whose protocol isn't in its default
                       // whitelist (http, https, mailto, etc.), so file:// links would be silently
                       // replaced with an empty string. An identity function bypasses that

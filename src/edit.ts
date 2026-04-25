@@ -215,7 +215,7 @@ export interface SplitFileValidationResult {
 export async function performSplitFile(
   selectedItems: ItemData[],
   readFile: (path: string) => Promise<string>,
-  writeFile: (path: string, content: string) => Promise<boolean>,
+  writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
   createFile: (path: string, content: string) => Promise<{ success: boolean; error?: string }>,
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>
 ): Promise<SplitFileValidationResult> {
@@ -271,7 +271,7 @@ export interface JoinFilesValidationResult {
 export async function performJoinFiles(
   selectedItems: ItemData[],
   readFile: (path: string) => Promise<string>,
-  writeFile: (path: string, content: string) => Promise<boolean>,
+  writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
   deleteFile: (path: string) => Promise<boolean>,
   getFileSize: (path: string) => Promise<number>
 ): Promise<JoinFilesValidationResult> {

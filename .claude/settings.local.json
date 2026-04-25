@@ -24,7 +24,9 @@
       "Bash(timeout 15 npm start:*)",
       "Bash(timeout 20 npm start:*)",
       "WebSearch",
-      "Read(//home/clay/ferguson/AI Testing/**)"
+      "Read(//home/clay/ferguson/AI Testing/**)",
+      "Bash(grep -E \"^\\(unified|remark-parse|remark-stringify|mdast-util-toc|rehype-slug|github-slugger|vfile\\)$\")",
+      "Bash(grep -E \"^\\(mdast-util-toc|rehype-slug|github-slugger\\)$\")"
     ]
   }
 }

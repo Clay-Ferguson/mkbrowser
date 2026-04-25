@@ -27,7 +27,7 @@ export interface SplitFileResult {
 export async function splitFile(
   filePath: string,
   readFile: (path: string) => Promise<string>,
-  writeFile: (path: string, content: string) => Promise<boolean>,
+  writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
   createFile: (path: string, content: string) => Promise<{ success: boolean; error?: string }>,
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>
 ): Promise<SplitFileResult> {
@@ -71,7 +71,7 @@ export async function splitFile(
     
     // Write the first part to the renamed file
     const writeSuccess = await writeFile(renamedFilePath, parts[0]);
-    if (!writeSuccess) {
+    if (!writeSuccess.ok) {
       return {
         success: false,
         error: 'Failed to write the first part to the renamed file.',
@@ -136,7 +136,7 @@ export interface JoinFilesResult {
 export async function joinFiles(
   filePaths: string[],
   readFile: (path: string) => Promise<string>,
-  writeFile: (path: string, content: string) => Promise<boolean>,
+  writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
   deleteFile: (path: string) => Promise<boolean>,
   getFileSize: (path: string) => Promise<number>
 ): Promise<JoinFilesResult> {
@@ -164,7 +164,7 @@ export async function joinFiles(
     // Write to the first file (alphabetically)
     const targetPath = sortedPaths[0];
     const writeSuccess = await writeFile(targetPath, joinedContent);
-    if (!writeSuccess) {
+    if (!writeSuccess.ok) {
       return {
         success: false,
         error: 'Failed to write the joined content to the target file.',

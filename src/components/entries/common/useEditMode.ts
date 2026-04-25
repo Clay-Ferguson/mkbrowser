@@ -77,9 +77,9 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
   const handleSave = async () => {
     setSaving(true);
     try {
-      const success = await window.electronAPI.writeFile(path, editContent);
-      if (success) {
-        setItemContent(path, editContent, Date.now());
+      const result = await window.electronAPI.writeFile(path, editContent);
+      if (result.ok) {
+        setItemContent(path, result.content, Date.now());
         setItemEditing(path, false);
       }
     } finally {

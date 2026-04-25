@@ -102,7 +102,7 @@ export interface ElectronAPI {
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
   pathExists: (checkPath: string) => Promise<boolean>;
-  writeFile: (filePath: string, content: string) => Promise<boolean>;
+  writeFile: (filePath: string, content: string) => Promise<{ ok: boolean; content: string }>;
   getFileSize: (filePath: string) => Promise<number>;
   getFileMtime: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
