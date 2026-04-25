@@ -14,6 +14,7 @@ To add MkBrowser to your application launcher on Ubuntu/GNOME so you can pin it 
 3. Open your application launcher (Activities / Show Applications) and find **MkBrowser**.
 4. Right-click the icon and choose **Add to Favorites** to pin it to your dock.
 
+
 # Browsing and Editing
 
 MkBrowser displays your files and folders in a single streamlined list.
@@ -123,6 +124,56 @@ You can manage your files using the application menu or keyboard shortcuts.
 - **Cut/Paste**:
     - Select items and choose **Cut** from the **Edit** menu to move files.
     - Navigate to the destination folder and choose **Paste**.
+
+# Edit Menu Features
+
+The **Edit** menu provides a set of tools for managing and manipulating your files and selections. Below are the main features available:
+
+## Undo Cut
+Restores items that were previously marked as "cut" (for moving) back to their original state, cancelling the pending move operation. Use this if you change your mind after cutting items but before pasting them.
+
+## Select All
+Selects all files and folders in the current directory, making it easy to perform batch operations like cut, copy, or delete.
+
+## Unselect All
+Clears all current selections in the file list, so no items remain selected.
+
+## Move to Folder
+Moves a selected file into a new folder with the same base name (minus extension). For example, selecting `chapter1.md` and choosing **Move to Folder** will create a folder named `chapter1` and move the file inside it. Only available when exactly one file is selected. 
+
+## Split
+See [Split and Join](#split-and-join) for full details. Splits a single text or Markdown file into multiple files at each double blank line (two consecutive empty lines). The new files are named with numeric suffixes to preserve order.
+
+## Join
+See [Split and Join](#split-and-join) for full details. Combines two or more selected text or Markdown files into a single file, inserting double blank lines between each file's content. The result is saved to the alphabetically first file, and the others are deleted after joining.
+
+## Replace in Files
+See [Replace in Files](#replace-in-files) for details. Opens a dialog to search and replace text across all `.md` and `.txt` files in the current folder and subfolders.
+
+
+## Cut and Paste
+
+The **Cut** operation allows you to move files and folders to a new location. To use it:
+
+1. Select one or more items in the Browse view by clicking the checkboxes next to each file or folder.
+2. When items are selected, a **Cut** button appears at the top of the page. Click it to mark the selected items for moving.
+3. Once items have been cut, various **Paste** icons will appear throughout the application—anywhere a folder is a valid paste destination.
+4. Click a **Paste** icon next to your desired destination folder to move the cut items there.
+
+**Notes:**
+- You can only paste into folders where the operation is valid (e.g., not into the same folder the items came from, and not if it would create duplicates).
+- After pasting, the items are moved to the new location and removed from their original folder.
+- If you change your mind after cutting but before pasting, use **Undo Cut** from the Edit menu to cancel the operation.
+
+## Delete
+
+The **Delete** operation lets you remove files and folders from your workspace. There are two ways to delete:
+
+1. **Single item:** Click the **Delete** (trash) icon next to any file or folder to delete just that item.
+2. **Multiple items:** Select multiple items using the checkboxes, then click the **Delete** button that appears at the top of the page when items are selected. All selected items will be deleted in one action.
+
+**Notes:**
+Deleted files go into your operating system trash bin rather than being permanently deleted.
 
 ## Split and Join
 
