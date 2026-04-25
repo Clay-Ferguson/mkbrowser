@@ -242,9 +242,18 @@ function createCustomAnchor(entryPath: string) {
         return;
       }
 
+      // Handle in-page anchor links — native hash navigation doesn't work in Electron
+      // SPAs because content scrolls inside a nested container, not at window level.
+      if (href.startsWith('#')) {
+        e.preventDefault();
+        const target = document.getElementById(href.slice(1));
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+
       // Handle relative links (./file.md, ../folder/file.md, or just file.md)
-      // Skip anchor-only links and other protocols
-      if (!href.startsWith('#') && !href.includes('://')) {
+      // Skip other protocols
+      if (!href.includes('://')) {
         e.preventDefault();
 
         // Get the directory containing this markdown file
@@ -751,7 +760,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               >
                 <Markdown
                   remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
-                  rehypePlugins={[rehypeKatex]}
+                  rehypePlugins={[rehypeKatex, rehypeSlug]}
                   // react-markdown v10 strips any URL whose protocol isn't in its default
                   // whitelist (http, https, mailto, etc.), so file:// links would be silently
                   // replaced with an empty string. An identity function bypasses that
