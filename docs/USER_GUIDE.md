@@ -137,6 +137,34 @@ While the code editor has focus, the following keyboard shortcuts are available:
 | `Ctrl+Q` | Abandon editing — discards all unsaved changes and exits without prompting. |
 | `Ctrl+S` | Save and exit — saves your changes to disk and returns to the rendered view. |
 
+## Automatic Table of Contents Generation
+
+MkBrowser can automatically generate and maintain a **Table of Contents** for any Markdown file. All you need to do is place the following HTML comment anywhere in your file:
+
+```
+<!-- TOC -->
+```
+
+That's it. Whenever you save the file, MkBrowser will replace that placeholder with a fully generated table of contents, using every heading in the document (up to three levels deep). The result looks like this:
+
+```
+<!-- TOC -->
+
+* [Introduction](#introduction)
+* [Getting Started](#getting-started)
+  * [Installation](#installation)
+  * [Configuration](#configuration)
+* [Advanced Usage](#advanced-usage)
+
+<!-- /TOC -->
+```
+
+On your next save, MkBrowser will regenerate the TOC in place, keeping it in sync with any heading changes you made.
+
+**While editing**, the full TOC block is hidden — the editor shows only the original `<!-- TOC -->` placeholder so it stays out of your way. The complete TOC is restored as soon as you save.
+
+If your file has no `<!-- TOC -->` comment, nothing happens. If it has headings but none at the configured depth, or no headings at all, the file is saved unchanged.
+
 ## Tag Picker
 
 While editing a Markdown file, a **tag picker** appears below the editor. It shows a row of clickable checkboxes — one for each hashtag defined in any `.TAGS.yaml` file(s) found in the file's ancestor directories. You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand.
