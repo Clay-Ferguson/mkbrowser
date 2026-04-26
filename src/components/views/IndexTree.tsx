@@ -28,6 +28,7 @@ import {
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
 import { pasteCutItems } from '../../edit';
 import { extractHeadingTree } from '../../utils/tocUtils';
+import { scrollElementIntoView } from '../../utils/entryDom';
 
 // ── Type guards ──────────────────────────────────────────────────────────────
 
@@ -348,10 +349,17 @@ function IndexTree() {
                   e.preventDefault();
                   const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
                   const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
-                  // console.log('[IndexTree] heading right-click → filePath:', filePath, 'folderPath:', folderPath, 'slug:', node.slug);
                   setHighlightItem(filePath);
-                  setPendingScrollToHeadingSlug(node.slug);
-                  navigateToBrowserPath(folderPath, filePath);
+                  // if the target slug is already on the page, we can scroll to it immediately 
+                  if (document.getElementById(node.slug)) {
+                    scrollElementIntoView(node.slug);
+                  } 
+                  // otherwise, we have to first navigate to the particular location where the file is 
+                  // and let the file display and then scroll to the slug.
+                  else {
+                    setPendingScrollToHeadingSlug(node.slug);
+                    navigateToBrowserPath(folderPath, filePath);
+                  }
                 }}
               >
                 <span className="shrink-0 w-3 text-center mr-1 text-slate-500">
