@@ -1,3 +1,16 @@
+// Brighter purple for dark backgrounds
+const HIGHLIGHT_BOX_SHADOW = '0 0 0 2px #c084fc'; // Tailwind purple-400
+
+/**
+ * Adds a temporary highlight to a DOM element (2px bright purple border).
+ * Removes the highlight after a few seconds.
+ */
+export function temporaryHighlightItem(element: HTMLElement) {
+  element.style.boxShadow = HIGHLIGHT_BOX_SHADOW;
+  setTimeout(() => {
+    element.style.boxShadow = '';
+  }, 7000);
+}
 export const buildEntryHeaderId = (filePath: string) => `entry-${encodeURIComponent(filePath)}`;
 
 /**
@@ -13,6 +26,7 @@ export const scrollItemIntoView = (filePath: string) => {
   // Find the scrollable main container (the element with overflow-y-auto)
   const scrollContainer = document.querySelector('main');
   if (!scrollContainer) {
+    temporaryHighlightItem(element);
     // Fallback to scrollIntoView if container not found
     element.scrollIntoView({ block: 'center' });
     return;
@@ -37,6 +51,8 @@ export const scrollItemIntoView = (filePath: string) => {
   const maxScrollTop = scrollContainer.scrollHeight - containerHeight;
   const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop));
 
+  temporaryHighlightItem(element);
+
   scrollContainer.scrollTo({
     top: clampedScrollTop,
     behavior: 'instant'
@@ -54,6 +70,7 @@ export const scrollElementIntoView = (elementId: string) => {
 
   const scrollContainer = document.querySelector('main');
   if (!scrollContainer) {
+    temporaryHighlightItem(element);
     element.scrollIntoView({ block: 'center' });
     return;
   }
@@ -68,5 +85,6 @@ export const scrollElementIntoView = (elementId: string) => {
   const maxScrollTop = scrollContainer.scrollHeight - containerHeight;
   const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop));
 
+  temporaryHighlightItem(element);
   scrollContainer.scrollTo({ top: clampedScrollTop, behavior: 'smooth' });
 };
