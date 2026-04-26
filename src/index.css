@@ -25,6 +25,11 @@
   background: #22262b;
 }
 
+::-webkit-scrollbar-corner {
+  /* background-color: rgb(41, 52, 68); */
+  border: 1px solid #666;
+}
+
 /* Prevent Dark Reader extension from overriding scrollbar colors */
 * {
   scrollbar-color: unset !important;
