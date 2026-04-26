@@ -330,8 +330,8 @@ function IndexTree() {
           onNavigate={(fullPath) => void navigateToBrowserPath(fullPath)}
         />
       )}
-      <div ref={containerRef} className="flex-1 overflow-y-auto pl-2 pr-2 pt-2">
-      <div className="py-1">
+      <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
+      <div className="py-1 min-w-max">
         {rows.map(({ node, depth }) => {
           if (isMarkdownHeadingNode(node)) {
             const hasChildren = node.children && node.children.length > 0;
@@ -368,7 +368,7 @@ function IndexTree() {
                     : '·'
                   }
                 </span>
-                <span className="truncate flex-1 min-w-0 text-slate-300 italic">{node.heading}</span>
+                <span className="text-slate-300 italic">{node.heading}</span>
               </div>
             );
           }
@@ -431,7 +431,7 @@ function IndexTree() {
                     : '●'
                 }
               </span>
-              <span className="truncate flex-1 min-w-0">{node.name}</span>
+              <span>{node.name}</span>
               {hasCutItems && node.isDirectory && (
                 <button
                   type="button"
