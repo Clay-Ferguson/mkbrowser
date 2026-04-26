@@ -42,3 +42,31 @@ export const scrollItemIntoView = (filePath: string) => {
     behavior: 'instant'
   });
 };
+
+/**
+ * Scrolls an arbitrary DOM element (identified by id) into view within the
+ * main content area. Used to scroll to a specific markdown heading after
+ * navigating from the IndexTree.
+ */
+export const scrollElementIntoView = (elementId: string) => {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+
+  const scrollContainer = document.querySelector('main');
+  if (!scrollContainer) {
+    element.scrollIntoView({ block: 'center' });
+    return;
+  }
+
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const elementRect = element.getBoundingClientRect();
+  const currentScrollTop = scrollContainer.scrollTop;
+  const elementTopInContainer = elementRect.top - containerRect.top + currentScrollTop;
+  const containerHeight = containerRect.height;
+  const elementHeight = elementRect.height;
+  const targetScrollTop = elementTopInContainer - (containerHeight / 2) + (elementHeight / 2);
+  const maxScrollTop = scrollContainer.scrollHeight - containerHeight;
+  const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop));
+
+  scrollContainer.scrollTo({ top: clampedScrollTop, behavior: 'smooth' });
+};

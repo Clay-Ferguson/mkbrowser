@@ -3,6 +3,7 @@ import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
 import { toc } from 'mdast-util-toc';
 import type { Root, Heading } from 'mdast';
+import GithubSlugger from 'github-slugger';
 import type { MarkdownHeadingNode } from '../store/types';
 
 const START_TAG = '<!-- TOC -->';
@@ -142,15 +143,21 @@ export function extractHeadingTree(filePath: string, content: string): MarkdownH
   const ast = unified().use(remarkParse).parse(content) as Root;
   const headings = ast.children.filter((n): n is Heading => n.type === 'heading');
 
-  // Build nodes in order, assign synthetic paths
-  const nodes: MarkdownHeadingNode[] = headings.map((h, i) => ({
-    path: `${filePath}#${i}`,
-    heading: headingText(h),
-    depth: h.depth,
-    isExpanded: false,
-    isLoading: false,
-    children: null,
-  }));
+  const slugger = new GithubSlugger();
+
+  // Build nodes in order, assign synthetic paths and rehype-slug-compatible slugs
+  const nodes: MarkdownHeadingNode[] = headings.map((h, i) => {
+    const text = headingText(h);
+    return {
+      path: `${filePath}#${i}`,
+      heading: text,
+      slug: slugger.slug(text),
+      depth: h.depth,
+      isExpanded: false,
+      isLoading: false,
+      children: null,
+    };
+  });
 
   // Stack-based tree assembly: stack holds ancestors by depth
   const roots: MarkdownHeadingNode[] = [];

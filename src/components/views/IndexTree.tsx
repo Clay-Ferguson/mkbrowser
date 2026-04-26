@@ -23,6 +23,7 @@ import {
   navigateToBrowserPath,
   setHighlightItem,
   setIndexTreeWidth,
+  setPendingScrollToHeadingSlug,
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
 import { pasteCutItems } from '../../edit';
@@ -339,10 +340,19 @@ function IndexTree() {
                 data-tree-path={node.path}
                 className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
                   text-slate-400 border-l-2 border-transparent
-                  ${hasChildren ? 'cursor-pointer hover:bg-slate-700' : 'cursor-default'}
+                  ${hasChildren ? 'cursor-pointer hover:bg-slate-700' : 'cursor-default hover:bg-slate-700'}
                 `}
                 style={{ paddingLeft: `${8 + depth * 12}px` }}
                 onClick={() => { if (hasChildren) void handleNodeClick(node); }}
+                onContextMenu={e => {
+                  e.preventDefault();
+                  const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
+                  const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
+                  // console.log('[IndexTree] heading right-click → filePath:', filePath, 'folderPath:', folderPath, 'slug:', node.slug);
+                  setHighlightItem(filePath);
+                  setPendingScrollToHeadingSlug(node.slug);
+                  navigateToBrowserPath(folderPath, filePath);
+                }}
               >
                 <span className="shrink-0 w-3 text-center mr-1 text-slate-500">
                   {hasChildren
@@ -383,7 +393,15 @@ function IndexTree() {
               onClick={() => { if (isClickable) void handleNodeClick(node); }}
               onContextMenu={e => {
                 e.preventDefault();
-                if (node.isDirectory) {
+                console.log('[IndexTree] onContextMenu node:', JSON.stringify({ path: node.path, isHeading: isMarkdownHeadingNode(node), isDir: (node as FileNode).isDirectory }));
+                if (isMarkdownHeadingNode(node)) {
+                  const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
+                  const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
+                  // console.log('[IndexTree] heading right-click → filePath:', filePath, 'folderPath:', folderPath, 'slug:', node.slug);
+                  setHighlightItem(filePath);
+                  setPendingScrollToHeadingSlug(node.slug);
+                  navigateToBrowserPath(folderPath, filePath);
+                } else if (node.isDirectory) {
                   navigateToBrowserPath(node.path);
                 } else {
                   const folderPath = node.path.substring(0, node.path.lastIndexOf('/'));

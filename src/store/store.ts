@@ -26,6 +26,7 @@ const initialState: AppState = {
   currentPath: '',
   currentView: 'browser', // browser | search-results | settings
   pendingScrollToFile: null,
+  pendingScrollToHeadingSlug: null,
   searchQuery: '',
   searchFolder: '',
   searchResults: [],
@@ -117,6 +118,10 @@ function getCurrentPathSnapshot(): string {
  */
 function getPendingScrollToFileSnapshot(): string | null {
   return state.pendingScrollToFile;
+}
+
+function getPendingScrollToHeadingSlugSnapshot(): string | null {
+  return state.pendingScrollToHeadingSlug;
 }
 
 /**
@@ -1013,6 +1018,17 @@ export function setPendingScrollToFile(fileName: string): void {
   emitChange();
 }
 
+export function setPendingScrollToHeadingSlug(slug: string): void {
+  state = { ...state, pendingScrollToHeadingSlug: slug };
+  emitChange();
+}
+
+export function clearPendingScrollToHeadingSlug(): void {
+  if (state.pendingScrollToHeadingSlug === null) return;
+  state = { ...state, pendingScrollToHeadingSlug: null };
+  emitChange();
+}
+
 /**
  * Set a file to start editing after navigation completes
  * @param filePath - The full path of the file to edit
@@ -1290,6 +1306,10 @@ export function useCurrentPath(): string {
  */
 export function usePendingScrollToFile(): string | null {
   return useSyncExternalStore(subscribe, getPendingScrollToFileSnapshot);
+}
+
+export function usePendingScrollToHeadingSlug(): string | null {
+  return useSyncExternalStore(subscribe, getPendingScrollToHeadingSlugSnapshot);
 }
 
 /**

@@ -59,6 +59,8 @@ import {
   usePendingEditFile,
   usePendingEditLineNumber,
   usePendingEditView,
+  usePendingScrollToHeadingSlug,
+  clearPendingScrollToHeadingSlug,
   useSettings,
   useExpansionCounts,
   useHasIndexFile,
@@ -66,7 +68,7 @@ import {
   useIndexYaml,
   type SearchDefinition,
 } from '../../store';
-import { scrollItemIntoView } from '../../utils/entryDom';
+import { scrollItemIntoView, scrollElementIntoView } from '../../utils/entryDom';
 import { pasteCutItems, deleteSelectedItems, moveFileToFolder, performSplitFile, performJoinFiles } from '../../edit';
 import { pasteFromClipboard } from '../../utils/clipboard';
 import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtils';
@@ -150,6 +152,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     void window.electronAPI.reconcileIndexedFiles(currentPath, false);
   }, [currentPath]);
   const pendingScrollToFile = usePendingScrollToFile();
+  const pendingScrollToHeadingSlug = usePendingScrollToHeadingSlug();
   const pendingEditFile = usePendingEditFile();
   const pendingEditLineNumber = usePendingEditLineNumber();
   const pendingEditView = usePendingEditView();
@@ -219,10 +222,22 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
       // Short timeout just for DOM to settle after React render
       setTimeout(() => {
+        // console.log('[BrowseView] scroll effect fired — pendingScrollToFile:', pendingScrollToFile, 'pendingScrollToHeadingSlug:', pendingScrollToHeadingSlug);
         if (pendingScrollToFile) {
-          // Scroll to specific file (e.g., from search results)
+          // Scroll to specific file (e.g., from search results or index tree heading)
           scrollItemIntoView(pendingScrollToFile);
           clearPendingScrollToFile();
+          if (pendingScrollToHeadingSlug) {
+            const slug = pendingScrollToHeadingSlug;
+            // console.log('[BrowseView] scheduling heading scroll for slug:', slug);
+            // Wait for markdown content to finish rendering before scrolling to heading
+            setTimeout(() => {
+              // const el = document.getElementById(slug);
+              // console.log('[BrowseView] heading scroll firing — slug:', slug, 'element found:', !!el, el);
+              scrollElementIntoView(slug);
+              clearPendingScrollToHeadingSlug();
+            }, 750);
+          }
         } else if (isNewFolder) {
           // Restore saved scroll position for this folder, or scroll to top
           const savedPosition = getBrowserScrollPosition(currentPath);
@@ -243,7 +258,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         }
       }, 100);
     }
-  }, [loading, pendingScrollToFile, pendingEditFile, pendingEditView, currentPath, currentView]);
+  }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, currentPath, currentView]);
 
   // Handle scroll events on the main container (debounced save)
   const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {

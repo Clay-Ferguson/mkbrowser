@@ -269,6 +269,7 @@ export interface MarkdownFileNode extends FileNode {
 export interface MarkdownHeadingNode extends TreeNode {
   path: string;
   heading: string;
+  slug: string;
   depth: number;
   children: MarkdownHeadingNode[] | null;
 }
@@ -298,6 +299,13 @@ export interface AppState {
    * Set when navigating from search results, cleared after scrolling.
    */
   pendingScrollToFile: string | null;
+
+  /**
+   * Heading slug to scroll to after the file entry finishes rendering.
+   * Set alongside pendingScrollToFile when navigating from a heading node
+   * in the IndexTree; cleared after the heading scroll completes.
+   */
+  pendingScrollToHeadingSlug: string | null;
 
   /**
    * The search query that produced the current search results

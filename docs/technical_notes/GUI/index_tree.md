@@ -1,4 +1,4 @@
-# Index Tree
+# Index Tree Application Panel
 
 The component named `IndexTree.tsx` is the tree view panel on the left side of the main application window. It displays the file system hierarchy and, for markdown files, the internal heading structure. Folders and markdown files can be expanded and collapsed. Right-clicking any node navigates the main browser view to that file or folder.
 
