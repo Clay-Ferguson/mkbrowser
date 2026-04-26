@@ -44,6 +44,7 @@ export interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
   foldersOnTop: boolean;
+  showToc: boolean;
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
   contentWidth: ContentWidth;
@@ -98,6 +99,7 @@ export const defaultSettings: AppSettings = {
   fontSize: 'medium',
   sortOrder: 'alphabetical',
   foldersOnTop: true,
+  showToc: true,
   ignoredPaths: '',
   searchDefinitions: [],
   contentWidth: 'medium',

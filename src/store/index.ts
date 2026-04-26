@@ -59,6 +59,7 @@ export {
   setFontSize,
   setSortOrder,
   setFoldersOnTop,
+  setShowToc,
   setIgnoredPaths,
   setContentWidth,
   setOcrToolsFolder,

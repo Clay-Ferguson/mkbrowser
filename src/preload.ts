@@ -21,6 +21,7 @@ export interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
   foldersOnTop: boolean;
+  showToc: boolean;
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
   contentWidth?: ContentWidth;

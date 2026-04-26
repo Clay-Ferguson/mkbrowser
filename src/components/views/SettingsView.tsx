@@ -1,6 +1,7 @@
 import {
   setFontSize,
   setFoldersOnTop,
+  setShowToc,
   setIgnoredPaths,
   setContentWidth,
   setOcrToolsFolder,
@@ -73,6 +74,11 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const handleFoldersOnTopChange = (foldersOnTop: boolean) => {
     setFoldersOnTop(foldersOnTop);
     // Trigger save to persist the setting
+    onSaveSettings();
+  };
+
+  const handleShowTocChange = (showToc: boolean) => {
+    setShowToc(showToc);
     onSaveSettings();
   };
 
@@ -171,6 +177,16 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                   className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
                 />
                 <span className="text-slate-200">Folders on Top</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.showToc}
+                  onChange={(e) => handleShowTocChange(e.target.checked)}
+                  className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                />
+                <span className="text-slate-200">Show Table of Contents</span>
               </label>
             </div>
           </section>

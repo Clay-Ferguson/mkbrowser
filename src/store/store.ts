@@ -9,6 +9,7 @@ const defaultSettings: AppSettings = {
   fontSize: 'medium',
   sortOrder: 'alphabetical',
   foldersOnTop: true,
+  showToc: true,
   ignoredPaths: '',
   searchDefinitions: [],
   contentWidth: 'medium',
@@ -1137,6 +1138,14 @@ export function setFoldersOnTop(foldersOnTop: boolean): void {
   state = {
     ...state,
     settings: { ...state.settings, foldersOnTop },
+  };
+  emitChange();
+}
+
+export function setShowToc(showToc: boolean): void {
+  state = {
+    ...state,
+    settings: { ...state.settings, showToc },
   };
   emitChange();
 }

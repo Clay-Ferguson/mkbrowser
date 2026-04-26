@@ -13,8 +13,10 @@ import mermaid from 'mermaid';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../store/types';
 import { buildEntryHeaderId } from '../../utils/entryDom';
+import { removeTOC } from '../../utils/tocUtils';
 import {
   useItem,
+  useSettings,
   setHighlightItem,
   clearItemGoToLine,
   toggleItemExpanded,
@@ -416,6 +418,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     isBookmarked,
   } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
 
+  const { showToc } = useSettings();
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
   const editMode = indexYaml?.options?.edit_mode ?? false;
@@ -533,7 +536,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     }
   };
 
-  const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(content || '')));
+  const rawContent = showToc ? (content || '') : removeTOC(content || '');
+  const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
   const columns = splitOnColumnBreaks(processedContent);
 
   return (
