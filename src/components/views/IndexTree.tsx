@@ -24,10 +24,10 @@ import {
   setHighlightItem,
   setIndexTreeWidth,
 } from '../../store';
-import type { TreeNode } from '../../store';
+import type { FileNode } from '../../store';
 import { pasteCutItems } from '../../edit';
 
-function sortNodes(nodes: TreeNode[]): TreeNode[] {
+function sortNodes(nodes: FileNode[]): FileNode[] {
   return [...nodes].sort((a, b) => {
     if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
     return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
@@ -36,7 +36,7 @@ function sortNodes(nodes: TreeNode[]): TreeNode[] {
 
 function makeNodes(
   entries: Array<{ path: string; name: string; isDirectory: boolean }>
-): TreeNode[] {
+): FileNode[] {
   return sortNodes(
     entries.map(e => ({
       path: e.path,
@@ -50,10 +50,10 @@ function makeNodes(
 }
 
 function flattenVisible(
-  nodes: TreeNode[],
+  nodes: FileNode[],
   depth = 0
-): Array<{ node: TreeNode; depth: number }> {
-  const result: Array<{ node: TreeNode; depth: number }> = [];
+): Array<{ node: FileNode; depth: number }> {
+  const result: Array<{ node: FileNode; depth: number }> = [];
   for (const node of nodes) {
     result.push({ node, depth });
     if (node.isDirectory && node.isExpanded && node.children) {
@@ -67,7 +67,7 @@ function isParentOf(candidatePath: string, currentPath: string): boolean {
   return currentPath.startsWith(candidatePath + '/');
 }
 
-function findNodeByPath(root: TreeNode, path: string): TreeNode | null {
+function findNodeByPath(root: FileNode, path: string): FileNode | null {
   if (root.path === path) return root;
   if (!root.children) return null;
   for (const child of root.children) {
@@ -158,7 +158,7 @@ function IndexTree() {
     void expandToPath(pendingReveal);
   }, [pendingReveal, expandToPath]);
 
-  const handleNodeClick = useCallback(async (node: TreeNode) => {
+  const handleNodeClick = useCallback(async (node: FileNode) => {
     if (!node.isDirectory) return;
 
     if (node.isExpanded) {
@@ -175,7 +175,7 @@ function IndexTree() {
     }
   }, []);
 
-  const handlePasteIntoFolder = useCallback(async (node: TreeNode, e: React.MouseEvent) => {
+  const handlePasteIntoFolder = useCallback(async (node: FileNode, e: React.MouseEvent) => {
     e.stopPropagation();
     const cutItems = getCutItems();
     if (cutItems.length === 0) return;

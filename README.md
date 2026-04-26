@@ -4,7 +4,7 @@ MkBrowser is an Electron desktop app that combines a file explorer with inline M
 
 This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) covers end-user usage. See [Testing](docs/TESTING.md) for details on the test framework and how to write tests. 
 
-### [Demo Videos](https://clay-ferguson.github.io/videos/)
+**[Demo Videos](https://clay-ferguson.github.io/videos/)**
 
 *WARNING: This application is only known to work on Linux (developed/test on Ubuntu only)*
 

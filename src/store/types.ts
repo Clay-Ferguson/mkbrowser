@@ -232,17 +232,24 @@ export interface ScrollPositions {
 }
 
 /**
- * A single node in the IndexTree file/folder hierarchy.
- * Children are null until the node has been expanded for the first time.
+ * Base node in the IndexTree hierarchy. Holds expansion/loading state and children.
+ * Concrete node types (e.g. FileNode) extend this with their own identity fields.
  */
 export interface TreeNode {
-  path: string;
-  name: string;
-  isDirectory: boolean;
   isExpanded: boolean;
   isLoading: boolean;
   /** null = never loaded; populated array = loaded (may be empty) */
   children: TreeNode[] | null;
+}
+
+/**
+ * A file or directory node in the IndexTree file/folder hierarchy.
+ */
+export interface FileNode extends TreeNode {
+  path: string;
+  name: string;
+  isDirectory: boolean;
+  children: FileNode[] | null;
 }
 
 /**
@@ -345,7 +352,7 @@ export interface AppState {
    * Root node of the IndexTree sidebar.
    * Null until the tree has been initialized for a root path.
    */
-  indexTreeRoot: TreeNode | null;
+  indexTreeRoot: FileNode | null;
 
   /**
    * When set, IndexTree should expand to reveal this path and scroll it into view.

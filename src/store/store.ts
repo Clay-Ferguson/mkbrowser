@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, TreeNode } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, TreeNode, FileNode } from './types';
 import { createItemData } from './types';
 
 /**
@@ -1467,10 +1467,10 @@ export function setIndexTreeWidth(indexTreeWidth: IndexTreeWidth): void {
  * Returns the original node unchanged if the path is not found.
  */
 function updateNodeByPath(
-  node: TreeNode,
+  node: FileNode,
   targetPath: string,
-  updater: (n: TreeNode) => TreeNode
-): TreeNode {
+  updater: (n: FileNode) => FileNode
+): FileNode {
   if (node.path === targetPath) return updater(node);
   if (!node.children) return node;
   let changed = false;
@@ -1482,14 +1482,14 @@ function updateNodeByPath(
   return changed ? { ...node, children: newChildren } : node;
 }
 
-function getIndexTreeRootSnapshot(): TreeNode | null {
+function getIndexTreeRootSnapshot(): FileNode | null {
   return state.indexTreeRoot;
 }
 
 /**
  * Replace the entire index tree root (used on initialization or rootPath change).
  */
-export function setIndexTreeRoot(root: TreeNode | null): void {
+export function setIndexTreeRoot(root: FileNode | null): void {
   state = { ...state, indexTreeRoot: root };
   emitChange();
 }
@@ -1508,7 +1508,7 @@ export function setIndexTreeNodeLoading(path: string, loading: boolean): void {
 /**
  * Set a directory node's children and mark it as expanded (called after a directory read).
  */
-export function expandIndexTreeNode(path: string, children: TreeNode[]): void {
+export function expandIndexTreeNode(path: string, children: FileNode[]): void {
   if (!state.indexTreeRoot) return;
   const newRoot = updateNodeByPath(state.indexTreeRoot, path, n => ({
     ...n,
@@ -1521,7 +1521,7 @@ export function expandIndexTreeNode(path: string, children: TreeNode[]): void {
   emitChange();
 }
 
-function collapseAllNodes(node: TreeNode): TreeNode {
+function collapseAllNodes(node: FileNode): FileNode {
   if (!node.isDirectory) return node;
   const collapsedChildren = node.children
     ? node.children.map(collapseAllNodes)
@@ -1559,14 +1559,14 @@ export function collapseIndexTreeNode(path: string): void {
 /**
  * Hook to subscribe to the IndexTree root node.
  */
-export function useIndexTreeRoot(): TreeNode | null {
+export function useIndexTreeRoot(): FileNode | null {
   return useSyncExternalStore(subscribe, getIndexTreeRootSnapshot);
 }
 
 /**
  * Get the current IndexTree root node without subscribing (for use in async callbacks).
  */
-export function getIndexTreeRoot(): TreeNode | null {
+export function getIndexTreeRoot(): FileNode | null {
   return state.indexTreeRoot;
 }
 
