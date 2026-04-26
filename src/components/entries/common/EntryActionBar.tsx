@@ -1,7 +1,7 @@
-import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../../utils/styles';
-import { toggleBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml } from '../../../store';
+import { toggleBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
@@ -55,6 +55,7 @@ export function EntryActionBar({
   const indexYaml = useIndexYaml();
   const editMode = indexYaml?.options?.edit_mode ?? false;
   const showEditActions = !hasIndexFile || editMode;
+  const settings = useSettings();
 
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -111,6 +112,20 @@ export function EntryActionBar({
       >
         <ArrowTopRightOnSquareIcon className="w-5 h-5" />
       </button>
+      {settings.indexTreeWidth !== 'hidden' && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setHighlightItem(path);
+            setPendingIndexTreeReveal(path);
+          }}
+          className={BUTTON_CLZ_BOOKMARK}
+          title="Reveal in folder tree"
+          data-testid="entry-reveal-button"
+        >
+          <ViewfinderCircleIcon className="w-5 h-5" />
+        </button>
+      )}
       <button
         onClick={handleBookmarkClick}
         className={BUTTON_CLZ_BOOKMARK}
