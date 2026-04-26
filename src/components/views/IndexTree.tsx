@@ -24,8 +24,25 @@ import {
   setHighlightItem,
   setIndexTreeWidth,
 } from '../../store';
-import type { FileNode } from '../../store';
+import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
 import { pasteCutItems } from '../../edit';
+import { extractHeadingTree } from '../../utils/tocUtils';
+
+// ── Type guards ──────────────────────────────────────────────────────────────
+
+function isFileNode(node: TreeNode): node is FileNode {
+  return 'isDirectory' in node;
+}
+
+function isMarkdownHeadingNode(node: TreeNode): node is MarkdownHeadingNode {
+  return 'heading' in node;
+}
+
+function isMarkdownFile(node: FileNode): node is MarkdownFileNode {
+  return !node.isDirectory && node.name.toLowerCase().endsWith('.md');
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function sortNodes(nodes: FileNode[]): FileNode[] {
   return [...nodes].sort((a, b) => {
@@ -50,13 +67,13 @@ function makeNodes(
 }
 
 function flattenVisible(
-  nodes: FileNode[],
+  nodes: TreeNode[],
   depth = 0
-): Array<{ node: FileNode; depth: number }> {
-  const result: Array<{ node: FileNode; depth: number }> = [];
+): Array<{ node: TreeNode; depth: number }> {
+  const result: Array<{ node: TreeNode; depth: number }> = [];
   for (const node of nodes) {
     result.push({ node, depth });
-    if (node.isDirectory && node.isExpanded && node.children) {
+    if (node.isExpanded && node.children) {
       result.push(...flattenVisible(node.children, depth + 1));
     }
   }
@@ -71,11 +88,14 @@ function findNodeByPath(root: FileNode, path: string): FileNode | null {
   if (root.path === path) return root;
   if (!root.children) return null;
   for (const child of root.children) {
+    if (!isFileNode(child)) continue;
     const found = findNodeByPath(child, path);
     if (found) return found;
   }
   return null;
 }
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 function IndexTree() {
   const rootPath = useRootPath();
@@ -158,7 +178,41 @@ function IndexTree() {
     void expandToPath(pendingReveal);
   }, [pendingReveal, expandToPath]);
 
-  const handleNodeClick = useCallback(async (node: FileNode) => {
+  const handleNodeClick = useCallback(async (node: TreeNode) => {
+    if (isMarkdownHeadingNode(node)) {
+      // Toggle heading expansion
+      if (node.isExpanded) {
+        collapseIndexTreeNode(node.path);
+      } else if (node.children && node.children.length > 0) {
+        expandIndexTreeNode(node.path, node.children);
+      }
+      return;
+    }
+
+    if (!isFileNode(node)) return;
+
+    if (isMarkdownFile(node)) {
+      // Toggle markdown file expansion — load headings on first expand
+      if (node.isExpanded) {
+        collapseIndexTreeNode(node.path);
+        return;
+      }
+      if (node.children !== null) {
+        // Already loaded — just re-expand
+        expandIndexTreeNode(node.path, node.children);
+        return;
+      }
+      setIndexTreeNodeLoading(node.path, true);
+      try {
+        const content = await window.electronAPI.readFile(node.path);
+        const headings = extractHeadingTree(node.path, content);
+        expandIndexTreeNode(node.path, headings);
+      } catch {
+        setIndexTreeNodeLoading(node.path, false);
+      }
+      return;
+    }
+
     if (!node.isDirectory) return;
 
     if (node.isExpanded) {
@@ -276,61 +330,96 @@ function IndexTree() {
       )}
       <div ref={containerRef} className="flex-1 overflow-y-auto pl-2 pr-2 pt-2">
       <div className="py-1">
-        {rows.map(({ node, depth }) => (
-          <div
-            key={node.path}
-            data-tree-path={node.path}
-            className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
-              ${node.path === highlightItem
-                ? 'text-purple-400 border-l-2 border-transparent ' + (node.isDirectory ? 'cursor-pointer' : 'cursor-default')
-                : node.isDirectory && node.path === currentPath
-                  ? 'text-slate-100 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer'
-                  : node.isDirectory && isParentOf(node.path, currentPath)
-                    ? 'text-slate-200 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer'
-                    : node.isDirectory
-                      ? node.isExpanded
-                        ? 'text-slate-200 bg-slate-700 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
-                        : 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
-                      : 'text-slate-400 border-l-2 border-transparent cursor-default'
-              }`}
-            style={{ paddingLeft: `${8 + depth * 12}px` }}
-            onClick={() => { if (node.isDirectory) void handleNodeClick(node); }}
-            onContextMenu={e => {
-              e.preventDefault();
-              if (node.isDirectory) {
-                navigateToBrowserPath(node.path);
-              } else {
-                const folderPath = node.path.substring(0, node.path.lastIndexOf('/'));
-                setHighlightItem(node.path);
-                navigateToBrowserPath(folderPath, node.path);
-              }
-            }}
-          >
-            <span
-              className={
-                `shrink-0 w-3 text-center mr-1 ` +
-                (node.path === highlightItem ? 'text-purple-400' : node.isDirectory ? 'text-yellow-400' : 'text-slate-400')
-              }
-            >
-              {node.isDirectory
-                ? (node.isLoading ? '⋯' : node.isExpanded ? '▼' : '▶')
-                : '●'
-              }
-            </span>
-            <span className="truncate flex-1 min-w-0">{node.name}</span>
-            {hasCutItems && node.isDirectory && (
-              <button
-                type="button"
-                onClick={e => void handlePasteIntoFolder(node, e)}
-                className="shrink-0 p-1 mr-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
-                title="Paste cut items here"
-                aria-label="Paste cut items here"
+        {rows.map(({ node, depth }) => {
+          if (isMarkdownHeadingNode(node)) {
+            const hasChildren = node.children && node.children.length > 0;
+            return (
+              <div
+                key={node.path}
+                data-tree-path={node.path}
+                className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
+                  text-slate-400 border-l-2 border-transparent
+                  ${hasChildren ? 'cursor-pointer hover:bg-slate-700' : 'cursor-default'}
+                `}
+                style={{ paddingLeft: `${8 + depth * 12}px` }}
+                onClick={() => { if (hasChildren) void handleNodeClick(node); }}
               >
-                <ClipboardDocumentIcon className="w-4 h-4 text-white" />
-              </button>
-            )}
-          </div>
-        ))}
+                <span className="shrink-0 w-3 text-center mr-1 text-slate-500">
+                  {hasChildren
+                    ? (node.isExpanded ? '▼' : '▶')
+                    : '·'
+                  }
+                </span>
+                <span className="truncate flex-1 min-w-0 text-slate-300 italic">{node.heading}</span>
+              </div>
+            );
+          }
+
+          if (!isFileNode(node)) return null;
+
+          const isMd = isMarkdownFile(node);
+          const isClickable = node.isDirectory || isMd;
+
+          return (
+            <div
+              key={node.path}
+              data-tree-path={node.path}
+              className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
+                ${node.path === highlightItem
+                  ? 'text-purple-400 border-l-2 border-transparent ' + (isClickable ? 'cursor-pointer' : 'cursor-default')
+                  : node.isDirectory && node.path === currentPath
+                    ? 'text-slate-100 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer'
+                    : node.isDirectory && isParentOf(node.path, currentPath)
+                      ? 'text-slate-200 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer'
+                      : node.isDirectory
+                        ? node.isExpanded
+                          ? 'text-slate-200 bg-slate-700 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
+                          : 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
+                        : isMd
+                          ? 'text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700'
+                          : 'text-slate-400 border-l-2 border-transparent cursor-default'
+                }`}
+              style={{ paddingLeft: `${8 + depth * 12}px` }}
+              onClick={() => { if (isClickable) void handleNodeClick(node); }}
+              onContextMenu={e => {
+                e.preventDefault();
+                if (node.isDirectory) {
+                  navigateToBrowserPath(node.path);
+                } else {
+                  const folderPath = node.path.substring(0, node.path.lastIndexOf('/'));
+                  setHighlightItem(node.path);
+                  navigateToBrowserPath(folderPath, node.path);
+                }
+              }}
+            >
+              <span
+                className={
+                  `shrink-0 w-3 text-center mr-1 ` +
+                  (node.path === highlightItem ? 'text-purple-400' : node.isDirectory ? 'text-yellow-400' : isMd ? 'text-sky-400' : 'text-slate-400')
+                }
+              >
+                {node.isDirectory
+                  ? (node.isLoading ? '⋯' : node.isExpanded ? '▼' : '▶')
+                  : isMd
+                    ? (node.isLoading ? '⋯' : node.isExpanded ? '▼' : '▶')
+                    : '●'
+                }
+              </span>
+              <span className="truncate flex-1 min-w-0">{node.name}</span>
+              {hasCutItems && node.isDirectory && (
+                <button
+                  type="button"
+                  onClick={e => void handlePasteIntoFolder(node, e)}
+                  className="shrink-0 p-1 mr-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                  title="Paste cut items here"
+                  aria-label="Paste cut items here"
+                >
+                  <ClipboardDocumentIcon className="w-4 h-4 text-white" />
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
       </div>
     </div>

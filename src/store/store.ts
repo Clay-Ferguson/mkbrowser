@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, TreeNode, FileNode } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, TreeNode, FileNode, MarkdownHeadingNode } from './types';
 import { createItemData } from './types';
 
 /**
@@ -1462,24 +1462,28 @@ export function setIndexTreeWidth(indexTreeWidth: IndexTreeWidth): void {
 // IndexTree
 // ============================================================================
 
+// Internal union covering every node type that carries a path for store lookup.
+type PathNode = FileNode | MarkdownHeadingNode;
+
 /**
- * Recursively find and update a single node by path, returning a new tree root.
- * Returns the original node unchanged if the path is not found.
+ * Recursively find and update a single node by path/key, returning a new tree root.
+ * Works across mixed trees (FileNode children may include MarkdownHeadingNode).
  */
 function updateNodeByPath(
-  node: FileNode,
+  node: PathNode,
   targetPath: string,
-  updater: (n: FileNode) => FileNode
-): FileNode {
+  updater: (n: PathNode) => PathNode
+): PathNode {
   if (node.path === targetPath) return updater(node);
   if (!node.children) return node;
   let changed = false;
   const newChildren = node.children.map(child => {
-    const updated = updateNodeByPath(child, targetPath, updater);
+    if (!('path' in child)) return child;
+    const updated = updateNodeByPath(child as PathNode, targetPath, updater);
     if (updated !== child) changed = true;
     return updated;
-  });
-  return changed ? { ...node, children: newChildren } : node;
+  }) as TreeNode[];
+  return changed ? { ...node, children: newChildren } as PathNode : node;
 }
 
 function getIndexTreeRootSnapshot(): FileNode | null {
@@ -1499,30 +1503,32 @@ export function setIndexTreeRoot(root: FileNode | null): void {
  */
 export function setIndexTreeNodeLoading(path: string, loading: boolean): void {
   if (!state.indexTreeRoot) return;
-  const newRoot = updateNodeByPath(state.indexTreeRoot, path, n => ({ ...n, isLoading: loading }));
+  const newRoot = updateNodeByPath(state.indexTreeRoot, path, n => ({ ...n, isLoading: loading })) as FileNode;
   if (newRoot === state.indexTreeRoot) return;
   state = { ...state, indexTreeRoot: newRoot };
   emitChange();
 }
 
 /**
- * Set a directory node's children and mark it as expanded (called after a directory read).
+ * Set a node's children and mark it as expanded.
+ * Used for both directory nodes (children: FileNode[]) and markdown file nodes (children: MarkdownHeadingNode[]).
  */
-export function expandIndexTreeNode(path: string, children: FileNode[]): void {
+export function expandIndexTreeNode(path: string, children: TreeNode[]): void {
   if (!state.indexTreeRoot) return;
+
   const newRoot = updateNodeByPath(state.indexTreeRoot, path, n => ({
     ...n,
     isExpanded: true,
     isLoading: false,
     children,
-  }));
+  } as PathNode)) as FileNode;
   if (newRoot === state.indexTreeRoot) return;
   state = { ...state, indexTreeRoot: newRoot };
   emitChange();
 }
 
-function collapseAllNodes(node: FileNode): FileNode {
-  if (!node.isDirectory) return node;
+function collapseAllNodes(node: TreeNode): TreeNode {
+  if (!('isDirectory' in node) || !(node as FileNode).isDirectory) return node;
   const collapsedChildren = node.children
     ? node.children.map(collapseAllNodes)
     : node.children;
@@ -1543,14 +1549,14 @@ export function collapseAllIndexTreeNodes(): void {
 }
 
 /**
- * Collapse a directory node (does not clear its cached children).
+ * Collapse a node (directory or heading) without clearing its cached children.
  */
 export function collapseIndexTreeNode(path: string): void {
   if (!state.indexTreeRoot) return;
   const newRoot = updateNodeByPath(state.indexTreeRoot, path, n => ({
     ...n,
     isExpanded: false,
-  }));
+  })) as FileNode;
   if (newRoot === state.indexTreeRoot) return;
   state = { ...state, indexTreeRoot: newRoot };
   emitChange();

@@ -2,7 +2,8 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkStringify from 'remark-stringify';
 import { toc } from 'mdast-util-toc';
-import type { Root } from 'mdast';
+import type { Root, Heading } from 'mdast';
+import type { MarkdownHeadingNode } from '../store/types';
 
 const START_TAG = '<!-- TOC -->';
 const END_TAG = '<!-- /TOC -->';
@@ -124,4 +125,53 @@ export async function processTOC(content: string): Promise<string> {
     END_TAG +
     content.slice(afterStart)
   );
+}
+
+function headingText(node: Heading): string {
+  return node.children
+    .map(child => ('value' in child ? child.value : ''))
+    .join('');
+}
+
+/**
+ * Parse a markdown string and return a tree of MarkdownHeadingNode objects.
+ * Heading nesting follows depth (H1 > H2 > H3 …).
+ * The synthetic `path` for each node is `filePath + '#' + flatIndex`.
+ */
+export function extractHeadingTree(filePath: string, content: string): MarkdownHeadingNode[] {
+  const ast = unified().use(remarkParse).parse(content) as Root;
+  const headings = ast.children.filter((n): n is Heading => n.type === 'heading');
+
+  // Build nodes in order, assign synthetic paths
+  const nodes: MarkdownHeadingNode[] = headings.map((h, i) => ({
+    path: `${filePath}#${i}`,
+    heading: headingText(h),
+    depth: h.depth,
+    isExpanded: false,
+    isLoading: false,
+    children: null,
+  }));
+
+  // Stack-based tree assembly: stack holds ancestors by depth
+  const roots: MarkdownHeadingNode[] = [];
+  const stack: MarkdownHeadingNode[] = [];
+
+  for (const node of nodes) {
+    // Pop stack until top has a lower depth than current node
+    while (stack.length > 0 && stack[stack.length - 1].depth >= node.depth) {
+      stack.pop();
+    }
+
+    if (stack.length === 0) {
+      roots.push(node);
+    } else {
+      const parent = stack[stack.length - 1];
+      if (!parent.children) parent.children = [];
+      parent.children.push(node);
+    }
+
+    stack.push(node);
+  }
+
+  return roots;
 }

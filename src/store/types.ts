@@ -249,7 +249,26 @@ export interface FileNode extends TreeNode {
   path: string;
   name: string;
   isDirectory: boolean;
-  children: FileNode[] | null;
+  children: TreeNode[] | null;
+}
+
+/**
+ * A markdown file node. Structurally identical to FileNode; when expanded,
+ * its children are MarkdownHeadingNode[] rather than FileNode[].
+ */
+export interface MarkdownFileNode extends FileNode {
+  isDirectory: false;
+}
+
+/**
+ * A heading node inside an expanded markdown file. Uses a synthetic path key
+ * (filePath + '#' + flatIndex) so the store's path-based updater can locate it.
+ */
+export interface MarkdownHeadingNode extends TreeNode {
+  path: string;
+  heading: string;
+  depth: number;
+  children: MarkdownHeadingNode[] | null;
 }
 
 /**

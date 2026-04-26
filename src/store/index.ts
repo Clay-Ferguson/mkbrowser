@@ -1,4 +1,4 @@
-export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, HashtagEntry, ThreadEntry, TreeNode, FileNode } from './types';
+export type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, HashtagEntry, ThreadEntry, TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from './types';
 export type { ExpansionCounts } from './store';
 export { createItemData } from './types';
 
