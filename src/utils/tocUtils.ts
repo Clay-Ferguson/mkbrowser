@@ -140,6 +140,7 @@ function headingText(node: Heading): string {
  * The synthetic `path` for each node is `filePath + '#' + flatIndex`.
  */
 export function extractHeadingTree(filePath: string, content: string): MarkdownHeadingNode[] {
+  content = sanitizeForTOC(content);
   const ast = unified().use(remarkParse).parse(content) as Root;
   const headings = ast.children.filter((n): n is Heading => n.type === 'heading');
 
