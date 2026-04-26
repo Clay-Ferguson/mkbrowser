@@ -27,17 +27,73 @@ export function removeTOC(content: string): string {
   return content.replace(/<!--\s*TOC\s*-->[\s\S]*?<!--\s*\/TOC\s*-->/g, '<!-- TOC -->');
 }
 
+/**
+ * Returns a sanitized copy of content safe for TOC generation by removing:
+ * - Front matter: YAML block delimited by "---" on the very first line
+ * - Fenced code blocks: backtick or tilde fences of any length (e.g. ```, ~~~~)
+ * Headings inside these regions are ignored so they don't appear in the TOC.
+ */
+function sanitizeForTOC(content: string): string {
+  const lines = content.split('\n');
+  const out: string[] = [];
+  let i = 0;
+
+  // Strip front matter if the file starts with "---"
+  if (lines[0]?.trim() === '---') {
+    i = 1;
+    while (i < lines.length && lines[i]?.trim() !== '---') i++;
+    i++; // skip closing "---"
+  }
+
+  const firstI = i;
+  // Process remaining lines, blanking fenced code blocks
+  for (; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // table of contents always looks best when the first heading is skipped 
+    // because it would be a repeat of what is already right at the top of the page 
+    // and will normally be the title for the entire document also, which makes no 
+    // sense to put in the table of contents 
+    if (i==firstI && line && line.trim().startsWith("#")) continue;
+
+    const fenceMatch = line.match(/^(`{3,}|~{3,})/);
+    if (fenceMatch) {
+      const fence = fenceMatch[1];
+      const char = fence[0];
+      const len = fence.length;
+      out.push('');
+      i++;
+      while (i < lines.length) {
+        const inner = lines[i];
+        const closing = inner.match(/^(`+|~+)/);
+        if (closing && closing[1][0] === char && closing[1].length >= len) {
+          out.push('');
+          break;
+        }
+        out.push('');
+        i++;
+      }
+    } else {
+      out.push(line);
+    }
+  }
+
+  return out.join('\n');
+}
+
 export async function processTOC(content: string): Promise<string> {
-  if (!content.includes(START_TAG)) {
+  const sanitized = sanitizeForTOC(content);
+
+  if (!sanitized.includes(START_TAG)) {
     return content;
   }
 
-  const firstStart = content.indexOf(START_TAG);
-  if (content.indexOf(START_TAG, firstStart + 1) !== -1) {
+  const firstStart = sanitized.indexOf(START_TAG);
+  if (sanitized.indexOf(START_TAG, firstStart + 1) !== -1) {
     return content;
   }
 
-  const ast = unified().use(remarkParse).parse(content) as Root;
+  const ast = unified().use(remarkParse).parse(sanitized) as Root;
   const result = toc(ast, { maxDepth: 3, tight: true });
 
   if (!result.map) {
@@ -50,7 +106,8 @@ export async function processTOC(content: string): Promise<string> {
       .stringify({ type: 'root', children: [result.map] } as Root)
   ).trimEnd();
 
-  const afterStart = firstStart + START_TAG.length;
+  const contentStart = content.indexOf(START_TAG);
+  const afterStart = contentStart + START_TAG.length;
   const endIdx = content.indexOf(END_TAG, afterStart);
 
   if (endIdx !== -1) {

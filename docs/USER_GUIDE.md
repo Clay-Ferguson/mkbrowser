@@ -1,15 +1,17 @@
 # MkBrowser User Guide 
 
-MkBrowser is a file explorer designed for managing Markdown notes with inline rendering.
+MkBrowser is a file explorer and Markdown editor that helps you manage Markdown notes with inline rendering.
+
+![Screenshot](./img/screenshot.png)
 
 <!-- TOC -->
 
-* [MkBrowser User Guide](#mkbrowser-user-guide)
 * [Desktop Icon (Linux)](#desktop-icon-linux)
 * [Browsing and Editing](#browsing-and-editing)
   * [Viewing Content](#viewing-content)
   * [Editing Files](#editing-files)
     * [Editor Keyboard Shortcuts](#editor-keyboard-shortcuts)
+  * [Automatic Table of Contents Generation](#automatic-table-of-contents-generation)
   * [Tag Picker](#tag-picker)
     * [Setting up `.TAGS.yaml` files](#setting-up-tagsyaml-files)
   * [Renaming](#renaming)
@@ -142,13 +144,13 @@ While the code editor has focus, the following keyboard shortcuts are available:
 MkBrowser can automatically generate and maintain a **Table of Contents** for any Markdown file. All you need to do is place the following HTML comment anywhere in your file:
 
 ```
-<!-- TOC -->
+<\!-- TOC -->
 ```
 
 That's it. Whenever you save the file, MkBrowser will replace that placeholder with a fully generated table of contents, using every heading in the document (up to three levels deep). The result looks like this:
 
 ```
-<!-- TOC -->
+<\!-- TOC -->
 
 * [Introduction](#introduction)
 * [Getting Started](#getting-started)
@@ -156,14 +158,14 @@ That's it. Whenever you save the file, MkBrowser will replace that placeholder w
   * [Configuration](#configuration)
 * [Advanced Usage](#advanced-usage)
 
-<!-- /TOC -->
+<\!-- /TOC -->
 ```
 
 On your next save, MkBrowser will regenerate the TOC in place, keeping it in sync with any heading changes you made.
 
-**While editing**, the full TOC block is hidden — the editor shows only the original `<!-- TOC -->` placeholder so it stays out of your way. The complete TOC is restored as soon as you save.
+**While editing**, the full TOC block is hidden — the editor shows only the original `<\!-- TOC -->` placeholder so it stays out of your way. The complete TOC is restored as soon as you save.
 
-If your file has no `<!-- TOC -->` comment, nothing happens. If it has headings but none at the configured depth, or no headings at all, the file is saved unchanged.
+If your file has no `<\!-- TOC -->` comment, nothing happens. If it has headings but none at the configured depth, or no headings at all, the file is saved unchanged.
 
 ## Tag Picker
 

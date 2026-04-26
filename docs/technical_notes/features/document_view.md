@@ -1,4 +1,4 @@
-# Document View (i.e. Document Mode)
+# Document View
 
 ## Overview
 
