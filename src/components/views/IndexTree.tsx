@@ -352,7 +352,7 @@ function IndexTree() {
                   setHighlightItem(filePath);
                   // if the target slug is already on the page, we can scroll to it immediately 
                   if (document.getElementById(node.slug)) {
-                    scrollElementIntoView(node.slug);
+                    scrollElementIntoView(node.slug, true);
                   } 
                   // otherwise, we have to first navigate to the particular location where the file is 
                   // and let the file display and then scroll to the slug.

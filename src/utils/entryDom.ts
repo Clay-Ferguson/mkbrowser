@@ -18,7 +18,7 @@ export const buildEntryHeaderId = (filePath: string) => `entry-${encodeURICompon
  * Uses manual scroll calculation to avoid scrollIntoView's side effect
  * of scrolling all ancestors (which can break the layout in Electron).
  */
-export const scrollItemIntoView = (filePath: string) => {
+export const scrollItemIntoView = (filePath: string, highlight: boolean=false) => {
   const targetId = buildEntryHeaderId(filePath);
   const element = document.getElementById(targetId);
   if (!element) return;
@@ -26,7 +26,7 @@ export const scrollItemIntoView = (filePath: string) => {
   // Find the scrollable main container (the element with overflow-y-auto)
   const scrollContainer = document.querySelector('main');
   if (!scrollContainer) {
-    temporaryHighlightItem(element);
+    if (highlight) temporaryHighlightItem(element);
     // Fallback to scrollIntoView if container not found
     element.scrollIntoView({ block: 'center' });
     return;
@@ -51,7 +51,7 @@ export const scrollItemIntoView = (filePath: string) => {
   const maxScrollTop = scrollContainer.scrollHeight - containerHeight;
   const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop));
 
-  temporaryHighlightItem(element);
+  if (highlight) temporaryHighlightItem(element);
 
   scrollContainer.scrollTo({
     top: clampedScrollTop,
@@ -64,13 +64,13 @@ export const scrollItemIntoView = (filePath: string) => {
  * main content area. Used to scroll to a specific markdown heading after
  * navigating from the IndexTree.
  */
-export const scrollElementIntoView = (elementId: string) => {
+export const scrollElementIntoView = (elementId: string, highlight: boolean) => {
   const element = document.getElementById(elementId);
   if (!element) return;
 
   const scrollContainer = document.querySelector('main');
   if (!scrollContainer) {
-    temporaryHighlightItem(element);
+    if (highlight) temporaryHighlightItem(element);
     element.scrollIntoView({ block: 'center' });
     return;
   }
@@ -85,6 +85,6 @@ export const scrollElementIntoView = (elementId: string) => {
   const maxScrollTop = scrollContainer.scrollHeight - containerHeight;
   const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop));
 
-  temporaryHighlightItem(element);
+  if (highlight) temporaryHighlightItem(element);
   scrollContainer.scrollTo({ top: clampedScrollTop, behavior: 'smooth' });
 };

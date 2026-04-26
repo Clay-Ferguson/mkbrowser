@@ -225,7 +225,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         // console.log('[BrowseView] scroll effect fired — pendingScrollToFile:', pendingScrollToFile, 'pendingScrollToHeadingSlug:', pendingScrollToHeadingSlug);
         if (pendingScrollToFile) {
           // Scroll to specific file (e.g., from search results or index tree heading)
-          scrollItemIntoView(pendingScrollToFile);
+          scrollItemIntoView(pendingScrollToFile, false);
           clearPendingScrollToFile();
           if (pendingScrollToHeadingSlug) {
             const slug = pendingScrollToHeadingSlug;
@@ -234,7 +234,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             setTimeout(() => {
               // const el = document.getElementById(slug);
               // console.log('[BrowseView] heading scroll firing — slug:', slug, 'element found:', !!el, el);
-              scrollElementIntoView(slug);
+              scrollElementIntoView(slug, true);
               clearPendingScrollToHeadingSlug();
             }, 750);
           }
