@@ -6,14 +6,14 @@ import { ChatAnthropic } from "@langchain/anthropic";
 
 export type AIProvider = 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
 
-export interface AIModelConfigLike {
+interface AIModelConfigLike {
   name: string;
   provider: AIProvider;
   model: string;
   readonly?: boolean;
 }
 
-export interface EnforceDefaultModelsResult<T extends AIModelConfigLike> {
+interface EnforceDefaultModelsResult<T extends AIModelConfigLike> {
   models: Array<Omit<T, 'readonly'> & { readonly: boolean }>;
   selectedModel: string;
   changed: boolean;

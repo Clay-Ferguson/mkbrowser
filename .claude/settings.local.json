@@ -26,7 +26,9 @@
       "WebSearch",
       "Read(//home/clay/ferguson/AI Testing/**)",
       "Bash(grep -E \"^\\(unified|remark-parse|remark-stringify|mdast-util-toc|rehype-slug|github-slugger|vfile\\)$\")",
-      "Bash(grep -E \"^\\(mdast-util-toc|rehype-slug|github-slugger\\)$\")"
+      "Bash(grep -E \"^\\(mdast-util-toc|rehype-slug|github-slugger\\)$\")",
+      "Bash(sed -i 's/bg-blue-900\\\\/30 group-hover:bg-blue-900\\\\/60/bg-blue-800\\\\/50 group-hover:bg-blue-700\\\\/70/g' /home/clay/ferguson/projects/mkbrowser/src/components/entries/MarkdownEntry.tsx /home/clay/ferguson/projects/mkbrowser/src/components/entries/TextEntry.tsx /home/clay/ferguson/projects/mkbrowser/src/components/entries/ImageEntry.tsx)",
+      "Bash(sed -i 's/bg-blue-900\\\\/30 hover:bg-blue-900\\\\/60/bg-blue-800\\\\/50 hover:bg-blue-700\\\\/70/g' /home/clay/ferguson/projects/mkbrowser/src/components/entries/FolderEntry.tsx)"
     ]
   }
 }

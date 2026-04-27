@@ -61,10 +61,6 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   const visibleEntries = dirEntries.filter((e) => !e.name.startsWith('.'));
   const visibleNames = new Set(visibleEntries.map((e) => e.name));
 
-  // todo-0: we need to make sure that we're not actually reading the files every time we open a folder or run the reconcile function,
-  // so for performance, I think we might need to have a global map which can allow us to assign a map entry every time we detect
-  // or generate an ID associated with any markdown file.
-
   // For non-markdown files: stat each one to build a fingerprint map keyed by "createTime:size:ext".
   // This lets us detect renames of non-markdown files during reconciliation.
   const nameToStat = new Map<string, { createTime: number; size: number }>();
@@ -241,6 +237,9 @@ export async function moveInIndexYaml(
   }
 }
 
+/**
+ * Does the 'move to top' and 'move to bottom' of a file  
+ */
 export async function moveToEdgeInIndexYaml(
   dirPath: string,
   name: string,

@@ -64,9 +64,10 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
   };
 
   return (
+    <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''}`}>
     <div
       onClick={() => !isRenaming && onNavigate(entry.path)}
-      className={`w-full ${ENTRY_CONTAINER_CLASSES} ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700 hover:bg-slate-700'} transition-colors text-left cursor-pointer`}
+      className={`w-full flex items-center gap-3 pl-4 pr-2 py-1 ${isHighlighted ? 'bg-blue-800/50' : 'bg-blue-800/50 hover:bg-blue-700/70'} transition-colors text-left cursor-pointer`}
     >
       {(!hasIndexFile || editMode) && (
         <SelectionCheckbox
@@ -135,6 +136,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
           onCancel={del.handleDeleteCancel}
         />
       )}
+    </div>
     </div>
   );
 }

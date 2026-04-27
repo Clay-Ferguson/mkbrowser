@@ -483,44 +483,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     onRefreshDirectory();
   }, [currentPath, getSelectedItems, onRefreshDirectory, onSetError]);
 
-  // todo-0: remove this?
-  const navigateToBookmark_unused = useCallback(async (fullPath: string) => {
-    const exists = await window.electronAPI.pathExists(fullPath);
-    if (!exists) {
-      const currentSettings = getSettings();
-      const updatedBookmarks = (currentSettings.bookmarks || []).filter(b => b !== fullPath);
-      const updatedSettings = { ...currentSettings, bookmarks: updatedBookmarks };
-      setSettings(updatedSettings);
-
-      try {
-        const config = await window.electronAPI.getConfig();
-        await window.electronAPI.saveConfig({
-          ...config,
-          settings: updatedSettings,
-        });
-      } catch (err) {
-        console.error('Failed to save settings after removing bookmark:', err);
-      }
-
-      const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-      onSetError(`Bookmark "${fileName}" no longer exists and has been removed.`);
-      return;
-    }
-
-    const parentPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
-
-    try {
-      await window.electronAPI.readDirectory(fullPath);
-      setCurrentPath(fullPath);
-      setCurrentView('browser');
-    } catch {
-      setCurrentPath(parentPath);
-      setCurrentView('browser');
-      setHighlightItem(fullPath);
-      setPendingScrollToFile(fullPath);
-    }
-  }, [onSetError]);
-
   const generateExportFileName = useCallback(() => {
     if (!currentPath) return 'export.md';
     const folderName = currentPath.substring(currentPath.lastIndexOf('/') + 1);

@@ -1,6 +1,5 @@
 import { DocumentIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { ENTRY_CONTAINER_CLASSES } from '../../utils/styles';
 import { toggleItemExpanded, useHasIndexFile, useIndexYaml } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
@@ -46,7 +45,8 @@ function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   };
 
   return (
-    <div className={`${ENTRY_CONTAINER_CLASSES} ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : 'border-slate-700 hover:bg-slate-700 transition-colors'}`}>
+    <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''}`}>
+    <div className={`flex items-center gap-3 pl-4 pr-2 py-1 bg-blue-800/50 group-hover:bg-blue-700/70 transition-colors`}>
       {(!hasIndexFile || editMode) && (
         <SelectionCheckbox
           path={entry.path}
@@ -54,7 +54,7 @@ function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
           isSelected={isSelected}
         />
       )}
-      <DocumentIcon className="w-5 h-5 text-slate-500 flex-shrink-0" />
+      <DocumentIcon className="w-5 h-5 text-slate-300 flex-shrink-0" />
       {isRenaming ? (
         <RenameInput
           ref={rename.inputRef}
@@ -70,7 +70,7 @@ function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
         <span
           id={buildEntryHeaderId(entry.path)}
           onClick={handleToggleExpanded}
-          className="text-slate-400 truncate flex-1 cursor-pointer no-underline"
+          className="text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline"
           title={isExpanded ? 'Collapse content' : 'Expand content'}
         >
           {entry.name}
@@ -98,6 +98,7 @@ function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
           onCancel={del.handleDeleteCancel}
         />
       )}
+    </div>
     </div>
   );
 }
