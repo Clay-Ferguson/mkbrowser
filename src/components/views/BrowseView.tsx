@@ -3,7 +3,7 @@ import {
   MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
   ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
 } from '@heroicons/react/24/outline';
-import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
+
 import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from '../../global';
 import FolderEntry from '../entries/FolderEntry';
@@ -313,41 +313,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     await window.electronAPI.moveToEdgeInIndexYaml(currentPath, name, edge);
     onRefreshDirectory();
   }, [currentPath, onRefreshDirectory]);
-
-  const doPasteCutItems = useCallback(async () => {
-    if (!currentPath) return;
-
-    const cutItems = Array.from(items.values()).filter((item) => item.isCut);
-    if (cutItems.length === 0) return;
-
-    onSetError(null);
-
-    const result = await pasteCutItems(
-      cutItems,
-      currentPath,
-      window.electronAPI.pathExists,
-      window.electronAPI.renameFile
-    );
-
-    if (!result.success) {
-      onSetError(result.error || 'Failed to paste items');
-      return;
-    }
-
-    if (result.pastedItemName) {
-      setPendingScrollToFile(`${currentPath}/${result.pastedItemName}`);
-    }
-
-    const sourceFolder = cutItems[0].path.substring(0, cutItems[0].path.lastIndexOf('/'));
-    const movedPaths = cutItems.map(item => item.path);
-    deleteItems(movedPaths);
-    clearAllCutItems();
-    await Promise.all([
-      window.electronAPI.reconcileIndexedFiles(sourceFolder, false),
-      window.electronAPI.reconcileIndexedFiles(currentPath, false),
-    ]);
-    onRefreshDirectory();
-  }, [currentPath, items, onRefreshDirectory, onSetError]);
 
   const doPasteIntoFolder = useCallback(async (folderPath: string) => {
     const cutItems = Array.from(items.values()).filter((item) => item.isCut);
@@ -927,19 +892,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               data-testid="delete-button"
             >
               Del
-            </button>
-          )}
-
-          {/* Paste button - shown when items are cut */}
-          {hasCutItems && (
-            <button
-              onClick={() => void doPasteCutItems()}
-              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
-              title="Paste cut items"
-              data-testid="paste-button"
-              aria-label="Paste cut items"
-            >
-              <ClipboardDocumentIcon className="w-5 h-5 text-white" />
             </button>
           )}
 
