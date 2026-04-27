@@ -104,16 +104,6 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
         <div className="flex-shrink-0" />
       ) : (
         <>
-        {hasCutItems && onPasteIntoFolder && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onPasteIntoFolder(entry.path); }}
-            className="flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
-            title="Paste cut items into this folder"
-            aria-label="Paste cut items into this folder"
-          >
-            <ClipboardDocumentIcon className="w-4 h-4 text-white" />
-          </button>
-        )}
         <EntryActionBar
           path={entry.path}
           isBookmarked={isBookmarked}
@@ -127,6 +117,16 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
           onMoveToBottom={onMoveToBottom}
           className="-mr-1.5"
         />
+        {hasCutItems && onPasteIntoFolder && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onPasteIntoFolder(entry.path); }}
+            className="flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+            title="Paste cut items into this folder"
+            aria-label="Paste cut items into this folder"
+          >
+            <ClipboardDocumentIcon className="w-4 h-4 text-white" />
+          </button>
+        )}
         </>
       )}
       {del.showDeleteConfirm && (
