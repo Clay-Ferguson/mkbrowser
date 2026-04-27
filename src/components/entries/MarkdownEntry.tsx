@@ -609,7 +609,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 <button
                   onClick={edit.handleCancel}
                   disabled={edit.saving}
-                  className="px-3 py-1 text-sm text-white bg-red-600 hover:bg-red-500 rounded transition-colors disabled:opacity-50"
+                  className="px-3 py-1 text-sm text-white bg-red-700 hover:bg-red-600 rounded transition-colors disabled:opacity-50"
                   data-testid="entry-cancel-button"
                 >
                   Cancel

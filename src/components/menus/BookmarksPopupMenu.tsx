@@ -34,7 +34,14 @@ export default function BookmarksPopupMenu({
         <PopupMenuItem label="No bookmarks" disabled onClick={onClose} />
       ) : (
         sorted.map((fullPath) => {
-          const displayName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+          // Display path relative to rootPath (not OS root)
+          let displayName = fullPath;
+          if (rootPath && (fullPath === rootPath || fullPath.startsWith(rootPath + '/'))) {
+            displayName = fullPath.slice(rootPath.length);
+            if (displayName.startsWith('/')) displayName = displayName.slice(1);
+            // For the root itself, show "." for clarity
+            if (!displayName) displayName = '.';
+          }
           return (
             <PopupMenuItem
               key={fullPath}

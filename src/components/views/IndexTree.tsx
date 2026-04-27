@@ -327,7 +327,16 @@ function IndexTree() {
           onClose={() => setShowBookmarksMenu(false)}
           bookmarks={settings.bookmarks || []}
           rootPath={rootPath ?? ''}
-          onNavigate={(fullPath) => void navigateToBrowserPath(fullPath)}
+          onNavigate={(fullPath) => {
+            const lastName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+            if (lastName.includes('.')) {
+              const folderPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
+              setHighlightItem(fullPath);
+              navigateToBrowserPath(folderPath, fullPath);
+            } else {
+              navigateToBrowserPath(fullPath);
+            }
+          }}
         />
       )}
       <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
