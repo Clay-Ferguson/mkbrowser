@@ -483,7 +483,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     onRefreshDirectory();
   }, [currentPath, getSelectedItems, onRefreshDirectory, onSetError]);
 
-  const navigateToBookmark = useCallback(async (fullPath: string) => {
+  // todo-0: remove this?
+  const navigateToBookmark_unused = useCallback(async (fullPath: string) => {
     const exists = await window.electronAPI.pathExists(fullPath);
     if (!exists) {
       const currentSettings = getSettings();
@@ -867,15 +868,16 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
         <div data-id="browser-header-breadcrumbs" className="flex items-center gap-3 min-w-0">
           {/* Up level button now to the left of breadcrumbs */}
+          {currentPath != rootPath &&
           <button
             onClick={navigateUp}
-            disabled={currentPath === rootPath}
             className="px-3 py-1.5 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 border border-gray-400 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             title="Go up one level"
             data-testid="navigate-up-button"
           >
             Up Level
-          </button>
+          </button>}
+
           <PathBreadcrumb
             rootPath={rootPath}
             currentPath={currentPath}

@@ -34,6 +34,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
   const atRoot = normalizedCurrent === normalizedRoot;
   return (
     <div className="flex flex-wrap items-center gap-1 text-base">
+      {parts.length > 0 &&
       <button
         type="button"
         onClick={() => !atRoot && onNavigate(normalizedRoot)}
@@ -47,7 +48,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
         style={{ background: 'none', border: 'none', outline: 'none' }}
       >
         <HomeIcon className="w-5 h-5" />
-      </button>
+      </button>}
 
       {parts.length === 0 && (
         <span className="text-slate-200 font-medium">/</span>
@@ -77,7 +78,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
         );
       })}
 
-      {settings.indexTreeWidth !== 'hidden' && (
+      {parts.length > 0 && settings.indexTreeWidth !== 'hidden' && (
         <button
           type="button"
           onClick={() => setPendingIndexTreeReveal(highlightItem ?? currentPath)}
