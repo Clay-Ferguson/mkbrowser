@@ -221,7 +221,7 @@ function AISettingsView() {
                 <h2 className="text-lg font-semibold text-slate-100">AI Usage Statistics</h2>
                 <button
                   onClick={() => setShowResetConfirm(true)}
-                  className="text-sm text-slate-400 hover:text-red-400 transition-colors"
+                  className="text-sm text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
                 >
                   Reset
                 </button>

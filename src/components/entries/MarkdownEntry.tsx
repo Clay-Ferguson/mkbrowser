@@ -370,7 +370,7 @@ function CustomPre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>)
         {!isMermaid && (
           <button
             onClick={handleCopy}
-            className="absolute top-2 right-2 p-1.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute top-2 right-2 p-1.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
             title={copied ? 'Copied!' : 'Copy code'}
           >
             {copied ? (
@@ -389,7 +389,7 @@ function CustomPre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>)
       <pre {...props}>{children}</pre>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 p-1.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 p-1.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
         title={copied ? 'Copied!' : 'Copy code'}
       >
         {copied ? (
@@ -599,7 +599,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 }}
                 disabled={edit.saving || isRewriting}
                 title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50"
+                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
               </button>
@@ -609,7 +609,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 <button
                   onClick={edit.handleCancel}
                   disabled={edit.saving}
-                  className="px-3 py-1 text-sm text-white bg-red-700 hover:bg-red-600 rounded transition-colors disabled:opacity-50"
+                  className="px-3 py-1 text-sm text-white bg-red-700 hover:bg-red-600 rounded transition-colors disabled:opacity-50 cursor-pointer"
                   data-testid="entry-cancel-button"
                 >
                   Cancel
@@ -617,7 +617,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 <button
                   onClick={edit.handleSave}
                   disabled={edit.saving}
-                  className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-50"
+                  className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-50 cursor-pointer"
                   data-testid="entry-save-button"
                 >
                   {edit.saving ? 'Saving...' : 'Save'}
@@ -632,7 +632,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                   await handleAskAi(edit.editContent);
                 }}
                 disabled={edit.saving || isAiLoading}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
+                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
               >
                 {isAiLoading ? 'Streaming...' : 'Ask AI'}
               </button>
@@ -645,7 +645,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 data-testid="ask-ai-button"
                 onClick={() => handleAskAi()}
                 disabled={isAiLoading || !content}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
+                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
               >
                 {isAiLoading ? 'Streaming...' : 'Ask AI'}
               </button>
@@ -655,7 +655,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 data-testid="ai-reply-button"
                 onClick={handleReply}
                 disabled={isReplyLoading}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0"
+                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
               >
                 {isReplyLoading ? 'Creating...' : 'Reply'}
               </button>
@@ -667,7 +667,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                   setHighlightItem(entry.path);
                   navigateToBrowserPath(folderPath, entry.path);
                 }}
-                className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors"
+                className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors cursor-pointer"
                 title="Show in browser"
                 data-testid="show-in-browser-button"
               >

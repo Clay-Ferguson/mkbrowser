@@ -261,7 +261,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                   {/* Edit button */}
                   <button
                     onClick={(e) => handleEditClick(e, result.path, result.lineNumber)}
-                    className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors cursor-pointer"
                     title="Edit file"
                   >
                     <PencilSquareIcon className="w-5 h-5" />
@@ -271,7 +271,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                   <button
                     onClick={(e) => handleDeleteClick(e, result.path)}
                     disabled={deleting}
-                    className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-50"
+                    className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer"
                     title="Delete"
                   >
                     <TrashIcon className="w-5 h-5" />
