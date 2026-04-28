@@ -776,16 +776,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setCurrentPath(path);
   }, []);
 
-  const navigateUp = useCallback(() => {
-    if (currentPath === rootPath) return;
-    const parent = currentPath.substring(0, currentPath.lastIndexOf('/'));
-    if (parent.length >= rootPath.length) {
-      setCurrentPath(parent);
-      setHighlightItem(currentPath);
-      setPendingScrollToFile(currentPath);
-    }
-  }, [currentPath, rootPath]);
-
   return (
     <>
       {/* Combined header: breadcrumbs left, actions right, wraps responsively */}
@@ -793,17 +783,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
 
         <div data-id="browser-header-breadcrumbs" className="flex items-center gap-3 min-w-0">
-          {/* Up level button now to the left of breadcrumbs */}
-          {currentPath != rootPath &&
-          <button
-            onClick={navigateUp}
-            className="px-3 py-1.5 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 border border-gray-400 rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-            title="Go up one level"
-            data-testid="navigate-up-button"
-          >
-            Up Level
-          </button>}
-
           <PathBreadcrumb
             rootPath={rootPath}
             currentPath={currentPath}

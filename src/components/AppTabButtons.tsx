@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { showTab, useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, useVisibleTabs, type AppView } from '../store';
+import { useRef, useState, useCallback } from 'react';
+import { showTab, useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, useVisibleTabs, useCurrentPath, useRootPath, setCurrentPath, setHighlightItem, setPendingScrollToFile, type AppView } from '../store';
 import { isAiThreadByEntries } from '../ai/aiPatterns';
 import type { FileEntry } from '../global';
 import appLogo from '../../public/icon-256.png';
@@ -30,8 +30,20 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
   const currentView = useCurrentView();
   const folderAnalysis = useFolderAnalysis();
   const searchResults = useSearchResults();
+  const currentPath = useCurrentPath();
+  const rootPath = useRootPath();
   const logoRef = useRef<HTMLButtonElement>(null);
   const [showFileMenu, setShowFileMenu] = useState(false);
+
+  const navigateUp = useCallback(() => {
+    if (!currentPath || currentPath === rootPath) return;
+    const parent = currentPath.substring(0, currentPath.lastIndexOf('/'));
+    if (parent.length >= rootPath.length) {
+      setCurrentPath(parent);
+      setHighlightItem(currentPath);
+      setPendingScrollToFile(currentPath);
+    }
+  }, [currentPath, rootPath]);
 
   const visibleTabs = useVisibleTabs();
 
@@ -97,6 +109,16 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
           {tab.label}
         </button>
       ))}
+      {currentView === 'browser' && currentPath !== rootPath && (
+        <button
+          onClick={navigateUp}
+          className="ml-auto px-3 py-1 mb-1 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 border border-gray-400 rounded-lg transition-colors cursor-pointer"
+          title="Go up one level"
+          data-testid="navigate-up-button"
+        >
+          Up Level
+        </button>
+      )}
     </nav>
   );
 }
