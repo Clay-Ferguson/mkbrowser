@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { ArrowPathIcon, DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline } from '@heroicons/react/24/outline';
+import { TagIcon as TagIconSolid } from '@heroicons/react/24/solid';
 import Markdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
@@ -461,14 +462,23 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     toggleItemExpanded(entry.path);
   };
 
+  const [tagsVisible, setTagsVisible] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [selectedPromptName, setSelectedPromptName] = useState<string>('');
   useEffect(() => {
     window.electronAPI.getConfig().then((config) => {
       setAiEnabled(!!config.aiEnabled);
       setSelectedPromptName(config.aiRewritePrompt ?? '');
+      setTagsVisible(config.tagsPanelVisible ?? false);
     });
   }, []);
+
+  const handleToggleTagsVisible = async () => {
+    const newVisible = !tagsVisible;
+    setTagsVisible(newVisible);
+    const config = await window.electronAPI.getConfig();
+    await window.electronAPI.saveConfig({ ...config, tagsPanelVisible: newVisible });
+  };
 
   const isHumanFile = aiEnabled && entry.name === 'HUMAN.md';
   const isAiFile = aiEnabled && entry.name === 'AI.md';
@@ -578,6 +588,15 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
         )}
         {edit.isEditing ? (
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleToggleTagsVisible}
+              title={tagsVisible ? 'Hide tags' : 'Show tags'}
+              className="p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer"
+            >
+              {tagsVisible
+                ? <TagIconSolid className="w-5 h-5" />
+                : <TagIconOutline className="w-5 h-5" />}
+            </button>
             <button
               onClick={() => setExpandedEditor(!expandedEditor)}
               title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
@@ -722,6 +741,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                   onCancel={() => setItemReviewing(entry.path, false)}
                 />
               ) : (
+                <>
+                {tagsVisible && <TagsPicker filePath={entry.path} />}
                 <CodeMirrorEditor
                   ref={editorRef}
                   value={edit.editContent}
@@ -736,8 +757,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                   onSave={edit.handleSave}
                   onSelectionChange={setHasSelection}
                 />
+                </>
               )}
-              <TagsPicker filePath={entry.path} />
             </>
           ) : (
             columns.length > 1 ? (

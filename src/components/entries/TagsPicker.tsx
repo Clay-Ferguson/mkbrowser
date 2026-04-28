@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useItem, getItemEditContent, setItemEditContent } from '../../store';
 import { CHECKBOX_CLASSES } from '../../utils/styles';
 import { loadTagsForFile, type TagsLoadState, type HashtagDefinition } from '../../utils/tagUtils';
-import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 /**
  * Represents a single hashtag with its checked state.
@@ -70,11 +69,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   const item = useItem(filePath);
   const editContent = item?.editContent ?? '';
 
-  // Async tag loading state
   const [loadState, setLoadState] = useState<TagsLoadState>({ status: 'loading' });
-
-  // Panel open/closed state — persisted in app config
-  const [panelOpen, setPanelOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,26 +84,10 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     return () => { cancelled = true; };
   }, [filePath]);
 
-  // Load persisted panel state from config on mount
-  useEffect(() => {
-    window.electronAPI.getConfig().then((config) => {
-      setPanelOpen(config.tagsPanelVisible ?? false);
-    });
-  }, []);
-
-  const handleTogglePanel = async () => {
-    const newOpen = !panelOpen;
-    setPanelOpen(newOpen);
-    const config = await window.electronAPI.getConfig();
-    await window.electronAPI.saveConfig({ ...config, tagsPanelVisible: newOpen });
-  };
-
-  // While loading, show nothing (panel header will appear once tags are known)
   if (loadState.status === 'loading') {
     return null;
   }
 
-  // If no tags found, render nothing
   if (loadState.tags.length === 0) {
     return null;
   }
@@ -187,45 +166,29 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   );
 
   return (
-    <div className="pt-2" style={{ fontFamily: MONO_FONT }}>
-      {/* Collapsible panel header */}
-      <div className="flex">
-        <button
-          onClick={handleTogglePanel}
-          className="flex items-center gap-1 px-2 py-0.5 text-xs font-bold text-slate-400 uppercase hover:text-slate-200 transition-colors select-none"
-        >
-          {panelOpen
-            ? <ChevronDownIcon className="w-3.5 h-3.5" />
-            : <ChevronRightIcon className="w-3.5 h-3.5" />}
-          Tags
-        </button>
+    <div className="pt-2 pb-1" style={{ fontFamily: MONO_FONT }}>
+      <div className="flex flex-col gap-y-2">
+        {sortedGroupNames.map((groupName) => (
+          <div key={groupName} className="flex items-start gap-2">
+            <span className="min-w-[4rem] text-xs font-bold text-slate-400 uppercase pt-1.5 shrink-0">
+              {groupName}
+            </span>
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              {groupMap.get(groupName)!.map(renderTag)}
+            </div>
+          </div>
+        ))}
+        {ungrouped.length > 0 && (
+          <div className="flex items-start gap-2">
+            <span className="min-w-[4rem] text-xs font-bold text-slate-400 uppercase pt-1.5 shrink-0">
+              tags
+            </span>
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              {ungrouped.map(renderTag)}
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Collapsible content */}
-      {panelOpen && (
-        <div className="flex flex-col gap-y-2 pt-1">
-          {sortedGroupNames.map((groupName) => (
-            <div key={groupName} className="flex items-start gap-2">
-              <span className="min-w-[4rem] text-xs font-bold text-slate-400 uppercase pt-1.5 shrink-0">
-                {groupName}
-              </span>
-              <div className="flex flex-wrap gap-x-2 gap-y-1">
-                {groupMap.get(groupName)!.map(renderTag)}
-              </div>
-            </div>
-          ))}
-          {ungrouped.length > 0 && (
-            <div className="flex items-start gap-2">
-              <span className="min-w-[4rem] text-xs font-bold text-slate-400 uppercase pt-1.5 shrink-0">
-                tags
-              </span>
-              <div className="flex flex-wrap gap-x-2 gap-y-1">
-                {ungrouped.map(renderTag)}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
