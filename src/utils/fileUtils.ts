@@ -1,7 +1,7 @@
-import type { FileEntry } from "src/global";
-import type { SortOrder } from "src/store";
 import path from 'node:path';
 import fs from 'node:fs';
+import type { FileEntry } from "src/global";
+import type { SortOrder } from "src/store";
 import yaml from 'js-yaml';
 import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from '../ai/aiPatterns';
 import { readIndexYaml } from './indexUtil';

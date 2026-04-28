@@ -20,7 +20,7 @@ const HIGHLIGHT = {
 export async function highlightElement(
   page: Page,
   locator: Locator,
-  duration: number = 800
+  duration = 800
 ): Promise<void> {
   await locator.evaluate((element, { dur, styles }) => {
     // Store original styles

@@ -5,6 +5,7 @@
  */
 import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 // @ts-expect-error — moduleResolution "node" can't resolve subpath exports; works at runtime
+// eslint-disable-next-line import/no-unresolved
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/messages';
 import { aiTools } from './tools';

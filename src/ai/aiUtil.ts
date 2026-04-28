@@ -3,6 +3,20 @@
  * This module runs in the main process only — never import from the renderer.
  */
 
+import path from 'node:path';
+import { fdir } from 'fdir';
+import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
+import { existsSync } from 'node:fs';
+import fs from 'node:fs/promises';
+import { getConfig } from '../configMgr';
+import { recordUsage } from './usageTracker';
+import { ensureRunning } from '../llamaServer';
+import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
+import { preprocessPrompt } from './promptPreprocess';
+import { USE_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
+import { readIndexYaml } from '../utils/indexUtil';
+import { invokeAI, streamAI, hasScriptedAnswer, type AIUsageInfo, type StreamCallbacks } from './langGraph';
+
 /**
  * Convert a raw AI API error into a short, user-friendly message.
  * Falls back to the original message if no known pattern matches.
@@ -29,19 +43,6 @@ export function friendlyAIError(error: unknown): string {
   const short = raw.replace(/^\[\w+ Error\]:\s*/i, '').slice(0, 200);
   return short || 'An unknown AI error occurred.';
 }
-import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
-import { fdir } from 'fdir';
-import { existsSync } from 'node:fs';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { getConfig } from '../configMgr';
-import { recordUsage } from './usageTracker';
-import { ensureRunning } from '../llamaServer';
-import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
-import { preprocessPrompt } from './promptPreprocess';
-import { USE_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
-import { readIndexYaml } from '../utils/indexUtil';
-import { invokeAI, streamAI, hasScriptedAnswer, type AIUsageInfo, type StreamCallbacks } from './langGraph';
 
 /**
  * Find the first available folder name of the form `<baseName>`, `<baseName>1`,
@@ -126,8 +127,8 @@ export async function gatherConversationHistory(
   // Start walking from the parent of the current H-folder
   let walker = path.dirname(currentHumanFolder);
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
-    const folderName = path.basename(walker);
 
     const aiFileExists = existsSync(path.join(walker, 'AI.md'));
     const humanFileExists = existsSync(path.join(walker, 'HUMAN.md'));
@@ -518,6 +519,7 @@ export async function gatherThreadEntries(
   const entries: ThreadEntry[] = [];
   let walker = folderPath;
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const walkerHumanFile = path.join(walker, 'HUMAN.md');
     const walkerIsHuman = await fs.access(walkerHumanFile).then(() => true).catch(() => false);

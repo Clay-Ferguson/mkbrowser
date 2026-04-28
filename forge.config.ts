@@ -1,11 +1,11 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import { execSync } from 'child_process';
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync } from 'child_process';
 
 /**
  * Packages listed in vite.main.config.ts `external` are NOT bundled by Vite —

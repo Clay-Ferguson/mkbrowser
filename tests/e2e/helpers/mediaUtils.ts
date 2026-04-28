@@ -1,7 +1,7 @@
-import type { Page, Locator } from '@playwright/test';
-import { screenshotWithHighlight, demonstrateTyping, insertText, highlightElement } from './visual-indicators';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { Page, Locator } from '@playwright/test';
+import { screenshotWithHighlight, insertText, highlightElement } from './visual-indicators';
 
 /**
  * Media utilities for E2E tests - screenshot and video helpers.

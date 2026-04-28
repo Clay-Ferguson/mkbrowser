@@ -1,7 +1,7 @@
-import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
+import { test, expect } from './fixtures/electronApp';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test - Mermaid Diagram Rendering

@@ -235,7 +235,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
                 loading="lazy"
                 onClick={() => setIsFullscreen(true)}
                 title="Click to view fullscreen"
-                onLoad={() => {} /* console.log('[ImageEntry] Image loaded successfully:', imageUrl)*/ } 
+                // onLoad={() => {console.log('[ImageEntry] Image loaded successfully:', imageUrl)}} 
                 onError={(e) => console.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
               />
               <button

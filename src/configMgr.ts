@@ -8,8 +8,8 @@
 
 import path from 'node:path';
 import fs from 'node:fs';
-import * as yaml from 'js-yaml';
 import { app } from 'electron';
+import * as yaml from 'js-yaml';
 import { enforceDefaultAIModels } from './ai/aiModel';
 
 // Config file location (Linux XDG standard: ~/.config/mk-browser/config.yaml)

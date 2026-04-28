@@ -1,6 +1,6 @@
+import * as path from 'path';
 import { test as base, _electron as electron } from '@playwright/test';
 import type { ElectronApplication, Page } from '@playwright/test';
-import * as path from 'path';
 
 /**
  * Custom Playwright fixtures for Electron testing.
@@ -14,6 +14,7 @@ export const test = base.extend<{
   /**
    * Provide the test data folder path for use in tests.
    */
+  // eslint-disable-next-line no-empty-pattern
   testDataPath: async ({}, use) => {
     // Go up to project root, then into test-data
     const testDataPath = path.join(__dirname, '../../../mkbrowser-test');

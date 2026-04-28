@@ -56,7 +56,7 @@ function sanitizeForTOC(content: string): string {
     // because it would be a repeat of what is already right at the top of the page 
     // and will normally be the title for the entire document also, which makes no 
     // sense to put in the table of contents 
-    if (i==firstI && line && line.trim().startsWith("#")) continue;
+    if (i===firstI && line && line.trim().startsWith("#")) continue;
 
     const fenceMatch = line.match(/^(`{3,}|~{3,})/);
     if (fenceMatch) {

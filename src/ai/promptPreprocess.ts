@@ -107,7 +107,7 @@ export function wildcardToRegex(pattern: string): RegExp {
 export async function preprocessPrompt(
   rawText: string,
   folderPath: string,
-  includeImages: boolean = true
+  includeImages = true
 ): Promise<PreprocessResult> {
   const lines = rawText.split('\n');
   const promptLines: string[] = [];

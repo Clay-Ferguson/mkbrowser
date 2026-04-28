@@ -1,6 +1,6 @@
+import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
 import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, setCheckboxForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, addExternalFile } from './helpers/mediaUtils';
-import * as path from 'path';
 
 /**
  * E2E Demo Test: Generate PDF Feature

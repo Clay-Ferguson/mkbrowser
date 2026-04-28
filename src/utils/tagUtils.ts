@@ -71,6 +71,7 @@ export async function collectAncestorTags(filePath: string): Promise<HashtagDefi
   const root = path.parse(dir).root;
 
   // Walk up the directory tree
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const tagsFile = path.join(dir, '.TAGS.yaml');
     try {

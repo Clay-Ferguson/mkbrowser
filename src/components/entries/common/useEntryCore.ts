@@ -14,7 +14,7 @@ interface UseEntryCoreOptions {
  * Hook that provides common entry state and derived values.
  * Consolidates store access and computed properties used by all Entry components.
  */
-export function useEntryCore({ path, name, defaultExpanded = false }: UseEntryCoreOptions): EntryCoreState {
+export function useEntryCore({ path, defaultExpanded = false }: UseEntryCoreOptions): EntryCoreState {
   const item = useItem(path);
   const highlightItem = useHighlightItem();
   const settings = useSettings();

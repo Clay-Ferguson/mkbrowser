@@ -18,7 +18,7 @@ export const buildEntryHeaderId = (filePath: string) => `entry-${encodeURICompon
  * Uses manual scroll calculation to avoid scrollIntoView's side effect
  * of scrolling all ancestors (which can break the layout in Electron).
  */
-export const scrollItemIntoView = (filePath: string, highlight: boolean=false) => {
+export const scrollItemIntoView = (filePath: string, highlight = false) => {
   const targetId = buildEntryHeaderId(filePath);
   const element = document.getElementById(targetId);
   if (!element) return;

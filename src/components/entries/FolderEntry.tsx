@@ -1,9 +1,7 @@
-import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
-import { FolderIcon } from '@heroicons/react/24/solid';
+import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import { useHasCutItems, useItem, useHasIndexFile, useIndexYaml } from '../../store';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { ENTRY_CONTAINER_CLASSES } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useEntryCore,

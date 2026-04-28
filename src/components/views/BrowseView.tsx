@@ -2,9 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
   ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
+  FolderPlusIcon, DocumentPlusIcon,
 } from '@heroicons/react/24/outline';
-
-import { FolderPlusIcon, DocumentPlusIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from '../../global';
 import FolderEntry from '../entries/FolderEntry';
 import MarkdownEntry from '../entries/MarkdownEntry';

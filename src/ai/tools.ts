@@ -4,10 +4,10 @@
  *
  * This module runs in the main process only — never import from the renderer.
  */
-import { tool } from '@langchain/core/tools';
-import { z } from 'zod';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { tool } from '@langchain/core/tools';
+import { z } from 'zod';
 import { getConfig } from '../configMgr';
 
 /** When true, log file-access tool invocations (file names read / listed) to the console. */

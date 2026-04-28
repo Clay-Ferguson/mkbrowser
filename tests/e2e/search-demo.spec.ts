@@ -1,6 +1,6 @@
+import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
 import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
-import * as path from 'path';
 
 /**
  * E2E Demo Test: Search Feature
