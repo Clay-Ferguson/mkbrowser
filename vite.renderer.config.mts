@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     watch: {
       // Ignore data folders to prevent HMR reloads when editing markdown files
-      ignored: ['**/demo-data/**'],
+      ignored: ['**/demo-data/**', '**/docs/**'],
     },
   },
 });
