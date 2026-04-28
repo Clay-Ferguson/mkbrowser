@@ -1,7 +1,7 @@
 import { useState, type RefObject } from 'react';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import MessageDialog from '../dialogs/MessageDialog';
-import { toggleBookmark, isBookmarked } from '../../store';
+import { toggleBookmark, isBookmarked, getSettings } from '../../store';
 
 interface BookmarksPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
@@ -35,7 +35,11 @@ export default function BookmarksPopupMenu({
   const handleClick = async (fullPath: string) => {
     const exists = await window.electronAPI.pathExists(fullPath);
     if (!exists) {
-      if (isBookmarked(fullPath)) toggleBookmark(fullPath);
+      if (isBookmarked(fullPath)) {
+        toggleBookmark(fullPath);
+        const config = await window.electronAPI.getConfig();
+        await window.electronAPI.saveConfig({ ...config, settings: getSettings() });
+      }
       setMissingPath(fullPath);
       return;
     }
