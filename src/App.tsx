@@ -29,15 +29,15 @@ import {
   getEditingItem,
   setItemEditing,
 } from './store';
-import type { TreeNode } from './store';
+import type { TreeNode, FileNode } from './store';
 import { loadConfig } from './config';
 
-async function refreshExpandedNodes(node: TreeNode): Promise<TreeNode> {
+async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isDirectory || !node.isExpanded) return node;
   try {
     const entries = await window.electronAPI.readDirectory(node.path);
-    const oldByPath = new Map((node.children ?? []).map(c => [c.path, c]));
-    const newChildren: TreeNode[] = [...entries]
+    const oldByPath = new Map((node.children ?? []).map(c => [(c as FileNode).path, c as FileNode]));
+    const newChildren: FileNode[] = [...entries]
       .sort((a, b) => {
         if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
         return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });

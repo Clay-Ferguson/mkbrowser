@@ -20,8 +20,8 @@ export interface SearchDefinition {
   searchTarget: SearchMode;
   searchMode: SearchType;
   searchBlock: SearchBlock;
-  sortBy?: SearchSortBy;
-  sortDirection?: SearchSortDirection;
+  sortBy: SearchSortBy;
+  sortDirection: SearchSortDirection;
   mostRecent?: boolean;
 }
 
