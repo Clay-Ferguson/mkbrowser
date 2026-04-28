@@ -581,11 +581,11 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             <button
               onClick={() => setExpandedEditor(!expandedEditor)}
               title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
-              className="p-1 text-slate-400 hover:text-slate-200 rounded transition-colors cursor-pointer"
+              className="p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer"
             >
               {expandedEditor
-                ? <ArrowsPointingInIcon className="w-4 h-4" />
-                : <ArrowsPointingOutIcon className="w-4 h-4" />}
+                ? <ArrowsPointingInIcon className="w-5 h-5" />
+                : <ArrowsPointingOutIcon className="w-5 h-5" />}
             </button>
             {!item?.reviewing && (
               <button
