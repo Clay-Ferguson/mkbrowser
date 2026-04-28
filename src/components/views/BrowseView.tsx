@@ -185,7 +185,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const visibleEntries = useMemo(() => {
     if (!expandedEditor) return sortedEntries;
-    const editing = sortedEntries.filter((entry) => items.get(entry.path)?.editing);
+    const editing = sortedEntries.filter((entry) => !entry.isDirectory && items.get(entry.path)?.editing);
     return editing.length > 0 ? editing : sortedEntries;
   }, [expandedEditor, sortedEntries, items]);
 

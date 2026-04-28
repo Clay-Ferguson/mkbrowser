@@ -69,8 +69,13 @@ const listeners = new Set<() => void>();
 
 /**
  * Notify all listeners that state has changed
+ *
+ * NOTE: if you ever need to print out the value of a state variable to detect it 
+ * every time it changes value, you can do what's being done in the commented line 
+ * below where we were doing that for a previous troubleshooting scenario  
  */
 function emitChange(): void {
+  // console.log('[store] expandedEditor =', state.expandedEditor, new Error().stack?.split('\n')[2]?.trim());
   for (const listener of listeners) {
     listener();
   }
