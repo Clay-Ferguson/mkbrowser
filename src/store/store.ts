@@ -699,6 +699,16 @@ export function getItem(path: string): ItemData | undefined {
 }
 
 /**
+ * Get the item currently in edit mode, if any (direct access, not a hook)
+ */
+export function getEditingItem(): { path: string; item: ItemData } | null {
+  for (const [path, item] of state.items) {
+    if (item.editing) return { path, item };
+  }
+  return null;
+}
+
+/**
  * Get all currently cut items (direct access, not a hook)
  */
 export function getCutItems(): ItemData[] {

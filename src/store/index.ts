@@ -29,6 +29,7 @@ export {
   deleteItems,
   clearCache,
   getItem,
+  getEditingItem,
   getCutItems,
   isCacheValid,
   setCurrentView,

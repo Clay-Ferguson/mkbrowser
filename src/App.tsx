@@ -26,6 +26,8 @@ import {
   useSettings,
   getIndexTreeRoot,
   setIndexTreeRoot,
+  getEditingItem,
+  setItemEditing,
 } from './store';
 import type { TreeNode } from './store';
 import { loadConfig } from './config';
@@ -71,6 +73,21 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-font-size', settings.fontSize);
   }, [settings.fontSize]);
+
+  // Close an unmodified editor when ESC is pressed anywhere in the app
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const editing = getEditingItem();
+      if (!editing) return;
+      const { path, item } = editing;
+      if ((item.editContent ?? '') === (item.content ?? '')) {
+        setItemEditing(path, false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Update window title when rootPath changes
   useEffect(() => {
