@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 
 import { EditorView, placeholder as placeholderExt, keymap } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
+import { search } from '@codemirror/search';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { markdown } from '@codemirror/lang-markdown';
 import { useSettings, type FontSize } from '../../store';
@@ -109,6 +110,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
     const extensions = [
       basicSetup,
+      search({ top: true }),
       oneDark,
       fontSizeCompartment.current.of(createFontSizeTheme(settings.fontSize)),
       spellCheckCompartment.current.of([]),
