@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { DocumentTextIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
   useItem,
@@ -8,6 +8,8 @@ import {
   setItemReviewing,
   useHasIndexFile,
   useIndexYaml,
+  useExpandedEditor,
+  setExpandedEditor,
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
@@ -53,6 +55,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
   const editMode = indexYaml?.options?.edit_mode ?? false;
+  const expandedEditor = useExpandedEditor();
 
   const rename = useRename({
     path: entry.path,
@@ -125,6 +128,15 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
         )}
         {edit.isEditing ? (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setExpandedEditor(!expandedEditor)}
+              title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
+              className="p-1 text-slate-400 hover:text-slate-200 rounded transition-colors cursor-pointer"
+            >
+              {expandedEditor
+                ? <ArrowsPointingInIcon className="w-4 h-4" />
+                : <ArrowsPointingOutIcon className="w-4 h-4" />}
+            </button>
             {!item?.reviewing && (
               <button
                 onClick={async () => {

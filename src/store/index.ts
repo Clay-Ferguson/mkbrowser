@@ -114,4 +114,6 @@ export {
   useHasIndexFile,
   setIndexYaml,
   useIndexYaml,
+  setExpandedEditor,
+  useExpandedEditor,
 } from './store';

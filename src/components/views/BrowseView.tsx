@@ -65,6 +65,7 @@ import {
   useHasIndexFile,
   setIndexYaml,
   useIndexYaml,
+  useExpandedEditor,
   type SearchDefinition,
 } from '../../store';
 import { scrollItemIntoView, scrollElementIntoView } from '../../utils/entryDom';
@@ -127,6 +128,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
   const editMode = indexYaml?.options?.edit_mode ?? false;
+  const expandedEditor = useExpandedEditor();
 
   const items = useItems();
   const currentView = useCurrentView();
@@ -180,6 +182,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     }
     return sortEntries(entriesWithCurrentTimes, settings.sortOrder, settings.foldersOnTop);
   }, [entries, items, hasIndexFile, settings.sortOrder, settings.foldersOnTop]);
+
+  const visibleEntries = useMemo(() => {
+    if (!expandedEditor) return sortedEntries;
+    const editing = sortedEntries.filter((entry) => items.get(entry.path)?.editing);
+    return editing.length > 0 ? editing : sortedEntries;
+  }, [expandedEditor, sortedEntries, items]);
 
   const allImages = useMemo(
     () => sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name)),
@@ -975,8 +983,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           {!loading && sortedEntries.length > 0 && (
             hasIndexFile ? (
               <div>
-                {editMode && <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />}
-                {sortedEntries.map((entry, idx) => {
+                {editMode && !expandedEditor && <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />}
+                {visibleEntries.map((entry, idx) => {
                   const moveUp = idx > 0 ? () => void handleMoveEntry(entry.name, 'up') : undefined;
                   const moveDown = idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
                   const moveToTop = idx > 0 ? () => void handleMoveEntryToEdge(entry.name, 'top') : undefined;
@@ -994,14 +1002,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                       ) : (
                         <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       )}
-                      {editMode && <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />}
+                      {editMode && !expandedEditor && <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />}
                     </div>
                   );
                 })}
               </div>
             ) : (
               <div className="[&>div+div]:-mt-px">
-                {sortedEntries.map((entry) => (
+                {visibleEntries.map((entry) => (
                   <div key={entry.path}>
                     {entry.isDirectory ? (
                       <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />

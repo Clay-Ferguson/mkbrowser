@@ -419,6 +419,13 @@ export interface AppState {
    */
   indexYaml: { files?: { name: string; id?: string }[]; options?: { edit_mode?: boolean } } | null;
 
+  /**
+   * When true, BrowseView hides all entries except the one being edited,
+   * giving the CodeMirror editor the full scrollable area.
+   * Not persisted — defaults to false on restart.
+   */
+  expandedEditor: boolean;
+
 }
 
 /**

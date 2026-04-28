@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { ArrowPathIcon, DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
 import Markdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
@@ -26,6 +26,8 @@ import {
   setItemReviewing,
   useHasIndexFile,
   useIndexYaml,
+  useExpandedEditor,
+  setExpandedEditor,
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
@@ -422,6 +424,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
   const editMode = indexYaml?.options?.edit_mode ?? false;
+  const expandedEditor = useExpandedEditor();
 
   const rename = useRename({
     path: entry.path,
@@ -575,6 +578,15 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
         )}
         {edit.isEditing ? (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setExpandedEditor(!expandedEditor)}
+              title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
+              className="p-1 text-slate-400 hover:text-slate-200 rounded transition-colors cursor-pointer"
+            >
+              {expandedEditor
+                ? <ArrowsPointingInIcon className="w-4 h-4" />
+                : <ArrowsPointingOutIcon className="w-4 h-4" />}
+            </button>
             {!item?.reviewing && (
               <button
                 onClick={async () => {

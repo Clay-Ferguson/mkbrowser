@@ -54,6 +54,7 @@ const initialState: AppState = {
   pendingIndexTreeReveal: null,
   hasIndexFile: false,
   indexYaml: null,
+  expandedEditor: false,
 };
 
 /**
@@ -207,6 +208,10 @@ function getHasIndexFileSnapshot(): boolean {
 
 function getIndexYamlSnapshot(): AppState['indexYaml'] {
   return state.indexYaml;
+}
+
+function getExpandedEditorSnapshot(): boolean {
+  return state.expandedEditor;
 }
 
 /**
@@ -1128,6 +1133,11 @@ export function setHasIndexFile(hasIndexFile: boolean): void {
   emitChange();
 }
 
+export function setExpandedEditor(expandedEditor: boolean): void {
+  state = { ...state, expandedEditor };
+  emitChange();
+}
+
 /**
  * Set the parsed .INDEX.yaml for the current directory.
  */
@@ -1394,6 +1404,10 @@ export function usePendingThreadScrollToBottom(): boolean {
  */
 export function useHasIndexFile(): boolean {
   return useSyncExternalStore(subscribe, getHasIndexFileSnapshot);
+}
+
+export function useExpandedEditor(): boolean {
+  return useSyncExternalStore(subscribe, getExpandedEditorSnapshot);
 }
 
 /**
