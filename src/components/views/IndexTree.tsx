@@ -68,6 +68,10 @@ function makeNodes(
   );
 }
 
+function isAnyExpanded(nodes: TreeNode[]): boolean {
+  return nodes.some(n => n.isExpanded);
+}
+
 function flattenVisible(
   nodes: TreeNode[],
   depth = 0
@@ -282,7 +286,7 @@ function IndexTree() {
           ref={bookmarksButtonRef}
           type="button"
           onClick={() => setShowBookmarksMenu(prev => !prev)}
-          className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
+          className="ml-1 p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
           title="Bookmarks menu"
           data-testid="bookmarks-menu-button"
         >
@@ -292,7 +296,8 @@ function IndexTree() {
         <button
           type="button"
           onClick={collapseAllIndexTreeNodes}
-          className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
+          disabled={!isAnyExpanded(treeRoot.children)}
+          className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           title="Collapse All"
         >
           <span className="flex items-center justify-center w-5 h-5 border border-current rounded-sm">

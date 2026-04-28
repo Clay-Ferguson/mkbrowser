@@ -281,12 +281,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   // Handle scroll events on the main container (debounced save)
   const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
     if (scrollSaveTimerRef.current) {
       clearTimeout(scrollSaveTimerRef.current);
     }
     scrollSaveTimerRef.current = setTimeout(() => {
       if (currentPath) {
-        setBrowserScrollPosition(currentPath, e.currentTarget.scrollTop);
+        setBrowserScrollPosition(currentPath, scrollTop);
       }
     }, 150);
   }, [currentPath]);
@@ -814,6 +815,30 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         </div>
 
         <div data-id="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
+          {/* Cut button - shown when items are selected and no items are cut */}
+          {hasSelectedItems && !hasCutItems && (
+            <button
+              onClick={cutSelectedItems}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
+              title="Cut selected items"
+              data-testid="cut-button"
+            >
+              Cut
+            </button>
+          )}
+
+          {/* Delete button - shown when items are selected and no items are cut */}
+          {hasSelectedItems && !hasCutItems && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
+              title="Delete selected items"
+              data-testid="delete-button"
+            >
+              Del
+            </button>
+          )}
+
           {/* Create file/folder buttons — hidden in index-ordered mode (inline insert bars replace them) */}
           {!hasIndexFile && (
             <>
@@ -868,30 +893,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           >
             <BarsArrowDownIcon className="w-5 h-5" />
           </button>
-
-          {/* Cut button - shown when items are selected and no items are cut */}
-          {hasSelectedItems && !hasCutItems && (
-            <button
-              onClick={cutSelectedItems}
-              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
-              title="Cut selected items"
-              data-testid="cut-button"
-            >
-              Cut
-            </button>
-          )}
-
-          {/* Delete button - shown when items are selected and no items are cut */}
-          {hasSelectedItems && !hasCutItems && (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
-              title="Delete selected items"
-              data-testid="delete-button"
-            >
-              Del
-            </button>
-          )}
 
           {/* Paste from clipboard button */}
           <button
@@ -1155,6 +1156,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onSplit={() => void handleSplitFile()}
           onJoin={() => void handleJoinFiles()}
           onReplaceInFiles={() => setShowReplaceDialog(true)}
+          undoCutDisabled={!hasCutItems}
           unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
           moveToFolderDisabled={selectedFileCount !== 1 || hasSelectedFolders}
           splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
