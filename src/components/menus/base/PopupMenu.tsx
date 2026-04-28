@@ -88,7 +88,7 @@ export default function PopupMenu({ anchorRef, onClose, children, style: extraSt
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl py-1 px-0.5 min-w-[180px]"
+      className="fixed z-50 bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px]"
       style={{
         top: position?.top ?? -9999,
         left: position?.left ?? -9999,
@@ -149,5 +149,5 @@ export function PopupMenuItem({
 
 /** A horizontal divider line inside a PopupMenu. */
 export function PopupMenuDivider() {
-  return <div className="border-t border-slate-700 my-1" />;
+  return <div className="border-t border-slate-500 my-1" />;
 }

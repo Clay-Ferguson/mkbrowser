@@ -49,7 +49,6 @@ import {
   getBrowserScrollPosition,
   toggleBookmark,
   setFolderAnalysis,
-  showTab,
   setHasIndexFile,
   useRootPath,
   useItems,
@@ -1223,14 +1222,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
               }
             })();
-          }}
-          onSettings={() => {
-            showTab('settings');
-            setCurrentView('settings');
-          }}
-          onAiSettings={() => {
-            showTab('ai-settings');
-            setCurrentView('ai-settings');
           }}
           onNewAiChat={() => {
             if (!currentPath) return;

@@ -6,6 +6,8 @@ interface FilePopupMenuProps {
   onClose: () => void;
   onSelectFolder: () => void;
   onQuit: () => void;
+  onSettings: () => void;
+  onAiSettings: () => void;
 }
 
 export default function FilePopupMenu({
@@ -13,6 +15,8 @@ export default function FilePopupMenu({
   onClose,
   onSelectFolder,
   onQuit,
+  onSettings,
+  onAiSettings,
 }: FilePopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
@@ -20,6 +24,17 @@ export default function FilePopupMenu({
         label="Open Folder"
         onClick={() => { onSelectFolder(); onClose(); }}
         data-testid="menu-open-folder"
+      />
+      <PopupMenuDivider />
+      <PopupMenuItem 
+        label="Settings"
+        data-testid="menu-settings"
+        onClick={() => { onSettings(); onClose(); }}
+      />
+      <PopupMenuItem
+        label="AI Settings"
+        data-testid="menu-ai-settings"
+        onClick={() => { onAiSettings(); onClose(); }}
       />
       <PopupMenuDivider />
       <PopupMenuItem

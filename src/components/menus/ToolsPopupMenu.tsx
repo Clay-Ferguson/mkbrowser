@@ -9,8 +9,6 @@ interface ToolsPopupMenuProps {
   onExport: () => void;
   onNewAiChat: () => void;
   onRunOcr: () => void;
-  onSettings: () => void;
-  onAiSettings: () => void;
 }
 
 export default function ToolsPopupMenu({
@@ -21,8 +19,6 @@ export default function ToolsPopupMenu({
   onExport,
   onNewAiChat,
   onRunOcr,
-  onSettings,
-  onAiSettings,
 }: ToolsPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
@@ -49,18 +45,6 @@ export default function ToolsPopupMenu({
         label="Run OCR"
         data-testid="menu-run-ocr"
         onClick={() => { onRunOcr(); onClose(); }}
-      />
-      <PopupMenuDivider />
-
-      <PopupMenuItem
-        label="Settings"
-        data-testid="menu-settings"
-        onClick={() => { onSettings(); onClose(); }}
-      />
-      <PopupMenuItem
-        label="AI Settings"
-        data-testid="menu-ai-settings"
-        onClick={() => { onAiSettings(); onClose(); }}
       />
     </PopupMenu>
   );
