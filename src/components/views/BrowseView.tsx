@@ -267,6 +267,18 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     }
   }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, currentPath, currentView]);
 
+  // When expanded editor activates and a file starts editing, scroll to top so
+  // the enlarged editor view always begins at the top of the container.
+  const anyItemEditing = useMemo(
+    () => Array.from(items.values()).some((item) => item.editing),
+    [items]
+  );
+  useEffect(() => {
+    if (expandedEditor && anyItemEditing) {
+      mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [expandedEditor, anyItemEditing]);
+
   // Handle scroll events on the main container (debounced save)
   const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
     if (scrollSaveTimerRef.current) {
