@@ -107,8 +107,8 @@ module.exports = {
     // Prefer `??` (nullish coalescing) over `||` when testing for null/undefined.
     "@typescript-eslint/prefer-nullish-coalescing": "off",
 
-    // Prefer optional chaining `a?.b` over `a && a.b`.
-    "@typescript-eslint/prefer-optional-chain": "warn",
+    // Prefer optional chaining `a?.b` over `a && a.b`. Requires typed linting.
+    "@typescript-eslint/prefer-optional-chain": "off",
 
     // Require curly braces around all if/else/for/while blocks.
     "curly": "off",

@@ -38,7 +38,7 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     } else {
       return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled };
     }
-  } catch (err) {
+  } catch {
     return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '', aiEnabled: false };
   }
 }

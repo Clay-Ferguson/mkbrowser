@@ -29,7 +29,7 @@ import {
   getEditingItem,
   setItemEditing,
 } from './store';
-import type { TreeNode, FileNode } from './store';
+import type { FileNode } from './store';
 import { loadConfig } from './config';
 
 async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {

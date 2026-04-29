@@ -2,6 +2,7 @@
  * Search tests — Phase 1: Literal content search
  */
 import path from 'node:path';
+import fs from 'node:fs';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { searchFolder, createMatchPredicate } from '../src/search';
 import { createContentSearcher } from '../src/utils/searchUtil';
@@ -243,7 +244,7 @@ describe('advanced content search', () => {
       for (const r of results) {
         // none of the returned files should contain "wildcard"
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const content = require('fs').readFileSync(r.path, 'utf-8');
+        const content = fs.readFileSync(r.path, 'utf-8');
         expect(content.toLowerCase()).toContain('search');
         expect(content.toLowerCase()).not.toContain('wildcard');
       }
@@ -401,7 +402,7 @@ describe('advanced content search', () => {
         expect(r.foundTime).toBeDefined();
         expect(r.foundTime).toBeGreaterThan(0);
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const content = require('fs').readFileSync(r.path, 'utf-8');
+        const content = fs.readFileSync(r.path, 'utf-8');
         expect(content.toLowerCase()).toContain('search');
       }
     });
