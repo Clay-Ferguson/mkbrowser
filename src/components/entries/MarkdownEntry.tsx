@@ -529,6 +529,27 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     window.electronAPI.cancelAiStream();
   };
 
+  const handleAiRewrite = async () => {
+    const selection = editorRef.current?.getSelection();
+    setIsRewriting(true);
+    try {
+      const result = selection
+        ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
+        : await window.electronAPI.rewriteContent(edit.editContent, entry.path, hasIndexFile);
+      if ('error' in result) {
+        logger.error('Rewrite failed:', result.error);
+        setAiErrorMessage(result.error);
+      } else {
+        setItemReviewing(entry.path, true, result.rewrittenContent);
+      }
+    } catch (err) {
+      logger.error('Rewrite failed:', err);
+      setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
   const handleReply = async () => {
     setIsReplyLoading(true);
     try {
@@ -609,26 +630,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             </button>
             {!item?.reviewing && (
               <button
-                onClick={async () => {
-                  const selection = editorRef.current?.getSelection();
-                  setIsRewriting(true);
-                  try {
-                    const result = selection
-                      ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
-                      : await window.electronAPI.rewriteContent(edit.editContent, entry.path, hasIndexFile);
-                    if ('error' in result) {
-                      logger.error('Rewrite failed:', result.error);
-                      setAiErrorMessage(result.error);
-                    } else {
-                      setItemReviewing(entry.path, true, result.rewrittenContent);
-                    }
-                  } catch (err) {
-                    logger.error('Rewrite failed:', err);
-                    setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
-                  } finally {
-                    setIsRewriting(false);
-                  }
-                }}
+                onClick={handleAiRewrite}
                 disabled={edit.saving || isRewriting}
                 title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
                 className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 cursor-pointer"
