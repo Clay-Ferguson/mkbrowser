@@ -638,6 +638,19 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
               </button>
             )}
+            {isHumanFile && !item?.reviewing && (
+              <button
+                data-testid="ask-ai-button"
+                onClick={async () => {
+                  await edit.handleSave();
+                  await handleAskAi(edit.editContent);
+                }}
+                disabled={edit.saving || isAiLoading}
+                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
+              >
+                {isAiLoading ? 'Streaming...' : 'Ask AI'}
+              </button>
+            )}
             {!item?.reviewing && (
               <>
                 <button
@@ -658,32 +671,9 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 </button>
               </>
             )}
-            {isHumanFile && !item?.reviewing && (
-              <button
-                data-testid="ask-ai-button"
-                onClick={async () => {
-                  await edit.handleSave();
-                  await handleAskAi(edit.editContent);
-                }}
-                disabled={edit.saving || isAiLoading}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
-              >
-                {isAiLoading ? 'Streaming...' : 'Ask AI'}
-              </button>
-            )}
           </div>
         ) : !isRenaming && (
           <>
-            {isHumanFile && (
-              <button
-                data-testid="ask-ai-button"
-                onClick={() => handleAskAi()}
-                disabled={isAiLoading || !content}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
-              >
-                {isAiLoading ? 'Streaming...' : 'Ask AI'}
-              </button>
-            )}
             {isAiFile && (
               <button
                 data-testid="ai-reply-button"
