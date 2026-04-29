@@ -11,12 +11,13 @@ import { getConfig } from '../configMgr';
 import { MKBROWSER_SYSTEM_PROMPT } from './aiPrompts';
 import type { PreprocessResult } from './promptPreprocess';
 import { createChatModel, getActiveModelConfig } from './aiModel';
+import { logger } from '../utils/logUtil';
 
 // Set to true to enable verbose debug logging for AI invocations.
 const DEBUG = true;
 
 export function debugLog(...args: unknown[]) {
-  if (DEBUG) console.log('[aiUtil DEBUG]', ...args);
+  if (DEBUG) logger.log('[aiUtil DEBUG]', ...args);
 }
 
 /**

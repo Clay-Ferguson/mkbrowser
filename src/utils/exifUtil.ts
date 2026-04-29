@@ -1,4 +1,5 @@
 import { exiftool } from 'exiftool-vendored';
+import { logger } from './logUtil';
 /**
  * Write EXIF metadata to an image file. Accepts a grouped tag object (same as readExifMetadata output).
  * Only string values are supported. Returns true on success, false on error.
@@ -26,7 +27,7 @@ export async function writeExifMetadata(filePath: string, data: Record<string, R
     await exiftool.write(filePath, tags);
     return true;
   } catch (err) {
-    console.error('Error writing EXIF:', err);
+    logger.error('Error writing EXIF:', err);
     return false;
   }
 }

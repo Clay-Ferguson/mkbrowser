@@ -27,6 +27,7 @@ import {
   SelectionCheckbox,
   type BaseEntryProps,
 } from './common';
+import { logger } from '../../utils/logUtil';
 
 
 type TextEntryProps = BaseEntryProps;
@@ -147,13 +148,13 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
                       ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
                       : await window.electronAPI.rewriteContent(edit.editContent, entry.path, hasIndexFile);
                     if ('error' in result) {
-                      console.error('Rewrite failed:', result.error);
+                      logger.error('Rewrite failed:', result.error);
                       setAiErrorMessage(result.error);
                     } else {
                       setItemReviewing(entry.path, true, result.rewrittenContent);
                     }
                   } catch (err) {
-                    console.error('Rewrite failed:', err);
+                    logger.error('Rewrite failed:', err);
                     setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
                   } finally {
                     setIsRewriting(false);

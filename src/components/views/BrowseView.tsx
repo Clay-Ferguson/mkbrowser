@@ -73,6 +73,7 @@ import { pasteFromClipboard } from '../../utils/clipboard';
 import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtils';
 import { getContentWidthClasses } from '../../utils/styles';
 import { hasHumanMd } from '../../ai/aiPatterns';
+import { logger } from '../../utils/logUtil';
 
 function IndexInsertBar({ onInsertFile, onInsertFolder }: { onInsertFile: () => void; onInsertFolder: () => void }) {
   return (
@@ -228,18 +229,18 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
       // Short timeout just for DOM to settle after React render
       setTimeout(() => {
-        // console.log('[BrowseView] scroll effect fired — pendingScrollToFile:', pendingScrollToFile, 'pendingScrollToHeadingSlug:', pendingScrollToHeadingSlug);
+        // logger.log('[BrowseView] scroll effect fired — pendingScrollToFile:', pendingScrollToFile, 'pendingScrollToHeadingSlug:', pendingScrollToHeadingSlug);
         if (pendingScrollToFile) {
           // Scroll to specific file (e.g., from search results or index tree heading)
           scrollItemIntoView(pendingScrollToFile, false);
           clearPendingScrollToFile();
           if (pendingScrollToHeadingSlug) {
             const slug = pendingScrollToHeadingSlug;
-            // console.log('[BrowseView] scheduling heading scroll for slug:', slug);
+            // logger.log('[BrowseView] scheduling heading scroll for slug:', slug);
             // Wait for markdown content to finish rendering before scrolling to heading
             setTimeout(() => {
               // const el = document.getElementById(slug);
-              // console.log('[BrowseView] heading scroll firing — slug:', slug, 'element found:', !!el, el);
+              // logger.log('[BrowseView] heading scroll firing — slug:', slug, 'element found:', !!el, el);
               scrollElementIntoView(slug, true);
               clearPendingScrollToHeadingSlug();
             }, 750);
@@ -642,7 +643,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           searchDefinitions: updatedSearchDefinitions,
         });
       } catch (err) {
-        console.error('Failed to save search definition:', err);
+        logger.error('Failed to save search definition:', err);
       }
     }
 
@@ -734,7 +735,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         searchDefinitions: updatedSearchDefinitions,
       });
     } catch (err) {
-      console.error('Failed to save search definition:', err);
+      logger.error('Failed to save search definition:', err);
     }
   }, []);
 
@@ -760,7 +761,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         searchDefinitions: updatedSearchDefinitions,
       });
     } catch (err) {
-      console.error('Failed to delete search definition:', err);
+      logger.error('Failed to delete search definition:', err);
     }
   }, []);
 

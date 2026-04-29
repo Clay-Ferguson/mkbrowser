@@ -9,6 +9,7 @@ import path from 'node:path';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { getConfig } from '../configMgr';
+import { logger } from '../utils/logUtil';
 
 /** When true, log file-access tool invocations (file names read / listed) to the console. */
 const DEBUG = true;
@@ -168,7 +169,7 @@ export const readFileTool = tool(
       throw new Error('AI tools are disabled (AGENTIC_MODE is off). mk_read_file cannot be called.');
     }
     const safe = await validatePath(filePath);
-    if (DEBUG) console.log(`[ai/tools] mk_read_file: ${path.basename(safe)}  (${safe})`);
+    if (DEBUG) logger.log(`[ai/tools] mk_read_file: ${path.basename(safe)}  (${safe})`);
     const stat = await fs.stat(safe);
 
     if (!stat.isFile()) {
@@ -215,7 +216,7 @@ export const listDirectoryTool = tool(
       throw new Error('AI tools are disabled (AGENTIC_MODE is off). list_directory cannot be called.');
     }
     const safe = await validatePath(directoryPath);
-    if (DEBUG) console.log(`[ai/tools] list_directory: ${path.basename(safe)}  (${safe})`);
+    if (DEBUG) logger.log(`[ai/tools] list_directory: ${path.basename(safe)}  (${safe})`);
     const stat = await fs.stat(safe);
 
     if (!stat.isDirectory()) {
@@ -263,7 +264,7 @@ export const writeFileTool = tool(
       throw new Error('AI tools are disabled (AGENTIC_MODE is off). mk_write_file cannot be called.');
     }
     const safe = await validatePath(filePath);
-    if (DEBUG) console.log(`[ai/tools] mk_write_file: ${path.basename(safe)}  (${safe})`);
+    if (DEBUG) logger.log(`[ai/tools] mk_write_file: ${path.basename(safe)}  (${safe})`);
 
     // Ensure the file already exists — this tool must not create new files.
     let stat: Awaited<ReturnType<typeof fs.stat>>;
@@ -318,7 +319,7 @@ export const createFileTool = tool(
     const parentDir = path.dirname(resolved);
     await validatePath(parentDir);
 
-    if (DEBUG) console.log(`[ai/tools] create_file: ${path.basename(resolved)}  (${resolved})`);
+    if (DEBUG) logger.log(`[ai/tools] create_file: ${path.basename(resolved)}  (${resolved})`);
 
     // Ensure the file does NOT already exist.
     try {
@@ -386,7 +387,7 @@ export const deleteFileTool = tool(
       throw new Error('AI tools are disabled (AGENTIC_MODE is off). delete_file cannot be called.');
     }
     const validated = await validatePath(filePath);
-    if (DEBUG) console.log(`[ai/tools] delete_file: ${filePath}  (validated: ${validated})`);
+    if (DEBUG) logger.log(`[ai/tools] delete_file: ${filePath}  (validated: ${validated})`);
 
     const count = await globDelete(validated);
     const dir = path.dirname(validated);
@@ -423,7 +424,7 @@ export const deleteFolderTool = tool(
       throw new Error('AI tools are disabled (AGENTIC_MODE is off). delete_folder cannot be called.');
     }
     const safe = await validatePath(folderPath);
-    if (DEBUG) console.log(`[ai/tools] delete_folder: ${folderPath}  (validated: ${safe})`);
+    if (DEBUG) logger.log(`[ai/tools] delete_folder: ${folderPath}  (validated: ${safe})`);
 
     const stat = await fs.stat(safe);
     if (!stat.isDirectory()) {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '../../utils/logUtil';
 
 // Cache for resolved image paths to avoid repeated file system lookups
 // Key format: `${markdownFilePath}|${imageSrc}` -> resolved absolute path or null if not found
@@ -120,7 +121,7 @@ export function createCustomImage(entryPath: string) {
             setIsLoading(false);
           }
         } catch (err) {
-          console.error('Error resolving image path:', err);
+          logger.error('Error resolving image path:', err);
           if (isMounted) {
             setHasError(true);
             setIsLoading(false);

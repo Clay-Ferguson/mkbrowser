@@ -12,6 +12,7 @@ import { hashtagPlugin, hashtagTheme } from '../../utils/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editorDateUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
+import { logger } from '../../utils/logUtil';
 
 const FONT_SIZE_MAP: Record<FontSize, string> = {
   small: '12px',
@@ -229,7 +230,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
               onGoToLineComplete();
             }
           } catch (err) {
-            console.error('Failed to scroll to line:', err);
+            logger.error('Failed to scroll to line:', err);
           }
         }
 

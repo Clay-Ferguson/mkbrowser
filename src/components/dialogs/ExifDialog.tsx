@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { logger } from '../../utils/logUtil';
 
 interface ExifDialogProps {
   data: Record<string, Record<string, string>>;
@@ -148,7 +149,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
       const freshData = await window.electronAPI.readExif(filePath);
       setDisplayData(freshData);
     } catch (err) {
-      console.error('[ExifDialog] Error saving EXIF data:', err);
+      logger.error('[ExifDialog] Error saving EXIF data:', err);
       alert('Error saving EXIF data.');
     }
     setSaving(false);

@@ -1,6 +1,7 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
 import Typo from 'typo-js';
+import { logger } from '../../utils/logUtil';
 
 // Singleton for the spell checker
 let typoInstance: Typo | null = null;
@@ -16,7 +17,7 @@ export async function loadSpellChecker(): Promise<Typo | null> {
       typoInstance = new Typo('en_US', affData, dicData);
       return typoInstance;
     } catch (error) {
-      console.error('Failed to initialize spell checker:', error);
+      logger.error('Failed to initialize spell checker:', error);
       return null;
     }
   })();

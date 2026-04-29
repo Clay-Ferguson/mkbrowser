@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PhotoIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected, useHasIndexFile, useIndexYaml } from '../../store';
@@ -21,7 +22,7 @@ interface ImageEntryProps extends BaseEntryProps {
 }
 
 function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom }: ImageEntryProps) {
-  // console.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
+  // logger.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
   
   const {
     isRenaming,
@@ -59,7 +60,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
   const [exifLoading, setExifLoading] = useState(false);
   const [exifFileName, setExifFileName] = useState(entry.name);
 
-  // console.log('[ImageEntry] State:', { isRenaming, isExpanded, isSelected });
+  // logger.log('[ImageEntry] State:', { isRenaming, isExpanded, isSelected });
 
   const fullscreenItem = useItem(fullscreenImagePath);
   const isFullscreenSelected = fullscreenItem?.isSelected ?? false;
@@ -141,7 +142,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
         onDelete();
       }
     } catch (error) {
-      console.error('[ImageEntry] Failed to delete image:', error);
+      logger.error('[ImageEntry] Failed to delete image:', error);
     }
   };
 
@@ -162,7 +163,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
       setExifData(data);
       setShowExifDialog(true);
     } catch (error) {
-      console.error('[ImageEntry] Failed to read EXIF data:', error);
+      logger.error('[ImageEntry] Failed to read EXIF data:', error);
     } finally {
       setExifLoading(false);
     }
@@ -170,7 +171,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
 
   // Convert file path to local-file:// URL for the image src
   const imageUrl = `local-file://${entry.path}`;
-  // console.log('[ImageEntry] Image URL:', imageUrl);
+  // logger.log('[ImageEntry] Image URL:', imageUrl);
 
   return (
     <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''} overflow-hidden`}>
@@ -235,8 +236,8 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
                 loading="lazy"
                 onClick={() => setIsFullscreen(true)}
                 title="Click to view fullscreen"
-                // onLoad={() => {console.log('[ImageEntry] Image loaded successfully:', imageUrl)}} 
-                onError={(e) => console.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
+                // onLoad={() => {logger.log('[ImageEntry] Image loaded successfully:', imageUrl)}} 
+                onError={(e) => logger.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
               />
               <button
                 onClick={(e) => handleExifClick(e, entry.path, entry.name)}

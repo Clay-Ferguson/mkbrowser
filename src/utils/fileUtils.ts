@@ -1,6 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import type { FileEntry } from "../global";
+import { logger } from './logUtil';
 import type { SortOrder } from "../store";
 import yaml from 'js-yaml';
 import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from '../ai/aiPatterns';
@@ -80,7 +81,7 @@ export async function trimLeadingWhitespaceFromNames(
         try {
           // Only rename if the trimmed name doesn't already exist
           await fsOps.stat(newPath);
-          console.warn(`Cannot auto-trim "${entry.name}": "${trimmedName}" already exists`);
+          logger.warn(`Cannot auto-trim "${entry.name}": "${trimmedName}" already exists`);
         } catch {
           // Target doesn't exist, safe to rename
           await fsOps.rename(oldPath, newPath);

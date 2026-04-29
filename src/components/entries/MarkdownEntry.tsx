@@ -38,6 +38,7 @@ import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
 import TagsPicker from './TagsPicker';
 import { createCustomImage } from './markdownImgResolver';
+import { logger } from '../../utils/logUtil';
 import {
   useEntryCore,
   useRename,
@@ -361,7 +362,7 @@ function CustomPre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>)
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      logger.error('Failed to copy:', err);
     }
   };
 
@@ -534,7 +535,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
       const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
       const result = await window.electronAPI.replyToAi(parentFolder, true);
       if ('error' in result) {
-        console.error('Reply error:', result.error);
+        logger.error('Reply error:', result.error);
       } else {
         if (view === 'thread') {
           navigateToBrowserPath(result.folderPath, undefined, 'thread');
@@ -616,13 +617,13 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                       ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
                       : await window.electronAPI.rewriteContent(edit.editContent, entry.path, hasIndexFile);
                     if ('error' in result) {
-                      console.error('Rewrite failed:', result.error);
+                      logger.error('Rewrite failed:', result.error);
                       setAiErrorMessage(result.error);
                     } else {
                       setItemReviewing(entry.path, true, result.rewrittenContent);
                     }
                   } catch (err) {
-                    console.error('Rewrite failed:', err);
+                    logger.error('Rewrite failed:', err);
                     setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
                   } finally {
                     setIsRewriting(false);

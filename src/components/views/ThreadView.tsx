@@ -21,6 +21,7 @@ import {
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import MarkdownEntry from '../entries/MarkdownEntry';
+import { logger } from '../../utils/logUtil';
 import PathBreadcrumb from '../PathBreadcrumb';
 
 interface ThreadViewProps {
@@ -79,7 +80,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
         );
       }
     } catch (err) {
-      console.error('Failed to load thread entries:', err);
+      logger.error('Failed to load thread entries:', err);
       setIsThread(false);
     } finally {
       setLoading(false);

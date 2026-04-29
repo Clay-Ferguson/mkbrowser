@@ -20,12 +20,13 @@ import type { StreamCallbacks } from './ai/langGraph';
 import { getUsageWithCosts, resetUsage } from './ai/usageTracker';
 import { checkHealth, ensureRunning, stopServer } from './llamaServer';
 import { readExifMetadata, writeExifMetadata } from './utils/exifUtil';
+import { logger } from './utils/logUtil';
   // Write EXIF metadata to an image file
   ipcMain.handle('write-exif', async (_event, filePath: string, data: Record<string, Record<string, string>>): Promise<boolean> => {
     try {
       return await writeExifMetadata(filePath, data);
     } catch (error) {
-      console.error('Error writing EXIF data:', error);
+      logger.error('Error writing EXIF data:', error);
       return false;
     }
   });
@@ -65,9 +66,9 @@ const createWindow = () => {
     ? path.join(process.resourcesPath, 'icon-256.png')
     : path.join(app.getAppPath(), 'icon-256.png');
   
-  console.log('Icon path:', iconPath, 'Exists:', fs.existsSync(iconPath));
+  logger.log('Icon path:', iconPath, 'Exists:', fs.existsSync(iconPath));
   const icon = nativeImage.createFromPath(iconPath);
-  console.log('Icon isEmpty:', icon.isEmpty());
+  logger.log('Icon isEmpty:', icon.isEmpty());
 
   // Create the browser window.
   mainWindow = new BrowserWindow({
@@ -164,7 +165,7 @@ function setupIpcHandlers(): void {
     try {
       return await fs.promises.readFile(filePath, 'utf-8');
     } catch (error) {
-      console.error('Error reading file:', error);
+      logger.error('Error reading file:', error);
       return '';
     }
   });
@@ -174,7 +175,7 @@ function setupIpcHandlers(): void {
     try {
       return await readExifMetadata(filePath);
     } catch (error) {
-      console.error('Error reading EXIF data:', error);
+      logger.error('Error reading EXIF data:', error);
       return {};
     }
   });
@@ -212,7 +213,7 @@ function setupIpcHandlers(): void {
 
       return { ok: true, content: finalContent };
     } catch (error) {
-      console.error('Error writing file:', error);
+      logger.error('Error writing file:', error);
       return { ok: false, content };
     }
   });
@@ -223,7 +224,7 @@ function setupIpcHandlers(): void {
       const stats = await fs.promises.stat(filePath);
       return stats.size;
     } catch (error) {
-      console.error('Error getting file size:', error);
+      logger.error('Error getting file size:', error);
       return -1;
     }
   });
@@ -234,7 +235,7 @@ function setupIpcHandlers(): void {
       const stats = await fs.promises.stat(filePath);
       return stats.mtimeMs;
     } catch (error) {
-      console.error('Error getting file mtime:', error);
+      logger.error('Error getting file mtime:', error);
       return -1;
     }
   });
@@ -246,7 +247,7 @@ function setupIpcHandlers(): void {
       await fs.promises.writeFile(filePath, buffer);
       return true;
     } catch (error) {
-      console.error('Error writing binary file:', error);
+      logger.error('Error writing binary file:', error);
       return false;
     }
   });
@@ -265,7 +266,7 @@ function setupIpcHandlers(): void {
       await fs.promises.writeFile(filePath, content, 'utf-8');
       return { success: true };
     } catch (error: any) {
-      console.error('Error creating file:', error);
+      logger.error('Error creating file:', error);
       let errorMessage = 'Failed to create file';
       if (error.code === 'EACCES' || error.code === 'EPERM') {
         errorMessage = 'Permission denied';
@@ -282,7 +283,7 @@ function setupIpcHandlers(): void {
       await fs.promises.rename(oldPath, newPath);
       return true;
     } catch (error) {
-      console.error('Error renaming file:', error);
+      logger.error('Error renaming file:', error);
       return false;
     }
   });
@@ -293,7 +294,7 @@ function setupIpcHandlers(): void {
       await shell.trashItem(filePath);
       return true;
     } catch (error) {
-      console.error('Error moving to trash:', error);
+      logger.error('Error moving to trash:', error);
       return false;
     }
   });
@@ -304,7 +305,7 @@ function setupIpcHandlers(): void {
       await fs.promises.mkdir(folderPath);
       return { success: true };
     } catch (error: any) {
-      console.error('Error creating folder:', error);
+      logger.error('Error creating folder:', error);
       let errorMessage = 'Failed to create folder';
       if (error.code === 'EEXIST') {
         errorMessage = 'A file/folder with this name already exists';
@@ -354,7 +355,7 @@ function setupIpcHandlers(): void {
       const ignoredPatterns = buildIgnoredPatterns(parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? ''));
       return await searchAndReplace(folderPath, searchText, replaceText, ignoredPatterns);
     } catch (error) {
-      console.error('Error in search and replace:', error);
+      logger.error('Error in search and replace:', error);
       return [];
     }
   });
@@ -389,7 +390,7 @@ function setupIpcHandlers(): void {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
       return await searchFolder(folderPath, query, searchType, searchMode, searchBlock, ignoredPaths, searchImageExif, mostRecent);
     } catch (error) {
-      console.error('Error searching folder:', error);
+      logger.error('Error searching folder:', error);
       return [];
     }
   });
@@ -400,7 +401,7 @@ function setupIpcHandlers(): void {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
       return await analyzeFolderHashtags(folderPath, ignoredPaths);
     } catch (error) {
-      console.error('Error analyzing folder:', error);
+      logger.error('Error analyzing folder:', error);
       return { hashtags: [], totalFiles: 0 };
     }
   });
@@ -410,7 +411,7 @@ function setupIpcHandlers(): void {
     try {
       return await collectAncestorTags(filePath);
     } catch (error) {
-      console.error('Error collecting ancestor tags:', error);
+      logger.error('Error collecting ancestor tags:', error);
       return [];
     }
   });
@@ -440,7 +441,7 @@ function setupIpcHandlers(): void {
     try {
       return await exportFolderContents(sourceFolder, outputFolder, outputFileName, includeSubfolders, includeFilenames, includeDividers);
     } catch (error) {
-      console.error('Error exporting folder contents:', error);
+      logger.error('Error exporting folder contents:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -461,7 +462,7 @@ function setupIpcHandlers(): void {
         : path.join(app.getAppPath(), 'resources', 'pdf-export');
       return await exportToPdf(markdownPath, pdfPath, resourcePath, sourceFolder);
     } catch (error) {
-      console.error('Error launching PDF export:', error);
+      logger.error('Error launching PDF export:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -521,7 +522,7 @@ function setupIpcHandlers(): void {
         },
       );
     } catch (error) {
-      console.error('Error in ask-ai handler:', error);
+      logger.error('Error in ask-ai handler:', error);
       return { error: friendlyAIError(error) };
     } finally {
       ipcMain.removeListener('ai-stream-cancel', cancelHandler);
@@ -533,7 +534,7 @@ function setupIpcHandlers(): void {
     try {
       return await handleRewriteContent(content, filePath, hasIndexFile);
     } catch (error) {
-      console.error('Error in rewrite-content handler:', error);
+      logger.error('Error in rewrite-content handler:', error);
       return { error: friendlyAIError(error) };
     }
   });
@@ -543,7 +544,7 @@ function setupIpcHandlers(): void {
     try {
       return await handleRewriteContentSection(content, selectionFrom, selectionTo, filePath, hasIndexFile);
     } catch (error) {
-      console.error('Error in rewrite-content-selection handler:', error);
+      logger.error('Error in rewrite-content-selection handler:', error);
       return { error: friendlyAIError(error) };
     }
   });
@@ -591,7 +592,7 @@ function setupIpcHandlers(): void {
     try {
       return await handleReplyToAI(parentFolderPath, createSubFolder);
     } catch (error) {
-      console.error('Error in reply-to-ai handler:', error);
+      logger.error('Error in reply-to-ai handler:', error);
       return { error: friendlyAIError(error) };
     }
   });
@@ -653,17 +654,17 @@ async function handleCommandLineArgs(): Promise<void> {
   // In packaged apps, app.isPackaged is true and there's no separate main.js argument
 
   // Debug: log all arguments received
-  console.log('=== Command Line Arguments Debug ===');
-  console.log('Full process.argv:', process.argv);
-  console.log('app.isPackaged:', app.isPackaged);
+  logger.log('=== Command Line Arguments Debug ===');
+  logger.log('Full process.argv:', process.argv);
+  logger.log('app.isPackaged:', app.isPackaged);
 
   // In packaged apps, user args start at index 1; in dev mode, they start at index 2
   const args = app.isPackaged ? process.argv.slice(1) : process.argv.slice(2);
-  console.log('User args:', args);
+  logger.log('User args:', args);
 
   // Filter out flags and electron-specific arguments, find first path-like argument
   const folderPath = args.find(arg => !arg.startsWith('-') && arg !== '.');
-  console.log('Detected folder path:', folderPath ?? '(none)');
+  logger.log('Detected folder path:', folderPath ?? '(none)');
 
   if (folderPath) {
     try {
@@ -675,12 +676,12 @@ async function handleCommandLineArgs(): Promise<void> {
         // Update in-memory config and persist to disk
         updateConfig({ browseFolder: absolutePath, curSubFolder: undefined });
 
-        console.log(`Opening folder from command line: ${absolutePath}`);
+        logger.log(`Opening folder from command line: ${absolutePath}`);
       } else {
-        console.warn(`Command-line argument is not a directory: ${folderPath}`);
+        logger.warn(`Command-line argument is not a directory: ${folderPath}`);
       }
     } catch (_error) {
-      console.warn(`Command-line folder does not exist: ${folderPath}`);
+      logger.warn(`Command-line folder does not exist: ${folderPath}`);
     }
   }
 }

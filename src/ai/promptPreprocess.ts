@@ -7,6 +7,7 @@
 import { fdir } from 'fdir';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { logger } from '../utils/logUtil';
 
 const debug = false;
 
@@ -222,8 +223,8 @@ export async function preprocessPrompt(
   }
 
   if (debug) {
-    console.log('[preprocessPrompt] Final prompt with attached files:\n', finalText);
-    console.log(`[preprocessPrompt] ${images.length} image attachment(s)`);
+    logger.log('[preprocessPrompt] Final prompt with attached files:\n', finalText);
+    logger.log(`[preprocessPrompt] ${images.length} image attachment(s)`);
   }
   return { text: finalText, images };
 }

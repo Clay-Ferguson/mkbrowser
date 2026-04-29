@@ -32,6 +32,7 @@ import type { PreprocessResult } from './promptPreprocess';
 
 import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
+import { logger } from '../utils/logUtil';
 
 /** Set to true to use Deep Agents; false to use the original StateGraph path. */
 export const USE_DEEP_AGENTS = true; 
@@ -40,7 +41,7 @@ export const USE_DEEP_AGENTS = true;
 const DEBUG = true;
 
 function debugLog(...args: unknown[]) {
-  if (DEBUG) console.log('[deepAgent DEBUG]', ...args);
+  if (DEBUG) logger.log('[deepAgent DEBUG]', ...args);
 }
 
 import { MKBROWSER_SYSTEM_PROMPT } from './aiPrompts';

@@ -415,7 +415,7 @@ function IndexTree() {
               onClick={() => { if (isClickable) void handleNodeClick(node); }}
               onContextMenu={e => {
                 e.preventDefault();
-                console.log('[IndexTree] onContextMenu node:', JSON.stringify({ path: node.path, isHeading: isMarkdownHeadingNode(node), isDir: (node as FileNode).isDirectory }));
+                // console.log('[IndexTree] onContextMenu node:', JSON.stringify({ path: node.path, isHeading: isMarkdownHeadingNode(node), isDir: (node as FileNode).isDirectory }));
                 if (isMarkdownHeadingNode(node)) {
                   const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
                   const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
