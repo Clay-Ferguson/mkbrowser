@@ -679,7 +679,7 @@ async function handleCommandLineArgs(): Promise<void> {
       } else {
         console.warn(`Command-line argument is not a directory: ${folderPath}`);
       }
-    } catch (error) {
+    } catch (_error) {
       console.warn(`Command-line folder does not exist: ${folderPath}`);
     }
   }

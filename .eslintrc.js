@@ -61,7 +61,7 @@ module.exports = {
     // Disallow declared but unused variables. Variables/args prefixed with _ are exempt.
     "@typescript-eslint/no-unused-vars": [
       "error",
-      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" },
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" },
     ],
 
     // Disallow `var`; require `const` or `let` instead.
@@ -89,6 +89,10 @@ module.exports = {
         "newlines-between": "ignore",
       },
     ],
+
+    // Subpath exports from some packages (e.g. @langchain/langgraph/prebuilt) are not
+    // resolved by eslint-import-resolver-node; ignore them to avoid false positives.
+    "import/no-unresolved": ["error", { "ignore": ["@langchain/langgraph/.*"] }],
 
     // Disallow importing the same module more than once in a file.
     "import/no-duplicates": "error",
