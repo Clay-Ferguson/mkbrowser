@@ -4,6 +4,57 @@
 
 This document describes the screenshot-based video recording system used to create user guide videos and documentation for MkBrowser. The system uses Playwright E2E tests to generate both screenshots and narration text files at key interaction points during automated test workflows, then combines them into video files using FFmpeg and Kokoro TTS for text-to-speech narration.
 
+<!-- TOC -->
+
+* [Overview](#overview)
+* [How The System Works](#how-the-system-works)
+  * [1. Test Execution → Media Generation](#1-test-execution--media-generation)
+  * [2. Test Runner → User Workflow](#2-test-runner--user-workflow)
+  * [3. Video Generation → Final Output](#3-video-generation--final-output)
+  * [Prerequisites](#prerequisites)
+* [Quick Reference](#quick-reference)
+  * [Essential Helper Functions (from `mediaUtils.ts`)](#essential-helper-functions-from-mediautilsts)
+  * [Typical Test Structure](#typical-test-structure)
+* [System Components](#system-components)
+  * [1. Playwright Test Runner Script](#1-playwright-test-runner-script)
+  * [2. Media Utilities Library](#2-media-utilities-library)
+  * [3. Visual Indicators Library](#3-visual-indicators-library)
+  * [4. Demo Test Specs](#4-demo-test-specs)
+  * [5. Video Creation Script](#5-video-creation-script)
+* [Technical Deep Dive](#technical-deep-dive)
+  * [CodeMirror Editor Handling](#codemirror-editor-handling)
+  * [Playwright Electron Integration](#playwright-electron-integration)
+* [Usage Workflow](#usage-workflow)
+  * [Creating New Demo Videos](#creating-new-demo-videos)
+  * [Typical File Structure After Test Run](#typical-file-structure-after-test-run)
+  * [Customization Options](#customization-options)
+* [File Structure](#file-structure)
+* [Dependencies](#dependencies)
+  * [NPM Packages](#npm-packages)
+  * [System Packages](#system-packages)
+  * [Kokoro TTS (Required for `.txt` Narration)](#kokoro-tts-required-for-txt-narration)
+* [Best Practices](#best-practices)
+  * [1. Use Media Utility Helpers](#1-use-media-utility-helpers)
+  * [2. Screenshot and Narration Pairing](#2-screenshot-and-narration-pairing)
+  * [3. File Naming](#3-file-naming)
+  * [4. Visual Indicator Placement](#4-visual-indicator-placement)
+  * [5. Test Independence](#5-test-independence)
+  * [6. Video Length](#6-video-length)
+* [Troubleshooting](#troubleshooting)
+  * [Screenshots Are Empty/Black](#screenshots-are-emptyblack)
+  * [Visual Indicators Not Visible](#visual-indicators-not-visible)
+  * [Video Has Wrong Aspect Ratio](#video-has-wrong-aspect-ratio)
+  * [Highlights Disappear Before Screenshot](#highlights-disappear-before-screenshot)
+  * [FFmpeg Not Found](#ffmpeg-not-found)
+  * [Kokoro TTS Not Found Error](#kokoro-tts-not-found-error)
+  * [Generated Audio Sounds Wrong](#generated-audio-sounds-wrong)
+* [Future Enhancements](#future-enhancements)
+  * [Potential Improvements](#potential-improvements)
+  * [Alternative Approaches Considered](#alternative-approaches-considered)
+* [Conclusion](#conclusion)
+
+<!-- /TOC --> 
+
 ## How The System Works
 
 The video creation system is an integrated workflow that connects three main components:
@@ -21,7 +72,7 @@ Both are saved to `screenshots/<test-name>/` with sequential 3-digit numbering (
 - Cleans old screenshots when running specific tests
 - Executes the Playwright test
 - After successful completion, prompts: "Generate video from screenshots? [y/N]"
-- If answered 'y', automatically invokes the video generation script
+- If answered 'y', automatically invokes the video generation script, which generates a video of the test run using the screenshots that were captured and the narration files generated.
 
 ### 3. Video Generation → Final Output
 [`../kocreator/create-video.sh`](../kocreator/create-video.sh) converts test output to videos:
@@ -50,23 +101,6 @@ Both are saved to `screenshots/<test-name>/` with sequential 3-digit numbering (
   cd kokoro
   ./setup-kokoro.sh  # Install Kokoro TTS engine and voice models
   ```
-
-## Architecture Decision
-
-### Why Screenshot-Based Instead of Live Recording?
-
-**Problem**: When Playwright launches Electron applications via `_electron.launch()`, the windows are controlled internally and not exposed to the X11 window system. This means external screen capture tools like `xdotool` and `ffmpeg` cannot detect or record these windows.
-
-**Attempted Solutions**:
-- Using `xvfb-run` for virtual display: ❌ Windows still not visible to external tools
-- Using `xdotool` to find window by title: ❌ Playwright-controlled windows not in X11 window list
-- Playwright's built-in video recording: ❌ Only works for browser contexts, not Electron apps
-
-**Solution**: Capture screenshots at specific points during test execution, then stitch them together into videos using FFmpeg. This approach:
-- ✅ Works reliably with Playwright + Electron
-- ✅ Provides precise control over what gets captured
-- ✅ Allows custom visual indicators to show user interactions
-- ✅ Produces high-quality output suitable for documentation
 
 ## Quick Reference
 

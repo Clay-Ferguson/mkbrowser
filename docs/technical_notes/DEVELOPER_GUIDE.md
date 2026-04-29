@@ -1,5 +1,7 @@
 # MkBrowser is an Electron App
 
+<!-- TOC -->
+
 In Electron, your app runs in **two separate processes** that can't directly call each other's code:
 
 1. **Main process** (`main.ts`) — runs Node.js, has full OS access (file system, native dialogs, menus, etc.)
