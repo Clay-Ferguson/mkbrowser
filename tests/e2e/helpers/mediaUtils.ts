@@ -17,6 +17,27 @@ export function logScreenshotSummary(screenshotDir: string): void {
   console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
 }
 
+export function cleanupTestDataFiles(): void {
+  const testDataDir = path.resolve(path.join(__dirname, '../../../mkbrowser-test'));
+  console.log('testDataDir:', testDataDir);
+  cleanupTestDataFilesRecursive(testDataDir);
+}
+
+function cleanupTestDataFilesRecursive(dir: string): void {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === 'A' || entry.name === 'H') {
+        fs.rmSync(fullPath, { recursive: true, force: true });
+      } else {
+        cleanupTestDataFilesRecursive(fullPath);
+      }
+    } else if (/^my-.*\.md$/.test(entry.name) || entry.name === 'AI.md' || entry.name === 'HUMAN.md') {
+      fs.unlinkSync(fullPath);
+    }
+  }
+}
+
 /**
  * Cleans up screenshot files in a directory, preserving any subdirectories.
  * Creates the directory if it does not yet exist.
@@ -31,6 +52,8 @@ export function cleanupScreenshots(screenshotDir: string): void {
     for (const entry of fs.readdirSync(screenshotDir, { withFileTypes: true })) {
       if (entry.isFile()) {
         fs.unlinkSync(path.join(screenshotDir, entry.name));
+      } else if (entry.isDirectory() && entry.name !== 'external') {
+        fs.rmSync(path.join(screenshotDir, entry.name), { recursive: true });
       }
     }
   } else {

@@ -504,14 +504,22 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     const textToSend = promptContent || content;
     if (!textToSend) return;
     setIsAiLoading(true);
-    setShowStreamingDialog(true);
+
+    // Show the streaming dialog only when the first real chunk arrives.
+    // Checking hasScriptedAnswer() here is useless — it lives in the main
+    // process and is always false from the renderer's perspective.
+    const unsubscribeChunk = window.electronAPI.onAiStreamChunk(() => {
+      setShowStreamingDialog(true);
+      unsubscribeChunk();
+    });
+
     try {
       const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
       const result = await window.electronAPI.askAi(textToSend, parentFolder);
       if ('error' in result) {
         setAiErrorMessage(result.error);
       } else {
-        pendingNavigationRef.current = () => {
+        const navigate = () => {
           if (view === 'thread') {
             navigateToBrowserPath(result.responseFolder, undefined, 'thread');
             setPendingThreadScrollToBottom();
@@ -519,8 +527,16 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             navigateToBrowserPath(result.responseFolder);
           }
         };
+        // If the streaming dialog is visible it will trigger navigation when it
+        // closes; otherwise navigate immediately (e.g. scripted / non-streaming).
+        if (showStreamingDialog) {
+          pendingNavigationRef.current = navigate;
+        } else {
+          navigate();
+        }
       }
     } finally {
+      unsubscribeChunk();
       setIsAiLoading(false);
     }
   };
@@ -735,21 +751,21 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 />
               ) : (
                 <>
-                {tagsVisible && <TagsPicker filePath={entry.path} />}
-                <CodeMirrorEditor
-                  ref={editorRef}
-                  value={edit.editContent}
-                  onChange={edit.setEditContent}
-                  placeholder="Enter markdown content..."
-                  language="markdown"
-                  autoFocus
-                  goToLine={item?.goToLine}
-                  onGoToLineComplete={() => clearItemGoToLine(entry.path)}
-                  onEscape={handleEscape}
-                  onForceCancel={edit.handleCancel}
-                  onSave={edit.handleSave}
-                  onSelectionChange={setHasSelection}
-                />
+                  {tagsVisible && <TagsPicker filePath={entry.path} />}
+                  <CodeMirrorEditor
+                    ref={editorRef}
+                    value={edit.editContent}
+                    onChange={edit.setEditContent}
+                    placeholder="Enter markdown content..."
+                    language="markdown"
+                    autoFocus
+                    goToLine={item?.goToLine}
+                    onGoToLineComplete={() => clearItemGoToLine(entry.path)}
+                    onEscape={handleEscape}
+                    onForceCancel={edit.handleCancel}
+                    onSave={edit.handleSave}
+                    onSelectionChange={setHasSelection}
+                  />
                 </>
               )}
             </>

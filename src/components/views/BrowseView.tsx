@@ -803,7 +803,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
       <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
 
-        <div data-id="browser-header-breadcrumbs" className="flex items-center gap-3 min-w-0">
+        <div data-testid="browser-header-breadcrumbs" className="flex items-center gap-3 min-w-0">
           <PathBreadcrumb
             rootPath={rootPath}
             currentPath={currentPath}
@@ -814,7 +814,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           />
         </div>
 
-        <div data-id="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
+        <div data-testid="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
           {/* Cut button - shown when items are selected and no items are cut */}
           {hasSelectedItems && !hasCutItems && (
             <button
@@ -973,7 +973,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
       {/* Main content */}
       <main
-        data-id="browser-main-content"
+        data-testid="browser-main-content"
         ref={mainContainerRef}
         onScroll={handleMainScroll}
         className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1 relative"

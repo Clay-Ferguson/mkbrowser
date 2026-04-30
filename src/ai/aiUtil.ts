@@ -16,6 +16,7 @@ import { preprocessPrompt } from './promptPreprocess';
 import { USE_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
 import { readIndexYaml } from '../utils/indexUtil';
 import { invokeAI, streamAI, hasScriptedAnswer, type AIUsageInfo, type StreamCallbacks } from './langGraph';
+import { logger } from '../utils/logUtil';
 
 /**
  * Convert a raw AI API error into a short, user-friendly message.
@@ -199,6 +200,7 @@ export async function handleAskAI(
   onStreamDone?: () => void,
   onStreamError?: (err: unknown) => void,
 ): Promise<AskAIResult> {
+  logger.log("running handleAskAI()");
   // Preprocess the prompt first (before creating folders) so we can
   // detect images and validate vision support before any side effects.
   const processedPrompt = await preprocessPrompt(prompt, parentFolderPath);
@@ -241,6 +243,7 @@ export async function handleAskAI(
 
   if (streamCallbacks && !hasScriptedAnswer()) {
     // ── Streaming path ──
+    logger.log("running streaming AI call");
     try {
       const result = USE_DEEP_AGENTS
         ? await streamDeepAgent(processedPrompt, history, streamCallbacks, signal)
@@ -267,6 +270,7 @@ export async function handleAskAI(
     }
   } else {
     // ── Non-streaming path ──
+    logger.log("running non-streaming AI call");
     const result = USE_DEEP_AGENTS
       ? await invokeDeepAgent(processedPrompt, history)
       : await invokeAI(processedPrompt, history);

@@ -33,7 +33,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
 
   const atRoot = normalizedCurrent === normalizedRoot;
   return (
-    <div className="flex flex-wrap items-center gap-1 text-base">
+    <div data-testid="path-breadcrumb" className="flex flex-wrap items-center gap-1 text-base">
       {parts.length > 0 &&
       <button
         type="button"

@@ -1,7 +1,6 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test - LaTeX Rendering
@@ -17,12 +16,7 @@ test.describe('Create LaTeX Demo', () => {
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
 
     cleanupScreenshots(screenshotDir);
-
-    // Clean up any previously created test files to avoid conflicts
-    const testDataDir = path.join(__dirname, '../../mkbrowser-test');
-    for (const file of fs.readdirSync(testDataDir).filter(f => /^my-.*\.md$/.test(f))) {
-      fs.unlinkSync(path.join(testDataDir, file));
-    }
+    cleanupTestDataFiles();
 
 
     let step = 1;
@@ -31,7 +25,8 @@ test.describe('Create LaTeX Demo', () => {
     await mainWindow.waitForTimeout(2000);
 
     // Verify files are visible
-    await expect(mainWindow.getByText('sample.md')).toBeVisible({ timeout: 10000 });
+    const mainContent = mainWindow.getByTestId('browser-main-content');
+    await expect(mainContent.getByText('sample.md').first()).toBeVisible({ timeout: 10000 });
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,

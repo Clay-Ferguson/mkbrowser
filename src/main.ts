@@ -15,7 +15,7 @@ import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { collectAncestorTags } from './utils/tagUtils';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
-import { queueScriptedAnswer } from './ai/langGraph';
+import { hasScriptedAnswer, queueScriptedAnswer } from './ai/langGraph';
 import type { StreamCallbacks } from './ai/langGraph';
 import { getUsageWithCosts, resetUsage } from './ai/usageTracker';
 import { checkHealth, ensureRunning, stopServer } from './llamaServer';
@@ -480,7 +480,10 @@ function setupIpcHandlers(): void {
     const abortController = new AbortController();
     let callbacks: StreamCallbacks | null = null;
 
-    if (ENABLE_STREAM_RESPONSE) {
+    // notice that we don't do AI response streaming when we have a scripted answer because that means we're 
+    // running inside the context of a playwright test, and we just capture screenshots for playwright, 
+    // so we don't need any real time screen updates 
+    if (ENABLE_STREAM_RESPONSE && !hasScriptedAnswer()) {
       callbacks = {
         onChunk: (token: string) => {
           if (mainWindow && !mainWindow.isDestroyed()) {

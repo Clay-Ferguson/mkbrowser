@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, setCheckboxForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, addExternalFile } from './helpers/mediaUtils';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, setCheckboxForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Generate PDF Feature
@@ -16,6 +16,7 @@ test.describe('Generate PDF Demo', () => {
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
 
     cleanupScreenshots(screenshotDir);
+    cleanupTestDataFiles();
 
     let step = 1;
 
@@ -23,7 +24,8 @@ test.describe('Generate PDF Demo', () => {
     await mainWindow.waitForTimeout(2000);
 
     // Verify initial state — expect to see mkbrowser-test contents
-    await expect(mainWindow.getByText('federalist-papers')).toBeVisible({ timeout: 10000 });
+    const mainContent = mainWindow.getByTestId('browser-main-content');
+    await expect(mainContent.getByText('federalist-papers').first()).toBeVisible({ timeout: 10000 });
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,
@@ -34,7 +36,7 @@ You can see the folder listing in front of us, including the federalist-papers f
     );
 
     // Highlight and click the federalist-papers folder
-    const federalistFolder = mainWindow.getByText('federalist-papers');
+    const federalistFolder = mainContent.getByText('federalist-papers').first();
     await takeStepScreenshotWithHighlight(mainWindow, federalistFolder, screenshotDir, step++, 'about-to-click-federalist-folder');
     writeNarration(
       screenshotDir,
@@ -56,7 +58,7 @@ Let's take a quick look inside the glossary before we export.`
     );
 
     // Highlight and click the glossary folder
-    const glossaryFolder = mainWindow.getByText('glossary');
+    const glossaryFolder = mainContent.getByText('glossary').first();
     await takeStepScreenshotWithHighlight(mainWindow, glossaryFolder, screenshotDir, step++, 'about-to-click-glossary-folder');
     writeNarration(
       screenshotDir,
@@ -78,7 +80,8 @@ Now let's navigate back to the federalist-papers folder.`
     );
 
     // Highlight and click breadcrumb to navigate back to federalist-papers
-    const federalistBreadcrumb = mainWindow.getByText('federalist-papers');
+    const breadcrumbPanel = mainWindow.getByTestId('path-breadcrumb');
+    const federalistBreadcrumb = breadcrumbPanel.getByText('federalist-papers').first();
     await takeStepScreenshotWithHighlight(mainWindow, federalistBreadcrumb, screenshotDir, step++, 'about-to-click-federalist-breadcrumb');
     writeNarration(
       screenshotDir,

@@ -22,7 +22,8 @@ test.describe('Search Demo', () => {
     await mainWindow.waitForTimeout(2000);
 
     // Verify initial state — expect to see mkbrowser-test contents
-    await expect(mainWindow.getByText('federalist-papers')).toBeVisible({ timeout: 10000 });
+    const mainContent = mainWindow.getByTestId('browser-main-content');
+    await expect(mainContent.getByText('federalist-papers').first()).toBeVisible({ timeout: 10000 });
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,
@@ -33,7 +34,7 @@ You can see the folder listing in front of us, including the federalist-papers f
     );
 
     // Click the federalist-papers folder
-    const federalistFolder = mainWindow.getByText('federalist-papers');
+    const federalistFolder = mainContent.getByText('federalist-papers').first();
     await takeStepScreenshotWithHighlight(mainWindow, federalistFolder, screenshotDir, step++, 'about-to-click-federalist-folder');
     writeNarration(
       screenshotDir,

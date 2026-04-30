@@ -33,6 +33,7 @@ import type { PreprocessResult } from './promptPreprocess';
 import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 import { logger } from '../utils/logUtil';
+import { consumeScriptedAnswer } from './scriptedAnswer';
 
 /** Set to true to use Deep Agents; false to use the original StateGraph path. */
 export const USE_DEEP_AGENTS = true; 
@@ -76,6 +77,12 @@ export async function invokeDeepAgent(
   prompt: PreprocessResult,
   history: BaseMessage[] = [],
 ): Promise<AIInvokeResult> {
+  const scripted = consumeScriptedAnswer();
+  if (scripted !== null) {
+    debugLog('invokeDeepAgent → returning scripted answer');
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    return { content: scripted, usage: undefined };
+  }
   debugLog('invokeDeepAgent → creating agent');
   const agent = createMkBrowserDeepAgent();
   const humanMsg = buildHumanMessage(prompt);
@@ -141,6 +148,12 @@ export async function streamDeepAgent(
   callbacks: StreamCallbacks,
   signal?: AbortSignal,
 ): Promise<AIInvokeResult> {
+  const scripted = consumeScriptedAnswer();
+  if (scripted !== null) {
+    debugLog('streamDeepAgent → returning scripted answer');
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    return { content: scripted, usage: undefined };
+  }
   debugLog('streamDeepAgent → creating agent');
   const agent = createMkBrowserDeepAgent();
   const humanMsg = buildHumanMessage(prompt);

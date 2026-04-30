@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test — AI Chat Feature
@@ -16,14 +16,17 @@ test.describe('AI Chat Demo', () => {
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
 
     cleanupScreenshots(screenshotDir);
+    cleanupTestDataFiles();
 
-    // Clean up any previously created AI chat folders (H, H1, H2, …) in mkbrowser-test
+    // Clean up any previously created AI chat folders (A, A1, A2, …) in mkbrowser-test
     const testDataDir = path.join(__dirname, '../../mkbrowser-test');
     for (const entry of fs.readdirSync(testDataDir, { withFileTypes: true })) {
-      if (entry.isDirectory() && /^H\d*$/.test(entry.name)) {
+      if (entry.isDirectory() && /^A\d*$/.test(entry.name)) {
         fs.rmSync(path.join(testDataDir, entry.name), { recursive: true, force: true });
       }
     }
+
+    fs.rmSync(path.join(testDataDir, 'HUMAN.md'), { force: true });
 
     // ── Chat transcript ───────────────────────────────────────────────
     const humanMessage1 =
@@ -44,7 +47,8 @@ test.describe('AI Chat Demo', () => {
     await mainWindow.waitForTimeout(2000);
 
     // ── 1. Initial state ──────────────────────────────────────────────
-    await expect(mainWindow.getByText('sample.md')).toBeVisible({ timeout: 10000 });
+    const mainContent = mainWindow.getByTestId('browser-main-content');
+    await expect(mainContent.getByText('sample.md').first()).toBeVisible({ timeout: 10000 });
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,
@@ -121,7 +125,7 @@ test.describe('AI Chat Demo', () => {
     await demonstrateClickForDemo(askAiButton);
 
     // ── 6. Wait for the AI response to appear ─────────────────────────
-    await expect(mainWindow.getByText('Head to Akihabara')).toBeVisible({ timeout: 30000 });
+    await expect(mainWindow.getByText('Head to Akihabara').first()).toBeVisible({ timeout: 30000 });
     await mainWindow.waitForTimeout(1000);
 
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'first-ai-response');
@@ -187,7 +191,7 @@ test.describe('AI Chat Demo', () => {
     await demonstrateClickForDemo(askAiButton2);
 
     // ── 10. Wait for the second AI response ───────────────────────────
-    await expect(mainWindow.getByText("Check out 'Bar Sekirei.'")).toBeVisible({ timeout: 30000 });
+    await expect(mainWindow.getByText("Check out 'Bar Sekirei.'").first()).toBeVisible({ timeout: 30000 });
     await mainWindow.waitForTimeout(1000);
 
     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'second-ai-response');

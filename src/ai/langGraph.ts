@@ -12,6 +12,8 @@ import { MKBROWSER_SYSTEM_PROMPT } from './aiPrompts';
 import type { PreprocessResult } from './promptPreprocess';
 import { createChatModel, getActiveModelConfig } from './aiModel';
 import { logger } from '../utils/logUtil';
+import { consumeScriptedAnswer, queueScriptedAnswer, hasScriptedAnswer } from './scriptedAnswer';
+export { queueScriptedAnswer, hasScriptedAnswer };
 
 // Set to true to enable verbose debug logging for AI invocations.
 const DEBUG = true;
@@ -75,30 +77,6 @@ export function extractUsage(message: BaseMessage): AIUsageInfo | undefined {
   return undefined;
 }
 
-/**
- * Single-slot scripted answer for Playwright demo tests.
- * When set, `invokeAI` returns this text (after a short delay) instead of
- * calling the real AI model. Cleared after each use.
- */
-let scriptedAnswer: string | null = null;
-
-/**
- * Queue a scripted answer that `invokeAI` will return on its next call
- * instead of invoking the real AI model. The slot is single-use: it resets
- * to `null` after being consumed. Intended for Playwright demo tests.
- */
-export function queueScriptedAnswer(answer: string): void {
-  debugLog('queueScriptedAnswer → queued', answer.length, 'chars');
-  scriptedAnswer = answer;
-}
-
-/**
- * Returns true if a scripted answer is currently queued.
- * Used by main.ts to bypass streaming when a test answer is pending.
- */
-export function hasScriptedAnswer(): boolean {
-  return scriptedAnswer !== null;
-}
 
 /** Callbacks for streaming AI responses. */
 export interface StreamCallbacks {
@@ -117,12 +95,11 @@ export interface StreamCallbacks {
  */
 export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<AIInvokeResult> {
   // Check for a scripted answer (queued by Playwright tests)
+  const scriptedAnswer = consumeScriptedAnswer();
   if (scriptedAnswer !== null) {
-    const answer = scriptedAnswer;
-    scriptedAnswer = null;
-    debugLog('invokeAI → returning scripted answer (' + answer.length + ' chars), sleeping 2s');
+    debugLog('invokeAI → returning scripted answer (' + scriptedAnswer.length + ' chars), sleeping 2s');
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    return { content: answer, usage: undefined };
+    return { content: scriptedAnswer, usage: undefined };
   }
 
   debugLog('invokeAI → creating model');
