@@ -69,7 +69,7 @@ export function EntryActionBar({
   };
 
   return (
-    <div className={`flex items-center gap-1 ${className}`}>
+    <div data-testid="entry-action-bar" className={`flex items-center gap-1 ${className}`}>
       <div className="opacity-0 pointer-events-none [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:pointer-events-auto group-hover:[transition:opacity_200ms_ease_400ms] flex items-center gap-1">
       {showEditActions && showEditButton && onEditClick && (
         <button

@@ -74,7 +74,6 @@ case $choice in
         rm -f screenshots/$SPECIFIC_TEST/*.png
         rm -f screenshots/$SPECIFIC_TEST/*.txt
         rm -rf screenshots/$SPECIFIC_TEST/generated-wav
-        read -p "verify correct screenshot files ONLY are deleted"
         echo "Running specific test: $SPECIFIC_TEST.spec.ts..."
         npx playwright test tests/e2e/$SPECIFIC_TEST.spec.ts
         ;;

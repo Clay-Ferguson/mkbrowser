@@ -179,19 +179,61 @@ export async function insertTextForDemo(
 }
 
 /**
+ * Locates the action bar for a specific file by name.
+ *
+ * Strategy: find the text node for `fileName`, walk up to the nearest
+ * `[data-testid="browser-entry-markdown"]` ancestor, then find the
+ * `[data-testid="entry-action-bar"]` inside it.
+ *
+ * @param scope - The Page or Locator to search within (e.g. mainContent)
+ * @param fileName - The exact filename text visible in the entry header
+ * @returns A Locator for the entry-action-bar of the matching file
+ *
+ * @example
+ * const actionBar = findActionBarByFileName(mainContent, 'USER_GUIDE.md');
+ * await actionBar.getByTestId('entry-reveal-button').click({ force: true });
+ */
+export function findActionBarByFileName(scope: Page | Locator, fileName: string): Locator {
+  const page = 'page' in scope ? (scope as Locator).page() : (scope as Page);
+  const markdownEntry = page
+    .getByTestId('browser-entry-markdown')
+    .filter({ has: page.locator(`text="${fileName}"`) })
+    .first();
+  return markdownEntry.getByTestId('entry-action-bar');
+}
+
+/**
  * Demonstrates a click with standard demo timing for video recording.
  * Adds pauses before and after the click for visual clarity in demos.
- * 
+ *
  * @param locator - The element to click
- * 
+ *
  * @example
  * await demonstrateClickForDemo(createButton);
  */
 export async function demonstrateClickForDemo(
+  locator: Locator,
+  options?: Parameters<Locator['click']>[0]
+): Promise<void> {
+  await locator.page().waitForTimeout(300);
+  await locator.click(options);
+  await locator.page().waitForTimeout(1000);
+}
+
+/**
+ * Demonstrates a right-click with standard demo timing for video recording.
+ * Adds pauses before and after the click for visual clarity in demos.
+ *
+ * @param locator - The element to right-click
+ *
+ * @example
+ * await demonstrateRightClickForDemo(fileNode);
+ */
+export async function demonstrateRightClickForDemo(
   locator: Locator
 ): Promise<void> {
   await locator.page().waitForTimeout(300);
-  await locator.click();
+  await locator.click({ button: 'right' });
   await locator.page().waitForTimeout(1000);
 }
 

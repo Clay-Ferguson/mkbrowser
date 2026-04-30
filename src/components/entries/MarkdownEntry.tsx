@@ -592,7 +592,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   const columns = splitOnColumnBreaks(processedContent);
 
   return (
-    <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''} overflow-hidden`}>
+    <div data-testid="browser-entry-markdown" className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''} overflow-hidden`}>
       <div className={`flex items-center gap-3 pl-4 pr-2 py-1 bg-blue-800/50 group-hover:bg-blue-700/70 ${isExpanded ? 'border border-slate-500' : ''} transition-colors`}>
         {(!hasIndexFile || editMode) && (
           <SelectionCheckbox

@@ -3,6 +3,9 @@
 ## How to Create a File
 ![collapsed-files](./create-file-demo.gif)
 
+## How to Use File Explorer
+![collapsed-files](./file-explorer-demo.gif)
+
 ## How to Chat with an AI
 ![collapsed-files](./create-file-demo.gif)
 
