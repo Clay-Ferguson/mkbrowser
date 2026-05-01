@@ -482,7 +482,7 @@ The car drove past the bar.
 A dog and a log in the fog.
 `],
 
-  // ── line-numbers/ subfolder (for file-lines mode testing) ────────
+  // ── line-numbers/ subfolder ────────
   ['line-numbers/known-lines.md', `Line one has nothing special.
 Line two contains TARGET_WORD here.
 Line three is plain text.

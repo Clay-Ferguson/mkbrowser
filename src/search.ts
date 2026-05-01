@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import { fdir } from 'fdir';
 import ExifReader from 'exifreader';
 import { extractTimestamp, past, future, today } from './utils/timeUtil';
-import { createContentSearcher, findExtraLine } from './utils/searchUtil';
+import { createContentSearcher } from './utils/searchUtil';
 
 /** Image extensions supported by ExifReader for EXIF metadata search */
 const EXIF_IMAGE_EXTENSIONS = new Set([
@@ -34,8 +34,6 @@ export interface SearchResult {
 
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchMode = 'content' | 'filenames';
-export type SearchBlock = 'entire-file' | 'file-lines';
-
 /** Match predicate result */
 interface MatchResult {
   matches: boolean;
@@ -185,7 +183,6 @@ async function filterMostRecent(filePaths: string[]): Promise<string[]> {
  * @param query        - Search text or JavaScript expression
  * @param searchType   - 'literal' | 'wildcard' | 'advanced'
  * @param searchMode   - 'content' (search file bodies) or 'filenames'
- * @param searchBlock  - 'entire-file' or 'file-lines'
  * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
  * @param searchImageExif - Whether to include image files and search their EXIF metadata
  * @param mostRecent   - Whether to limit search to the 500 most recently modified files
@@ -196,7 +193,6 @@ export async function searchFolder(
   query: string,
   searchType: SearchType = 'literal',
   searchMode: SearchMode = 'content',
-  searchBlock: SearchBlock = 'entire-file',
   ignoredPaths: string[] = [],
   searchImageExif = false,
   mostRecent = false,
@@ -306,57 +302,25 @@ export async function searchFolder(
 
           if (isImage && !content) continue;
 
-          if (searchBlock === 'file-lines') {
-            const lines = content.split(/\r?\n/);
+          const { matches, matchCount, foundTime } = matchPredicate(content);
+
+          if (matches) {
             const relativePath = path.relative(folderPath, filePath);
             let modifiedTime: number | undefined;
             let createdTime: number | undefined;
             try {
-              const stat = await fs.promises.stat(filePath);
-              modifiedTime = stat.mtimeMs;
-              createdTime = stat.birthtimeMs;
+              const fileStat = await fs.promises.stat(filePath);
+              modifiedTime = fileStat.mtimeMs;
+              createdTime = fileStat.birthtimeMs;
             } catch { /* ignore stat errors */ }
-
-            for (let i = 0; i < lines.length; i++) {
-              const line = lines[i];
-              const { matches, matchCount, foundTime } = matchPredicate(line);
-
-              if (matches) {
-                const extraLine = findExtraLine(lines, i, matchPredicate);
-                results.push({
-                  path: filePath,
-                  relativePath,
-                  matchCount,
-                  lineNumber: i + 1,
-                  lineText: line,
-                  ...(extraLine !== undefined && { extraLine }),
-                  ...(foundTime !== undefined && { foundTime }),
-                  ...(modifiedTime !== undefined && { modifiedTime }),
-                  ...(createdTime !== undefined && { createdTime }),
-                });
-              }
-            }
-          } else {
-            const { matches, matchCount, foundTime } = matchPredicate(content);
-
-            if (matches) {
-              const relativePath = path.relative(folderPath, filePath);
-              let modifiedTime: number | undefined;
-              let createdTime: number | undefined;
-              try {
-                const fileStat = await fs.promises.stat(filePath);
-                modifiedTime = fileStat.mtimeMs;
-                createdTime = fileStat.birthtimeMs;
-              } catch { /* ignore stat errors */ }
-              results.push({
-                path: filePath,
-                relativePath,
-                matchCount,
-                ...(foundTime !== undefined && { foundTime }),
-                ...(modifiedTime !== undefined && { modifiedTime }),
-                ...(createdTime !== undefined && { createdTime }),
-              });
-            }
+            results.push({
+              path: filePath,
+              relativePath,
+              matchCount,
+              ...(foundTime !== undefined && { foundTime }),
+              ...(modifiedTime !== undefined && { modifiedTime }),
+              ...(createdTime !== undefined && { createdTime }),
+            });
           }
         } else {
           // No query — return all files (mostRecent mode with empty query)

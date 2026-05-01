@@ -10,7 +10,6 @@ export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
-export type SearchBlock = 'entire-file' | 'file-lines';
 export type SearchSortBy = 'modified-time' | 'created-time' | 'line-time';
 export type SearchSortDirection = 'asc' | 'desc';
 
@@ -19,7 +18,6 @@ export interface SearchDefinition {
   searchText: string;
   searchTarget: SearchMode;
   searchMode: SearchType;
-  searchBlock: SearchBlock;
   sortBy: SearchSortBy;
   sortDirection: SearchSortDirection;
   mostRecent?: boolean;
@@ -161,7 +159,7 @@ export interface ElectronAPI {
   openExternal: (filePath: string) => Promise<boolean>;
   openExternalUrl: (url: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines', searchImageExif?: boolean, mostRecent?: boolean) => Promise<SearchResult[]>;
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => Promise<SearchResult[]>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   collectAncestorTags: (filePath: string) => Promise<HashtagDefinition[]>;

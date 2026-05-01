@@ -451,7 +451,6 @@ MkBrowser includes a powerful search feature to help you find content across you
         - **Literal**: Exact text match.
         - **Wildcard**: Use `*` to match any characters (e.g., `note-*.md`).
         - **Advanced**: Use custom predicate functions (see below).
-    - **Search Scope**: Search inside **Entire File** or match specific **File Lines**.
 
 ## Advanced Search Predicates
 In **Advanced Mode**, you can write JavaScript-like expressions to filter files. The following custom functions and variables are available:

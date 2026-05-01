@@ -620,7 +620,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           searchText: options.query,
           searchTarget: options.searchMode,
           searchMode: options.searchType,
-          searchBlock: options.searchBlock,
           sortBy: options.sortBy,
           sortDirection: options.sortDirection,
           searchImageExif: options.searchImageExif,
@@ -654,7 +653,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     // Decode {{nl}} tokens back to spaces for actual search execution
     const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
 
-    const results = await window.electronAPI.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchBlock, options.searchImageExif, options.mostRecent);
+    const results = await window.electronAPI.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchImageExif, options.mostRecent);
     setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection);
     setCurrentView('search-results');
   }, [currentPath]);
@@ -713,7 +712,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         searchText: options.query,
         searchTarget: options.searchMode,
         searchMode: options.searchType,
-        searchBlock: options.searchBlock,
         sortBy: options.sortBy,
         sortDirection: options.sortDirection,
         mostRecent: options.mostRecent,
@@ -1120,7 +1118,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 searchQuery,
                 definition.searchMode,
                 definition.searchTarget,
-                definition.searchBlock,
                 definition.searchImageExif
               );
               setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc');
@@ -1134,7 +1131,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               searchName: definition.name,
               searchType: definition.searchMode,
               searchMode: definition.searchTarget,
-              searchBlock: definition.searchBlock,
               sortBy: definition.sortBy,
               sortDirection: definition.sortDirection,
               searchImageExif: definition.searchImageExif,

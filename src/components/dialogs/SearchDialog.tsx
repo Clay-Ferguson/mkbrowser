@@ -5,7 +5,6 @@ import type { SearchDefinition } from '../../store/types';
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
-export type SearchBlock = 'entire-file' | 'file-lines';
 export type SearchSortBy = 'modified-time' | 'created-time' | 'line-time';
 export type SearchSortDirection = 'asc' | 'desc';
 
@@ -13,7 +12,6 @@ export interface SearchOptions {
   query: string;
   searchType: SearchType;
   searchMode: SearchMode;
-  searchBlock: SearchBlock;
   searchName: string;
   sortBy: SearchSortBy;
   sortDirection: SearchSortDirection;
@@ -26,7 +24,6 @@ export interface SearchDialogInitialValues {
   searchName?: string;
   searchType?: SearchType;
   searchMode?: SearchMode;
-  searchBlock?: SearchBlock;
   sortBy?: SearchSortBy;
   sortDirection?: SearchSortDirection;
   searchImageExif?: boolean;
@@ -49,7 +46,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const [searchName, setSearchName] = useState(initialValues?.searchName || '');
   const [searchType, setSearchType] = useState<SearchType>(initialValues?.searchType || 'literal');
   const [searchMode, setSearchMode] = useState<SearchMode>(initialValues?.searchMode || 'content');
-  const [searchBlock, setSearchBlock] = useState<SearchBlock>(initialValues?.searchBlock || 'entire-file');
   const [sortBy, setSortBy] = useState<SearchSortBy>(initialValues?.sortBy || 'modified-time');
   const [sortDirection, setSortDirection] = useState<SearchSortDirection>(initialValues?.sortDirection || 'desc');
   const [searchImageExif, setSearchImageExif] = useState(initialValues?.searchImageExif ?? false);
@@ -74,7 +70,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
       setSearchQuery(selectedDef.searchText.replace(/\{\{nl\}\}/g, '\n'));
       setSearchType(selectedDef.searchMode);
       setSearchMode(selectedDef.searchTarget);
-      setSearchBlock(selectedDef.searchBlock);
       setSortBy(selectedDef.sortBy || 'modified-time');
       setSortDirection(selectedDef.sortDirection || 'desc');
       setSearchImageExif(selectedDef.searchImageExif ?? false);
@@ -110,7 +105,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
 
-    onSearch({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
+    onSearch({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
   };
 
   const handleSave = () => {
@@ -121,7 +116,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
 
-    onSave({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
+    onSave({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -296,37 +291,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
               />
               <span className="text-sm text-slate-300">Advanced</span>
-            </label>
-          </div>
-        </fieldset>
-
-        {/* Search block radio buttons (only enabled for file contents search with advanced mode) */}
-        <fieldset className={`border border-slate-600 rounded-md p-3 mb-3 ${searchMode === 'filenames' || searchType !== 'advanced' ? 'opacity-50' : ''}`}>
-          <legend className="text-xs text-slate-400 px-2">Search Block</legend>
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="searchBlock"
-                checked={searchBlock === 'entire-file'}
-                onChange={() => setSearchBlock('entire-file')}
-                disabled={searchMode === 'filenames' || searchType !== 'advanced'}
-                data-testid="search-block-entire-file"
-                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <span className="text-sm text-slate-300">Entire File</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="searchBlock"
-                checked={searchBlock === 'file-lines'}
-                onChange={() => setSearchBlock('file-lines')}
-                disabled={searchMode === 'filenames' || searchType !== 'advanced'}
-                data-testid="search-block-file-lines"
-                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <span className="text-sm text-slate-300">File Lines</span>
             </label>
           </div>
         </fieldset>

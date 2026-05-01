@@ -6,14 +6,11 @@ export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | '
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
-export type SearchBlock = 'entire-file' | 'file-lines';
-
 export interface SearchDefinition {
   name: string;
   searchText: string;
   searchTarget: SearchMode;
   searchMode: SearchType;
-  searchBlock: SearchBlock;
   mostRecent?: boolean;
 }
 
@@ -112,7 +109,7 @@ export interface ElectronAPI {
   deleteFile: (filePath: string) => Promise<boolean>;
   openExternal: (filePath: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines', searchImageExif?: boolean, mostRecent?: boolean) => Promise<SearchResult[]>;
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => Promise<SearchResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   collectAncestorTags: (filePath: string) => Promise<string[]>;
   askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
@@ -150,7 +147,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchBlock?: 'entire-file' | 'file-lines', searchImageExif?: boolean, mostRecent?: boolean) => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchBlock, searchImageExif, mostRecent),
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchImageExif, mostRecent),
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   collectAncestorTags: (filePath: string) => ipcRenderer.invoke('collect-ancestor-tags', filePath),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),

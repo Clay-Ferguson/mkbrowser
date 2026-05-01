@@ -30,14 +30,11 @@ export type SortOrder =
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
-export type SearchBlock = 'entire-file' | 'file-lines';
-
 export interface SearchDefinition {
   name: string;
   searchText: string;
   searchTarget: SearchMode;
   searchMode: SearchType;
-  searchBlock: SearchBlock;
 }
 
 export interface AppSettings {

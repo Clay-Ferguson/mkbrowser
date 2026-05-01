@@ -150,11 +150,6 @@ export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
 
 /**
- * Search block: entire-file or file-lines
- */
-export type SearchBlock = 'entire-file' | 'file-lines';
-
-/**
  * Sort order for search results
  */
 export type SearchSortBy = 'modified-time' | 'created-time' | 'line-time';
@@ -176,8 +171,6 @@ export interface SearchDefinition {
   searchTarget: SearchMode;
   /** Search type: literal, wildcard, or advanced */
   searchMode: SearchType;
-  /** Search block: entire-file or file-lines */
-  searchBlock: SearchBlock;
   /** Sort order for search results */
   sortBy: SearchSortBy;
   /** Sort direction: ascending (oldest first) or descending (newest first) */
