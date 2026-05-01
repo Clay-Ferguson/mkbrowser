@@ -30,8 +30,8 @@ export default function SortPopupMenu({
   if (hasIndexOrder) {
     return (
       <PopupMenu anchorRef={anchorRef} onClose={onClose} style={{ maxWidth: '20rem' }}>
-        <div className="px-4 py-2 text-sm text-slate-400 italic select-none" onClick={onClose}>
-          Files ordered by .INDEX.yaml
+        <div className="px-4 py-2 text-sm text-slate-400 italic select-none" onClick={onClose} title="Delete .INDEX.yaml to remove Document Mode">
+          Document Mode. Files ordered by .INDEX.yaml
         </div>
       </PopupMenu>
     );

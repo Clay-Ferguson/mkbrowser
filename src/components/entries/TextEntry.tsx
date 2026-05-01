@@ -44,7 +44,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
       setSelectedPromptName(config.aiRewritePrompt ?? '');
     });
   }, []);
-  
+
   const {
     isRenaming,
     isExpanded,
@@ -91,6 +91,27 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
 
   const handleToggleExpanded = () => {
     toggleItemExpanded(entry.path);
+  };
+
+  const aiRewrite = async () => {
+    const selection = editorRef.current?.getSelection();
+    setIsRewriting(true);
+    try {
+      const result = selection
+        ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
+        : await window.electronAPI.rewriteContent(edit.editContent, entry.path, hasIndexFile);
+      if ('error' in result) {
+        logger.error('Rewrite failed:', result.error);
+        setAiErrorMessage(result.error);
+      } else {
+        setItemReviewing(entry.path, true, result.rewrittenContent);
+      }
+    } catch (err) {
+      logger.error('Rewrite failed:', err);
+      setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsRewriting(false);
+    }
   };
 
   return (
@@ -140,26 +161,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
             </button>
             {!item?.reviewing && (
               <button
-                onClick={async () => {
-                  const selection = editorRef.current?.getSelection();
-                  setIsRewriting(true);
-                  try {
-                    const result = selection
-                      ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
-                      : await window.electronAPI.rewriteContent(edit.editContent, entry.path, hasIndexFile);
-                    if ('error' in result) {
-                      logger.error('Rewrite failed:', result.error);
-                      setAiErrorMessage(result.error);
-                    } else {
-                      setItemReviewing(entry.path, true, result.rewrittenContent);
-                    }
-                  } catch (err) {
-                    logger.error('Rewrite failed:', err);
-                    setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
-                  } finally {
-                    setIsRewriting(false);
-                  }
-                }}
+                onClick={aiRewrite}
                 disabled={edit.saving || isRewriting}
                 title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
                 className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50"
@@ -238,8 +240,8 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
               />
             )
           ) : (
-            <pre 
-              className="text-slate-200 font-mono text-sm whitespace-pre-wrap break-words cursor-pointer" 
+            <pre
+              className="text-slate-200 font-mono text-sm whitespace-pre-wrap break-words cursor-pointer"
               onDoubleClick={edit.handleEditClick}
               title="Double-click to edit"
             >

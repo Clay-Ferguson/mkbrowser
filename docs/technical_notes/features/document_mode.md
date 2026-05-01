@@ -108,7 +108,7 @@ Reconciliation is triggered in two situations:
 
 Importantly, reconciliation does **not** run on every file-operation refresh (create, rename, delete, paste). This prevents concurrent executions that could corrupt the index. The insert bars call `insertIntoIndexYaml` directly and do not trigger reconciliation.
 
-### Algorithm (`reconcileIndexedFiles`)
+### Algorithm (`reconcileIndexedFiles`, and other helpers)
 
 Located in `src/utils/indexUtil.ts`.
 

@@ -51,6 +51,8 @@ import {
   type BaseEntryProps,
 } from './common';
 
+// todo-0: we have several functions in here which are representing components that can be moved into their own separate files, and also I think we have 
+// some regular functions in here that can be moved into existing utilities classes, like specifically a couple of the AI related functions .
 
 // Initialize mermaid with dark theme
 mermaid.initialize({

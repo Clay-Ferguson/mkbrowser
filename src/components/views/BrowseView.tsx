@@ -75,6 +75,8 @@ import { getContentWidthClasses } from '../../utils/styles';
 import { hasHumanMd } from '../../ai/aiPatterns';
 import { logger } from '../../utils/logUtil';
 
+// todo-0: i think there might be a clean way to break out a lot of the functions from this file into utility modules 
+
 function IndexInsertBar({ onInsertFile, onInsertFolder }: { onInsertFile: () => void; onInsertFolder: () => void }) {
   return (
     <div className="flex justify-center gap-2 py-0">

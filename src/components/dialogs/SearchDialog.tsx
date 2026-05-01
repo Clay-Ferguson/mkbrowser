@@ -104,23 +104,23 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // Replace newlines with spaces for search execution
     const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
     if (!cleanedQuery && !mostRecent) return;
-    
+
     setError(null);
-    
+
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
-    
+
     onSearch({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
   };
 
   const handleSave = () => {
     if (!searchName.trim()) return;
-    
+
     setError(null);
-    
+
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
-    
+
     onSave({ query: persistedQuery, searchType, searchMode, searchBlock, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
   };
 
@@ -140,11 +140,19 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     }
   };
 
+  const onConfirm = () => {
+    if (searchName.trim()) {
+      onDeleteSearchDefinition(searchName.trim());
+      setSearchName('');
+    }
+    setShowDeleteConfirm(false);
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 w-full max-w-2xl mx-4 shadow-xl">
         <h2 className="text-lg font-semibold text-slate-100 mb-3">Search in folder</h2>
-      
+
         <label className="block text-sm text-slate-400 mb-2">
           {searchType === 'advanced' ? 'JavaScript expression' : searchType === 'wildcard' ? 'Search text (use * as wildcard, matches up to 25 characters)' : 'Search text'}
         </label>
@@ -155,9 +163,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           onKeyDown={handleKeyDown}
           data-testid="search-query-input"
           rows={4}
-          className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm font-mono resize-none ${
-            error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
-          }`}
+          className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm font-mono resize-none ${error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
+            }`}
           placeholder={searchType === 'advanced' ? 'Functions: $, ts, past, future, today' : searchType === 'wildcard' ? 'intro*duction' : 'Enter search text...'}
           style={{ minHeight: '80px' }}
         />
@@ -392,13 +399,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
       {showDeleteConfirm && (
         <ConfirmDialog
           message={`Are you sure you want to delete the search definition "${searchName}"?`}
-          onConfirm={() => {
-            if (searchName.trim()) {
-              onDeleteSearchDefinition(searchName.trim());
-              setSearchName('');
-            }
-            setShowDeleteConfirm(false);
-          }}
+          onConfirm={onConfirm}
           onCancel={() => setShowDeleteConfirm(false)}
         />
       )}

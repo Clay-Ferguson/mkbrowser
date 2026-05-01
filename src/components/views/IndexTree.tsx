@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
+// todo-0: fix the deprecated icon
 import { MinusSmallIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
@@ -278,6 +279,10 @@ function IndexTree() {
   }
 
   const rows = flattenVisible(treeRoot.children);
+
+  // todo-0: we have a few methods below that can be predefined above the JSX section. 
+  // todo-0: fix the deprecated "MinusSMallIcon"
+  // todo-0: the massive tertiary statement below can be written in a more human readable way with 'if statements'
 
   return (
     <div data-testid="file-explorer-tree" className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800`}>

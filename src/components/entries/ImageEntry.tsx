@@ -23,7 +23,7 @@ interface ImageEntryProps extends BaseEntryProps {
 
 function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom }: ImageEntryProps) {
   // logger.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
-  
+
   const {
     isRenaming,
     isExpanded,
@@ -68,7 +68,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
   // Handle Escape key to close fullscreen overlay and arrow keys for navigation
   useEffect(() => {
     if (!isFullscreen) return;
-    
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsFullscreen(false);
@@ -101,7 +101,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
         setPendingScrollToFile(currentImage.path);
       }
     };
-    
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreen, entry.path, fullscreenImagePath, allImages, entry.name, fullscreenItem]);
@@ -114,7 +114,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
     setShowFullscreenDeleteConfirm(false);
     const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
     const pathToDelete = fullscreenImagePath;
-    
+
     // Determine which image to show next
     let nextImagePath: string | null = null;
     if (allImages.length > 1) {
@@ -126,7 +126,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
         nextImagePath = allImages[currentIndex - 1].path;
       }
     }
-    
+
     try {
       const success = await window.electronAPI.deleteFile(pathToDelete);
       if (success) {
@@ -254,7 +254,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
 
       {/* Fullscreen overlay - use keyboard: Left/Right arrows to navigate, Delete to delete, Escape to close */}
       {isFullscreen && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={() => {
             setIsFullscreen(false);

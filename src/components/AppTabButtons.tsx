@@ -82,7 +82,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
           onClose={() => setShowFileMenu(false)}
           onSelectFolder={onSelectFolder}
           onQuit={onQuit}
-           onSettings={() => {
+          onSettings={() => {
             showTab('settings');
             setCurrentView('settings');
           }}
