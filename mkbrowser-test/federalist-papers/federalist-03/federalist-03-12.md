@@ -1,3 +1,6 @@
+---
+id: 85D572276
+---
 So far, therefore, as either designed or accidental violations of
 treaties and the laws of nations afford JUST causes of war, they are
 less to be apprehended under one general government than under several

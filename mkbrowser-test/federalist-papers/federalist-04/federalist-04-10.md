@@ -1,3 +1,6 @@
+---
+id: A50637527
+---
 The people of America are aware that inducements to war may arise out of
 these circumstances, as well as from others not so obvious at present,
 and that whenever such inducements may find fit time and opportunity

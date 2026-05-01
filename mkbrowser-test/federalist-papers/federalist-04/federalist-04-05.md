@@ -1,3 +1,6 @@
+---
+id: C403436B0
+---
 With them and with most other European nations we are rivals in
 navigation and the carrying trade; and we shall deceive ourselves if we
 suppose that any of them will rejoice to see it flourish; for, as

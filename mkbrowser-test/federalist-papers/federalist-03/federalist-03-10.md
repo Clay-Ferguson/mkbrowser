@@ -1,3 +1,6 @@
+---
+id: 68249202D
+---
 Because the prospect of present loss or advantage may often tempt the
 governing party in one or two States to swerve from good faith and
 justice; but those temptations, not reaching the other States, and

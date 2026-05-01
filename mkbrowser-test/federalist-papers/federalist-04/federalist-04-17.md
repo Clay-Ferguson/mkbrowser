@@ -1,3 +1,6 @@
+---
+id: E3CB4AEFD
+---
 But whatever may be our situation, whether firmly united under one
 national government, or split into a number of confederacies, certain
 it is, that foreign nations will know and view it exactly as it is;

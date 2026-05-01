@@ -1,3 +1,6 @@
+---
+id: 90FBFDE00
+---
 What would the militia of Britain be if the English militia obeyed the
 government of England, if the Scotch militia obeyed the government
 of Scotland, and if the Welsh militia obeyed the government of Wales?

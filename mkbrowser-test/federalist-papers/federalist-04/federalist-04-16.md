@@ -1,3 +1,6 @@
+---
+id: FC6C4698B
+---
 But admit that they might be willing to help the invaded State or
 confederacy. How, and when, and in what proportion shall aids of men and
 money be afforded? Who shall command the allied armies, and from which

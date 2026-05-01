@@ -1,3 +1,6 @@
+---
+id: 33BCCE3E7
+---
 But the safety of the people of America against dangers from FOREIGN
 force depends not only on their forbearing to give JUST causes of war
 to other nations, but also on their placing and continuing themselves in

@@ -1,3 +1,6 @@
+---
+id: 0B05226B5
+---
 The number of wars which have happened or will happen in the world will
 always be found to be in proportion to the number and weight of the
 causes, whether REAL or PRETENDED, which PROVOKE or INVITE them. If this

@@ -1,3 +1,6 @@
+---
+id: D53997A2B
+---
 It has until lately been a received and uncontradicted opinion that the
 prosperity of the people of America depended on their continuing firmly
 united, and the wishes, prayers, and efforts of our best and wisest

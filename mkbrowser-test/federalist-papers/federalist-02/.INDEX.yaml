@@ -1,0 +1,33 @@
+files:
+  - name: federalist-02-00.md
+    id: F4E63233A
+  - name: federalist-02-01.md
+    id: 8CF5CA4DA
+  - name: federalist-02-02.md
+    id: 78B92129D
+  - name: federalist-02-03.md
+    id: D53997A2B
+  - name: federalist-02-04.md
+    id: EC982EB27
+  - name: federalist-02-05.md
+    id: EF6680204
+  - name: federalist-02-06.md
+    id: FD046DDF4
+  - name: federalist-02-07.md
+    id: 8BD46044F
+  - name: federalist-02-08.md
+    id: 6F75E26F3
+  - name: federalist-02-09.md
+    id: '125763047'
+  - name: federalist-02-10.md
+    id: B901A2FBB
+  - name: federalist-02-11.md
+    id: 184699EA2
+  - name: federalist-02-12.md
+    id: F845958D6
+  - name: federalist-02-13.md
+    id: 13A1A5D8B
+  - name: federalist-02-14.md
+    id: 7CDDBFA86
+options:
+  edit_mode: true

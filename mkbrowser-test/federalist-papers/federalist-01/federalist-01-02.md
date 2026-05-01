@@ -1,3 +1,6 @@
+---
+id: 687DBE236
+---
 This idea will add the inducements of philanthropy to those of
 patriotism, to heighten the solicitude which all considerate and good
 men must feel for the event. Happy will it be if our choice should be

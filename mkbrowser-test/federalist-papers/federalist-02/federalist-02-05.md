@@ -1,3 +1,6 @@
+---
+id: EF6680204
+---
 With equal pleasure I have as often taken notice that Providence has
 been pleased to give this one connected country to one united people--a
 people descended from the same ancestors, speaking the same language,

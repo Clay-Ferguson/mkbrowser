@@ -1,3 +1,6 @@
+---
+id: 6FAC0C80F
+---
 But not only fewer just causes of war will be given by the national
 government, but it will also be more in their power to accommodate and
 settle them amicably. They will be more temperate and cool, and in that

@@ -1,3 +1,6 @@
+---
+id: ECD073650
+---
 Among the many objects to which a wise and free people find it necessary
 to direct their attention, that of providing for their SAFETY seems to
 be the first. The SAFETY of the people doubtless has relation to a great

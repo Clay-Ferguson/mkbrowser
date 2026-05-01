@@ -1,3 +1,6 @@
+---
+id: EC982EB27
+---
 It has often given me pleasure to observe that independent America
 was not composed of detached and distant territories, but that one
 connected, fertile, wide-spreading country was the portion of our western

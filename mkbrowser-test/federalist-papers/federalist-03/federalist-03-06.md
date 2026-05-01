@@ -1,3 +1,6 @@
+---
+id: 35EC2D2BB
+---
 The JUST causes of war, for the most part, arise either from violation
 of treaties or from direct violence. America has already formed treaties
 with no less than six foreign nations, and all of them, except Prussia,

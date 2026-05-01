@@ -1,3 +1,6 @@
+---
+id: AA34F86DA
+---
 The neighborhood of Spanish and British territories, bordering on some
 States and not on others, naturally confines the causes of quarrel more
 immediately to the borderers. The bordering States, if any, will be

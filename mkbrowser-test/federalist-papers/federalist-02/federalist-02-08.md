@@ -1,3 +1,6 @@
+---
+id: 6F75E26F3
+---
 A strong sense of the value and blessings of union induced the people,
 at a very early period, to institute a federal government to preserve
 and perpetuate it. They formed it almost as soon as they had a political

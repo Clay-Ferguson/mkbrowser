@@ -1,3 +1,6 @@
+---
+id: 72528253B
+---
 Because, under the national government, treaties and articles of
 treaties, as well as the laws of nations, will always be expounded in
 one sense and executed in the same manner,--whereas, adjudications on

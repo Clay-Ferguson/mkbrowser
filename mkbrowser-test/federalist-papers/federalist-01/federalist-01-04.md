@@ -1,3 +1,6 @@
+---
+id: 9245C0688
+---
 It is not, however, my design to dwell upon observations of this
 nature. I am well aware that it would be disingenuous to resolve
 indiscriminately the opposition of any set of men (merely because their

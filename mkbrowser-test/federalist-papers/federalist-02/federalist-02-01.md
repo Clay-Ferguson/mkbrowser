@@ -1,3 +1,6 @@
+---
+id: 8CF5CA4DA
+---
 WHEN the people of America reflect that they are now called upon to
 decide a question, which, in its consequences, must prove one of the
 most important that ever engaged their attention, the propriety of their

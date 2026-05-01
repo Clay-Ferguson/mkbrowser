@@ -1,3 +1,6 @@
+---
+id: 8DDA16258
+---
 Apply these facts to our own case. Leave America divided into thirteen
 or, if you please, into three or four independent governments--what
 armies could they raise and pay--what fleets could they ever hope to

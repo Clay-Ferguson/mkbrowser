@@ -1,3 +1,6 @@
+---
+id: 7CDDBFA86
+---
 It is worthy of remark that not only the first, but every succeeding
 Congress, as well as the late convention, have invariably joined with
 the people in thinking that the prosperity of America depended on its

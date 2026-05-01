@@ -1,3 +1,6 @@
+---
+id: AA1C2BBEE
+---
 It is too true, however disgraceful it may be to human nature, that
 nations in general will make war whenever they have a prospect of
 getting anything by it; nay, absolute monarchs will often make war when

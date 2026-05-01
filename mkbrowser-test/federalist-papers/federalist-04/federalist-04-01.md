@@ -1,3 +1,6 @@
+---
+id: 7A846CF61
+---
 MY LAST paper assigned several reasons why the safety of the people
 would be best secured by union against the danger it may be exposed to
 by JUST causes of war given to other nations; and those reasons show

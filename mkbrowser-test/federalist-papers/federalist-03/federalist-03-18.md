@@ -1,3 +1,6 @@
+---
+id: 660629D7F
+---
 In the year 1685, the state of Genoa having offended Louis XIV.,
 endeavored to appease him. He demanded that they should send their Doge,
 or chief magistrate, accompanied by four of their senators, to FRANCE,
