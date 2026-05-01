@@ -4,6 +4,54 @@ import { spawn, execSync } from 'node:child_process';
 import { fdir } from 'fdir';
 import { getSortedDirEntries } from './indexUtil';
 
+function rewriteImagePathsToAbsolute(content: string, sourceFilePath: string): string {
+  const sourceDir = path.dirname(sourceFilePath);
+
+  function shouldSkip(rawPath: string): boolean {
+    return (
+      rawPath === '' ||
+      rawPath.startsWith('http://') ||
+      rawPath.startsWith('https://') ||
+      rawPath.startsWith('//') ||
+      rawPath.startsWith('/') ||
+      rawPath.startsWith('data:') ||
+      rawPath.startsWith('#')
+    );
+  }
+
+  function resolveIfExists(rawPath: string): string {
+    const match = rawPath.match(/^([^?#]+)([?#].*)?$/);
+    if (!match) return rawPath;
+    const filePart = match[1];
+    const suffix = match[2] ?? '';
+    const resolved = path.resolve(sourceDir, filePart);
+    if (!fs.existsSync(resolved)) return rawPath;
+    return resolved + suffix;
+  }
+
+  // Rewrite markdown image syntax: ![alt](path)
+  let result = content.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (fullMatch, alt, rawPath) => {
+    if (shouldSkip(rawPath)) return fullMatch;
+    const newPath = resolveIfExists(rawPath);
+    return `![${alt}](${newPath})`;
+  });
+
+  // Rewrite HTML img tags: <img ... src="..." ...>
+  result = result.replace(/<img([^>]+)>/gi, (fullMatch, attrs) => {
+    let replaced = attrs.replace(/(\bsrc=")([^"]+)(")/i, (_m: string, pre: string, rawPath: string, post: string) => {
+      if (shouldSkip(rawPath)) return _m;
+      return pre + resolveIfExists(rawPath) + post;
+    });
+    replaced = replaced.replace(/(\bsrc=')([^']+)(')/i, (_m: string, pre: string, rawPath: string, post: string) => {
+      if (shouldSkip(rawPath)) return _m;
+      return pre + resolveIfExists(rawPath) + post;
+    });
+    return `<img${replaced}>`;
+  });
+
+  return result;
+}
+
 /**
  * Concatenate all .md and .txt files in a folder (optionally including subfolders)
  * into a single markdown string, with optional filename headers and dividers.
@@ -25,11 +73,13 @@ export async function exportFolderContents(
     // falls back to alphabetical for folders without one.
     const sortedEntries = await getSortedDirEntries(folderPath);
 
-    // Filter to eligible items (text files and, when requested, subdirs)
+    const imageExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.tif']);
+
+    // Filter to eligible items (text files, images, and when requested, subdirs)
     const items = sortedEntries.filter((item) => {
       if (item.isDir) return includeSubfolders;
       const lower = item.name.toLowerCase();
-      return lower.endsWith('.md') || lower.endsWith('.txt');
+      return lower.endsWith('.md') || lower.endsWith('.txt') || imageExtensions.has(path.extname(lower));
     });
 
     for (const item of items) {
@@ -37,8 +87,12 @@ export async function exportFolderContents(
         const subRelativePath = relativePath ? `${relativePath}/${item.name}` : item.name;
         const subParts = await processFolder(item.entryPath, subRelativePath);
         parts.push(...subParts);
+      } else if (imageExtensions.has(path.extname(item.name.toLowerCase()))) {
+        const altText = path.basename(item.name, path.extname(item.name));
+        parts.push(`\n![${altText}](${item.entryPath})\n`);
       } else {
-        const content = await fs.promises.readFile(item.entryPath, 'utf-8');
+        const rawContent = await fs.promises.readFile(item.entryPath, 'utf-8');
+        const content = rewriteImagePathsToAbsolute(rawContent, item.entryPath);
         if (includeFilenames) {
           const fileLabel = relativePath ? `${relativePath}/${item.name}` : item.name;
           parts.push(`File: ${fileLabel}\n\n${content}`);
