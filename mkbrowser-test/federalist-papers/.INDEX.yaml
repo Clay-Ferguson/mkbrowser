@@ -1,0 +1,12 @@
+files:
+  - name: federalist-00.md
+    id: D3B6E79AB
+  - name: z-File At Top.md
+    id: 429646D9D
+  - name: federalist-01
+  - name: federalist-02
+  - name: federalist-03
+  - name: federalist-04
+  - name: z-glossary
+options:
+  edit_mode: true
