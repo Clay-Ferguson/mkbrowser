@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, execSync } from 'node:child_process';
 import { fdir } from 'fdir';
+import { getSortedDirEntries } from './indexUtil';
 
 /**
  * Concatenate all .md and .txt files in a folder (optionally including subfolders)
@@ -20,27 +21,16 @@ export async function exportFolderContents(
   const processFolder = async (folderPath: string, relativePath: string): Promise<string[]> => {
     const parts: string[] = [];
 
-    const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
+    // Sorted entries — honours .INDEX.yaml document-mode ordering when present,
+    // falls back to alphabetical for folders without one.
+    const sortedEntries = await getSortedDirEntries(folderPath);
 
-    // Collect eligible text files and (optionally) subdirs into one list
-    const items: Array<{ name: string; entryPath: string; isDir: boolean }> = [];
-    for (const entry of entries) {
-      if (entry.name.startsWith('.')) continue;
-      const entryPath = path.join(folderPath, entry.name);
-      if (entry.isDirectory()) {
-        if (includeSubfolders) {
-          items.push({ name: entry.name, entryPath, isDir: true });
-        }
-      } else {
-        const lowerName = entry.name.toLowerCase();
-        if (lowerName.endsWith('.md') || lowerName.endsWith('.txt')) {
-          items.push({ name: entry.name, entryPath, isDir: false });
-        }
-      }
-    }
-
-    // Single case-insensitive sort — files and folders interleaved by name
-    items.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    // Filter to eligible items (text files and, when requested, subdirs)
+    const items = sortedEntries.filter((item) => {
+      if (item.isDir) return includeSubfolders;
+      const lower = item.name.toLowerCase();
+      return lower.endsWith('.md') || lower.endsWith('.txt');
+    });
 
     for (const item of items) {
       if (item.isDir) {

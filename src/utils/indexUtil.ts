@@ -270,6 +270,57 @@ export async function moveToEdgeInIndexYaml(
 }
 
 /**
+ * Returns the visible entries of a directory in document-mode order when a
+ * .INDEX.yaml exists, or alphabetically when it does not.
+ *
+ * "Visible" means non-hidden (name does not start with '.').
+ * The returned objects carry `name`, `entryPath`, and `isDir` so callers
+ * don't need a second readdir call.
+ */
+export async function getSortedDirEntries(
+  dirPath: string,
+): Promise<Array<{ name: string; entryPath: string; isDir: boolean }>> {
+  const dirEntries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+  const visible = dirEntries.filter((e) => !e.name.startsWith('.'));
+
+  const toItem = (e: import('fs').Dirent) => ({
+    name: e.name,
+    entryPath: path.join(dirPath, e.name),
+    isDir: e.isDirectory(),
+  });
+
+  const indexYaml = await readIndexYaml(dirPath);
+  if (!indexYaml?.files?.length) {
+    // No document mode — alphabetical fallback
+    return visible
+      .map(toItem)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  }
+
+  // Build a lookup from name → Dirent for fast access
+  const nameMap = new Map(visible.map((e) => [e.name, e]));
+
+  // Emit entries in index order, then any extras not listed in the index alphabetically
+  const ordered: Array<{ name: string; entryPath: string; isDir: boolean }> = [];
+  const seen = new Set<string>();
+  for (const entry of indexYaml.files) {
+    const dirent = nameMap.get(entry.name);
+    if (dirent) {
+      ordered.push(toItem(dirent));
+      seen.add(entry.name);
+    }
+  }
+  // Append any disk entries not present in the index (new files not yet reconciled)
+  for (const e of visible) {
+    if (!seen.has(e.name)) {
+      ordered.push(toItem(e));
+    }
+  }
+
+  return ordered;
+}
+
+/**
  * Inserts a new entry into the .INDEX.yaml files array at the position
  * immediately after insertAfterName (or at position 0 when null).
  * Existing entries and their id fields are preserved.
