@@ -21,4 +21,5 @@ files:
     id: 44D1AD64B
   - name: federalist-01-10.md
     id: 6513BCB17
-options: {}
+options:
+  edit_mode: false

@@ -35,4 +35,5 @@ files:
     id: FC6C4698B
   - name: federalist-04-17.md
     id: E3CB4AEFD
-options: {}
+options:
+  edit_mode: true
