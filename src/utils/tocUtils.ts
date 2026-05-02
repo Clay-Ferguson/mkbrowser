@@ -115,14 +115,14 @@ export async function processTOC(content: string): Promise<string> {
   if (endIdx !== -1) {
     return (
       content.slice(0, afterStart) +
-      '\n\n' + tocMarkdown + '\n\n' +
+      '\n' + tocMarkdown + '\n' +
       content.slice(endIdx)
     );
   }
 
   return (
     content.slice(0, afterStart) +
-    '\n\n' + tocMarkdown + '\n\n' +
+    '\n' + tocMarkdown + '\n' +
     END_TAG +
     content.slice(afterStart)
   );

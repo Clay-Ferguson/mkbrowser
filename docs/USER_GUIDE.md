@@ -5,7 +5,6 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
 ![Screenshot](./img/screenshot.png)
 
 <!-- TOC -->
-
 * [Desktop Icon (Linux)](#desktop-icon-linux)
 * [Browsing and Editing](#browsing-and-editing)
   * [Viewing Content](#viewing-content)
@@ -97,7 +96,6 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [How It Works](#how-it-works)
   * [Use Case: Browser Landing Page](#use-case-browser-landing-page)
   * [Technical Details](#technical-details)
-
 <!-- /TOC -->
 
 # Desktop Icon (Linux)
