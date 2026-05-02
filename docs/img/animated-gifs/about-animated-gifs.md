@@ -1,28 +1,31 @@
 # MkBrowser Animated GIFs
 
 ## How to Create a File
-![collapsed-files](./create-file-demo.gif)
+![](./create-file-demo.gif)
 
 ## How to Use File Explorer
-![collapsed-files](./file-explorer-demo.gif)
+![](./file-explorer-demo.gif)
+
+## How to Use Document Mode
+![](./document-mode-demo.gif)
 
 ## How to Chat with an AI
-![collapsed-files](./create-file-demo.gif)
+![](./create-file-demo.gif)
 
 ## How to use AI Vision
-![collapsed-files](./ai-vision-demo.gif)
+![](./ai-vision-demo.gif)
 
 ## How to do Simple Search
-![collapsed-files](./search-demo.gif)
+![](./search-demo.gif)
 
 ## How to do Advanced Search
-![collapsed-files](./advanced-search-demo.gif)
+![](./advanced-search-demo.gif)
 
 ## How to use LaTeX
-![expanded-file](./create-latex-demo.gif)
+![](./create-latex-demo.gif)
 
 ## How to create Mermaid Diagrams
-![expanded-file](./create-mermaid-demo.gif)
+![](./create-mermaid-demo.gif)
 
 ## How to Generate a PDF
-![expanded-file](./generate-pdf-demo.gif)
+![](./generate-pdf-demo.gif)
