@@ -107,11 +107,9 @@ Both are saved to `screenshots/<test-name>/` with sequential 3-digit numbering (
 ### Essential Helper Functions (from `mediaUtils.ts`)
 
 ```typescript
-// Screenshot without highlight
-await takeScreenshot(mainWindow, screenshotDir, step++, 'description');
-
-// Screenshot with highlight on a specific element
-await takeScreenshot(mainWindow, buttonLocator, screenshotDir, step++, 'description');
+// Screenshot with optional 'focusElement' to highlight a specific element in the screenshot by drawing a red border around it
+// just before the screenshot it taken.
+await takeScreenshot(mainWindow, focusElement, screenshotDir, step++, 'description');
 
 // Write narration text (converted to speech during video generation)
 writeNarration(screenshotDir, step++, 'Narration text explaining what the user sees...');

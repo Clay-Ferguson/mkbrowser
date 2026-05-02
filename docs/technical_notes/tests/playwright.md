@@ -72,7 +72,7 @@ Adjust the cleanup filter regex (`/^my-.*\.md$/`) as needed for the specific tes
 Use a single `let step = 1` counter, always incremented with `step++` inline in every call. Screenshots and narration files interleave — a screenshot is typically followed immediately by its narration, both consuming a step number:
 
 ```typescript
-await takeScreenshot(mainWindow, screenshotDir, step++, 'descriptive-label');
+await takeScreenshot(mainWindow, focusElement, screenshotDir, step++, 'descriptive-label');
 writeNarration(screenshotDir, step++, 'Spoken narration for this moment in the demo.');
 ```
 
@@ -84,9 +84,9 @@ All helpers are in `tests/e2e/helpers/mediaUtils.ts`.
 
 ### `takeScreenshot` — plain screenshot
 ```typescript
-await takeScreenshot(mainWindow, locator, screenshotDir, step++, 'label');
+await takeScreenshot(mainWindow, focusElement, screenshotDir, step++, 'label');
 ```
-Use for general state captures: after navigation, after a save completes, etc. locator argument determines what (if anything) to highlight in the screenshot
+Use for general state captures: after navigation, after a save completes, etc. focusElement argument determines what (if anything) to highlight in the screenshot
 
 Use just *before* clicking an element, or after typing into one, to draw the viewer's eye to it. Always take the highlight screenshot *before* `demonstrateClickForDemo` so the element is still visible without any transition state.
 

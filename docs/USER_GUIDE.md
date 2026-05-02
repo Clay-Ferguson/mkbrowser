@@ -394,7 +394,7 @@ Third part
 
 # Document Mode
 
-Document Mode lets you treat any folder as a structured document, where each file (or subfolder) in that folder represents a block of content. Instead of files appearing in some arbitrary filesystem order, Document Mode gives you full control over the sequence — so you can arrange your content exactly as it should read.
+Document Mode lets you treat any specific folder as a structured document, where each file (or subfolder) in that folder represents a block of content, in the context of a larger document, represented by the whole folder. Instead of files/folders appearing in some arbitrary filesystem order, `Document Mode` gives you full control over the sequence — so you can arrange your content exactly as it should read as a "Document". This block-based approach to editing will be familiar to people who have used Jupyter Notebooks because it's a similar concept.
 
 This is useful any time a folder represents something with a meaningful order: a book where each chapter is a file, a course where each lesson is a subfolder, a report broken into sections, or any collection where sequence matters.
 

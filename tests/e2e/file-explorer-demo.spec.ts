@@ -232,11 +232,6 @@ Hovering over a file title reveals a row of action icons. Let's click the "Revea
     // the action bar inside it — this guarantees we target the correct entry's reveal button.
     const actionBar = findActionBarByFileName(mainWindow, 'USER_GUIDE.md');
     const revealButton = actionBar.getByTestId('entry-reveal-button');
-    // todo-0: Try to get this 'revealButton' to show up highlighted in the screenshot. So far this has failed. &&&
-    //         HINT: i think the problem is that we need to be calling takeScreenshot instead of takeScreenshot
-    //               at this step and probably for many other places where we take a screenshots, threw out all of our test cases because 
-    //               lots of the time we will have something that we just clicked on which we're taking a screenshot of, 
-    //               unless we just changed to a new page and haven't clicked on anything yet in the demo 
     await demonstrateClickForDemo(revealButton, { force: true });
     await mainWindow.waitForTimeout(1200);
 
