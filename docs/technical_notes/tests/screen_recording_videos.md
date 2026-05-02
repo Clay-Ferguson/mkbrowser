@@ -61,7 +61,7 @@ The video creation system is an integrated workflow that connects three main com
 
 ### 1. Test Execution → Media Generation
 Playwright E2E tests (like [create-file-demo.spec.ts](tests/e2e/create-file-demo.spec.ts)) automatically generate:
-- **Screenshots** (`.png` files) — Captured at key interaction points using `takeStepScreenshot()` or `takeStepScreenshotWithHighlight()`
+- **Screenshots** (`.png` files) — Captured at key interaction points using `takeScreenshot()` or `takeScreenshot()`
 - **Narration text files** (`.txt` files) — Written immediately after screenshots using `writeNarration()`
 
 Both are saved to `screenshots/<test-name>/` with sequential 3-digit numbering (001, 002, 003...).
@@ -108,10 +108,10 @@ Both are saved to `screenshots/<test-name>/` with sequential 3-digit numbering (
 
 ```typescript
 // Screenshot without highlight
-await takeStepScreenshot(mainWindow, screenshotDir, step++, 'description');
+await takeScreenshot(mainWindow, screenshotDir, step++, 'description');
 
 // Screenshot with highlight on a specific element
-await takeStepScreenshotWithHighlight(mainWindow, buttonLocator, screenshotDir, step++, 'description');
+await takeScreenshot(mainWindow, buttonLocator, screenshotDir, step++, 'description');
 
 // Write narration text (converted to speech during video generation)
 writeNarration(screenshotDir, step++, 'Narration text explaining what the user sees...');
@@ -135,18 +135,18 @@ test('feature demo', async ({ mainWindow }) => {
   let step = 1;
   
   // 1. Show initial state
-  await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
+  await takeScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
   writeNarration(screenshotDir, step++, 'Describe what user sees...');
   
   // 2. Highlight element before interaction
-  await takeStepScreenshotWithHighlight(mainWindow, button, screenshotDir, step++, 'about-to-click');
+  await takeScreenshot(mainWindow, button, screenshotDir, step++, 'about-to-click');
   writeNarration(screenshotDir, step++, 'Explain what will happen...');
   
   // 3. Perform action
   await demonstrateClickForDemo(button);
   
   // 4. Show result
-  await takeStepScreenshot(mainWindow, screenshotDir, step++, 'result');
+  await takeScreenshot(mainWindow, screenshotDir, step++, 'result');
   writeNarration(screenshotDir, step++, 'Describe the result...');
 });
 ```
@@ -182,9 +182,9 @@ Provides standardized functions for capturing screenshots and writing narration 
 
 #### Functions:
 
-**`takeStepScreenshot(mainWindow, screenshotDir, step, filenameSuffix)`**
+**`takeScreenshot(mainWindow, screenshotDir, step, filenameSuffix)`**
 - Captures a screenshot with standardized 3-digit numbering
-- Example: `await takeStepScreenshot(mainWindow, screenshotDir, step++, 'files-visible')`
+- Example: `await takeScreenshot(mainWindow, screenshotDir, step++, 'files-visible')`
 - Generates: `001-files-visible.png`
 
 **`writeNarration(screenshotDir, step, narrationText)`**
@@ -193,10 +193,10 @@ Provides standardized functions for capturing screenshots and writing narration 
 - Generates: `002-narration.txt`
 - Text files are later converted to audio by Kokoro TTS
 
-**`takeStepScreenshotWithHighlight(mainWindow, locator, screenshotDir, step, filenameSuffix)`**
+**`takeScreenshot(mainWindow, locator, screenshotDir, step, filenameSuffix)`**
 - Captures screenshot with visual highlight applied to specified element
 - Uses atomic highlight application to guarantee visibility in captured image
-- Example: `await takeStepScreenshotWithHighlight(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create')`
+- Example: `await takeScreenshot(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create')`
 
 **`insertTextForDemo(mainWindow, text, showHighlight, focusTarget?)`**
 - Bulk-inserts text at once (like a paste) with optional visual highlight
@@ -259,13 +259,13 @@ test('complete workflow with visual indicators', async ({ mainWindow }) => {
   let step = 1;
   
   // Capture screenshot
-  await takeStepScreenshot(mainWindow, screenshotDir, step++, 'files-visible');
+  await takeScreenshot(mainWindow, screenshotDir, step++, 'files-visible');
   
   // Write narration immediately after related screenshot
   writeNarration(screenshotDir, step++, 'Welcome to MkBrowser...');
   
   // Highlight and capture element before interaction
-  await takeStepScreenshotWithHighlight(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create');
+  await takeScreenshot(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create');
   writeNarration(screenshotDir, step++, 'We\'ll click the Create File button...');
   
   // Demonstrate actions with proper timing
@@ -473,8 +473,8 @@ The complete workflow from test creation to video generation:
 3. **Import media utilities**:
    ```typescript
    import { 
-     takeStepScreenshot, 
-     takeStepScreenshotWithHighlight,
+     takeScreenshot, 
+     takeScreenshot,
      writeNarration,
      insertTextForDemo,
      demonstrateClickForDemo 
@@ -494,18 +494,18 @@ The complete workflow from test creation to video generation:
      let step = 1;
      
      // Capture initial state
-     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
+     await takeScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
      writeNarration(screenshotDir, step++, 'Welcome message describing what user sees...');
      
      // Highlight element before interaction
-     await takeStepScreenshotWithHighlight(mainWindow, button, screenshotDir, step++, 'about-to-click');
+     await takeScreenshot(mainWindow, button, screenshotDir, step++, 'about-to-click');
      writeNarration(screenshotDir, step++, 'Explain what will happen when button is clicked...');
      
      // Perform action with demo timing
      await demonstrateClickForDemo(button);
      
      // Show result
-     await takeStepScreenshot(mainWindow, screenshotDir, step++, 'after-click');
+     await takeScreenshot(mainWindow, screenshotDir, step++, 'after-click');
      writeNarration(screenshotDir, step++, 'Describe the result...');
    });
    ```
@@ -674,8 +674,8 @@ cd kokoro
 ## Best Practices
 
 ### 1. Use Media Utility Helpers
-- Always use `takeStepScreenshot()` and `writeNarration()` from `mediaUtils.ts` for consistent file naming
-- Use `takeStepScreenshotWithHighlight()` for screenshots that need visual indicators
+- Always use `takeScreenshot()` and `writeNarration()` from `mediaUtils.ts` for consistent file naming
+- Use `takeScreenshot()` for screenshots that need visual indicators
 - Use `insertTextForDemo()` and `demonstrateClickForDemo()` for proper demo timing
 - These helpers handle 3-digit numbering automatically via the `step` counter
 
@@ -694,7 +694,7 @@ cd kokoro
 ### 4. Visual Indicator Placement
 - Show highlights BEFORE clicks to draw attention
 - Keep highlights visible DURING typing
-- Use `takeStepScreenshotWithHighlight()` to guarantee highlight visibility
+- Use `takeScreenshot()` to guarantee highlight visibility
 - Default durations are tuned for typical interactions
 
 ### 5. Test Independence

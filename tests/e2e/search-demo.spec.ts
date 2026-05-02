@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Search Feature
@@ -24,7 +24,7 @@ test.describe('Search Demo', () => {
     // Verify initial state — expect to see mkbrowser-test contents
     const mainContent = mainWindow.getByTestId('browser-main-content');
     await expect(mainContent.getByText('federalist-papers').first()).toBeVisible({ timeout: 10000 });
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,
       step++,
@@ -35,7 +35,7 @@ You can see the folder listing in front of us, including the federalist-papers f
 
     // Click the federalist-papers folder
     const federalistFolder = mainContent.getByText('federalist-papers').first();
-    await takeStepScreenshotWithHighlight(mainWindow, federalistFolder, screenshotDir, step++, 'about-to-click-federalist-folder');
+    await takeScreenshot(mainWindow, federalistFolder, screenshotDir, step++, 'about-to-click-federalist-folder');
     writeNarration(
       screenshotDir,
       step++,
@@ -45,7 +45,7 @@ You can see the folder listing in front of us, including the federalist-papers f
     await demonstrateClickForDemo(federalistFolder);
 
     await mainWindow.waitForTimeout(1000);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'federalist-folder-open');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'federalist-folder-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -57,7 +57,7 @@ Now let's use the search feature to find specific content across these files.`
     // Click the search menu button
     const searchMenuButton = mainWindow.getByTestId('search-menu-button');
     await expect(searchMenuButton).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, searchMenuButton, screenshotDir, step++, 'about-to-click-search-menu');
+    await takeScreenshot(mainWindow, searchMenuButton, screenshotDir, step++, 'about-to-click-search-menu');
     writeNarration(
       screenshotDir,
       step++,
@@ -70,7 +70,7 @@ Let's click it to open the search menu.`
     // Click "New Search..." from the popup menu
     const newSearchOption = mainWindow.getByText('New Search...');
     await expect(newSearchOption).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, newSearchOption, screenshotDir, step++, 'search-menu-open');
+    await takeScreenshot(mainWindow, newSearchOption, screenshotDir, step++, 'search-menu-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -83,7 +83,7 @@ We'll click "New Search..." to open the search dialog and define a new query.`
     // Type search text into the search query input
     const searchInput = mainWindow.getByTestId('search-query-input');
     await expect(searchInput).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'search-dialog-open');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'search-dialog-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -94,7 +94,7 @@ Let's search for the word "political" to find references to that topic across th
 
     await insertTextForDemo(mainWindow, 'political', true, searchInput);
 
-    await takeStepScreenshotWithHighlight(mainWindow, searchInput, screenshotDir, step++, 'search-text-entered');
+    await takeScreenshot(mainWindow, searchInput, screenshotDir, step++, 'search-text-entered');
     writeNarration(
       screenshotDir,
       step++,
@@ -106,7 +106,7 @@ Now let's run the search.`
     // Click the execute search button
     const executeSearchButton = mainWindow.getByTestId('execute-search-button');
     await expect(executeSearchButton).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, executeSearchButton, screenshotDir, step++, 'about-to-execute-search');
+    await takeScreenshot(mainWindow, executeSearchButton, screenshotDir, step++, 'about-to-execute-search');
     writeNarration(
       screenshotDir,
       step++,
@@ -116,7 +116,7 @@ Now let's run the search.`
     await demonstrateClickForDemo(executeSearchButton);
 
     await mainWindow.waitForTimeout(1500);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'search-results-visible');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'search-results-visible');
     writeNarration(
       screenshotDir,
       step++,
@@ -129,7 +129,7 @@ Let's click on one of the results to jump directly to that file.`
     // Click the specific result to navigate to that file
     const targetResult = mainWindow.getByText('federalist-03/federalist-03-08.md');
     await expect(targetResult).toBeVisible({ timeout: 10000 });
-    await takeStepScreenshotWithHighlight(mainWindow, targetResult, screenshotDir, step++, 'about-to-click-result');
+    await takeScreenshot(mainWindow, targetResult, screenshotDir, step++, 'about-to-click-result');
     writeNarration(
       screenshotDir,
       step++,
@@ -139,7 +139,7 @@ Let's click on one of the results to jump directly to that file.`
     await demonstrateClickForDemo(targetResult);
 
     await mainWindow.waitForTimeout(500);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'file-navigated');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'file-navigated');
     writeNarration(
       screenshotDir,
       step++,

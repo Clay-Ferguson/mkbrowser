@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test with Visual Indicators
@@ -27,7 +27,7 @@ test.describe('Create File Demo', () => {
     await expect(mainContent.getByText('sample.md').first()).toBeVisible({ timeout: 10000 });
     await expect(mainContent.getByText('readme.txt').first()).toBeVisible();
     await expect(mainContent.getByText('notes.md').first()).toBeVisible();
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'files-visible');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'files-visible');
     writeNarration(
       screenshotDir,
       step++,
@@ -41,7 +41,7 @@ Let's create a new file to see how it works.`
     const createButton = mainWindow.getByTestId('create-file-button');
 
     // Highlight and click with proper timing to capture screenshot
-    await takeStepScreenshotWithHighlight(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create');
+    await takeScreenshot(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create');
     writeNarration(
       screenshotDir,
       step++,
@@ -50,7 +50,7 @@ Let's create a new file to see how it works.`
 
     await demonstrateClickForDemo(createButton);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'create-dialog-open');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'create-dialog-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -63,7 +63,7 @@ Let's type a descriptive name for our new file.`
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
     await insertTextForDemo(mainWindow, 'my-journal-entry', true, filenameInput);
 
-    await takeStepScreenshotWithHighlight(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
+    await takeScreenshot(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
     writeNarration(
       screenshotDir,
       step++,
@@ -73,7 +73,7 @@ Notice we didn't include a file extension — MkBrowser will automatically add "
 
     // Demonstrate clicking the Create button in dialog
     const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
-    await takeStepScreenshotWithHighlight(mainWindow, createDialogButton, screenshotDir, step++, 'about-to-create-file');
+    await takeScreenshot(mainWindow, createDialogButton, screenshotDir, step++, 'about-to-create-file');
     writeNarration(
       screenshotDir,
       step++,
@@ -82,7 +82,7 @@ Notice we didn't include a file extension — MkBrowser will automatically add "
 
     await demonstrateClickForDemo(createDialogButton);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'new-file-created');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'new-file-created');
     writeNarration(
       screenshotDir,
       step++,
@@ -95,7 +95,7 @@ Notice the text editor that appeared — this is a full-featured code editor whe
 
     // Take screenshot with highlight applied atomically
     const cmEditor = mainWindow.locator('.cm-editor').first();
-    await takeStepScreenshotWithHighlight(mainWindow, cmEditor, screenshotDir, step++, 'content-typed');
+    await takeScreenshot(mainWindow, cmEditor, screenshotDir, step++, 'content-typed');
     writeNarration(
       screenshotDir,
       step++,
@@ -106,7 +106,7 @@ Now let's save our work.`
 
     // Demonstrate clicking the Save button
     const saveButton = mainWindow.getByTestId('entry-save-button');
-    await takeStepScreenshotWithHighlight(mainWindow, saveButton, screenshotDir, step++, 'about-to-save');
+    await takeScreenshot(mainWindow, saveButton, screenshotDir, step++, 'about-to-save');
     writeNarration(
       screenshotDir,
       step++,
@@ -115,7 +115,7 @@ Now let's save our work.`
 
     await demonstrateClickForDemo(saveButton);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'file-saved');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'file-saved');
     writeNarration(
       screenshotDir,
       step++,

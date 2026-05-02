@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Advanced Search Feature
@@ -26,7 +26,7 @@ test.describe('Advanced Search Demo', () => {
     // Verify initial state — expect to see mkbrowser-test contents
     const mainContent = mainWindow.getByTestId('browser-main-content');
     await expect(mainContent.getByText('federalist-papers').first()).toBeVisible({ timeout: 10000 });
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,
       step++,
@@ -37,7 +37,7 @@ You can see the folder listing in front of us, including the federalist-papers f
 
     // Highlight and click the federalist-papers folder
     const federalistFolder = mainContent.getByText('federalist-papers').first();
-    await takeStepScreenshotWithHighlight(mainWindow, federalistFolder, screenshotDir, step++, 'about-to-click-federalist-folder');
+    await takeScreenshot(mainWindow, federalistFolder, screenshotDir, step++, 'about-to-click-federalist-folder');
     writeNarration(
       screenshotDir,
       step++,
@@ -47,7 +47,7 @@ You can see the folder listing in front of us, including the federalist-papers f
     await demonstrateClickForDemo(federalistFolder);
 
     await mainWindow.waitForTimeout(1000);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'federalist-folder-open');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'federalist-folder-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -58,7 +58,7 @@ Now let's open the search menu to create a new advanced search.`
     // Open the search menu
     let searchMenuButton = mainWindow.getByTestId('search-menu-button');
     await expect(searchMenuButton).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, searchMenuButton, screenshotDir, step++, 'about-to-click-search-menu');
+    await takeScreenshot(mainWindow, searchMenuButton, screenshotDir, step++, 'about-to-click-search-menu');
     writeNarration(
       screenshotDir,
       step++,
@@ -71,7 +71,7 @@ Let's click it to open the search menu.`
     // Click "New Search..." from the popup menu
     const newSearchOption = mainWindow.getByText('New Search...');
     await expect(newSearchOption).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, newSearchOption, screenshotDir, step++, 'search-menu-open');
+    await takeScreenshot(mainWindow, newSearchOption, screenshotDir, step++, 'search-menu-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -84,7 +84,7 @@ We'll click "New Search..." to open the search dialog where we can configure our
     // The search dialog should now be open — select Advanced mode
     const advancedOption = mainWindow.getByTestId('search-type-advanced');
     await expect(advancedOption).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'search-dialog-open');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'search-dialog-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -93,7 +93,7 @@ By default it may be in a simple search mode.
 We need to switch to Advanced mode so that we can use boolean expressions in our query.`
     );
 
-    await takeStepScreenshotWithHighlight(mainWindow, advancedOption, screenshotDir, step++, 'about-to-click-advanced');
+    await takeScreenshot(mainWindow, advancedOption, screenshotDir, step++, 'about-to-click-advanced');
     writeNarration(
       screenshotDir,
       step++,
@@ -103,7 +103,7 @@ We need to switch to Advanced mode so that we can use boolean expressions in our
     await demonstrateClickForDemo(advancedOption);
 
     await mainWindow.waitForTimeout(500);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'advanced-mode-selected');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'advanced-mode-selected');
     writeNarration(
       screenshotDir,
       step++,
@@ -114,7 +114,7 @@ We can enter a boolean expression that will be evaluated against each file in th
     // Type the boolean query into the search query input
     const searchInput = mainWindow.getByTestId('search-query-input');
     await expect(searchInput).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, searchInput, screenshotDir, step++, 'about-to-enter-query');
+    await takeScreenshot(mainWindow, searchInput, screenshotDir, step++, 'about-to-enter-query');
     writeNarration(
       screenshotDir,
       step++,
@@ -124,7 +124,7 @@ We will enter a boolean "and" expression that finds only the files containing bo
 
     await insertTextForDemo(mainWindow, '$("political") && $("free people")', true, searchInput);
 
-    await takeStepScreenshotWithHighlight(mainWindow, searchInput, screenshotDir, step++, 'query-entered');
+    await takeScreenshot(mainWindow, searchInput, screenshotDir, step++, 'query-entered');
     writeNarration(
       screenshotDir,
       step++,
@@ -135,7 +135,7 @@ The double-ampersand operator means that both terms must appear in the same file
     // Enter a name for the saved search
     const searchNameInput = mainWindow.getByTestId('search-name-input');
     await expect(searchNameInput).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, searchNameInput, screenshotDir, step++, 'about-to-enter-name');
+    await takeScreenshot(mainWindow, searchNameInput, screenshotDir, step++, 'about-to-enter-name');
     writeNarration(
       screenshotDir,
       step++,
@@ -145,7 +145,7 @@ Let's call it "Political Free People Search".`
 
     await insertTextForDemo(mainWindow, 'Political Free People Search', true, searchNameInput);
 
-    await takeStepScreenshotWithHighlight(mainWindow, searchNameInput, screenshotDir, step++, 'name-entered');
+    await takeScreenshot(mainWindow, searchNameInput, screenshotDir, step++, 'name-entered');
     writeNarration(
       screenshotDir,
       step++,
@@ -156,7 +156,7 @@ MkBrowser will remember this search definition so we can reuse it at any time wi
     // Execute the search
     const executeSearchButton = mainWindow.getByTestId('execute-search-button');
     await expect(executeSearchButton).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, executeSearchButton, screenshotDir, step++, 'about-to-execute-search');
+    await takeScreenshot(mainWindow, executeSearchButton, screenshotDir, step++, 'about-to-execute-search');
     writeNarration(
       screenshotDir,
       step++,
@@ -167,7 +167,7 @@ Let's click the Search button to run the boolean query across the Federalist Pap
     await demonstrateClickForDemo(executeSearchButton);
 
     await mainWindow.waitForTimeout(1500);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'search-results-visible');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'search-results-visible');
     writeNarration(
       screenshotDir,
       step++,
@@ -179,7 +179,7 @@ and the matching results are displayed here with their surrounding context.`
     // Click back to the Browse tab so the search icon becomes visible again
     const browseTab = mainWindow.getByTestId('tab-button-browser');
     await expect(browseTab).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, browseTab, screenshotDir, step++, 'about-to-click-browse-tab');
+    await takeScreenshot(mainWindow, browseTab, screenshotDir, step++, 'about-to-click-browse-tab');
     writeNarration(
       screenshotDir,
       step++,
@@ -190,7 +190,7 @@ To access the search menu again, we first need to switch back to the Browse tab.
     await demonstrateClickForDemo(browseTab);
 
     await mainWindow.waitForTimeout(500);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'back-on-browse-tab');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'back-on-browse-tab');
     writeNarration(
       screenshotDir,
       step++,
@@ -203,7 +203,7 @@ The search icon is now visible at the top of the window.`
 
     // Re-open the search menu to show the saved search definition
     await expect(searchMenuButton).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, searchMenuButton, screenshotDir, step++, 'about-to-open-search-menu-again');
+    await takeScreenshot(mainWindow, searchMenuButton, screenshotDir, step++, 'about-to-open-search-menu-again');
     writeNarration(
       screenshotDir,
       step++,
@@ -213,7 +213,7 @@ The search icon is now visible at the top of the window.`
     await demonstrateClickForDemo(searchMenuButton);
 
     await mainWindow.waitForTimeout(500);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'saved-search-visible-in-menu');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'saved-search-visible-in-menu');
     writeNarration(
       screenshotDir,
       step++,

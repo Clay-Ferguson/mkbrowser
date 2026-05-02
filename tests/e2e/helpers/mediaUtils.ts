@@ -62,28 +62,6 @@ export function cleanupScreenshots(screenshotDir: string): void {
 }
 
 /**
- * Takes a screenshot with standardized naming.
- * 
- * @param mainWindow - The Playwright Page object
- * @param screenshotDir - Directory where screenshots are saved
- * @param step - Current step number
- * @param filenameSuffix - The descriptive suffix for the screenshot (e.g., 'files-visible')
- * 
- * @example
- * await takeStepScreenshot(mainWindow, screenshotDir, step++, 'files-visible');
- */
-export async function takeStepScreenshot(
-  mainWindow: Page,
-  screenshotDir: string,
-  step: number,
-  filenameSuffix: string
-): Promise<void> {
-  await mainWindow.screenshot({
-    path: path.join(screenshotDir, `${String(step).padStart(3, '0')}-${filenameSuffix}.png`)
-  });
-}
-
-/**
  * Writes a narration text file with standardized naming.
  * 
  * @param screenshotDir - Directory where narration files are saved
@@ -130,20 +108,21 @@ export function addExternalFile(
  * @param filenameSuffix - The descriptive suffix for the screenshot (e.g., 'filename-entered')
  * 
  * @example
- * await takeStepScreenshotWithHighlight(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
+ * await takeScreenshot(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
  */
-export async function takeStepScreenshotWithHighlight(
+export async function takeScreenshot(
   mainWindow: Page,
-  locator: Locator,
+  locator: Locator | null,
   screenshotDir: string,
   step: number,
   filenameSuffix: string
 ): Promise<void> {
-  await screenshotWithHighlight(
-    mainWindow,
-    locator,
-    path.join(screenshotDir, `${String(step).padStart(3, '0')}-${filenameSuffix}.png`)
-  );
+  const filePath = path.join(screenshotDir, `${String(step).padStart(3, '0')}-${filenameSuffix}.png`);
+  if (locator) {
+    await screenshotWithHighlight(mainWindow, locator, filePath);
+  } else {
+    await mainWindow.screenshot({ path: filePath });
+  }
 }
 
 /**

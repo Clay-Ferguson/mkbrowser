@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, demonstrateRightClickForDemo, findActionBarByFileName, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demonstrateClickForDemo, demonstrateRightClickForDemo, findActionBarByFileName, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
 
 // Override testDataPath so the app starts browsing /home/clay/ferguson
 const test = baseTest.extend({
@@ -26,7 +26,7 @@ test.describe('File Explorer Tree Demo', () => {
     const tree = mainWindow.getByTestId('file-explorer-tree');
     await expect(tree).toBeVisible({ timeout: 10000 });
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,
       step++,
@@ -37,7 +37,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
     // --- Click the "projects" folder ---
     const projectsFolder = tree.getByText('projects').first();
     await projectsFolder.scrollIntoViewIfNeeded();
-    await takeStepScreenshotWithHighlight(mainWindow, projectsFolder, screenshotDir, step++, 'about-to-click-projects');
+    await takeScreenshot(mainWindow, projectsFolder, screenshotDir, step++, 'about-to-click-projects');
     writeNarration(
       screenshotDir,
       step++,
@@ -47,7 +47,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
     await demonstrateClickForDemo(projectsFolder);
     await mainWindow.waitForTimeout(800);
 
-    // await takeStepScreenshot(mainWindow, screenshotDir, step++, 'projects-folder-expanded');
+    // await takeScreenshot(mainWindow, null, screenshotDir, step++, 'projects-folder-expanded');
     // writeNarration(
     //   screenshotDir,
     //   step++,
@@ -57,7 +57,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
     // --- Click the "mkbrowser" folder ---
     const mkbrowserFolder = tree.getByText('mkbrowser').first();
     await mkbrowserFolder.scrollIntoViewIfNeeded();
-    await takeStepScreenshotWithHighlight(mainWindow, mkbrowserFolder, screenshotDir, step++, 'about-to-click-mkbrowser');
+    await takeScreenshot(mainWindow, mkbrowserFolder, screenshotDir, step++, 'about-to-click-mkbrowser');
     writeNarration(
       screenshotDir,
       step++,
@@ -67,7 +67,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
     await demonstrateClickForDemo(mkbrowserFolder);
     await mainWindow.waitForTimeout(800);
 
-    // await takeStepScreenshot(mainWindow, screenshotDir, step++, 'mkbrowser-folder-expanded');
+    // await takeScreenshot(mainWindow, null, screenshotDir, step++, 'mkbrowser-folder-expanded');
     // writeNarration(
     //   screenshotDir,
     //   step++,
@@ -77,7 +77,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
     // --- Click the "docs" folder ---
     const docsFolder = tree.getByText('docs').first();
     await docsFolder.scrollIntoViewIfNeeded();
-    await takeStepScreenshotWithHighlight(mainWindow, docsFolder, screenshotDir, step++, 'about-to-click-docs');
+    await takeScreenshot(mainWindow, docsFolder, screenshotDir, step++, 'about-to-click-docs');
     writeNarration(
       screenshotDir,
       step++,
@@ -87,7 +87,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
     await demonstrateClickForDemo(docsFolder);
     await mainWindow.waitForTimeout(800);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'docs-folder-expanded');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'docs-folder-expanded');
     writeNarration(
       screenshotDir,
       step++,
@@ -97,18 +97,18 @@ The tree panel on the left-hand side of the app shows your file system as a navi
     // --- Click the "USER_GUIDE.md" file ---
     const userGuideFile = tree.getByText('USER_GUIDE.md').first();
     await userGuideFile.scrollIntoViewIfNeeded();
-    await takeStepScreenshotWithHighlight(mainWindow, userGuideFile, screenshotDir, step++, 'about-to-click-user-guide');
+    await takeScreenshot(mainWindow, userGuideFile, screenshotDir, step++, 'about-to-click-user-guide');
     writeNarration(
       screenshotDir,
       step++,
-      `Here is the USER_GUIDE dot m d file in the explorer tree.
+      `Here is the user guide file in the explorer tree.
 Let's click on it to expand it and reveal its internal heading structure.`
     );
 
     await demonstrateClickForDemo(userGuideFile);
     await mainWindow.waitForTimeout(1200);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'user-guide-expanded-headings');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'user-guide-expanded-headings');
     writeNarration(
       screenshotDir,
       step++,
@@ -127,39 +127,39 @@ This is one of the most powerful navigation features of MkBrowser.`
     // --- Right-click USER_GUIDE.md to open its containing folder on the right ---
     const userGuideFileAgain = tree.getByText('USER_GUIDE.md').first();
     await userGuideFileAgain.scrollIntoViewIfNeeded();
-    await takeStepScreenshotWithHighlight(mainWindow, userGuideFileAgain, screenshotDir, step++, 'about-to-right-click-user-guide');
+    await takeScreenshot(mainWindow, userGuideFileAgain, screenshotDir, step++, 'about-to-right-click-user-guide');
     writeNarration(
       screenshotDir,
       step++,
-      `Now let's try a right-click on the USER_GUIDE dot m d file in the tree.
+      `Now let's try a right-click on the user guide in the tree.
 Right-clicking a file opens its containing folder in the main content area on the right-hand side of the app.`
     );
 
     await demonstrateRightClickForDemo(userGuideFileAgain);
     await mainWindow.waitForTimeout(1000);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'right-click-user-guide-folder-opened');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'right-click-user-guide-folder-opened');
     writeNarration(
       screenshotDir,
       step++,
-      `The right-hand panel has navigated to the folder containing USER_GUIDE dot m d.
+      `The right-hand panel has navigated to the folder containing the user guide.
 You can see the file listing for the docs folder on the right side.`
     );
 
     // --- Click the "Searching" heading to expand its sub-headings ---
     await searchingHeading.scrollIntoViewIfNeeded();
-    await takeStepScreenshotWithHighlight(mainWindow, searchingHeading, screenshotDir, step++, 'about-to-click-searching-heading');
+    await takeScreenshot(mainWindow, searchingHeading, screenshotDir, step++, 'about-to-click-searching-heading');
     writeNarration(
       screenshotDir,
       step++,
-      `Back in the File Explorer Tree we can see the headings from USER_GUIDE dot m d.
+      `Back in the File Explorer Tree we can see the headings in the user guide.
 Let's click on the "Searching" heading to expand it and reveal its sub-headings inside the tree.`
     );
 
     await demonstrateClickForDemo(searchingHeading);
     await mainWindow.waitForTimeout(800);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'searching-heading-expanded');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'searching-heading-expanded');
     writeNarration(
       screenshotDir,
       step++,
@@ -170,7 +170,7 @@ We can drill into any section of the document directly from the file explorer.`
     // --- Right-click "Saving Search Definitions" sub-heading ---
     const savingSearchNode = tree.getByText('Saving Search Definitions').first();
     await savingSearchNode.scrollIntoViewIfNeeded();
-    await takeStepScreenshotWithHighlight(mainWindow, savingSearchNode, screenshotDir, step++, 'about-to-right-click-saving-search-definitions');
+    await takeScreenshot(mainWindow, savingSearchNode, screenshotDir, step++, 'about-to-right-click-saving-search-definitions');
     writeNarration(
       screenshotDir,
       step++,
@@ -181,7 +181,7 @@ Let's right-click it — this should scroll the right-hand side of the app direc
     await demonstrateRightClickForDemo(savingSearchNode);
     await mainWindow.waitForTimeout(1200);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'right-click-saving-search-definitions-scrolled');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'right-click-saving-search-definitions-scrolled');
     writeNarration(
       screenshotDir,
       step++,
@@ -194,7 +194,7 @@ Right-clicking any heading in the File Explorer Tree is a fast way to jump to th
     // --- Collapse the tree ---
     const collapseButton = mainWindow.getByTestId('file-explorer-tree-collapse');
     await collapseButton.scrollIntoViewIfNeeded();
-    await takeStepScreenshotWithHighlight(mainWindow, collapseButton, screenshotDir, step++, 'about-to-collapse-tree');
+    await takeScreenshot(mainWindow, collapseButton, screenshotDir, step++, 'about-to-collapse-tree');
     writeNarration(
       screenshotDir,
       step++,
@@ -206,7 +206,7 @@ First, let's collapse the tree completely by clicking the collapse button at the
     await demonstrateClickForDemo(collapseButton);
     await mainWindow.waitForTimeout(800);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'tree-collapsed');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'tree-collapsed');
     writeNarration(
       screenshotDir,
       step++,
@@ -219,11 +219,11 @@ Now let's scroll the right-hand panel back to the top so we can access the file 
     await mainContent.evaluate((el) => el.scrollTo({ top: 0}));
     await mainWindow.waitForTimeout(800);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'main-content-scrolled-to-top');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'main-content-scrolled-to-top');
     writeNarration(
       screenshotDir,
       step++,
-      `The content panel is scrolled back to the top and we can see the file header for USER_GUIDE dot m d.
+      `The content panel is scrolled back to the top and we can see the file header for user guide file.
 Hovering over a file title reveals a row of action icons. Let's click the "Reveal in Folder Tree" icon to locate this file in the tree.`
     );
 
@@ -232,14 +232,19 @@ Hovering over a file title reveals a row of action icons. Let's click the "Revea
     // the action bar inside it — this guarantees we target the correct entry's reveal button.
     const actionBar = findActionBarByFileName(mainWindow, 'USER_GUIDE.md');
     const revealButton = actionBar.getByTestId('entry-reveal-button');
+    // todo-0: Try to get this 'revealButton' to show up highlighted in the screenshot. So far this has failed. &&&
+    //         HINT: i think the problem is that we need to be calling takeScreenshot instead of takeScreenshot
+    //               at this step and probably for many other places where we take a screenshots, threw out all of our test cases because 
+    //               lots of the time we will have something that we just clicked on which we're taking a screenshot of, 
+    //               unless we just changed to a new page and haven't clicked on anything yet in the demo 
     await demonstrateClickForDemo(revealButton, { force: true });
     await mainWindow.waitForTimeout(1200);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'file-revealed-in-tree');
+    await takeScreenshot(mainWindow, revealButton, screenshotDir, step++, 'file-revealed-in-tree');
     writeNarration(
       screenshotDir,
       step++,
-      `The File Explorer Tree has re-opened and scrolled to show the USER_GUIDE dot m d file.
+      `The File Explorer Tree has re-opened and scrolled to show the user guide file.
 Notice that all of the parent folders leading to this file are highlighted in purple in the tree.
 This purple coloring always indicates the current item on the right-hand side of the app, giving you an instant visual anchor no matter how deeply nested your file is.`
     );

@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test - LaTeX Rendering
@@ -27,7 +27,7 @@ test.describe('Create LaTeX Demo', () => {
     // Verify files are visible
     const mainContent = mainWindow.getByTestId('browser-main-content');
     await expect(mainContent.getByText('sample.md').first()).toBeVisible({ timeout: 10000 });
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,
       step++,
@@ -38,12 +38,12 @@ Let's create a file with a mathematical equation.`
 
     // Click the create file button
     const createButton = mainWindow.getByTestId('create-file-button');
-    await takeStepScreenshotWithHighlight(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create');
+    await takeScreenshot(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create');
     writeNarration(screenshotDir, step++, `We'll start by creating a new file.`);
 
     await demonstrateClickForDemo(createButton);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'create-dialog-open');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'create-dialog-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -55,7 +55,7 @@ Let's give our file a name that reflects its mathematical content.`
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
     await insertTextForDemo(mainWindow, 'my-latex-formula', true, filenameInput);
 
-    await takeStepScreenshotWithHighlight(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
+    await takeScreenshot(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
     writeNarration(
       screenshotDir,
       step++,
@@ -65,12 +65,12 @@ Now let's create the file and add some mathematical content.`
 
     // Click Create button in dialog
     const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
-    await takeStepScreenshotWithHighlight(mainWindow, createDialogButton, screenshotDir, step++, 'about-to-create-file');
+    await takeScreenshot(mainWindow, createDialogButton, screenshotDir, step++, 'about-to-create-file');
     writeNarration(screenshotDir, step++, `Clicking Create to open our new file.`);
 
     await demonstrateClickForDemo(createDialogButton);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'new-file-created');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'new-file-created');
     writeNarration(
       screenshotDir,
       step++,
@@ -88,7 +88,7 @@ $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$`;
 
     // Take screenshot with the content typed
     const cmEditor = mainWindow.locator('.cm-editor').first();
-    await takeStepScreenshotWithHighlight(mainWindow, cmEditor, screenshotDir, step++, 'latex-typed');
+    await takeScreenshot(mainWindow, cmEditor, screenshotDir, step++, 'latex-typed');
     writeNarration(
       screenshotDir,
       step++,
@@ -100,7 +100,7 @@ Now watch what happens when we save.`
 
     // Click Save button
     const saveButton = mainWindow.getByTestId('entry-save-button');
-    await takeStepScreenshotWithHighlight(mainWindow, saveButton, screenshotDir, step++, 'about-to-save');
+    await takeScreenshot(mainWindow, saveButton, screenshotDir, step++, 'about-to-save');
     writeNarration(
       screenshotDir,
       step++,
@@ -112,7 +112,7 @@ Now watch what happens when we save.`
     // Wait a moment for the rendering to complete
     await mainWindow.waitForTimeout(1000);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'formula-rendered');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'formula-rendered');
     writeNarration(
       screenshotDir,
       step++,

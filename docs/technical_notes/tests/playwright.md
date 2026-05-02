@@ -11,8 +11,7 @@ This is the pattern for writing Playwright E2E tests that capture screenshots an
 * [Test Boilerplate (Top of Each Test)](#test-boilerplate-top-of-each-test)
 * [Step Counter Convention](#step-counter-convention)
 * [Core Media Helpers](#core-media-helpers)
-  * [`takeStepScreenshot` — plain screenshot](#takestepscreenshot--plain-screenshot)
-  * [`takeStepScreenshotWithHighlight` — screenshot with element highlighted](#takestepscreenshotwithhighlight--screenshot-with-element-highlighted)
+  * [`takeScreenshot` — plain screenshot](#takeScreenshot--plain-screenshot)
   * [`writeNarration` — write companion narration file](#writenarration--write-companion-narration-file)
   * [`demonstrateClickForDemo` — click with demo timing](#demonstrateclickfordemo--click-with-demo-timing)
   * [`insertTextForDemo` — type text into the focused element](#inserttextfordemo--type-text-into-the-focused-element)
@@ -36,7 +35,7 @@ Place test files in `tests/e2e/` and name them `<demo-name>.spec.ts`. The test n
 
 ```typescript
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 ```
@@ -73,7 +72,7 @@ Adjust the cleanup filter regex (`/^my-.*\.md$/`) as needed for the specific tes
 Use a single `let step = 1` counter, always incremented with `step++` inline in every call. Screenshots and narration files interleave — a screenshot is typically followed immediately by its narration, both consuming a step number:
 
 ```typescript
-await takeStepScreenshot(mainWindow, screenshotDir, step++, 'descriptive-label');
+await takeScreenshot(mainWindow, screenshotDir, step++, 'descriptive-label');
 writeNarration(screenshotDir, step++, 'Spoken narration for this moment in the demo.');
 ```
 
@@ -83,16 +82,12 @@ The output filenames are zero-padded to three digits (e.g. `001-files-visible.pn
 
 All helpers are in `tests/e2e/helpers/mediaUtils.ts`.
 
-### `takeStepScreenshot` — plain screenshot
+### `takeScreenshot` — plain screenshot
 ```typescript
-await takeStepScreenshot(mainWindow, screenshotDir, step++, 'label');
+await takeScreenshot(mainWindow, locator, screenshotDir, step++, 'label');
 ```
-Use for general state captures: after navigation, after a save completes, etc.
+Use for general state captures: after navigation, after a save completes, etc. locator argument determines what (if anything) to highlight in the screenshot
 
-### `takeStepScreenshotWithHighlight` — screenshot with element highlighted
-```typescript
-await takeStepScreenshotWithHighlight(mainWindow, locator, screenshotDir, step++, 'label');
-```
 Use just *before* clicking an element, or after typing into one, to draw the viewer's eye to it. Always take the highlight screenshot *before* `demonstrateClickForDemo` so the element is still visible without any transition state.
 
 ### `writeNarration` — write companion narration file
@@ -128,9 +123,9 @@ Always call this as the final statement of the test body.
 Every demo test follows this rhythm:
 
 1. **Wait + verify** the initial state is ready, then screenshot + narration.
-2. **Highlight the UI control** that is about to be activated → `takeStepScreenshotWithHighlight` + narration.
+2. **Highlight the UI control** that is about to be activated → `takeScreenshot` + narration.
 3. **Interact** → `demonstrateClickForDemo` or `insertTextForDemo`.
-4. **Screenshot the result** → `takeStepScreenshot` + narration describing what changed.
+4. **Screenshot the result** → `takeScreenshot` + narration describing what changed.
 5. Repeat for each meaningful action until the workflow is complete.
 6. **Assert** that the final state is as expected (e.g. `expect(saveButton).not.toBeVisible()`).
 7. Call `logScreenshotSummary`.
@@ -159,7 +154,7 @@ await expect(mainWindow.getByTestId('entry-save-button')).not.toBeVisible({ time
 
 ```typescript
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
+import { takeScreenshot, takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -181,7 +176,7 @@ test.describe('My Feature Demo', () => {
 
     // Verify initial state
     await expect(mainWindow.getByText('sample.md')).toBeVisible({ timeout: 10000 });
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
+    await takeScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
     writeNarration(screenshotDir, step++, 'Welcome to MkBrowser. Today we will demonstrate...');
 
     // --- workflow steps here ---

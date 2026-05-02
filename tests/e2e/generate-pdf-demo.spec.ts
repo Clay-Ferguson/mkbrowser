@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, setCheckboxForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demonstrateClickForDemo, setCheckboxForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Generate PDF Feature
@@ -26,7 +26,7 @@ test.describe('Generate PDF Demo', () => {
     // Verify initial state — expect to see mkbrowser-test contents
     const mainContent = mainWindow.getByTestId('browser-main-content');
     await expect(mainContent.getByText('federalist-papers').first()).toBeVisible({ timeout: 10000 });
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,
       step++,
@@ -37,7 +37,7 @@ You can see the folder listing in front of us, including the federalist-papers f
 
     // Highlight and click the federalist-papers folder
     const federalistFolder = mainContent.getByText('federalist-papers').first();
-    await takeStepScreenshotWithHighlight(mainWindow, federalistFolder, screenshotDir, step++, 'about-to-click-federalist-folder');
+    await takeScreenshot(mainWindow, federalistFolder, screenshotDir, step++, 'about-to-click-federalist-folder');
     writeNarration(
       screenshotDir,
       step++,
@@ -48,7 +48,7 @@ This will navigate into the folder so that our export covers just its contents.`
     await demonstrateClickForDemo(federalistFolder);
 
     await mainWindow.waitForTimeout(1000);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'federalist-folder-open');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'federalist-folder-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -59,7 +59,7 @@ Let's take a quick look inside the glossary before we export.`
 
     // Highlight and click the glossary folder
     const glossaryFolder = mainContent.getByText('glossary').first();
-    await takeStepScreenshotWithHighlight(mainWindow, glossaryFolder, screenshotDir, step++, 'about-to-click-glossary-folder');
+    await takeScreenshot(mainWindow, glossaryFolder, screenshotDir, step++, 'about-to-click-glossary-folder');
     writeNarration(
       screenshotDir,
       step++,
@@ -70,7 +70,7 @@ Let's click on it to see what glossary items are defined inside.`
     await demonstrateClickForDemo(glossaryFolder);
 
     await mainWindow.waitForTimeout(1000);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'glossary-folder-open');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'glossary-folder-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -82,7 +82,7 @@ Now let's navigate back to the federalist-papers folder.`
     // Highlight and click breadcrumb to navigate back to federalist-papers
     const breadcrumbPanel = mainWindow.getByTestId('path-breadcrumb');
     const federalistBreadcrumb = breadcrumbPanel.getByText('federalist-papers').first();
-    await takeStepScreenshotWithHighlight(mainWindow, federalistBreadcrumb, screenshotDir, step++, 'about-to-click-federalist-breadcrumb');
+    await takeScreenshot(mainWindow, federalistBreadcrumb, screenshotDir, step++, 'about-to-click-federalist-breadcrumb');
     writeNarration(
       screenshotDir,
       step++,
@@ -96,7 +96,7 @@ Now let's navigate back to the federalist-papers folder.`
     // Click the Tools menu button
     const toolsMenuButton = mainWindow.getByTestId('tools-menu-button');
     await expect(toolsMenuButton).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, toolsMenuButton, screenshotDir, step++, 'about-to-click-tools-menu');
+    await takeScreenshot(mainWindow, toolsMenuButton, screenshotDir, step++, 'about-to-click-tools-menu');
     writeNarration(
       screenshotDir,
       step++,
@@ -109,7 +109,7 @@ Let's click it to open the available tools for this folder.`
     // Click "Export..." from the dropdown menu
     const exportOption = mainWindow.getByText('Export...');
     await expect(exportOption).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, exportOption, screenshotDir, step++, 'tools-menu-open');
+    await takeScreenshot(mainWindow, exportOption, screenshotDir, step++, 'tools-menu-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -123,7 +123,7 @@ Let's click it to open the Export dialog where we can configure our output setti
     // The Export dialog should now be open
     const outputFolderInput = mainWindow.getByTestId('export-output-folder');
     await expect(outputFolderInput).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'export-dialog-open');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'export-dialog-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -133,7 +133,7 @@ and several options that control how MkBrowser assembles the exported document.`
     );
 
     // Fill in the Output Folder field
-    await takeStepScreenshotWithHighlight(mainWindow, outputFolderInput, screenshotDir, step++, 'about-to-enter-output-folder');
+    await takeScreenshot(mainWindow, outputFolderInput, screenshotDir, step++, 'about-to-enter-output-folder');
     writeNarration(
       screenshotDir,
       step++,
@@ -143,7 +143,7 @@ We'll type a path where MkBrowser will write the exported files.`
 
     await insertTextForDemo(mainWindow, '/home/clay/exports', true, outputFolderInput);
 
-    await takeStepScreenshotWithHighlight(mainWindow, outputFolderInput, screenshotDir, step++, 'output-folder-entered');
+    await takeScreenshot(mainWindow, outputFolderInput, screenshotDir, step++, 'output-folder-entered');
     writeNarration(
       screenshotDir,
       step++,
@@ -154,7 +154,7 @@ Next, let's enter a name for the exported file.`
     // Fill in the File Name field
     const fileNameInput = mainWindow.getByTestId('export-file-name');
     await expect(fileNameInput).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, fileNameInput, screenshotDir, step++, 'about-to-enter-file-name');
+    await takeScreenshot(mainWindow, fileNameInput, screenshotDir, step++, 'about-to-enter-file-name');
     writeNarration(
       screenshotDir,
       step++,
@@ -163,7 +163,7 @@ Next, let's enter a name for the exported file.`
 
     await insertTextForDemo(mainWindow, 'federalist-papers', true, fileNameInput);
 
-    await takeStepScreenshotWithHighlight(mainWindow, fileNameInput, screenshotDir, step++, 'file-name-entered');
+    await takeScreenshot(mainWindow, fileNameInput, screenshotDir, step++, 'file-name-entered');
     writeNarration(
       screenshotDir,
       step++,
@@ -178,7 +178,7 @@ Next, let's enter a name for the exported file.`
 
     await expect(includeSubfolders).toBeVisible({ timeout: 5000 });
 
-    await takeStepScreenshotWithHighlight(mainWindow, includeSubfolders, screenshotDir, step++, 'about-to-click-checkboxes');
+    await takeScreenshot(mainWindow, includeSubfolders, screenshotDir, step++, 'about-to-click-checkboxes');
     writeNarration(
       screenshotDir,
       step++,
@@ -187,7 +187,7 @@ We'll click all four of them.`
     );
 
     await setCheckboxForDemo(includeSubfolders, true);
-    await takeStepScreenshotWithHighlight(mainWindow, includeSubfolders, screenshotDir, step++, 'checkbox-include-subfolders-checked');
+    await takeScreenshot(mainWindow, includeSubfolders, screenshotDir, step++, 'checkbox-include-subfolders-checked');
     writeNarration(
       screenshotDir,
       step++,
@@ -196,7 +196,7 @@ MkBrowser will recurse into any subfolders when assembling the document.`
     );
 
     await setCheckboxForDemo(includeFilenames, true);
-    await takeStepScreenshotWithHighlight(mainWindow, includeFilenames, screenshotDir, step++, 'checkbox-include-filenames-checked');
+    await takeScreenshot(mainWindow, includeFilenames, screenshotDir, step++, 'checkbox-include-filenames-checked');
     writeNarration(
       screenshotDir,
       step++,
@@ -205,7 +205,7 @@ Each file's name will appear as a heading in the exported document so readers ca
     );
 
     await setCheckboxForDemo(includeDividers, true);
-    await takeStepScreenshotWithHighlight(mainWindow, includeDividers, screenshotDir, step++, 'checkbox-include-dividers-checked');
+    await takeScreenshot(mainWindow, includeDividers, screenshotDir, step++, 'checkbox-include-dividers-checked');
     writeNarration(
       screenshotDir,
       step++,
@@ -214,7 +214,7 @@ Horizontal rules will be inserted between sections to give the document a clean,
     );
 
     await setCheckboxForDemo(exportToPdf, true);
-    await takeStepScreenshotWithHighlight(mainWindow, exportToPdf, screenshotDir, step++, 'export-format-pdf');
+    await takeScreenshot(mainWindow, exportToPdf, screenshotDir, step++, 'export-format-pdf');
     writeNarration(
       screenshotDir,
       step++,
@@ -222,13 +222,13 @@ Horizontal rules will be inserted between sections to give the document a clean,
 After assembling the Markdown, MkBrowser will automatically convert it to a polished PDF file.`
     );
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'checkboxes-selected');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'checkboxes-selected');
     writeNarration(screenshotDir, step++, `That's everything we need`);
 
     // Click the Export button
     const exportSubmitButton = mainWindow.getByTestId('export-submit-button');
     await expect(exportSubmitButton).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, exportSubmitButton, screenshotDir, step++, 'about-to-click-export');
+    await takeScreenshot(mainWindow, exportSubmitButton, screenshotDir, step++, 'about-to-click-export');
     writeNarration(
       screenshotDir,
       step++,
@@ -239,7 +239,7 @@ Let's click the Export button to kick off the export process.`
     await demonstrateClickForDemo(exportSubmitButton);
 
     await mainWindow.waitForTimeout(1500);
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'export-launched');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'export-launched');
 
     await addExternalFile(screenshotDir, step++, 'external/pdf-generation.png');
     writeNarration(

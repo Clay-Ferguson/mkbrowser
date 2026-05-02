@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { takeStepScreenshot, takeStepScreenshotWithHighlight, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -43,7 +43,7 @@ test.describe('AI Vision Demo', () => {
     // ── 1. Initial state ──────────────────────────────────────────────
     const mainContent = mainWindow.getByTestId('browser-main-content');
     await expect(mainContent.getByText('sample.md').first()).toBeVisible({ timeout: 10000 });
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'initial-view');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,
       step++,
@@ -54,7 +54,7 @@ test.describe('AI Vision Demo', () => {
     // ── 2. Highlight and navigate into ai-vision-demo folder ──────────
     const visionFolder = mainContent.getByText('ai-vision-demo').first();
     await expect(visionFolder).toBeVisible({ timeout: 10000 });
-    await takeStepScreenshotWithHighlight(mainWindow, visionFolder, screenshotDir, step++, 'highlight-vision-folder');
+    await takeScreenshot(mainWindow, visionFolder, screenshotDir, step++, 'highlight-vision-folder');
     writeNarration(
       screenshotDir,
       step++,
@@ -66,7 +66,7 @@ test.describe('AI Vision Demo', () => {
     await mainWindow.waitForTimeout(1500);
 
     // ── 3. Screenshot the image view ──────────────────────────────────
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'image-visible');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'image-visible');
     writeNarration(
       screenshotDir,
       step++,
@@ -88,7 +88,7 @@ test.describe('AI Vision Demo', () => {
     // ── 5. Open Tools menu ────────────────────────────────────────────
     const toolsMenuButton = mainWindow.getByTestId('tools-menu-button');
     await expect(toolsMenuButton).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, toolsMenuButton, screenshotDir, step++, 'highlight-tools-menu');
+    await takeScreenshot(mainWindow, toolsMenuButton, screenshotDir, step++, 'highlight-tools-menu');
     writeNarration(
       screenshotDir,
       step++,
@@ -100,7 +100,7 @@ test.describe('AI Vision Demo', () => {
     // ── 6. Click "New AI Chat" ────────────────────────────────────────
     const newAiChatItem = mainWindow.getByTestId('menu-new-ai-chat');
     await expect(newAiChatItem).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, newAiChatItem, screenshotDir, step++, 'highlight-new-ai-chat');
+    await takeScreenshot(mainWindow, newAiChatItem, screenshotDir, step++, 'highlight-new-ai-chat');
     writeNarration(
       screenshotDir,
       step++,
@@ -114,7 +114,7 @@ test.describe('AI Vision Demo', () => {
     // ── 7. Now on the Chat tab — screenshot and narrate ───────────────
     const cmEditor = mainWindow.locator('.cm-editor').first();
     await expect(cmEditor).toBeVisible({ timeout: 10000 });
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'chat-tab-open');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'chat-tab-open');
     writeNarration(
       screenshotDir,
       step++,
@@ -126,7 +126,7 @@ test.describe('AI Vision Demo', () => {
     const promptText = `What's in this image? Where is this located?\n\n#file:*`;
     await insertTextForDemo(mainWindow, promptText, true);
 
-    await takeStepScreenshotWithHighlight(mainWindow, cmEditor, screenshotDir, step++, 'prompt-entered');
+    await takeScreenshot(mainWindow, cmEditor, screenshotDir, step++, 'prompt-entered');
     writeNarration(
       screenshotDir,
       step++,
@@ -143,7 +143,7 @@ test.describe('AI Vision Demo', () => {
     // ── 10. Click "Ask AI" ────────────────────────────────────────────
     const askAiButton = mainWindow.getByTestId('ask-ai-button').last();
     await expect(askAiButton).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, askAiButton, screenshotDir, step++, 'highlight-ask-ai');
+    await takeScreenshot(mainWindow, askAiButton, screenshotDir, step++, 'highlight-ask-ai');
     writeNarration(
       screenshotDir,
       step++,
@@ -155,7 +155,7 @@ test.describe('AI Vision Demo', () => {
     // ── 11. Wait for the AI response ──────────────────────────────────
     await mainWindow.waitForTimeout(1000);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'ai-response-visible');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'ai-response-visible');
     writeNarration(
       screenshotDir,
       step++,
@@ -166,7 +166,7 @@ test.describe('AI Vision Demo', () => {
     // ── 12. Switch to Browse tab ──────────────────────────────────────
     const browseTab = mainWindow.getByTestId('tab-button-browser');
     await expect(browseTab).toBeVisible({ timeout: 5000 });
-    await takeStepScreenshotWithHighlight(mainWindow, browseTab, screenshotDir, step++, 'highlight-browse-tab');
+    await takeScreenshot(mainWindow, browseTab, screenshotDir, step++, 'highlight-browse-tab');
     writeNarration(
       screenshotDir,
       step++,
@@ -184,12 +184,12 @@ test.describe('AI Vision Demo', () => {
       step++,
       `We'll click the "Up Level" button to go back up one level in the folder hierarchy to see where we started.`
     );
-    await takeStepScreenshotWithHighlight(mainWindow, upLevelButton, screenshotDir, step++, 'highlight-up-level');
+    await takeScreenshot(mainWindow, upLevelButton, screenshotDir, step++, 'highlight-up-level');
 
     await demonstrateClickForDemo(upLevelButton);
     await mainWindow.waitForTimeout(1000);
 
-    await takeStepScreenshot(mainWindow, screenshotDir, step++, 'back-at-start');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'back-at-start');
     writeNarration(
       screenshotDir,
       step++,
