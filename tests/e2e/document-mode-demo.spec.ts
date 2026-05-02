@@ -1,10 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, logScreenshotSummary, cleanupScreenshots, findActionBarByFileName } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, findActionBarByFileName } from './helpers/mediaUtils';
 
 const federalistPath = '/home/clay/ferguson/projects/mkbrowser/mkbrowser-test/federalist-papers';
 const indexYamlPath = `${federalistPath}/.INDEX.yaml`;
+const aboutFederalistPath = `${federalistPath}/about-federalist-papers.md`;
 
 // Start the app browsing directly into the federalist-papers folder
 const test = baseTest.extend({
@@ -24,6 +25,9 @@ test.describe('Document Mode Demo', () => {
     // Delete any existing .INDEX.yaml so the folder starts in non-document mode
     if (fs.existsSync(indexYamlPath)) {
       fs.unlinkSync(indexYamlPath);
+    }
+    if (fs.existsSync(aboutFederalistPath)) {
+      fs.unlinkSync(aboutFederalistPath);
     }
 
     let step = 1;
@@ -160,6 +164,89 @@ test.describe('Document Mode Demo', () => {
       screenshotDir,
       step++,
       `And there we have it — "federalist-00.md" is back at the top where it started. Document Mode gives you full, intuitive control over how your documents are ordered. There is more to explore, and we will continue in just a moment.`
+    );
+
+    // --- Phase 3: Insert a new file at a specific location ---
+
+    // Find the second "Insert File" button (nth(1) = second instance)
+    const insertFileButtons = mainWindow.getByTestId('insert-file-here');
+    const secondInsertFileButton = insertFileButtons.nth(1);
+    await expect(secondInsertFileButton).toBeVisible({ timeout: 5000 });
+
+    await takeScreenshot(mainWindow, secondInsertFileButton, screenshotDir, step++, 'insert-file-button-highlighted');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `You can see the "Insert File" buttons scattered throughout the document — one between each entry. We are going to use the second one to insert a brand new file right here at this specific position in the document. Let's click it to open the Create File dialog.`
+    );
+
+    await demonstrateClickForDemo(secondInsertFileButton);
+
+    // Wait for the create file dialog to appear
+    const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
+    await expect(filenameInput).toBeVisible({ timeout: 5000 });
+
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'create-dialog-open');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `The Create File dialog has appeared. We will type the name for our new file now.`
+    );
+
+    await insertTextForDemo(mainWindow, 'about-federalist-papers', true, filenameInput);
+
+    await takeScreenshot(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We have entered "about-federalist-papers" as the filename. MkBrowser will automatically append the ".md" extension, making this a Markdown document. Now let's click Create to create the file.`
+    );
+
+    const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
+    await takeScreenshot(mainWindow, createDialogButton, screenshotDir, step++, 'about-to-create-file');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We are about to click the Create button to confirm. Once created, the file will open directly in the editor so we can add content right away.`
+    );
+
+    await demonstrateClickForDemo(createDialogButton);
+    await mainWindow.waitForTimeout(1000);
+
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'file-editor-open');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `The new file has been created and the editor is now open. Notice it was inserted exactly at the position we chose. Let's type some introductory content for this file.`
+    );
+
+    await insertTextForDemo(mainWindow, `The Federalist Papers are a collection of 85 articles and essays written between 1787 and 1788 to promote the ratification of the United States Constitution. Authored by Alexander Hamilton, James Madison, and John Jay under the collective pseudonym "Publius," these documents served as a masterclass in political advocacy and constitutional theory. They were originally published in New York newspapers to convince skeptical citizens that a stronger central government was necessary to preserve the Union. Even today, the papers remain one of the most important sources for interpreting the original intent of the Framers and understanding the underlying logic of the American governing system. Because of their profound impact on legal and political thought, they are widely considered the most significant contribution to political science ever produced in the United States.
+      `, true);
+
+    const cmEditor = mainWindow.locator('.cm-editor').first();
+    await takeScreenshot(mainWindow, cmEditor, screenshotDir, step++, 'content-typed');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We have entered our content into the editor. In the final version of this demo the text will be something like: "The Federalist Papers are a collection of 85 articles written by Alexander Hamilton, James Madison, and John Jay under the pseudonym 'Publius'. Published between 1787 and 1788 to persuade New York citizens to ratify the proposed United States Constitution, they remain one of the most important sources for understanding the original intent of the Founders." Now let's save the file.`
+    );
+
+    const saveButton = mainWindow.getByTestId('entry-save-button');
+    await takeScreenshot(mainWindow, saveButton, screenshotDir, step++, 'about-to-save');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `The Save button is ready. Let's click it to write our content to disk and close the editor.`
+    );
+
+    await demonstrateClickForDemo(saveButton);
+    await mainWindow.waitForTimeout(1000);
+
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'file-saved');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `The file has been saved and is now part of the document at exactly the position we specified. That brings us to the end of this Document Mode demo. We have seen how to enable Document Mode, turn on Edit Mode, reorder files with the move buttons, and insert brand new files at precise locations within the document. Document Mode in MkBrowser gives you full editorial control over the structure and order of your content — making it an ideal tool for managing long-form documents, reference collections, or any set of Markdown files where order matters.`
     );
 
     logScreenshotSummary(screenshotDir);

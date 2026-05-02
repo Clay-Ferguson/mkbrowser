@@ -17,7 +17,7 @@ Our goal right now is to create a new Playwright test (named `tests/e2e/document
 
 # TEST FLOW
 
-## Phase 1
+## Phase 1 (done)
 - the first thing the test should do is delete any existing file named `mkbrowser-test/federalist-papers/.INDEX.yaml` so that when we first browse to that folder the lack of that file will cause the system to be running in non-document mode. don't narrate or mention anything about this because it's part of the setup for the prerequisite conditions for the test run.
 
 - you will open up the application at folder location `mkbrowser-test/federalist-papers`, narrate something about how we will demonstrating the "Document Mode" feature using a folder that consists of part of the Federalist Papers document.
@@ -28,8 +28,7 @@ Our goal right now is to create a new Playwright test (named `tests/e2e/document
 
 - then you will actually click the menu item to enable "Document Mode" (narrating as appropriate to the user what you're doing )
 
-## Phase 2
-
+## Phase 2 (done)
 - next you need to find and highlight the document mode, edit, checkbox (identified as: `data-testid="doc-mode-edit-checkbox"`) and then take a screenshot i've been highlighted , and narrate to the user that we will now be clicking this checkbox to turn on "Edit Mode" for this document now that we're in "Document Mode".
 
 - then you will click the checkbox, and take another snapshot and then narrate that we can now see the insert file and insert folder buttons now appearing down the page, allowing us to create content at specific locations in the document.
@@ -42,8 +41,7 @@ Our goal right now is to create a new Playwright test (named `tests/e2e/document
 
 - once again, you'll then narrate something about how we can now see the file back where it was before we moved it.
 
-## Phase 3
-
+## Phase 3 (current work)
 - next you'll search the DOM for the second instance of an "Insert File" icon (data-testid="insert-file-here") and then highlight it and take a screenshot, after which you will narrate something about how we are going to now insert a new file at this specific location on the page. Look at the `create-file-demo.spec.ts` to learn how to navigate through the create file dialog where you enter the file name.
 
 - so you'll put in a file name something like `about-federalist-papers.md` and you'll then therefore end up in an edit view where the user is able to enter text, again, very similar to the `create-file-demo.spec.ts`. and for now, you can simply simulate the user typing "About Federalist Papers - TBD" and then save that as the content of the file, but go ahead and make your narration be what you would write if you had entered in an actual paragraph summary of the Federalist Papers. in other words, I'm going to actually write that summary paragraph myself after you're done creating this test, so for now you're putting in the "TBD" placeholder just to get the test script to run. when I actually generate the video, I will have edited your test code and put in an actual paragraph of text that will look nice.
