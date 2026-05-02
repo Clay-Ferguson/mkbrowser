@@ -765,12 +765,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     }
   }, []);
 
-  const handleToggleCurrentFolderBookmark = useCallback(() => {
-    if (!currentPath) return;
-    toggleBookmark(currentPath);
-    void onSaveSettings();
-  }, [currentPath, onSaveSettings]);
-
   const handlePasteFromClipboard = useCallback(async () => {
     if (!currentPath) return;
 
@@ -808,9 +802,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             rootPath={rootPath}
             currentPath={currentPath}
             onNavigate={navigateTo}
-            isBookmarked={(settings.bookmarks || []).includes(currentPath)}
-            onToggleBookmark={handleToggleCurrentFolderBookmark}
-            view="browser"
           />
         </div>
 
@@ -884,7 +875,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           </button>
 
           {/* Sort order menu button */}
-          <button
+          {!hasIndexFile && (<button
             ref={sortButtonRef}
             onClick={() => setShowSortMenu(prev => !prev)}
             className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
@@ -892,7 +883,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             data-testid="sort-menu-button"
           >
             <BarsArrowDownIcon className="w-5 h-5" />
-          </button>
+          </button>)}
 
           {/* Paste from clipboard button */}
           <button
@@ -1086,12 +1077,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         />
       )}
 
-      {showSortMenu && (
+      {showSortMenu && !hasIndexFile && ( 
         <SortPopupMenu
           anchorRef={sortButtonRef}
           onClose={() => setShowSortMenu(false)}
           currentSortOrder={settings.sortOrder}
-          hasIndexOrder={hasIndexFile}
           onSelectSortOrder={(order) => {
             setSortOrder(order);
             void onSaveSettings();

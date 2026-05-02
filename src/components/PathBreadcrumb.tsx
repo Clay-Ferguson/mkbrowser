@@ -1,5 +1,4 @@
-import { HomeIcon, BookmarkIcon as BookmarkOutlineIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
-import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+import { HomeIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import type { AppView } from '../store/types';
 import { useSettings, useHighlightItem, setPendingIndexTreeReveal } from '../store';
 
@@ -7,12 +6,9 @@ export type PathBreadcrumbProps = {
   rootPath: string;
   currentPath: string;
   onNavigate: (path: string) => void;
-  isBookmarked: boolean;
-  onToggleBookmark: () => void;
-  view?: AppView;
 };
 
-function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onToggleBookmark, view }: PathBreadcrumbProps) {
+function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
   const settings = useSettings();
   const highlightItem = useHighlightItem();
   const normalizedRoot = rootPath.replace(/\/+$/, '');
@@ -87,22 +83,6 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, isBookmarked, onTog
           title="Reveal in folder tree"
         >
           <ViewfinderCircleIcon className="w-5 h-5" />
-        </button>
-      )}
-
-      {parts.length > 0 && view !== 'thread' && (
-        <button
-          type="button"
-          onClick={onToggleBookmark}
-          className="p-1 text-slate-400 rounded cursor-pointer flex-shrink-0 ml-1"
-          aria-label={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
-          title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
-        >
-          {isBookmarked ? (
-            <BookmarkSolidIcon className="w-5 h-5 text-blue-400" />
-          ) : (
-            <BookmarkOutlineIcon className="w-5 h-5" />
-          )}
         </button>
       )}
     </div>

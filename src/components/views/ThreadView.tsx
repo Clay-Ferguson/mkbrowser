@@ -164,9 +164,6 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
           rootPath={rootPath}
           currentPath={currentPath}
           onNavigate={handleBreadcrumbNavigate}
-          isBookmarked={(settings.bookmarks || []).includes(currentPath)}
-          onToggleBookmark={handleToggleBookmark}
-          view="thread"
         />
       </div>
     </header>

@@ -198,7 +198,7 @@ export async function writeIndexOptions(
 ): Promise<{ success: boolean; error?: string }> {
   const indexFilePath = path.join(dirPath, '.INDEX.yaml');
   try {
-    const existing = (await readIndexYaml(dirPath)) ?? {};
+    const existing = (await readIndexYaml(dirPath)) ?? {}; 
     const updated: IndexYaml = { ...existing, options: { ...existing.options, ...options } };
     await fs.promises.writeFile(indexFilePath, yaml.dump(updated, { indent: 2 }), 'utf8');
     return { success: true };

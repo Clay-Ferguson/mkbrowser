@@ -402,11 +402,9 @@ This is useful any time a folder represents something with a meaningful order: a
 
 1. Navigate into the folder you want to treat as a document.
 2. Open the **Sort** menu (the sort button in the toolbar).
-3. Click **Enable Custom Ordering** at the bottom of the menu.
+3. Click **Enable Docment Mode** at the bottom of the menu.
 
-MkBrowser will immediately switch the folder into Document Mode. A hidden file named `.INDEX.yaml` is created in that folder — this file records and maintains the display order of all the entries. You don't need to edit this file directly; MkBrowser manages it for you automatically.
-
-Once Document Mode is active, the sort controls are replaced by an informational note confirming that files are ordered by `.INDEX.yaml`.
+MkBrowser will immediately switch the folder into Document Mode. A hidden file named `.INDEX.yaml` is created in that folder — this file records and maintains the display order of all the entries. You don't need to edit this file directly; MkBrowser manages it for you automatically. Once Document Mode is enabled you will no longer see the "Sort" menu because files are treated like paragraphs in a document and are in a fixed order defined by you. If you want to to back to making the folder behave like a normal folder (not a Document) then you must manually delete the `.INDEX.yaml` file from your file system, which you can safely do, and the only thing you will lose is the ordering of the files, which you no longer want.
 
 ## Editing Mode
 

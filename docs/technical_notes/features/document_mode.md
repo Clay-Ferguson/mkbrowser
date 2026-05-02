@@ -66,7 +66,7 @@ Key points:
 
 Custom ordering is enabled via the **Sort menu**, accessible from the sort button in the BrowseView toolbar. When no `.INDEX.yaml` exists in the current folder, the menu shows the standard sort options (Filename, Created Time, etc.) plus an additional item at the bottom:
 
-> **Enable Custom Ordering**
+> **Enable Document Mode**
 
 Clicking this item triggers `reconcileIndexedFiles` with `createIfMissing = true`, which:
 
@@ -75,8 +75,6 @@ Clicking this item triggers `reconcileIndexedFiles` with `createIfMissing = true
 3. Refreshes the directory listing.
 
 After the refresh, BrowseView detects entries with `indexOrder` values and switches into indexed mode: the sort menu is replaced by an informational message ("Files ordered by .INDEX.yaml"), and insert bars appear between every entry.
-
-Once a `.INDEX.yaml` exists, the **Enable Custom Ordering** item no longer appears in the sort menu.
 
 
 ## Insert Bars
@@ -108,7 +106,7 @@ Reconciliation is triggered in two situations:
 | Trigger | `createIfMissing` | Effect |
 |---|---|---|
 | **Folder navigation** (`currentPath` changes) | `false` | Reconciles existing index; does nothing if no `.INDEX.yaml` |
-| **Enable Custom Ordering** clicked | `true` | Creates `.INDEX.yaml` if absent, then reconciles |
+| **Enable Document Mode** clicked | `true` | Creates `.INDEX.yaml` if absent, then reconciles |
 
 Importantly, reconciliation does **not** run on every file-operation refresh (create, rename, delete, paste). This prevents concurrent executions that could corrupt the index. The insert bars call `insertIntoIndexYaml` directly and do not trigger reconciliation.
 
@@ -182,7 +180,7 @@ The ID is generated with `customAlphabet('0123456789ABCDEF', 9)` from the `nanoi
 | Preload bridge                                                      | `src/preload.ts` |
 | API type declarations                                               | `src/global.d.ts` |
 | BrowseView — insert bars, indexed-mode rendering, useEffects        | `src/components/views/BrowseView.tsx` |
-| Sort menu — Enable Custom Ordering item                             | `src/components/menus/SortPopupMenu.tsx` |
+| Sort menu                                                           | `src/components/menus/SortPopupMenu.tsx` |
 | Directory reading + indexOrder injection                            | `src/utils/fileUtils.ts` |
 
 
