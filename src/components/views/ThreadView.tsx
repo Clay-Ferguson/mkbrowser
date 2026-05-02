@@ -4,9 +4,7 @@ import type { ThreadEntry } from '../../store';
 import {
   useCurrentPath,
   useRootPath,
-  useSettings,
   navigateToBrowserPath,
-  toggleBookmark,
   upsertItems,
   setThreadScrollPosition,
   getThreadScrollPosition,
@@ -37,7 +35,6 @@ interface ThreadViewProps {
 function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const currentPath = useCurrentPath();
   const rootPath = useRootPath();
-  const settings = useSettings();
   const pendingScrollToBottom = usePendingThreadScrollToBottom();
   const pendingEditFile = usePendingEditFile();
   const pendingEditLineNumber = usePendingEditLineNumber();
@@ -150,12 +147,6 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const handleBreadcrumbNavigate = useCallback((path: string) => {
     navigateToBrowserPath(path);
   }, []);
-
-  const handleToggleBookmark = useCallback(() => {
-    if (!currentPath) return;
-    toggleBookmark(currentPath);
-    void onSaveSettings();
-  }, [currentPath, onSaveSettings]);
 
   const breadcrumbHeader = (
     <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">

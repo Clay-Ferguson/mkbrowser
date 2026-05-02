@@ -1,0 +1,45 @@
+# Objective - Playwright Test for "Document Mode" Feature.
+
+## Description of Goal
+To understand how we use our Playwrite tests to generate demo videos, read the following file: `docs/technical_notes/tests/playwright.md`
+
+Next, review this example of an existing test, to understand our pattern so you can follow a similar pattern: `tests/e2e/advanced-search-demo.spec.ts`
+
+When that test runs, it leaves behind screenshots and narration text files which are later processed by another tool to create a demo video.
+
+So our goal now is to create a new Playwright test (named `document-mode-demo.spec.ts`), which will be for testing our File Explorer component (the `IndexTree.tsx` component). We will be testing (and demoing) that we can click on sections of the tree to expand several sections and explore to a file and expand the file to demonstrate that our tree can also drill into files based on the markdown heading structure, so that the markdown headings become a part of the tree displayed underneath markdown files.
+
+Also read the "Document Mode" section of the `USER_GUIDE.md`, to get an end user perspective on what this feature is about.
+
+Our goal right now is to create a new Playwright test (named `tests/e2e/document-mode-test.spec.ts`), which will be for testing our `Document Mode` feature (and of course generating screenshots and narration files for the demo video)
+
+**Phases** - We will be doing this work in phases and right now you're doing only Phase 2, because earlier phases are complete. each phase will build up more onto our existing test, and after each phase you will abruptly end without trying to narrate a good ending to the video, because you won't know when the demo video is about to end until we get to the last phase and I will tell you when that happens. so all your narrations for now should be written assuming that there is more to come.
+
+# TEST FLOW
+
+## Phase 1
+- the first thing the test should do is delete any existing file named `mkbrowser-test/federalist-papers/.INDEX.yaml` so that when we first browse to that folder the lack of that file will cause the system to be running in non-document mode. don't narrate or mention anything about this because it's part of the setup for the prerequisite conditions for the test run.
+
+- you will open up the application at folder location `mkbrowser-test/federalist-papers`, narrate something about how we will demonstrating the "Document Mode" feature using a folder that consists of part of the Federalist Papers document.
+
+- you will then highlight the button identified by `data-testid="sort-menu-button"` and then take a screenshot with that button highlighted, and then narrate something saying that this menu shows how sort ordering for the folder can be accomplished, and that we're going to be instead enabling the document mode by clicking the "Enable Document Mode" menu item.
+
+- then you'll take a snapshot with the menu item highlighted, because you will have looked it up by its element ID already so you can highlight it and take a screenshot.
+
+- then you will actually click the menu item to enable "Document Mode" (narrating as appropriate to the user what you're doing )
+
+## Phase 2
+
+- next you need to find and highlight the document mode, edit, checkbox (identified as: `data-testid="doc-mode-edit-checkbox"`) and then take a screenshot i've been highlighted , and narrate to the user that we will now be clicking this checkbox to turn on "Edit Mode" for this document now that we're in "Document Mode".
+
+- then you will click the checkbox, and take another snapshot and then narrate that we can now see the insert file and insert folder buttons now appearing down the page, allowing us to create content at specific locations in the document.
+
+- then you'll do a mouse hover over the file name `federalist-00.md` which causes the action buttons in the right hand side of that file name header to become visible, and you'll take a screenshot with the "Move Down" (data-testid="entry-move-down-button") icon highlighted while narrating something about how you're going to demonstrate that we can move this file down one position in the document. (IMPORTANT: clicking one of the action buttons on a file header can be tricky so refer to the example in the `file-explorer-demo.spec.ts` test to see how we're getting a reference to the `revealButton`, because you'll be doing something similar here for being able to find the "Move Down" button in the action bar, to highlight it and take a screenshot)
+
+- so after you have clicked the "Move Down" button, allow the page to update, and then take a screenshot again, perhaps with the div containing the text `federalist-00.md` highlighted in the screenshot, and narrate that we can now see that the top file has been moved down one position.
+
+- then narrate something similar to  "now let's move it back up to where it was" and you'll do the same sort of thing by looking for the "Move Up" button (data-testid="entry-move-down-button"), and highlight that button before you click it and while you're talking about it, using the same special technique mentioned above to be able to locate the button to highlight .
+
+- once again, you'll then narrate something about how we can now see the file back where it was before we moved it.
+
+(this completes Phase 2 )

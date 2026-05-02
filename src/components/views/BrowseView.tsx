@@ -46,7 +46,6 @@ import {
   getSettings,
   setBrowserScrollPosition,
   getBrowserScrollPosition,
-  toggleBookmark,
   setFolderAnalysis,
   setHasIndexFile,
   useRootPath,
@@ -942,7 +941,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
           {/* Edit checkbox floats at top right of scrollable area, inside main */}
           {hasIndexFile && (
-            <label className="flex items-center gap-1 cursor-pointer ml-4">
+            <label data-testid="doc-mode-edit-checkbox" className="flex items-center gap-1 cursor-pointer ml-4">
               <input
                 type="checkbox"
                 className="w-5 h-5"

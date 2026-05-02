@@ -1,5 +1,4 @@
 import { HomeIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
-import type { AppView } from '../store/types';
 import { useSettings, useHighlightItem, setPendingIndexTreeReveal } from '../store';
 
 export type PathBreadcrumbProps = {
