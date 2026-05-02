@@ -13,7 +13,7 @@ Also read the "Document Mode" section of the `USER_GUIDE.md`, to get an end user
 
 Our goal right now is to create a new Playwright test (named `tests/e2e/document-mode-test.spec.ts`), which will be for testing our `Document Mode` feature (and of course generating screenshots and narration files for the demo video)
 
-**Phases** - We will be doing this work in phases and right now you're doing only Phase 2, because earlier phases are complete. each phase will build up more onto our existing test, and after each phase you will abruptly end without trying to narrate a good ending to the video, because you won't know when the demo video is about to end until we get to the last phase and I will tell you when that happens. so all your narrations for now should be written assuming that there is more to come.
+**Phases** - We will be doing this work in phases and right now you're doing only Phase 3, because earlier phases are complete. each phase will build up more onto our existing test, and after each phase you will abruptly end without trying to narrate a good ending to the video, because you won't know when the demo video is about to end until we get to the last phase and I will tell you when that happens. so all your narrations for now should be written assuming that there is more to come.
 
 # TEST FLOW
 
@@ -42,4 +42,11 @@ Our goal right now is to create a new Playwright test (named `tests/e2e/document
 
 - once again, you'll then narrate something about how we can now see the file back where it was before we moved it.
 
-(this completes Phase 2 )
+## Phase 3
+
+- next you'll search the DOM for the second instance of an "Insert File" icon (data-testid="insert-file-here") and then highlight it and take a screenshot, after which you will narrate something about how we are going to now insert a new file at this specific location on the page. Look at the `create-file-demo.spec.ts` to learn how to navigate through the create file dialog where you enter the file name.
+
+- so you'll put in a file name something like `about-federalist-papers.md` and you'll then therefore end up in an edit view where the user is able to enter text, again, very similar to the `create-file-demo.spec.ts`. and for now, you can simply simulate the user typing "About Federalist Papers - TBD" and then save that as the content of the file, but go ahead and make your narration be what you would write if you had entered in an actual paragraph summary of the Federalist Papers. in other words, I'm going to actually write that summary paragraph myself after you're done creating this test, so for now you're putting in the "TBD" placeholder just to get the test script to run. when I actually generate the video, I will have edited your test code and put in an actual paragraph of text that will look nice.
+
+- and of course your last step will be to then click save in the editor, highlighting the save button, as you're narrating that you're about to click it (again, just like you saw in the create file demo), and then you'll simply click to save it. at this point you can do some short narration to close out the video because this will be the end of the test case and the video.
+
