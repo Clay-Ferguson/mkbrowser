@@ -420,7 +420,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             </>
           ) : (
             <>
-              {item?.tags && item.tags.length > 0 && <TagsDisplay tags={item.tags} />}
+              {item?.tags && item.tags.length > 0 && <TagsDisplay tags={item.tags} floatRight={item.tags.length < 7} />}
               {columns.length > 1 ? (
               <div
                 style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}
