@@ -8,8 +8,6 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../store/types';
 import { buildEntryHeaderId } from '../../utils/entryDom';
@@ -39,7 +37,7 @@ import DiffReviewEditor from '../editor/DiffReviewEditor';
 import TagsPicker from './TagsPicker';
 import { createCustomImage } from './markdownImgResolver';
 import CustomAnchor from './CustomAnchor';
-import MermaidDiagram from './MermaidDiagram';
+import CustomCode from './CustomCode';
 import { logger } from '../../utils/logUtil';
 import {
   useEntryCore,
@@ -53,39 +51,6 @@ import {
   type BaseEntryProps,
 } from './common';
 
-
-// Custom code component for syntax highlighting and mermaid diagrams
-function CustomCode({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) {
-  const match = /language-(\w+)/.exec(className || '');
-  const language = match ? match[1] : '';
-  const codeString = String(children).replace(/\n$/, '');
-
-  // Check if this is a mermaid code block
-  if (language === 'mermaid') {
-    return <MermaidDiagram code={codeString} />;
-  }
-
-  // For fenced code blocks with a language, use syntax highlighting
-  if (language) {
-    return (
-      <SyntaxHighlighter
-        style={oneDark as { [key: string]: React.CSSProperties }}
-        language={language}
-        PreTag="div"
-        customStyle={{ margin: 0, border: '1px solid #475569', borderRadius: '0.375rem' }}
-      >
-        {codeString}
-      </SyntaxHighlighter>
-    );
-  }
-
-  // For inline code or code blocks without a language, render normally
-  return (
-    <code className={className} {...props}>
-      {children}
-    </code>
-  );
-}
 
 // Custom pre component with copy-to-clipboard button
 function CustomPre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) {
