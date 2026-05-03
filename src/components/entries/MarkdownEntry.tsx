@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid } from '@heroicons/react/24/solid';
 import Markdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
@@ -38,6 +38,7 @@ import TagsPicker from './TagsPicker';
 import { createCustomImage } from './markdownImgResolver';
 import CustomAnchor from './CustomAnchor';
 import CustomCode from './CustomCode';
+import CustomPre from './CustomPre';
 import { logger } from '../../utils/logUtil';
 import {
   useEntryCore,
@@ -52,70 +53,6 @@ import {
 } from './common';
 
 
-// Custom pre component with copy-to-clipboard button
-function CustomPre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) {
-  const [copied, setCopied] = useState(false);
-
-  // Check if the child code element has a language class (meaning SyntaxHighlighter or Mermaid will render it)
-  const codeElement = children as React.ReactElement;
-  const codeClassName = (codeElement?.props as { className?: string })?.className || '';
-  const languageMatch = /language-(\w+)/.exec(codeClassName);
-  const hasLanguage = !!languageMatch;
-  const isMermaid = languageMatch?.[1] === 'mermaid';
-
-  const handleCopy = async () => {
-    // Extract text content from children (the code element)
-    const codeContent = (codeElement?.props as { children?: string })?.children;
-    const textToCopy = String(codeContent).replace(/\n$/, '');
-
-    try {
-      await navigator.clipboard.writeText(textToCopy);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      logger.error('Failed to copy:', err);
-    }
-  };
-
-  // For code blocks with a language (SyntaxHighlighter or Mermaid), don't wrap in <pre>
-  if (hasLanguage) {
-    return (
-      <div className="relative group not-prose">
-        {children}
-        {!isMermaid && (
-          <button
-            onClick={handleCopy}
-            className="absolute top-2 right-2 p-1.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-            title={copied ? 'Copied!' : 'Copy code'}
-          >
-            {copied ? (
-              <ClipboardDocumentCheckIcon className="w-4 h-4 text-green-400" />
-            ) : (
-              <ClipboardDocumentIcon className="w-4 h-4" />
-            )}
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative group">
-      <pre {...props}>{children}</pre>
-      <button
-        onClick={handleCopy}
-        className="absolute top-2 right-2 p-1.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-        title={copied ? 'Copied!' : 'Copy code'}
-      >
-        {copied ? (
-          <ClipboardDocumentCheckIcon className="w-4 h-4 text-green-400" />
-        ) : (
-          <ClipboardDocumentIcon className="w-4 h-4" />
-        )}
-      </button>
-    </div>
-  );
-}
 
 interface MarkdownEntryProps extends BaseEntryProps {
   entry: FileEntry;
