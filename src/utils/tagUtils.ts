@@ -73,13 +73,22 @@ export function splitFrontMatter(text: string): { yamlStr: string; body: string 
 }
 
 export function getTagsFromYaml(yamlStr: string): string[] {
-  const parsed = yaml.load(yamlStr) as Record<string, unknown> | null;
-  if (!parsed || !Array.isArray(parsed.tags)) return [];
-  return parsed.tags.filter((t): t is string => typeof t === 'string');
+  try {
+    const parsed = yaml.load(yamlStr) as Record<string, unknown> | null;
+    if (!parsed || !Array.isArray(parsed.tags)) return [];
+    return parsed.tags.filter((t): t is string => typeof t === 'string');
+  } catch {
+    return [];
+  }
 }
 
 export function setTagsInYaml(yamlStr: string, tags: string[]): string {
-  const parsed = (yaml.load(yamlStr) as Record<string, unknown> | null) ?? {};
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = (yaml.load(yamlStr) as Record<string, unknown> | null) ?? {};
+  } catch {
+    parsed = {};
+  }
   if (tags.length > 0) {
     parsed.tags = tags;
   } else {
