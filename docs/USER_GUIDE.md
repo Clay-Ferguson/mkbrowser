@@ -457,6 +457,8 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 *   **`past(date, lookbackDays?)`**: Returns `true` if the date is in the past. The optional `lookbackDays` parameter limits results to timestamps within the specified number of days ago (e.g., `past(ts, 7)` matches timestamps from the last 7 days).
 *   **`future(date, lookaheadDays?)`**: Returns `true` if the date is in the future. The optional `lookaheadDays` parameter limits results to timestamps within the specified number of days ahead (e.g., `future(ts, 30)` matches timestamps within the next 30 days).
 *   **`today(date)`**: Returns `true` if the date is today.
+*   **`prop(propertyPath, value)`**: Returns `true` if the file's YAML front matter has a property at `propertyPath` whose value exactly matches `value`. Use dot-notation to reach nested properties (e.g. `'author.name'`).
+*   **`inList(propertyPath, value)`**: Returns `true` if the file's YAML front matter has a list property at `propertyPath` that contains `value` as one of its items. Use dot-notation to reach nested properties.
 
 **Examples:**
 *   Find files with "TODO" that are due in the future:
@@ -478,6 +480,45 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 *   Find files containing both "project" and "urgent":
     ```javascript
     $('#project') && $('#urgent')
+    ```
+*   Find files whose front matter `category` property is `sports`:
+    ```javascript
+    prop('category', 'sports')
+    ```
+    Matches files with front matter like:
+    ```markdown
+    ---
+    category: sports
+    ---
+    ```
+*   Find files with a nested front matter property, e.g. `author.role` set to `editor`:
+    ```javascript
+    prop('author.role', 'editor')
+    ```
+    Matches files with front matter like:
+    ```markdown
+    ---
+    author:
+      name: Jane
+      role: editor
+    ---
+    ```
+*   Find files whose `tags` list contains `p1`:
+    ```javascript
+    inList('tags', 'p1')
+    ```
+    Matches files with front matter like:
+    ```markdown
+    ---
+    tags:
+      - bill
+      - p1
+      - to-buy
+    ---
+    ```
+*   Combine `inList` with a content search — files tagged `urgent` that also mention "deadline":
+    ```javascript
+    inList('tags', 'urgent') && $('#deadline')
     ```
 
 ## Saving Search Definitions

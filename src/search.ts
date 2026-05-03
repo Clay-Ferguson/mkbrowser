@@ -8,8 +8,10 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
 import ExifReader from 'exifreader';
+import yaml from 'js-yaml';
 import { extractTimestamp, past, future, today } from './utils/timeUtil';
 import { createContentSearcher } from './utils/searchUtil';
+import { splitFrontMatter } from './utils/tagUtils';
 
 /** Image extensions supported by ExifReader for EXIF metadata search */
 const EXIF_IMAGE_EXTENSIONS = new Set([
@@ -54,6 +56,56 @@ function wildcardToRegex(pattern: string): RegExp {
 }
 
 /**
+ * Returns an `inList(propPath, value)` function scoped to the given file content.
+ * Resolves `propPath` (dot-notation) to a YAML array and checks for an exact match.
+ */
+function createInListFunction(content: string): (propPath: string, value: string) => boolean {
+  return (propPath: string, value: string): boolean => {
+    const parts = splitFrontMatter(content);
+    if (!parts) return false;
+    try {
+      const parsed = yaml.load(parts.yamlStr) as Record<string, unknown> | null;
+      if (!parsed) return false;
+      const keys = propPath.split('.');
+      let current: unknown = parsed;
+      for (const key of keys) {
+        if (current === null || typeof current !== 'object') return false;
+        current = (current as Record<string, unknown>)[key];
+      }
+      if (!Array.isArray(current)) return false;
+      return current.some(item => String(item) === value);
+    } catch {
+      return false;
+    }
+  };
+}
+
+/**
+ * Returns a `prop(propPath, value)` function scoped to the given file content.
+ * `propPath` supports dot-notation to drill into nested YAML objects.
+ */
+function createPropFunction(content: string): (propPath: string, value: string) => boolean {
+  return (propPath: string, value: string): boolean => {
+    const parts = splitFrontMatter(content);
+    if (!parts) return false;
+    try {
+      const parsed = yaml.load(parts.yamlStr) as Record<string, unknown> | null;
+      if (!parsed) return false;
+      const keys = propPath.split('.');
+      let current: unknown = parsed;
+      for (const key of keys) {
+        if (current === null || typeof current !== 'object') return false;
+        current = (current as Record<string, unknown>)[key];
+      }
+      if (current === undefined) return false;
+      return String(current) === value;
+    } catch {
+      return false;
+    }
+  };
+}
+
+/**
  * Create a predicate function that tests content against the query.
  * Exported for unit testing individual match predicates.
  */
@@ -65,10 +117,12 @@ export function createMatchPredicate(
     return (content: string) => {
       const ts = extractTimestamp(content);
       const { $, getMatchCount } = createContentSearcher(content);
+      const prop = createPropFunction(content);
+      const inList = createInListFunction(content);
       try {
         const expressionCode = `return (${queryStr});`;
-        const evalFunction = new Function('$', 'ts', 'past', 'future', 'today', expressionCode);
-        const rawResult = evalFunction($, ts, past, future, today);
+        const evalFunction = new Function('$', 'ts', 'past', 'future', 'today', 'prop', 'inList', expressionCode);
+        const rawResult = evalFunction($, ts, past, future, today, prop, inList);
         const matches = Boolean(rawResult);
         const matchCount = getMatchCount();
         return {
