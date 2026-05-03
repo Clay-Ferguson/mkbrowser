@@ -269,6 +269,51 @@ function IndexTree() {
     }
   }, []);
 
+  const toggleBookmarksMenu = () => setShowBookmarksMenu(prev => !prev);
+  const closeBookmarksMenu = () => setShowBookmarksMenu(false);
+  const handleNarrowTree = () => setIndexTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
+  const handleWidenTree = () => setIndexTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
+
+  const handleBookmarkNavigate = (fullPath: string) => {
+    const lastName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+    if (lastName.includes('.')) {
+      const folderPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
+      setHighlightItem(fullPath);
+      navigateToBrowserPath(folderPath, fullPath);
+    } else {
+      navigateToBrowserPath(fullPath);
+    }
+  };
+
+  const handleHeadingClick = (node: MarkdownHeadingNode) => {
+    const hasChildren = node.children && node.children.length > 0;
+    if (hasChildren) void handleNodeClick(node);
+  };
+
+  const handleHeadingContextMenu = (node: MarkdownHeadingNode, e: React.MouseEvent) => {
+    e.preventDefault();
+    const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
+    const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
+    setHighlightItem(filePath);
+    if (document.getElementById(node.slug)) {
+      scrollElementIntoView(node.slug, true);
+    } else {
+      setPendingScrollToHeadingSlug(node.slug);
+      navigateToBrowserPath(folderPath, filePath);
+    }
+  };
+
+  const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
+    e.preventDefault();
+    if (node.isDirectory) {
+      navigateToBrowserPath(node.path);
+    } else {
+      const folderPath = node.path.substring(0, node.path.lastIndexOf('/'));
+      setHighlightItem(node.path);
+      navigateToBrowserPath(folderPath, node.path);
+    }
+  };
+
   if (!treeRoot?.children) {
     return (
       <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 items-center justify-center`}>
@@ -289,7 +334,7 @@ function IndexTree() {
         <button
           ref={bookmarksButtonRef}
           type="button"
-          onClick={() => setShowBookmarksMenu(prev => !prev)}
+          onClick={toggleBookmarksMenu}
           className="ml-1 p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
           title="Bookmarks menu"
           data-testid="bookmarks-menu-button"
@@ -312,7 +357,7 @@ function IndexTree() {
         {settings.indexTreeWidth !== 'narrow' && (
           <button
             type="button"
-            onClick={() => setIndexTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow')}
+            onClick={handleNarrowTree}
             className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
             title="Narrow tree"
           >
@@ -322,7 +367,7 @@ function IndexTree() {
         {settings.indexTreeWidth !== 'wide' && (
           <button
             type="button"
-            onClick={() => setIndexTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide')}
+            onClick={handleWidenTree}
             className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
             title="Widen tree"
           >
@@ -334,19 +379,10 @@ function IndexTree() {
       {showBookmarksMenu && (
         <BookmarksPopupMenu
           anchorRef={bookmarksButtonRef}
-          onClose={() => setShowBookmarksMenu(false)}
+          onClose={closeBookmarksMenu}
           bookmarks={settings.bookmarks || []}
           rootPath={rootPath ?? ''}
-          onNavigate={(fullPath) => {
-            const lastName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
-            if (lastName.includes('.')) {
-              const folderPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
-              setHighlightItem(fullPath);
-              navigateToBrowserPath(folderPath, fullPath);
-            } else {
-              navigateToBrowserPath(fullPath);
-            }
-          }}
+          onNavigate={handleBookmarkNavigate}
         />
       )}
       <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
@@ -363,23 +399,8 @@ function IndexTree() {
                   ${hasChildren ? 'cursor-pointer hover:bg-slate-700' : 'cursor-default hover:bg-slate-700'}
                 `}
                 style={{ paddingLeft: `${8 + depth * 12}px` }}
-                onClick={() => { if (hasChildren) void handleNodeClick(node); }}
-                onContextMenu={e => {
-                  e.preventDefault();
-                  const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
-                  const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
-                  setHighlightItem(filePath);
-                  // if the target slug is already on the page, we can scroll to it immediately 
-                  if (document.getElementById(node.slug)) {
-                    scrollElementIntoView(node.slug, true);
-                  } 
-                  // otherwise, we have to first navigate to the particular location where the file is 
-                  // and let the file display and then scroll to the slug.
-                  else {
-                    setPendingScrollToHeadingSlug(node.slug);
-                    navigateToBrowserPath(folderPath, filePath);
-                  }
-                }}
+                onClick={() => handleHeadingClick(node)}
+                onContextMenu={e => handleHeadingContextMenu(node, e)}
               >
                 <span className="shrink-0 w-3 text-center mr-1 text-slate-500">
                   {hasChildren
@@ -397,45 +418,37 @@ function IndexTree() {
           const isMd = isMarkdownFile(node);
           const isClickable = node.isDirectory || isMd;
 
+          let className = 'flex items-center gap-1 py-0.5 whitespace-nowrap select-none';
+          if (node.path === highlightItem) {
+            className += ' text-purple-400 border-l-2 border-transparent';
+            className += isClickable ? ' cursor-pointer' : ' cursor-default';
+          } //
+          else if (node.isDirectory && node.path === currentPath) {
+            className += ' text-slate-100 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer';
+          } // 
+          else if (node.isDirectory && isParentOf(node.path, currentPath)) {
+            className += ' text-slate-200 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer';
+          } //
+          else if (node.isDirectory) {
+            className += node.isExpanded
+              ? ' text-slate-200 bg-slate-700 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
+              : ' text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer';
+          } //
+          else if (isMd) {
+            className += ' text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700';
+          } // 
+          else {
+            className += ' text-slate-400 border-l-2 border-transparent cursor-default';
+          }
+
           return (
             <div
               key={node.path}
               data-tree-path={node.path}
-              className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
-                ${node.path === highlightItem
-                  ? 'text-purple-400 border-l-2 border-transparent ' + (isClickable ? 'cursor-pointer' : 'cursor-default')
-                  : node.isDirectory && node.path === currentPath
-                    ? 'text-slate-100 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer'
-                    : node.isDirectory && isParentOf(node.path, currentPath)
-                      ? 'text-slate-200 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer'
-                      : node.isDirectory
-                        ? node.isExpanded
-                          ? 'text-slate-200 bg-slate-700 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
-                          : 'text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
-                        : isMd
-                          ? 'text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700'
-                          : 'text-slate-400 border-l-2 border-transparent cursor-default'
-                }`}
+              className={className}
               style={{ paddingLeft: `${8 + depth * 12}px` }}
               onClick={() => { if (isClickable) void handleNodeClick(node); }}
-              onContextMenu={e => {
-                e.preventDefault();
-                // console.log('[IndexTree] onContextMenu node:', JSON.stringify({ path: node.path, isHeading: isMarkdownHeadingNode(node), isDir: (node as FileNode).isDirectory }));
-                if (isMarkdownHeadingNode(node)) {
-                  const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
-                  const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
-                  // console.log('[IndexTree] heading right-click → filePath:', filePath, 'folderPath:', folderPath, 'slug:', node.slug);
-                  setHighlightItem(filePath);
-                  setPendingScrollToHeadingSlug(node.slug);
-                  navigateToBrowserPath(folderPath, filePath);
-                } else if (node.isDirectory) {
-                  navigateToBrowserPath(node.path);
-                } else {
-                  const folderPath = node.path.substring(0, node.path.lastIndexOf('/'));
-                  setHighlightItem(node.path);
-                  navigateToBrowserPath(folderPath, node.path);
-                }
-              }}
+              onContextMenu={e => handleFileNodeContextMenu(node, e)}
             >
               <span
                 className={
