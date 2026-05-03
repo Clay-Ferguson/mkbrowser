@@ -77,6 +77,12 @@ export interface ItemData {
    * Only populated when aiEnabled is true in AppConfig.
    */
   aiHint?: string;
+
+  /**
+   * Tags parsed from the file's Front Matter YAML.
+   * Populated alongside content when the file is first read or saved.
+   */
+  tags?: string[];
 }
 
 /**
