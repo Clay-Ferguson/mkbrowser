@@ -32,7 +32,8 @@
       "Bash(xargs -I {} basename {})",
       "Bash(git *)",
       "Bash(npx eslint *)",
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "Bash(node *)"
     ]
   }
 }

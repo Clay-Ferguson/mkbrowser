@@ -4,6 +4,7 @@ import {
   ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
   FolderPlusIcon, DocumentPlusIcon,
 } from '@heroicons/react/24/outline';
+import IndexInsertBar from '../IndexInsertBar';
 import type { FileEntry } from '../../global';
 import FolderEntry from '../entries/FolderEntry';
 import MarkdownEntry from '../entries/MarkdownEntry';
@@ -29,21 +30,16 @@ import {
   collapseAllItems,
   clearAllCutItems,
   cutSelectedItems,
-  deleteItems,
   setItemEditing,
   setItemExpanded,
   setCurrentView,
   setCurrentPath,
   navigateToBrowserPath,
   clearPendingScrollToFile,
-  setPendingScrollToFile,
   clearPendingEditFile,
   setPendingEditFile,
-  setHighlightItem,
   setSearchResults,
-  setSettings,
   setSortOrder,
-  getSettings,
   setBrowserScrollPosition,
   getBrowserScrollPosition,
   setFolderAnalysis,
@@ -67,37 +63,12 @@ import {
   type SearchDefinition,
 } from '../../store';
 import { scrollItemIntoView, scrollElementIntoView } from '../../utils/entryDom';
-import { pasteCutItems, deleteSelectedItems, moveFileToFolder, performSplitFile, performJoinFiles } from '../../edit';
-import { pasteFromClipboard } from '../../utils/clipboard';
 import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtils';
 import { getContentWidthClasses } from '../../utils/styles';
 import { hasHumanMd } from '../../ai/aiPatterns';
-import { logger } from '../../utils/logUtil';
+import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtils';
+import { pasteIntoFolder, deleteSelected, moveSelectedToFolder, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp } from '../../utils/fileOpsUtils';
 
-// todo-0: i think there might be a clean way to break out a lot of the functions from this file into utility modules 
-
-function IndexInsertBar({ onInsertFile, onInsertFolder }: { onInsertFile: () => void; onInsertFolder: () => void }) {
-  return (
-    <div className="flex justify-center gap-2 py-0">
-      <button
-        data-testid="insert-file-here"
-        onClick={onInsertFile}
-        className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-        title="Insert file here"
-      >
-        <DocumentPlusIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
-      </button>
-      <button
-        data-testid="insert-folder-here"
-        onClick={onInsertFolder}
-        className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-        title="Insert folder here"
-      >
-        <FolderPlusIcon className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
-      </button>
-    </div>
-  );
-}
 
 interface BrowseViewProps {
   entries: FileEntry[];
@@ -270,6 +241,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     }
   }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, currentPath, currentView]);
 
+  const generateExportFileName = (currentPath: string | null): string => {
+    if (!currentPath) return 'export.md';
+    const folderName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+    return `${folderName}-export.md`;
+  };
+
+
   // When expanded editor activates and a file starts editing, scroll to top so
   // the enlarged editor view always begins at the top of the container.
   const anyItemEditing = useMemo(
@@ -338,144 +316,29 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   }, [currentPath, onRefreshDirectory]);
 
   const doPasteIntoFolder = useCallback(async (folderPath: string) => {
-    const cutItems = Array.from(items.values()).filter((item) => item.isCut);
-    if (cutItems.length === 0) return;
-
-    onSetError(null);
-
-    const result = await pasteCutItems(
-      cutItems,
-      folderPath,
-      window.electronAPI.pathExists,
-      window.electronAPI.renameFile
-    );
-
-    if (!result.success) {
-      onSetError(result.error || 'Failed to paste items');
-      return;
-    }
-
-    const sourceFolder = cutItems[0].path.substring(0, cutItems[0].path.lastIndexOf('/'));
-    const movedPaths = cutItems.map(item => item.path);
-    deleteItems(movedPaths);
-    clearAllCutItems();
-    await Promise.all([
-      window.electronAPI.reconcileIndexedFiles(sourceFolder, false),
-      window.electronAPI.reconcileIndexedFiles(folderPath, false),
-    ]);
-    onRefreshDirectory();
+    await pasteIntoFolder(folderPath, items, onSetError, onRefreshDirectory);
   }, [items, onRefreshDirectory, onSetError]);
 
-  const getSelectedItems = useCallback(() => {
-    return Array.from(items.values()).filter((item) => item.isSelected);
-  }, [items]);
+  const getSelectedItems = () => Array.from(items.values()).filter((item) => item.isSelected);
 
   const performDelete = useCallback(async () => {
-    const selectedItems = getSelectedItems();
-    if (selectedItems.length === 0) return;
-
-    setShowDeleteConfirm(false);
-
-    const result = await deleteSelectedItems(selectedItems, window.electronAPI.deleteFile);
-
-    if (!result.success && result.failedItem) {
-      onSetError(`Failed to delete ${result.failedItem}`);
-    }
-
-    if (result.deletedPaths.length > 0) {
-      deleteItems(result.deletedPaths);
-      if (currentPath && hasIndexFile) {
-        await window.electronAPI.reconcileIndexedFiles(currentPath, false);
-      }
-      onRefreshDirectory();
-    }
-  }, [currentPath, getSelectedItems, hasIndexFile, onRefreshDirectory, onSetError]);
+    await deleteSelected(getSelectedItems(), currentPath, hasIndexFile, onSetError, onRefreshDirectory, () => setShowDeleteConfirm(false));
+  }, [currentPath, hasIndexFile, items, onRefreshDirectory, onSetError]);
 
   const handleMoveToFolder = useCallback(async () => {
     if (!currentPath) return;
-
-    const selectedItems = getSelectedItems();
-
-    if (selectedItems.length === 0) {
-      onSetError('Please select a file to move to a folder.');
-      return;
-    }
-    if (selectedItems.length > 1) {
-      onSetError('Please select only one file for "Move to Folder".');
-      return;
-    }
-
-    const selectedItem = selectedItems[0];
-
-    if (selectedItem.isDirectory) {
-      onSetError('Cannot use "Move to Folder" on a folder. Please select a file.');
-      return;
-    }
-
-    const result = await moveFileToFolder(
-      selectedItem.path,
-      selectedItem.name,
-      currentPath,
-      window.electronAPI.pathExists,
-      window.electronAPI.createFolder,
-      window.electronAPI.renameFile
-    );
-
-    if (!result.success) {
-      onSetError(result.error || 'Failed to move file to folder.');
-      return;
-    }
-
-    clearAllSelections();
-    deleteItems([selectedItem.path]);
-    onRefreshDirectory();
-  }, [currentPath, getSelectedItems, onRefreshDirectory, onSetError]);
+    await moveSelectedToFolder(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
+  }, [currentPath, items, onRefreshDirectory, onSetError]);
 
   const handleSplitFile = useCallback(async () => {
     if (!currentPath) return;
-
-    const result = await performSplitFile(
-      getSelectedItems(),
-      window.electronAPI.readFile,
-      window.electronAPI.writeFile,
-      window.electronAPI.createFile,
-      window.electronAPI.renameFile
-    );
-
-    if (!result.success) {
-      onSetError(result.error || 'Failed to split file.');
-      return;
-    }
-
-    clearAllSelections();
-    onRefreshDirectory();
-  }, [currentPath, getSelectedItems, onRefreshDirectory, onSetError]);
+    await splitSelectedFile(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
+  }, [currentPath, items, onRefreshDirectory, onSetError]);
 
   const handleJoinFiles = useCallback(async () => {
     if (!currentPath) return;
-
-    const result = await performJoinFiles(
-      getSelectedItems(),
-      window.electronAPI.readFile,
-      window.electronAPI.writeFile,
-      window.electronAPI.deleteFile,
-      window.electronAPI.getFileSize
-    );
-
-    if (!result.success) {
-      onSetError(result.error || 'Failed to join files.');
-      return;
-    }
-
-    clearAllSelections();
-    onRefreshDirectory();
-  }, [currentPath, getSelectedItems, onRefreshDirectory, onSetError]);
-
-  const generateExportFileName = useCallback(() => {
-    if (!currentPath) return 'export.md';
-    const folderName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
-    return `${folderName}-export.md`;
-  }, [currentPath]);
+    await joinSelectedFiles(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
+  }, [currentPath, items, onRefreshDirectory, onSetError]);
 
   const handleExport = useCallback(async (outputFolder: string, fileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean, exportToPdf: boolean) => {
     if (!currentPath) return;
@@ -526,34 +389,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   }, []);
 
   const handleCreateFile = useCallback(async (fileName: string) => {
-    if (!currentPath) return;
-    const filePath = `${currentPath}/${fileName}`;
-    const result = await window.electronAPI.createFile(filePath, '');
-    if (result.success) {
-      setShowCreateDialog(false);
-      setCreateFileDefaultName('');
-      if (insertAtIndex !== null) {
-        const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1].name : null;
-        await window.electronAPI.insertIntoIndexYaml(currentPath, fileName, insertAfterName);
-        setInsertAtIndex(null);
-      }
-      setHighlightItem(filePath);
-      setPendingScrollToFile(filePath);
-      onRefreshDirectory();
-      const isMarkdown = fileName.toLowerCase().endsWith('.md');
-      const isText = fileName.toLowerCase().endsWith('.txt');
-      if (isMarkdown || isText) {
-        setTimeout(() => {
-          setItemExpanded(filePath, true);
-          setItemEditing(filePath, true);
-        }, 200);
-      }
-    } else {
+    await createFileOp(fileName, currentPath, insertAtIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
       setShowCreateDialog(false);
       setCreateFileDefaultName('');
       setInsertAtIndex(null);
-      onSetError(result.error || 'Failed to create file');
-    }
+    });
   }, [currentPath, onRefreshDirectory, onSetError, insertAtIndex, sortedEntries]);
 
   const handleCancelCreate = useCallback(() => {
@@ -575,26 +415,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   }, []);
 
   const handleCreateFolder = useCallback(async (folderName: string) => {
-    if (!currentPath) return;
-    const folderPath = `${currentPath}/${folderName}`;
-    const result = await window.electronAPI.createFolder(folderPath);
-    if (result.success) {
-      setShowCreateFolderDialog(false);
-      setCreateFolderDefaultName('');
-      if (insertAtIndex !== null) {
-        const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1].name : null;
-        await window.electronAPI.insertIntoIndexYaml(currentPath, folderName, insertAfterName);
-        setInsertAtIndex(null);
-      }
-      setHighlightItem(folderPath);
-      setPendingScrollToFile(folderPath);
-      onRefreshDirectory();
-    } else {
+    await createFolderOp(folderName, currentPath, insertAtIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
       setShowCreateFolderDialog(false);
       setCreateFolderDefaultName('');
       setInsertAtIndex(null);
-      onSetError(result.error || 'Failed to create folder');
-    }
+    });
   }, [currentPath, onRefreshDirectory, onSetError, insertAtIndex, sortedEntries]);
 
   const handleCancelCreateFolder = useCallback(() => {
@@ -612,41 +437,17 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     if (!currentPath) return;
 
     if (options.searchName) {
-      try {
-        const currentSettings = getSettings();
-        const config = await window.electronAPI.getConfig();
-
-        const newSearchDefinition: SearchDefinition = {
-          name: options.searchName,
-          searchText: options.query,
-          searchTarget: options.searchMode,
-          searchMode: options.searchType,
-          sortBy: options.sortBy,
-          sortDirection: options.sortDirection,
-          searchImageExif: options.searchImageExif,
-          mostRecent: options.mostRecent,
-        };
-
-        const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
-          (def) => def.name !== options.searchName
-        );
-        updatedSearchDefinitions.push(newSearchDefinition);
-
-        await window.electronAPI.saveConfig({
-          ...config,
-          settings: {
-            ...currentSettings,
-            searchDefinitions: updatedSearchDefinitions,
-          },
-        });
-
-        setSettings({
-          ...currentSettings,
-          searchDefinitions: updatedSearchDefinitions,
-        });
-      } catch (err) {
-        logger.error('Failed to save search definition:', err);
-      }
+      const definition: SearchDefinition = {
+        name: options.searchName,
+        searchText: options.query,
+        searchTarget: options.searchMode,
+        searchMode: options.searchType,
+        sortBy: options.sortBy,
+        sortDirection: options.sortDirection,
+        searchImageExif: options.searchImageExif,
+        mostRecent: options.mostRecent,
+      };
+      await saveSearchDefinitionToConfig(definition);
     }
 
     setShowSearchDialog(false);
@@ -671,24 +472,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
     try {
       const results = await window.electronAPI.searchAndReplace(currentPath, searchText, replaceText);
-
-      const successfulFiles = results.filter(r => r.success);
-      const totalReplacements = successfulFiles.reduce((sum, r) => sum + r.replacementCount, 0);
-      const failedFiles = results.filter(r => !r.success);
-
-      let message = '';
-      if (totalReplacements > 0) {
-        message = `Replaced ${totalReplacements} occurrence${totalReplacements === 1 ? '' : 's'} in ${successfulFiles.length} file${successfulFiles.length === 1 ? '' : 's'}.`;
-      } else {
-        message = 'No matches found.';
-      }
-
-      if (failedFiles.length > 0) {
-        message += `\n\n${failedFiles.length} file${failedFiles.length === 1 ? '' : 's'} could not be processed.`;
-      }
-
-      setReplaceResultMessage(message);
-
+      setReplaceResultMessage(buildReplaceResultMessage(results));
+      const totalReplacements = results.filter((r) => r.success).reduce((sum, r) => sum + r.replacementCount, 0);
       if (totalReplacements > 0) {
         void onRefreshDirectory();
       }
@@ -703,94 +488,89 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const handleSaveSearchDefinition = useCallback(async (options: SearchOptions) => {
     if (!options.searchName) return;
-
-    try {
-      const currentSettings = getSettings();
-      const config = await window.electronAPI.getConfig();
-
-      const newSearchDefinition: SearchDefinition = {
-        name: options.searchName,
-        searchText: options.query,
-        searchTarget: options.searchMode,
-        searchMode: options.searchType,
-        sortBy: options.sortBy,
-        sortDirection: options.sortDirection,
-        mostRecent: options.mostRecent,
-      };
-
-      const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
-        (def) => def.name !== options.searchName
-      );
-      updatedSearchDefinitions.push(newSearchDefinition);
-
-      await window.electronAPI.saveConfig({
-        ...config,
-        settings: {
-          ...currentSettings,
-          searchDefinitions: updatedSearchDefinitions,
-        },
-      });
-
-      setSettings({
-        ...currentSettings,
-        searchDefinitions: updatedSearchDefinitions,
-      });
-    } catch (err) {
-      logger.error('Failed to save search definition:', err);
-    }
+    const definition: SearchDefinition = {
+      name: options.searchName,
+      searchText: options.query,
+      searchTarget: options.searchMode,
+      searchMode: options.searchType,
+      sortBy: options.sortBy,
+      sortDirection: options.sortDirection,
+      mostRecent: options.mostRecent,
+    };
+    await saveSearchDefinitionToConfig(definition);
   }, []);
 
   const handleDeleteSearchDefinition = useCallback(async (name: string) => {
-    try {
-      const currentSettings = getSettings();
-      const config = await window.electronAPI.getConfig();
-
-      const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
-        (def) => def.name !== name
-      );
-
-      await window.electronAPI.saveConfig({
-        ...config,
-        settings: {
-          ...currentSettings,
-          searchDefinitions: updatedSearchDefinitions,
-        },
-      });
-
-      setSettings({
-        ...currentSettings,
-        searchDefinitions: updatedSearchDefinitions,
-      });
-    } catch (err) {
-      logger.error('Failed to delete search definition:', err);
-    }
+    await deleteSearchDefinitionFromConfig(name);
   }, []);
 
   const handlePasteFromClipboard = useCallback(async () => {
-    if (!currentPath) return;
-
-    const result = await pasteFromClipboard(
-      currentPath,
-      window.electronAPI.writeFileBinary,
-      window.electronAPI.writeFile
-    );
-
-    if (result.success && result.fileName) {
-      const filePath = `${currentPath}/${result.fileName}`;
-      setPendingScrollToFile(filePath);
-      await window.electronAPI.reconcileIndexedFiles(currentPath, false);
-      onRefreshDirectory();
-      setTimeout(() => {
-        setItemExpanded(filePath, true);
-      }, 200);
-    } else if (result.error) {
-      onSetError(result.error);
-    }
+    await pasteFromClipboardOp(currentPath, onRefreshDirectory, onSetError);
   }, [currentPath, onRefreshDirectory, onSetError]);
 
   const navigateTo = useCallback((path: string) => {
     setCurrentPath(path);
   }, []);
+
+  const runOcr = () => {
+    if (!currentPath) return;
+    const ocrFolder = settings.ocrToolsFolder;
+    if (!ocrFolder) {
+      onSetError('OCR tools folder is not configured. Set it in Settings → OCR.');
+      return;
+    }
+    const escapedOcrFolder = ocrFolder.replace(/'/g, "'\\''");
+
+    const selectedImages = Array.from(items.values()).filter(
+      (item) => item.isSelected && !item.isDirectory && isImageFile(item.name)
+    );
+    const hasAnySelection = Array.from(items.values()).some((item) => item.isSelected);
+
+    let command: string;
+    if (hasAnySelection) {
+      if (selectedImages.length === 0) {
+        onSetError('No image files in the current selection. Select one or more image files to run OCR.');
+        return;
+      }
+      const ocrCalls = selectedImages.map((img, i) => {
+        const escapedImg = img.path.replace(/'/g, "'\\''");
+        return `echo "--- OCR [${i + 1}/${selectedImages.length}]: ${img.name} ---" && ./ocr.sh '${escapedImg}'`;
+      });
+      command = `cd '${escapedOcrFolder}' && ${ocrCalls.join(' && ')}`;
+    } else {
+      const escapedPath = currentPath.replace(/'/g, "'\\''");
+      command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'`;
+    }
+
+    void (async () => {
+      const result = await window.electronAPI.runInExternalTerminal(command);
+      if (!result.success) {
+        onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
+      }
+    })();
+  };
+
+  const newAiChat = () => {
+    if (!currentPath) return;
+    if (hasHumanMd(entries)) {
+      onSetError('This folder already contains an AI conversation. Please navigate to a different folder to start a new chat.');
+      return;
+    }
+    void (async () => {
+      try {
+        const result = await window.electronAPI.replyToAi(currentPath, false);
+        if ('error' in result) {
+          onSetError('Failed to create AI chat: ' + result.error);
+        } else {
+          const view = 'thread';
+          navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
+          setPendingEditFile(result.filePath, undefined, view);
+        }
+      } catch (err) {
+        onSetError('Failed to create AI chat: ' + (err instanceof Error ? err.message : String(err)));
+      }
+    })();
+  };
 
   return (
     <>
@@ -1035,6 +815,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         </div>
       </main>
 
+      {/* todo-0: i think we need a centralized place where we have all of our dialogues defined, 
+      or at least modules where we have different groups of related dialogues defined  */}
+
       {showCreateDialog && (
         <CreateFileDialog
           defaultName={createFileDefaultName}
@@ -1072,13 +855,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       {showExportDialog && currentPath && (
         <ExportDialog
           defaultFolder={lastExportFolder}
-          defaultFileName={generateExportFileName()}
+          defaultFileName={generateExportFileName(currentPath)}
           onExport={handleExport}
           onCancel={handleCancelExport}
         />
       )}
 
-      {showSortMenu && !hasIndexFile && ( 
+      {showSortMenu && !hasIndexFile && (
         <SortPopupMenu
           anchorRef={sortButtonRef}
           onClose={() => setShowSortMenu(false)}
@@ -1176,64 +959,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           }}
 
           onExport={() => setShowExportDialog(true)}
-          onRunOcr={() => {
-            if (!currentPath) return;
-            const ocrFolder = settings.ocrToolsFolder;
-            if (!ocrFolder) {
-              onSetError('OCR tools folder is not configured. Set it in Settings → OCR.');
-              return;
-            }
-            const escapedOcrFolder = ocrFolder.replace(/'/g, "'\\''");
-
-            const selectedImages = Array.from(items.values()).filter(
-              (item) => item.isSelected && !item.isDirectory && isImageFile(item.name)
-            );
-            const hasAnySelection = Array.from(items.values()).some((item) => item.isSelected);
-
-            let command: string;
-            if (hasAnySelection) {
-              if (selectedImages.length === 0) {
-                onSetError('No image files in the current selection. Select one or more image files to run OCR.');
-                return;
-              }
-              const ocrCalls = selectedImages.map((img, i) => {
-                const escapedImg = img.path.replace(/'/g, "'\\''");
-                return `echo "--- OCR [${i + 1}/${selectedImages.length}]: ${img.name} ---" && ./ocr.sh '${escapedImg}'`;
-              });
-              command = `cd '${escapedOcrFolder}' && ${ocrCalls.join(' && ')}`;
-            } else {
-              const escapedPath = currentPath.replace(/'/g, "'\\''");
-              command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'`;
-            }
-
-            void (async () => {
-              const result = await window.electronAPI.runInExternalTerminal(command);
-              if (!result.success) {
-                onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
-              }
-            })();
-          }}
-          onNewAiChat={() => {
-            if (!currentPath) return;
-            if (hasHumanMd(entries)) {
-              onSetError('This folder already contains an AI conversation. Please navigate to a different folder to start a new chat.');
-              return;
-            }
-            void (async () => {
-              try {
-                const result = await window.electronAPI.replyToAi(currentPath, false);
-                if ('error' in result) {
-                  onSetError('Failed to create AI chat: ' + result.error);
-                } else {
-                  const view = 'thread';
-                  navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
-                  setPendingEditFile(result.filePath, undefined, view);
-                }
-              } catch (err) {
-                onSetError('Failed to create AI chat: ' + (err instanceof Error ? err.message : String(err)));
-              }
-            })();
-          }}
+          onRunOcr={runOcr}
+          onNewAiChat={newAiChat}
         />
       )}
 

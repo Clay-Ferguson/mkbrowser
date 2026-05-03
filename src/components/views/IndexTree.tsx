@@ -323,11 +323,6 @@ function IndexTree() {
   }
 
   const rows = flattenVisible(treeRoot.children);
-
-  // todo-0: we have a few methods below that can be predefined above the JSX section. 
-  // todo-0: fix the deprecated "MinusSMallIcon"
-  // todo-0: the massive tertiary statement below can be written in a more human readable way with 'if statements'
-
   return (
     <div data-testid="file-explorer-tree" className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800`}>
       <div className="flex items-center justify-between gap-1 px-2 py-1 border-b border-slate-700 shrink-0">

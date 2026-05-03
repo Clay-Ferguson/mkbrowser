@@ -1,6 +1,8 @@
 files:
   - name: federalist-00.md
     id: D3B6E79AB
+  - name: about-federalist-papers.md
+    id: D97A2522D
   - name: federalist-01
   - name: federalist-02
   - name: federalist-03
