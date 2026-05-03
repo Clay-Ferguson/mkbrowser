@@ -1,6 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
-// todo-0: fix the deprecated icon
-import { MinusSmallIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
+import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import {
@@ -307,7 +306,7 @@ function IndexTree() {
           data-testid="file-explorer-tree-collapse"
         >
           <span className="flex items-center justify-center w-5 h-5 border border-current rounded-sm">
-            <MinusSmallIcon className="w-3.5 h-3.5" />
+            <MinusIcon className="w-3.5 h-3.5" />
           </span>
         </button>
         {settings.indexTreeWidth !== 'narrow' && (
