@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { ArrowPathIcon, DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ClipboardDocumentIcon, ClipboardDocumentCheckIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid } from '@heroicons/react/24/solid';
 import Markdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
@@ -10,11 +10,11 @@ import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import mermaid from 'mermaid';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../store/types';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { removeTOC } from '../../utils/tocUtils';
+import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks } from '../../utils/mkUtils';
 import {
   useItem,
   useSettings,
@@ -38,6 +38,7 @@ import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
 import TagsPicker from './TagsPicker';
 import { createCustomImage } from './markdownImgResolver';
+import MermaidDiagram from './MermaidDiagram';
 import { logger } from '../../utils/logUtil';
 import {
   useEntryCore,
@@ -50,189 +51,6 @@ import {
   SelectionCheckbox,
   type BaseEntryProps,
 } from './common';
-
-// todo-0: we have several functions in here which are representing components that can be moved into their own separate files, and also I think we have 
-// some regular functions in here that can be moved into existing utilities classes, like specifically a couple of the AI related functions .
-
-// Initialize mermaid with dark theme
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'dark',
-  securityLevel: 'loose',
-});
-
-/**
- * Preprocess content to handle escaped dollar signs for LaTeX math.
- * Converts \$ to HTML entity &#36; so it renders as a literal $ 
- * without triggering math mode. This is the standard LaTeX escape convention.
- */
-function preprocessMathEscapes(content: string): string {
-  return content.replace(/\\\$/g, '&#36;');
-}
-
-function stripHtmlComments(content: string): string {
-  return content.replace(/<!--[\s\S]*?-->/g, '');
-}
-
-/**
- * Preprocess wikilinks: convert [[target]] and [[target|alias]] syntax
- * into standard markdown links before rendering.
- *
- * Supports:
- *   [[file]]              → [file](file)
- *   [[file|description]]  → [description](file)
- *   [[file#section]]      → [file#section](file#section)
- *   [[file#section|desc]] → [desc](file#section)
- */
-function preprocessWikiLinks(content: string): string {
-  return content.replace(/\[\[([^\]]+)\]\]/g, (_match, inner: string) => {
-    const pipeIndex = inner.indexOf('|');
-    if (pipeIndex !== -1) {
-      const target = inner.slice(0, pipeIndex).trim();
-      const alias = inner.slice(pipeIndex + 1).trim();
-      return `[${alias}](${target})`;
-    }
-    return `[${inner}](${inner})`;
-  });
-}
-
-function splitOnColumnBreaks(content: string): string[] {
-  const lines = content.split('\n');
-  const chunks: string[] = [];
-  let current: string[] = [];
-  let inFence = false;
-
-  for (const line of lines) {
-    const trimmed = line.trimEnd();
-    if (/^(`{3,}|~{3,})/.test(trimmed)) {
-      inFence = !inFence;
-    }
-    if (!inFence && trimmed === '|||') {
-      chunks.push(current.join('\n').trim());
-      current = [];
-    } else {
-      current.push(line);
-    }
-  }
-  chunks.push(current.join('\n').trim());
-  return chunks;
-}
-
-// Render queue to serialize mermaid renders (mermaid can't handle concurrent renders)
-const mermaidRenderQueue: Array<() => Promise<void>> = [];
-let isRenderingMermaid = false;
-
-async function processMermaidQueue() {
-  if (isRenderingMermaid || mermaidRenderQueue.length === 0) return;
-
-  isRenderingMermaid = true;
-  const task = mermaidRenderQueue.shift();
-
-  if (task) {
-    try {
-      await task();
-    } catch {
-      // Error handled by the task itself
-    }
-  }
-
-  isRenderingMermaid = false;
-
-  // Process next item in queue
-  if (mermaidRenderQueue.length > 0) {
-    processMermaidQueue();
-  }
-}
-
-function queueMermaidRender(task: () => Promise<void>) {
-  mermaidRenderQueue.push(task);
-  processMermaidQueue();
-}
-
-// Counter for unique IDs (more reliable than useId for mermaid)
-let mermaidIdCounter = 0;
-
-// Component to render Mermaid diagrams
-function MermaidDiagram({ code }: { code: string }) {
-  const [svg, setSvg] = useState<string>('');
-  const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const idRef = useRef<number | null>(null);
-
-  // Assign a stable ID on mount
-  if (idRef.current === null) {
-    idRef.current = ++mermaidIdCounter;
-  }
-
-  useEffect(() => {
-    let isMounted = true;
-    const diagramId = idRef.current;
-
-    setLoading(true);
-    setSvg('');
-    setError('');
-
-    queueMermaidRender(async () => {
-      try {
-        const safeId = `mermaid-diagram-${diagramId}-${Date.now()}`;
-        const result = await mermaid.render(safeId, code);
-
-        if (isMounted) {
-          // HACK_BEGIN
-          // Mermaid's text-width measurement tends to run slightly narrow,
-          // causing foreignObject labels to clip on the right edge.
-          // Widen every foreignObject by 15% to give text room to breathe.
-          const fixedSvg = result.svg.replace(
-            /(<foreignObject\b[^>]*?\bwidth=")([^"]+)(")/g,
-            (_match, prefix, widthStr, suffix) => {
-              const newWidth = parseFloat(widthStr) * 1.15;
-              return `${prefix}${newWidth}${suffix}`;
-            }
-          );
-          setSvg(fixedSvg);
-          // HACK_END
-
-          setError('');
-          setLoading(false);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Failed to render diagram');
-          setSvg('');
-          setLoading(false);
-        }
-      }
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [code]);
-
-  if (error) {
-    return (
-      <div className="bg-red-900/30 border border-red-500 rounded p-3 text-red-300 text-sm">
-        <strong>Mermaid Error:</strong> {error}
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8 text-slate-400">
-        <ArrowPathIcon className="animate-spin h-5 w-5 mr-3" />
-        <span>Rendering diagram...</span>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="mermaid-diagram flex justify-center my-4"
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
-  );
-}
 
 // Custom anchor component factory - creates a component that can access entry path
 function createCustomAnchor(entryPath: string) {
