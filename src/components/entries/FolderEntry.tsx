@@ -118,7 +118,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
             {hasCutItems && onPasteIntoFolder && (
               <button
                 onClick={(e) => { e.stopPropagation(); onPasteIntoFolder(entry.path); }}
-                className="flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                className="flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer"
                 title="Paste cut items into this folder"
                 aria-label="Paste cut items into this folder"
               >

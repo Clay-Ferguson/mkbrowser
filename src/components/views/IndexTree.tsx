@@ -463,7 +463,7 @@ function IndexTree() {
                 <button
                   type="button"
                   onClick={e => void handlePasteIntoFolder(node, e)}
-                  className="shrink-0 ml-auto p-1 mr-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                  className="shrink-0 ml-auto p-1 mr-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer"
                   title="Paste cut items here"
                   aria-label="Paste cut items here"
                 >
