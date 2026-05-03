@@ -815,9 +815,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         </div>
       </main>
 
-      {/* todo-0: i think we need a centralized place where we have all of our dialogues defined, 
-      or at least modules where we have different groups of related dialogues defined  */}
-
       {showCreateDialog && (
         <CreateFileDialog
           defaultName={createFileDefaultName}

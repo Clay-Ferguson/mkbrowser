@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useItem, getItemEditContent, setItemEditContent } from '../../store';
 import { CHECKBOX_CLASSES } from '../../utils/styles';
-import { loadTagsForFile, type TagsLoadState, type HashtagDefinition } from '../../utils/tagUtils';
+import {
+  loadTagsForFile, type TagsLoadState, type HashtagDefinition,
+  tagName, splitFrontMatter, getTagsFromYaml,
+  removeTagFromText, insertTagIntoText,
+} from '../../utils/tagUtils';
 
 /**
  * Represents a single hashtag with its checked state.
@@ -10,42 +14,10 @@ export interface TagData {
   tag: string;
   description: string;
   group?: string;
-  checked: boolean; 
+  checked: boolean;
 }
 
-/**
- * Escape a string for use in a RegExp.
- */
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/**
- * Remove all occurrences of a hashtag from text and clean up whitespace.
- */
-export function removeTagFromText(text: string, tag: string): string {
-  const pattern = new RegExp(escapeRegExp(tag), 'g');
-  return text
-    .replace(pattern, '')
-    .replace(/  +/g, ' ')       // collapse multiple spaces
-    .replace(/^ /gm, '')        // trim leading space per line
-    .replace(/ $/gm, '')        // trim trailing space per line
-    .replace(/\n{3,}/g, '\n\n') // collapse 3+ newlines to 2
-    .trim();
-}
-
-/**
- * Insert a hashtag at the position of the first existing hashtag in text.
- * If no hashtag exists, prepends the tag followed by a space.
- */
-export function insertTagIntoText(text: string, tag: string): string {
-  const match = /#[a-zA-Z0-9]/.exec(text);
-  if (match !== null) {
-    const i = match.index;
-    return text.slice(0, i) + tag + ' ' + text.slice(i);
-  }
-  return tag + ' ' + text;
-}
+export { removeTagFromText, insertTagIntoText };
 
 interface TagsPickerProps { 
   /** Full path of the file being edited */
@@ -92,12 +64,14 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     return null;
   }
 
-  // Derive checked state from content on every render — no local state needed
+  // Derive checked state from front matter on every render — no local state needed
+  const fmParts = splitFrontMatter(editContent);
+  const activeTags = fmParts ? getTagsFromYaml(fmParts.yamlStr) : [];
   const tags: TagData[] = loadState.tags.map((def: HashtagDefinition) => ({
     tag: def.tag,
     description: def.description,
     group: def.group,
-    checked: editContent.includes(def.tag),
+    checked: activeTags.includes(tagName(def.tag)),
   }));
 
   const handleToggle = (index: number) => {
@@ -117,10 +91,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
           }
         }
       }
-      // Insert this tag if not already present
-      if (!currentContent.includes(tag.tag)) {
-        currentContent = insertTagIntoText(currentContent, tag.tag);
-      }
+      currentContent = insertTagIntoText(currentContent, tag.tag);
       setItemEditContent(filePath, currentContent);
     } else {
       setItemEditContent(filePath, removeTagFromText(currentContent, tag.tag));
@@ -166,7 +137,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   );
 
   return (
-    <div className="pt-2 pb-1" style={{ fontFamily: MONO_FONT }}>
+    <div className="pb-3" style={{ fontFamily: MONO_FONT }}>
       <div className="flex flex-col gap-y-2">
         {sortedGroupNames.map((groupName) => (
           <div key={groupName} className="flex items-start gap-2">

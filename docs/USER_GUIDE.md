@@ -167,7 +167,7 @@ If your file has no `<\!-- TOC -->` comment, nothing happens. If it has headings
 
 ## Tag Picker
 
-While editing a Markdown file, a **tag picker** appears below the editor. It shows a row of clickable checkboxes — one for each hashtag defined in any `.TAGS.yaml` file(s) found in the file's ancestor directories. You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand.
+While editing a Markdown file, a **tag picker** appears below the editor. It shows a row of clickable checkboxes — one for each hashtag defined in any `.TAGS.yaml` file(s) found in the file's ancestor directories. You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand. Tags are added into the 'tags' property of the Markdown Front Matter, creating a Front Matter section as necessary. NOTE: This is identical to the "Obsidian" way of storing tags.
 
 - **Checked** tags are already present somewhere in the file's content and are highlighted in blue.
 - **Unchecked** tags are not currently in the content.

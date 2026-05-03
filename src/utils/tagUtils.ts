@@ -63,6 +63,54 @@ export async function loadTagsForFile(filePath: string): Promise<HashtagDefiniti
  * Keys are plain tag names (without `#`); the `#` prefix is added automatically.
  * `group` is optional — omit it for tags that don't belong to a mutually exclusive set.
  */
+export function tagName(tag: string): string {
+  return tag.startsWith('#') ? tag.slice(1) : tag;
+}
+
+export function splitFrontMatter(text: string): { yamlStr: string; body: string } | null {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/.exec(text);
+  return match ? { yamlStr: match[1], body: text.slice(match[0].length) } : null;
+}
+
+export function getTagsFromYaml(yamlStr: string): string[] {
+  const parsed = yaml.load(yamlStr) as Record<string, unknown> | null;
+  if (!parsed || !Array.isArray(parsed.tags)) return [];
+  return parsed.tags.filter((t): t is string => typeof t === 'string');
+}
+
+export function setTagsInYaml(yamlStr: string, tags: string[]): string {
+  const parsed = (yaml.load(yamlStr) as Record<string, unknown> | null) ?? {};
+  if (tags.length > 0) {
+    parsed.tags = tags;
+  } else {
+    delete parsed.tags;
+  }
+  return Object.keys(parsed).length > 0 ? yaml.dump(parsed) : '';
+}
+
+export function assembleFrontMatter(yamlContent: string, body: string): string {
+  const trimmed = yamlContent.trim();
+  return trimmed ? `---\n${trimmed}\n---\n${body}` : body;
+}
+
+export function removeTagFromText(text: string, tag: string): string {
+  const parts = splitFrontMatter(text);
+  if (!parts) return text;
+  const updated = getTagsFromYaml(parts.yamlStr).filter(t => t !== tagName(tag));
+  return assembleFrontMatter(setTagsInYaml(parts.yamlStr, updated), parts.body);
+}
+
+export function insertTagIntoText(text: string, tag: string): string {
+  const name = tagName(tag);
+  const parts = splitFrontMatter(text);
+  if (parts) {
+    const current = getTagsFromYaml(parts.yamlStr);
+    if (current.includes(name)) return text;
+    return assembleFrontMatter(setTagsInYaml(parts.yamlStr, [...current, name]), parts.body);
+  }
+  return assembleFrontMatter(`tags:\n  - ${name}`, text);
+}
+
 export async function collectAncestorTags(filePath: string): Promise<HashtagDefinition[]> {
   const map = new Map<string, HashtagDefinition>();
 
