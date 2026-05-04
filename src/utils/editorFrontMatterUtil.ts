@@ -2,7 +2,9 @@ import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@
 import { RangeSetBuilder, Prec } from '@codemirror/state';
 
 const frontMatterMark = Decoration.mark({ class: 'cm-front-matter' });
+const frontMatterDelimMark = Decoration.mark({ class: 'cm-front-matter-delim' });
 const frontMatterIdMark = Decoration.mark({ class: 'cm-front-matter-id' });
+const frontMatterClosingLine = Decoration.line({ class: 'cm-front-matter-closing' });
 
 export function createFrontMatterDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
@@ -23,14 +25,16 @@ export function createFrontMatterDecorations(view: EditorView): DecorationSet {
   if (!closingLine) return builder.finish();
 
   // Decorate line by line so ID lines get a different style
-  builder.add(firstLine.from, firstLine.to, frontMatterMark);
+  builder.add(firstLine.from, firstLine.to, frontMatterDelimMark);
   for (let i = 2; i < closingLine.number; i++) {
     const line = doc.line(i);
     // Match lines like "id: ..." or "  id: ..." — show ID field in gray to de-emphasize it
     const mark = /^\s*id:\s/.test(line.text) ? frontMatterIdMark : frontMatterMark;
     builder.add(line.from, line.to, mark);
   }
-  builder.add(closingLine.from, closingLine.to, frontMatterMark);
+  // line decoration must be added at the line's `from` position
+  builder.add(closingLine.from, closingLine.from, frontMatterClosingLine);
+  builder.add(closingLine.from, closingLine.to, frontMatterDelimMark);
 
   return builder.finish();
 }
@@ -58,7 +62,14 @@ export const frontMatterTheme = EditorView.baseTheme({
   '.cm-front-matter': {
     color: '#4ade80', // green-400
   },
+  '.cm-front-matter-delim': {
+    color: '#9ca3af', // gray-400
+    fontWeight: 'normal !important',
+  },
   '.cm-front-matter-id': {
     color: '#9ca3af', // gray-400
+  },
+  '.cm-front-matter-closing': {
+    borderBottom: '1px dotted #4ade80', // green-400
   },
 });
