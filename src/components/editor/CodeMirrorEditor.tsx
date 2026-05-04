@@ -10,6 +10,7 @@ import { useSettings, type FontSize } from '../../store';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../utils/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editorDateUtil';
+import { frontMatterPlugin, frontMatterTheme } from '../../utils/editorFrontMatterUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
 import { logger } from '../../utils/logUtil';
@@ -116,6 +117,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       fontSizeCompartment.current.of(createFontSizeTheme(settings.fontSize)),
       spellCheckCompartment.current.of([]),
       spellCheckTheme,
+      frontMatterPlugin,
+      frontMatterTheme,
       hashtagPlugin,
       hashtagTheme,
       datePlugin,
