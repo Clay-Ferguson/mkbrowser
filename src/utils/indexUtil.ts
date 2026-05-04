@@ -321,6 +321,63 @@ export async function getSortedDirEntries(
 }
 
 /**
+ * Ensures a markdown file's content has a front-matter `id` field when the
+ * file lives in a Document Mode folder (i.e. a sibling .INDEX.yaml exists).
+ *
+ * Returns the (possibly modified) content string. If an id was added, the
+ * .INDEX.yaml entry for this filename is updated to record the new id so that
+ * rename detection continues to work.
+ *
+ * Safe to call unconditionally on every .md save — it is a no-op when:
+ *   - the directory has no .INDEX.yaml, or
+ *   - the file already has an id in its front matter.
+ */
+export async function ensureFrontMatterIdIfIndexed(
+  filePath: string,
+  content: string,
+): Promise<string> {
+  const dirPath = path.dirname(filePath);
+  const fileName = path.basename(filePath);
+  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+
+  // Check if this folder is in Document Mode
+  let indexYaml: IndexYaml | null = null;
+  try {
+    const raw = await fs.promises.readFile(indexFilePath, 'utf8');
+    const parsed = yaml.load(raw) as IndexYaml;
+    if (parsed && typeof parsed === 'object') indexYaml = parsed;
+  } catch {
+    return content; // no .INDEX.yaml — nothing to do
+  }
+  if (!indexYaml) return content;
+
+  // Parse existing front matter
+  const { yaml: fm, content: body } = parseFrontMatter(content);
+  if (fm?.id) return content; // already has an id
+
+  // Generate a new id and inject it into the front matter
+  const fileId = generateId();
+  let newContent: string;
+  if (!fm) {
+    newContent = `---\nid: ${fileId}\n---\n${body}`;
+  } else {
+    const updated = { id: fileId, ...fm };
+    newContent = `---\n${yaml.dump(updated)}---\n${body}`;
+  }
+
+  // Update the .INDEX.yaml entry for this file to record the id
+  const files = indexYaml.files ?? [];
+  const entry = files.find((f) => f.name === fileName);
+  if (entry) {
+    entry.id = fileId;
+    const newIndexContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
+    await fs.promises.writeFile(indexFilePath, newIndexContent, 'utf8');
+  }
+
+  return newContent;
+}
+
+/**
  * Inserts a new entry into the .INDEX.yaml files array at the position
  * immediately after insertAfterName (or at position 0 when null).
  * Existing entries and their id fields are preserved.

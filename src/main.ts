@@ -6,7 +6,7 @@ import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 
 import { readDirectory, parseFrontMatter } from './utils/fileUtils';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions } from './utils/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
 import { processTOC } from './utils/tocUtils';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
@@ -197,6 +197,7 @@ function setupIpcHandlers(): void {
 
       if (filePath.toLowerCase().endsWith('.md')) {
         finalContent = await processTOC(content);
+        finalContent = await ensureFrontMatterIdIfIndexed(filePath, finalContent);
       }
 
       await fs.promises.writeFile(filePath, finalContent, 'utf-8');
