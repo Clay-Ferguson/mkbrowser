@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { DocumentTextIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline } from '@heroicons/react/24/outline';
-import { TagIcon as TagIconSolid } from '@heroicons/react/24/solid';
+import { DocumentTextIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline } from '@heroicons/react/24/outline';
+import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
 import Markdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
@@ -282,9 +282,18 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
         {edit.isEditing ? (
           <div className="flex items-center gap-2">
             <button
+              onClick={handleToggleShowProps}
+              title={showPropsInEditor ? 'Hide properties' : 'Show properties'}
+              className={`p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer border ${showPropsInEditor ? 'border-slate-400' : 'border-transparent'}`}
+            >
+              {showPropsInEditor
+                ? <PropsIconSolid className="w-5 h-5" />
+                : <PropsIconOutline className="w-5 h-5" />}
+            </button>
+            <button
               onClick={handleToggleTagsVisible}
               title={tagsVisible ? 'Hide tags' : 'Show tags'}
-              className="p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer"
+              className={`p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer border ${tagsVisible ? 'border-slate-400' : 'border-transparent'}`}
             >
               {tagsVisible
                 ? <TagIconSolid className="w-5 h-5" />
@@ -407,17 +416,6 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               ) : (
                 <>
                   {tagsVisible && <TagsPicker filePath={entry.path} />}
-                  <div className="flex justify-end items-center mb-1">
-                    <label className="flex items-center gap-1.5 text-sm text-slate-400 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={showPropsInEditor}
-                        onChange={handleToggleShowProps}
-                        className="cursor-pointer"
-                      />
-                      Properties
-                    </label>
-                  </div>
                   <CodeMirrorEditor
                     ref={editorRef}
                     value={edit.editContent}
