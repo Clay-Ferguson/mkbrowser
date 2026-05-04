@@ -1,8 +1,10 @@
 import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { EditorView, placeholder as placeholderExt, keymap } from '@codemirror/view';
+import { EditorView, placeholder as placeholderExt, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
-import { basicSetup } from 'codemirror';
-import { search } from '@codemirror/search';
+import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
+import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
+import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching } from '@codemirror/language';
+import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { markdown } from '@codemirror/lang-markdown';
 import Typo from 'typo-js';
@@ -111,7 +113,29 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     if (!editorRef.current) return;
 
     const extensions = [
-      basicSetup,
+
+      // NOTE: In order to remove 'Code Folding' we replaced the line
+      // 'basicSetup' which used to be passed here without the parenthesis to call it
+      // with the lines between BEGIN_basicSetupReplacement and END_basicSetupReplacement
+      // BEGIN_basicSetupReplacement
+      // lineNumbers(), <-- removed line numbers (add back with this line)
+      highlightActiveLineGutter(),
+      highlightSpecialChars(),
+      history(),
+      drawSelection(),
+      dropCursor(),
+      EditorState.allowMultipleSelections.of(true),
+      indentOnInput(),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      bracketMatching(),
+      closeBrackets(),
+      autocompletion(),
+      rectangularSelection(),
+      crosshairCursor(),
+      highlightActiveLine(),
+      highlightSelectionMatches(),
+      keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...completionKeymap]),
+      // END_basicSetupReplacement
       search({ top: true }),
       oneDark,
       fontSizeCompartment.current.of(createFontSizeTheme(settings.fontSize)),
