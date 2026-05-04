@@ -211,6 +211,8 @@ export interface AppSettings {
   ocrToolsFolder: string;
   /** Folder tree sidebar visibility and width */
   indexTreeWidth: IndexTreeWidth;
+  /** Whether to show front matter (Properties) in the editor */
+  showPropsInEditor: boolean;
 }
 
 /**

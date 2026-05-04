@@ -63,6 +63,7 @@ export {
   setSortOrder,
   setFoldersOnTop,
   setShowToc,
+  setShowPropsInEditor,
   setIgnoredPaths,
   setContentWidth,
   setOcrToolsFolder,

@@ -47,6 +47,7 @@ export interface AppSettings {
   contentWidth: ContentWidth;
   bookmarks: string[];
   ocrToolsFolder: string;
+  showPropsInEditor?: boolean;
 }
 
 export interface AIModelConfig {

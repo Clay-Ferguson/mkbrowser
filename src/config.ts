@@ -17,7 +17,7 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     const config = await window.electronAPI.getConfig();
     // Load settings from config into store (only once at startup)
     if (config.settings) {
-      setSettings({ indexTreeWidth: 'narrow', ocrToolsFolder: '', ...config.settings });
+      setSettings({ indexTreeWidth: 'narrow', ocrToolsFolder: '', showPropsInEditor: true, ...config.settings });
     }
     if (config.browseFolder) {
       const exists = await window.electronAPI.pathExists(config.browseFolder);

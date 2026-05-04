@@ -12,7 +12,7 @@ import { useSettings, type FontSize } from '../../store';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../utils/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editorDateUtil';
-import { frontMatterPlugin, frontMatterTheme } from '../../utils/editorFrontMatterUtil';
+import { frontMatterPlugin, frontMatterTheme, frontMatterHideField } from '../../utils/editorFrontMatterUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
 import { logger } from '../../utils/logUtil';
@@ -43,6 +43,8 @@ interface CodeMirrorEditorProps {
   onSave?: () => void;
   /** Called when the editor selection changes — reports whether text is selected */
   onSelectionChange?: (hasSelection: boolean) => void;
+  /** Whether to show front matter (Properties) in the editor. Defaults to true. */
+  showPropsInEditor?: boolean;
 }
 
 export interface CodeMirrorEditorHandle {
@@ -50,11 +52,12 @@ export interface CodeMirrorEditorHandle {
   getSelection(): { from: number; to: number; text: string } | null;
 }
 
-const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange }, ref) {
+const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const fontSizeCompartment = useRef(new Compartment());
+  const frontMatterCompartment = useRef(new Compartment());
   const spellCheckCompartment = useRef(new Compartment());
   const typoRef = useRef<Typo | null>(null);
   const onEscapeRef = useRef(onEscape);
@@ -141,8 +144,9 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       fontSizeCompartment.current.of(createFontSizeTheme(settings.fontSize)),
       spellCheckCompartment.current.of([]),
       spellCheckTheme,
-      frontMatterPlugin,
-      frontMatterTheme,
+      frontMatterCompartment.current.of(
+        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme] : [frontMatterHideField]
+      ),
       hashtagPlugin,
       hashtagTheme,
       datePlugin,
@@ -320,6 +324,18 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       effects: fontSizeCompartment.current.reconfigure(createFontSizeTheme(settings.fontSize)),
     });
   }, [settings.fontSize, createFontSizeTheme]);
+
+  // Toggle front matter visibility when showPropsInEditor changes
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    view.dispatch({
+      effects: frontMatterCompartment.current.reconfigure(
+        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme] : [frontMatterHideField]
+      ),
+    });
+  }, [showPropsInEditor]);
 
   return (
     <div

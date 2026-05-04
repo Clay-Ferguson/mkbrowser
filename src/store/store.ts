@@ -17,6 +17,7 @@ const defaultSettings: AppSettings = {
   bookmarks: [],
   ocrToolsFolder: '',
   indexTreeWidth: 'narrow',
+  showPropsInEditor: true,
 };
 
 /**
@@ -1192,6 +1193,14 @@ export function setShowToc(showToc: boolean): void {
   state = {
     ...state,
     settings: { ...state.settings, showToc },
+  };
+  emitChange();
+}
+
+export function setShowPropsInEditor(showPropsInEditor: boolean): void {
+  state = {
+    ...state,
+    settings: { ...state.settings, showPropsInEditor },
   };
   emitChange();
 }

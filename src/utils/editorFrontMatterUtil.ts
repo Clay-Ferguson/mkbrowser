@@ -1,5 +1,5 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
-import { RangeSetBuilder, Prec } from '@codemirror/state';
+import { RangeSetBuilder, Prec, StateField, EditorState } from '@codemirror/state';
 
 const frontMatterMark = Decoration.mark({ class: 'cm-front-matter' });
 const frontMatterDelimMark = Decoration.mark({ class: 'cm-front-matter-delim' });
@@ -57,6 +57,33 @@ export const frontMatterPlugin = Prec.highest(ViewPlugin.fromClass(
     decorations: (v) => v.decorations,
   }
 ));
+
+function buildFrontMatterHideDecorations(state: EditorState): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const doc = state.doc;
+  const firstLine = doc.line(1);
+  if (firstLine.text !== '---') return builder.finish();
+
+  let closingLine: ReturnType<typeof doc.line> | null = null;
+  for (let i = 2; i <= doc.lines; i++) {
+    if (doc.line(i).text === '---') { closingLine = doc.line(i); break; }
+  }
+  if (!closingLine) return builder.finish();
+
+  // Include the trailing newline so the closing --- doesn't leave a blank line
+  const endPos = closingLine.number < doc.lines ? closingLine.to + 1 : closingLine.to;
+  builder.add(firstLine.from, endPos, Decoration.replace({ block: true }));
+  return builder.finish();
+}
+
+// Block decorations must come from a StateField, not a ViewPlugin
+export const frontMatterHideField = StateField.define<DecorationSet>({
+  create(state) { return buildFrontMatterHideDecorations(state); },
+  update(deco, tr) {
+    return tr.docChanged ? buildFrontMatterHideDecorations(tr.state) : deco.map(tr.changes);
+  },
+  provide(field) { return EditorView.decorations.from(field); },
+});
 
 export const frontMatterTheme = EditorView.baseTheme({
   '.cm-front-matter': {

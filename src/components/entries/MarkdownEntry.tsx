@@ -27,6 +27,7 @@ import {
   useIndexYaml,
   useExpandedEditor,
   setExpandedEditor,
+  setShowPropsInEditor,
 } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
@@ -71,7 +72,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     isBookmarked,
   } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
 
-  const { showToc } = useSettings();
+  const { showToc, showPropsInEditor } = useSettings();
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
   const editMode = indexYaml?.options?.edit_mode ?? false;
@@ -128,6 +129,11 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     setTagsVisible(newVisible);
     const config = await window.electronAPI.getConfig();
     await window.electronAPI.saveConfig({ ...config, tagsPanelVisible: newVisible });
+  };
+
+  const handleToggleShowProps = () => {
+    setShowPropsInEditor(!showPropsInEditor);
+    onSaveSettings();
   };
 
   const isHumanFile = aiEnabled && entry.name === 'HUMAN.md';
@@ -401,6 +407,17 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               ) : (
                 <>
                   {tagsVisible && <TagsPicker filePath={entry.path} />}
+                  <div className="flex justify-end items-center mb-1">
+                    <label className="flex items-center gap-1.5 text-sm text-slate-400 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={showPropsInEditor}
+                        onChange={handleToggleShowProps}
+                        className="cursor-pointer"
+                      />
+                      Properties
+                    </label>
+                  </div>
                   <CodeMirrorEditor
                     ref={editorRef}
                     value={edit.editContent}
@@ -414,6 +431,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                     onForceCancel={edit.handleCancel}
                     onSave={edit.handleSave}
                     onSelectionChange={setHasSelection}
+                    showPropsInEditor={showPropsInEditor}
                   />
                 </>
               )}
