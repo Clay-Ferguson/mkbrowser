@@ -93,6 +93,11 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     handleInsertDate,
   } = useEditorContextMenu({ viewRef, typoRef });
 
+  const searchMatchTheme = EditorView.theme({
+    '.cm-searchMatch': { backgroundColor: 'yellow', color: 'black' },
+    '.cm-searchMatch-selected': { backgroundColor: '#e6b800', color: 'black' },
+  });
+
   const createFontSizeTheme = useCallback((fontSize: FontSize) => {
     return EditorView.theme({
       '&': {
@@ -141,6 +146,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...completionKeymap, ...searchKeymap]),
       // END_basicSetupReplacement
       search({ top: true }),
+      searchMatchTheme,
       oneDark,
       fontSizeCompartment.current.of(createFontSizeTheme(settings.fontSize)),
       spellCheckCompartment.current.of([]),
