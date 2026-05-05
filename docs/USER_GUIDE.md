@@ -120,6 +120,22 @@ MkBrowser displays your files and folders in a single streamlined list.
 - **Images**: Click on image files to preview them inline.
 - **Folders**: Click on a folder to navigate into it.
 
+## Running Shell Scripts
+
+Any file with a `.sh` extension appears in the file tree and can be launched directly from within MkBrowser.
+
+- **Ctrl+Click** on any `.sh` file name to execute it as a shell script. The script runs immediately and opens in its own terminal window at the operating system level, so you can see its output and interact with it.
+
+### Suppressing the Terminal Window
+
+If you want the script to run silently in the background without a visible console window, add the following directive somewhere near the top of the script file (typically after the shebang line):
+
+```bash
+# Terminal=false
+```
+
+When MkBrowser detects this directive, it executes the script without opening a terminal window.
+
 ## Editing Files
 When a Markdown file is expanded, you can edit its content:
 1. Click the **Edit** button (pencil icon) in the top-right corner of the file card.
