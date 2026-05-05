@@ -31,6 +31,7 @@ import {
 } from './store';
 import type { FileNode } from './store';
 import { loadConfig } from './config';
+import { applyGlobalHighlight, globalHighlightText } from './utils/globalHighlight';
 
 async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isDirectory || !node.isExpanded) return node;
@@ -73,6 +74,12 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-font-size', settings.fontSize);
   }, [settings.fontSize]);
+
+  // Apply global text highlight after each navigation/load cycle
+  useEffect(() => {
+    const id = requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
+    return () => cancelAnimationFrame(id);
+  }, [currentPath, currentView, loading]);
 
   // Close an unmodified editor when ESC is pressed anywhere in the app
   useEffect(() => {

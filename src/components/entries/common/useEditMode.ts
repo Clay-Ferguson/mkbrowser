@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing, upsertItem } from '../../../store';
+import { applyGlobalHighlight, globalHighlightText } from '../../../utils/globalHighlight';
 import { removeTOC } from '../../../utils/tocUtils';
 import type { EditModeState } from './types';
 
@@ -82,6 +83,9 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
       if (result.ok) {
         setItemContent(path, result.content, Date.now());
         setItemEditing(path, false);
+        if (globalHighlightText) {
+          requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
+        }
       }
     } finally {
       setSaving(false);

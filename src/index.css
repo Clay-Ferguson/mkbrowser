@@ -125,3 +125,8 @@ html[data-font-size="xlarge"] {
   margin-top: 0.8em;
   margin-bottom: 0.3em;
 }
+
+::highlight(global-search) {
+  background-color: yellow;
+  color: black;
+}

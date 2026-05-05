@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useItem, setItemContent, isCacheValid } from '../../../store';
+import { applyGlobalHighlight, globalHighlightText } from '../../../utils/globalHighlight';
 import type { ContentLoaderState } from './types';
 
 interface UseContentLoaderOptions {
@@ -42,6 +43,9 @@ export function useContentLoader({
       try {
         const content = await window.electronAPI.readFile(path);
         setItemContent(path, content);
+        if (globalHighlightText) {
+          requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
+        }
       } catch {
         setItemContent(path, errorMessage);
       } finally {
