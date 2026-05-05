@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
+import { runShellScript } from '../../utils/launcherUtil';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import {
   useRootPath,
@@ -42,6 +43,10 @@ function isMarkdownHeadingNode(node: TreeNode): node is MarkdownHeadingNode {
 
 function isMarkdownFile(node: FileNode): node is MarkdownFileNode {
   return !node.isDirectory && node.name.toLowerCase().endsWith('.md');
+}
+
+function isShellScript(node: FileNode): boolean {
+  return !node.isDirectory && node.name.toLowerCase().endsWith('.sh');
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -114,6 +119,7 @@ function IndexTree() {
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
+  const [runningScript, setRunningScript] = useState<string | null>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
   useEffect(() => {
@@ -269,6 +275,13 @@ function IndexTree() {
     }
   }, []);
 
+  const handleRunScript = useCallback((node: FileNode) => {
+    if (runningScript) return;
+    setRunningScript(node.path);
+    runShellScript(node.path);
+    setTimeout(() => setRunningScript(null), 3000);
+  }, [runningScript]);
+
   const toggleBookmarksMenu = () => setShowBookmarksMenu(prev => !prev);
   const closeBookmarksMenu = () => setShowBookmarksMenu(false);
   const handleNarrowTree = () => setIndexTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
@@ -325,6 +338,7 @@ function IndexTree() {
   const rows = flattenVisible(treeRoot.children);
   return (
     <div data-testid="file-explorer-tree" className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800`}>
+      <style>{`@keyframes scriptRunFlash { 0% { background-color: rgba(74,222,128,0.45); } 100% { background-color: transparent; } }`}</style>
       <div className="flex items-center justify-between gap-1 px-2 py-1 border-b border-slate-700 shrink-0">
         <button
           ref={bookmarksButtonRef}
@@ -411,6 +425,7 @@ function IndexTree() {
           if (!isFileNode(node)) return null;
 
           const isMd = isMarkdownFile(node);
+          const isSh = isShellScript(node);
           const isClickable = node.isDirectory || isMd;
 
           let className = 'flex items-center gap-1 py-0.5 whitespace-nowrap select-none';
@@ -420,7 +435,7 @@ function IndexTree() {
           } //
           else if (node.isDirectory && node.path === currentPath) {
             className += ' text-slate-100 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer';
-          } // 
+          } //
           else if (node.isDirectory && isParentOf(node.path, currentPath)) {
             className += ' text-slate-200 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer';
           } //
@@ -431,18 +446,30 @@ function IndexTree() {
           } //
           else if (isMd) {
             className += ' text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700';
-          } // 
+          } //
+          else if (isSh) {
+            className += ' text-green-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-300/20';
+          } //
           else {
             className += ' text-slate-400 border-l-2 border-transparent cursor-default';
           }
+
+          const isRunning = runningScript === node.path;
+          const rowStyle: React.CSSProperties = {
+            paddingLeft: `${8 + depth * 12}px`,
+            ...(isRunning ? { animation: 'scriptRunFlash 3s ease-in forwards' } : {}),
+          };
 
           return (
             <div
               key={node.path}
               data-tree-path={node.path}
               className={className}
-              style={{ paddingLeft: `${8 + depth * 12}px` }}
-              onClick={() => { if (isClickable) void handleNodeClick(node); }}
+              style={rowStyle}
+              onClick={e => {
+                if (isSh && e.ctrlKey) { handleRunScript(node); return; }
+                if (isClickable) void handleNodeClick(node);
+              }}
               onContextMenu={e => handleFileNodeContextMenu(node, e)}
             >
               <span
