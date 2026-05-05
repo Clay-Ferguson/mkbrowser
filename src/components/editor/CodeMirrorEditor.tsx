@@ -137,7 +137,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       crosshairCursor(),
       highlightActiveLine(),
       highlightSelectionMatches(),
-      keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...completionKeymap]),
+      keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...completionKeymap, ...searchKeymap]),
       // END_basicSetupReplacement
       search({ top: true }),
       oneDark,
