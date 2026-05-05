@@ -13,6 +13,32 @@ import { extractTimestamp, past, future, today } from './utils/timeUtil';
 import { createContentSearcher } from './utils/searchUtil';
 import { splitFrontMatter } from './utils/tagUtils';
 
+/** Module-level YAML parse cache: keyed by file path, cleared at the start of each search */
+let yamlCache: Map<string, Record<string, unknown> | null> = new Map();
+
+/**
+ * Return the parsed front-matter YAML for a file, using the cache when possible.
+ * Falls back to parsing `content` if `filePath` is not provided or not yet cached.
+ */
+function getYaml(content: string, filePath?: string): Record<string, unknown> | null {
+  if (filePath !== undefined && yamlCache.has(filePath)) {
+    return yamlCache.get(filePath)!;
+  }
+  const parts = splitFrontMatter(content);
+  let parsed: Record<string, unknown> | null = null;
+  if (parts) {
+    try {
+      parsed = yaml.load(parts.yamlStr) as Record<string, unknown> | null ?? null;
+    } catch {
+      parsed = null;
+    }
+  }
+  if (filePath !== undefined) {
+    yamlCache.set(filePath, parsed);
+  }
+  return parsed;
+}
+
 /** Image extensions supported by ExifReader for EXIF metadata search */
 const EXIF_IMAGE_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.webp',
@@ -59,24 +85,18 @@ function wildcardToRegex(pattern: string): RegExp {
  * Returns an `inList(propPath, value)` function scoped to the given file content.
  * Resolves `propPath` (dot-notation) to a YAML array and checks for an exact match.
  */
-function createInListFunction(content: string): (propPath: string, value: string) => boolean {
+function createInListFunction(content: string, filePath?: string): (propPath: string, value: string) => boolean {
   return (propPath: string, value: string): boolean => {
-    const parts = splitFrontMatter(content);
-    if (!parts) return false;
-    try {
-      const parsed = yaml.load(parts.yamlStr) as Record<string, unknown> | null;
-      if (!parsed) return false;
-      const keys = propPath.split('.');
-      let current: unknown = parsed;
-      for (const key of keys) {
-        if (current === null || typeof current !== 'object') return false;
-        current = (current as Record<string, unknown>)[key];
-      }
-      if (!Array.isArray(current)) return false;
-      return current.some(item => String(item) === value);
-    } catch {
-      return false;
+    const parsed = getYaml(content, filePath);
+    if (!parsed) return false;
+    const keys = propPath.split('.');
+    let current: unknown = parsed;
+    for (const key of keys) {
+      if (current === null || typeof current !== 'object') return false;
+      current = (current as Record<string, unknown>)[key];
     }
+    if (!Array.isArray(current)) return false;
+    return current.some(item => String(item) === value);
   };
 }
 
@@ -84,24 +104,18 @@ function createInListFunction(content: string): (propPath: string, value: string
  * Returns a `prop(propPath, value)` function scoped to the given file content.
  * `propPath` supports dot-notation to drill into nested YAML objects.
  */
-function createPropFunction(content: string): (propPath: string, value: string) => boolean {
+function createPropFunction(content: string, filePath?: string): (propPath: string, value: string) => boolean {
   return (propPath: string, value: string): boolean => {
-    const parts = splitFrontMatter(content);
-    if (!parts) return false;
-    try {
-      const parsed = yaml.load(parts.yamlStr) as Record<string, unknown> | null;
-      if (!parsed) return false;
-      const keys = propPath.split('.');
-      let current: unknown = parsed;
-      for (const key of keys) {
-        if (current === null || typeof current !== 'object') return false;
-        current = (current as Record<string, unknown>)[key];
-      }
-      if (current === undefined) return false;
-      return String(current) === value;
-    } catch {
-      return false;
+    const parsed = getYaml(content, filePath);
+    if (!parsed) return false;
+    const keys = propPath.split('.');
+    let current: unknown = parsed;
+    for (const key of keys) {
+      if (current === null || typeof current !== 'object') return false;
+      current = (current as Record<string, unknown>)[key];
     }
+    if (current === undefined) return false;
+    return String(current) === value;
   };
 }
 
@@ -112,13 +126,13 @@ function createPropFunction(content: string): (propPath: string, value: string) 
 export function createMatchPredicate(
   queryStr: string,
   type: SearchType
-): (content: string) => MatchResult {
+): (content: string, filePath?: string) => MatchResult {
   if (type === 'advanced') {
-    return (content: string) => {
+    return (content: string, filePath?: string) => {
       const ts = extractTimestamp(content);
       const { $, getMatchCount } = createContentSearcher(content);
-      const prop = createPropFunction(content);
-      const inList = createInListFunction(content);
+      const prop = createPropFunction(content, filePath);
+      const inList = createInListFunction(content, filePath);
       try {
         const expressionCode = `return (${queryStr});`;
         const evalFunction = new Function('$', 'ts', 'past', 'future', 'today', 'prop', 'inList', expressionCode);
@@ -136,7 +150,7 @@ export function createMatchPredicate(
     };
   } else if (type === 'wildcard') {
     const regex = wildcardToRegex(queryStr);
-    return (content: string) => {
+    return (content: string, _filePath?: string) => {
       const matches = regex.test(content);
       if (matches) {
         const allMatches = content.match(new RegExp(regex.source, 'gi'));
@@ -147,7 +161,7 @@ export function createMatchPredicate(
   } else {
     // Literal mode: case-insensitive text search
     const queryLower = queryStr.toLowerCase();
-    return (content: string) => {
+    return (content: string, _filePath?: string) => {
       const contentLower = content.toLowerCase();
       let matchCount = 0;
       let searchIndex = 0;
@@ -251,6 +265,7 @@ export async function searchFolder(
   searchImageExif = false,
   mostRecent = false,
 ): Promise<SearchResult[]> {
+  yamlCache = new Map();
   const results: SearchResult[] = [];
   const shouldExcludePath = buildExcludePredicate(ignoredPaths);
   const hasQuery = query.trim().length > 0;
@@ -356,7 +371,7 @@ export async function searchFolder(
 
           if (isImage && !content) continue;
 
-          const { matches, matchCount, foundTime } = matchPredicate(content);
+          const { matches, matchCount, foundTime } = matchPredicate(content, filePath);
 
           if (matches) {
             const relativePath = path.relative(folderPath, filePath);
