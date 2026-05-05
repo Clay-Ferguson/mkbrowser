@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import { fdir } from 'fdir';
 import ExifReader from 'exifreader';
 import yaml from 'js-yaml';
-import { extractTimestamp, past, future, today } from './utils/timeUtil';
+import { extractTimestamp, parseDateString, past, future, today } from './utils/timeUtil';
 import { createContentSearcher } from './utils/searchUtil';
 import { splitFrontMatter } from './utils/tagUtils';
 
@@ -101,11 +101,12 @@ function createInListFunction(content: string, filePath?: string): (propPath: st
 }
 
 /**
- * Returns a `prop(propPath)` function scoped to the given file content.
+ * Returns a `prop(propPath, valType?)` function scoped to the given file content.
  * `propPath` supports dot-notation to drill into nested YAML objects.
+ * `valType` can be "string" (default) or "ts" (parse value as a date, return ms number).
  */
-function createPropFunction(content: string, filePath?: string): (propPath: string) => unknown {
-  return (propPath: string): unknown => {
+function createPropFunction(content: string, filePath?: string): (propPath: string, valType?: 'string' | 'ts') => unknown {
+  return (propPath: string, valType?: 'string' | 'ts'): unknown => {
     const parsed = getYaml(content, filePath);
     if (!parsed) return undefined;
     const keys = propPath.split('.');
@@ -114,6 +115,8 @@ function createPropFunction(content: string, filePath?: string): (propPath: stri
       if (current === null || typeof current !== 'object') return undefined;
       current = (current as Record<string, unknown>)[key];
     }
+    if (current === undefined) return undefined;
+    if (valType === 'ts') return parseDateString(String(current));
     return current;
   };
 }

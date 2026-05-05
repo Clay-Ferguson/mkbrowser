@@ -473,25 +473,25 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 *   **`past(date, lookbackDays?)`**: Returns `true` if the date is in the past. The optional `lookbackDays` parameter limits results to timestamps within the specified number of days ago (e.g., `past(ts, 7)` matches timestamps from the last 7 days).
 *   **`future(date, lookaheadDays?)`**: Returns `true` if the date is in the future. The optional `lookaheadDays` parameter limits results to timestamps within the specified number of days ahead (e.g., `future(ts, 30)` matches timestamps within the next 30 days).
 *   **`today(date)`**: Returns `true` if the date is today.
-*   **`prop(propertyPath)`**: Returns the value of the property at `propertyPath` from the file's YAML front matter, or `undefined` if not found. Use dot-notation to reach nested properties (e.g. `'author.name'`).
+*   **`prop(propertyPath, valType?)`**: Returns the value of the property at `propertyPath` from the file's YAML front matter, or `undefined` if not found. Use dot-notation to reach nested properties (e.g. `'author.name'`). The optional `valType` argument controls the return type: `"string"` (default) returns the raw value; `"ts"` interprets the property value as a date/datetime string (MM/DD/YYYY with optional HH:MM[:SS] AM/PM) and returns a numeric timestamp in milliseconds, suitable for use with `past()`, `future()`, and `today()`.
 *   **`inList(propertyPath, value)`**: Returns `true` if the file's YAML front matter has a list property at `propertyPath` that contains `value` as one of its items. Use dot-notation to reach nested properties.
 
 **Examples:**
 *   Find files with "TODO" that are due in the future:
     ```javascript
-    $('#TODO') && future(ts)
+    $('#TODO') && future(prop('due_date', 'ts'))
     ```
 *   Find files with "Meeting" that happened in the past:
     ```javascript
-    $('#meeting') && past(ts)
+    $('#meeting') && past(prop('due_date', 'ts'))
     ```
 *   Find files with "TODO" due within the next 7 days:
     ```javascript
-    $('#TODO') && future(ts, 7)
+    $('#TODO') && future(prop('due_date', 'ts'), 7)
     ```
 *   Find files with "Review" from the last 30 days:
     ```javascript
-    $('#review') && past(ts, 30)
+    $('#review') && past(prop('due_date', 'ts'), 30)
     ```
 *   Find files containing both "project" and "urgent":
     ```javascript
@@ -517,6 +517,16 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     author:
       name: Jane
       role: editor
+    ---
+    ```
+*   Find files with a front matter `dueDate` property that is in the future:
+    ```javascript
+    future(prop('dueDate', 'ts'))
+    ```
+    Matches files with front matter like:
+    ```markdown
+    ---
+    due_date: 06/15/2026
     ---
     ```
 *   Find files whose `tags` list contains `p1`:

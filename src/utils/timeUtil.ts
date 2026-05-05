@@ -120,6 +120,34 @@ export function today(timestamp: number): boolean {
   );
 }
 
+/**
+ * Parses a string that is entirely a date or date-time value.
+ * Accepts MM/DD/YYYY, MM/DD/YY, with optional HH:MM[:SS] AM/PM.
+ * Returns milliseconds since epoch, or 0 if the string cannot be parsed.
+ */
+export function parseDateString(value: string): number {
+  const dateTimeRegex = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM))?\s*$/i;
+  const match = value.match(dateTimeRegex);
+  if (!match) return 0;
+
+  const month = parseInt(match[1], 10);
+  const day = parseInt(match[2], 10);
+  let year = parseInt(match[3], 10);
+  if (year < 100) year += 2000;
+
+  let hours = 0, minutes = 0, seconds = 0;
+  if (match[4]) {
+    hours = parseInt(match[4], 10);
+    minutes = parseInt(match[5], 10);
+    seconds = match[6] ? parseInt(match[6], 10) : 0;
+    const ampm = match[7]?.toUpperCase();
+    if (ampm === 'PM' && hours !== 12) hours += 12;
+    else if (ampm === 'AM' && hours === 12) hours = 0;
+  }
+
+  return new Date(year, month - 1, day, hours, minutes, seconds).getTime();
+}
+
 export function formatDate(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
