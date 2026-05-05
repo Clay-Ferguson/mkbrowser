@@ -90,7 +90,7 @@ export function setTagsInYaml(yamlStr: string, tags: string[]): string {
     parsed = {};
   }
   if (tags.length > 0) {
-    parsed.tags = tags;
+    parsed.tags = [...tags].sort((a, b) => a.localeCompare(b));
   } else {
     delete parsed.tags;
   }
