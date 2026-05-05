@@ -1,6 +1,8 @@
 import type { RefObject } from 'react';
 import type { SearchDefinition } from '../../store';
 import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
+import { globalHighlightText, setGlobalHighlightText } from '../../utils/globalHighlight';
+import { applyGlobalHighlight } from '../../utils/globalHighlight';
 
 interface SearchPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
@@ -30,6 +32,12 @@ export default function SearchPopupMenu({
         label="New Search..."
         onClick={() => { onNewSearch(); onClose(); }}
       />
+      {globalHighlightText && (
+        <PopupMenuItem
+          label="Clear Search Highlight"
+          onClick={() => { setGlobalHighlightText(null); applyGlobalHighlight(''); onClose(); }}
+        />
+      )}
       {sorted.length > 0 && (
         <>
           <PopupMenuDivider />
