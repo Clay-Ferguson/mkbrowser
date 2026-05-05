@@ -1,7 +1,6 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
-import { runShellScript } from '../../utils/launcherUtil';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import {
   useRootPath,
@@ -278,7 +277,7 @@ function IndexTree() {
   const handleRunScript = useCallback((node: FileNode) => {
     if (runningScript) return;
     setRunningScript(node.path);
-    runShellScript(node.path);
+    window.electronAPI.runShellScript(node.path);
     setTimeout(() => setRunningScript(null), 3000);
   }, [runningScript]);
 

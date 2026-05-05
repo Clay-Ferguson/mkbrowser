@@ -31,6 +31,7 @@ import { logger } from './utils/logUtil';
     }
   });
 import { exportFolderContents, exportToPdf } from './utils/exportUtils';
+import { runShellScript } from './utils/launcherUtil';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
 const ENABLE_STREAM_RESPONSE = true;
@@ -468,6 +469,14 @@ function setupIpcHandlers(): void {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
+    }
+  });
+
+  ipcMain.handle('run-shell-script', async (_event, filePath: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      return await runShellScript(filePath);
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
 
