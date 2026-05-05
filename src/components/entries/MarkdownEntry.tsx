@@ -36,7 +36,7 @@ import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
 import TagsPicker from './TagsPicker';
-import TagsDisplay from './TagsDisplay';
+import PropsDisplay from './PropsDisplay';
 import { createCustomImage } from './markdownImgResolver';
 import CustomAnchor from './CustomAnchor';
 import CustomCode from './CustomCode';
@@ -436,7 +436,13 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             </>
           ) : (
             <>
-              {item?.tags && item.tags.length > 0 && <TagsDisplay tags={item.tags} floatRight={item.tags.length < 7} />}
+              {(item?.tags?.length || item?.props && Object.keys(item.props).filter(k => k !== 'id').length > 0) && (
+                <PropsDisplay
+                  tags={item.tags ?? []}
+                  props={item.props}
+                  floatRight={(item.tags?.length ?? 0) + Object.keys(item.props ?? {}).filter(k => k !== 'id').length < 7}
+                />
+              )}
               {columns.length > 1 ? (
               <div
                 style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}

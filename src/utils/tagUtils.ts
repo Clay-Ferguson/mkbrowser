@@ -82,6 +82,18 @@ export function getTagsFromYaml(yamlStr: string): string[] {
   }
 }
 
+/** Returns all front matter properties except 'tags', preserving their parsed types. */
+export function getPropsFromYaml(yamlStr: string): Record<string, unknown> {
+  try {
+    const parsed = yaml.load(yamlStr) as Record<string, unknown> | null;
+    if (!parsed) return {};
+    const { tags: _tags, ...rest } = parsed;
+    return rest;
+  } catch {
+    return {};
+  }
+}
+
 export function setTagsInYaml(yamlStr: string, tags: string[]): string {
   let parsed: Record<string, unknown>;
   try {

@@ -83,6 +83,13 @@ export interface ItemData {
    * Populated alongside content when the file is first read or saved.
    */
   tags?: string[];
+
+  /**
+   * All non-tags Front Matter properties, keyed by property name.
+   * Values retain their parsed YAML types (string, number, boolean, array, etc.).
+   * Populated alongside content when the file is first read or saved.
+   */
+  props?: Record<string, unknown>;
 }
 
 /**

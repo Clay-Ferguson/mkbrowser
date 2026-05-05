@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, TreeNode, FileNode, MarkdownHeadingNode } from './types';
 import { createItemData } from './types';
-import { splitFrontMatter, getTagsFromYaml } from '../utils/tagUtils';
+import { splitFrontMatter, getTagsFromYaml, getPropsFromYaml } from '../utils/tagUtils';
 
 /**
  * Default settings
@@ -350,6 +350,7 @@ export function setItemContent(path: string, content: string, modifiedTime?: num
   const now = modifiedTime ?? existing.modifiedTime;
   const fmParts = splitFrontMatter(content);
   const tags = fmParts ? getTagsFromYaml(fmParts.yamlStr).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })) : [];
+  const props = fmParts ? getPropsFromYaml(fmParts.yamlStr) : {};
 
   const newItems = new Map(state.items);
   newItems.set(path, {
@@ -358,6 +359,7 @@ export function setItemContent(path: string, content: string, modifiedTime?: num
     modifiedTime: now,
     contentCachedAt: now,
     tags,
+    props,
   });
 
   state = { ...state, items: newItems };
