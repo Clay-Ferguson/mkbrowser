@@ -74,6 +74,9 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
   const handleCancel = () => {
     setItemReviewing(path, false);
     setItemEditing(path, false);
+    if (globalHighlightText) {
+      requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
+    }
   };
 
   const handleSave = async () => {

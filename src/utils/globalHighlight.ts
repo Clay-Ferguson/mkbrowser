@@ -8,7 +8,7 @@ export function setGlobalHighlightText(text: string | null) {
 
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'INPUT', 'TEXTAREA']);
 
-export function applyGlobalHighlight(searchText: string): void {
+export function applyGlobalHighlight(searchText: string | null): void {
   // logger.log('[globalHighlight] called, searchText:', searchText);
   // logger.log('[globalHighlight] CSS.highlights available:', typeof CSS !== 'undefined' && 'highlights' in CSS);
 
