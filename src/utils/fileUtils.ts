@@ -172,20 +172,27 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     if (entry.name.startsWith('.')) continue;
 
     const fullPath = path.join(dirPath, entry.name);
-    const isDirectory = entry.isDirectory();
-    const isMarkdown = !isDirectory && entry.name.toLowerCase().endsWith('.md');
 
-    // Get file stats for modification and creation time
+    // stat() follows symlinks, so it resolves the real type for symlinks.
+    // Dirent.isDirectory() does NOT follow symlinks on Linux.
     let modifiedTime = 0;
     let createdTime = 0;
+    let isDirectory = entry.isDirectory();
     try {
       const stat = await fs.promises.stat(fullPath);
       modifiedTime = stat.mtimeMs;
       createdTime = stat.birthtimeMs;
+      if (entry.isSymbolicLink()) {
+        isDirectory = stat.isDirectory();
+      }
     } catch {
+      // Broken symlink — skip it silently.
+      if (entry.isSymbolicLink()) continue;
       modifiedTime = Date.now();
       createdTime = Date.now();
     }
+
+    const isMarkdown = !isDirectory && entry.name.toLowerCase().endsWith('.md');
 
     const fileEntry: FileEntry = {
       name: entry.name,
