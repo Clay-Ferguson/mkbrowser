@@ -2,7 +2,8 @@ import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 
 import { EditorView, placeholder as placeholderExt, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
-import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
+import { highlightSelectionMatches, search, searchKeymap, openSearchPanel, setSearchQuery, SearchQuery } from '@codemirror/search';
+import { globalHighlightText } from '../../utils/globalHighlight';
 import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching } from '@codemirror/language';
 import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -263,6 +264,14 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
           } catch (err) {
             logger.error('Failed to scroll to line:', err);
           }
+        }
+
+        // If there's a global search term active, open the search panel pre-populated
+        if (globalHighlightText && viewRef.current) {
+          openSearchPanel(viewRef.current);
+          viewRef.current.dispatch({
+            effects: setSearchQuery.of(new SearchQuery({ search: globalHighlightText, caseSensitive: false })),
+          });
         }
 
         // Focus the editor
