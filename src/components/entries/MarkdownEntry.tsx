@@ -440,7 +440,6 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 <PropsDisplay
                   tags={item.tags ?? []}
                   props={item.props}
-                  floatRight={(item.tags?.length ?? 0) + Object.keys(item.props ?? {}).filter(k => k !== 'id').length < 7}
                 />
               )}
               {columns.length > 1 ? (

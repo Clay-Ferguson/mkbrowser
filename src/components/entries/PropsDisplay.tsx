@@ -3,7 +3,6 @@ const MONO_FONT = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Li
 interface PropsDisplayProps {
   tags: string[];
   props?: Record<string, unknown>;
-  floatRight?: boolean;
 }
 
 /**
@@ -16,7 +15,7 @@ interface PropsDisplayProps {
  *
  * Returns null when there is nothing to display.
  */
-export default function PropsDisplay({ tags, props, floatRight = false }: PropsDisplayProps) {
+export default function PropsDisplay({ tags, props }: PropsDisplayProps) {
   const propEntries = props
     ? Object.entries(props).filter(([key]) => key !== 'id')
     : [];
@@ -24,8 +23,6 @@ export default function PropsDisplay({ tags, props, floatRight = false }: PropsD
   const hasProps = propEntries.length > 0;
 
   if (!hasTags && !hasProps) return null;
-
-  const totalPills = tags.length + propEntries.length;
 
   const propPills = propEntries.map(([key, value]) => (
     <span
@@ -49,17 +46,8 @@ export default function PropsDisplay({ tags, props, floatRight = false }: PropsD
     </span>
   ));
 
-  if (floatRight) {
-    return (
-      <div className="flex flex-nowrap gap-x-2 ml-4 mb-2" style={{ float: 'right' }}>
-        {propPills}
-        {tagPills}
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-wrap gap-x-2 gap-y-1 mb-3">
+    <div className="flex flex-nowrap justify-end gap-x-2 mb-2">
       {propPills}
       {tagPills}
     </div>
