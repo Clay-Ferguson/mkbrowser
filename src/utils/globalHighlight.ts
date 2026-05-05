@@ -1,6 +1,10 @@
 // import { logger } from '../utils/logUtil';
 
-export const globalHighlightText = 'searchTest';
+export let globalHighlightText: string| null = null;
+
+export function setGlobalHighlightText(text: string | null) {
+  globalHighlightText = text;
+}
 
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'INPUT', 'TEXTAREA']);
 

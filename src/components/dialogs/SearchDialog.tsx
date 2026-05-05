@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import ConfirmDialog from './ConfirmDialog';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import type { SearchDefinition } from '../../store/types';
+import * as globalHighlight from '../../utils/globalHighlight';
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
@@ -105,6 +106,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
 
+    globalHighlight.setGlobalHighlightText(searchType === 'literal' ? cleanedQuery : '');
     onSearch({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
   };
 
