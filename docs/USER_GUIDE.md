@@ -473,7 +473,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 *   **`past(date, lookbackDays?)`**: Returns `true` if the date is in the past. The optional `lookbackDays` parameter limits results to timestamps within the specified number of days ago (e.g., `past(ts, 7)` matches timestamps from the last 7 days).
 *   **`future(date, lookaheadDays?)`**: Returns `true` if the date is in the future. The optional `lookaheadDays` parameter limits results to timestamps within the specified number of days ahead (e.g., `future(ts, 30)` matches timestamps within the next 30 days).
 *   **`today(date)`**: Returns `true` if the date is today.
-*   **`prop(propertyPath, value)`**: Returns `true` if the file's YAML front matter has a property at `propertyPath` whose value exactly matches `value`. Use dot-notation to reach nested properties (e.g. `'author.name'`).
+*   **`prop(propertyPath)`**: Returns the value of the property at `propertyPath` from the file's YAML front matter, or `undefined` if not found. Use dot-notation to reach nested properties (e.g. `'author.name'`).
 *   **`inList(propertyPath, value)`**: Returns `true` if the file's YAML front matter has a list property at `propertyPath` that contains `value` as one of its items. Use dot-notation to reach nested properties.
 
 **Examples:**
@@ -499,7 +499,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     ```
 *   Find files whose front matter `category` property is `sports`:
     ```javascript
-    prop('category', 'sports')
+    prop('category') == 'sports'
     ```
     Matches files with front matter like:
     ```markdown
@@ -509,7 +509,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     ```
 *   Find files with a nested front matter property, e.g. `author.role` set to `editor`:
     ```javascript
-    prop('author.role', 'editor')
+    prop('author.role') == 'editor'
     ```
     Matches files with front matter like:
     ```markdown

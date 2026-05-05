@@ -101,21 +101,20 @@ function createInListFunction(content: string, filePath?: string): (propPath: st
 }
 
 /**
- * Returns a `prop(propPath, value)` function scoped to the given file content.
+ * Returns a `prop(propPath)` function scoped to the given file content.
  * `propPath` supports dot-notation to drill into nested YAML objects.
  */
-function createPropFunction(content: string, filePath?: string): (propPath: string, value: string) => boolean {
-  return (propPath: string, value: string): boolean => {
+function createPropFunction(content: string, filePath?: string): (propPath: string) => unknown {
+  return (propPath: string): unknown => {
     const parsed = getYaml(content, filePath);
-    if (!parsed) return false;
+    if (!parsed) return undefined;
     const keys = propPath.split('.');
     let current: unknown = parsed;
     for (const key of keys) {
-      if (current === null || typeof current !== 'object') return false;
+      if (current === null || typeof current !== 'object') return undefined;
       current = (current as Record<string, unknown>)[key];
     }
-    if (current === undefined) return false;
-    return String(current) === value;
+    return current;
   };
 }
 
