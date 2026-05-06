@@ -13,6 +13,7 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
+import { scanFolderTree, type FolderGraphResult } from './folderGraph';
 import { collectAncestorTags } from './utils/tagUtils';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
 import { hasScriptedAnswer, queueScriptedAnswer } from './ai/langGraph';
@@ -405,6 +406,17 @@ function setupIpcHandlers(): void {
     } catch (error) {
       logger.error('Error analyzing folder:', error);
       return { hashtags: [], totalFiles: 0 };
+    }
+  });
+
+  // Recursively scan folder structure for the FolderGraphView (D3 graph).
+  ipcMain.handle('scan-folder-tree', async (_event, folderPath: string): Promise<FolderGraphResult> => {
+    try {
+      const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
+      return await scanFolderTree(folderPath, ignoredPaths);
+    } catch (error) {
+      logger.error('Error scanning folder tree:', error);
+      return { folderPath, nodes: [], links: [], truncated: false };
     }
   });
 

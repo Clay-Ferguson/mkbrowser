@@ -5,14 +5,14 @@
 Pages are the different top level views (aka panels) that we display in the application. Their names are defined in file `src/store/types.ts` in the following line of code. 
 
 ```
-export type AppView = 'browser' | 'search-results' | 'settings';
+export type AppView = 'browser' | 'search-results' | 'settings' ...;
 ```
 
 The 'browser' one is the main default application `src/App.tsx`, but any pages other than the main (browser) page should follow a pattern similar to what you find in `src/components/SearchResultsView.tsx`
 
 ## Tab Navigation
 
-Each page has a corresponding tab button in the tab panel at the top of the screen (Browse, Search, Settings). When the user clicks a tab button, we update the `currentView` in the global `AppState`, and that causes the page to display at next render.
+Each page has a corresponding tab button in the tab panel at the top of the screen (Browse, Search, Settings). When the user clicks a tab button, we update the `currentView` in the global `AppState`, and that causes the page to display at next render. We have clickable application tabs in the `AppTabButtons.tsx` component which lets users choose which tab to make active. Similar to most other tab panel designs, we can only have one tab active at a time. And of course, the purpose of the tab buttons is to select which tab to view.
 
 ## React Global State Management
 

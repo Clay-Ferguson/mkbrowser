@@ -95,7 +95,7 @@ export interface ItemData {
 /**
  * Represents which application page (aka view or panel) is currently displayed
  */
-export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread';
+export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread' | 'folder-graph';
 
 /**
  * A single hashtag entry with its occurrence count
@@ -115,6 +115,49 @@ export interface FolderAnalysisState {
   folderPath: string;
   /** Total number of files scanned */
   totalFiles: number;
+}
+
+/**
+ * A node in the folder graph (a file or folder).
+ */
+export interface FolderGraphNode {
+  /** Stable id (full path) */
+  id: string;
+  /** Display name (basename) */
+  name: string;
+  /** True if directory, false if file */
+  isDirectory: boolean;
+  /** Depth from the root folder (root = 0) */
+  depth: number;
+}
+
+/**
+ * A parent->child edge in the folder graph.
+ */
+export interface FolderGraphLink {
+  /** Parent node id */
+  source: string;
+  /** Child node id */
+  target: string;
+}
+
+/**
+ * State for the folder graph feature.
+ *
+ * Layout state (zoom transform, drag positions, simulation alpha) is NOT
+ * stored here. The FolderGraphView is kept mounted across tab switches via
+ * a CSS visibility toggle in App.tsx, so the SVG and d3-zoom's internal
+ * state persist in the live DOM without needing to be serialized.
+ */
+export interface FolderGraphState {
+  /** The folder that was scanned to produce this graph */
+  folderPath: string;
+  /** All nodes in the graph (including the root folder) */
+  nodes: FolderGraphNode[];
+  /** Parent->child edges */
+  links: FolderGraphLink[];
+  /** True if the scan hit the node-count cap and was truncated */
+  truncated: boolean;
 }
 
 /**
@@ -389,6 +432,13 @@ export interface AppState {
    * Folder analysis results (null until an analysis is run)
    */
   folderAnalysis: FolderAnalysisState | null;
+
+  /**
+   * Folder graph data (null until a graph scan is run).
+   * Includes frozen node positions once the simulation has cooled, so
+   * leaving and returning to the view restores the same layout.
+   */
+  folderGraph: FolderGraphState | null;
 
   /**
    * Root node of the IndexTree sidebar.

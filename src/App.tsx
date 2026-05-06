@@ -5,6 +5,7 @@ import ErrorDialog from './components/dialogs/ErrorDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
 import FolderAnalysisView from './components/views/FolderAnalysisView';
+import FolderGraphView from './components/views/FolderGraphView';
 import AISettingsView from './components/views/AISettingsView';
 import ThreadView from './components/views/ThreadView';
 import BrowseView from './components/views/BrowseView';
@@ -23,6 +24,7 @@ import {
   useItems,
   useCurrentView,
   useCurrentPath,
+  useFolderGraph,
   useSettings,
   getIndexTreeRoot,
   setIndexTreeRoot,
@@ -68,6 +70,7 @@ function App() {
   const items = useItems();
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
+  const folderGraph = useFolderGraph();
   const settings = useSettings();
 
   // Apply font size globally via data attribute on html element
@@ -280,76 +283,86 @@ function App() {
     );
   }
 
-  if (currentView === 'search-results') {
-    return (
-      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
-        <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
-        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
-      </div>
-    );
-  }
-
-  if (currentView === 'settings') {
-    return (
-      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
-        <SettingsView onSaveSettings={handleSaveSettings} />
-        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
-      </div>
-    );
-  }
-
-  if (currentView === 'ai-settings') {
-    return (
-      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
-        <AISettingsView />
-        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
-      </div>
-    );
-  }
-
-  if (currentView === 'folder-analysis') {
-    return (
-      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
-        <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
-        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
-      </div>
-    );
-  }
-
-  if (currentView === 'thread') {
-    return (
-      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-        <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
-        <ThreadView onSaveSettings={handleSaveSettings} />
-        {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
-      </div>
-    );
-  }
-
+  // The FolderGraphView wrapper stays mounted whenever a graph has been
+  // generated, even when the user switches tabs — visibility is toggled via
+  // CSS so the SVG, d3 simulation state, and zoom transform all persist.
+  // The other view branches mount/unmount, and are not rendered in the DOM 
+  // unless the tab is active.
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-      <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
-      <div className="flex-1 flex flex-row min-h-0">
-        {settings.indexTreeWidth !== 'hidden' && <IndexTree />}
-        <div className="flex-1 flex flex-col min-h-0 min-w-0">
-          <BrowseView
-            entries={entries}
-            loading={loading}
-            aiEnabled={aiEnabled}
-            lastExportFolder={lastExportFolder}
-            onSetLastExportFolder={setLastExportFolder}
-            onRefreshDirectory={refreshDirectory}
-            onSetError={setError}
-            onSaveSettings={handleSaveSettings}
-          />
+    <>
+      {folderGraph && (
+        <div
+          className="flex-1 flex flex-col min-h-0 bg-slate-900"
+          style={{ display: currentView === 'folder-graph' ? 'flex' : 'none' }}
+        >
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <FolderGraphView />
+          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
         </div>
-      </div>
-      {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
-    </div>
+      )}
+
+      {currentView === 'search-results' && (
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
+          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+        </div>
+      )}
+
+      {currentView === 'settings' && (
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <SettingsView onSaveSettings={handleSaveSettings} />
+          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+        </div>
+      )}
+
+      {currentView === 'ai-settings' && (
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <AISettingsView />
+          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+        </div>
+      )}
+
+      {currentView === 'folder-analysis' && (
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
+          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+        </div>
+      )}
+
+      {currentView === 'thread' && (
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <ThreadView onSaveSettings={handleSaveSettings} />
+          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+        </div>
+      )}
+
+      {currentView === 'browser' && (
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <div className="flex-1 flex flex-row min-h-0">
+            {settings.indexTreeWidth !== 'hidden' && <IndexTree />}
+            <div className="flex-1 flex flex-col min-h-0 min-w-0">
+              <BrowseView
+                entries={entries}
+                loading={loading}
+                aiEnabled={aiEnabled}
+                lastExportFolder={lastExportFolder}
+                onSetLastExportFolder={setLastExportFolder}
+                onRefreshDirectory={refreshDirectory}
+                onSetError={setError}
+                onSaveSettings={handleSaveSettings}
+              />
+            </div>
+          </div>
+          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+        </div>
+      )}
+    </>
   );
 }
 

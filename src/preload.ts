@@ -77,6 +77,13 @@ export interface FolderAnalysisResult {
   totalFiles: number;
 }
 
+export interface FolderGraphScanResult {
+  folderPath: string;
+  nodes: Array<{ id: string; name: string; isDirectory: boolean; depth: number }>;
+  links: Array<{ source: string; target: string }>;
+  truncated: boolean;
+}
+
 export interface ProviderUsage {
   inputTokens: number;
   outputTokens: number;
@@ -111,6 +118,7 @@ export interface ElectronAPI {
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => Promise<SearchResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
+  scanFolderTree: (folderPath: string) => Promise<FolderGraphScanResult>;
   collectAncestorTags: (filePath: string) => Promise<string[]>;
   askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
   replyToAi: (parentFolderPath: string, createSubFolder: boolean) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
@@ -149,6 +157,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchImageExif, mostRecent),
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
+  scanFolderTree: (folderPath: string) => ipcRenderer.invoke('scan-folder-tree', folderPath),
   collectAncestorTags: (filePath: string) => ipcRenderer.invoke('collect-ancestor-tags', filePath),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
   selectExportFolder: () => ipcRenderer.invoke('select-export-folder'),

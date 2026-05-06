@@ -43,6 +43,7 @@ import {
   setBrowserScrollPosition,
   getBrowserScrollPosition,
   setFolderAnalysis,
+  setFolderGraph,
   setHasIndexFile,
   useRootPath,
   useItems,
@@ -951,6 +952,25 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 setCurrentView('folder-analysis');
               } catch (err) {
                 onSetError('Failed to analyze folder: ' + (err instanceof Error ? err.message : String(err)));
+              }
+            })();
+          }}
+          onFolderGraph={() => {
+            if (!currentPath) return;
+            void (async () => {
+              try {
+                const result = await window.electronAPI.scanFolderTree(currentPath);
+                // Replace any prior graph wholesale: re-launching from the menu
+                // is the only path that resets layout, per the spec.
+                setFolderGraph({
+                  folderPath: result.folderPath,
+                  nodes: result.nodes.map(n => ({ ...n })),
+                  links: result.links.map(l => ({ ...l })),
+                  truncated: result.truncated,
+                });
+                setCurrentView('folder-graph');
+              } catch (err) {
+                onSetError('Failed to scan folder graph: ' + (err instanceof Error ? err.message : String(err)));
               }
             })();
           }}

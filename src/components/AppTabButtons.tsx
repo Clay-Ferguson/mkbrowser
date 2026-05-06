@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { showTab, useCurrentView, setCurrentView, useFolderAnalysis, useSearchResults, useVisibleTabs, useCurrentPath, useRootPath, setCurrentPath, setHighlightItem, setPendingScrollToFile, type AppView } from '../store';
+import { showTab, useCurrentView, setCurrentView, useFolderAnalysis, useFolderGraph, useSearchResults, useVisibleTabs, useCurrentPath, useRootPath, setCurrentPath, setHighlightItem, setPendingScrollToFile, type AppView } from '../store';
 import { isAiThreadByEntries } from '../ai/aiPatterns';
 import type { FileEntry } from '../global';
 import appLogo from '../../public/icon-256.png';
@@ -16,12 +16,13 @@ interface AppTabButtonsProps {
   onQuit: () => void;
 }
 
-// Canonical tab order: Browse, Thread, Search, Analysis, Settings
+// Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings
 const allTabs: TabConfig[] = [
   { id: 'browser', label: 'Browse' },
   { id: 'thread', label: 'Chat' },
   { id: 'search-results', label: 'Search' },
   { id: 'folder-analysis', label: 'Analysis' },
+  { id: 'folder-graph', label: 'Folder Graph' },
   { id: 'settings', label: 'Settings' },
   { id: 'ai-settings', label: 'AI Settings' },
 ];
@@ -29,6 +30,7 @@ const allTabs: TabConfig[] = [
 function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) {
   const currentView = useCurrentView();
   const folderAnalysis = useFolderAnalysis();
+  const folderGraph = useFolderGraph();
   const searchResults = useSearchResults();
   const currentPath = useCurrentPath();
   const rootPath = useRootPath();
@@ -54,6 +56,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
     ...visibleTabs,
     ...(searchResults.length > 0 ? ['search-results' as AppView] : []),
     ...(folderAnalysis ? ['folder-analysis' as AppView] : []),
+    ...(folderGraph ? ['folder-graph' as AppView] : []),
     ...(isInAiThread ? ['thread' as AppView] : []),
   ]);
 

@@ -6,6 +6,7 @@ interface ToolsPopupMenuProps {
   onClose: () => void;
   aiEnabled: boolean;
   onFolderAnalysis: () => void;
+  onFolderGraph: () => void;
   onExport: () => void;
   onNewAiChat: () => void;
   onRunOcr: () => void;
@@ -16,6 +17,7 @@ export default function ToolsPopupMenu({
   onClose,
   aiEnabled,
   onFolderAnalysis,
+  onFolderGraph,
   onExport,
   onNewAiChat,
   onRunOcr,
@@ -35,6 +37,11 @@ export default function ToolsPopupMenu({
         label="Folder Analysis"
         data-testid="menu-folder-analysis"
         onClick={() => { onFolderAnalysis(); onClose(); }}
+      />
+      <PopupMenuItem
+        label="Folder Graph"
+        data-testid="menu-folder-graph"
+        onClick={() => { onFolderGraph(); onClose(); }}
       />
       <PopupMenuItem
         label="Export..."

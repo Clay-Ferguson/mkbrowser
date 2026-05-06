@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, TreeNode, FileNode, MarkdownHeadingNode } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, FolderGraphState, TreeNode, FileNode, MarkdownHeadingNode } from './types';
 import { createItemData } from './types';
 import { splitFrontMatter, getTagsFromYaml, getPropsFromYaml } from '../utils/tagUtils';
 
@@ -50,6 +50,7 @@ const initialState: AppState = {
   },
   highlightedSearchResult: null,
   folderAnalysis: null,
+  folderGraph: null,
   pendingThreadScrollToBottom: false,
   rootPath: '',
   visibleTabs: new Set<AppView>(['browser']),
@@ -248,6 +249,13 @@ function getHighlightedSearchResultSnapshot(): { path: string; lineNumber?: numb
  */
 function getFolderAnalysisSnapshot(): FolderAnalysisState | null {
   return state.folderAnalysis;
+}
+
+/**
+ * Get snapshot of folder graph state
+ */
+function getFolderGraphSnapshot(): FolderGraphState | null {
+  return state.folderGraph;
 }
 
 /**
@@ -1020,6 +1028,16 @@ export function setFolderAnalysis(data: FolderAnalysisState): void {
 }
 
 /**
+ * Set the folder graph data. Pass null to clear it.
+ * Used both for the initial scan result and to overwrite when the user
+ * re-launches the graph from the menu.
+ */
+export function setFolderGraph(data: FolderGraphState | null): void {
+  state = { ...state, folderGraph: data };
+  emitChange();
+}
+
+/**
  * Navigate to a path and switch to browser view in a single state update.
  * Optionally set a file to scroll to after render completes.
  * 
@@ -1495,6 +1513,13 @@ export function useHasCutItems(): boolean {
  */
 export function useFolderAnalysis(): FolderAnalysisState | null {
   return useSyncExternalStore(subscribe, getFolderAnalysisSnapshot);
+}
+
+/**
+ * Hook to subscribe to folder graph state
+ */
+export function useFolderGraph(): FolderGraphState | null {
+  return useSyncExternalStore(subscribe, getFolderGraphSnapshot);
 }
 
 /**

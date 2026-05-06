@@ -123,6 +123,13 @@ export interface FolderAnalysisResult {
   totalFiles: number;
 }
 
+export interface FolderGraphScanResult {
+  folderPath: string;
+  nodes: Array<{ id: string; name: string; isDirectory: boolean; depth: number }>;
+  links: Array<{ source: string; target: string }>;
+  truncated: boolean;
+}
+
 export interface ProviderUsage {
   inputTokens: number;
   outputTokens: number;
@@ -162,6 +169,7 @@ export interface ElectronAPI {
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => Promise<SearchResult[]>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
+  scanFolderTree: (folderPath: string) => Promise<FolderGraphScanResult>;
   collectAncestorTags: (filePath: string) => Promise<HashtagDefinition[]>;
   setWindowTitle: (title: string) => Promise<void>;
   selectExportFolder: () => Promise<string | null>;
