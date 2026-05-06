@@ -474,7 +474,6 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 *   **`future(date, lookaheadDays?)`**: Returns `true` if the date is in the future. The optional `lookaheadDays` parameter limits results to timestamps within the specified number of days ahead (e.g., `future(ts, 30)` matches timestamps within the next 30 days).
 *   **`today(date)`**: Returns `true` if the date is today.
 *   **`prop(propertyPath, valType?)`**: Returns the value of the property at `propertyPath` from the file's YAML front matter, or `undefined` if not found. Use dot-notation to reach nested properties (e.g. `'author.name'`). The optional `valType` argument controls the return type: `"string"` (default) returns the raw value; `"ts"` interprets the property value as a date/datetime string (MM/DD/YYYY with optional HH:MM[:SS] AM/PM) and returns a numeric timestamp in milliseconds, suitable for use with `past()`, `future()`, and `today()`.
-*   **`inList(propertyPath, value)`**: Returns `true` if the file's YAML front matter has a list property at `propertyPath` that contains `value` as one of its items. Use dot-notation to reach nested properties.
 
 **Examples:**
 *   Find files with "TODO" that are due in the future:
@@ -531,7 +530,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     ```
 *   Find files whose `tags` list contains `p1`:
     ```javascript
-    inList('tags', 'p1')
+    prop('tags')?.includes('p1')
     ```
     Matches files with front matter like:
     ```markdown
@@ -542,9 +541,9 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
       - to-buy
     ---
     ```
-*   Combine `inList` with a content search — files tagged `urgent` that also mention "deadline":
+*   Combine a tag list check with a content search — files tagged `urgent` that also mention "deadline":
     ```javascript
-    inList('tags', 'urgent') && $('#deadline')
+    prop('tags')?.includes('urgent') && $('#deadline')
     ```
 
 ## Saving Search Definitions

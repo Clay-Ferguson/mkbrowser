@@ -82,25 +82,6 @@ function wildcardToRegex(pattern: string): RegExp {
 }
 
 /**
- * Returns an `inList(propPath, value)` function scoped to the given file content.
- * Resolves `propPath` (dot-notation) to a YAML array and checks for an exact match.
- */
-function createInListFunction(content: string, filePath?: string): (propPath: string, value: string) => boolean {
-  return (propPath: string, value: string): boolean => {
-    const parsed = getYaml(content, filePath);
-    if (!parsed) return false;
-    const keys = propPath.split('.');
-    let current: unknown = parsed;
-    for (const key of keys) {
-      if (current === null || typeof current !== 'object') return false;
-      current = (current as Record<string, unknown>)[key];
-    }
-    if (!Array.isArray(current)) return false;
-    return current.some(item => String(item) === value);
-  };
-}
-
-/**
  * Returns a `prop(propPath, valType?)` function scoped to the given file content.
  * `propPath` supports dot-notation to drill into nested YAML objects.
  * `valType` can be "string" (default) or "ts" (parse value as a date, return ms number).
@@ -134,11 +115,10 @@ export function createMatchPredicate(
       const ts = extractTimestamp(content);
       const { $, getMatchCount } = createContentSearcher(content);
       const prop = createPropFunction(content, filePath);
-      const inList = createInListFunction(content, filePath);
       try {
         const expressionCode = `return (${queryStr});`;
-        const evalFunction = new Function('$', 'ts', 'past', 'future', 'today', 'prop', 'inList', expressionCode);
-        const rawResult = evalFunction($, ts, past, future, today, prop, inList);
+        const evalFunction = new Function('$', 'ts', 'past', 'future', 'today', 'prop', expressionCode);
+        const rawResult = evalFunction($, ts, past, future, today, prop);
         const matches = Boolean(rawResult);
         const matchCount = getMatchCount();
         return {
