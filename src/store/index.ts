@@ -87,6 +87,7 @@ export {
   useSearchResults,
   useSearchQuery,
   useSearchFolder,
+  useSearchName,
   useSearchSortBy,
   useSearchSortDirection,
   useSettings,

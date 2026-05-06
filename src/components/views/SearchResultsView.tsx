@@ -12,6 +12,7 @@ import {
   useSearchResults,
   useSearchQuery,
   useSearchFolder,
+  useSearchName,
   useSettings,
   useHighlightedSearchResult,
   useSearchSortBy,
@@ -30,6 +31,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const searchResults = useSearchResults();
   const searchQuery = useSearchQuery();
   const searchFolder = useSearchFolder();
+  const searchName = useSearchName();
   const settings = useSettings();
   const highlightedSearchResult = useHighlightedSearchResult();
   const searchSortBy = useSearchSortBy();
@@ -163,6 +165,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
           <div className="flex items-center gap-3 px-4 py-2">
             {/* Title */}
             <div className="text-sm text-slate-300 truncate">
+              {searchName && (
+                <span className="text-purple-300 font-semibold mr-2">{searchName}:</span>
+              )}
               Searched for <span className="text-slate-200 font-medium">"{searchQuery}"</span> in {folderName}
             </div>
           </div>

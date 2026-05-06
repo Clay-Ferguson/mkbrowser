@@ -228,10 +228,10 @@ function App() {
     if (ctrlKey) {
       const advancedQuery = `$("${hashtag}")`;
       const results = await window.electronAPI.searchFolder(currentPath, advancedQuery, 'advanced', 'content');
-      setSearchResults(results, advancedQuery, currentPath, 'modified-time', 'desc');
+      setSearchResults(results, advancedQuery, currentPath, 'modified-time', 'desc', '');
     } else {
       const results = await window.electronAPI.searchFolder(currentPath, hashtag, 'literal', 'content');
-      setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc');
+      setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc', '');
     }
     setCurrentView('search-results');
   }, [currentPath]);

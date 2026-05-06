@@ -456,7 +456,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
 
     const results = await window.electronAPI.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchImageExif, options.mostRecent);
-    setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection);
+    setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection, options.searchName || '');
     setCurrentView('search-results');
   }, [currentPath]);
 
@@ -891,7 +891,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 definition.searchTarget,
                 definition.searchImageExif
               );
-              setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc');
+              setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc', definition.name);
               setCurrentView('search-results');
             })();
           }}

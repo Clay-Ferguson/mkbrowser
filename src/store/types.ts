@@ -326,6 +326,11 @@ export interface AppState {
   searchFolder: string;
 
   /**
+   * Name of the saved search definition that produced the current results, if any
+   */
+  searchName: string;
+
+  /**
    * Search results from the most recent search
    */
   searchResults: SearchResultItem[];

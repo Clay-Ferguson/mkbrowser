@@ -31,6 +31,7 @@ const initialState: AppState = {
   pendingScrollToHeadingSlug: null,
   searchQuery: '',
   searchFolder: '',
+  searchName: '',
   searchResults: [],
   searchSortBy: 'modified-time',
   searchSortDirection: 'desc',
@@ -151,6 +152,13 @@ function getSearchQuerySnapshot(): string {
  */
 function getSearchFolderSnapshot(): string {
   return state.searchFolder;
+}
+
+/**
+ * Get snapshot of search name (saved search definition name)
+ */
+function getSearchNameSnapshot(): string {
+  return state.searchName;
 }
 
 /**
@@ -1101,13 +1109,15 @@ export function setSearchResults(
   query: string,
   folder: string,
   sortBy?: SearchSortBy,
-  sortDirection?: SearchSortDirection
+  sortDirection?: SearchSortDirection,
+  searchName?: string
 ): void {
   state = {
     ...state,
     searchResults: results,
     searchQuery: query,
     searchFolder: folder,
+    ...(searchName !== undefined && { searchName }),
     ...(sortBy !== undefined && { searchSortBy: sortBy }),
     ...(sortDirection !== undefined && { searchSortDirection: sortDirection }),
   };
@@ -1123,6 +1133,7 @@ export function clearSearchResults(): void {
     searchResults: [],
     searchQuery: '',
     searchFolder: '',
+    searchName: '',
     searchSortBy: 'modified-time',
     searchSortDirection: 'desc',
   };
@@ -1372,6 +1383,13 @@ export function useSearchQuery(): string {
  */
 export function useSearchFolder(): string {
   return useSyncExternalStore(subscribe, getSearchFolderSnapshot);
+}
+
+/**
+ * Hook to subscribe to the saved-search name (empty if results are not from a named search)
+ */
+export function useSearchName(): string {
+  return useSyncExternalStore(subscribe, getSearchNameSnapshot);
 }
 
 /**
