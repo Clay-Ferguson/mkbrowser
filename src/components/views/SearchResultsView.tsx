@@ -1,5 +1,5 @@
 import { useState } from 'react'; 
-import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, ShareIcon } from '@heroicons/react/24/outline';
 import {
   setSearchResults,
   setHighlightItem,
@@ -9,6 +9,8 @@ import {
   setSearchResultsScrollPosition,
   getSearchResultsScrollPosition,
   deleteItems,
+  setFolderGraph,
+  setCurrentView,
   useSearchResults,
   useSearchQuery,
   useSearchFolder,
@@ -19,6 +21,7 @@ import {
   useSearchSortDirection,
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
+import { buildFolderGraphFromSearchResults } from '../../utils/searchTreeBuilder';
 import { getDaysFromToday, formatDaysDisplay } from '../../utils/timeUtil';
 import { getContentWidthClasses } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -170,6 +173,20 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
               )}
               Searched for <span className="text-slate-200 font-medium">"{searchQuery}"</span> in {folderName}
             </div>
+            <button
+              onClick={() => {
+                if (searchResults.length === 0) return;
+                const graph = buildFolderGraphFromSearchResults(searchResults);
+                setFolderGraph(graph);
+                setCurrentView('folder-graph');
+              }}
+              disabled={searchResults.length === 0}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1 text-sm text-slate-200 bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              title="View search results as folder graph"
+            >
+              <ShareIcon className="w-4 h-4" />
+              Graph View
+            </button>
           </div>
         </header>
       )}
