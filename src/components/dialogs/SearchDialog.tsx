@@ -148,7 +148,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 w-full max-w-2xl mx-4 shadow-xl">
-        <h2 className="text-lg font-semibold text-slate-100 mb-3">Search in folder</h2>
+        <h2 className="text-lg font-semibold text-slate-100 mb-3">Search</h2>
 
         <label className="block text-sm text-slate-400 mb-2">
           {searchType === 'advanced' ? 'JavaScript expression' : searchType === 'wildcard' ? 'Search text (use * as wildcard, matches up to 25 characters)' : 'Search text'}
@@ -166,45 +166,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           style={{ minHeight: '80px' }}
         />
 
-        <div className="mb-4">
-          <label className="block text-sm text-slate-400 mb-2 mt-3">
-            Search Name (optional - saves this search if provided)
-          </label>
-          <div className="flex gap-3">
-            <EditableCombobox
-              value={searchName}
-              onChange={setSearchName}
-              onSelect={handleSelectSearchDefinition}
-              options={searchDefinitionOptions}
-              placeholder="Enter a name to save, or select existing..."
-              className="flex-1"
-              data-testid="search-name-input"
-            />
-            <button
-              onClick={handleSave}
-              disabled={!searchName.trim()}
-              data-testid="save-search-button"
-              className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-500 disabled:bg-green-600/50 disabled:cursor-not-allowed rounded transition-colors"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => {
-                if (searchName.trim()) {
-                  setShowDeleteConfirm(true);
-                }
-              }}
-              disabled={!searchName.trim()}
-              data-testid="delete-search-button"
-              className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-500 disabled:bg-red-600/50 disabled:cursor-not-allowed rounded transition-colors"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-
         {/* Search Image EXIF and Most Recent checkboxes */}
-        <div className="flex items-center gap-6 mb-3">
+        <div className="flex items-center gap-6 mb-3 mt-3">
           <label className={`flex items-center gap-2 ${searchMode === 'filenames' ? 'opacity-50' : 'cursor-pointer'}`}>
             <input
               type="checkbox"
@@ -343,22 +306,61 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             )}
           </p>
         )}
-        <div className="flex justify-end gap-3 mt-6">
-          <button
-            onClick={onCancel}
-            data-testid="cancel-search-button"
-            className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSearch}
-            disabled={!searchQuery.trim() && !mostRecent}
-            data-testid="execute-search-button"
-            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed rounded transition-colors"
-          >
-            Search
-          </button>
+        <div className="mt-4">
+          <label className="block text-sm text-slate-400 mb-2">
+            Search Name (optional - saves this search if provided)
+          </label>
+          <EditableCombobox
+            value={searchName}
+            onChange={setSearchName}
+            onSelect={handleSelectSearchDefinition}
+            options={searchDefinitionOptions}
+            placeholder="Enter a name to save, or select existing..."
+            className="w-full"
+            data-testid="search-name-input"
+          />
+        </div>
+
+        <div className="flex justify-between items-center gap-3 mt-6">
+          <div className="flex gap-3">
+            <button
+              onClick={handleSave}
+              disabled={!searchName.trim()}
+              data-testid="save-search-button"
+              className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-500 disabled:bg-green-600/50 disabled:cursor-not-allowed rounded transition-colors"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                if (searchName.trim()) {
+                  setShowDeleteConfirm(true);
+                }
+              }}
+              disabled={!searchName.trim()}
+              data-testid="delete-search-button"
+              className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-500 disabled:bg-red-600/50 disabled:cursor-not-allowed rounded transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={onCancel}
+              data-testid="cancel-search-button"
+              className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSearch}
+              disabled={!searchQuery.trim() && !mostRecent}
+              data-testid="execute-search-button"
+              className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed rounded transition-colors"
+            >
+              Search
+            </button>
+          </div>
         </div>
       </div>
 
