@@ -666,6 +666,20 @@ To keep the graph readable and responsive, the scan is bounded:
 
 If the limit was hit, an amber **"truncated — node cap reached"** indicator appears in the header of the graph view, letting you know that some deeper or later items were omitted. To see a smaller area in full detail, navigate into a subfolder and run the graph from there.
 
+## Search-based Graph
+
+The same Folder Graph view can also be populated from the results of a search, giving you a visual map of *just the files that matched* and the folders that contain them — rather than every file under a folder.
+
+To use it:
+
+1. Run a search from the Browse tab so that the **Search** tab is populated with results.
+2. On the Search tab, click the **Graph View** button at the top right of the header.
+3. The Folder Graph tab opens and renders a tree containing only the matched files plus the ancestor folders needed to connect them up to a common root.
+
+The graph behaves identically to a folder-scanned graph — pan, zoom, drag, and click-to-navigate all work the same way. The button is disabled when there are no search results to graph.
+
+This is useful for understanding how your search hits are distributed across the directory structure: tightly clustered hits indicate a focused area, while widely scattered hits show the spread of a topic across your tree. Re-running a search and clicking **Graph View** again replaces the previous graph.
+
 # Exporting
 
 You can export the contents of the current folder into a single document.

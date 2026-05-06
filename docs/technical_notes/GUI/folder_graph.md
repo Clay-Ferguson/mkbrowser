@@ -196,6 +196,74 @@ the store changes, the build effect re-runs, the previous simulation is
 torn down (`sim.stop()`, listener removal), and a new one is built. This is
 the only path that resets the layout — switching tabs never does.
 
+## Search-based Graph (alternate data source)
+
+The Folder Graph can also be populated from the current **search results**
+instead of a recursive folder scan. This produces a tree containing only
+the files that matched the search plus the ancestor folders needed to
+connect them up to a common root.
+
+### Entry point
+
+A right-justified **Graph View** button in the `SearchResultsView` header
+(`src/components/views/SearchResultsView.tsx`). When clicked it:
+
+1. Calls `buildFolderGraphFromSearchResults(searchResults)` to construct a
+   `FolderGraphState`.
+2. Pushes that state into the store via `setFolderGraph(...)`.
+3. Switches the active view with `setCurrentView('folder-graph')`.
+
+The button is disabled when `searchResults` is empty.
+
+### Tree builder
+
+`src/utils/searchTreeBuilder.ts` exports `buildFolderGraphFromSearchResults`,
+a pure function with no React or Electron dependencies. The algorithm:
+
+1. Detect path separator (`/` or `\`) from the result paths.
+2. Split each result path into segments.
+3. Compute the longest common path prefix across all results, capped at
+   `length - 1` per path so the common ancestor is always a directory, not
+   a file. That prefix becomes the root node id.
+4. Walk each path left-to-right. For each accumulated parent path not yet
+   in a `Map<string, FolderGraphNode>`, add a directory node and a
+   parent→child link. The final segment of each path is added as a
+   non-directory (file) leaf.
+5. Return `{ folderPath, nodes, links, truncated: false }` — the same
+   shape the existing scan-based flow produces.
+
+The Map keyed by full path makes "have I already added this folder?"
+checks O(1), avoiding any tree traversal during construction.
+
+### Why this is client-side, not IPC
+
+Search results already contain absolute paths and live in the renderer's
+store. Building the tree is pure string manipulation — no filesystem
+access is needed (we trust the paths the search returned). So this feature
+adds **no new IPC handler** and reuses the existing
+`setFolderGraph` / `setCurrentView` actions and the unchanged
+`FolderGraphView`. The view does not know or care whether its data came
+from a scan or from search results.
+
+### Files
+
+- New: `src/utils/searchTreeBuilder.ts`.
+- Modified: `src/components/views/SearchResultsView.tsx` — adds the
+  **Graph View** button and the click handler that builds the graph and
+  switches views.
+
+No changes to `FolderGraphView.tsx`, `main.ts`, `preload.ts`,
+`global.d.ts`, or store types — the produced state matches the existing
+`FolderGraphState` shape exactly.
+
+### Edge cases
+
+- Empty results: button disabled.
+- Single result: root is the file's parent directory.
+- Results with no common prefix (e.g. across drives on Windows): root id
+  falls back to `''` with each top-level segment hanging off it. Rare in
+  practice — searches are scoped to a folder.
+
 ## Testing notes
 
 - Menu item: `data-testid="menu-folder-graph"`.
