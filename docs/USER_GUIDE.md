@@ -623,6 +623,49 @@ After running an analysis, an **Analysis** tab appears in the tab bar at the top
 
 **Note:** The Analysis tab only appears after you've run at least one analysis. It is not shown on a fresh application start.
 
+# Folder Graph
+
+The Folder Graph gives you an interactive, visual map of the folder you're currently browsing. Subfolders and files are drawn as nodes connected by lines that represent the parent → child relationship, laid out using a physics simulation so related items naturally cluster together.
+
+## Launching the Graph
+
+1. Navigate to the folder you want to visualize.
+2. Go to **Tools → Folder Graph** in the menu bar.
+3. The application scans the folder recursively and opens a new **Folder Graph** tab showing the result.
+
+The graph reflects a snapshot of the folder at scan time. To refresh it (or to view a different folder), navigate to the folder you want and run **Tools → Folder Graph** again — the existing graph is replaced.
+
+## Reading the Graph
+
+- **Folders** are colored circles. Larger circles indicate folders with more direct children, and the color shifts with depth (cyan at the top, transitioning through blue and violet to warmer tones the deeper you go).
+- **Files** are smaller slate-gray circles.
+- **Labels** show the name of each item (long names are truncated). Hover over any node to see its full path as a tooltip.
+
+## Interacting with the Graph
+
+- **Pan**: Click and drag any empty area of the background to move the view.
+- **Zoom**: Scroll the mouse wheel to zoom in and out.
+- **Drag a node**: Click and drag any node to reposition it. The rest of the graph reacts physically — connected nodes follow, and the layout settles around your new position. Releasing the node lets it rejoin the simulation.
+- **Click a node** (without dragging):
+  - Clicking a **folder** switches to the Browse view and navigates into that folder.
+  - Clicking a **file** switches to the Browse view of its parent folder and scrolls the file into view.
+
+The graph initially auto-fits itself into the viewport once the layout settles, so you start with the entire structure in view.
+
+## Tab Persistence
+
+After you generate a graph, the **Folder Graph** tab stays available in the tab bar. You can switch between Browse, Search, and other tabs freely — when you return to the Folder Graph tab, your zoom level, pan position, and any nodes you dragged are exactly as you left them. The tab persists for the rest of the session, until you re-run **Tools → Folder Graph** (which replaces the current graph) or close the application.
+
+## Scan Limits
+
+To keep the graph readable and responsive, the scan is bounded:
+
+- It descends at most a fixed number of levels below the starting folder.
+- It stops once a maximum number of nodes have been collected, preferring items closer to the root.
+- Hidden files and any paths matching your **Ignored Paths** setting are excluded, just as in Folder Analysis.
+
+If the limit was hit, an amber **"truncated — node cap reached"** indicator appears in the header of the graph view, letting you know that some deeper or later items were omitted. To see a smaller area in full detail, navigate into a subfolder and run the graph from there.
+
 # Exporting
 
 You can export the contents of the current folder into a single document.
