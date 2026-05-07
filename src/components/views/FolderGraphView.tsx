@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import {
   forceSimulation,
   forceLink,
@@ -18,6 +19,8 @@ import {
   useHighlightItem,
   navigateToBrowserPath,
   setHighlightItem,
+  setFolderGraph,
+  setCurrentView,
 } from '../../store';
 
 interface SimNode extends SimulationNodeDatum {
@@ -278,8 +281,8 @@ function FolderGraphView() {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-slate-900">
-      <header className="flex-shrink-0 px-4 py-2 border-b border-slate-700">
-        <div className="text-sm text-slate-300 truncate" title={folderGraph.folderPath}>
+      <header className="flex-shrink-0 px-4 py-2 border-b border-slate-700 flex items-center gap-3">
+        <div className="flex-1 text-sm text-slate-300 truncate" title={folderGraph.folderPath}>
           <span className="text-slate-400">Folder Graph:</span>{' '}
           <span className="font-mono text-slate-200">{folderGraph.folderPath}</span>
           <span className="text-slate-500 ml-3">
@@ -292,6 +295,17 @@ function FolderGraphView() {
           )}
           <span className="text-slate-500 ml-3">drag nodes · scroll to zoom · click to open</span>
         </div>
+        <button
+          onClick={() => {
+            setFolderGraph(null);
+            setCurrentView('browser');
+          }}
+          title="Close graph view"
+          aria-label="Close graph view"
+          className="flex-shrink-0 text-slate-400 hover:text-slate-100 hover:bg-slate-700 rounded p-1 transition-colors"
+        >
+          <XMarkIcon className="w-6 h-6" />
+        </button>
       </header>
       <div ref={containerRef} className="flex-1 min-h-0 relative">
         <svg ref={svgRef} className="absolute inset-0 w-full h-full block" />
