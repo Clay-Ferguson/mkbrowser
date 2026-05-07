@@ -15,6 +15,7 @@ import { zoom as d3zoom, zoomIdentity, type D3ZoomEvent } from 'd3-zoom';
 import 'd3-transition';
 import {
   useFolderGraph,
+  useHighlightItem,
   navigateToBrowserPath,
   setHighlightItem,
 } from '../../store';
@@ -40,8 +41,10 @@ const COLOR_ROOT = '#ef4444';     // bright red
 const COLOR_FOLDER = '#fb923c';   // orange
 const COLOR_MARKDOWN = '#60a5fa'; // blue
 const COLOR_OTHER = '#cbd5e1';    // light gray
+const COLOR_HIGHLIGHT = '#a855f7'; // purple
 
-function colorForNode(d: SimNode): string {
+function colorForNode(d: SimNode, highlighted: boolean): string {
+  if (highlighted) return COLOR_HIGHLIGHT;
   if (d.depth === 0) return COLOR_ROOT;
   if (d.isDirectory) return COLOR_FOLDER;
   const lower = d.name.toLowerCase();
@@ -60,8 +63,11 @@ function truncateLabel(name: string): string {
 
 function FolderGraphView() {
   const folderGraph = useFolderGraph();
+  const highlightItem = useHighlightItem();
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const highlightRef = useRef<string | null>(highlightItem);
+  highlightRef.current = highlightItem;
   const [ready, setReady] = useState(false);
 
   // Wait for container to be measured before building the simulation.
@@ -121,9 +127,9 @@ function FolderGraphView() {
       .join('g')
       .style('cursor', 'pointer');
 
-    nodeSel.append('circle')
+    const circleSel = nodeSel.append('circle')
       .attr('r', d => nodeRadius(d))
-      .attr('fill', d => colorForNode(d))
+      .attr('fill', d => colorForNode(d, highlightRef.current === d.id))
       .attr('stroke', '#0f172a')
       .attr('stroke-width', 1.5);
 
@@ -136,17 +142,27 @@ function FolderGraphView() {
       .attr('x', d => nodeRadius(d) + 4)
       .attr('y', '0.32em')
       .attr('font-size', 11)
-      .attr('fill', d => colorForNode(d))
+      .attr('fill', d => colorForNode(d, false))
       .attr('paint-order', 'stroke')
       .attr('stroke', '#0f172a')
       .attr('stroke-width', 3)
       .attr('stroke-opacity', 0.75)
       .text(d => truncateLabel(d.name));
 
+    const applyHighlight = (): void => {
+      circleSel.attr('fill', d => colorForNode(d, highlightRef.current === d.id));
+    };
+    (svg as SVGSVGElement & { __applyHighlight?: () => void }).__applyHighlight = applyHighlight;
+
     // Click → navigate. d3-drag's clickDistance(4) suppresses the click event
     // when the gesture was actually a drag, so we don't need a manual guard.
     nodeSel.on('click', (_event, d) => {
       setHighlightItem(d.id);
+      // Update the purple border immediately so it's visible on return,
+      // since navigation below may unmount this view before the
+      // highlight-watching effect would otherwise run.
+      highlightRef.current = d.id;
+      applyHighlight();
       if (d.isDirectory) {
         navigateToBrowserPath(d.id);
       } else {
@@ -243,6 +259,11 @@ function FolderGraphView() {
       root.on('.zoom', null);
     };
   }, [folderGraph, ready]);
+
+  useEffect(() => {
+    const svg = svgRef.current as (SVGSVGElement & { __applyHighlight?: () => void }) | null;
+    svg?.__applyHighlight?.();
+  }, [highlightItem]);
 
   if (!folderGraph) {
     return (
