@@ -97,8 +97,25 @@ export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp
   const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
   return IMAGE_EXTENSIONS.has(ext);
 }
+export type TextFileLanguage = 'javascript' | 'typescript' | 'python' | 'text';
+
+const TEXT_FILE_LANGUAGES: Record<string, TextFileLanguage> = {
+  '.txt': 'text',
+  '.js': 'javascript',
+  '.ts': 'typescript',
+  '.py': 'python',
+};
+
 export function isTextFile(fileName: string): boolean {
-  return fileName.toLowerCase().endsWith('.txt');
+  const lower = fileName.toLowerCase();
+  const ext = lower.slice(lower.lastIndexOf('.'));
+  return ext in TEXT_FILE_LANGUAGES;
+}
+
+export function getTextFileLanguage(fileName: string): TextFileLanguage {
+  const lower = fileName.toLowerCase();
+  const ext = lower.slice(lower.lastIndexOf('.'));
+  return TEXT_FILE_LANGUAGES[ext] ?? 'text';
 }
 /**
  * Apply sort comparison based on the selected sort order.

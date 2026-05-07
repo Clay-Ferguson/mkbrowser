@@ -8,6 +8,8 @@ import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatchi
 import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { markdown } from '@codemirror/lang-markdown';
+import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
 import Typo from 'typo-js';
 import { useSettings, type FontSize } from '../../store';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
@@ -29,7 +31,7 @@ interface CodeMirrorEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  language?: 'markdown' | 'text';
+  language?: 'markdown' | 'text' | 'javascript' | 'typescript' | 'python';
   /** If true, automatically focus the editor after mounting (with a small delay for rendering) */
   autoFocus?: boolean;
   /** 1-based line number to scroll to and position cursor at after initialization */
@@ -46,6 +48,8 @@ interface CodeMirrorEditorProps {
   onSelectionChange?: (hasSelection: boolean) => void;
   /** Whether to show front matter (Properties) in the editor. Defaults to true. */
   showPropsInEditor?: boolean;
+  /** If true, render as a non-editable view (still selectable, searchable, syntax-highlighted). */
+  readOnly?: boolean;
 }
 
 export interface CodeMirrorEditorHandle {
@@ -53,7 +57,7 @@ export interface CodeMirrorEditorHandle {
   getSelection(): { from: number; to: number; text: string } | null;
 }
 
-const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true }, ref) {
+const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -130,20 +134,24 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       // lineNumbers(), <-- removed line numbers (add back with this line)
       highlightActiveLineGutter(),
       highlightSpecialChars(),
-      history(),
+      ...(readOnly ? [] : [history()]),
       drawSelection(),
       dropCursor(),
       EditorState.allowMultipleSelections.of(true),
-      indentOnInput(),
+      ...(readOnly ? [] : [indentOnInput()]),
       syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
       bracketMatching(),
-      closeBrackets(),
-      autocompletion(),
+      ...(readOnly ? [] : [closeBrackets(), autocompletion()]),
       rectangularSelection(),
       crosshairCursor(),
       highlightActiveLine(),
       highlightSelectionMatches(),
-      keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...completionKeymap, ...searchKeymap]),
+      keymap.of(
+        readOnly
+          ? [...defaultKeymap, ...searchKeymap]
+          : [...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...completionKeymap, ...searchKeymap]
+      ),
+      ...(readOnly ? [EditorState.readOnly.of(true)] : []),
       // END_basicSetupReplacement
       search({ top: true }),
       searchMatchTheme,
@@ -233,6 +241,12 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
     if (language === 'markdown') {
       extensions.push(markdown());
+    } else if (language === 'javascript') {
+      extensions.push(javascript());
+    } else if (language === 'typescript') {
+      extensions.push(javascript({ typescript: true }));
+    } else if (language === 'python') {
+      extensions.push(python());
     }
 
     const state = EditorState.create({
@@ -295,6 +309,15 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
         originalDestroy();
       };
     })();
+
+    // Skip spell checking for code languages or read-only views
+    const isCodeLanguage = language === 'javascript' || language === 'typescript' || language === 'python';
+    if (isCodeLanguage || readOnly) {
+      return () => {
+        view.destroy();
+        viewRef.current = null;
+      };
+    }
 
     // Load spell checker asynchronously
     loadSpellChecker().then((typo) => {

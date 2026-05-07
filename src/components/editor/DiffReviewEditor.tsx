@@ -4,6 +4,8 @@ import { EditorState } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { markdown } from '@codemirror/lang-markdown';
+import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
 import { unifiedMergeView, acceptChunk, rejectChunk, getChunks } from '@codemirror/merge';
 import { useSettings, type FontSize } from '../../store';
 
@@ -17,7 +19,7 @@ const FONT_SIZE_MAP: Record<FontSize, string> = {
 interface DiffReviewEditorProps {
   originalText: string;
   modifiedText: string;
-  language?: 'markdown' | 'text';
+  language?: 'markdown' | 'text' | 'javascript' | 'typescript' | 'python';
   onAcceptAll: (finalText: string) => void;
   onCancel: () => void;
 }
@@ -63,6 +65,12 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onAcc
 
     if (language === 'markdown') {
       extensions.push(markdown());
+    } else if (language === 'javascript') {
+      extensions.push(javascript());
+    } else if (language === 'typescript') {
+      extensions.push(javascript({ typescript: true }));
+    } else if (language === 'python') {
+      extensions.push(python());
     }
 
     const state = EditorState.create({

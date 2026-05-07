@@ -28,6 +28,7 @@ import {
   type BaseEntryProps,
 } from './common';
 import { logger } from '../../utils/logUtil';
+import { getTextFileLanguage } from '../../utils/fileUtils';
 
 
 type TextEntryProps = BaseEntryProps;
@@ -38,6 +39,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
+  const fileLanguage = getTextFileLanguage(entry.name);
   const [selectedPromptName, setSelectedPromptName] = useState<string>('');
   useEffect(() => {
     window.electronAPI.getConfig().then((config) => {
@@ -216,7 +218,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
               <DiffReviewEditor
                 originalText={edit.editContent}
                 modifiedText={item.rewrittenContent}
-                language="text"
+                language={fileLanguage}
                 onAcceptAll={(finalText) => {
                   edit.setEditContent(finalText);
                   setItemReviewing(entry.path, false);
@@ -225,11 +227,12 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
               />
             ) : (
               <CodeMirrorEditor
+                key="edit"
                 ref={editorRef}
                 value={edit.editContent}
                 onChange={edit.setEditContent}
                 placeholder="Enter text content..."
-                language="text"
+                language={fileLanguage}
                 autoFocus
                 goToLine={item?.goToLine}
                 onGoToLineComplete={() => clearItemGoToLine(entry.path)}
@@ -240,13 +243,13 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
               />
             )
           ) : (
-            <pre
-              className="text-slate-200 font-mono text-sm whitespace-pre-wrap break-words cursor-pointer"
-              onDoubleClick={edit.handleEditClick}
-              title="Double-click to edit"
-            >
-              {content || ''}
-            </pre>
+            <CodeMirrorEditor
+              key="view"
+              value={content || ''}
+              onChange={() => {}}
+              language={fileLanguage}
+              readOnly
+            />
           )}
         </div>
       )}
