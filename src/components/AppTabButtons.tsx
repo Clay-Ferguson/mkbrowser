@@ -22,7 +22,7 @@ const allTabs: TabConfig[] = [
   { id: 'thread', label: 'Chat' },
   { id: 'search-results', label: 'Search' },
   { id: 'folder-analysis', label: 'Analysis' },
-  { id: 'folder-graph', label: 'Folder Graph' },
+  { id: 'folder-graph', label: 'Graph' },
   { id: 'settings', label: 'Settings' },
   { id: 'ai-settings', label: 'AI Settings' },
 ];

@@ -35,12 +35,18 @@ interface SimLink extends SimulationLinkDatum<SimNode> {
 const NODE_RADIUS_BASE = 5;
 const LABEL_MAX_CHARS = 24;
 
-// Depth color ramp: cyan (root) → cool blues → violet → warm.
-// Capped at the last entry for very deep trees.
-const DEPTH_COLORS = ['#67e8f9', '#7dd3fc', '#93c5fd', '#a78bfa', '#f0abfc', '#fda4af', '#fcd34d'];
+// Node colors by type, tuned for a dark slate-900 background.
+const COLOR_ROOT = '#ef4444';     // bright red
+const COLOR_FOLDER = '#fb923c';   // orange
+const COLOR_MARKDOWN = '#60a5fa'; // blue
+const COLOR_OTHER = '#cbd5e1';    // light gray
 
-function colorForDepth(depth: number): string {
-  return DEPTH_COLORS[Math.min(depth, DEPTH_COLORS.length - 1)];
+function colorForNode(d: SimNode): string {
+  if (d.depth === 0) return COLOR_ROOT;
+  if (d.isDirectory) return COLOR_FOLDER;
+  const lower = d.name.toLowerCase();
+  if (lower.endsWith('.md') || lower.endsWith('.markdown')) return COLOR_MARKDOWN;
+  return COLOR_OTHER;
 }
 
 function nodeRadius(d: SimNode): number {
@@ -117,8 +123,8 @@ function FolderGraphView() {
 
     nodeSel.append('circle')
       .attr('r', d => nodeRadius(d))
-      .attr('fill', d => d.isDirectory ? colorForDepth(d.depth) : '#cbd5e1')
-      .attr('stroke', d => d.isDirectory ? '#0f172a' : '#475569')
+      .attr('fill', d => colorForNode(d))
+      .attr('stroke', '#0f172a')
       .attr('stroke-width', 1.5);
 
     // Native SVG tooltip with the full path on hover.
@@ -130,7 +136,7 @@ function FolderGraphView() {
       .attr('x', d => nodeRadius(d) + 4)
       .attr('y', '0.32em')
       .attr('font-size', 11)
-      .attr('fill', '#e2e8f0')
+      .attr('fill', d => colorForNode(d))
       .attr('paint-order', 'stroke')
       .attr('stroke', '#0f172a')
       .attr('stroke-width', 3)

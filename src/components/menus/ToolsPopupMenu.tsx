@@ -39,7 +39,7 @@ export default function ToolsPopupMenu({
         onClick={() => { onFolderAnalysis(); onClose(); }}
       />
       <PopupMenuItem
-        label="Folder Graph"
+        label="Display Graph"
         data-testid="menu-folder-graph"
         onClick={() => { onFolderGraph(); onClose(); }}
       />
