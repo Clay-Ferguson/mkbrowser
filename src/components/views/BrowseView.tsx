@@ -819,7 +819,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           {!loading && sortedEntries.length > 0 && (
             hasIndexFile ? (
               <div>
-                {editMode && !expandedEditor && <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />}
+                {editMode && !expandedEditor && !visibleEntries[0]?.name.endsWith(ATTACH_SUFFIX) && <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />}
                 {visibleEntries.map((entry, idx) => {
                   const moveUp = idx > 0 ? () => void handleMoveEntry(entry.name, 'up') : undefined;
                   const moveDown = idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
@@ -851,7 +851,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                       ) : (
                         <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       )}
-                      {editMode && !expandedEditor && <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />}
+                      {editMode && !expandedEditor && !visibleEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />}
                     </div>
                   );
                 })}

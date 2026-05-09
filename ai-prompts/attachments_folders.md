@@ -4,7 +4,7 @@ it's very common in this personal knowledge-base application to have a markdown 
 
 we're going to implement this feature in phases, where each phase is very focused and simple for you to implement and builds on top of the previous phase. 
 
-you're doing phase 2 now.
+you're doing phase 3 now.
 
 ## Phase 1 (done)
 
@@ -14,4 +14,10 @@ the only thing that could make this slightly tricky is that you do need to take 
 
 To be clear about how this needs to work on the back end, what we should do is add and "attachments" optional array (array of `FileEntry` objects) variable to the `FileEntry` interface, and then we will only have one place where we scan the file system, so that as we're building up the the holder structure for the `BrowseView` items, we will be building out any attachments as we go along. this way the GUI component will be completely decoupled from the data loading, and it will just be able to assume that it only needs to check for the "attachments". i guess it would be the folder itself that would have the "attachments" array populated for it, rather than the file. so please make this change and I think it will actually be simpler, cleaner and better code. 
 
-## Phase 2 (current)
+## Phase 2 (done)
+
+when the current folder is a "Document Mode" one, we have two icons buttons that we display between each file/folder which are named "insert file here" and "insert folder here". we need to make our `BrowseView.tsx` page rendering be smart enough to never show those two icons above an "attach" folder, because we will never be letting the user insert files and folders at that location. 
+
+## Phase 3 (current)
+
+when the current folder is a "Document Mode" one,  we also want to hide the entire `FolderEntry` from view as well (no need to have it in the DOM at all), but we will instead put the folder icon as a left-justified icon button (yellow icon same as used in the `FolderEntry` for the header icon), and it should sit in the space left there because we've added margin/padding (indenting) to the attachment items display. This button sill do exactly the same thing as a click on the `FolderEntry` file name, which is to open that folder (i.e. browse into that folder). In this way we will now have (for Document Mode only) a clean way to have the attachments show up directly underneath the file they're associated to, with no folder being displayed, but just the icon to click to get into the folder.
