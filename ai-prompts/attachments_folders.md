@@ -4,7 +4,7 @@ it's very common in this personal knowledge-base application to have a markdown 
 
 we're going to implement this feature in phases, where each phase is very focused and simple for you to implement and builds on top of the previous phase. 
 
-you're doing phase 8 now.
+you're doing phase 9 now.
 
 ## Phase 1 (done)
 
@@ -50,6 +50,16 @@ Algorithm:
 
 like I said, if you know of a much cleaner algorithm could use, that might even make it easier to detect if a change had occurred, then, feel free to use your method instead. because really the only way I know of to detect a change, would be to create a before and after list of just the file names, and then use some type of array compare function to see if the arrays are identical or not. theoretically, you could even concatenate them all into a string and compare the two strings before and after, but that seems like it might be less efficient. it's your call, so use your judgment to create simple clean code, as always .
 
-## Phase 8 (current)
+## Phase 8 (done)
 
 you look at in the `FolderEntry.tsx` you'll notice that we have a paste button (title being "paste cut items into this folder"), that will appear whenever items have been cut using the cut button and the app is waiting for the user to paste the items somewhere else. we need a similar button to appear on the `MarkdownEntry.tsx` component but we want the icon for it to be a "paperclip" icon to indicate the concept of doing a file attachment. with the above context of all the prior phases of work, you will probably know how to make this happen without me describing it, but here's what we want this new attach (paperclip) button to do: when the user clicks this button we want to check to see if the ".attach" folder for the given target file exists or not , and if not, we want to create it. once we create the folder we will execute the same paste into folder functionality that we already have in this application, which as mentioned above is done using the logic behind the paste button that we already have on the `FolderEntry.tsx` as I mentioned above. so to summarize this we're just going to give the users the ability to add attachments to an existing file, simply by doing a "cut", and then choosing our new paste as attachment button. this will make the application very convenient or the user will not have to manually create their "*.attach" folder in order to be able to paste files into it.
+
+## Phase 9 (current)
+
+we have a bug related to our cut and paste feature. whenever the user selects some items and then click the "cut" button, to cut items, the items that are cut should no longer be appearing in the `BrowseView.tsx`. i think the important line in that component that takes care of this type of visibility is the following line of code :
+
+```
+const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
+```
+
+however, what I'm seeing is that when we have cut some attachment items (being displayed as files in the ".attach" folders), those attached files still are appearing.  

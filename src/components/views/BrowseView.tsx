@@ -84,12 +84,14 @@ interface AttachFolderContentsProps {
 }
 
 function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder }: AttachFolderContentsProps) {
-  if (entries.length === 0) return null;
-  const allImages = entries.filter(e => !e.isDirectory && isImageFile(e.name));
+  const items = useItems();
+  const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
+  if (visibleEntries.length === 0) return null;
+  const allImages = visibleEntries.filter(e => !e.isDirectory && isImageFile(e.name));
 
   return (
     <div style={{ paddingLeft: `${level * 32}px` }}>
-      {entries.map(entry => (
+      {visibleEntries.map(entry => (
         <div key={entry.path}>
           {entry.isDirectory ? (
             <>
