@@ -378,6 +378,28 @@ export async function ensureFrontMatterIdIfIndexed(
 }
 
 /**
+ * Renames an entry in .INDEX.yaml from oldName to newName.
+ * No-op if .INDEX.yaml doesn't exist or oldName isn't found.
+ */
+export async function renameInIndexYaml(
+  dirPath: string,
+  oldName: string,
+  newName: string,
+): Promise<void> {
+  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  try {
+    const indexYaml = await readIndexYaml(dirPath);
+    if (!indexYaml?.files) return;
+    const entry = indexYaml.files.find((f) => f.name === oldName);
+    if (!entry) return;
+    entry.name = newName;
+    await fs.promises.writeFile(indexFilePath, yaml.dump(indexYaml, { indent: 2 }), 'utf8');
+  } catch {
+    // Best-effort; don't throw
+  }
+}
+
+/**
  * Inserts a new entry into the .INDEX.yaml files array at the position
  * immediately after insertAfterName (or at position 0 when null).
  * Existing entries and their id fields are preserved.

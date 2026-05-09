@@ -4,7 +4,7 @@ it's very common in this personal knowledge-base application to have a markdown 
 
 we're going to implement this feature in phases, where each phase is very focused and simple for you to implement and builds on top of the previous phase. 
 
-you're doing phase 5 now.
+you're doing phase 6 now.
 
 ## Phase 1 (done)
 
@@ -26,6 +26,10 @@ when the current folder is a "Document Mode" one,  and we're rendering an "attac
 
 when the current folder is a "Document Mode" one,  and we're rendering an "attach" type folder we also want to always hide (never show) the "Move Up" or "Move Down" buttons in the `EntryActionBar.tsx` regardless of whether edit mode is on or not. 
 
-## Phase 5 (current)
+## Phase 5 (done)
 
 when the current folder is a "Document Mode" one, and we are NOT in edit mode for the document, let's just skip the rendering of the entier `FolderEntry` so that no folder entries show up at all unless edit mode is on. this we'll create a much cleaner screen display where files that have attachments will display the attachments directly below them without any folder in between.
+
+## Phase 6 (done)
+
+We need to make sure that the "attach" folders, always stay synchronized with the file name the file they're associated with, whenever the user renames a file using the rename button in the `EntryActionBar.tsx`. so this means we simply need to hook into the rename logic to do that post processing to check to see if there is an existing "attach" folder, whenever a file is being renamed, and if so, we rename the "attach" folder accordingly. let's keep it just as simple as that and i don't want to try to account for the situation where the user may have rename something directly in their file system outside of our application. as long as we make our rename function in this application take care of the updating of the folder name that will be sufficient and is all we need to do .

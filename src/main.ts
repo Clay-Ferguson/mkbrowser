@@ -6,7 +6,7 @@ import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 
 import { readDirectory, parseFrontMatter } from './utils/fileUtils';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed } from './utils/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, renameInIndexYaml } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
 import { processTOC } from './utils/tocUtils';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
@@ -284,6 +284,21 @@ function setupIpcHandlers(): void {
   ipcMain.handle('rename-file', async (_event, oldPath: string, newPath: string): Promise<boolean> => {
     try {
       await fs.promises.rename(oldPath, newPath);
+      const dirPath = path.dirname(oldPath);
+      const oldName = path.basename(oldPath);
+      const newName = path.basename(newPath);
+      // Update the file's entry in .INDEX.yaml if present
+      await renameInIndexYaml(dirPath, oldName, newName);
+      // Rename the associated attach folder if it exists, and update its index entry
+      const oldAttachName = `${oldName}.attach`;
+      const newAttachName = `${newName}.attach`;
+      try {
+        await fs.promises.access(path.join(dirPath, oldAttachName));
+        await fs.promises.rename(path.join(dirPath, oldAttachName), path.join(dirPath, newAttachName));
+        await renameInIndexYaml(dirPath, oldAttachName, newAttachName);
+      } catch {
+        // No attach folder exists, nothing to do
+      }
       return true;
     } catch (error) {
       logger.error('Error renaming file:', error);
