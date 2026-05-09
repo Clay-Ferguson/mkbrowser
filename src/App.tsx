@@ -34,8 +34,10 @@ import {
 import type { FileNode } from './store';
 import { loadConfig } from './config';
 import { applyGlobalHighlight, globalHighlightText } from './utils/globalHighlight';
+import { logger } from './utils/logUtil';
 
 async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
+  logger.debug("****************** refreshExpandedNodes");
   if (!node.isDirectory || !node.isExpanded) return node;
   try {
     const entries = await window.electronAPI.readDirectory(node.path);
@@ -127,6 +129,7 @@ function App() {
   }, []);
 
   // Load directory contents
+  // todo-0: this function appears to be 'additive'. Is it supposed to also detect when files may have been DELETED?
   const loadDirectory = useCallback(async (showLoading = true) => {
     if (!currentPath) return;
 
@@ -200,6 +203,7 @@ function App() {
   }, [currentPath, rootPath]);
 
   const refreshDirectory = useCallback(() => {
+    logger.debug("***************** refreshDirectory");
     loadDirectory(false);
     const root = getIndexTreeRoot();
     if (root) {

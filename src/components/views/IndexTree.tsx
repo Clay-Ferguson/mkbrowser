@@ -78,13 +78,15 @@ function isAnyExpanded(nodes: TreeNode[]): boolean {
 
 function flattenVisible(
   nodes: TreeNode[],
+  cutPaths: Set<string>,
   depth = 0
 ): Array<{ node: TreeNode; depth: number }> {
   const result: Array<{ node: TreeNode; depth: number }> = [];
   for (const node of nodes) {
+    if (cutPaths.has(node.path)) continue;
     result.push({ node, depth });
     if (node.isExpanded && node.children) {
-      result.push(...flattenVisible(node.children, depth + 1));
+      result.push(...flattenVisible(node.children, cutPaths, depth + 1));
     }
   }
   return result;
@@ -353,7 +355,8 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
     );
   }
 
-  const rows = flattenVisible(treeRoot.children);
+  const cutPaths = new Set(getCutItems().map(item => item.path));
+  const rows = flattenVisible(treeRoot.children, cutPaths);
   return (
     <div data-testid="file-explorer-tree" className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800`}>
       <style>{`@keyframes scriptRunFlash { 0% { background-color: rgba(74,222,128,0.45); } 100% { background-color: transparent; } }`}</style>
