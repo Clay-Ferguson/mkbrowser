@@ -32,7 +32,6 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Enabling Document Mode](#enabling-document-mode)
   * [Editing Mode](#editing-mode)
   * [Inserting New Files and Folders](#inserting-new-files-and-folders)
-  * [File Attachments](#file-attachments)
   * [Disabling Document Mode](#disabling-document-mode)
 * [Searching](#searching)
   * [Using Search](#using-search)
@@ -444,27 +443,6 @@ When editing is enabled, **insert bars** appear between every pair of entries (a
 - **Create Folder here** — opens the new-folder dialog and inserts the folder at that position.
 
 This lets you add new content at any point in the document without having to move things around afterwards.
-
-## File Attachments
-
-Sometimes a file doesn't stand on its own — it belongs *to* another file. A common example is an image or diagram that illustrates a specific section of text: you want that image to travel with its parent text file as you rearrange the document, rather than floating somewhere else in the list as an unrelated entry.
-
-Document Mode lets you attach any file or folder to another entry as a **child**. Children are displayed directly beneath their parent, indented with a vertical border, so the relationship is clear at a glance. The files themselves stay in the same folder on disk — only the document ordering file (`.INDEX.yaml`) records the parent-child relationship.
-
-**To attach one or more files to a parent:**
-
-1. Enable editing (check the **Edit** checkbox).
-2. Select the file(s) you want to attach using their checkboxes.
-3. Click **Cut** in the toolbar to mark them for attachment.
-4. Find the entry you want to attach them to and hover over it.
-5. Click the green **+** (plus circle) icon that appears in the entry's action bar.
-
-The selected files will now appear indented beneath that entry. They move together with their parent whenever you use the **Move Up** or **Move Down** buttons on the parent.
-
-**Notes:**
-- Attachments can be nested to any depth — a child can itself have children.
-- To detach a file and return it to the top level, navigate up one folder level and use the standard Cut and Paste (into this folder) to move it back.
-- Attachment relationships only exist inside Document Mode. If you ever delete `.INDEX.yaml`, all files revert to being independent entries in normal filesystem order.
 
 ## Disabling Document Mode
 

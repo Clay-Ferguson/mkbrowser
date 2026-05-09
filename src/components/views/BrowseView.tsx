@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
   ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
-  FolderPlusIcon, DocumentPlusIcon, PlusCircleIcon,
+  FolderPlusIcon, DocumentPlusIcon,
 } from '@heroicons/react/24/outline';
 import IndexInsertBar from '../IndexInsertBar';
 import type { FileEntry } from '../../global';
-import type { IndexEntryData } from '../../store/types';
 import FolderEntry from '../entries/FolderEntry';
 import MarkdownEntry from '../entries/MarkdownEntry';
 import FileEntryComponent from '../entries/FileEntry';
@@ -31,7 +30,6 @@ import {
   collapseAllItems,
   clearAllCutItems,
   cutSelectedItems,
-  deleteItems,
   setItemEditing,
   setItemExpanded,
   setCurrentView,
@@ -71,7 +69,6 @@ import { getContentWidthClasses } from '../../utils/styles';
 import { hasHumanMd } from '../../ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtils';
 import { pasteIntoFolder, deleteSelected, moveSelectedToFolder, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp } from '../../utils/fileOpsUtils';
-import { pasteCutItems } from '../../edit';
 
 
 interface BrowseViewProps {
@@ -171,45 +168,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     () => sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name)),
     [sortedEntries]
   );
-
-  // Maps entry name → FileEntry for fast lookup during hierarchical rendering
-  const entryByName = useMemo(() => {
-    const map = new Map<FileEntry['name'], FileEntry>();
-    for (const e of sortedEntries) map.set(e.name, e);
-    return map;
-  }, [sortedEntries]);
-
-  // Set of all entry names that appear as children of some other entry in the YAML tree
-  const childNameSet = useMemo(() => {
-    const set = new Set<string>();
-    function collectChildren(entries: IndexEntryData[] | undefined) {
-      if (!entries) return;
-      for (const e of entries) {
-        if (e.children) {
-          for (const c of e.children) set.add(c.name);
-          collectChildren(e.children as IndexEntryData[]);
-        }
-      }
-    }
-    collectChildren(indexYaml?.files as IndexEntryData[] | undefined);
-    return set;
-  }, [indexYaml]);
-
-  // todo-0: it seems like there might be a better way to get the top level entries then to have to do 
-  //         a filter iteration that checks a hash set at each iteration. Don't we just have the 
-  //         'files' property at the root level we can enumerate, and that's the exact list?
-  // Root-level entries only (children excluded), used for insert-bar position arithmetic
-  const topLevelIndexEntries = useMemo(() => {
-    if (!hasIndexFile) return sortedEntries;
-    return sortedEntries.filter((e) => !childNameSet.has(e.name));
-  }, [hasIndexFile, sortedEntries, childNameSet]);
-
-  // name → index in topLevelIndexEntries, for insert-bar positioning
-  const topLevelEntryIndexMap = useMemo(() => {
-    const map = new Map<string, number>();
-    topLevelIndexEntries.forEach((e, i) => map.set(e.name, i));
-    return map;
-  }, [topLevelIndexEntries]);
 
   const hasSelectedItems = Array.from(items.values()).some((item) => item.isSelected);
   const hasCutItems = Array.from(items.values()).some((item) => item.isCut);
@@ -362,74 +320,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     await pasteIntoFolder(folderPath, items, onSetError, onRefreshDirectory);
   }, [items, onRefreshDirectory, onSetError]);
 
-  // NOTE: this is essentially creating what we also call "Attachments" meaning that we're not pasting directly into a folder but we're also updating the 
-  //       .INDEX.yaml file for a "Document Mode" folder where each file entry can have an array of children and the children are considered attachments.
-  const handlePasteAsChild = useCallback(async (parentName: string) => {
-    if (!currentPath) return;
-    const cutItems = Array.from(items.values()).filter((item) => item.isCut);
-    if (cutItems.length === 0) return;
-    const childNames = cutItems.map((item) => item.name);
-
-    // If cut items come from a different folder, physically move them here first
-    const sourceFolder = cutItems[0].path.substring(0, cutItems[0].path.lastIndexOf('/'));
-    if (sourceFolder !== currentPath) {
-      const moveResult = await pasteCutItems(
-        cutItems,
-        currentPath,
-        window.electronAPI.pathExists,
-        window.electronAPI.renameFile,
-      );
-      if (!moveResult.success) {
-        onSetError(moveResult.error || 'Failed to move files');
-        return;
-      }
-      deleteItems(cutItems.map((item) => item.path));
-      await window.electronAPI.reconcileIndexedFiles(sourceFolder, false);
-    }
-
-    const result = await window.electronAPI.pasteAsChildrenInIndexYaml(currentPath, parentName, childNames);
-    if (!result.success) {
-      onSetError(result.error || 'Failed to paste as children');
-      return;
-    }
-    clearAllCutItems();
-    await window.electronAPI.reconcileIndexedFiles(currentPath, false);
-    onRefreshDirectory();
-  }, [currentPath, items, onRefreshDirectory, onSetError]);
-
-  const handlePasteAsRoot = useCallback(async () => {
-    if (!currentPath) return;
-    const cutItems = Array.from(items.values()).filter((item) => item.isCut);
-    if (cutItems.length === 0) return;
-    const names = cutItems.map((item) => item.name);
-
-    // If cut items come from a different folder, physically move them here first
-    const sourceFolder = cutItems[0].path.substring(0, cutItems[0].path.lastIndexOf('/'));
-    if (sourceFolder !== currentPath) {
-      const moveResult = await pasteCutItems(
-        cutItems,
-        currentPath,
-        window.electronAPI.pathExists,
-        window.electronAPI.renameFile,
-      );
-      if (!moveResult.success) {
-        onSetError(moveResult.error || 'Failed to move files');
-        return;
-      }
-      deleteItems(cutItems.map((item) => item.path));
-      await window.electronAPI.reconcileIndexedFiles(sourceFolder, false);
-    }
-
-    const result = await window.electronAPI.pasteAsRootInIndexYaml(currentPath, names);
-    if (!result.success) {
-      onSetError(result.error || 'Failed to paste as root entries');
-      return;
-    }
-    clearAllCutItems();
-    await window.electronAPI.reconcileIndexedFiles(currentPath, false);
-    onRefreshDirectory();
-  }, [currentPath, items, onRefreshDirectory, onSetError]);
-
   const getSelectedItems = () => Array.from(items.values()).filter((item) => item.isSelected);
 
   const performDelete = useCallback(async () => {
@@ -500,13 +390,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   }, []);
 
   const handleCreateFile = useCallback(async (fileName: string) => {
-    const entriesForInsert = hasIndexFile ? topLevelIndexEntries : sortedEntries;
-    await createFileOp(fileName, currentPath, insertAtIndex, entriesForInsert, onRefreshDirectory, onSetError, () => {
+    await createFileOp(fileName, currentPath, insertAtIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
       setShowCreateDialog(false);
       setCreateFileDefaultName('');
       setInsertAtIndex(null);
     });
-  }, [currentPath, onRefreshDirectory, onSetError, insertAtIndex, sortedEntries, hasIndexFile, topLevelIndexEntries]);
+  }, [currentPath, onRefreshDirectory, onSetError, insertAtIndex, sortedEntries]);
 
   const handleCancelCreate = useCallback(() => {
     setShowCreateDialog(false);
@@ -527,13 +416,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   }, []);
 
   const handleCreateFolder = useCallback(async (folderName: string) => {
-    const entriesForInsert = hasIndexFile ? topLevelIndexEntries : sortedEntries;
-    await createFolderOp(folderName, currentPath, insertAtIndex, entriesForInsert, onRefreshDirectory, onSetError, () => {
+    await createFolderOp(folderName, currentPath, insertAtIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
       setShowCreateFolderDialog(false);
       setCreateFolderDefaultName('');
       setInsertAtIndex(null);
     });
-  }, [currentPath, onRefreshDirectory, onSetError, insertAtIndex, sortedEntries, hasIndexFile, topLevelIndexEntries]);
+  }, [currentPath, onRefreshDirectory, onSetError, insertAtIndex, sortedEntries]);
 
   const handleCancelCreateFolder = useCallback(() => {
     setShowCreateFolderDialog(false);
@@ -588,7 +476,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       setReplaceResultMessage(buildReplaceResultMessage(results));
       const totalReplacements = results.filter((r) => r.success).reduce((sum, r) => sum + r.replacementCount, 0);
       if (totalReplacements > 0) {
-        void onRefreshDirectory(); // todo-0: wtf is the "void" on the front of this line
+        void onRefreshDirectory();
       }
     } catch (err) {
       setReplaceResultMessage(`Replace failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -721,18 +609,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               data-testid="delete-button"
             >
               Del
-            </button>
-          )}
-
-          {/* Paste-to-folder button — shown when items are cut and folder is in document mode */}
-          {hasCutItems && hasIndexFile && (
-            <button
-              onClick={() => void handlePasteAsRoot()}
-              className="p-2 text-emerald-400 hover:text-emerald-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-              title="Paste cut items into this folder (as root-level entries)"
-              data-testid="paste-as-root-button"
-            >
-              <PlusCircleIcon className="w-5 h-5" />
             </button>
           )}
 
@@ -889,100 +765,34 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             </div>
           )}
 
-          {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line 
-          
-          todo-0: this is a pretty strange pattern of code where we're defining functions in the middle of JSX, and I think we can do this cleaner by defining
-          somewhere further up in the file before we get into the main JSX.
-          */}
+          {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line */}
           {!loading && sortedEntries.length > 0 && (
             hasIndexFile ? (
-              (() => {
-                // Renders a single FileEntry using the correct component type
-                function renderEntryNode(
-                  entry: FileEntry,
-                  moveUp: (() => void) | undefined,
-                  moveDown: (() => void) | undefined,
-                  moveToTop: (() => void) | undefined,
-                  moveToBottom: (() => void) | undefined,
-                  pasteAsChild: (() => void) | undefined,
-                ) {
-                  if (entry.isDirectory) {
-                    return <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsChild={pasteAsChild} />;
-                  } else if (entry.isMarkdown) {
-                    return <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsChild={pasteAsChild} />;
-                  } else if (isImageFile(entry.name)) {
-                    return <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsChild={pasteAsChild} />;
-                  } else if (isTextFile(entry.name)) {
-                    return <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsChild={pasteAsChild} />;
-                  } else {
-                    return <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsChild={pasteAsChild} />;
-                  }
-                }
-
-                // Recursively renders a level of the IndexEntry tree.
-                // depth 0 = root level (shows insert bars); depth > 0 = indented children.
-                function renderIndexedLevel(indexEntries: IndexEntryData[], depth: number): React.ReactNode {
-                  return indexEntries.map((indexEntry, i) => {
-                    const fileEntry = entryByName.get(indexEntry.name);
-                    if (!fileEntry) return null;
-
-                    const siblings = indexEntries;
-                    const moveUp = i > 0 ? () => void handleMoveEntry(fileEntry.name, 'up') : undefined;
-                    const moveDown = i < siblings.length - 1 ? () => void handleMoveEntry(fileEntry.name, 'down') : undefined;
-                    const moveToTop = i > 0 ? () => void handleMoveEntryToEdge(fileEntry.name, 'top') : undefined;
-                    const moveToBottom = i < siblings.length - 1 ? () => void handleMoveEntryToEdge(fileEntry.name, 'bottom') : undefined;
-                    const pasteAsChild = () => void handlePasteAsChild(fileEntry.name);
-
-                    const childEntries = (indexEntry.children ?? []) as IndexEntryData[];
-                    const topLevelIdx = depth === 0 ? (topLevelEntryIndexMap.get(fileEntry.name) ?? i) : -1;
-
-                    const entryContent = (
-                      <>
-                        {renderEntryNode(fileEntry, moveUp, moveDown, moveToTop, moveToBottom, pasteAsChild)}
-                        {childEntries.length > 0 && (
-                          <div className="ml-6 border-l-2 border-slate-600">
-                            {renderIndexedLevel(childEntries, depth + 1)}
-                          </div>
-                        )}
-                        {depth === 0 && editMode && (
-                          <IndexInsertBar onInsertFile={() => handleInsertFileAt(topLevelIdx + 1)} onInsertFolder={() => handleInsertFolderAt(topLevelIdx + 1)} />
-                        )}
-                      </>
-                    );
-
-                    return <div key={fileEntry.path}>{entryContent}</div>;
-                  });
-                }
-
-                if (expandedEditor) {
-                  // Expanded editor: show only editing entries, flat
+              <div>
+                {editMode && !expandedEditor && <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />}
+                {visibleEntries.map((entry, idx) => {
+                  const moveUp = idx > 0 ? () => void handleMoveEntry(entry.name, 'up') : undefined;
+                  const moveDown = idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
+                  const moveToTop = idx > 0 ? () => void handleMoveEntryToEdge(entry.name, 'top') : undefined;
+                  const moveToBottom = idx < sortedEntries.length - 1 ? () => void handleMoveEntryToEdge(entry.name, 'bottom') : undefined;
                   return (
-                    <div>
-                      {visibleEntries.map((entry) => (
-                        <div key={entry.path}>
-                          {renderEntryNode(entry, undefined, undefined, undefined, undefined, undefined)}
-                        </div>
-                      ))}
+                    <div key={entry.path}>
+                      {entry.isDirectory ? (
+                        <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                      ) : entry.isMarkdown ? (
+                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                      ) : isImageFile(entry.name) ? (
+                        <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                      ) : isTextFile(entry.name) ? (
+                        <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                      ) : (
+                        <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                      )}
+                      {editMode && !expandedEditor && <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />}
                     </div>
                   );
-                }
-
-                const yamlFiles = (indexYaml?.files ?? []) as IndexEntryData[];
-                // Entries on disk not yet in the index (not yet reconciled)
-                const extraEntries = topLevelIndexEntries.filter((e) => e.indexOrder === undefined);
-
-                return (
-                  <div>
-                    {editMode && <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />}
-                    {renderIndexedLevel(yamlFiles, 0)}
-                    {extraEntries.map((entry) => (
-                      <div key={entry.path}>
-                        {renderEntryNode(entry, undefined, undefined, undefined, undefined, () => void handlePasteAsChild(entry.name))}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()
+                })}
+              </div>
             ) : (
               <div className="[&>div+div]:-mt-px">
                 {visibleEntries.map((entry) => (

@@ -224,8 +224,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('read-index-yaml', dirPath),
   writeIndexOptions: (dirPath: string, options: { edit_mode?: boolean }) =>
     ipcRenderer.invoke('write-index-options', dirPath, options),
-  pasteAsChildrenInIndexYaml: (dirPath: string, parentName: string, childNames: string[]) =>
-    ipcRenderer.invoke('paste-as-children-in-index-yaml', dirPath, parentName, childNames),
-  pasteAsRootInIndexYaml: (dirPath: string, names: string[]) =>
-    ipcRenderer.invoke('paste-as-root-in-index-yaml', dirPath, names),
 } as ElectronAPI);

@@ -457,46 +457,6 @@ export async function ensureFrontMatterIdIfIndexed(
 }
 
 /**
- * Adds the given names as children of the named parent entry in .INDEX.yaml.
- * The files stay in the same folder on disk; only the YAML hierarchy changes.
- * Duplicates are silently skipped. Call reconcileIndexedFiles afterward to
- * populate id/fingerprint fields on the new child entries.
- */
-export async function pasteAsChildrenInIndexYaml(
-  dirPath: string,
-  parentName: string,
-  childNames: string[],
-): Promise<{ success: boolean; error?: string }> {
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
-  try {
-    const indexYaml = (await readIndexYaml(dirPath)) ?? {};
-
-    // Remove the child names from wherever they currently live in the tree
-    // before re-inserting them under the new parent.
-    const childNameSet = new Set(childNames);
-    const files = removeNamesFromTree(indexYaml.files ?? [], childNameSet);
-
-    const found = findEntryInTree(files, parentName);
-    if (!found) return { success: false, error: `Entry "${parentName}" not found in index` };
-
-    if (!found.entry.children) found.entry.children = [];
-    const existingChildNames = new Set(found.entry.children.map((c) => c.name));
-    for (const name of childNames) {
-      if (!existingChildNames.has(name)) {
-        found.entry.children.push({ name });
-        existingChildNames.add(name);
-      }
-    }
-
-    const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
-    await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
-  }
-}
-
-/**
  * Promotes the given names from wherever they live in the YAML tree (children or root)
  * to root-level entries in .INDEX.yaml. Files stay in the same folder on disk;
  * only the YAML hierarchy changes. Entries already at root are left in place.
