@@ -1,7 +1,7 @@
-import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../../utils/styles';
-import { toggleBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
+import { toggleBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, useHasCutItems, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
@@ -28,6 +28,8 @@ interface EntryActionBarProps {
   onMoveToTop?: () => void;
   /** Move to bottom of .INDEX.yaml (Ctrl+Move Down) */
   onMoveToBottom?: () => void;
+  /** Paste cut items as YAML children of this entry (document mode only) */
+  onPasteAsChild?: () => void;
   /** Extra className for the container */
   className?: string;
 }
@@ -49,12 +51,14 @@ export function EntryActionBar({
   onMoveDown,
   onMoveToTop,
   onMoveToBottom,
+  onPasteAsChild,
   className = '',
 }: EntryActionBarProps) {
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
   const editMode = indexYaml?.options?.edit_mode ?? false;
   const showEditActions = !hasIndexFile || editMode;
+  const hasCutItems = useHasCutItems();
   const settings = useSettings();
 
   const handleBookmarkClick = (e: React.MouseEvent) => {
@@ -171,6 +175,19 @@ export function EntryActionBar({
           data-testid="entry-move-down-button"
         >
           <ArrowDownIcon className="w-5 h-5" />
+        </button>
+      )}
+      {editMode && hasCutItems && onPasteAsChild && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onPasteAsChild();
+          }}
+          className="p-1 text-emerald-400 hover:text-emerald-300 hover:bg-slate-700 rounded transition-colors cursor-pointer"
+          title="Paste cut items as children of this entry"
+          data-testid="entry-paste-as-child-button"
+        >
+          <PlusCircleIcon className="w-5 h-5" />
         </button>
       )}
       </div>

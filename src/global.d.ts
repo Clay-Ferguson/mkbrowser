@@ -203,8 +203,10 @@ export interface ElectronAPI {
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;
   moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') => Promise<{ success: boolean; error?: string }>;
   reconcileIndexedFiles: (dirPath: string, createIfMissing?: boolean) => Promise<void>;
-  readIndexYaml: (dirPath: string) => Promise<{ files?: { name: string; id?: string }[]; options?: { edit_mode?: boolean } } | null>;
+  readIndexYaml: (dirPath: string) => Promise<import('./store/types').AppState['indexYaml']>;
   writeIndexOptions: (dirPath: string, options: { edit_mode?: boolean }) => Promise<{ success: boolean; error?: string }>;
+  pasteAsChildrenInIndexYaml: (dirPath: string, parentName: string, childNames: string[]) => Promise<{ success: boolean; error?: string }>;
+  pasteAsRootInIndexYaml: (dirPath: string, names: string[]) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {

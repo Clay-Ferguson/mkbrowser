@@ -21,6 +21,8 @@ export interface BaseEntryProps {
   onMoveToTop?: () => void;
   /** Move entry to bottom of .INDEX.yaml (Ctrl+Move Down) */
   onMoveToBottom?: () => void;
+  /** Paste cut items as YAML children of this entry (document mode only) */
+  onPasteAsChild?: () => void;
 }
 
 /**

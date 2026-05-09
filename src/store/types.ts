@@ -480,7 +480,7 @@ export interface AppState {
    * Parsed contents of .INDEX.yaml for the current directory.
    * Null when no index file exists or has not yet been loaded.
    */
-  indexYaml: { files?: { name: string; id?: string }[]; options?: { edit_mode?: boolean } } | null;
+  indexYaml: { files?: IndexEntryData[]; options?: { edit_mode?: boolean } } | null;
 
   /**
    * When true, BrowseView hides all entries except the one being edited,
@@ -489,6 +489,17 @@ export interface AppState {
    */
   expandedEditor: boolean;
 
+}
+
+/**
+ * A single entry in .INDEX.yaml (mirrored from indexUtil.ts for renderer-side use)
+ */
+export interface IndexEntryData {
+  name: string;
+  id?: string;
+  create_time?: number;
+  size?: number;
+  children?: IndexEntryData[];
 }
 
 /**

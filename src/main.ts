@@ -6,7 +6,7 @@ import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 
 import { readDirectory, parseFrontMatter } from './utils/fileUtils';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed } from './utils/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, pasteAsChildrenInIndexYaml, pasteAsRootInIndexYaml } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
 import { processTOC } from './utils/tocUtils';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
@@ -350,6 +350,16 @@ function setupIpcHandlers(): void {
   // Write options section of .INDEX.yaml
   ipcMain.handle('write-index-options', async (_event, dirPath: string, options: { edit_mode?: boolean }): Promise<{ success: boolean; error?: string }> => {
     return writeIndexOptions(dirPath, options);
+  });
+
+  // Add names as children of a parent entry in .INDEX.yaml (YAML-only, no filesystem move)
+  ipcMain.handle('paste-as-children-in-index-yaml', async (_event, dirPath: string, parentName: string, childNames: string[]): Promise<{ success: boolean; error?: string }> => {
+    return pasteAsChildrenInIndexYaml(dirPath, parentName, childNames);
+  });
+
+  // Promote names from children to root-level entries in .INDEX.yaml (YAML-only, no filesystem move)
+  ipcMain.handle('paste-as-root-in-index-yaml', async (_event, dirPath: string, names: string[]): Promise<{ success: boolean; error?: string }> => {
+    return pasteAsRootInIndexYaml(dirPath, names);
   });
 
   // Search and replace in files recursively

@@ -345,7 +345,7 @@ function App() {
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
           <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
           <div className="flex-1 flex flex-row min-h-0">
-            {settings.indexTreeWidth !== 'hidden' && <IndexTree />}
+            {settings.indexTreeWidth !== 'hidden' && <IndexTree onRefreshDirectory={refreshDirectory} />}
             <div className="flex-1 flex flex-col min-h-0 min-w-0">
               <BrowseView
                 entries={entries}

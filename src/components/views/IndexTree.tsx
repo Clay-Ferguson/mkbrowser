@@ -107,7 +107,7 @@ function findNodeByPath(root: FileNode, path: string): FileNode | null {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-function IndexTree() {
+function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) {
   const rootPath = useRootPath();
   const currentPath = useCurrentPath();
   const treeRoot = useIndexTreeRoot();
@@ -263,6 +263,11 @@ function IndexTree() {
       window.electronAPI.reconcileIndexedFiles(node.path, false),
     ]);
 
+    // If the browse view is currently showing this folder, refresh it
+    if (node.path === currentPath) {
+      onRefreshDirectory?.();
+    }
+
     // Refresh children only if the folder is already expanded
     if (node.isExpanded) {
       try {
@@ -272,7 +277,7 @@ function IndexTree() {
         // leave tree as-is
       }
     }
-  }, []);
+  }, [currentPath, onRefreshDirectory]);
 
   const handleRunScript = useCallback((node: FileNode) => {
     if (runningScript) return;

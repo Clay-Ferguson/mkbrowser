@@ -33,7 +33,7 @@ import { getTextFileLanguage } from '../../utils/fileUtils';
 
 type TextEntryProps = BaseEntryProps;
 
-function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom }: TextEntryProps) {
+function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsChild }: TextEntryProps) {
   const item = useItem(entry.path);
   const [isRewriting, setIsRewriting] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
@@ -203,6 +203,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
             onMoveDown={onMoveDown}
             onMoveToTop={onMoveToTop}
             onMoveToBottom={onMoveToBottom}
+            onPasteAsChild={onPasteAsChild}
             showEditButton
             onEditClick={edit.handleEditClick}
             className="-mr-1.5"

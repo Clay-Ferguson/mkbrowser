@@ -23,9 +23,10 @@ interface FolderEntryProps {
   onMoveDown?: () => void;
   onMoveToTop?: () => void;
   onMoveToBottom?: () => void;
+  onPasteAsChild?: () => void;
 }
 
-function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom }: FolderEntryProps) {
+function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsChild }: FolderEntryProps) {
   const {
     isRenaming,
     isSelected,
@@ -113,6 +114,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
               onMoveDown={onMoveDown}
               onMoveToTop={onMoveToTop}
               onMoveToBottom={onMoveToBottom}
+              onPasteAsChild={onPasteAsChild}
               className="-mr-1.5"
             />
             {hasCutItems && onPasteIntoFolder && (
