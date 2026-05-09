@@ -6,7 +6,7 @@ import { parseFrontMatter } from './fileUtils';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
 
-export type IndexEntry = { name: string; id?: string; create_time?: number; size?: number; children?: IndexEntry[] };
+export type IndexEntry = { name: string; id?: string; create_time?: number; size?: number };
 
 export interface IndexOptions {
   edit_mode?: boolean;
@@ -15,109 +15,6 @@ export interface IndexOptions {
 export interface IndexYaml {
   files?: IndexEntry[];
   options?: IndexOptions;
-}
-
-/**
- * Searches the entry tree for the first entry matching `name`.
- * Returns the entry, its containing array, and its index within that array.
- */
-function findEntryInTree(
-  files: IndexEntry[],
-  name: string,
-): { entry: IndexEntry; list: IndexEntry[]; idx: number } | null {
-  for (let i = 0; i < files.length; i++) {
-    if (files[i].name === name) return { entry: files[i], list: files, idx: i };
-    if (files[i].children?.length) {
-      const found = findEntryInTree(files[i].children!, name);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-/**
- * Recursively walks `entries`, updating names via rename-detection maps,
- * collecting handled names, and removing entries whose files no longer exist.
- * Returns the pruned, reconciled list.
- */
-function reconcileAndPruneTree(
-  entries: IndexEntry[],
-  idToName: Map<string, string>,
-  fingerprintToVisibleName: Map<string, string>,
-  visibleNames: Set<string>,
-  nameToId: Map<string, string>,
-  nameToStat: Map<string, { createTime: number; size: number }>,
-  handledNames: Set<string>,
-): IndexEntry[] {
-  const result: IndexEntry[] = [];
-  for (const entry of entries) {
-    let keep = false;
-    if (entry.id) {
-      const actualName = idToName.get(entry.id);
-      if (actualName) {
-        entry.name = actualName;
-        handledNames.add(actualName);
-        keep = true;
-      } else if (visibleNames.has(entry.name)) {
-        handledNames.add(entry.name);
-        keep = true;
-      }
-    } else if (entry.create_time !== undefined && entry.size !== undefined) {
-      const ext = path.extname(entry.name).toLowerCase();
-      const actualName = fingerprintToVisibleName.get(`${entry.create_time}:${entry.size}:${ext}`);
-      if (actualName) {
-        entry.name = actualName;
-        handledNames.add(actualName);
-        keep = true;
-      }
-    } else {
-      if (visibleNames.has(entry.name)) {
-        handledNames.add(entry.name);
-        const id = nameToId.get(entry.name);
-        if (id) {
-          entry.id = id;
-        } else {
-          const stat = nameToStat.get(entry.name);
-          if (stat) {
-            entry.create_time = stat.createTime;
-            entry.size = stat.size;
-          }
-        }
-        keep = true;
-      }
-    }
-    if (keep) {
-      if (entry.children?.length) {
-        entry.children = reconcileAndPruneTree(
-          entry.children, idToName, fingerprintToVisibleName, visibleNames, nameToId, nameToStat, handledNames,
-        );
-        if (entry.children.length === 0) delete entry.children;
-      }
-      result.push(entry);
-    }
-  }
-  return result;
-}
-
-/**
- * Returns a copy of `entries` with all entries whose names are in `names` removed,
- * recursively through children. Used before re-inserting entries at a new position.
- */
-function removeNamesFromTree(entries: IndexEntry[], names: Set<string>): IndexEntry[] {
-  const result: IndexEntry[] = [];
-  for (const entry of entries) {
-    if (names.has(entry.name)) continue;
-    if (entry.children?.length) {
-      const pruned = removeNamesFromTree(entry.children, names);
-      const updated: IndexEntry = { ...entry };
-      if (pruned.length) updated.children = pruned;
-      else delete updated.children;
-      result.push(updated);
-    } else {
-      result.push(entry);
-    }
-  }
-  return result;
 }
 
 /**
@@ -229,11 +126,43 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
     }
   }
 
-  // Reconcile and prune the tree: detect renames, remove deleted entries, collect handled names
+  // Reconcile existing entries: detect renames via id (markdown) or fingerprint (non-markdown)
   const handledNames = new Set<string>();
-  files = reconcileAndPruneTree(
-    files, idToName, fingerprintToVisibleName, visibleNames, nameToId, nameToStat, handledNames,
-  );
+  for (const entry of files) {
+    if (entry.id) {
+      // Markdown entry: match by id to detect renames
+      const actualName = idToName.get(entry.id);
+      if (actualName) {
+        entry.name = actualName;
+        handledNames.add(actualName);
+      }
+      // If no actualName: file was deleted — will be filtered out below
+    } else if (entry.create_time !== undefined && entry.size !== undefined) {
+      // Fingerprinted non-markdown entry: match by (create_time, size, ext) to detect renames
+      const ext = path.extname(entry.name).toLowerCase();
+      const actualName = fingerprintToVisibleName.get(`${entry.create_time}:${entry.size}:${ext}`);
+      if (actualName) {
+        entry.name = actualName;
+        handledNames.add(actualName);
+      }
+      // If no actualName: file was deleted — will be filtered out below
+    } else {
+      // Name-only entry (folder or old-style non-markdown without fingerprint)
+      handledNames.add(entry.name);
+      const id = nameToId.get(entry.name);
+      if (id) entry.id = id;
+    }
+  }
+
+  // Remove entries for files/folders that no longer exist on disk
+  files = files.filter((entry) => {
+    if (entry.id) return idToName.has(entry.id) || visibleNames.has(entry.name);
+    if (entry.create_time !== undefined && entry.size !== undefined) {
+      const ext = path.extname(entry.name).toLowerCase();
+      return fingerprintToVisibleName.has(`${entry.create_time}:${entry.size}:${ext}`);
+    }
+    return visibleNames.has(entry.name);
+  });
 
   // Append visible entries not yet in the index.
   // Markdown files get an id; non-markdown files get a create_time+size fingerprint for rename detection.
@@ -292,14 +221,13 @@ export async function moveInIndexYaml(
     if (!indexYaml) return { success: false, error: '.INDEX.yaml not found or unreadable' };
     const files = indexYaml.files ?? [];
 
-    const found = findEntryInTree(files, name);
-    if (!found) return { success: false, error: `Entry "${name}" not found in index` };
+    const idx = files.findIndex((f) => f.name === name);
+    if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
 
-    const { list, idx } = found;
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= list.length) return { success: true };
+    if (swapIdx < 0 || swapIdx >= files.length) return { success: true };
 
-    [list[idx], list[swapIdx]] = [list[swapIdx], list[idx]];
+    [files[idx], files[swapIdx]] = [files[swapIdx], files[idx]];
 
     const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
     await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
@@ -323,15 +251,14 @@ export async function moveToEdgeInIndexYaml(
     if (!indexYaml) return { success: false, error: '.INDEX.yaml not found or unreadable' };
     const files = indexYaml.files ?? [];
 
-    const found = findEntryInTree(files, name);
-    if (!found) return { success: false, error: `Entry "${name}" not found in index` };
+    const idx = files.findIndex((f) => f.name === name);
+    if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
 
-    const { list, idx } = found;
-    const [entry] = list.splice(idx, 1);
+    const [entry] = files.splice(idx, 1);
     if (edge === 'top') {
-      list.unshift(entry);
+      files.unshift(entry);
     } else {
-      list.push(entry);
+      files.push(entry);
     }
 
     const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
@@ -373,22 +300,16 @@ export async function getSortedDirEntries(
   // Build a lookup from name → Dirent for fast access
   const nameMap = new Map(visible.map((e) => [e.name, e]));
 
-  // Emit entries in depth-first index order, then any extras not listed alphabetically
+  // Emit entries in index order, then any extras not listed in the index alphabetically
   const ordered: Array<{ name: string; entryPath: string; isDir: boolean }> = [];
   const seen = new Set<string>();
-
-  function walkEntries(entries: IndexEntry[]) {
-    for (const entry of entries) {
-      const dirent = nameMap.get(entry.name);
-      if (dirent && !seen.has(entry.name)) {
-        ordered.push(toItem(dirent));
-        seen.add(entry.name);
-      }
-      if (entry.children?.length) walkEntries(entry.children);
+  for (const entry of indexYaml.files) {
+    const dirent = nameMap.get(entry.name);
+    if (dirent) {
+      ordered.push(toItem(dirent));
+      seen.add(entry.name);
     }
   }
-  walkEntries(indexYaml.files);
-
   // Append any disk entries not present in the index (new files not yet reconciled)
   for (const e of visible) {
     if (!seen.has(e.name)) {
@@ -444,51 +365,16 @@ export async function ensureFrontMatterIdIfIndexed(
     newContent = `---\n${yaml.dump(updated)}---\n${body}`;
   }
 
-  // Update the .INDEX.yaml entry for this file to record the id (search the whole tree)
+  // Update the .INDEX.yaml entry for this file to record the id
   const files = indexYaml.files ?? [];
-  const found = findEntryInTree(files, fileName);
-  if (found) {
-    found.entry.id = fileId;
+  const entry = files.find((f) => f.name === fileName);
+  if (entry) {
+    entry.id = fileId;
     const newIndexContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
     await fs.promises.writeFile(indexFilePath, newIndexContent, 'utf8');
   }
 
   return newContent;
-}
-
-/**
- * Promotes the given names from wherever they live in the YAML tree (children or root)
- * to root-level entries in .INDEX.yaml. Files stay in the same folder on disk;
- * only the YAML hierarchy changes. Entries already at root are left in place.
- * Call reconcileIndexedFiles afterward to populate id/fingerprint fields if needed.
- */
-export async function pasteAsRootInIndexYaml(
-  dirPath: string,
-  names: string[],
-): Promise<{ success: boolean; error?: string }> {
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
-  try {
-    const indexYaml = (await readIndexYaml(dirPath)) ?? {};
-
-    const nameSet = new Set(names);
-    // Remove the names from wherever they currently live (children or root)
-    const files = removeNamesFromTree(indexYaml.files ?? [], nameSet);
-
-    // Append them to root files[]
-    const existingRootNames = new Set(files.map((e) => e.name));
-    for (const name of names) {
-      if (!existingRootNames.has(name)) {
-        files.push({ name });
-        existingRootNames.add(name);
-      }
-    }
-
-    const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
-    await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
-  }
 }
 
 /**
