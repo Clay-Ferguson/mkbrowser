@@ -1,0 +1,17 @@
+# Objective: Create Attachments Folders 
+
+it's very common in this personal knowledge-base application to have a markdown file, which needs to have other file attachments associated to it. for example, you might have a markdown file that needs to reference a few images, and so we need a clean way to have those images be associated with the file itself. we're going to be designing the feature that can support this. our solution is very simple, because we're just going to allow our application to recognize whenever there is a folder name that matches a file name except the folder will have the suffix of ".attach". for example, if we have a markdown file named 'my-screenshots.md', then we want our system to automatically recognize that a folder by the name of `my-screenshots.md.attach` will hold any attachments that are associated with the file.
+
+we're going to implement this feature in phases, where each phase is very focused and simple for you to implement and builds on top of the previous phase. 
+
+you're doing phase 2 now.
+
+## Phase 1 (done)
+
+you will modify `BrowseView.tsx` to make it aware when it encounters an "attach" folder, and you will render the content of the attachment folder in line-in on the page, below the `FolderEntry.tsx` component, but with a left indentation which will visually indicate that we have traverse into the subfolder to render the content of the subfolder. you should also take a hierarchical approach when you do this, because it should be just as easy as the non-hierarchical approach, really. that is to say when we're generating the rows, and we encounter an "attach" folder we should be able to call a recursive method and pass it a 'level' argument (in addition to any other arguments you need) so that it can do the indentation based on the depth level of the recursion, but other than that, everything about the render will be the same, where files are rendered the normal way, and whenever we encounter any additional "attach" folders during the rendering we will increment the level, and do the recursion down into that new "attach" folder.
+
+the only thing that could make this slightly tricky is that you do need to take into account and remember that our algorithm for rendering items on the page is either unordered rendering as controlled by the sort ordering the user has selected, or the other way the page might be rendered is if it is a "Document View" (see `document_mode.md`) in which case the `.INDEX.yaml` file will control the ordering. but since we've already taken care of all of the ordering , including for the special case of "Document View" in our existing code, you should be able to know how to write the recursive method to follow the same ordering algorithm.
+
+To be clear about how this needs to work on the back end, what we should do is add and "attachments" optional array (array of `FileEntry` objects) variable to the `FileEntry` interface, and then we will only have one place where we scan the file system, so that as we're building up the the holder structure for the `BrowseView` items, we will be building out any attachments as we go along. this way the GUI component will be completely decoupled from the data loading, and it will just be able to assume that it only needs to check for the "attachments". i guess it would be the folder itself that would have the "attachments" array populated for it, rather than the file. so please make this change and I think it will actually be simpler, cleaner and better code. 
+
+## Phase 2 (current)

@@ -71,6 +71,56 @@ import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildRe
 import { pasteIntoFolder, deleteSelected, moveSelectedToFolder, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp } from '../../utils/fileOpsUtils';
 
 
+const ATTACH_SUFFIX = '.attach';
+
+interface AttachFolderContentsProps {
+  entries: FileEntry[];
+  level: number;
+  onNavigate: (path: string) => void;
+  onRename: () => void;
+  onDelete: () => void;
+  onSaveSettings: () => void;
+  onPasteIntoFolder?: (folderPath: string) => void;
+}
+
+function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder }: AttachFolderContentsProps) {
+  if (entries.length === 0) return null;
+  const allImages = entries.filter(e => !e.isDirectory && isImageFile(e.name));
+
+  return (
+    <div style={{ paddingLeft: `${level * 32}px` }}>
+      {entries.map(entry => (
+        <div key={entry.path}>
+          {entry.isDirectory ? (
+            <>
+              <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={onPasteIntoFolder} />
+              {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
+                <AttachFolderContents
+                  entries={entry.attachments}
+                  level={level + 1}
+                  onNavigate={onNavigate}
+                  onRename={onRename}
+                  onDelete={onDelete}
+                  onSaveSettings={onSaveSettings}
+                  onPasteIntoFolder={onPasteIntoFolder}
+                />
+              )}
+            </>
+          ) : entry.isMarkdown ? (
+            <MarkdownEntry entry={entry} view="browser" onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} />
+          ) : isImageFile(entry.name) ? (
+            <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} />
+          ) : isTextFile(entry.name) ? (
+            <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} />
+          ) : (
+            <FileEntryComponent entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 interface BrowseViewProps {
   entries: FileEntry[];
   loading: boolean;
@@ -778,7 +828,20 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                   return (
                     <div key={entry.path}>
                       {entry.isDirectory ? (
-                        <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                        <>
+                          <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                          {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
+                            <AttachFolderContents
+                              entries={entry.attachments}
+                              level={1}
+                              onNavigate={navigateTo}
+                              onRename={handleEntryRename}
+                              onDelete={handleEntryDelete}
+                              onSaveSettings={onSaveSettings}
+                              onPasteIntoFolder={doPasteIntoFolder}
+                            />
+                          )}
+                        </>
                       ) : entry.isMarkdown ? (
                         <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       ) : isImageFile(entry.name) ? (
@@ -798,7 +861,20 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 {visibleEntries.map((entry) => (
                   <div key={entry.path}>
                     {entry.isDirectory ? (
-                      <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
+                      <>
+                        <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
+                        {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
+                          <AttachFolderContents
+                            entries={entry.attachments}
+                            level={1}
+                            onNavigate={navigateTo}
+                            onRename={handleEntryRename}
+                            onDelete={handleEntryDelete}
+                            onSaveSettings={onSaveSettings}
+                            onPasteIntoFolder={doPasteIntoFolder}
+                          />
+                        )}
+                      </>
                     ) : entry.isMarkdown ? (
                       <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                     ) : isImageFile(entry.name) ? (

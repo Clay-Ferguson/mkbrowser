@@ -220,6 +220,15 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
       createdTime,
     };
 
+    // Pre-load contents of .attach folders so the renderer needs no extra I/O
+    if (isDirectory && entry.name.endsWith('.attach')) {
+      try {
+        fileEntry.attachments = await readDirectory(fullPath, aiEnabled);
+      } catch {
+        // Unreadable attach folder — leave attachments undefined
+      }
+    }
+
     // Load AI conversation hint for H*/A* folders when aiEnabled
     if (isDirectory && aiEnabled) {
       const folderName = entry.name;

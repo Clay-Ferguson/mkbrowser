@@ -89,6 +89,8 @@ export interface FileEntry {
   aiHint?: string;
   /** Position from .INDEX.yaml; undefined means not listed (appears after indexed entries) */
   indexOrder?: number;
+  /** Contents of an associated .attach folder, pre-loaded by readDirectory */
+  attachments?: FileEntry[];
 }
 
 export interface SearchResult {
