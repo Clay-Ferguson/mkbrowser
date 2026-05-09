@@ -1,5 +1,4 @@
 import type { HashtagDefinition } from './utils/tagUtils';
-import type { IndexEntryData } from './store/types';
 
 export type { HashtagDefinition };
 
