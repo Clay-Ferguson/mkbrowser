@@ -4,7 +4,7 @@ it's very common in this personal knowledge-base application to have a markdown 
 
 we're going to implement this feature in phases, where each phase is very focused and simple for you to implement and builds on top of the previous phase. 
 
-you're doing phase 3 now.
+you're doing phase 4 now.
 
 ## Phase 1 (done)
 
@@ -18,6 +18,10 @@ To be clear about how this needs to work on the back end, what we should do is a
 
 when the current folder is a "Document Mode" one, we have two icons buttons that we display between each file/folder which are named "insert file here" and "insert folder here". we need to make our `BrowseView.tsx` page rendering be smart enough to never show those two icons above an "attach" folder, because we will never be letting the user insert files and folders at that location. 
 
-## Phase 3 (current)
+## Phase 3 (done)
 
-when the current folder is a "Document Mode" one,  we also want to hide the entire `FolderEntry` from view as well (no need to have it in the DOM at all), but we will instead put the folder icon as a left-justified icon button (yellow icon same as used in the `FolderEntry` for the header icon), and it should sit in the space left there because we've added margin/padding (indenting) to the attachment items display. This button sill do exactly the same thing as a click on the `FolderEntry` file name, which is to open that folder (i.e. browse into that folder). In this way we will now have (for Document Mode only) a clean way to have the attachments show up directly underneath the file they're associated to, with no folder being displayed, but just the icon to click to get into the folder.
+when the current folder is a "Document Mode" one,  and we're rendering an "attach" type folder we also want to make the folder name be invisible most of the time until the mouse is hovered over the header bar, in the `FolderEntry` header. it was tricky to get this hover styling exactly the way I wanted, because I have a very specific timing and animation styling that I use for this. so you should refer to the styling on the `EntryActionBar.tsx` which also appears in the same header (write "justified" to the right of the folder name ) because the styling on that action bar as exactly the right mouse hovering visibility animation that we want to apply to the folder name. in other words, we want the folder name to be invisible most of the time, just like the `EntryActionBar.tsx` icons are, and when the action icons fade in, we will be having the folder name fade in exactly the same way at the same time. to be clear, I'm not talking about hiding the folder icon itself, just the text for the file name, the folder icon and even the checkbox can all remain visible all the time, in this folder header area we're talking about.
+
+## Phase 4 (current)
+
+when the current folder is a "Document Mode" one,  and we're rendering an "attach" type folder we also want to always hide (never show) the "Move Up" or "Move Down" buttons in the `EntryActionBar.tsx` regardless of whether edit mode is on or not. 

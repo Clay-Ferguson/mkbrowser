@@ -23,9 +23,10 @@ interface FolderEntryProps {
   onMoveDown?: () => void;
   onMoveToTop?: () => void;
   onMoveToBottom?: () => void;
+  isAttachFolder?: boolean;
 }
 
-function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom }: FolderEntryProps) {
+function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder }: FolderEntryProps) {
   const {
     isRenaming,
     isSelected,
@@ -91,7 +92,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
           />
         ) : (
           <>
-            <span id={buildEntryHeaderId(entry.path)} className="text-slate-200 font-medium truncate flex-shrink-0">{entry.name}</span>
+            <span id={buildEntryHeaderId(entry.path)} className={`text-slate-200 font-medium truncate flex-shrink-0${isAttachFolder && hasIndexFile ? ' opacity-0 [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:[transition:opacity_200ms_ease_400ms]' : ''}`}>{entry.name}</span>
             {aiHint && (
               <span className="text-slate-400 italic text-sm truncate min-w-0" title={aiHint}>{aiHint}</span>
             )}

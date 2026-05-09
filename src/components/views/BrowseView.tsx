@@ -93,7 +93,7 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
         <div key={entry.path}>
           {entry.isDirectory ? (
             <>
-              <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={onPasteIntoFolder} />
+              <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={onPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
               {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
                 <AttachFolderContents
                   entries={entry.attachments}
@@ -829,7 +829,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                     <div key={entry.path}>
                       {entry.isDirectory ? (
                         <>
-                          <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                          <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
                           {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
                             <AttachFolderContents
                               entries={entry.attachments}
@@ -862,7 +862,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                   <div key={entry.path}>
                     {entry.isDirectory ? (
                       <>
-                        <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} />
+                        <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
                         {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
                           <AttachFolderContents
                             entries={entry.attachments}
