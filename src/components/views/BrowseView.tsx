@@ -588,7 +588,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       setReplaceResultMessage(buildReplaceResultMessage(results));
       const totalReplacements = results.filter((r) => r.success).reduce((sum, r) => sum + r.replacementCount, 0);
       if (totalReplacements > 0) {
-        void onRefreshDirectory();
+        void onRefreshDirectory(); // todo-0: wtf is the "void" on the front of this line
       }
     } catch (err) {
       setReplaceResultMessage(`Replace failed: ${err instanceof Error ? err.message : String(err)}`);

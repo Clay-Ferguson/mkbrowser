@@ -277,6 +277,20 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
         // leave tree as-is
       }
     }
+
+    // Refresh the source folder too, so it no longer shows the moved items
+    const root = getIndexTreeRoot();
+    if (root) {
+      const sourceNode = findNodeByPath(root, sourceFolder);
+      if (sourceNode?.isExpanded) {
+        try {
+          const entries = await window.electronAPI.readDirectory(sourceFolder);
+          expandIndexTreeNode(sourceFolder, makeNodes(entries));
+        } catch {
+          // leave tree as-is
+        }
+      }
+    }
   }, [currentPath, onRefreshDirectory]);
 
   const handleRunScript = useCallback((node: FileNode) => {
