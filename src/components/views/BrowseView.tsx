@@ -370,6 +370,24 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     await pasteIntoFolder(folderPath, items, onSetError, onRefreshDirectory);
   }, [items, onRefreshDirectory, onSetError]);
 
+  const doPasteAsAttachment = useCallback(async (filePath: string) => {
+    const attachFolderPath = `${filePath}${ATTACH_SUFFIX}`;
+    const exists = await window.electronAPI.pathExists(attachFolderPath);
+    if (!exists) {
+      const result = await window.electronAPI.createFolder(attachFolderPath);
+      if (!result.success) {
+        onSetError(result.error || 'Failed to create attachment folder');
+        return;
+      }
+      if (hasIndexFile && currentPath) {
+        const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
+        const attachFolderName = `${fileName}${ATTACH_SUFFIX}`;
+        await window.electronAPI.insertIntoIndexYaml(currentPath, attachFolderName, fileName);
+      }
+    }
+    await pasteIntoFolder(attachFolderPath, items, onSetError, onRefreshDirectory);
+  }, [items, onRefreshDirectory, onSetError, hasIndexFile, currentPath]);
+
   const getSelectedItems = () => Array.from(items.values()).filter((item) => item.isSelected);
 
   const performDelete = useCallback(async () => {
@@ -845,7 +863,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                           )}
                         </>
                       ) : entry.isMarkdown ? (
-                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} />
                       ) : isImageFile(entry.name) ? (
                         <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       ) : isTextFile(entry.name) ? (
@@ -878,7 +896,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                         )}
                       </>
                     ) : entry.isMarkdown ? (
-                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
+                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteAsAttachment={doPasteAsAttachment} />
                     ) : isImageFile(entry.name) ? (
                       <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                     ) : isTextFile(entry.name) ? (

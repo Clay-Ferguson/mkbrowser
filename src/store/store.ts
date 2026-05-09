@@ -802,6 +802,7 @@ export function setItemReviewing(path: string, reviewing: boolean, rewrittenCont
 export function setItemEditContent(path: string, editContent: string): void {
   const existing = state.items.get(path);
   if (!existing) return;
+  if (existing.editContent === editContent) return;
 
   const newItems = new Map(state.items);
   newItems.set(path, { ...existing, editContent });

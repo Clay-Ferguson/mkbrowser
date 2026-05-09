@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { DocumentTextIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
 import Markdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
@@ -16,6 +16,7 @@ import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnC
 import {
   useItem,
   useSettings,
+  useHasCutItems,
   setHighlightItem,
   clearItemGoToLine,
   toggleItemExpanded,
@@ -59,10 +60,12 @@ import {
 interface MarkdownEntryProps extends BaseEntryProps {
   entry: FileEntry;
   view: AppView;
+  onPasteAsAttachment?: (filePath: string) => void;
 }
 
-function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom }: MarkdownEntryProps) {
+function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment }: MarkdownEntryProps) {
   const item = useItem(entry.path);
+  const hasCutItems = useHasCutItems();
 
   const {
     isRenaming,
@@ -393,6 +396,16 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               onEditClick={edit.handleEditClick}
               className="-mr-1.5"
             />
+            {hasCutItems && onPasteAsAttachment && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onPasteAsAttachment(entry.path); }}
+                className="flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer"
+                title="Paste cut items as attachments to this file"
+                aria-label="Paste cut items as attachments to this file"
+              >
+                <PaperClipIcon className="w-4 h-4 text-white" />
+              </button>
+            )}
           </>
         )}
       </div>
