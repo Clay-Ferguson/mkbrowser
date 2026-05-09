@@ -195,6 +195,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     return set;
   }, [indexYaml]);
 
+  // todo-0: it seems like there might be a better way to get the top level entries then to have to do 
+  //         a filter iteration that checks a hash set at each iteration. Don't we just have the 
+  //         'files' property at the root level we can enumerate, and that's the exact list?
   // Root-level entries only (children excluded), used for insert-bar position arithmetic
   const topLevelIndexEntries = useMemo(() => {
     if (!hasIndexFile) return sortedEntries;
@@ -359,6 +362,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     await pasteIntoFolder(folderPath, items, onSetError, onRefreshDirectory);
   }, [items, onRefreshDirectory, onSetError]);
 
+  // NOTE: this is essentially creating what we also call "Attachments" meaning that we're not pasting directly into a folder but we're also updating the 
+  //       .INDEX.yaml file for a "Document Mode" folder where each file entry can have an array of children and the children are considered attachments.
   const handlePasteAsChild = useCallback(async (parentName: string) => {
     if (!currentPath) return;
     const cutItems = Array.from(items.values()).filter((item) => item.isCut);
@@ -884,7 +889,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             </div>
           )}
 
-          {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line */}
+          {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line 
+          
+          todo-0: this is a pretty strange pattern of code where we're defining functions in the middle of JSX, and I think we can do this cleaner by defining
+          somewhere further up in the file before we get into the main JSX.
+          */}
           {!loading && sortedEntries.length > 0 && (
             hasIndexFile ? (
               (() => {
