@@ -110,10 +110,10 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
               onRenameClick={rename.handleRenameClick}
               onDeleteClick={del.handleDeleteClick}
               onSaveSettings={onSaveSettings}
-              onMoveUp={onMoveUp}
-              onMoveDown={onMoveDown}
-              onMoveToTop={onMoveToTop}
-              onMoveToBottom={onMoveToBottom}
+              onMoveUp={isAttachFolder && hasIndexFile ? undefined : onMoveUp}
+              onMoveDown={isAttachFolder && hasIndexFile ? undefined : onMoveDown}
+              onMoveToTop={isAttachFolder && hasIndexFile ? undefined : onMoveToTop}
+              onMoveToBottom={isAttachFolder && hasIndexFile ? undefined : onMoveToBottom}
               className="-mr-1.5"
             />
             {hasCutItems && onPasteIntoFolder && (

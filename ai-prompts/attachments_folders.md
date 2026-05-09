@@ -4,7 +4,7 @@ it's very common in this personal knowledge-base application to have a markdown 
 
 we're going to implement this feature in phases, where each phase is very focused and simple for you to implement and builds on top of the previous phase. 
 
-you're doing phase 4 now.
+you're doing phase 5 now.
 
 ## Phase 1 (done)
 
@@ -22,6 +22,10 @@ when the current folder is a "Document Mode" one, we have two icons buttons that
 
 when the current folder is a "Document Mode" one,  and we're rendering an "attach" type folder we also want to make the folder name be invisible most of the time until the mouse is hovered over the header bar, in the `FolderEntry` header. it was tricky to get this hover styling exactly the way I wanted, because I have a very specific timing and animation styling that I use for this. so you should refer to the styling on the `EntryActionBar.tsx` which also appears in the same header (write "justified" to the right of the folder name ) because the styling on that action bar as exactly the right mouse hovering visibility animation that we want to apply to the folder name. in other words, we want the folder name to be invisible most of the time, just like the `EntryActionBar.tsx` icons are, and when the action icons fade in, we will be having the folder name fade in exactly the same way at the same time. to be clear, I'm not talking about hiding the folder icon itself, just the text for the file name, the folder icon and even the checkbox can all remain visible all the time, in this folder header area we're talking about.
 
-## Phase 4 (current)
+## Phase 4 (done)
 
 when the current folder is a "Document Mode" one,  and we're rendering an "attach" type folder we also want to always hide (never show) the "Move Up" or "Move Down" buttons in the `EntryActionBar.tsx` regardless of whether edit mode is on or not. 
+
+## Phase 5 (current)
+
+when the current folder is a "Document Mode" one, and we are NOT in edit mode for the document, let's just skip the rendering of the entier `FolderEntry` so that no folder entries show up at all unless edit mode is on. this we'll create a much cleaner screen display where files that have attachments will display the attachments directly below them without any folder in between.
