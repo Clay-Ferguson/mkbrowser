@@ -208,6 +208,71 @@ export async function writeIndexOptions(
 }
 
 /**
+ * Ensures every "*.attach" folder entry in a files array immediately follows its
+ * associated file entry. Returns a new array if any reordering was needed, or
+ * the original array reference if nothing changed.
+ *
+ * Algorithm:
+ *  1. Partition entries into attach entries (attMap keyed by name) and non-attach entries.
+ *  2. Rebuild the list by emitting each non-attach entry followed by its attach sibling (if any).
+ *  3. Append any orphaned attach entries at the end (shouldn't happen, but handles edge cases).
+ */
+function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
+  const attMap = new Map<string, IndexEntry>();
+  const nonAttach: IndexEntry[] = [];
+
+  for (const entry of files) {
+    if (entry.name.endsWith('.attach')) {
+      attMap.set(entry.name, entry);
+    } else {
+      nonAttach.push(entry);
+    }
+  }
+
+  const finalFiles: IndexEntry[] = [];
+  for (const entry of nonAttach) {
+    finalFiles.push(entry);
+    const attachName = `${entry.name}.attach`;
+    const attachEntry = attMap.get(attachName);
+    if (attachEntry) {
+      finalFiles.push(attachEntry);
+      attMap.delete(attachName);
+    }
+  }
+  // Append any orphaned attach entries
+  for (const orphan of attMap.values()) {
+    finalFiles.push(orphan);
+  }
+
+  // Detect change by comparing name sequences
+  const changed = finalFiles.some((e, i) => e.name !== files[i]?.name);
+  return changed ? finalFiles : files;
+}
+
+/**
+ * Reads .INDEX.yaml and reorders any out-of-place "*.attach" folder entries so
+ * each immediately follows its associated file. Writes back only if changed.
+ */
+export async function validateAttachFolderLocation(dirPath: string): Promise<void> {
+  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  try {
+    const indexYaml = await readIndexYaml(dirPath);
+    if (!indexYaml?.files) return;
+
+    const reordered = reorderAttachFolders(indexYaml.files);
+    if (reordered === indexYaml.files) return; // no change
+
+    await fs.promises.writeFile(
+      indexFilePath,
+      yaml.dump({ ...indexYaml, files: reordered }, { indent: 2 }),
+      'utf8',
+    );
+  } catch {
+    // Best-effort
+  }
+}
+
+/**
  * Moves an entry up or down one position in .INDEX.yaml by swapping it with its neighbor.
  */
 export async function moveInIndexYaml(
@@ -224,13 +289,21 @@ export async function moveInIndexYaml(
     const idx = files.findIndex((f) => f.name === name);
     if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
 
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    let swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= files.length) return { success: true };
+
+    // Skip over any attach folder at the swap target — landing on one would be
+    // immediately undone by validateAttachFolderLocation.
+    if (files[swapIdx].name.endsWith('.attach')) {
+      swapIdx = direction === 'up' ? swapIdx - 1 : swapIdx + 1;
+      if (swapIdx < 0 || swapIdx >= files.length) return { success: true };
+    }
 
     [files[idx], files[swapIdx]] = [files[swapIdx], files[idx]];
 
     const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
     await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+    await validateAttachFolderLocation(dirPath);
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };
@@ -238,7 +311,7 @@ export async function moveInIndexYaml(
 }
 
 /**
- * Does the 'move to top' and 'move to bottom' of a file  
+ * Does the 'move to top' and 'move to bottom' of a file
  */
 export async function moveToEdgeInIndexYaml(
   dirPath: string,
@@ -263,6 +336,7 @@ export async function moveToEdgeInIndexYaml(
 
     const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
     await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+    await validateAttachFolderLocation(dirPath);
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };

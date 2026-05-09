@@ -4,7 +4,7 @@ it's very common in this personal knowledge-base application to have a markdown 
 
 we're going to implement this feature in phases, where each phase is very focused and simple for you to implement and builds on top of the previous phase. 
 
-you're doing phase 6 now.
+you're doing phase 7 now.
 
 ## Phase 1 (done)
 
@@ -33,3 +33,19 @@ when the current folder is a "Document Mode" one, and we are NOT in edit mode fo
 ## Phase 6 (done)
 
 We need to make sure that the "attach" folders, always stay synchronized with the file name the file they're associated with, whenever the user renames a file using the rename button in the `EntryActionBar.tsx`. so this means we simply need to hook into the rename logic to do that post processing to check to see if there is an existing "attach" folder, whenever a file is being renamed, and if so, we rename the "attach" folder accordingly. let's keep it just as simple as that and i don't want to try to account for the situation where the user may have rename something directly in their file system outside of our application. as long as we make our rename function in this application take care of the updating of the folder name that will be sufficient and is all we need to do .
+
+## Phase 7 (current)
+
+when the current folder is a "Document Mode" one (i.e. has a `.INDEX.yaml` file) there are numerous different scenarios in which the "attach" folder could end up in our YAML file in a location that is not immediately following the file that the "attach" folder is associated with. the simplest approach to dealing with this is to create a utility method in `indexUtil.ts` named `validateAttachFolderLocation`, which we can run at various times when we know an update might be required two get the "attach" folder back where it belongs relative to its associated file. for now, you can make the last step in the "Move Up" and "Move Down" logic be to call this new validation function, because we know when files are moved around, there's the potential that an "attach" folder might now be incorrectly located.
+
+i will let you invent an efficient algorithm for how `validateAttachFolderLocation` should work, but my naive first guess would be to use an algorithm like the following:
+
+Algorithm:
+1. you'll first clone a copy of the `files` into a list called `tmpFiles`
+2. you will scan the `tmpFiles` to first collect a list of all the "*.attach" folder names, and hold them in `attMap` map (for fast access).
+3. then you will filter the `tmpFiles` array to make it exclude anything that has been put in `attMap`
+4. then you'll create a new empty list that will become the final files in `finalFiles`
+5. then you'll iterate over `tmpFiles` (in order of course) and add each file or folder in it into `finalFiles`, but after each one, you'll check to see if there is an existing `attMap` associated theh item, and if so, then it needs to be added, thus ensuring that any "abc" entry is followed by any "abc.attach" that goes with it.
+6. i'm not sure how you'll then compare the original and final list to see if anything changed, but it would be maybe nice to not write the file back out unless something changed?
+
+like I said, if you know of a much cleaner algorithm could use, that might even make it easier to detect if a change had occurred, then, feel free to use your method instead. because really the only way I know of to detect a change, would be to create a before and after list of just the file names, and then use some type of array compare function to see if the arrays are identical or not. theoretically, you could even concatenate them all into a string and compare the two strings before and after, but that seems like it might be less efficient. it's your call, so use your judgment to create simple clean code, as always .
