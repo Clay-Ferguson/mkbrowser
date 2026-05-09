@@ -829,7 +829,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                     <div key={entry.path}>
                       {entry.isDirectory ? (
                         <>
-                          <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
+                          {(!entry.name.endsWith(ATTACH_SUFFIX) || editMode) && (
+                            <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
+                          )}
                           {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
                             <AttachFolderContents
                               entries={entry.attachments}
