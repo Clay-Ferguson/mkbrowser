@@ -138,17 +138,30 @@ function App() {
       const files = await window.electronAPI.readDirectory(currentPath);
       setEntries(files);
 
-      // Update global store with all items from this directory
-      upsertItems(
-        files.map((file) => ({
+      // Update global store with all items from this directory (including attachment sub-items)
+      const allItems = files.flatMap((file) => {
+        const base = [{
           path: file.path,
           name: file.name,
           isDirectory: file.isDirectory,
           modifiedTime: file.modifiedTime,
           createdTime: file.createdTime,
           aiHint: file.aiHint,
-        }))
-      );
+        }];
+        if (file.attachments) {
+          const attachItems = file.attachments.map((a) => ({
+            path: a.path,
+            name: a.name,
+            isDirectory: a.isDirectory,
+            modifiedTime: a.modifiedTime,
+            createdTime: a.createdTime,
+            aiHint: a.aiHint,
+          }));
+          return [...base, ...attachItems];
+        }
+        return base;
+      });
+      upsertItems(allItems);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to read directory';
       if (errorMessage.includes('does not exist')) {

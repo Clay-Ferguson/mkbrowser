@@ -4,7 +4,7 @@ it's very common in this personal knowledge-base application to have a markdown 
 
 we're going to implement this feature in phases, where each phase is very focused and simple for you to implement and builds on top of the previous phase. 
 
-you're doing phase 7 now.
+you're doing phase 8 now.
 
 ## Phase 1 (done)
 
@@ -34,7 +34,7 @@ when the current folder is a "Document Mode" one, and we are NOT in edit mode fo
 
 We need to make sure that the "attach" folders, always stay synchronized with the file name the file they're associated with, whenever the user renames a file using the rename button in the `EntryActionBar.tsx`. so this means we simply need to hook into the rename logic to do that post processing to check to see if there is an existing "attach" folder, whenever a file is being renamed, and if so, we rename the "attach" folder accordingly. let's keep it just as simple as that and i don't want to try to account for the situation where the user may have rename something directly in their file system outside of our application. as long as we make our rename function in this application take care of the updating of the folder name that will be sufficient and is all we need to do .
 
-## Phase 7 (current)
+## Phase 7 (done)
 
 when the current folder is a "Document Mode" one (i.e. has a `.INDEX.yaml` file) there are numerous different scenarios in which the "attach" folder could end up in our YAML file in a location that is not immediately following the file that the "attach" folder is associated with. the simplest approach to dealing with this is to create a utility method in `indexUtil.ts` named `validateAttachFolderLocation`, which we can run at various times when we know an update might be required two get the "attach" folder back where it belongs relative to its associated file. for now, you can make the last step in the "Move Up" and "Move Down" logic be to call this new validation function, because we know when files are moved around, there's the potential that an "attach" folder might now be incorrectly located.
 
@@ -49,3 +49,7 @@ Algorithm:
 6. i'm not sure how you'll then compare the original and final list to see if anything changed, but it would be maybe nice to not write the file back out unless something changed?
 
 like I said, if you know of a much cleaner algorithm could use, that might even make it easier to detect if a change had occurred, then, feel free to use your method instead. because really the only way I know of to detect a change, would be to create a before and after list of just the file names, and then use some type of array compare function to see if the arrays are identical or not. theoretically, you could even concatenate them all into a string and compare the two strings before and after, but that seems like it might be less efficient. it's your call, so use your judgment to create simple clean code, as always .
+
+## Phase 8 (current)
+
+for this phase, we're actually going to do some troubleshooting of a bug. sometimes the checkboxes on the attachment items (i.e. files inside the 'attach' folders, that appear on the page, below the file they're associated with ), don't appear to do anything when I click on them. it seems like the checkbox is just ignoring the mouse click. unfortunately, the problem doesn't always reproduce. Sometimes it happens and sometimes it doesn't. can you take a look and see if you can spot the problem? don't waste a ton of effort on this because if it's going to be true tricky to figure out then we'll just use some log statements and we can put in log statements to see if the mouse click is getting seen or not . but I wanted to give you a chance to at least look at the code first and see if something jumps right out at you as the obvious problem .
