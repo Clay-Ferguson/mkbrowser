@@ -396,7 +396,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               onEditClick={edit.handleEditClick}
               className="-mr-1.5"
             />
-            {hasCutItems && onPasteAsAttachment && (
+            {hasCutItems && onPasteAsAttachment && !entry.hasAttachFolder && (
               <button
                 onClick={(e) => { e.stopPropagation(); onPasteAsAttachment(entry.path); }}
                 className="flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer"

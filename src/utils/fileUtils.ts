@@ -274,6 +274,14 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     });
   }
 
+  // Mark files that have a sibling .attach folder so the GUI can skip the paperclip button
+  const attachNames = new Set(fileEntries.filter(e => e.isDirectory && e.name.endsWith('.attach')).map(e => e.name));
+  for (const entry of fileEntries) {
+    if (!entry.isDirectory && attachNames.has(`${entry.name}.attach`)) {
+      entry.hasAttachFolder = true;
+    }
+  }
+
   return fileEntries;
 }
 

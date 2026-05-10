@@ -91,6 +91,8 @@ export interface FileEntry {
   indexOrder?: number;
   /** Contents of an associated .attach folder, pre-loaded by readDirectory */
   attachments?: FileEntry[];
+  /** True when a sibling .attach folder exists for this file */
+  hasAttachFolder?: boolean;
 }
 
 export interface SearchResult {

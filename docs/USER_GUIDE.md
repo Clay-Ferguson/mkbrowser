@@ -408,6 +408,33 @@ Third part
 
 **Safety:** The Join operation verifies that the combined content was written correctly by checking the file size before deleting the other files. This ensures no data is lost.
 
+# File Attachments
+
+MkBrowser lets you associate files — images, PDFs, spreadsheets, or any other files — directly with a Markdown document. These associated files are called **attachments**, and they live in a special folder that MkBrowser automatically recognizes.
+
+## How Attachments Work
+
+For any Markdown file named, for example, `my-notes.md`, you can create a companion folder named `my-notes.md.attach` in the same directory. MkBrowser will treat everything inside that folder as an attachment belonging to `my-notes.md`. In **Document Mode**, attachments are displayed inline, directly below their associated file, so it is easy to see what belongs together.
+
+## Adding Attachments
+
+The easiest way to attach files to a document is using the **Cut and Paste** workflow:
+
+1. Select the files you want to attach by clicking their checkboxes.
+2. Click the **Cut** button that appears at the top of the page to mark them for moving.
+3. Navigate to the folder that contains the Markdown file you want to attach them to.
+4. Click the **paperclip** icon that appears next to the Markdown file.
+
+MkBrowser will automatically create the `.attach` folder if it does not already exist, then move the cut files into it. Once the `.attach` folder exists, a **Paste** icon appears directly on it, so you can paste additional files into it at any time using the normal paste workflow.
+
+## Renaming
+
+If you rename a Markdown file using the rename button, MkBrowser automatically renames its `.attach` folder to match, so the association is never broken.
+
+## Viewing Attachments
+
+In **Document Mode**, the contents of any `.attach` folder are shown inline below their associated file, indented to indicate they belong to it. The folder name itself is hidden when you are not in edit mode, keeping the view clean. In a normal (non-Document Mode) folder, the `.attach` folder appears as a regular folder in the file list.
+
 # Document Mode
 
 Document Mode lets you treat any specific folder as a structured document, where each file (or subfolder) in that folder represents a block of content, in the context of a larger document, represented by the whole folder. Instead of files/folders appearing in some arbitrary filesystem order, `Document Mode` gives you full control over the sequence — so you can arrange your content exactly as it should read as a "Document". This block-based approach to editing will be familiar to people who have used Jupyter Notebooks because it's a similar concept.
