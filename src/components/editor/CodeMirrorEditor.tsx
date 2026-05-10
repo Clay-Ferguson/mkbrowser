@@ -103,6 +103,19 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     '.cm-searchMatch-selected': { backgroundColor: '#e6b800', color: 'black' },
   });
 
+  const cursorOverrideTheme = EditorView.theme({
+    '& .cm-cursor, & .cm-dropCursor': {
+      borderLeftColor: 'white !important',
+      borderLeftWidth: '3px !important',
+    },
+    '& .cm-activeLine': {
+      backgroundColor: 'rgba(255, 255, 255, 0.15) !important',
+    },
+    '& .cm-activeLineGutter': {
+      backgroundColor: 'rgba(255, 255, 255, 0.15) !important',
+    },
+  });
+
   const createFontSizeTheme = useCallback((fontSize: FontSize) => {
     return EditorView.theme({
       '&': {
@@ -115,7 +128,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
         minHeight: '75px',
       },
       '.cm-content': {
-        caretColor: '#fff',
+        caretColor: 'white',
       },
       '&.cm-focused': {
         outline: 'none',
@@ -157,6 +170,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       search({ top: true }),
       searchMatchTheme,
       oneDark,
+      cursorOverrideTheme,
       fontSizeCompartment.current.of(createFontSizeTheme(settings.fontSize)),
       spellCheckCompartment.current.of([]),
       spellCheckTheme,
