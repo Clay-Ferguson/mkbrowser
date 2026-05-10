@@ -42,7 +42,7 @@ interface SearchDialogProps {
 
 function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, initialValues, searchDefinitions }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState(
-    initialValues?.searchQuery ? initialValues.searchQuery.replace(/\{\{nl\}\}/g, '\n') : ''
+    initialValues?.searchQuery ? initialValues.searchQuery.replace(/\{\{nl\}\}/g, '\n') : (globalHighlight.globalHighlightText || '')
   );
   const [searchName, setSearchName] = useState(initialValues?.searchName || '');
   const [searchType, setSearchType] = useState<SearchType>(initialValues?.searchType || 'literal');
@@ -346,11 +346,18 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           </div>
           <div className="flex gap-3">
             <button
-              onClick={onCancel}
+              onClick={() => {
+                if (searchType === 'literal') {
+                  const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
+                  globalHighlight.setGlobalHighlightText(cleanedQuery || null);
+                  requestAnimationFrame(() => globalHighlight.applyGlobalHighlight(cleanedQuery || null));
+                }
+                onCancel();
+              }}
               data-testid="cancel-search-button"
               className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
             >
-              Cancel
+              Close
             </button>
             <button
               onClick={handleSearch}
