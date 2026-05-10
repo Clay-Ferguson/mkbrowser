@@ -16,6 +16,7 @@ import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../utils/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editorDateUtil';
 import { frontMatterPlugin, frontMatterTheme, frontMatterHideField } from '../../utils/editorFrontMatterUtil';
+import { customRenderPlugin, customRenderTheme } from '../../utils/editorCustomRenderUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
 import { logger } from '../../utils/logUtil';
@@ -167,6 +168,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       datePlugin,
       dateTheme,
       dateTooltipExtension,
+      customRenderPlugin,
+      customRenderTheme,
       EditorView.lineWrapping,
       keymap.of([
         {
