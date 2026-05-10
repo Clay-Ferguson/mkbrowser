@@ -303,6 +303,7 @@ export interface FileNode extends TreeNode {
   name: string;
   isDirectory: boolean;
   children: TreeNode[] | null;
+  indexOrder?: number;
 }
 
 /**

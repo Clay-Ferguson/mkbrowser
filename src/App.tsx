@@ -40,19 +40,26 @@ async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   try {
     const entries = await window.electronAPI.readDirectory(node.path);
     const oldByPath = new Map((node.children ?? []).map(c => [(c as FileNode).path, c as FileNode]));
-    const newChildren: FileNode[] = [...entries]
-      .sort((a, b) => {
-        if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-      })
-      .map(e => oldByPath.get(e.path) ?? {
+    const hasIndexOrder = entries.some(e => e.indexOrder !== undefined);
+    const sortedEntries = hasIndexOrder
+      ? entries
+      : [...entries].sort((a, b) => {
+          if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        });
+    const newChildren: FileNode[] = sortedEntries.map(e => {
+      const existing = oldByPath.get(e.path);
+      if (existing) return existing;
+      return {
         path: e.path,
         name: e.name,
         isDirectory: e.isDirectory,
         isExpanded: false,
         isLoading: false,
         children: null,
-      });
+        ...(e.indexOrder !== undefined ? { indexOrder: e.indexOrder } : {}),
+      };
+    });
     const refreshedChildren = await Promise.all(newChildren.map(refreshExpandedNodes));
     return { ...node, children: refreshedChildren, isLoading: false };
   } catch {

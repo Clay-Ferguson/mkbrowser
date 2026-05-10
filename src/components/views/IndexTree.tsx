@@ -51,7 +51,7 @@ function isShellScript(node: FileNode): boolean {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function makeNodes(
-  entries: Array<{ path: string; name: string; isDirectory: boolean }>
+  entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>
 ): FileNode[] {
   return entries.map(e => ({
     path: e.path,
@@ -60,6 +60,7 @@ function makeNodes(
     isExpanded: false,
     isLoading: false,
     children: null,
+    ...(e.indexOrder !== undefined ? { indexOrder: e.indexOrder } : {}),
   }));
 }
 
@@ -73,9 +74,10 @@ function flattenVisible(
   foldersOnTop: boolean,
   depth = 0
 ): Array<{ node: TreeNode; depth: number }> {
-  // Heading nodes must preserve document order; only file nodes get sorted.
+  // Heading nodes and Document Mode (indexed) nodes must preserve their existing order.
   const isHeadings = nodes.length > 0 && isMarkdownHeadingNode(nodes[0]);
-  const sorted = isHeadings ? nodes : [...nodes].sort((a, b) => {
+  const hasIndexOrder = !isHeadings && nodes.some(n => isFileNode(n) && (n as FileNode).indexOrder !== undefined);
+  const sorted = (isHeadings || hasIndexOrder) ? nodes : [...nodes].sort((a, b) => {
     const aIsDir = isFileNode(a) && a.isDirectory;
     const bIsDir = isFileNode(b) && b.isDirectory;
     if (foldersOnTop && aIsDir !== bIsDir) return aIsDir ? -1 : 1;
