@@ -465,7 +465,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 {columns.map((col, i) => (
                   <article
                     key={i}
-                    className={`prose prose-invert prose-base max-w-none${i > 0 ? ' border-l border-slate-600 pl-6' : ''}`}
+                    className={`prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2${i > 0 ? ' border-l border-slate-600 pl-6' : ''}`}
                   >
                     <Markdown
                       remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
@@ -489,7 +489,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               </div>
             ) : (
               <article
-                className="prose prose-invert prose-base max-w-none cursor-pointer"
+                className="prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2 cursor-pointer"
                 onDoubleClick={edit.handleEditClick}
                 title="Double-click to edit"
               >
