@@ -50,26 +50,17 @@ function isShellScript(node: FileNode): boolean {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function sortNodes(nodes: FileNode[]): FileNode[] {
-  return [...nodes].sort((a, b) => {
-    if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
-    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-  });
-}
-
 function makeNodes(
   entries: Array<{ path: string; name: string; isDirectory: boolean }>
 ): FileNode[] {
-  return sortNodes(
-    entries.map(e => ({
-      path: e.path,
-      name: e.name,
-      isDirectory: e.isDirectory,
-      isExpanded: false,
-      isLoading: false,
-      children: null,
-    }))
-  );
+  return entries.map(e => ({
+    path: e.path,
+    name: e.name,
+    isDirectory: e.isDirectory,
+    isExpanded: false,
+    isLoading: false,
+    children: null,
+  }));
 }
 
 function isAnyExpanded(nodes: TreeNode[]): boolean {
@@ -79,14 +70,25 @@ function isAnyExpanded(nodes: TreeNode[]): boolean {
 function flattenVisible(
   nodes: TreeNode[],
   cutPaths: Set<string>,
+  foldersOnTop: boolean,
   depth = 0
 ): Array<{ node: TreeNode; depth: number }> {
+  // Heading nodes must preserve document order; only file nodes get sorted.
+  const isHeadings = nodes.length > 0 && isMarkdownHeadingNode(nodes[0]);
+  const sorted = isHeadings ? nodes : [...nodes].sort((a, b) => {
+    const aIsDir = isFileNode(a) && a.isDirectory;
+    const bIsDir = isFileNode(b) && b.isDirectory;
+    if (foldersOnTop && aIsDir !== bIsDir) return aIsDir ? -1 : 1;
+    const aName = isFileNode(a) ? a.name : '';
+    const bName = isFileNode(b) ? b.name : '';
+    return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+  });
   const result: Array<{ node: TreeNode; depth: number }> = [];
-  for (const node of nodes) {
+  for (const node of sorted) {
     if (cutPaths.has(node.path)) continue;
     result.push({ node, depth });
     if (node.isExpanded && node.children) {
-      result.push(...flattenVisible(node.children, cutPaths, depth + 1));
+      result.push(...flattenVisible(node.children, cutPaths, foldersOnTop, depth + 1));
     }
   }
   return result;
@@ -356,7 +358,7 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
   }
 
   const cutPaths = new Set(getCutItems().map(item => item.path));
-  const rows = flattenVisible(treeRoot.children, cutPaths);
+  const rows = flattenVisible(treeRoot.children, cutPaths, settings.foldersOnTop);
   return (
     <div data-testid="file-explorer-tree" className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800`}>
       <style>{`@keyframes scriptRunFlash { 0% { background-color: rgba(74,222,128,0.45); } 100% { background-color: transparent; } }`}</style>
