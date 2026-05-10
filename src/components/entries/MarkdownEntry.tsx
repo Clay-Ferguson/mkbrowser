@@ -42,6 +42,7 @@ import { createCustomImage } from './markdownImgResolver';
 import CustomAnchor from './CustomAnchor';
 import CustomCode from './CustomCode';
 import CustomPre from './CustomPre';
+import { createBlockClickComponents } from './blockClickComponents';
 import { logger } from '../../utils/logUtil';
 import {
   useEntryCore,
@@ -105,6 +106,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     path: entry.path,
     content,
   });
+
+  const blockComponents = createBlockClickComponents(edit.handleEditClick);
 
   const handleEscape = useCallback(() => {
     if (edit.editContent === content) {
@@ -459,7 +462,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               <div
                 style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}
                 className="cursor-pointer"
-                onDoubleClick={edit.handleEditClick}
+                onDoubleClick={() => edit.handleEditClick()}
                 title="Double-click to edit"
               >
                 {columns.map((col, i) => (
@@ -476,6 +479,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                       // sanitization and lets our CustomAnchor handler receive the full URL intact.
                       urlTransform={(url) => url}
                       components={{
+                        ...blockComponents,
                         a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
                         img: createCustomImage(entry.path),
                         code: CustomCode,
@@ -490,7 +494,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             ) : (
               <article
                 className="prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2 cursor-pointer"
-                onDoubleClick={edit.handleEditClick}
+                onDoubleClick={() => edit.handleEditClick()}
                 title="Double-click to edit"
               >
                 <Markdown
@@ -502,6 +506,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                   // sanitization and lets our CustomAnchor handler receive the full URL intact.
                   urlTransform={(url) => url}
                   components={{
+                    ...blockComponents,
                     a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
                     img: createCustomImage(entry.path),
                     code: CustomCode,

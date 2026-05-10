@@ -48,7 +48,7 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     }
   }, [isEditing, item?.content, path]);
 
-  const handleEditClick = async () => {
+  const handleEditClick = async (goToLine?: number) => {
     // Check the file's current mtime on disk to detect external modifications
     const diskMtime = await window.electronAPI.getFileMtime(path);
     if (diskMtime > 0 && item && diskMtime > item.modifiedTime) {
@@ -68,7 +68,7 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     }
     editInitialized.current = true;
     setItemExpanded(path, true);
-    setItemEditing(path, true);
+    setItemEditing(path, true, goToLine);
   };
 
   const handleCancel = () => {

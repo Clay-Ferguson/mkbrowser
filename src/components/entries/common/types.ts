@@ -100,7 +100,7 @@ export interface EditModeState {
   /** Whether save is in progress */
   saving: boolean;
   /** Start editing (may re-read file from disk if externally modified) */
-  handleEditClick: () => void | Promise<void>;
+  handleEditClick: (goToLine?: number) => void | Promise<void>;
   /** Cancel editing */
   handleCancel: () => void;
   /** Save changes */
