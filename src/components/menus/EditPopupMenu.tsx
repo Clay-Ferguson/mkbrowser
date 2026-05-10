@@ -7,14 +7,12 @@ interface EditPopupMenuProps {
   onUndoCut: () => void;
   onSelectAll: () => void;
   onUnselectAll: () => void;
-  onMoveToFolder: () => void;
   onSplit: () => void;
   onJoin: () => void;
   onReplaceInFiles: () => void;
   // Disable conditions
   undoCutDisabled: boolean;
   unselectAllDisabled: boolean;
-  moveToFolderDisabled: boolean;
   splitDisabled: boolean;
   joinDisabled: boolean;
 }
@@ -25,13 +23,11 @@ export default function EditPopupMenu({
   onUndoCut,
   onSelectAll,
   onUnselectAll,
-  onMoveToFolder,
   onSplit,
   onJoin,
   onReplaceInFiles,
   undoCutDisabled,
   unselectAllDisabled,
-  moveToFolderDisabled,
   splitDisabled,
   joinDisabled,
 }: EditPopupMenuProps) {
@@ -51,12 +47,6 @@ export default function EditPopupMenu({
         label="Unselect All"
         onClick={() => { onUnselectAll(); onClose(); }}
         disabled={unselectAllDisabled}
-      />
-      <PopupMenuDivider />
-      <PopupMenuItem
-        label="Move to Folder"
-        onClick={() => { onMoveToFolder(); onClose(); }}
-        disabled={moveToFolderDisabled}
       />
       <PopupMenuDivider />
       <PopupMenuItem

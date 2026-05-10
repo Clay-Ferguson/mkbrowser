@@ -141,66 +141,6 @@ export async function deleteSelectedItems(
 }
 
 /**
- * Result of move-to-folder operation
- */
-export interface MoveToFolderResult {
-  success: boolean;
-  error?: string;
-  /** The path of the newly created folder */
-  newFolderPath?: string;
-}
-
-/**
- * Move a file into a new folder with the same name (minus extension)
- * Creates a folder with the file's base name and moves the file into it.
- */
-export async function moveFileToFolder(
-  filePath: string,
-  fileName: string,
-  currentPath: string,
-  pathExists: (path: string) => Promise<boolean>,
-  createFolder: (path: string) => Promise<{ success: boolean; error?: string }>,
-  renameFile: (oldPath: string, newPath: string) => Promise<boolean>
-): Promise<MoveToFolderResult> {
-  // Get the file name without extension to use as folder name
-  const lastDotIndex = fileName.lastIndexOf('.');
-  const folderName = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName;
-
-  // Build the new folder path in the current directory
-  const newFolderPath = `${currentPath}/${folderName}`;
-
-  // Check if folder already exists
-  const folderExists = await pathExists(newFolderPath);
-  if (folderExists) {
-    return {
-      success: false,
-      error: `A file/folder named "${folderName}" already exists in this directory.`,
-    };
-  }
-
-  // Create the new folder
-  const folderResult = await createFolder(newFolderPath);
-  if (!folderResult.success) {
-    return {
-      success: false,
-      error: folderResult.error || `Failed to create folder "${folderName}".`,
-    };
-  }
-
-  // Move the file into the new folder
-  const newFilePath = `${newFolderPath}/${fileName}`;
-  const moveSuccess = await renameFile(filePath, newFilePath);
-  if (!moveSuccess) {
-    return {
-      success: false,
-      error: `Failed to move "${fileName}" into the new folder.`,
-    };
-  }
-
-  return { success: true, newFolderPath };
-}
-
-/**
  * Result of split file validation/operation
  */
 export interface SplitFileValidationResult {

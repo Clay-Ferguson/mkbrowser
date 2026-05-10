@@ -19,7 +19,6 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Undo Cut](#undo-cut)
   * [Select All](#select-all)
   * [Unselect All](#unselect-all)
-  * [Move to Folder](#move-to-folder)
   * [Split](#split)
   * [Join](#join)
   * [Replace in Files](#replace-in-files)
@@ -277,9 +276,6 @@ Selects all files and folders in the current directory, making it easy to perfor
 
 ## Unselect All
 Clears all current selections in the file list, so no items remain selected.
-
-## Move to Folder
-Moves a selected file into a new folder with the same base name (minus extension). For example, selecting `chapter1.md` and choosing **Move to Folder** will create a folder named `chapter1` and move the file inside it. Only available when exactly one file is selected. 
 
 ## Split
 See [Split and Join](#split-and-join) for full details. Splits a single text or Markdown file into multiple files at each double blank line (two consecutive empty lines). The new files are named with numeric suffixes to preserve order.

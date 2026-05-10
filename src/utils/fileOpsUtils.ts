@@ -9,7 +9,7 @@ import {
   setItemExpanded,
   setItemEditing,
 } from '../store';
-import { pasteCutItems, deleteSelectedItems, moveFileToFolder, performSplitFile, performJoinFiles } from '../edit';
+import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from '../edit';
 import { pasteFromClipboard } from './clipboard';
 
 export async function pasteIntoFolder(
@@ -73,46 +73,6 @@ export async function deleteSelected(
   }
 }
 
-export async function moveSelectedToFolder(
-  currentPath: string,
-  selectedItems: ItemData[],
-  onSetError: (e: string) => void,
-  onRefreshDirectory: () => void
-): Promise<void> {
-  if (selectedItems.length === 0) {
-    onSetError('Please select a file to move to a folder.');
-    return;
-  }
-  if (selectedItems.length > 1) {
-    onSetError('Please select only one file for "Move to Folder".');
-    return;
-  }
-
-  const selectedItem = selectedItems[0];
-
-  if (selectedItem.isDirectory) {
-    onSetError('Cannot use "Move to Folder" on a folder. Please select a file.');
-    return;
-  }
-
-  const result = await moveFileToFolder(
-    selectedItem.path,
-    selectedItem.name,
-    currentPath,
-    window.electronAPI.pathExists,
-    window.electronAPI.createFolder,
-    window.electronAPI.renameFile
-  );
-
-  if (!result.success) {
-    onSetError(result.error || 'Failed to move file to folder.');
-    return;
-  }
-
-  clearAllSelections();
-  deleteItems([selectedItem.path]);
-  onRefreshDirectory();
-}
 
 export async function splitSelectedFile(
   currentPath: string,

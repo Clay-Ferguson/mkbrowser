@@ -68,7 +68,7 @@ import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtils';
 import { getContentWidthClasses } from '../../utils/styles';
 import { hasHumanMd } from '../../ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtils';
-import { pasteIntoFolder, deleteSelected, moveSelectedToFolder, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp } from '../../utils/fileOpsUtils';
+import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp } from '../../utils/fileOpsUtils';
 
 
 const ATTACH_SUFFIX = '.attach';
@@ -395,11 +395,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const performDelete = useCallback(async () => {
     await deleteSelected(getSelectedItems(), currentPath, hasIndexFile, onSetError, onRefreshDirectory, () => setShowDeleteConfirm(false));
   }, [currentPath, hasIndexFile, items, onRefreshDirectory, onSetError]);
-
-  const handleMoveToFolder = useCallback(async () => {
-    if (!currentPath) return;
-    await moveSelectedToFolder(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
-  }, [currentPath, items, onRefreshDirectory, onSetError]);
 
   const handleSplitFile = useCallback(async () => {
     if (!currentPath) return;
@@ -1024,13 +1019,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             selectItemsByPaths(currentFolderPaths);
           }}
           onUnselectAll={() => clearAllSelections()}
-          onMoveToFolder={() => void handleMoveToFolder()}
           onSplit={() => void handleSplitFile()}
           onJoin={() => void handleJoinFiles()}
           onReplaceInFiles={() => setShowReplaceDialog(true)}
           undoCutDisabled={!hasCutItems}
           unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
-          moveToFolderDisabled={selectedFileCount !== 1 || hasSelectedFolders}
           splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
           joinDisabled={selectedFileCount < 2 || hasSelectedFolders}
         />
