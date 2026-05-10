@@ -381,7 +381,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   return (
     <div
       ref={containerRef}
-      className="w-full rounded border border-slate-600 focus-within:border-blue-500 overflow-hidden flex flex-col"
+      className="w-full border border-slate-600 focus-within:border-blue-500 overflow-hidden flex flex-col"
     >
       <div
         ref={editorRef}
