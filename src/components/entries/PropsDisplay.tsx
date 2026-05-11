@@ -3,6 +3,8 @@ const MONO_FONT = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Li
 interface PropsDisplayProps {
   tags: string[];
   props?: Record<string, unknown>;
+  onTagClick?: () => void;
+  onPropClick?: () => void;
 }
 
 /**
@@ -15,7 +17,7 @@ interface PropsDisplayProps {
  *
  * Returns null when there is nothing to display.
  */
-export default function PropsDisplay({ tags, props }: PropsDisplayProps) {
+export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: PropsDisplayProps) {
   const propEntries = props
     ? Object.entries(props).filter(([key]) => key !== 'id')
     : [];
@@ -27,7 +29,8 @@ export default function PropsDisplay({ tags, props }: PropsDisplayProps) {
   const propPills = propEntries.map(([key, value]) => (
     <span
       key={key}
-      className="inline-flex items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden"
+      onClick={onPropClick}
+      className={`inline-flex items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden${onPropClick ? ' cursor-pointer hover:brightness-125' : ''}`}
       style={{ fontFamily: MONO_FONT }}
     >
       <span className="px-2 py-0.5 bg-amber-700/50 text-amber-200">{key}</span>
@@ -39,7 +42,8 @@ export default function PropsDisplay({ tags, props }: PropsDisplayProps) {
   const tagPills = tags.map((tag) => (
     <span
       key={tag}
-      className="px-2 py-0.5 rounded-md text-sm bg-blue-600/50 text-blue-100 border border-slate-400/60 select-none whitespace-nowrap"
+      onClick={onTagClick}
+      className={`px-2 py-0.5 rounded-md text-sm bg-blue-600/50 text-blue-100 border border-slate-400/60 select-none whitespace-nowrap${onTagClick ? ' cursor-pointer hover:brightness-125' : ''}`}
       style={{ fontFamily: MONO_FONT }}
     >
       {tag.startsWith('#') ? tag : `#${tag}`}

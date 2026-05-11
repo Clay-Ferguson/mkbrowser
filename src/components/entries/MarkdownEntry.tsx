@@ -456,6 +456,15 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 <PropsDisplay
                   tags={item.tags ?? []}
                   props={item.props}
+                  onTagClick={async () => {
+                    await edit.handleEditClick();
+                    setTagsVisible(true);
+                  }}
+                  onPropClick={async () => {
+                    await edit.handleEditClick();
+                    setShowPropsInEditor(true);
+                    onSaveSettings();
+                  }}
                 />
               )}
               {columns.length > 1 ? (
