@@ -24,8 +24,8 @@ export function createFrontMatterDecorations(view: EditorView): DecorationSet {
   for (let i = 1; i <= doc.lines; i++) {
     const line = doc.line(i);
     if (line.text === '---') {
-      // Underline every --- line
-      builder.add(line.from, line.from, hrLineDeco);
+      // Underline every --- line except the very first line
+      if (i > 1) builder.add(line.from, line.from, hrLineDeco);
       if (hasFrontMatter && (i === 1 || i === closingLineNumber)) {
         builder.add(line.from, line.to, frontMatterDelimMark);
       }
