@@ -814,7 +814,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         data-testid="browser-main-content"
         ref={mainContainerRef}
         onScroll={handleMainScroll}
-        className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1 relative"
+        className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1 pr-3 pl-3 relative"
       >
         <div className={`${getContentWidthClasses(settings.contentWidth)}`}>
           {loading && (
