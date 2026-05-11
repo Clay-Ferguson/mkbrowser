@@ -15,6 +15,12 @@ export function createBlockClickComponents(handleEditClick: EditClickHandler): P
   function makeHandler(line: number) {
     return (e: React.MouseEvent) => {
       if ((e.target as HTMLElement).closest('a, button, input')) return;
+
+      // this check for a selection is required to be able to allow the users to click and drag the mouse to 
+      // select a region of text to copy, because without this check it would immediately assume that if 
+      // you're even clicking to make a selection it would execute the click handler and we don't want that 
+      // if the user is trying to simply select some text 
+      if (window.getSelection()?.toString()) return;
       e.stopPropagation();
       handleEditClick(line);
     };
@@ -23,7 +29,7 @@ export function createBlockClickComponents(handleEditClick: EditClickHandler): P
   function block<Tag extends keyof React.JSX.IntrinsicElements>(Tag: Tag) {
     return ({ node, children, ...props }: any) => {
       const line: number = node?.position?.start?.line ?? 0;
-      return <Tag {...props} onClick={makeHandler(line)}>{children}</Tag>;
+      return <Tag {...props} onMouseUp={makeHandler(line)}>{children}</Tag>;
     };
   }
 
