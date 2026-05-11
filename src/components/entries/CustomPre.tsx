@@ -26,7 +26,7 @@ export default function CustomPre({ children, ...props }: React.HTMLAttributes<H
 
   if (hasLanguage) {
     return (
-      <div className="relative group not-prose">
+      <div className="relative group not-prose mb-4">
         {children}
         {!isMermaid && (
           <button

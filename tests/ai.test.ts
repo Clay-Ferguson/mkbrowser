@@ -7,7 +7,7 @@ import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 import { HumanMessage } from '@langchain/core/messages';
 
 beforeAll(() => {
-  // NOTE: todo-0: We have curently removed this KEY from ENV and so this test needs to be updated to silently do nothing
+  // NOTE: We have curently removed this KEY from ENV and so this test needs to be updated to silently do nothing
   // other than print a warning message whenever it discovers right here that the anthropic key is missing from the environment.
   // if (!process.env.ANTHROPIC_API_KEY) {
   //   throw new Error('ANTHROPIC_API_KEY environment variable is not set');
