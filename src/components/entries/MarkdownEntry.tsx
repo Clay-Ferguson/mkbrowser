@@ -460,8 +460,9 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                     await edit.handleEditClick();
                     setTagsVisible(true);
                   }}
-                  onPropClick={async () => {
-                    await edit.handleEditClick();
+                  onPropClick={async (key) => {
+                    const line = (content?.split('\n') ?? []).findIndex(l => l.startsWith(`${key}:`)) + 1;
+                    await edit.handleEditClick(line > 0 ? line : undefined);
                     setShowPropsInEditor(true);
                     onSaveSettings();
                   }}

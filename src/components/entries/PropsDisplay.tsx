@@ -4,7 +4,7 @@ interface PropsDisplayProps {
   tags: string[];
   props?: Record<string, unknown>;
   onTagClick?: () => void;
-  onPropClick?: () => void;
+  onPropClick?: (key: string) => void;
 }
 
 /**
@@ -29,7 +29,7 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
   const propPills = propEntries.map(([key, value]) => (
     <span
       key={key}
-      onClick={onPropClick}
+      onClick={() => onPropClick?.(key)}
       className={`inline-flex items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden${onPropClick ? ' cursor-pointer hover:brightness-125' : ''}`}
       style={{ fontFamily: MONO_FONT }}
     >
