@@ -4,37 +4,37 @@ import { RangeSetBuilder, Prec, StateField, EditorState } from '@codemirror/stat
 const frontMatterMark = Decoration.mark({ class: 'cm-front-matter' });
 const frontMatterDelimMark = Decoration.mark({ class: 'cm-front-matter-delim' });
 const frontMatterIdMark = Decoration.mark({ class: 'cm-front-matter-id' });
-const frontMatterClosingLine = Decoration.line({ class: 'cm-front-matter-closing' });
+const hrLineDeco = Decoration.line({ class: 'cm-hr-line' });
 
 export function createFrontMatterDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
 
   const firstLine = doc.line(1);
-  if (firstLine.text !== '---') return builder.finish();
+  const hasFrontMatter = firstLine.text === '---';
 
-  let closingLine: typeof firstLine | null = null;
-  for (let i = 2; i <= doc.lines; i++) {
-    const line = doc.line(i);
-    if (line.text === '---') {
-      closingLine = line;
-      break;
+  let closingLineNumber = -1;
+  if (hasFrontMatter) {
+    for (let i = 2; i <= doc.lines; i++) {
+      if (doc.line(i).text === '---') { closingLineNumber = i; break; }
     }
   }
 
-  if (!closingLine) return builder.finish();
-
-  // Decorate line by line so ID lines get a different style
-  builder.add(firstLine.from, firstLine.to, frontMatterDelimMark);
-  for (let i = 2; i < closingLine.number; i++) {
+  // Apply decorations in document order (required by RangeSetBuilder)
+  for (let i = 1; i <= doc.lines; i++) {
     const line = doc.line(i);
-    // Match lines like "id: ..." or "  id: ..." — show ID field in gray to de-emphasize it
-    const mark = /^\s*id:\s/.test(line.text) ? frontMatterIdMark : frontMatterMark;
-    builder.add(line.from, line.to, mark);
+    if (line.text === '---') {
+      // Underline every --- line
+      builder.add(line.from, line.from, hrLineDeco);
+      if (hasFrontMatter && (i === 1 || i === closingLineNumber)) {
+        builder.add(line.from, line.to, frontMatterDelimMark);
+      }
+    } else if (hasFrontMatter && closingLineNumber > 0 && i > 1 && i < closingLineNumber) {
+      // Decorate front matter content lines
+      const mark = /^\s*id:\s/.test(line.text) ? frontMatterIdMark : frontMatterMark;
+      builder.add(line.from, line.to, mark);
+    }
   }
-  // line decoration must be added at the line's `from` position
-  builder.add(closingLine.from, closingLine.from, frontMatterClosingLine);
-  builder.add(closingLine.from, closingLine.to, frontMatterDelimMark);
 
   return builder.finish();
 }
@@ -96,7 +96,7 @@ export const frontMatterTheme = EditorView.baseTheme({
   '.cm-front-matter-id': {
     color: '#9ca3af', // gray-400
   },
-  '.cm-front-matter-closing': {
-    borderBottom: '1px dotted #4ade80', // green-400
+  '.cm-hr-line': {
+    borderBottom: '1px solid currentColor',
   },
 });
