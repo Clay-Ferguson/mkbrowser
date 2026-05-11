@@ -72,6 +72,11 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   const onSelectionChangeRef = useRef(onSelectionChange);
   // Prevents onChange feedback loop when the sync effect dispatches an external value into the editor
   const suppressOnChangeRef = useRef(false);
+  // Debounce timer for onChange — collapses rapid keystroke bursts (e.g. speech-to-text) into one store update
+  const onChangeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDocRef = useRef<string | null>(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
   onEscapeRef.current = onEscape;
   onForceCancelRef.current = onForceCancel;
   onSaveRef.current = onSave;
@@ -245,7 +250,14 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       ]),
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !suppressOnChangeRef.current) {
-          onChange(update.state.doc.toString());
+          pendingDocRef.current = update.state.doc.toString();
+          if (onChangeDebounceRef.current) clearTimeout(onChangeDebounceRef.current);
+          onChangeDebounceRef.current = setTimeout(() => {
+            if (pendingDocRef.current !== null) {
+              onChangeRef.current(pendingDocRef.current);
+              pendingDocRef.current = null;
+            }
+          }, 50);
         }
         if (update.selectionSet && onSelectionChangeRef.current) {
           const { from, to } = update.state.selection.main;
@@ -350,6 +362,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     });
 
     return () => {
+      if (onChangeDebounceRef.current) clearTimeout(onChangeDebounceRef.current);
       view.destroy();
       viewRef.current = null;
     };
