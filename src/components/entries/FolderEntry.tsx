@@ -66,7 +66,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
     <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''}`}>
       <div
         onClick={() => !isRenaming && onNavigate(entry.path)}
-        className={`w-full flex items-center gap-3 pl-4 pr-2 py-0 ${isHighlighted ? 'bg-blue-800/50' : 'bg-blue-800/50 hover:bg-blue-700/70'} transition-colors text-left cursor-pointer`}
+        className={`w-full flex items-center gap-3 px-2 py-0 ${isHighlighted ? 'bg-blue-800/50' : 'bg-blue-800/50 hover:bg-blue-700/70'} transition-colors text-left cursor-pointer`}
       >
         {(!hasIndexFile || editMode) && (
           <SelectionCheckbox
