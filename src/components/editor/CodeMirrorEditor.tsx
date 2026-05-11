@@ -70,6 +70,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   const onForceCancelRef = useRef(onForceCancel);
   const onSaveRef = useRef(onSave);
   const onSelectionChangeRef = useRef(onSelectionChange);
+  // Prevents onChange feedback loop when the sync effect dispatches an external value into the editor
+  const suppressOnChangeRef = useRef(false);
   onEscapeRef.current = onEscape;
   onForceCancelRef.current = onForceCancel;
   onSaveRef.current = onSave;
@@ -242,7 +244,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
         },
       ]),
       EditorView.updateListener.of((update) => {
-        if (update.docChanged) {
+        if (update.docChanged && !suppressOnChangeRef.current) {
           onChange(update.state.doc.toString());
         }
         if (update.selectionSet && onSelectionChangeRef.current) {
@@ -360,6 +362,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
     const currentContent = view.state.doc.toString();
     if (currentContent !== value) {
+      suppressOnChangeRef.current = true;
       view.dispatch({
         changes: {
           from: 0,
@@ -367,6 +370,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
           insert: value,
         },
       });
+      suppressOnChangeRef.current = false;
     }
   }, [value]);
 
