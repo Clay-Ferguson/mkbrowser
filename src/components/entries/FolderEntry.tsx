@@ -24,9 +24,10 @@ interface FolderEntryProps {
   onMoveToTop?: () => void;
   onMoveToBottom?: () => void;
   isAttachFolder?: boolean;
+  indentFolder?: boolean;
 }
 
-function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder }: FolderEntryProps) {
+function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder, indentFolder }: FolderEntryProps) {
   const {
     isRenaming,
     isSelected,
@@ -63,7 +64,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
   };
 
   return (
-    <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''}`}>
+    <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''}`} style={indentFolder ? { paddingLeft: '32px' } : undefined}>
       <div
         onClick={() => !isRenaming && onNavigate(entry.path)}
         className={`w-full flex items-center gap-3 px-2 py-0 ${isHighlighted ? 'bg-blue-800/50' : 'bg-blue-800/50 hover:bg-blue-700/70'} transition-colors text-left cursor-pointer`}
@@ -92,7 +93,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
           />
         ) : (
           <>
-            <span id={buildEntryHeaderId(entry.path)} className={`text-slate-200 font-medium truncate flex-shrink-0${isAttachFolder && hasIndexFile ? ' opacity-0 [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:[transition:opacity_200ms_ease_400ms]' : ''}`}>{entry.name}</span>
+            <span id={buildEntryHeaderId(entry.path)} className={`font-medium truncate flex-shrink-0${indentFolder ? ' text-slate-400 italic' : ' text-slate-200'}${isAttachFolder && hasIndexFile ? ' opacity-0 [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:[transition:opacity_200ms_ease_400ms]' : ''}`}>{indentFolder ? '*.attach' : entry.name}</span>
             {aiHint && (
               <span className="text-slate-400 italic text-sm truncate min-w-0" title={aiHint}>{aiHint}</span>
             )}

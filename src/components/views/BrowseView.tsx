@@ -840,14 +840,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                   const moveDown = idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
                   const moveToTop = idx > 0 ? () => void handleMoveEntryToEdge(entry.name, 'top') : undefined;
                   const moveToBottom = idx < sortedEntries.length - 1 ? () => void handleMoveEntryToEdge(entry.name, 'bottom') : undefined;
+                  const indentFolder = entry.name.endsWith(ATTACH_SUFFIX) && visibleEntries[idx - 1]?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
                   return (
                     <div key={entry.path}>
                       {entry.isDirectory ? (
                         <>
                           {(!entry.name.endsWith(ATTACH_SUFFIX) || editMode) && (
-                            <div style={entry.name.endsWith(ATTACH_SUFFIX) ? { paddingLeft: '32px' } : undefined}>
-                              <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
-                            </div>
+                            <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} indentFolder={indentFolder} />
                           )}
                           {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
                             <AttachFolderContents
@@ -877,13 +876,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               </div>
             ) : (
               <div className="[&>div+div]:-mt-px">
-                {visibleEntries.map((entry) => (
+                {visibleEntries.map((entry, idx) => {
+                  const indentFolder = entry.name.endsWith(ATTACH_SUFFIX) && visibleEntries[idx - 1]?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
+                  return (
                   <div key={entry.path}>
                     {entry.isDirectory ? (
                       <>
-                        <div style={entry.name.endsWith(ATTACH_SUFFIX) ? { paddingLeft: '32px' } : undefined}>
-                          <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
-                        </div>
+                        <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} indentFolder={indentFolder} />
                         {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
                           <AttachFolderContents
                             entries={entry.attachments}
@@ -906,7 +905,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                       <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )
           )}
