@@ -472,8 +472,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               <div
                 style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}
                 className="cursor-pointer"
-                onDoubleClick={() => edit.handleEditClick()}
-                title="Double-click to edit"
+                onMouseUp={() => { if (!window.getSelection()?.toString()) edit.handleEditClick(); }}
+                title="Click to edit"
               >
                 {columns.map((col, i) => (
                   <article
@@ -504,8 +504,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             ) : (
               <article
                 className="prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2 cursor-pointer"
-                onDoubleClick={() => edit.handleEditClick()}
-                title="Double-click to edit"
+                onMouseUp={() => { if (!window.getSelection()?.toString()) edit.handleEditClick(); }}
+                title="Click to edit"
               >
                 <Markdown
                   remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
