@@ -47,6 +47,12 @@ export default function BookmarksPopupMenu({
     onClose();
   };
 
+  // Determine which file names are duplicated so we can show full paths for those
+  const fileNames = sorted.map(p => p.substring(p.lastIndexOf('/') + 1));
+  const duplicateNames = new Set(
+    fileNames.filter((name, i) => fileNames.indexOf(name) !== i)
+  );
+
   return (
     <>
       <PopupMenu anchorRef={anchorRef} onClose={onClose}>
@@ -54,13 +60,19 @@ export default function BookmarksPopupMenu({
           <PopupMenuItem label="No bookmarks" disabled onClick={onClose} />
         ) : (
           sorted.map((fullPath) => {
-            // Display path relative to rootPath (not OS root)
-            let displayName = fullPath;
-            if (rootPath && (fullPath === rootPath || fullPath.startsWith(rootPath + '/'))) {
-              displayName = fullPath.slice(rootPath.length);
-              if (displayName.startsWith('/')) displayName = displayName.slice(1);
-              // For the root itself, show "." for clarity
-              if (!displayName) displayName = '.';
+            const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+            let displayName: string;
+            if (duplicateNames.has(fileName)) {
+              // Show relative path for duplicates
+              if (rootPath && (fullPath === rootPath || fullPath.startsWith(rootPath + '/'))) {
+                displayName = fullPath.slice(rootPath.length);
+                if (displayName.startsWith('/')) displayName = displayName.slice(1);
+                if (!displayName) displayName = '.';
+              } else {
+                displayName = fullPath;
+              }
+            } else {
+              displayName = fileName || '.';
             }
             return (
               <PopupMenuItem
