@@ -53,7 +53,8 @@ function isShellScript(node: FileNode): boolean {
 function makeNodes(
   entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>
 ): FileNode[] {
-  return entries.map(e => ({
+  // return with Attachments folders removed. We don't want to display those on the tree.
+  return entries.filter(e => !(e.isDirectory && e.name.endsWith('.attach'))).map(e => ({
     path: e.path,
     name: e.name,
     isDirectory: e.isDirectory,
@@ -87,7 +88,7 @@ function flattenVisible(
   });
   const result: Array<{ node: TreeNode; depth: number }> = [];
   for (const node of sorted) {
-    if (cutPaths.has(node.path)) continue;
+    if (isFileNode(node) && cutPaths.has(node.path)) continue;
     result.push({ node, depth });
     if (node.isExpanded && node.children) {
       result.push(...flattenVisible(node.children, cutPaths, foldersOnTop, depth + 1));
