@@ -24,8 +24,6 @@ export function createFrontMatterDecorations(view: EditorView): DecorationSet {
   for (let i = 1; i <= doc.lines; i++) {
     const line = doc.line(i);
     if (line.text === '---') {
-      // Underline every --- line except the very first line
-      if (i > 1) builder.add(line.from, line.from, hrLineDeco);
       if (hasFrontMatter && (i === 1 || i === closingLineNumber)) {
         builder.add(line.from, line.to, frontMatterDelimMark);
       }
@@ -38,6 +36,29 @@ export function createFrontMatterDecorations(view: EditorView): DecorationSet {
 
   return builder.finish();
 }
+
+function buildHrLineDecorations(view: EditorView): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const doc = view.state.doc;
+  for (let i = 2; i <= doc.lines; i++) {
+    const line = doc.line(i);
+    if (line.text === '---') builder.add(line.from, line.from, hrLineDeco);
+  }
+  return builder.finish();
+}
+
+export const hrLinePlugin = Prec.highest(ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+    constructor(view: EditorView) { this.decorations = buildHrLineDecorations(view); }
+    update(update: ViewUpdate) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = buildHrLineDecorations(update.view);
+      }
+    }
+  },
+  { decorations: (v) => v.decorations }
+));
 
 export const frontMatterPlugin = Prec.highest(ViewPlugin.fromClass(
   class {

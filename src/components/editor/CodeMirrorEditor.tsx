@@ -15,7 +15,7 @@ import { useSettings, type FontSize } from '../../store';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../utils/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editorDateUtil';
-import { frontMatterPlugin, frontMatterTheme, frontMatterHideField } from '../../utils/editorFrontMatterUtil';
+import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, hrLinePlugin } from '../../utils/editorFrontMatterUtil';
 // import { customRenderPlugin, customRenderTheme } from '../../utils/editorCustomRenderUtil'; // <--- Keep for future reference (no longer needed for now)
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
@@ -182,7 +182,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       spellCheckCompartment.current.of([]),
       spellCheckTheme,
       frontMatterCompartment.current.of(
-        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme] : [frontMatterHideField]
+        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, hrLinePlugin, frontMatterTheme]
       ),
       hashtagPlugin,
       hashtagTheme,
@@ -404,7 +404,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
     view.dispatch({
       effects: frontMatterCompartment.current.reconfigure(
-        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme] : [frontMatterHideField]
+        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, hrLinePlugin, frontMatterTheme]
       ),
     });
   }, [showPropsInEditor]);
