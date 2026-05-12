@@ -51,7 +51,7 @@ function CreateFolderDialog({ defaultName = '', onCreate, onCancel }: CreateFold
           onChange={(e) => setFolderName(e.target.value)}
           onKeyDown={handleKeyDown}
           className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
-          placeholder="Leave blank for timestamp (YYYY-MM-DD--HH-MM-SS)"
+          placeholder="Leave blank for YYYY-MM-DD--HH-MM-SS"
         />
         <div className="flex justify-end gap-3 mt-6">
           <button

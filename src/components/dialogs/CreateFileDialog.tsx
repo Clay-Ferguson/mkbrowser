@@ -52,7 +52,7 @@ function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDi
           onChange={(e) => setFileName(e.target.value)}
           onKeyDown={handleKeyDown}
           className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
-          placeholder="Leave blank for timestamp (YYYY-MM-DD--HH-MM-SS-AM/PM.md)"
+          placeholder="Leave blank for YYYY-MM-DD--HH-MM-SS.md"
           data-testid="create-file-dialog-input"
         />
         <div className="flex justify-end gap-3 mt-6">
