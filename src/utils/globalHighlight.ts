@@ -2,8 +2,37 @@
 
 export let globalHighlightText: string| null = null;
 
+let _observer: MutationObserver | null = null;
+let _rafId: number | null = null;
+
+function scheduleHighlight() {
+  if (_rafId !== null) return;
+  _rafId = requestAnimationFrame(() => {
+    _rafId = null;
+    applyGlobalHighlight(globalHighlightText);
+  });
+}
+
 export function setGlobalHighlightText(text: string | null) {
   globalHighlightText = text;
+
+  if (text) {
+    if (!_observer) {
+      _observer = new MutationObserver(scheduleHighlight);
+      _observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    }
+    scheduleHighlight();
+  } else {
+    if (_observer) {
+      _observer.disconnect();
+      _observer = null;
+    }
+    if (_rafId !== null) {
+      cancelAnimationFrame(_rafId);
+      _rafId = null;
+    }
+    CSS.highlights.delete('global-search');
+  }
 }
 
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'INPUT', 'TEXTAREA']);
