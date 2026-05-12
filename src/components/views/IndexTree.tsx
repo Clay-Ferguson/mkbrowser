@@ -23,6 +23,7 @@ import {
   navigateToBrowserPath,
   setHighlightItem,
   setIndexTreeWidth,
+  getSettings,
   setPendingScrollToHeadingSlug,
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
@@ -309,8 +310,13 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
 
   const toggleBookmarksMenu = () => setShowBookmarksMenu(prev => !prev);
   const closeBookmarksMenu = () => setShowBookmarksMenu(false);
-  const handleNarrowTree = () => setIndexTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
-  const handleWidenTree = () => setIndexTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
+  const saveTreeWidth = async (width: typeof settings.indexTreeWidth) => {
+    setIndexTreeWidth(width);
+    const config = await window.electronAPI.getConfig();
+    await window.electronAPI.saveConfig({ ...config, settings: getSettings() });
+  };
+  const handleNarrowTree = () => saveTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
+  const handleWidenTree = () => saveTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
 
   const handleBookmarkNavigate = (fullPath: string) => {
     const lastName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
