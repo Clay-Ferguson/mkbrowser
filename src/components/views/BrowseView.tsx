@@ -854,15 +854,17 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                   const moveDown = idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
                   const moveToTop = idx > 0 ? () => void handleMoveEntryToEdge(entry.name, 'top') : undefined;
                   const moveToBottom = idx < sortedEntries.length - 1 ? () => void handleMoveEntryToEdge(entry.name, 'bottom') : undefined;
-                  const indentFolder = entry.name.endsWith(ATTACH_SUFFIX) && visibleEntries[idx - 1]?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
+                  const prevEntry = visibleEntries[idx - 1];
+                  const indentFolder = entry.name.endsWith(ATTACH_SUFFIX) && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
+                  const parentExpanded = !indentFolder || (!!prevEntry && (items.get(prevEntry.path)?.isExpanded ?? false));
                   return (
                     <div key={entry.path}>
                       {entry.isDirectory ? (
                         <>
-                          {(!entry.name.endsWith(ATTACH_SUFFIX) || editMode) && (
+                          {(!entry.name.endsWith(ATTACH_SUFFIX) || editMode) && parentExpanded && (
                             <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} indentFolder={indentFolder} />
                           )}
-                          {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
+                          {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && parentExpanded && (
                             <AttachFolderContents
                               entries={entry.attachments}
                               level={1}
@@ -891,13 +893,15 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             ) : (
               <div className="[&>div+div]:-mt-px">
                 {visibleEntries.map((entry, idx) => {
-                  const indentFolder = entry.name.endsWith(ATTACH_SUFFIX) && visibleEntries[idx - 1]?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
+                  const prevEntry = visibleEntries[idx - 1];
+                  const indentFolder = entry.name.endsWith(ATTACH_SUFFIX) && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
+                  const parentExpanded = !indentFolder || (!!prevEntry && (items.get(prevEntry.path)?.isExpanded ?? false));
                   return (
                   <div key={entry.path}>
                     {entry.isDirectory ? (
                       <>
-                        <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} indentFolder={indentFolder} />
-                        {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
+                        {parentExpanded && <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} indentFolder={indentFolder} />}
+                        {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && parentExpanded && (
                           <AttachFolderContents
                             entries={entry.attachments}
                             level={1}
