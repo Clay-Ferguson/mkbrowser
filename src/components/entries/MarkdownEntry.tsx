@@ -62,9 +62,10 @@ interface MarkdownEntryProps extends BaseEntryProps {
   entry: FileEntry;
   view: AppView;
   onPasteAsAttachment?: (filePath: string) => void;
+  isAttachment?: boolean;
 }
 
-function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment }: MarkdownEntryProps) {
+function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, isAttachment = false }: MarkdownEntryProps) {
   const item = useItem(entry.path);
   const hasCutItems = useHasCutItems();
 
@@ -255,7 +256,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   return (
     <div data-testid="browser-entry-markdown" className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''} overflow-hidden`}>
       <div className={`flex items-center gap-3 px-2 py-0 bg-blue-800/50 group-hover:bg-blue-700/70 ${isExpanded ? 'border border-slate-500' : ''} transition-colors`}>
-        {(!hasIndexFile || editMode) && (
+        {!isAttachment && (!hasIndexFile || editMode) && (
           <SelectionCheckbox
             path={entry.path}
             name={entry.name}
@@ -398,6 +399,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               showEditButton
               onEditClick={edit.handleEditClick}
               className="-mr-1.5"
+              isAttachment={isAttachment}
             />
             {hasCutItems && onPasteAsAttachment && !entry.hasAttachFolder && (
               <button

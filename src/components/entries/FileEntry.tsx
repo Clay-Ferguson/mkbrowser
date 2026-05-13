@@ -14,7 +14,7 @@ import {
 
 type FileEntryProps = BaseEntryProps;
 
-function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom }: FileEntryProps) {
+function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false }: FileEntryProps) {
   const {
     isRenaming,
     isExpanded,
@@ -47,7 +47,7 @@ function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   return (
     <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''}`}>
       <div className={`flex items-center gap-3 px-2 py-0 bg-blue-800/50 group-hover:bg-blue-700/70 transition-colors`}>
-        {(!hasIndexFile || editMode) && (
+        {!isAttachment && (!hasIndexFile || editMode) && (
           <SelectionCheckbox
             path={entry.path}
             name={entry.name}
@@ -89,6 +89,7 @@ function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
             onMoveToTop={onMoveToTop}
             onMoveToBottom={onMoveToBottom}
             className="-mr-1.5"
+            isAttachment={isAttachment}
           />
         )}
         {del.showDeleteConfirm && (

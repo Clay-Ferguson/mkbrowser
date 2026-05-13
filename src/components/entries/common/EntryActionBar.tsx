@@ -30,6 +30,8 @@ interface EntryActionBarProps {
   onMoveToBottom?: () => void;
   /** Extra className for the container */
   className?: string;
+  /** When true, hides the "Reveal in folder tree" button */
+  isAttachment?: boolean;
 }
 
 /**
@@ -50,6 +52,7 @@ export function EntryActionBar({
   onMoveToTop,
   onMoveToBottom,
   className = '',
+  isAttachment = false,
 }: EntryActionBarProps) {
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
@@ -113,7 +116,7 @@ export function EntryActionBar({
       >
         <ArrowTopRightOnSquareIcon className="w-5 h-5" />
       </button>
-      {settings.indexTreeWidth !== 'hidden' && (
+      {!isAttachment && settings.indexTreeWidth !== 'hidden' && (
         <button
           onClick={(e) => {
             e.stopPropagation();

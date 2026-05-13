@@ -21,6 +21,8 @@ export interface BaseEntryProps {
   onMoveToTop?: () => void;
   /** Move entry to bottom of .INDEX.yaml (Ctrl+Move Down) */
   onMoveToBottom?: () => void;
+  /** When true, hides the selection checkbox (used for entries rendered as attachments) */
+  isAttachment?: boolean;
 }
 
 /**

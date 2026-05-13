@@ -8,7 +8,7 @@ import IndexInsertBar from '../IndexInsertBar';
 import type { FileEntry } from '../../global';
 import FolderEntry from '../entries/FolderEntry';
 import MarkdownEntry from '../entries/MarkdownEntry';
-import FileEntryComponent from '../entries/FileEntry';
+import FileEntryComponent from '../entries/FileEntry'; // todo-0: why is this importing a different thing than just "FileEntry" ???
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import ToolsPopupMenu from '../menus/ToolsPopupMenu';
@@ -109,13 +109,13 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
               )}
             </>
           ) : entry.isMarkdown ? (
-            <MarkdownEntry entry={entry} view="browser" onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} />
+            <MarkdownEntry entry={entry} view="browser" onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
           ) : isImageFile(entry.name) ? (
-            <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} />
+            <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
           ) : isTextFile(entry.name) ? (
-            <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} />
+            <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
           ) : (
-            <FileEntryComponent entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} />
+            <FileEntryComponent entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
           )}
         </div>
       ))}
@@ -151,6 +151,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
   const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
   const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null);
+  const [showCutOrphanAttachConfirm, setShowCutOrphanAttachConfirm] = useState<boolean>(false);
 
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
@@ -406,6 +407,19 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     await joinSelectedFiles(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
   }, [currentPath, items, onRefreshDirectory, onSetError]);
 
+  const handleCutClick = useCallback(() => {
+    const hasOrphanedAttachment = visibleEntries.some((entry) => {
+      if (entry.isDirectory || !items.get(entry.path)?.isSelected) return false;
+      const attachEntry = visibleEntries.find((e) => e.name === `${entry.name}${ATTACH_SUFFIX}`);
+      return attachEntry !== undefined && !items.get(attachEntry.path)?.isSelected;
+    });
+    if (hasOrphanedAttachment) {
+      setShowCutOrphanAttachConfirm(true);
+    } else {
+      cutSelectedItems();
+    }
+  }, [visibleEntries, items]);
+
   const handleExport = useCallback(async (outputFolder: string, fileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean, exportToPdf: boolean) => {
     if (!currentPath) return;
 
@@ -656,7 +670,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           {/* Cut button - shown when items are selected and no items are cut */}
           {hasSelectedItems && !hasCutItems && (
             <button
-              onClick={cutSelectedItems}
+              onClick={handleCutClick}
               className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
               title="Cut selected items"
               data-testid="cut-button"
@@ -1081,6 +1095,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           message={`Move ${getSelectedItems().length} selected item(s) to trash?`}
           onConfirm={() => void performDelete()}
           onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
+      {showCutOrphanAttachConfirm && (
+        <ConfirmDialog
+          message="One or more selected files have an attachments folder that is not selected. Cut only the file(s) without their attachments?"
+          onConfirm={() => { setShowCutOrphanAttachConfirm(false); cutSelectedItems(); }}
+          onCancel={() => setShowCutOrphanAttachConfirm(false)}
         />
       )}
 

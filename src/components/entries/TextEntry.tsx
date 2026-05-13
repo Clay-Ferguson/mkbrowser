@@ -33,7 +33,7 @@ import { getTextFileLanguage } from '../../utils/fileUtils';
 
 type TextEntryProps = BaseEntryProps;
 
-function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom }: TextEntryProps) {
+function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false }: TextEntryProps) {
   const item = useItem(entry.path);
   const [isRewriting, setIsRewriting] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
@@ -119,7 +119,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   return (
     <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''} overflow-hidden`}>
       <div className={`flex items-center gap-3 px-2 py-0 bg-blue-800/50 group-hover:bg-blue-700/70 ${isExpanded ? 'border border-slate-500' : ''} transition-colors`}>
-        {(!hasIndexFile || editMode) && (
+        {!isAttachment && (!hasIndexFile || editMode) && (
           <SelectionCheckbox
             path={entry.path}
             name={entry.name}
@@ -206,6 +206,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
             showEditButton
             onEditClick={edit.handleEditClick}
             className="-mr-1.5"
+            isAttachment={isAttachment}
           />
         )}
       </div>
