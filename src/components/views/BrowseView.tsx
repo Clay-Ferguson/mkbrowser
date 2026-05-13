@@ -653,6 +653,94 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     })();
   };
 
+  const handleEditModeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEditMode = e.target.checked;
+    const updated = { ...(indexYaml ?? {}), options: { ...(indexYaml?.options ?? {}), edit_mode: newEditMode } };
+    setIndexYaml(updated);
+    void window.electronAPI.writeIndexOptions(currentPath, { edit_mode: newEditMode });
+  }, [indexYaml, currentPath]);
+
+  const handleSelectSortOrder = useCallback((order: Parameters<typeof setSortOrder>[0]) => {
+    setSortOrder(order);
+    void onSaveSettings();
+  }, [onSaveSettings]);
+
+  const handleEnableCustomOrdering = useCallback(async () => {
+    if (!currentPath) return;
+    await window.electronAPI.reconcileIndexedFiles(currentPath, true);
+    onRefreshDirectory();
+  }, [currentPath, onRefreshDirectory]);
+
+  const handleRunSearch = useCallback((definition: SearchDefinition) => {
+    if (!currentPath) return;
+    void (async () => {
+      const searchQuery = definition.searchText.replace(/\{\{nl\}\}/g, ' ');
+      const results = await window.electronAPI.searchFolder(
+        currentPath,
+        searchQuery,
+        definition.searchMode,
+        definition.searchTarget,
+        definition.searchImageExif
+      );
+      setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc', definition.name);
+      setCurrentView('search-results');
+    })();
+  }, [currentPath]);
+
+  const handleEditSearch = useCallback((definition: SearchDefinition) => {
+    setCurrentView('browser');
+    setSearchDialogInitialValues({
+      searchQuery: definition.searchText,
+      searchName: definition.name,
+      searchType: definition.searchMode,
+      searchMode: definition.searchTarget,
+      sortBy: definition.sortBy,
+      sortDirection: definition.sortDirection,
+      searchImageExif: definition.searchImageExif,
+    });
+    setShowSearchDialog(true);
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    const currentFolderPaths = entries.map((entry) => entry.path);
+    selectItemsByPaths(currentFolderPaths);
+  }, [entries]);
+
+  const handleFolderAnalysis = useCallback(() => {
+    if (!currentPath) return;
+    void (async () => {
+      try {
+        const result = await window.electronAPI.analyzeFolderHashtags(currentPath);
+        setFolderAnalysis({
+          hashtags: result.hashtags,
+          folderPath: currentPath,
+          totalFiles: result.totalFiles,
+        });
+        setCurrentView('folder-analysis');
+      } catch (err) {
+        onSetError('Failed to analyze folder: ' + (err instanceof Error ? err.message : String(err)));
+      }
+    })();
+  }, [currentPath, onSetError]);
+
+  const handleFolderGraph = useCallback(() => {
+    if (!currentPath) return;
+    void (async () => {
+      try {
+        const result = await window.electronAPI.scanFolderTree(currentPath);
+        setFolderGraph({
+          folderPath: result.folderPath,
+          nodes: result.nodes.map(n => ({ ...n })),
+          links: result.links.map(l => ({ ...l })),
+          truncated: result.truncated,
+        });
+        setCurrentView('folder-graph');
+      } catch (err) {
+        onSetError('Failed to scan folder graph: ' + (err instanceof Error ? err.message : String(err)));
+      }
+    })();
+  }, [currentPath, onSetError]);
+
   const newAiChat = () => {
     if (!currentPath) return;
     if (hasHumanMd(entries)) {
@@ -832,12 +920,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 className="w-5 h-5"
                 style={{ accentColor: '#38bdf8' }}
                 checked={indexYaml?.options?.edit_mode ?? false}
-                onChange={(e) => {
-                  const newEditMode = e.target.checked;
-                  const updated = { ...(indexYaml ?? {}), options: { ...(indexYaml?.options ?? {}), edit_mode: newEditMode } };
-                  setIndexYaml(updated);
-                  void window.electronAPI.writeIndexOptions(currentPath, { edit_mode: newEditMode });
-                }}
+                onChange={handleEditModeChange}
               />
               <span className="text-slate-200 text-sm">Edit</span>
             </label>
@@ -1002,14 +1085,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           anchorRef={sortButtonRef}
           onClose={() => setShowSortMenu(false)}
           currentSortOrder={settings.sortOrder}
-          onSelectSortOrder={(order) => {
-            setSortOrder(order);
-            void onSaveSettings();
-          }}
-          onEnableCustomOrdering={currentPath ? async () => {
-            await window.electronAPI.reconcileIndexedFiles(currentPath, true);
-            onRefreshDirectory();
-          } : undefined}
+          onSelectSortOrder={handleSelectSortOrder}
+          onEnableCustomOrdering={currentPath ? handleEnableCustomOrdering : undefined}
         />
       )}
 
@@ -1019,34 +1096,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onClose={() => setShowSearchMenu(false)}
           searchDefinitions={settings.searchDefinitions || []}
           onNewSearch={handleOpenSearchDialog}
-          onRunSearch={(definition) => {
-            if (!currentPath) return;
-            void (async () => {
-              const searchQuery = definition.searchText.replace(/\{\{nl\}\}/g, ' ');
-              const results = await window.electronAPI.searchFolder(
-                currentPath,
-                searchQuery,
-                definition.searchMode,
-                definition.searchTarget,
-                definition.searchImageExif
-              );
-              setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc', definition.name);
-              setCurrentView('search-results');
-            })();
-          }}
-          onEditSearch={(definition) => {
-            setCurrentView('browser');
-            setSearchDialogInitialValues({
-              searchQuery: definition.searchText,
-              searchName: definition.name,
-              searchType: definition.searchMode,
-              searchMode: definition.searchTarget,
-              sortBy: definition.sortBy,
-              sortDirection: definition.sortDirection,
-              searchImageExif: definition.searchImageExif,
-            });
-            setShowSearchDialog(true);
-          }}
+          onRunSearch={handleRunSearch}
+          onEditSearch={handleEditSearch}
         />
       )}
 
@@ -1055,10 +1106,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           anchorRef={editButtonRef}
           onClose={() => setShowEditMenu(false)}
           onUndoCut={() => clearAllCutItems()}
-          onSelectAll={() => {
-            const currentFolderPaths = entries.map((entry) => entry.path);
-            selectItemsByPaths(currentFolderPaths);
-          }}
+          onSelectAll={handleSelectAll}
           onUnselectAll={() => clearAllSelections()}
           onSplit={() => void handleSplitFile()}
           onJoin={() => void handleJoinFiles()}
@@ -1075,42 +1123,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           anchorRef={toolsButtonRef}
           onClose={() => setShowToolsMenu(false)}
           aiEnabled={aiEnabled}
-          onFolderAnalysis={() => {
-            if (!currentPath) return;
-            void (async () => {
-              try {
-                const result = await window.electronAPI.analyzeFolderHashtags(currentPath);
-                setFolderAnalysis({
-                  hashtags: result.hashtags,
-                  folderPath: currentPath,
-                  totalFiles: result.totalFiles,
-                });
-                setCurrentView('folder-analysis');
-              } catch (err) {
-                onSetError('Failed to analyze folder: ' + (err instanceof Error ? err.message : String(err)));
-              }
-            })();
-          }}
-          onFolderGraph={() => {
-            if (!currentPath) return;
-            void (async () => {
-              try {
-                const result = await window.electronAPI.scanFolderTree(currentPath);
-                // Replace any prior graph wholesale: re-launching from the menu
-                // is the only path that resets layout, per the spec.
-                setFolderGraph({
-                  folderPath: result.folderPath,
-                  nodes: result.nodes.map(n => ({ ...n })),
-                  links: result.links.map(l => ({ ...l })),
-                  truncated: result.truncated,
-                });
-                setCurrentView('folder-graph');
-              } catch (err) {
-                onSetError('Failed to scan folder graph: ' + (err instanceof Error ? err.message : String(err)));
-              }
-            })();
-          }}
-
+          onFolderAnalysis={handleFolderAnalysis}
+          onFolderGraph={handleFolderGraph}
           onExport={() => setShowExportDialog(true)}
           onRunOcr={runOcr}
           onNewAiChat={newAiChat}
