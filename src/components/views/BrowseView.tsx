@@ -231,6 +231,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const previousPathRef = useRef<string | null>(null);
   const mainContainerRef = useRef<HTMLElement | null>(null);
   const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const preEditScrollPositionRef = useRef<number | null>(null);
+  const wasExpandedEditingRef = useRef<boolean>(false);
   const toolsButtonRef = useRef<HTMLButtonElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
@@ -302,17 +304,38 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   };
 
 
-  // When expanded editor activates and a file starts editing, scroll to top so
-  // the enlarged editor view always begins at the top of the container.
+  // When expanded editor activates and a file starts editing, save scroll position
+  // and scroll to top. When expanded editing ends, restore the saved position.
   const anyItemEditing = useMemo(
     () => Array.from(items.values()).some((item) => item.editing),
     [items]
   );
+
+  // NOTE: when we're editing in expanded mode that will mean our scroll bar will be completely irrelevant 
+  // when we re-render the page after the editing is completed, and so the logic related to 'preEditScrollPositionRef'
+  // below is to be able to restore the scroll position back to the correct location after an expanded mode edit.
   useEffect(() => {
-    if (expandedEditor && anyItemEditing) {
+    const isExpandedEditing = expandedEditor && anyItemEditing;
+    if (isExpandedEditing && !wasExpandedEditingRef.current) {
+      // Read from the store rather than live scrollTop: by the time this effect runs,
+      // visibleEntries has already changed (DOM content shrank) and the browser has
+      // clamped scrollTop to 0, losing the real position. The store holds the last
+      // debounced-saved value, which is accurate to within 150ms — long before the
+      // user clicked "Expand editor".
+      preEditScrollPositionRef.current = currentPath ? getBrowserScrollPosition(currentPath) : 0;
       mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+    } else if (!isExpandedEditing && wasExpandedEditingRef.current) {
+      if (preEditScrollPositionRef.current !== null) {
+        const savedPos = preEditScrollPositionRef.current;
+        preEditScrollPositionRef.current = null;
+        if (currentPath) setBrowserScrollPosition(currentPath, savedPos);
+        setTimeout(() => {
+          mainContainerRef.current?.scrollTo({ top: savedPos, behavior: 'instant' });
+        }, 50);
+      }
     }
-  }, [expandedEditor, anyItemEditing]);
+    wasExpandedEditingRef.current = isExpandedEditing;
+  }, [expandedEditor, anyItemEditing, currentPath]);
 
   // Handle scroll events on the main container (debounced save)
   const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
