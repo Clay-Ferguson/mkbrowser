@@ -52,6 +52,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
 
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isActualSize, setIsActualSize] = useState(false);
   const [showFullscreenDeleteConfirm, setShowFullscreenDeleteConfirm] = useState(false);
   const [fullscreenImagePath, setFullscreenImagePath] = useState(entry.path);
   const [showEndAlert, setShowEndAlert] = useState(false);
@@ -73,6 +74,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsFullscreen(false);
+        setIsActualSize(false);
         setFullscreenImagePath(entry.path); // Reset to this entry's image
       } else if (e.key === 'ArrowRight') {
         const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
@@ -97,6 +99,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
         // Jump to the current fullscreen image - close fullscreen, scroll to it, and highlight it
         const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
         setIsFullscreen(false);
+        setIsActualSize(false);
         setFullscreenImagePath(entry.path); // Reset to this entry's image
         setHighlightItem(currentImage.path);
         setPendingScrollToFile(currentImage.path);
@@ -257,15 +260,19 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
       {/* Fullscreen overlay - use keyboard: Left/Right arrows to navigate, Delete to delete, Escape to close */}
       {isFullscreen && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/95"
           onClick={() => {
             setIsFullscreen(false);
+            setIsActualSize(false);
             setFullscreenImagePath(entry.path);
           }}
         >
-          <span className="absolute top-2 left-2 text-white/60 text-xs">ESC=Close, J=Jump to Image, Space=Select</span>
+          {/* Fixed UI controls — always on top regardless of scroll */}
+          <span className="fixed top-2 left-2 text-white/60 text-xs z-10">
+            ESC=Close, J=Jump to Image, Space=Select{isActualSize ? ', Click Image=Fitted' : ', Click Image=Actual Size'}
+          </span>
           <label
-            className="absolute top-7 left-2 flex items-center gap-2 cursor-pointer"
+            className="fixed top-7 left-2 flex items-center gap-2 cursor-pointer z-10"
             onClick={(e) => e.stopPropagation()}
           >
             <input
@@ -277,20 +284,48 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
             />
             <span className="text-white/70 text-sm">{currentFullscreenImage.name}</span>
           </label>
-          <img
-            src={fullscreenImageUrl}
-            alt={currentFullscreenImage.name}
-            className="max-w-[95vw] max-h-[95vh] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
           <button
             onClick={(e) => handleExifClick(e, fullscreenImagePath, currentFullscreenImage.name)}
             disabled={exifLoading}
-            className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors"
+            className="fixed top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors z-10"
             title="View EXIF metadata"
           >
             <InformationCircleIcon className="w-6 h-6" />
           </button>
+
+          {/* Image area */}
+          {isActualSize ? (
+            // Actual-size: overflow-auto on fixed container, image at natural pixel dimensions
+            <div
+              style={{ position: 'absolute', inset: 0, overflow: 'auto' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={fullscreenImageUrl}
+                alt={currentFullscreenImage.name}
+                style={{ display: 'block', width: 'auto', height: 'auto', maxWidth: 'none', maxHeight: 'none', imageRendering: 'pixelated', cursor: 'zoom-out' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsActualSize(false);
+                }}
+                title="Click for fitted view"
+              />
+            </div>
+          ) : (
+            // Fitted: centered, constrained to viewport
+            <div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              <img
+                src={fullscreenImageUrl}
+                alt={currentFullscreenImage.name}
+                className="max-w-[95vw] max-h-[95vh] object-contain cursor-zoom-in"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsActualSize(true);
+                }}
+                title="Click for actual size"
+              />
+            </div>
+          )}
         </div>
       )}
 
