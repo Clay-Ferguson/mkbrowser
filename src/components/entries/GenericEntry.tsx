@@ -12,9 +12,9 @@ import {
   type BaseEntryProps,
 } from './common';
 
-type FileEntryProps = BaseEntryProps;
+type GenericEntryProps = BaseEntryProps;
 
-function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false }: FileEntryProps) {
+function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false }: GenericEntryProps) {
   const {
     isRenaming,
     isExpanded,
@@ -104,4 +104,4 @@ function FileEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   );
 }
 
-export default FileEntry;
+export default GenericEntry;

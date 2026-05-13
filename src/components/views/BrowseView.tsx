@@ -8,7 +8,7 @@ import IndexInsertBar from '../IndexInsertBar';
 import type { FileEntry } from '../../global';
 import FolderEntry from '../entries/FolderEntry';
 import MarkdownEntry from '../entries/MarkdownEntry';
-import FileEntryComponent from '../entries/FileEntry'; // todo-0: why is this importing a different thing than just "FileEntry" ???
+import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import ToolsPopupMenu from '../menus/ToolsPopupMenu';
@@ -70,7 +70,6 @@ import { hasHumanMd } from '../../ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtils';
 import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp } from '../../utils/fileOpsUtils';
 
-
 const ATTACH_SUFFIX = '.attach';
 
 interface AttachFolderContentsProps {
@@ -115,7 +114,7 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
           ) : isTextFile(entry.name) ? (
             <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
           ) : (
-            <FileEntryComponent entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+            <GenericEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
           )}
         </div>
       ))}
@@ -989,7 +988,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                       ) : isTextFile(entry.name) ? (
                         <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       ) : (
-                        <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                        <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       )}
                       {editMode && !(expandedEditor && anyItemEditing) && !visibleEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />}
                     </div>
@@ -1026,7 +1025,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                     ) : isTextFile(entry.name) ? (
                       <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                     ) : (
-                      <FileEntryComponent entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
+                      <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                     )}
                   </div>
                   );
