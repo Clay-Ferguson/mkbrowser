@@ -68,7 +68,7 @@ import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtils';
 import { getContentWidthClasses } from '../../utils/styles';
 import { hasHumanMd } from '../../ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtils';
-import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp } from '../../utils/fileOpsUtils';
+import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../utils/fileOpsUtils';
 
 const ATTACH_SUFFIX = '.attach';
 
@@ -614,43 +614,10 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setCurrentPath(path);
   }, []);
 
-  const runOcr = () => {
+  const handleRunOcr = useCallback(() => {
     if (!currentPath) return;
-    const ocrFolder = settings.ocrToolsFolder;
-    if (!ocrFolder) {
-      onSetError('OCR tools folder is not configured. Set it in Settings → OCR.');
-      return;
-    }
-    const escapedOcrFolder = ocrFolder.replace(/'/g, "'\\''");
-
-    const selectedImages = Array.from(items.values()).filter(
-      (item) => item.isSelected && !item.isDirectory && isImageFile(item.name)
-    );
-    const hasAnySelection = Array.from(items.values()).some((item) => item.isSelected);
-
-    let command: string;
-    if (hasAnySelection) {
-      if (selectedImages.length === 0) {
-        onSetError('No image files in the current selection. Select one or more image files to run OCR.');
-        return;
-      }
-      const ocrCalls = selectedImages.map((img, i) => {
-        const escapedImg = img.path.replace(/'/g, "'\\''");
-        return `echo "--- OCR [${i + 1}/${selectedImages.length}]: ${img.name} ---" && ./ocr.sh '${escapedImg}'`;
-      });
-      command = `cd '${escapedOcrFolder}' && ${ocrCalls.join(' && ')}`;
-    } else {
-      const escapedPath = currentPath.replace(/'/g, "'\\''");
-      command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'`;
-    }
-
-    void (async () => {
-      const result = await window.electronAPI.runInExternalTerminal(command);
-      if (!result.success) {
-        onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
-      }
-    })();
-  };
+    runOcr(currentPath, settings.ocrToolsFolder, items, onSetError);
+  }, [currentPath, settings.ocrToolsFolder, items, onSetError]);
 
   const handleEditModeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newEditMode = e.target.checked;
@@ -1125,7 +1092,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onFolderAnalysis={handleFolderAnalysis}
           onFolderGraph={handleFolderGraph}
           onExport={() => setShowExportDialog(true)}
-          onRunOcr={runOcr}
+          onRunOcr={handleRunOcr}
           onNewAiChat={newAiChat}
         />
       )}
