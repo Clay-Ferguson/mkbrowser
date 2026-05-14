@@ -1,4 +1,4 @@
-import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../../utils/styles';
 import { toggleBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
@@ -32,6 +32,8 @@ interface EntryActionBarProps {
   className?: string;
   /** When true, hides the "Reveal in folder tree" button */
   isAttachment?: boolean;
+  /** When provided, shows a clipboard paste button that pastes clipboard content as an attachment */
+  onPasteClipboardAsAttachment?: () => void;
 }
 
 /**
@@ -53,6 +55,7 @@ export function EntryActionBar({
   onMoveToBottom,
   className = '',
   isAttachment = false,
+  onPasteClipboardAsAttachment,
 }: EntryActionBarProps) {
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
@@ -142,6 +145,16 @@ export function EntryActionBar({
           <BookmarkOutlineIcon className="w-5 h-5" />
         )}
       </button>
+      {onPasteClipboardAsAttachment && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPasteClipboardAsAttachment(); }}
+          className={BUTTON_CLZ_BOOKMARK}
+          title="Paste Clipboard as Attachment under this file"
+          data-testid="entry-paste-clipboard-attachment-button"
+        >
+          <ClipboardDocumentIcon className="w-5 h-5" />
+        </button>
+      )}
       {showEditActions && onMoveUp && (
         <button
           onClick={(e) => {

@@ -62,10 +62,11 @@ interface MarkdownEntryProps extends BaseEntryProps {
   entry: FileEntry;
   view: AppView;
   onPasteAsAttachment?: (filePath: string) => void;
+  onPasteClipboardAsAttachment?: (filePath: string) => void;
   isAttachment?: boolean;
 }
 
-function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, isAttachment = false }: MarkdownEntryProps) {
+function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false }: MarkdownEntryProps) {
   const item = useItem(entry.path);
   const hasCutItems = useHasCutItems();
 
@@ -401,6 +402,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               onEditClick={edit.handleEditClick}
               className="-mr-1.5"
               isAttachment={isAttachment}
+              onPasteClipboardAsAttachment={onPasteClipboardAsAttachment ? () => onPasteClipboardAsAttachment(entry.path) : undefined}
             />
             {hasCutItems && onPasteAsAttachment && !entry.hasAttachFolder && (
               <button

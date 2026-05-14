@@ -395,14 +395,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     await pasteIntoFolder(folderPath, items, onSetError, onRefreshDirectory);
   }, [items, onRefreshDirectory, onSetError]);
 
-  const doPasteAsAttachment = useCallback(async (filePath: string) => {
+  const ensureAttachFolder = useCallback(async (filePath: string): Promise<string | null> => {
     const attachFolderPath = `${filePath}${ATTACH_SUFFIX}`;
     const exists = await window.electronAPI.pathExists(attachFolderPath);
     if (!exists) {
       const result = await window.electronAPI.createFolder(attachFolderPath);
       if (!result.success) {
         onSetError(result.error || 'Failed to create attachment folder');
-        return;
+        return null;
       }
       if (hasIndexFile && currentPath) {
         const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
@@ -410,8 +410,20 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         await window.electronAPI.insertIntoIndexYaml(currentPath, attachFolderName, fileName);
       }
     }
+    return attachFolderPath;
+  }, [onSetError, hasIndexFile, currentPath]);
+
+  const doPasteAsAttachment = useCallback(async (filePath: string) => {
+    const attachFolderPath = await ensureAttachFolder(filePath);
+    if (!attachFolderPath) return;
     await pasteIntoFolder(attachFolderPath, items, onSetError, onRefreshDirectory);
-  }, [items, onRefreshDirectory, onSetError, hasIndexFile, currentPath]);
+  }, [ensureAttachFolder, items, onRefreshDirectory, onSetError]);
+
+  const doPasteClipboardAsAttachment = useCallback(async (filePath: string) => {
+    const attachFolderPath = await ensureAttachFolder(filePath);
+    if (!attachFolderPath) return;
+    await pasteFromClipboardOp(attachFolderPath, onRefreshDirectory, onSetError);
+  }, [ensureAttachFolder, onRefreshDirectory, onSetError]);
 
   const getSelectedItems = () => Array.from(items.values()).filter((item) => item.isSelected);
 
@@ -949,7 +961,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                           )}
                         </>
                       ) : entry.isMarkdown ? (
-                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} />
+                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} />
                       ) : isImageFile(entry.name) ? (
                         <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       ) : isTextFile(entry.name) ? (
@@ -986,7 +998,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                         )}
                       </>
                     ) : entry.isMarkdown ? (
-                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteAsAttachment={doPasteAsAttachment} />
+                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} />
                     ) : isImageFile(entry.name) ? (
                       <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                     ) : isTextFile(entry.name) ? (
