@@ -11,19 +11,19 @@ export function createFrontMatterDecorations(view: EditorView): DecorationSet {
   const doc = view.state.doc;
 
   const firstLine = doc.line(1);
-  const hasFrontMatter = firstLine.text === '---';
+  const hasFrontMatter = firstLine.text.trim() === '---';
 
   let closingLineNumber = -1;
   if (hasFrontMatter) {
     for (let i = 2; i <= doc.lines; i++) {
-      if (doc.line(i).text === '---') { closingLineNumber = i; break; }
+      if (doc.line(i).text.trim() === '---') { closingLineNumber = i; break; }
     }
   }
 
   // Apply decorations in document order (required by RangeSetBuilder)
   for (let i = 1; i <= doc.lines; i++) {
     const line = doc.line(i);
-    if (line.text === '---') {
+    if (line.text.trim() === '---') {
       if (hasFrontMatter && (i === 1 || i === closingLineNumber)) {
         builder.add(line.from, line.to, frontMatterDelimMark);
       }
@@ -42,7 +42,7 @@ function buildHrLineDecorations(view: EditorView): DecorationSet {
   const doc = view.state.doc;
   for (let i = 2; i <= doc.lines; i++) {
     const line = doc.line(i);
-    if (line.text === '---') builder.add(line.from, line.from, hrLineDeco);
+    if (line.text.trim() === '---') builder.add(line.from, line.from, hrLineDeco);
   }
   return builder.finish();
 }
@@ -83,11 +83,11 @@ function buildFrontMatterHideDecorations(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = state.doc;
   const firstLine = doc.line(1);
-  if (firstLine.text !== '---') return builder.finish();
+  if (firstLine.text.trim() !== '---') return builder.finish();
 
   let closingLine: ReturnType<typeof doc.line> | null = null;
   for (let i = 2; i <= doc.lines; i++) {
-    if (doc.line(i).text === '---') { closingLine = doc.line(i); break; }
+    if (doc.line(i).text.trim() === '---') { closingLine = doc.line(i); break; }
   }
   if (!closingLine) return builder.finish();
 
