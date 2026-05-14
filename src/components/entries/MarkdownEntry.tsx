@@ -112,7 +112,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   const blockComponents = createBlockClickComponents(edit.handleEditClick);
 
   const handleEscape = useCallback(() => {
-    if (edit.editContent === content) {
+    if (edit.editContent === removeTOC(content)) {
       edit.handleCancel();
     }
   }, [edit.editContent, content, edit.handleCancel]);

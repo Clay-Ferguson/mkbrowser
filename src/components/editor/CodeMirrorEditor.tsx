@@ -19,7 +19,6 @@ import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, hrLinePlugin
 // import { customRenderPlugin, customRenderTheme } from '../../utils/editorCustomRenderUtil'; // <--- Keep for future reference (no longer needed for now)
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
-import { logger } from '../../utils/logUtil';
 
 const FONT_SIZE_MAP: Record<FontSize, string> = {
   small: '12px',
@@ -195,7 +194,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       keymap.of([
         {
           key: 'Escape',
-          run: () => {
+          run: (view) => {
             if (onEscapeRef.current) {
               onEscapeRef.current();
               return true;
@@ -313,7 +312,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
               onGoToLineComplete();
             }
           } catch (err) {
-            logger.error('Failed to scroll to line:', err);
+            // logger.error('Failed to scroll to line:', err);
           }
         }
 
