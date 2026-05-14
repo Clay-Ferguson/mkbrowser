@@ -19,7 +19,7 @@ interface PropsDisplayProps {
  */
 export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: PropsDisplayProps) {
   const propEntries = props
-    ? Object.entries(props).filter(([key]) => key !== 'id')
+    ? Object.entries(props).filter(([key, value]) => key !== 'id' && typeof value !== 'object')
     : [];
   const hasTags = tags.length > 0;
   const hasProps = propEntries.length > 0;
