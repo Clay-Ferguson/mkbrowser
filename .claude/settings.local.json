@@ -33,7 +33,9 @@
       "Bash(git *)",
       "Bash(npx eslint *)",
       "Bash(xargs cat *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('version'\\)\\); exps=d.get\\('exports',{}\\); print\\([k for k in exps if 'experimental' in k]\\)\")",
+      "Bash(npm show *)"
     ]
   }
 }
