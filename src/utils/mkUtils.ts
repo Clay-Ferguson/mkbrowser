@@ -28,24 +28,36 @@ export function preprocessWikiLinks(content: string): string {
   });
 }
 
-export function splitOnColumnBreaks(content: string): string[] {
+export interface ColumnChunk {
+  text: string;
+  lineOffset: number; // 0-based line index in the original content where this column's text begins
+}
+
+export function splitOnColumnBreaks(content: string): ColumnChunk[] {
   const lines = content.split('\n');
-  const chunks: string[] = [];
+  const chunks: ColumnChunk[] = [];
   let current: string[] = [];
+  let currentStart = 0;
   let inFence = false;
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const trimmed = line.trimEnd();
     if (/^(`{3,}|~{3,})/.test(trimmed)) {
       inFence = !inFence;
     }
     if (!inFence && trimmed === '|||') {
-      chunks.push(current.join('\n').trim());
+      const joined = current.join('\n');
+      const leadingBlanks = Math.max(0, joined.split('\n').findIndex(l => l.trim() !== ''));
+      chunks.push({ text: joined.trim(), lineOffset: currentStart + leadingBlanks });
+      currentStart = i + 1;
       current = [];
     } else {
       current.push(line);
     }
   }
-  chunks.push(current.join('\n').trim());
+  const joined = current.join('\n');
+  const leadingBlanks = Math.max(0, joined.split('\n').findIndex(l => l.trim() !== ''));
+  chunks.push({ text: joined.trim(), lineOffset: currentStart + leadingBlanks });
   return chunks;
 }

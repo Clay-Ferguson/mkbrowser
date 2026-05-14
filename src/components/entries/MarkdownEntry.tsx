@@ -252,6 +252,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   const rawContent = showToc ? (content || '') : removeTOC(content || '');
   const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
   const columns = splitOnColumnBreaks(processedContent);
+  const columnBlockComponents = columns.map(col => createBlockClickComponents(edit.handleEditClick, col.lineOffset));
 
   return (
     <div data-testid="browser-entry-markdown" className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''} overflow-hidden`}>
@@ -491,14 +492,14 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                       // sanitization and lets our CustomAnchor handler receive the full URL intact.
                       urlTransform={(url) => url}
                       components={{
-                        ...blockComponents,
+                        ...columnBlockComponents[i],
                         a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
                         img: createCustomImage(entry.path),
                         code: CustomCode,
                         pre: CustomPre,
                       }}
                     >
-                      {col}
+                      {col.text}
                     </Markdown>
                   </article>
                 ))}
@@ -525,7 +526,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                     pre: CustomPre,
                   }}
                 >
-                  {columns[0]}
+                  {columns[0].text}
                 </Markdown>
               </article>
               )}

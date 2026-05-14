@@ -11,18 +11,18 @@ type EditClickHandler = (goToLine?: number) => void | Promise<void>;
  * is preserved. stopPropagation prevents the article-level double-click handler
  * from firing redundantly.
  */
-export function createBlockClickComponents(handleEditClick: EditClickHandler): Partial<Components> {
+export function createBlockClickComponents(handleEditClick: EditClickHandler, lineOffset = 0): Partial<Components> {
   function makeHandler(line: number) {
     return (e: React.MouseEvent) => {
       if ((e.target as HTMLElement).closest('a, button, input')) return;
 
-      // this check for a selection is required to be able to allow the users to click and drag the mouse to 
-      // select a region of text to copy, because without this check it would immediately assume that if 
-      // you're even clicking to make a selection it would execute the click handler and we don't want that 
-      // if the user is trying to simply select some text 
+      // this check for a selection is required to be able to allow the users to click and drag the mouse to
+      // select a region of text to copy, because without this check it would immediately assume that if
+      // you're even clicking to make a selection it would execute the click handler and we don't want that
+      // if the user is trying to simply select some text
       if (window.getSelection()?.toString()) return;
       e.stopPropagation();
-      handleEditClick(line);
+      handleEditClick(line + lineOffset);
     };
   }
 
