@@ -4,7 +4,7 @@ import {
   setAiSettingsScrollPosition,
   getAiSettingsScrollPosition,
 } from '../../store';
-import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../global.d.ts';
+import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../types/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../ai/aiPrompts';

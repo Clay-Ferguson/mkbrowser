@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { AIModelConfig } from '../../global.d.ts';
+import type { AIModelConfig } from '../../types/shared';
 
 const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
 

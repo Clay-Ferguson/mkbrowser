@@ -11,88 +11,13 @@ import fs from 'node:fs';
 import { app } from 'electron';
 import * as yaml from 'js-yaml';
 import { enforceDefaultAIModels } from './ai/aiModel';
+import type { AppSettings, AppConfig, AIModelConfig } from './types/shared';
+
+export type { FontSize, SortOrder, ContentWidth, SearchMode, SearchType, SearchSortBy, SearchSortDirection, SearchDefinition, Bookmark, AppSettings, AIModelConfig, AIRewritePromptDef, AppConfig } from './types/shared';
 
 // Config file location (Linux XDG standard: ~/.config/mk-browser/config.yaml)
 const CONFIG_DIR = path.join(app.getPath('home'), '.config', 'mk-browser');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
-export type SortOrder =
-  | 'alphabetical'
-  | 'created-chron'
-  | 'created-reverse'
-  | 'modified-chron'
-  | 'modified-reverse';
-export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
-export type SearchMode = 'content' | 'filenames';
-export type SearchType = 'literal' | 'wildcard' | 'advanced';
-export interface SearchDefinition {
-  name: string;
-  searchText: string;
-  searchTarget: SearchMode;
-  searchMode: SearchType;
-}
-
-export interface Bookmark {
-  path: string;
-  name: string;
-}
-
-export interface AppSettings {
-  fontSize: FontSize;
-  sortOrder: SortOrder;
-  foldersOnTop: boolean;
-  showToc: boolean;
-  ignoredPaths: string;
-  searchDefinitions: SearchDefinition[];
-  contentWidth: ContentWidth;
-  bookmarks: Bookmark[];
-  ocrToolsFolder: string;
-  showPropsInEditor?: boolean;
-}
-
-export interface AIModelConfig {
-  name: string;
-  provider: 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
-  model: string;
-  /** USD per 1M input tokens */
-  inputPer1M: number;
-  /** USD per 1M output tokens */
-  outputPer1M: number;
-  /** Whether the model supports image/vision input. */
-  vision: boolean;
-  /** Built-in model that cannot be edited or deleted in the UI. */
-  readonly: boolean;
-}
-
-export interface AIRewritePromptDef {
-  name: string;
-  prompt: string;
-}
-
-export interface AppConfig {
-  browseFolder: string;
-  curSubFolder?: string;
-  settings?: AppSettings;
-  aiEnabled?: boolean;
-  aiModels?: AIModelConfig[];
-  aiModel?: string;
-  llamacppBaseUrl?: string;
-  llamacppFolder?: string;
-  agenticMode?: boolean;
-  agenticAllowedFolders?: string;
-  /** The name of the currently selected rewrite prompt. */
-  aiRewritePrompt?: string;
-  /** Named rewrite prompts available to the user. */
-  aiRewritePrompts?: AIRewritePromptDef[];
-  /** Whether the Tags picker panel is expanded. Defaults to false (collapsed). */
-  tagsPanelVisible?: boolean;
-  fullDocContext?: boolean;
-}
 
 // ---------------------------------------------------------------------------
 // Defaults

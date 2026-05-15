@@ -1,0 +1,215 @@
+import type { HashtagDefinition } from '../utils/tagUtils';
+
+export type { HashtagDefinition };
+
+export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
+export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
+export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
+export type SearchMode = 'content' | 'filenames';
+export type SearchType = 'literal' | 'wildcard' | 'advanced';
+export type SearchSortBy = 'modified-time' | 'created-time' | 'line-time';
+export type SearchSortDirection = 'asc' | 'desc';
+
+export interface SearchDefinition {
+  name: string;
+  searchText: string;
+  searchTarget: SearchMode;
+  searchMode: SearchType;
+  sortBy: SearchSortBy;
+  sortDirection: SearchSortDirection;
+  mostRecent?: boolean;
+}
+
+export interface Bookmark {
+  path: string;
+  name: string;
+}
+
+export interface AppSettings {
+  fontSize: FontSize;
+  sortOrder: SortOrder;
+  foldersOnTop: boolean;
+  showToc: boolean;
+  ignoredPaths: string;
+  searchDefinitions: SearchDefinition[];
+  contentWidth: ContentWidth;
+  bookmarks: Bookmark[];
+  ocrToolsFolder: string;
+  showPropsInEditor?: boolean;
+}
+
+export interface AIModelConfig {
+  name: string;
+  provider: 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
+  model: string;
+  /** USD per 1M input tokens */
+  inputPer1M: number;
+  /** USD per 1M output tokens */
+  outputPer1M: number;
+  /** Whether the model supports image/vision input. */
+  vision: boolean;
+  /** Built-in model that cannot be edited or deleted in the UI. */
+  readonly: boolean;
+}
+
+export interface AIRewritePromptDef {
+  name: string;
+  prompt: string;
+}
+
+export interface AppConfig {
+  browseFolder: string;
+  curSubFolder?: string;
+  settings?: AppSettings;
+  lastExportFolder?: string;
+  aiEnabled?: boolean;
+  aiModels?: AIModelConfig[];
+  aiModel?: string;
+  llamacppBaseUrl?: string;
+  llamacppFolder?: string;
+  agenticMode?: boolean;
+  agenticAllowedFolders?: string;
+  /** The name of the currently selected rewrite prompt. */
+  aiRewritePrompt?: string;
+  /** Named rewrite prompts available to the user. */
+  aiRewritePrompts?: AIRewritePromptDef[];
+  /** Whether to include the full document as context when rewriting. */
+  fullDocContext?: boolean;
+  /** Whether the Tags picker panel is expanded. Defaults to false (collapsed). */
+  tagsPanelVisible?: boolean;
+}
+
+export interface FileEntry {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  isMarkdown: boolean;
+  /** Last modified timestamp in milliseconds since epoch */
+  modifiedTime: number;
+  /** Created timestamp in milliseconds since epoch */
+  createdTime: number;
+  content?: string;
+  /** Preview text from HUMAN.md or AI.md for AI conversation folders */
+  aiHint?: string;
+  /** Position from .INDEX.yaml; undefined means not listed (appears after indexed entries) */
+  indexOrder?: number;
+  /** Contents of an associated .attach folder, pre-loaded by readDirectory */
+  attachments?: FileEntry[];
+  /** True when a sibling .attach folder exists for this file */
+  hasAttachFolder?: boolean;
+}
+
+export interface SearchResult {
+  path: string;
+  relativePath: string;
+  matchCount: number;
+  lineNumber?: number;
+  lineText?: string;
+  extraLine?: string;
+  foundTime?: number;
+  modifiedTime?: number;
+  createdTime?: number;
+}
+
+export interface ReplaceResult {
+  path: string;
+  relativePath: string;
+  replacementCount: number;
+  success: boolean;
+  error?: string;
+}
+
+export interface ExportResult {
+  success: boolean;
+  outputPath?: string;
+  error?: string;
+}
+
+export interface FolderAnalysisResult {
+  hashtags: Array<{ tag: string; count: number }>;
+  totalFiles: number;
+}
+
+export interface FolderGraphScanResult {
+  folderPath: string;
+  nodes: Array<{ id: string; name: string; isDirectory: boolean; depth: number }>;
+  links: Array<{ source: string; target: string }>;
+  truncated: boolean;
+}
+
+export interface ProviderUsage {
+  inputTokens: number;
+  outputTokens: number;
+  requests: number;
+}
+
+export interface AIUsageWithCosts {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalRequests: number;
+  byProvider: Record<string, ProviderUsage>;
+  estimatedCosts: Record<string, number>;
+  totalEstimatedCost: number;
+}
+
+export interface ElectronAPI {
+  quit: () => Promise<void>;
+  loadDictionary: () => Promise<{ affData: string; dicData: string }>;
+  getConfig: () => Promise<AppConfig>;
+  saveConfig: (config: AppConfig) => Promise<void>;
+  selectFolder: () => Promise<string | null>;
+  readDirectory: (dirPath: string) => Promise<FileEntry[]>;
+  readFile: (filePath: string) => Promise<string>;
+  readExif: (filePath: string) => Promise<Record<string, Record<string, string>>>;
+  writeExif: (filePath: string, data: Record<string, Record<string, string>>) => Promise<boolean>;
+  pathExists: (checkPath: string) => Promise<boolean>;
+  writeFile: (filePath: string, content: string) => Promise<{ ok: boolean; content: string }>;
+  getFileSize: (filePath: string) => Promise<number>;
+  getFileMtime: (filePath: string) => Promise<number>;
+  writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;
+  createFile: (filePath: string, content: string) => Promise<{ success: boolean; error?: string }>;
+  renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
+  deleteFile: (filePath: string) => Promise<boolean>;
+  openExternal: (filePath: string) => Promise<boolean>;
+  openExternalUrl: (url: string) => Promise<boolean>;
+  createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => Promise<SearchResult[]>;
+  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
+  analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
+  scanFolderTree: (folderPath: string) => Promise<FolderGraphScanResult>;
+  collectAncestorTags: (filePath: string) => Promise<HashtagDefinition[]>;
+  setWindowTitle: (title: string) => Promise<void>;
+  selectExportFolder: () => Promise<string | null>;
+  exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;
+  exportToPdf: (markdownPath: string, pdfPath: string, sourceFolder?: string) => Promise<{ success: boolean; error?: string }>;
+  runShellScript: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+  askAi: (prompt: string, parentFolderPath: string) => Promise<{ outputPath: string; responseFolder: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
+  replyToAi: (parentFolderPath: string, createSubFolder: boolean) => Promise<{ folderPath: string; filePath: string } | { error: string }>;
+  getAiUsage: () => Promise<AIUsageWithCosts>;
+  resetAiUsage: () => Promise<void>;
+  queueScriptedAnswer: (answer: string) => Promise<void>;
+  gatherThreadEntries: (folderPath: string) => Promise<{ isThread: boolean; entries: Array<{ role: 'human' | 'ai'; folderPath: string; filePath: string; fileName: string; modifiedTime: number; createdTime: number }> }>;
+  rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
+  rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => Promise<{ rewrittenContent: string; usage?: { input_tokens: number; output_tokens: number; total_tokens: number } } | { error: string }>;
+
+  // llama.cpp server lifecycle
+  checkLlamaHealth: () => Promise<string>;
+  startLlamaServer: () => Promise<{ success: boolean; error?: string }>;
+  stopLlamaServer: () => Promise<{ success: boolean; error?: string }>;
+
+  // AI streaming events
+  onAiStreamChunk: (callback: (text: string) => void) => () => void;
+  onAiStreamThinking: (callback: (text: string) => void) => () => void;
+  onAiStreamTool: (callback: (toolName: string, summary: string) => void) => () => void;
+  onAiStreamDone: (callback: () => void) => () => void;
+  onAiStreamError: (callback: (message: string) => void) => () => void;
+  cancelAiStream: () => void;
+
+  runInExternalTerminal: (command: string) => Promise<{ success: boolean; error?: string }>;
+  insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
+  moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;
+  moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') => Promise<{ success: boolean; error?: string }>;
+  reconcileIndexedFiles: (dirPath: string, createIfMissing?: boolean) => Promise<void>;
+  readIndexYaml: (dirPath: string) => Promise<{ files?: { name: string; id?: string }[]; options?: { edit_mode?: boolean } } | null>;
+  writeIndexOptions: (dirPath: string, options: { edit_mode?: boolean }) => Promise<{ success: boolean; error?: string }>;
+}
