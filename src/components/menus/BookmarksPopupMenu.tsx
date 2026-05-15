@@ -1,4 +1,5 @@
 import { useState, type RefObject } from 'react';
+import { FolderIcon, DocumentIcon } from '@heroicons/react/24/solid';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import MessageDialog from '../dialogs/MessageDialog';
 import { toggleBookmark, isBookmarked, getSettings } from '../../store';
@@ -47,6 +48,11 @@ export default function BookmarksPopupMenu({
     onClose();
   };
 
+  const isFolder = (path: string) => {
+    const name = path.substring(path.lastIndexOf('/') + 1);
+    return !name.includes('.');
+  };
+
   // Determine which file names are duplicated so we can show full paths for those
   const fileNames = sorted.map(p => p.substring(p.lastIndexOf('/') + 1));
   const duplicateNames = new Set(
@@ -61,9 +67,19 @@ export default function BookmarksPopupMenu({
         ) : (
           sorted.map((fullPath) => {
             const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+            const folder = isFolder(fullPath);
             let displayName: string;
-            if (duplicateNames.has(fileName)) {
-              // Show relative path for duplicates
+            if (folder) {
+              // Always show full path for folders
+              if (rootPath && (fullPath === rootPath || fullPath.startsWith(rootPath + '/'))) {
+                displayName = fullPath.slice(rootPath.length);
+                if (displayName.startsWith('/')) displayName = displayName.slice(1);
+                if (!displayName) displayName = '.';
+              } else {
+                displayName = fullPath;
+              }
+            } else if (duplicateNames.has(fileName)) {
+              // Show relative path for duplicate file names
               if (rootPath && (fullPath === rootPath || fullPath.startsWith(rootPath + '/'))) {
                 displayName = fullPath.slice(rootPath.length);
                 if (displayName.startsWith('/')) displayName = displayName.slice(1);
@@ -74,10 +90,14 @@ export default function BookmarksPopupMenu({
             } else {
               displayName = fileName || '.';
             }
+            const Icon = folder
+              ? (props: { className?: string }) => <FolderIcon {...props} className={`${props.className ?? ''} text-amber-400`} />
+              : (props: { className?: string }) => <DocumentIcon {...props} className={`${props.className ?? ''} text-blue-400`} />;
             return (
               <PopupMenuItem
                 key={fullPath}
                 label={displayName}
+                icon={Icon}
                 onClick={() => handleClick(fullPath)}
               />
             );

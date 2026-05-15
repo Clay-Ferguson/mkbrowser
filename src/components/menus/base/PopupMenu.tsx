@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect, useEffect, useState, type ReactNode, type RefObject } from 'react';
+import { useRef, useLayoutEffect, useEffect, useState, type ReactNode, type RefObject, type ComponentType } from 'react';
 import { CheckIcon } from '@heroicons/react/24/solid';
 
 export interface PopupMenuProps {
@@ -108,6 +108,7 @@ export function PopupMenuItem({
   onClick,
   disabled = false,
   selected,
+  icon: Icon,
   'data-testid': dataTestId,
 }: {
   label: string;
@@ -115,6 +116,8 @@ export function PopupMenuItem({
   disabled?: boolean;
   /** If undefined: no checkbox area. If true: show checkmark. If false: show empty space (for alignment). */
   selected?: boolean;
+  /** Optional icon component to display to the left of the label. */
+  icon?: ComponentType<{ className?: string }>;
   'data-testid'?: string;
 }) {
   // When selected is defined (true or false), we reserve space for the checkbox
@@ -142,6 +145,7 @@ export function PopupMenuItem({
           {selected && <CheckIcon className="w-5 h-5 text-white" />}
         </div>
       )}
+      {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
       <span>{label}</span>
     </button>
   );
