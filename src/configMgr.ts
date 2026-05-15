@@ -37,6 +37,11 @@ export interface SearchDefinition {
   searchMode: SearchType;
 }
 
+export interface Bookmark {
+  path: string;
+  name: string;
+}
+
 export interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
@@ -45,7 +50,7 @@ export interface AppSettings {
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
   contentWidth: ContentWidth;
-  bookmarks: string[];
+  bookmarks: Bookmark[];
   ocrToolsFolder: string;
   showPropsInEditor?: boolean;
 }

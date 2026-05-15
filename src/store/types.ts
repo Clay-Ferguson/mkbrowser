@@ -237,6 +237,11 @@ export interface SearchDefinition {
   mostRecent?: boolean;
 }
 
+export interface Bookmark {
+  path: string;
+  name: string;
+}
+
 /**
  * Application settings that are persisted to config file
  */
@@ -255,8 +260,8 @@ export interface AppSettings {
   searchDefinitions: SearchDefinition[];
   /** Content width for the main content area */
   contentWidth: ContentWidth;
-  /** Array of bookmarked file paths */
-  bookmarks: string[];
+  /** Array of bookmarks */
+  bookmarks: Bookmark[];
   /** Folder path where OCR tool utilities are stored */
   ocrToolsFolder: string;
   /** Folder tree sidebar visibility and width */

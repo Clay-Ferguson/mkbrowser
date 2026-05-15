@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../../utils/styles';
-import { toggleBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
+import { toggleBookmark, addBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
+import BookmarkDialog from '../../dialogs/BookmarkDialog';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
@@ -34,6 +36,8 @@ interface EntryActionBarProps {
   isAttachment?: boolean;
   /** When provided, shows a clipboard paste button that pastes clipboard content as an attachment */
   onPasteClipboardAsAttachment?: () => void;
+  /** Whether this entry is a folder (affects bookmark default name) */
+  isFolder?: boolean;
 }
 
 /**
@@ -56,17 +60,33 @@ export function EntryActionBar({
   className = '',
   isAttachment = false,
   onPasteClipboardAsAttachment,
+  isFolder = false,
 }: EntryActionBarProps) {
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
   const editMode = indexYaml?.options?.edit_mode ?? false;
   const showEditActions = !hasIndexFile || editMode;
   const settings = useSettings();
+  const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
 
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleBookmark(path);
+    if (isBookmarked) {
+      toggleBookmark(path);
+      onSaveSettings();
+    } else {
+      setShowBookmarkDialog(true);
+    }
+  };
+
+  const handleBookmarkSave = (name: string) => {
+    setShowBookmarkDialog(false);
+    addBookmark(path, name);
     onSaveSettings();
+  };
+
+  const handleBookmarkCancel = () => {
+    setShowBookmarkDialog(false);
   };
 
   const handleOpenExternal = (e: React.MouseEvent) => {
@@ -75,6 +95,15 @@ export function EntryActionBar({
   };
 
   return (
+    <>
+    {showBookmarkDialog && (
+      <BookmarkDialog
+        path={path}
+        isFolder={isFolder}
+        onSave={handleBookmarkSave}
+        onCancel={handleBookmarkCancel}
+      />
+    )}
     <div data-testid="entry-action-bar" className={`flex items-center gap-1 ${className}`}>
       <div className="opacity-0 pointer-events-none [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:pointer-events-auto group-hover:[transition:opacity_200ms_ease_400ms] flex items-center gap-1">
       {showEditActions && showEditButton && onEditClick && (
@@ -191,6 +220,7 @@ export function EntryActionBar({
       )}
       </div>
     </div>
+    </>
   );
 }
 

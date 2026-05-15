@@ -1277,26 +1277,39 @@ export function setOcrToolsFolder(ocrToolsFolder: string): void {
  */
 export function toggleBookmark(filePath: string): boolean {
   const currentBookmarks = state.settings.bookmarks || [];
-  const isCurrentlyBookmarked = currentBookmarks.includes(filePath);
-  
+  const isCurrentlyBookmarked = currentBookmarks.some(b => b.path === filePath);
+
   const newBookmarks = isCurrentlyBookmarked
-    ? currentBookmarks.filter(p => p !== filePath)
-    : [...currentBookmarks, filePath];
-  
+    ? currentBookmarks.filter(b => b.path !== filePath)
+    : [...currentBookmarks, { path: filePath, name: filePath }];
+
   state = {
     ...state,
     settings: { ...state.settings, bookmarks: newBookmarks },
   };
   emitChange();
-  
+
   return !isCurrentlyBookmarked;
+}
+
+/**
+ * Add a bookmark with a specific display name.
+ */
+export function addBookmark(filePath: string, name: string): void {
+  const currentBookmarks = state.settings.bookmarks || [];
+  if (currentBookmarks.some(b => b.path === filePath)) return;
+  state = {
+    ...state,
+    settings: { ...state.settings, bookmarks: [...currentBookmarks, { path: filePath, name }] },
+  };
+  emitChange();
 }
 
 /**
  * Check if a file path is bookmarked
  */
 export function isBookmarked(filePath: string): boolean {
-  return (state.settings.bookmarks || []).includes(filePath);
+  return (state.settings.bookmarks || []).some(b => b.path === filePath);
 }
 
 /**
@@ -1306,22 +1319,46 @@ export function isBookmarked(filePath: string): boolean {
  */
 export function updateBookmarkPath(oldPath: string, newPath: string): boolean {
   const currentBookmarks = state.settings.bookmarks || [];
-  const index = currentBookmarks.indexOf(oldPath);
-  
+  const index = currentBookmarks.findIndex(b => b.path === oldPath);
+
   if (index === -1) {
-    return false; // Not bookmarked, nothing to update
+    return false;
   }
-  
+
   const newBookmarks = [...currentBookmarks];
-  newBookmarks[index] = newPath;
-  
+  newBookmarks[index] = { ...newBookmarks[index], path: newPath };
+
   state = {
     ...state,
     settings: { ...state.settings, bookmarks: newBookmarks },
   };
   emitChange();
-  
+
   return true;
+}
+
+export function updateBookmarkName(filePath: string, name: string): void {
+  const currentBookmarks = state.settings.bookmarks || [];
+  const index = currentBookmarks.findIndex(b => b.path === filePath);
+  if (index === -1) return;
+
+  const newBookmarks = [...currentBookmarks];
+  newBookmarks[index] = { ...newBookmarks[index], name };
+
+  state = {
+    ...state,
+    settings: { ...state.settings, bookmarks: newBookmarks },
+  };
+  emitChange();
+}
+
+export function removeBookmark(filePath: string): void {
+  const currentBookmarks = state.settings.bookmarks || [];
+  state = {
+    ...state,
+    settings: { ...state.settings, bookmarks: currentBookmarks.filter(b => b.path !== filePath) },
+  };
+  emitChange();
 }
 
 /**

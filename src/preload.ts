@@ -14,6 +14,11 @@ export interface SearchDefinition {
   mostRecent?: boolean;
 }
 
+export interface Bookmark {
+  path: string;
+  name: string;
+}
+
 export interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
@@ -22,7 +27,7 @@ export interface AppSettings {
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
   contentWidth?: ContentWidth;
-  bookmarks: string[];
+  bookmarks: Bookmark[];
 }
 
 export interface AIModelConfig {

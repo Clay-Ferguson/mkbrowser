@@ -1,13 +1,14 @@
 import { useState, type RefObject } from 'react';
-import { FolderIcon, DocumentIcon } from '@heroicons/react/24/solid';
+import { FolderIcon, DocumentIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import MessageDialog from '../dialogs/MessageDialog';
-import { toggleBookmark, isBookmarked, getSettings } from '../../store';
+import BookmarkDialog from '../dialogs/BookmarkDialog';
+import { toggleBookmark, isBookmarked, getSettings, removeBookmark, updateBookmarkName, type Bookmark } from '../../store';
 
 interface BookmarksPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
-  bookmarks: string[];
+  bookmarks: Bookmark[];
   rootPath: string;
   onNavigate: (fullPath: string) => void;
 }
@@ -20,18 +21,34 @@ export default function BookmarksPopupMenu({
   onNavigate,
 }: BookmarksPopupMenuProps) {
   const [missingPath, setMissingPath] = useState<string | null>(null);
+  const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
 
   // Filter to bookmarks under rootPath
   const filtered = rootPath
-    ? bookmarks.filter(b => b === rootPath || b.startsWith(rootPath + '/'))
+    ? bookmarks.filter(b => b.path === rootPath || b.path.startsWith(rootPath + '/'))
     : bookmarks;
 
-  // Sort alphabetically by display name (last path segment)
-  const sorted = [...filtered].sort((a, b) => {
-    const nameA = a.substring(a.lastIndexOf('/') + 1);
-    const nameB = b.substring(b.lastIndexOf('/') + 1);
-    return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-  });
+  // Sort alphabetically by bookmark name
+  const sorted = [...filtered].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  );
+
+  const saveConfig = async () => {
+    const config = await window.electronAPI.getConfig();
+    await window.electronAPI.saveConfig({ ...config, settings: getSettings() });
+  };
+
+  const handleDelete = async (fullPath: string) => {
+    removeBookmark(fullPath);
+    await saveConfig();
+  };
+
+  const handleEditSave = async (name: string) => {
+    if (!editingBookmark) return;
+    updateBookmarkName(editingBookmark.path, name);
+    await saveConfig();
+    setEditingBookmark(null);
+  };
 
   const handleClick = async (fullPath: string) => {
     const exists = await window.electronAPI.pathExists(fullPath);
@@ -53,53 +70,46 @@ export default function BookmarksPopupMenu({
     return !name.includes('.');
   };
 
-  // Determine which file names are duplicated so we can show full paths for those
-  const fileNames = sorted.map(p => p.substring(p.lastIndexOf('/') + 1));
-  const duplicateNames = new Set(
-    fileNames.filter((name, i) => fileNames.indexOf(name) !== i)
-  );
-
   return (
     <>
-      <PopupMenu anchorRef={anchorRef} onClose={onClose}>
+      <PopupMenu anchorRef={anchorRef} onClose={editingBookmark ? () => {} : onClose}>
         {sorted.length === 0 ? (
           <PopupMenuItem label="No bookmarks" disabled onClick={onClose} />
         ) : (
-          sorted.map((fullPath) => {
-            const fileName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+          sorted.map((bookmark) => {
+            const { path: fullPath, name } = bookmark;
             const folder = isFolder(fullPath);
-            let displayName: string;
-            if (folder) {
-              // Always show full path for folders
-              if (rootPath && (fullPath === rootPath || fullPath.startsWith(rootPath + '/'))) {
-                displayName = fullPath.slice(rootPath.length);
-                if (displayName.startsWith('/')) displayName = displayName.slice(1);
-                if (!displayName) displayName = '.';
-              } else {
-                displayName = fullPath;
-              }
-            } else if (duplicateNames.has(fileName)) {
-              // Show relative path for duplicate file names
-              if (rootPath && (fullPath === rootPath || fullPath.startsWith(rootPath + '/'))) {
-                displayName = fullPath.slice(rootPath.length);
-                if (displayName.startsWith('/')) displayName = displayName.slice(1);
-                if (!displayName) displayName = '.';
-              } else {
-                displayName = fullPath;
-              }
-            } else {
-              displayName = fileName || '.';
-            }
-            const Icon = folder
-              ? (props: { className?: string }) => <FolderIcon {...props} className={`${props.className ?? ''} text-amber-400`} />
-              : (props: { className?: string }) => <DocumentIcon {...props} className={`${props.className ?? ''} text-blue-400`} />;
+            const Icon = folder ? FolderIcon : DocumentIcon;
+            const iconColorClass = folder ? 'text-amber-400' : 'text-blue-400';
             return (
-              <PopupMenuItem
+              <div
                 key={fullPath}
-                label={displayName}
-                icon={Icon}
-                onClick={() => handleClick(fullPath)}
-              />
+                className="flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-800 group"
+              >
+                <button
+                  className="flex items-center gap-2 flex-1 text-left text-sm text-slate-200 cursor-pointer min-w-0"
+                  onClick={() => handleClick(fullPath)}
+                >
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${iconColorClass}`} />
+                  <span className="truncate">{name}</span>
+                </button>
+                <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity pl-2">
+                  <button
+                    className="p-1 rounded text-slate-400 hover:text-slate-100 hover:bg-blue-700 cursor-pointer"
+                    title="Edit bookmark"
+                    onClick={(e) => { e.stopPropagation(); setEditingBookmark(bookmark); }}
+                  >
+                    <PencilIcon className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    className="p-1 rounded text-slate-400 hover:text-red-400 hover:bg-blue-700 cursor-pointer"
+                    title="Delete bookmark"
+                    onClick={(e) => { e.stopPropagation(); handleDelete(fullPath); }}
+                  >
+                    <TrashIcon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
             );
           })
         )}
@@ -109,6 +119,15 @@ export default function BookmarksPopupMenu({
           title="Bookmark Not Found"
           message={`The bookmarked path no longer exists and has been removed:\n\n${missingPath}`}
           onClose={() => { setMissingPath(null); onClose(); }}
+        />
+      )}
+      {editingBookmark && (
+        <BookmarkDialog
+          path={editingBookmark.path}
+          isFolder={isFolder(editingBookmark.path)}
+          initialName={editingBookmark.name}
+          onSave={handleEditSave}
+          onCancel={() => setEditingBookmark(null)}
         />
       )}
     </>

@@ -107,6 +107,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
             <EntryActionBar
               path={entry.path}
               isBookmarked={isBookmarked}
+              isFolder={true}
               deleting={del.deleting}
               onRenameClick={rename.handleRenameClick}
               onDeleteClick={del.handleDeleteClick}
