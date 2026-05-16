@@ -207,7 +207,7 @@ test.describe('AI Chat Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `This entire conversation was conducted in the Chat tab, but under the hood MkBrowser stores each exchange in real file system folders. That means you can browse, edit, or add files to any part of the conversation. Let's click one of the "Show in Browser" icons to jump into the underlying folders.`
+      `This entire conversation was conducted in the Chat tab, but under the hood MkBrowser stores each exchange in real file system folders. That means you can browse, edit, or add files to any part of the conversation. Let's click one of the "Show in Browse View" icons to jump into the underlying folders.`
     );
 
     const showInBrowserButton = mainWindow.getByTestId('show-in-browser-button').last();

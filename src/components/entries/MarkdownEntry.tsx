@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { DocumentTextIcon, ViewfinderCircleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
 import Markdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
@@ -167,14 +167,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     const textToSend = promptContent || content;
     if (!textToSend) return;
     setIsAiLoading(true);
-
-    // Show the streaming dialog only when the first real chunk arrives.
-    // Checking hasScriptedAnswer() here is useless — it lives in the main
-    // process and is always false from the renderer's perspective.
-    const unsubscribeChunk = window.electronAPI.onAiStreamChunk(() => {
-      setShowStreamingDialog(true);
-      unsubscribeChunk();
-    });
+    setShowStreamingDialog(true);
 
     try {
       const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
@@ -199,7 +192,6 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
         }
       }
     } finally {
-      unsubscribeChunk();
       setIsAiLoading(false);
     }
   };
@@ -363,30 +355,6 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
           </div>
         ) : !isRenaming && (
           <>
-            {isAiFile && (
-              <button
-                data-testid="ai-reply-button"
-                onClick={handleReply}
-                disabled={isReplyLoading}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
-              >
-                {isReplyLoading ? 'Creating...' : 'Reply'}
-              </button>
-            )}
-            {view === 'thread' && (
-              <button
-                onClick={() => {
-                  const folderPath = entry.path.substring(0, entry.path.lastIndexOf('/'));
-                  setHighlightItem(entry.path);
-                  navigateToBrowserPath(folderPath, entry.path);
-                }}
-                className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors cursor-pointer"
-                title="Show in browser"
-                data-testid="show-in-browser-button"
-              >
-                <ViewfinderCircleIcon className="w-5 h-5" />
-              </button>
-            )}
             <EntryActionBar
               path={entry.path}
               isBookmarked={isBookmarked}
@@ -412,6 +380,30 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 aria-label="Paste cut items as attachments to this file"
               >
                 <PaperClipIcon className="w-4 h-4 text-white" />
+              </button>
+            )}
+            {view === 'thread' && (
+              <button
+                onClick={() => {
+                  const folderPath = entry.path.substring(0, entry.path.lastIndexOf('/'));
+                  setHighlightItem(entry.path);
+                  navigateToBrowserPath(folderPath, entry.path);
+                }}
+                className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                title="Show in Browse View"
+                data-testid="show-in-browser-button"
+              >
+                <ArrowLeftEndOnRectangleIcon className="w-5 h-5" />
+              </button>
+            )}
+            {isAiFile && (
+              <button
+                data-testid="ai-reply-button"
+                onClick={handleReply}
+                disabled={isReplyLoading}
+                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
+              >
+                {isReplyLoading ? 'Creating...' : 'Reply'}
               </button>
             )}
           </>
@@ -474,63 +466,63 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 />
               )}
               {columns.length > 1 ? (
-              <div
-                style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}
-                className="cursor-pointer"
-                onMouseUp={() => { if (!window.getSelection()?.toString()) edit.handleEditClick(); }}
-                title="Click to edit"
-              >
-                {columns.map((col, i) => (
-                  <article
-                    key={i}
-                    className={`prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2${i > 0 ? ' border-l border-slate-600 pl-6' : ''}`}
-                  >
-                    <Markdown
-                      remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
-                      rehypePlugins={[rehypeKatex, rehypeSlug]}
-                      // react-markdown v10 strips any URL whose protocol isn't in its default
-                      // whitelist (http, https, mailto, etc.), so file:// links would be silently
-                      // replaced with an empty string. An identity function bypasses that
-                      // sanitization and lets our CustomAnchor handler receive the full URL intact.
-                      urlTransform={(url) => url}
-                      components={{
-                        ...columnBlockComponents[i],
-                        a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
-                        img: createCustomImage(entry.path),
-                        code: CustomCode,
-                        pre: CustomPre,
-                      }}
-                    >
-                      {col.text}
-                    </Markdown>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <article
-                className="prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2 cursor-pointer"
-                onMouseUp={() => { if (!window.getSelection()?.toString()) edit.handleEditClick(); }}
-                title="Click to edit"
-              >
-                <Markdown
-                  remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
-                  rehypePlugins={[rehypeKatex, rehypeSlug]}
-                  // react-markdown v10 strips any URL whose protocol isn't in its default
-                  // whitelist (http, https, mailto, etc.), so file:// links would be silently
-                  // replaced with an empty string. An identity function bypasses that
-                  // sanitization and lets our CustomAnchor handler receive the full URL intact.
-                  urlTransform={(url) => url}
-                  components={{
-                    ...blockComponents,
-                    a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
-                    img: createCustomImage(entry.path),
-                    code: CustomCode,
-                    pre: CustomPre,
-                  }}
+                <div
+                  style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}
+                  className="cursor-pointer"
+                  onMouseUp={() => { if (!window.getSelection()?.toString()) edit.handleEditClick(); }}
+                  title="Click to edit"
                 >
-                  {columns[0].text}
-                </Markdown>
-              </article>
+                  {columns.map((col, i) => (
+                    <article
+                      key={i}
+                      className={`prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2${i > 0 ? ' border-l border-slate-600 pl-6' : ''}`}
+                    >
+                      <Markdown
+                        remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
+                        rehypePlugins={[rehypeKatex, rehypeSlug]}
+                        // react-markdown v10 strips any URL whose protocol isn't in its default
+                        // whitelist (http, https, mailto, etc.), so file:// links would be silently
+                        // replaced with an empty string. An identity function bypasses that
+                        // sanitization and lets our CustomAnchor handler receive the full URL intact.
+                        urlTransform={(url) => url}
+                        components={{
+                          ...columnBlockComponents[i],
+                          a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
+                          img: createCustomImage(entry.path),
+                          code: CustomCode,
+                          pre: CustomPre,
+                        }}
+                      >
+                        {col.text}
+                      </Markdown>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <article
+                  className="prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2 cursor-pointer"
+                  onMouseUp={() => { if (!window.getSelection()?.toString()) edit.handleEditClick(); }}
+                  title="Click to edit"
+                >
+                  <Markdown
+                    remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
+                    rehypePlugins={[rehypeKatex, rehypeSlug]}
+                    // react-markdown v10 strips any URL whose protocol isn't in its default
+                    // whitelist (http, https, mailto, etc.), so file:// links would be silently
+                    // replaced with an empty string. An identity function bypasses that
+                    // sanitization and lets our CustomAnchor handler receive the full URL intact.
+                    urlTransform={(url) => url}
+                    components={{
+                      ...blockComponents,
+                      a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
+                      img: createCustomImage(entry.path),
+                      code: CustomCode,
+                      pre: CustomPre,
+                    }}
+                  >
+                    {columns[0].text}
+                  </Markdown>
+                </article>
               )}
             </>
           )}

@@ -8,7 +8,7 @@ interface StreamingDialogProps {
 function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
   const outputRef = useRef<HTMLPreElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState<'streaming' | 'done' | 'error' | 'cancelled'>('streaming');
+  const [status, setStatus] = useState<'pending' | 'streaming' | 'done' | 'error' | 'cancelled'>('pending');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const inThinkingRef = useRef(false);
 
@@ -38,6 +38,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
     const cleanups: (() => void)[] = [];
 
     cleanups.push(window.electronAPI.onAiStreamChunk((text) => {
+      setStatus((s) => s === 'pending' ? 'streaming' : s);
       if (inThinkingRef.current) {
         // Transition from thinking to content — add a visible gap
         inThinkingRef.current = false;
@@ -52,6 +53,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
     }));
 
     cleanups.push(window.electronAPI.onAiStreamThinking((text) => {
+      setStatus((s) => s === 'pending' ? 'streaming' : s);
       if (!inThinkingRef.current) {
         // Add thinking header on first thinking chunk
         appendText('[Thinking]\n', 'text-slate-300 font-semibold');
@@ -91,12 +93,13 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
         {/* Header */}
         <div className="flex justify-between items-center px-4 py-2 border-b border-slate-600 flex-shrink-0">
           <span className="text-slate-300 text-sm">
+            {status === 'pending' && 'Consulting the AI...'}
             {status === 'streaming' && 'Streaming AI Response...'}
             {status === 'done' && 'AI Answer'}
             {status === 'error' && 'Error'}
             {status === 'cancelled' && 'Stopping...'}
           </span>
-          {status === 'streaming' && (
+          {(status === 'pending' || status === 'streaming') && (
             <button
               onClick={handleStop}
               className="px-3 py-1 text-sm text-slate-900 bg-red-400 hover:bg-red-300 rounded transition-colors font-semibold"
@@ -116,6 +119,15 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
 
         {/* Content */}
         <div ref={containerRef} className="flex-1 overflow-y-auto p-4">
+          {status === 'pending' && (
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-400">
+              <svg className="animate-spin w-10 h-10 text-teal-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              <span className="text-sm">Sending your question to the AI — response will appear here shortly.</span>
+            </div>
+          )}
           <pre ref={outputRef}
                className="text-slate-200 text-sm font-mono whitespace-pre-wrap break-words leading-relaxed">
           </pre>
