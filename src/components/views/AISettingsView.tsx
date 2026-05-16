@@ -28,6 +28,7 @@ function AISettingsView() {
   const [promptEditorContent, setPromptEditorContent] = useState<string>('');
   const [showPromptDeleteConfirm, setShowPromptDeleteConfirm] = useState(false);
   const [fullDocContext, setFullDocContext] = useState<boolean>(false);
+  const [aiRewriteMode, setAiRewriteMode] = useState<boolean>(false);
 
   // AI model CRUD dialog state
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -55,6 +56,7 @@ function AISettingsView() {
       if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
       if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
       if (config.fullDocContext !== undefined) setFullDocContext(config.fullDocContext);
+      if (config.aiRewriteMode !== undefined) setAiRewriteMode(config.aiRewriteMode);
       const savedName = config.aiRewritePrompt ?? '';
       const savedPrompts = config.aiRewritePrompts ?? [];
       setSelectedPromptName(savedName);
@@ -515,6 +517,18 @@ function AISettingsView() {
             {aiEnabled && (
               <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
                 <h2 className="text-lg font-semibold text-slate-100 mb-4">Rewrite Settings</h2>
+                <label className="flex items-center gap-2 cursor-pointer mb-4">
+                  <input
+                    type="checkbox"
+                    checked={aiRewriteMode}
+                    onChange={(e) => {
+                      setAiRewriteMode(e.target.checked);
+                      void saveAiConfigField({ aiRewriteMode: e.target.checked });
+                    }}
+                    className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-slate-200">Enable AI Rewrite</span>
+                </label>
                 <div>
                   <label className="text-slate-300 text-sm block mb-2">Persona</label>
                   {/* Combobox row: name selector + Save + Delete */}

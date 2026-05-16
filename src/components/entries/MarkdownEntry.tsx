@@ -123,10 +123,12 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
 
   const [tagsVisible, setTagsVisible] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiRewriteMode, setAiRewriteMode] = useState(false);
   const [selectedPromptName, setSelectedPromptName] = useState<string>('');
   useEffect(() => {
     window.electronAPI.getConfig().then((config) => {
       setAiEnabled(!!config.aiEnabled);
+      setAiRewriteMode(!!config.aiRewriteMode);
       setSelectedPromptName(config.aiRewritePrompt ?? '');
       setTagsVisible(config.tagsPanelVisible ?? false);
     });
@@ -309,7 +311,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 ? <ArrowsPointingInIcon className="w-5 h-5" />
                 : <ArrowsPointingOutIcon className="w-5 h-5" />}
             </button>
-            {!item?.reviewing && (
+            {!item?.reviewing && aiRewriteMode && (
               <button
                 onClick={handleAiRewrite}
                 disabled={edit.saving || isRewriting}

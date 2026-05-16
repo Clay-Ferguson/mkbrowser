@@ -41,9 +41,11 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
   const fileLanguage = getTextFileLanguage(entry.name);
   const [selectedPromptName, setSelectedPromptName] = useState<string>('');
+  const [aiRewriteMode, setAiRewriteMode] = useState(false);
   useEffect(() => {
     window.electronAPI.getConfig().then((config) => {
       setSelectedPromptName(config.aiRewritePrompt ?? '');
+      setAiRewriteMode(!!config.aiRewriteMode);
     });
   }, []);
 
@@ -161,7 +163,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
                 ? <ArrowsPointingInIcon className="w-5 h-5" />
                 : <ArrowsPointingOutIcon className="w-5 h-5" />}
             </button>
-            {!item?.reviewing && (
+            {!item?.reviewing && aiRewriteMode && (
               <button
                 onClick={aiRewrite}
                 disabled={edit.saving || isRewriting}

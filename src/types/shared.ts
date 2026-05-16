@@ -77,6 +77,8 @@ export interface AppConfig {
   fullDocContext?: boolean;
   /** Whether the Tags picker panel is expanded. Defaults to false (collapsed). */
   tagsPanelVisible?: boolean;
+  /** Whether the AI Rewrite button is shown in entry editors. */
+  aiRewriteMode?: boolean;
 }
 
 export interface FileEntry {
