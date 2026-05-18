@@ -439,6 +439,11 @@ function setupIpcHandlers(): void {
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('calendar-file-changed', updated, filePath);
           }
+        }, (deletedPath, isFolder) => {
+          logger.info(`[main] calendar-file-deleted: deletedPath=${deletedPath} isFolder=${isFolder}`);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('calendar-file-deleted', deletedPath, isFolder);
+          }
         }, ignoredPaths);
       }
 

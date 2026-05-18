@@ -89,6 +89,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => { ipcRenderer.removeListener('calendar-file-changed', listener); };
   },
 
+  // Calendar file/folder delete events (chokidar → renderer)
+  onCalendarFileDeleted: (callback: (deletedPath: string, isFolder: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, deletedPath: string, isFolder: boolean) => callback(deletedPath, isFolder);
+    ipcRenderer.on('calendar-file-deleted', listener);
+    return () => { ipcRenderer.removeListener('calendar-file-deleted', listener); };
+  },
+
   runInExternalTerminal: (command: string) => ipcRenderer.invoke('run-in-external-terminal', command),
   insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) =>
     ipcRenderer.invoke('insert-into-index-yaml', dirPath, newName, insertAfterName),

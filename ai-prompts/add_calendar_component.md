@@ -2,7 +2,7 @@
  
 We are creating a calendar view/tab for this application. you will be doing this one phase at a time, so that each refactoring step that you do will be kept fairly simple and will build on the previous phases. I'll be writing each new phase as we go along.
 
-currently, you're doing Phase 6.
+currently, you're doing Phase 7.
 
 
 # Phase 1 (done)
@@ -30,7 +30,7 @@ next, let's add the ability for the user to be able to click on any item on the 
 # Phase 5 (done)
 next, let's add support for a "start time" and a "duration" (in hours) in the YAML we already discussed above. let's make our YAML optionally be able to have a property named "start" which we'll assume a 12hr format for a time of day, without the seconds part included (for example: `12:00 PM` represents noon). the duration will be in a numeric value and not necessarily an integer. so, if we have those included in the yaml, then I would like to have the calendar reflect that information. so this means you'll be adding new properties to our existing global State for the calendar, and then you'll be converting the values to whatever the calendar needs to have for its own proper rendering of the start and stop time or the start and duration of items. in other words, we're giving our calendar items the ability to specify particular time of day for a beginning and ending of a calendar item.
 
-# Phase 6 (current)
+# Phase 6 (done)
 Let's use the `chokidar` package to monitor the folder that was initially scanned when the calendar data was loaded. this is a very well established and popular library for monitoring file system changes, so I will rely on your knowledge of how to use that rather than describing how to use it because you'll know better than me i have to do it. i'm not sure if we already have a variable in our global state name something like `calendarFolder` but if not, we should go ahead and add that so that we can have a separate variable, that is completely independent from what the user happens to be browsing (in BrowseView) at any given time. but also this `calendarFolder` will be how we will know what the `chokidar` system is monitoring at any given time. be careful to only keep one instance of a file watcher alive at a time for the `calendarFolder` that's currently being monitored. and keep in mind that whenever the user uses the menu item to refresh their calendar data, that if they are choosing a different folder than the current `calendarFolder` then we will need to re-initialize the `chokidar` monitor so that it's monitoring the current folder and not the old folder. if the user is simply updating their existing calendar using the same folder they we're using the first time then we can probably just leave the `chokidra` running.
 
 so obviously the main thing we're going to do when we detect a file change with the `chokidar` is that we will detect whenever a file has changed that is currently being displayed on the calendar, and then we'll call the method to reload the calendar entry for that file. i'm not sure if we already have an actual method named something like `loadCalendarEntryForFile(fileName)` but if not, we will want to refactor to keep our code clean so that we can always load calendar entries using the same function. so we will be able to call this loader function whenever we're doing the initial load of the file or whenever we have detected that a file changed because of our monitoring system detecting the change. 
@@ -40,3 +40,7 @@ and finally, we want to eventually be able to detect file deletes if `chokidar` 
 so in summary, what we're doing in Phase 6 is simply monitoring the file system for file changes to any of our existing calendar files and then we'll be reading the file system in order to update our calendar data for the existing file. this means the user can go and edit files and then when they come back to their calendar, their calendar will automatically appear updated with the new file information automatically.
 
 NOTE: Put most of your file watcher implementation in a file named `calendarWatcher.ts`.
+
+# Phase 7 (current)
+next let's make our `calendarWatcher.ts` detect and handle file deletes. whenever a file or folder is deleted we want to delete from our global state the same file (or files within deleted folders) so that the calendar component will then immediately render without those files. in other words, this means if I delete a file from the file system, it automatically gets deleted from the calendar display. obviously deleting files one by one is an exact match and is a trivial thing to do. so the only tricky part here will be that whenever we detect a folder is being deleted, we can simply scan and do a substring match to find any files that are inside that folder and remove those from memory. 
+

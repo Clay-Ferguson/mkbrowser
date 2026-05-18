@@ -131,4 +131,5 @@ export {
   useCalendarEvents,
   useCalendarLoading,
   updateCalendarEvent,
+  deleteCalendarEventsUnderPath,
 } from './store';

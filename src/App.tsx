@@ -32,6 +32,7 @@ import {
   getEditingItem,
   setItemEditing,
   updateCalendarEvent,
+  deleteCalendarEventsUnderPath,
 } from './store';
 import type { CalendarEvent } from './store/types';
 import type { CalendarEventResult } from './types/shared';
@@ -93,6 +94,17 @@ function App() {
         ? { id: result.id, title: result.title, start: new Date(result.start), end: new Date(result.end), filePath: result.filePath }
         : null;
       updateCalendarEvent(filePath, updated);
+    });
+  }, []);
+
+  useEffect(() => {
+    return window.electronAPI.onCalendarFileDeleted((deletedPath: string, isFolder: boolean) => {
+      console.log('[App] onCalendarFileDeleted fired', { deletedPath, isFolder });
+      if (isFolder) {
+        deleteCalendarEventsUnderPath(deletedPath);
+      } else {
+        updateCalendarEvent(deletedPath, null);
+      }
     });
   }, []);
 

@@ -1048,6 +1048,18 @@ export function useCalendarFolder(): string | null {
  * Update a single calendar event in place (upsert by filePath).
  * Removes the event if `updated` is null (file no longer has calendar data).
  */
+export function deleteCalendarEventsUnderPath(deletedPath: string): void {
+  if (!state.calendarEvents) return;
+  const normalizedDir = deletedPath.endsWith('/') ? deletedPath : `${deletedPath}/`;
+  const remaining = state.calendarEvents.filter(
+    e => e.filePath !== deletedPath && !(e.filePath?.startsWith(normalizedDir) ?? false),
+  );
+  if (remaining.length !== state.calendarEvents.length) {
+    state = { ...state, calendarEvents: remaining };
+    emitChange();
+  }
+}
+
 export function updateCalendarEvent(filePath: string, updated: CalendarEvent | null): void {
   console.log('[store] updateCalendarEvent called', { filePath, updated, eventsCount: state.calendarEvents?.length });
   if (!state.calendarEvents) return;
