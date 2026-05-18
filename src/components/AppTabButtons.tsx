@@ -25,6 +25,7 @@ const allTabs: TabConfig[] = [
   { id: 'folder-graph', label: 'Graph' },
   { id: 'settings', label: 'Settings' },
   { id: 'ai-settings', label: 'AI Settings' },
+  { id: 'calendar', label: 'Calendar' },
 ];
 
 function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) {

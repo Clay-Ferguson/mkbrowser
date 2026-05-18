@@ -6,6 +6,7 @@ import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
 import FolderAnalysisView from './components/views/FolderAnalysisView';
 import FolderGraphView from './components/views/FolderGraphView';
+import CalendarView from './components/views/CalendarView';
 import AISettingsView from './components/views/AISettingsView';
 import ThreadView from './components/views/ThreadView';
 import BrowseView from './components/views/BrowseView';
@@ -341,6 +342,14 @@ function App() {
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
           <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
           <AISettingsView />
+          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+        </div>
+      )}
+
+      {currentView === 'calendar' && (
+        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <CalendarView />
           {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
         </div>
       )}

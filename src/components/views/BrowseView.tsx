@@ -33,6 +33,7 @@ import {
   setItemEditing,
   setItemExpanded,
   setCurrentView,
+  showTab,
   setCurrentPath,
   navigateToBrowserPath,
   clearPendingScrollToFile,
@@ -719,6 +720,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     })();
   }, [currentPath, onSetError]);
 
+  const handleShowCalendar = useCallback(() => {
+    showTab('calendar');
+    setCurrentView('calendar');
+  }, []);
+
   const newAiChat = () => {
     if (!currentPath) return;
     if (hasHumanMd(entries)) {
@@ -1106,6 +1112,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onExport={() => setShowExportDialog(true)}
           onRunOcr={handleRunOcr}
           onNewAiChat={newAiChat}
+          onShowCalendar={handleShowCalendar}
         />
       )}
 
