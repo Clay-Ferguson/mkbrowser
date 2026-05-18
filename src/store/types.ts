@@ -512,6 +512,12 @@ export interface AppState {
    */
   calendarLoading: boolean;
 
+  /**
+   * The currently selected calendar view (month/week/day/agenda).
+   * Persisted to AppConfig so it survives app restarts.
+   */
+  calendarViewType: 'month' | 'week' | 'day' | 'agenda';
+
 }
 
 /**

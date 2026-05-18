@@ -89,7 +89,7 @@ function App() {
   // it's always active regardless of which view is currently displayed.
   useEffect(() => {
     return window.electronAPI.onCalendarFileChanged((result: CalendarEventResult | null, filePath: string) => {
-      console.log('[App] onCalendarFileChanged fired', { filePath, result });
+      // console.log('[App] onCalendarFileChanged fired', { filePath, result });
       const updated: CalendarEvent | null = result
         ? { id: result.id, title: result.title, start: new Date(result.start), end: new Date(result.end), filePath: result.filePath }
         : null;
@@ -99,7 +99,7 @@ function App() {
 
   useEffect(() => {
     return window.electronAPI.onCalendarFileDeleted((deletedPath: string, isFolder: boolean) => {
-      console.log('[App] onCalendarFileDeleted fired', { deletedPath, isFolder });
+      // console.log('[App] onCalendarFileDeleted fired', { deletedPath, isFolder });
       if (isFolder) {
         deleteCalendarEventsUnderPath(deletedPath);
       } else {

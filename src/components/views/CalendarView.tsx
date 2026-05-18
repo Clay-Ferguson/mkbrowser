@@ -4,7 +4,7 @@ import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useCalendarEvents, useCalendarLoading, setHighlightItem, navigateToBrowserPath } from '../../store';
+import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, setHighlightItem, navigateToBrowserPath } from '../../store';
 import type { CalendarEvent } from '../../store/types';
 
 const localizer = dateFnsLocalizer({
@@ -15,11 +15,27 @@ const localizer = dateFnsLocalizer({
   locales: { 'en-US': enUS },
 });
 
+const viewTypeToRbc: Record<string, View> = {
+  month: Views.MONTH,
+  week: Views.WEEK,
+  day: Views.DAY,
+  agenda: Views.AGENDA,
+};
+
 export default function CalendarView() {
   const events = useCalendarEvents();
   const loading = useCalendarLoading();
-  const [view, setView] = useState<View>(Views.MONTH);
+  const calendarViewType = useCalendarViewType();
+  const view = viewTypeToRbc[calendarViewType] ?? Views.MONTH;
   const [date, setDate] = useState(new Date());
+
+  const handleViewChange = (v: View) => {
+    const vt = v as 'month' | 'week' | 'day' | 'agenda';
+    setCalendarViewType(vt);
+    window.electronAPI.getConfig().then(config => {
+      window.electronAPI.saveConfig({ ...config, calendarViewType: vt });
+    });
+  };
 
   const handleSelectEvent = (event: CalendarEvent) => {
     if (!event.filePath) return;
@@ -73,7 +89,7 @@ export default function CalendarView() {
             views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
             view={view}
             date={date}
-            onView={(v) => setView(v)}
+            onView={handleViewChange}
             onNavigate={(d) => setDate(new Date(d))}
             onSelectEvent={handleSelectEvent}
             style={{ height: '100%' }}

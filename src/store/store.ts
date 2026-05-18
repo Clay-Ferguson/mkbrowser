@@ -62,6 +62,7 @@ const initialState: AppState = {
   calendarFolder: null,
   calendarEvents: null,
   calendarLoading: false,
+  calendarViewType: 'month',
 };
 
 /**
@@ -1061,13 +1062,13 @@ export function deleteCalendarEventsUnderPath(deletedPath: string): void {
 }
 
 export function updateCalendarEvent(filePath: string, updated: CalendarEvent | null): void {
-  console.log('[store] updateCalendarEvent called', { filePath, updated, eventsCount: state.calendarEvents?.length });
+  // console.log('[store] updateCalendarEvent called', { filePath, updated, eventsCount: state.calendarEvents?.length });
   if (!state.calendarEvents) return;
   const existing = state.calendarEvents.filter(e => e.filePath !== filePath);
-  console.log('[store] existing after filter', existing.length, 'matched?', existing.length !== state.calendarEvents.length);
+  // console.log('[store] existing after filter', existing.length, 'matched?', existing.length !== state.calendarEvents.length);
   state = { ...state, calendarEvents: updated ? [...existing, updated] : existing };
   emitChange();
-  console.log('[store] emitChange called, new events count:', state.calendarEvents?.length);
+  // console.log('[store] emitChange called, new events count:', state.calendarEvents?.length);
 }
 
 /**
@@ -1100,6 +1101,15 @@ export function useCalendarEvents(): CalendarEvent[] | null {
 
 export function useCalendarLoading(): boolean {
   return useSyncExternalStore(subscribe, getCalendarLoadingSnapshot);
+}
+
+export function useCalendarViewType(): 'month' | 'week' | 'day' | 'agenda' {
+  return useSyncExternalStore(subscribe, () => state.calendarViewType);
+}
+
+export function setCalendarViewType(viewType: 'month' | 'week' | 'day' | 'agenda'): void {
+  state = { ...state, calendarViewType: viewType };
+  emitChange();
 }
 
 /**

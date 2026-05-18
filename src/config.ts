@@ -1,4 +1,4 @@
-import { setSettings, setCurrentPath } from './store';
+import { setSettings, setCurrentPath, setCalendarViewType } from './store';
 
 export interface LoadConfigResult {
   rootPath: string | null;
@@ -18,6 +18,9 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     // Load settings from config into store (only once at startup)
     if (config.settings) {
       setSettings({ indexTreeWidth: 'narrow', showPropsInEditor: true, ...config.settings });
+    }
+    if (config.calendarViewType) {
+      setCalendarViewType(config.calendarViewType);
     }
     if (config.browseFolder) {
       const exists = await window.electronAPI.pathExists(config.browseFolder);

@@ -3,6 +3,9 @@ import chokidar from 'chokidar';
 import type { CalendarEventResult } from './calendarLoader';
 import { loadCalendarEntryForFile } from './calendarLoader';
 
+// todo-0: need to update this so that is ONLY ever watches "md" files, and also make the calendar scanner logic (initial file system scan)
+// also ignore all file types other than markdown files
+
 export type CalendarFileChangedCallback = (result: CalendarEventResult | null, filePath: string) => void;
 export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolean) => void;
 
@@ -43,6 +46,12 @@ export function startCalendarWatcher(
 
   currentWatcher.on('change', (filePath: string) => {
     console.log("************ onChange: "+filePath);
+    if (path.extname(filePath).toLowerCase() !== '.md') return;
+    void loadCalendarEntryForFile(filePath).then(result => onChanged(result, filePath));
+  });
+
+  currentWatcher.on('add', (filePath: string) => {
+    // console.log("************ onAdd (file added/renamed): "+filePath);
     if (path.extname(filePath).toLowerCase() !== '.md') return;
     void loadCalendarEntryForFile(filePath).then(result => onChanged(result, filePath));
   });

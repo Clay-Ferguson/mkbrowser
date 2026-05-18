@@ -130,6 +130,8 @@ export {
   setCalendarLoading,
   useCalendarEvents,
   useCalendarLoading,
+  useCalendarViewType,
+  setCalendarViewType,
   updateCalendarEvent,
   deleteCalendarEventsUnderPath,
 } from './store';
