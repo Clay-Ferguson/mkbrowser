@@ -2,7 +2,7 @@
  
 We are creating a calendar view/tab for this application. you will be doing this one phase at a time, so that each refactoring step that you do will be kept fairly simple and will build on the previous phases. I'll be writing each new phase as we go along.
 
-currently, you're doing Phase 3.
+currently, you're doing Phase 5.
 
 
 # Phase 1 (done)
@@ -13,7 +13,7 @@ We will be using the well known `react-big-calendar` component from NPM. so plea
 
 so in other words, the behavior I'm looking for right now is that the user can open the calendar, and it won't display some test data, and it won't try to regenerate any test data just because the user goes back to the view because we're keeping the data in the global state. So the data will simply always be there to be rendered whenever the user goes back to the calendar view.
 
-# Phase 3 (current)
+# Phase 3 (done)
 next we're going to make our async method actually load calendar data from the file system. you can loosely follow the sort of code pattern that the "Folder Analysis" menu item (also initiated thru Tools menu) uses, at least in so far as how it knows how to use the currently Browsed (in BrowseView) folder as the folder to scan, and which files to ignore during the scan, and even how to do the actual file scan. 
 
 so you can create a new module named `calendarLoader.ts`, and it will have a function that scans the file system folder to extract out all the calendar entries. for now we want to do the following as our way of detecting calendar entries and files. first of all, we're only going to be considering markdown files in our scan, and ignoring all other files. also, when we encounter a markdown file, we will be getting the `Front Matter` part of the file, and then looking for a "due" property in the front matter YAML. you will expect the 'due' property to contain a date string, formatted like `MM/DD/YYYY`, and that will be the date for the calendar entry, and for now, you can simply use the file name (without even including the path part) as the text to display in the calendar. so this will be a very bare bones calendar that only has the capability of knowing that something happens at a particular date (no start/stop time).
@@ -23,3 +23,11 @@ also, we want the calendar to only do the file scan when the user clicks the men
 importantly, when you implement this, go ahead and make sure the full file name is included in our global State, for each file that we discover to be a calendar item (i.e. having a 'due' property in the Front Matter YAML), because later on we're going to add interactivity where the user can perhaps click on the items to jump to the files and things like that, although we're not implementing any of that in this phase.
 
 and finally, be aware that we already do have the ability to extract and parse `Front Matter` YAML in other parts of our code so try to reuse as much of that as you can and feel free to refactor any of that to make the reuse cleaner or better.
+
+# Phase 4 (done)
+
+next, let's add the ability for the user to be able to click on any item on the calendar to jump to that item in the BrowseView. if you look at the `SearchResultsView.tsx` component you can see an example of how we do this type of "Jump to a file" in our application. the search view already has the ability to let users click on a particular file, then it will take them over to the BrowseView and display that file automatically and even scroll to the file to ensure that it becomes visible. so we just want this same sort of thing to be usable on the calendar so the user can quickly pull up the specific file in the browse view. since we have the file name in our data for each calendar item. I think that's all you'll need, in order to make this work.
+
+# Phase 5 (current)
+next, let's add support for a "start time" and a "duration" (in hours) in the YAML we already discussed above. let's make our YAML optionally be able to have a property named "start" which we'll assume a 12hr format for a time of day, without the seconds part included (for example: `12:00 PM` represents noon). the duration will be in a numeric value and not necessarily an integer. so, if we have those included in the yaml, then I would like to have the calendar reflect that information. so this means you'll be adding new properties to our existing global State for the calendar, and then you'll be converting the values to whatever the calendar needs to have for its own proper rendering of the start and stop time or the start and duration of items. in other words, we're giving our calendar items the ability to specify particular time of day for a beginning and ending of a calendar item.
+

@@ -4,7 +4,8 @@ import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useCalendarEvents, useCalendarLoading } from '../../store';
+import { useCalendarEvents, useCalendarLoading, setHighlightItem, navigateToBrowserPath } from '../../store';
+import type { CalendarEvent } from '../../store/types';
 
 const localizer = dateFnsLocalizer({
   format,
@@ -19,6 +20,14 @@ export default function CalendarView() {
   const loading = useCalendarLoading();
   const [view, setView] = useState<View>(Views.MONTH);
   const [date, setDate] = useState(new Date());
+
+  const handleSelectEvent = (event: CalendarEvent) => {
+    if (!event.filePath) return;
+    const lastSlash = event.filePath.lastIndexOf('/');
+    const folderPath = event.filePath.substring(0, lastSlash);
+    setHighlightItem(event.filePath);
+    navigateToBrowserPath(folderPath, event.filePath);
+  };
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
@@ -66,6 +75,7 @@ export default function CalendarView() {
             date={date}
             onView={(v) => setView(v)}
             onNavigate={(d) => setDate(new Date(d))}
+            onSelectEvent={handleSelectEvent}
             style={{ height: '100%' }}
             popup
           />
