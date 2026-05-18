@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, FolderGraphState, TreeNode, FileNode, MarkdownHeadingNode } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, FolderGraphState, TreeNode, FileNode, MarkdownHeadingNode, CalendarEvent } from './types';
 import { createItemData } from './types';
 import { splitFrontMatter, getTagsFromYaml, getPropsFromYaml } from '../utils/tagUtils';
 
@@ -59,6 +59,8 @@ const initialState: AppState = {
   hasIndexFile: false,
   indexYaml: null,
   expandedEditor: false,
+  calendarEvents: null,
+  calendarLoading: false,
 };
 
 /**
@@ -1026,6 +1028,38 @@ export function getThreadScrollPosition(): number {
 export function setFolderAnalysis(data: FolderAnalysisState): void {
   state = { ...state, folderAnalysis: data };
   emitChange();
+}
+
+/**
+ * Get snapshot of calendar events
+ */
+function getCalendarEventsSnapshot(): CalendarEvent[] | null {
+  return state.calendarEvents;
+}
+
+/**
+ * Get snapshot of calendar loading state
+ */
+function getCalendarLoadingSnapshot(): boolean {
+  return state.calendarLoading;
+}
+
+export function setCalendarEvents(events: CalendarEvent[]): void {
+  state = { ...state, calendarEvents: events, calendarLoading: false };
+  emitChange();
+}
+
+export function setCalendarLoading(loading: boolean): void {
+  state = { ...state, calendarLoading: loading };
+  emitChange();
+}
+
+export function useCalendarEvents(): CalendarEvent[] | null {
+  return useSyncExternalStore(subscribe, getCalendarEventsSnapshot);
+}
+
+export function useCalendarLoading(): boolean {
+  return useSyncExternalStore(subscribe, getCalendarLoadingSnapshot);
 }
 
 /**

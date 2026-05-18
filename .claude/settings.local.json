@@ -35,7 +35,10 @@
       "Bash(xargs cat *)",
       "Bash(node *)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('version'\\)\\); exps=d.get\\('exports',{}\\); print\\([k for k in exps if 'experimental' in k]\\)\")",
-      "Bash(npm show *)"
+      "Bash(npm show *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(curl -s https://registry.npmjs.org/react-big-calendar)"
     ]
   }
 }

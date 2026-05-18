@@ -495,6 +495,28 @@ export interface AppState {
    */
   expandedEditor: boolean;
 
+  /**
+   * Calendar events loaded from the file system (null = not yet loaded).
+   */
+  calendarEvents: CalendarEvent[] | null;
+
+  /**
+   * True while calendar events are being loaded asynchronously.
+   */
+  calendarLoading: boolean;
+
+}
+
+/**
+ * A single event displayed on the calendar view.
+ */
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  /** Optional file path this event originated from */
+  filePath?: string;
 }
 
 /**
