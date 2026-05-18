@@ -57,12 +57,49 @@ function extractFrontMatterYaml(content: string): string | null {
   return match ? match[1] : null;
 }
 
+/** Parse a single markdown file and return its calendar entry, or null if it has no valid 'due' property. */
+export async function loadCalendarEntryForFile(filePath: string): Promise<CalendarEventResult | null> {
+  try {
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    const yamlStr = extractFrontMatterYaml(content);
+    if (!yamlStr) return null;
+
+    const parsed = yaml.load(yamlStr) as Record<string, unknown> | null;
+    if (!parsed || typeof parsed.due !== 'string') return null;
+
+    const dueDate = parseDueDate(parsed.due);
+    if (!dueDate) return null;
+
+    const title = path.basename(filePath, '.md');
+
+    let startMs = dueDate.getTime();
+    let endMs = dueDate.getTime();
+
+    const startTimeStr = typeof parsed.start === 'string' ? parsed.start : null;
+    const duration = typeof parsed.duration === 'number' ? parsed.duration : null;
+
+    if (startTimeStr) {
+      const time = parseStartTime(startTimeStr);
+      if (time) {
+        const startDate = new Date(dueDate);
+        startDate.setHours(time.hours, time.minutes, 0, 0);
+        startMs = startDate.getTime();
+        const durationHours = duration ?? 1;
+        endMs = startMs + durationHours * 60 * 60 * 1000;
+      }
+    }
+
+    return { id: filePath, title, start: startMs, end: endMs, filePath };
+  } catch {
+    return null;
+  }
+}
+
 export async function loadCalendarEvents(
   folderPath: string,
   ignoredPaths: string[] = [],
 ): Promise<CalendarEventResult[]> {
   const shouldExclude = buildExcludePredicate(ignoredPaths);
-  const events: CalendarEventResult[] = [];
 
   const api = new fdir()
     .withFullPaths()
@@ -75,49 +112,6 @@ export async function loadCalendarEvents(
     .crawl(folderPath);
 
   const files = await api.withPromise();
-
-  for (const filePath of files) {
-    try {
-      const content = await fs.promises.readFile(filePath, 'utf-8');
-      const yamlStr = extractFrontMatterYaml(content);
-      if (!yamlStr) continue;
-
-      const parsed = yaml.load(yamlStr) as Record<string, unknown> | null;
-      if (!parsed || typeof parsed.due !== 'string') continue;
-
-      const dueDate = parseDueDate(parsed.due);
-      if (!dueDate) continue;
-
-      const title = path.basename(filePath, '.md');
-
-      let startMs = dueDate.getTime();
-      let endMs = dueDate.getTime();
-
-      const startTimeStr = typeof parsed.start === 'string' ? parsed.start : null;
-      const duration = typeof parsed.duration === 'number' ? parsed.duration : null;
-
-      if (startTimeStr) {
-        const time = parseStartTime(startTimeStr);
-        if (time) {
-          const startDate = new Date(dueDate);
-          startDate.setHours(time.hours, time.minutes, 0, 0);
-          startMs = startDate.getTime();
-          const durationHours = duration ?? 1;
-          endMs = startMs + durationHours * 60 * 60 * 1000;
-        }
-      }
-
-      events.push({
-        id: filePath,
-        title,
-        start: startMs,
-        end: endMs,
-        filePath,
-      });
-    } catch {
-      // Skip unreadable files
-    }
-  }
-
-  return events;
+  const results = await Promise.all(files.map(loadCalendarEntryForFile));
+  return results.filter((r): r is CalendarEventResult => r !== null);
 }

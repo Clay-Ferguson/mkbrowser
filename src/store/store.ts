@@ -59,6 +59,7 @@ const initialState: AppState = {
   hasIndexFile: false,
   indexYaml: null,
   expandedEditor: false,
+  calendarFolder: null,
   calendarEvents: null,
   calendarLoading: false,
 };
@@ -1028,6 +1029,33 @@ export function getThreadScrollPosition(): number {
 export function setFolderAnalysis(data: FolderAnalysisState): void {
   state = { ...state, folderAnalysis: data };
   emitChange();
+}
+
+function getCalendarFolderSnapshot(): string | null {
+  return state.calendarFolder;
+}
+
+export function setCalendarFolder(folder: string | null): void {
+  state = { ...state, calendarFolder: folder };
+  emitChange();
+}
+
+export function useCalendarFolder(): string | null {
+  return useSyncExternalStore(subscribe, getCalendarFolderSnapshot);
+}
+
+/**
+ * Update a single calendar event in place (upsert by filePath).
+ * Removes the event if `updated` is null (file no longer has calendar data).
+ */
+export function updateCalendarEvent(filePath: string, updated: CalendarEvent | null): void {
+  console.log('[store] updateCalendarEvent called', { filePath, updated, eventsCount: state.calendarEvents?.length });
+  if (!state.calendarEvents) return;
+  const existing = state.calendarEvents.filter(e => e.filePath !== filePath);
+  console.log('[store] existing after filter', existing.length, 'matched?', existing.length !== state.calendarEvents.length);
+  state = { ...state, calendarEvents: updated ? [...existing, updated] : existing };
+  emitChange();
+  console.log('[store] emitChange called, new events count:', state.calendarEvents?.length);
 }
 
 /**

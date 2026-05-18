@@ -34,6 +34,7 @@ import {
   setItemExpanded,
   setCurrentView,
   showTab,
+  setCalendarFolder,
   setCalendarEvents,
   setCalendarLoading,
   setCurrentPath,
@@ -726,6 +727,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     if (!currentPath) return;
     showTab('calendar');
     setCurrentView('calendar');
+    setCalendarFolder(currentPath);
     setCalendarLoading(true);
     void (async () => {
       try {

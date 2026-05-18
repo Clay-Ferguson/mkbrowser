@@ -218,6 +218,9 @@ export interface ElectronAPI {
   onAiStreamError: (callback: (message: string) => void) => () => void;
   cancelAiStream: () => void;
 
+  // Calendar file-change events
+  onCalendarFileChanged: (callback: (result: CalendarEventResult | null, filePath: string) => void) => () => void;
+
   runInExternalTerminal: (command: string) => Promise<{ success: boolean; error?: string }>;
   insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;

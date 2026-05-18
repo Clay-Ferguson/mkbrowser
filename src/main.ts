@@ -13,7 +13,8 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
-import { loadCalendarEvents, type CalendarEventResult } from './calendarLoader';
+import { loadCalendarEvents, loadCalendarEntryForFile, type CalendarEventResult } from './calendarLoader';
+import { startCalendarWatcher, stopCalendarWatcher, getCalendarWatcherFolder } from './calendarWatcher';
 import { scanFolderTree, type FolderGraphResult } from './folderGraph';
 import { collectAncestorTags } from './utils/tagUtils';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
@@ -425,11 +426,23 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Scan folder for markdown files with a 'due' front matter property
+  // Scan folder for markdown files with a 'due' front matter property, then start watching it
   ipcMain.handle('load-calendar-events', async (_event, folderPath: string): Promise<CalendarEventResult[]> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
-      return await loadCalendarEvents(folderPath, ignoredPaths);
+      const results = await loadCalendarEvents(folderPath, ignoredPaths);
+
+      // Start (or keep) the file watcher for this folder
+      if (getCalendarWatcherFolder() !== folderPath) {
+        startCalendarWatcher(folderPath, (updated, filePath) => {
+          logger.info(`[main] calendar-file-changed: sending to renderer filePath=${filePath} hasResult=${updated !== null}`);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('calendar-file-changed', updated, filePath);
+          }
+        }, ignoredPaths);
+      }
+
+      return results;
     } catch (error) {
       logger.error('Error loading calendar events:', error);
       return [];
@@ -755,6 +768,7 @@ app.on('ready', async () => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  stopCalendarWatcher();
   if (process.platform !== 'darwin') {
     app.quit();
   }

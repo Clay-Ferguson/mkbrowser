@@ -496,6 +496,13 @@ export interface AppState {
   expandedEditor: boolean;
 
   /**
+   * The folder that was scanned to populate calendarEvents.
+   * Tracked independently from the current browse path so the calendar
+   * remains stable while the user navigates elsewhere.
+   */
+  calendarFolder: string | null;
+
+  /**
    * Calendar events loaded from the file system (null = not yet loaded).
    */
   calendarEvents: CalendarEvent[] | null;

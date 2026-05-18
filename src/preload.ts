@@ -82,6 +82,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   cancelAiStream: () => ipcRenderer.send('ai-stream-cancel'),
 
+  // Calendar file-change events (chokidar → renderer)
+  onCalendarFileChanged: (callback: (result: import('./types/shared').CalendarEventResult | null, filePath: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, result: import('./types/shared').CalendarEventResult | null, filePath: string) => callback(result, filePath);
+    ipcRenderer.on('calendar-file-changed', listener);
+    return () => { ipcRenderer.removeListener('calendar-file-changed', listener); };
+  },
+
   runInExternalTerminal: (command: string) => ipcRenderer.invoke('run-in-external-terminal', command),
   insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) =>
     ipcRenderer.invoke('insert-into-index-yaml', dirPath, newName, insertAfterName),

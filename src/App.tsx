@@ -31,7 +31,10 @@ import {
   setIndexTreeRoot,
   getEditingItem,
   setItemEditing,
+  updateCalendarEvent,
 } from './store';
+import type { CalendarEvent } from './store/types';
+import type { CalendarEventResult } from './types/shared';
 import type { FileNode } from './store';
 import { loadConfig } from './config';
 import { applyGlobalHighlight, globalHighlightText } from './utils/globalHighlight';
@@ -80,6 +83,18 @@ function App() {
   const currentPath = useCurrentPath();
   const folderGraph = useFolderGraph();
   const settings = useSettings();
+
+  // Listen for calendar file changes from the main process (chokidar) — lives here so
+  // it's always active regardless of which view is currently displayed.
+  useEffect(() => {
+    return window.electronAPI.onCalendarFileChanged((result: CalendarEventResult | null, filePath: string) => {
+      console.log('[App] onCalendarFileChanged fired', { filePath, result });
+      const updated: CalendarEvent | null = result
+        ? { id: result.id, title: result.title, start: new Date(result.start), end: new Date(result.end), filePath: result.filePath }
+        : null;
+      updateCalendarEvent(filePath, updated);
+    });
+  }, []);
 
   // Apply font size globally via data attribute on html element
   useEffect(() => {

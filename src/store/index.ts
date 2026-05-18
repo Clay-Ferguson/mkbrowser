@@ -124,8 +124,11 @@ export {
   useIndexYaml,
   setExpandedEditor,
   useExpandedEditor,
+  setCalendarFolder,
+  useCalendarFolder,
   setCalendarEvents,
   setCalendarLoading,
   useCalendarEvents,
   useCalendarLoading,
+  updateCalendarEvent,
 } from './store';
