@@ -13,6 +13,7 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
+import { loadCalendarEvents, type CalendarEventResult } from './calendarLoader';
 import { scanFolderTree, type FolderGraphResult } from './folderGraph';
 import { collectAncestorTags } from './utils/tagUtils';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
@@ -421,6 +422,17 @@ function setupIpcHandlers(): void {
     } catch (error) {
       logger.error('Error analyzing folder:', error);
       return { hashtags: [], totalFiles: 0 };
+    }
+  });
+
+  // Scan folder for markdown files with a 'due' front matter property
+  ipcMain.handle('load-calendar-events', async (_event, folderPath: string): Promise<CalendarEventResult[]> => {
+    try {
+      const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
+      return await loadCalendarEvents(folderPath, ignoredPaths);
+    } catch (error) {
+      logger.error('Error loading calendar events:', error);
+      return [];
     }
   });
 

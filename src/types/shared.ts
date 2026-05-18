@@ -132,6 +132,16 @@ export interface FolderAnalysisResult {
   totalFiles: number;
 }
 
+export interface CalendarEventResult {
+  id: string;
+  title: string;
+  /** Milliseconds since epoch */
+  start: number;
+  /** Milliseconds since epoch */
+  end: number;
+  filePath: string;
+}
+
 export interface FolderGraphScanResult {
   folderPath: string;
   nodes: Array<{ id: string; name: string; isDirectory: boolean; depth: number }>;
@@ -178,6 +188,7 @@ export interface ElectronAPI {
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => Promise<SearchResult[]>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
+  loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;
   scanFolderTree: (folderPath: string) => Promise<FolderGraphScanResult>;
   collectAncestorTags: (filePath: string) => Promise<HashtagDefinition[]>;
   setWindowTitle: (title: string) => Promise<void>;

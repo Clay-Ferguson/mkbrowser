@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useCalendarEvents, useCalendarLoading, setCalendarEvents, setCalendarLoading } from '../../store';
+import { useCalendarEvents, useCalendarLoading } from '../../store';
 
 const localizer = dateFnsLocalizer({
   format,
@@ -14,49 +14,11 @@ const localizer = dateFnsLocalizer({
   locales: { 'en-US': enUS },
 });
 
-const TEST_EVENTS = [
-  {
-    id: '1',
-    title: 'Team Meeting',
-    start: new Date(2026, 4, 19, 10, 0),
-    end: new Date(2026, 4, 19, 11, 0),
-  },
-  {
-    id: '2',
-    title: 'Project Review',
-    start: new Date(2026, 4, 21, 14, 0),
-    end: new Date(2026, 4, 21, 15, 30),
-  },
-  {
-    id: '3',
-    title: 'All-day Conference',
-    start: new Date(2026, 4, 22),
-    end: new Date(2026, 4, 23),
-    allDay: true,
-  },
-  {
-    id: '4',
-    title: 'Sprint Planning',
-    start: new Date(2026, 4, 26, 9, 0),
-    end: new Date(2026, 4, 26, 10, 30),
-  },
-];
-
 export default function CalendarView() {
   const events = useCalendarEvents();
   const loading = useCalendarLoading();
   const [view, setView] = useState<View>(Views.MONTH);
   const [date, setDate] = useState(new Date());
-
-  useEffect(() => {
-    if (events !== null) return;
-
-    setCalendarLoading(true);
-    const timer = setTimeout(() => {
-      setCalendarEvents(TEST_EVENTS);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [events]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">

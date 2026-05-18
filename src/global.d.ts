@@ -18,6 +18,7 @@ export type {
   ReplaceResult,
   ExportResult,
   FolderAnalysisResult,
+  CalendarEventResult,
   FolderGraphScanResult,
   ProviderUsage,
   AIUsageWithCosts,

@@ -34,6 +34,8 @@ import {
   setItemExpanded,
   setCurrentView,
   showTab,
+  setCalendarEvents,
+  setCalendarLoading,
   setCurrentPath,
   navigateToBrowserPath,
   clearPendingScrollToFile,
@@ -721,9 +723,26 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   }, [currentPath, onSetError]);
 
   const handleShowCalendar = useCallback(() => {
+    if (!currentPath) return;
     showTab('calendar');
     setCurrentView('calendar');
-  }, []);
+    setCalendarLoading(true);
+    void (async () => {
+      try {
+        const results = await window.electronAPI.loadCalendarEvents(currentPath);
+        setCalendarEvents(results.map(r => ({
+          id: r.id,
+          title: r.title,
+          start: new Date(r.start),
+          end: new Date(r.end),
+          filePath: r.filePath,
+        })));
+      } catch (err) {
+        onSetError('Failed to load calendar: ' + (err instanceof Error ? err.message : String(err)));
+        setCalendarEvents([]);
+      }
+    })();
+  }, [currentPath, onSetError]);
 
   const newAiChat = () => {
     if (!currentPath) return;
