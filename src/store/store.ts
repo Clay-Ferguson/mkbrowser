@@ -63,6 +63,7 @@ const initialState: AppState = {
   calendarEvents: null,
   calendarLoading: false,
   calendarViewType: 'month',
+  calendarViewTime: new Date(),
 };
 
 /**
@@ -1109,6 +1110,15 @@ export function useCalendarViewType(): 'month' | 'week' | 'day' | 'agenda' {
 
 export function setCalendarViewType(viewType: 'month' | 'week' | 'day' | 'agenda'): void {
   state = { ...state, calendarViewType: viewType };
+  emitChange();
+}
+
+export function useCalendarViewTime(): Date {
+  return useSyncExternalStore(subscribe, () => state.calendarViewTime);
+}
+
+export function setCalendarViewTime(date: Date): void {
+  state = { ...state, calendarViewTime: date };
   emitChange();
 }
 

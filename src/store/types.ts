@@ -518,6 +518,13 @@ export interface AppState {
    */
   calendarViewType: 'month' | 'week' | 'day' | 'agenda';
 
+  /**
+   * The date currently displayed in the calendar (the navigated-to date).
+   * Not persisted to config — resets to today on app restart, but survives
+   * tab switches within a session.
+   */
+  calendarViewTime: Date;
+
 }
 
 /**

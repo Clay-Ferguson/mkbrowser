@@ -1,10 +1,9 @@
-import { useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, setHighlightItem, navigateToBrowserPath } from '../../store';
+import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath } from '../../store';
 import type { CalendarEvent } from '../../store/types';
 
 const localizer = dateFnsLocalizer({
@@ -27,7 +26,7 @@ export default function CalendarView() {
   const loading = useCalendarLoading();
   const calendarViewType = useCalendarViewType();
   const view = viewTypeToRbc[calendarViewType] ?? Views.MONTH;
-  const [date, setDate] = useState(new Date());
+  const date = useCalendarViewTime();
 
   const handleViewChange = (v: View) => {
     const vt = v as 'month' | 'week' | 'day' | 'agenda';
@@ -90,7 +89,7 @@ export default function CalendarView() {
             view={view}
             date={date}
             onView={handleViewChange}
-            onNavigate={(d) => setDate(new Date(d))}
+            onNavigate={(d) => setCalendarViewTime(new Date(d))}
             onSelectEvent={handleSelectEvent}
             style={{ height: '100%' }}
             popup

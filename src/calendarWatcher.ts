@@ -45,7 +45,7 @@ export function startCalendarWatcher(
   });
 
   currentWatcher.on('change', (filePath: string) => {
-    console.log("************ onChange: "+filePath);
+    // console.log("************ onChange: "+filePath);
     if (path.extname(filePath).toLowerCase() !== '.md') return;
     void loadCalendarEntryForFile(filePath).then(result => onChanged(result, filePath));
   });
@@ -57,12 +57,12 @@ export function startCalendarWatcher(
   });
 
   currentWatcher.on('unlink', (filePath: string) => {
-    console.log("************ onUnlink (file deleted): "+filePath);
+    // console.log("************ onUnlink (file deleted): "+filePath);
     onDeleted(filePath, false);
   });
 
   currentWatcher.on('unlinkDir', (dirPath: string) => {
-    console.log("************ onUnlinkDir (folder deleted): "+dirPath);
+    // console.log("************ onUnlinkDir (folder deleted): "+dirPath);
     onDeleted(dirPath, true);
   });
 }
