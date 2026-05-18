@@ -25,6 +25,22 @@ function parseDueDate(dateStr: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+/** Parse a 12-hour time string like "1:30 PM" into { hours, minutes } in 24-hr. Returns null on failure. */
+function parseStartTime(timeStr: string): { hours: number; minutes: number } | null {
+  const match = /^\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*$/i.exec(timeStr.trim());
+  if (!match) return null;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const meridiem = match[3].toUpperCase();
+  if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) return null;
+  if (meridiem === 'AM') {
+    if (hours === 12) hours = 0;
+  } else {
+    if (hours !== 12) hours += 12;
+  }
+  return { hours, minutes };
+}
+
 function buildExcludePredicate(ignoredPaths: string[]): (name: string, fullPath: string) => boolean {
   const patterns = ignoredPaths.map(pattern => {
     const escaped = pattern.replace(/[.+?^${}()|[\]\\/]/g, '\\$&');
@@ -73,11 +89,29 @@ export async function loadCalendarEvents(
       if (!dueDate) continue;
 
       const title = path.basename(filePath, '.md');
+
+      let startMs = dueDate.getTime();
+      let endMs = dueDate.getTime();
+
+      const startTimeStr = typeof parsed.start === 'string' ? parsed.start : null;
+      const duration = typeof parsed.duration === 'number' ? parsed.duration : null;
+
+      if (startTimeStr) {
+        const time = parseStartTime(startTimeStr);
+        if (time) {
+          const startDate = new Date(dueDate);
+          startDate.setHours(time.hours, time.minutes, 0, 0);
+          startMs = startDate.getTime();
+          const durationHours = duration ?? 1;
+          endMs = startMs + durationHours * 60 * 60 * 1000;
+        }
+      }
+
       events.push({
         id: filePath,
         title,
-        start: dueDate.getTime(),
-        end: dueDate.getTime(),
+        start: startMs,
+        end: endMs,
         filePath,
       });
     } catch {

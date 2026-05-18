@@ -2,7 +2,7 @@
  
 We are creating a calendar view/tab for this application. you will be doing this one phase at a time, so that each refactoring step that you do will be kept fairly simple and will build on the previous phases. I'll be writing each new phase as we go along.
 
-currently, you're doing Phase 5.
+currently, you're doing Phase 6.
 
 
 # Phase 1 (done)
@@ -28,6 +28,6 @@ and finally, be aware that we already do have the ability to extract and parse `
 
 next, let's add the ability for the user to be able to click on any item on the calendar to jump to that item in the BrowseView. if you look at the `SearchResultsView.tsx` component you can see an example of how we do this type of "Jump to a file" in our application. the search view already has the ability to let users click on a particular file, then it will take them over to the BrowseView and display that file automatically and even scroll to the file to ensure that it becomes visible. so we just want this same sort of thing to be usable on the calendar so the user can quickly pull up the specific file in the browse view. since we have the file name in our data for each calendar item. I think that's all you'll need, in order to make this work.
 
-# Phase 5 (current)
+# Phase 5 (done)
 next, let's add support for a "start time" and a "duration" (in hours) in the YAML we already discussed above. let's make our YAML optionally be able to have a property named "start" which we'll assume a 12hr format for a time of day, without the seconds part included (for example: `12:00 PM` represents noon). the duration will be in a numeric value and not necessarily an integer. so, if we have those included in the yaml, then I would like to have the calendar reflect that information. so this means you'll be adding new properties to our existing global State for the calendar, and then you'll be converting the values to whatever the calendar needs to have for its own proper rendering of the start and stop time or the start and duration of items. in other words, we're giving our calendar items the ability to specify particular time of day for a beginning and ending of a calendar item.
 
