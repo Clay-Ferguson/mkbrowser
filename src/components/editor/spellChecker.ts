@@ -52,7 +52,19 @@ export function createSpellCheckDecorations(view: EditorView, typo: Typo | null)
 
   const doc = view.state.doc;
 
+  // Determine front matter line range to skip
+  let frontMatterEnd = 0;
+  if (doc.lines >= 1 && doc.line(1).text.trim() === '---') {
+    for (let j = 2; j <= doc.lines; j++) {
+      if (doc.line(j).text.trim() === '---') {
+        frontMatterEnd = j;
+        break;
+      }
+    }
+  }
+
   for (let i = 1; i <= doc.lines; i++) {
+    if (i <= frontMatterEnd) continue;
     const line = doc.line(i);
     const words = extractWords(line.text);
 
