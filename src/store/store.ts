@@ -1062,12 +1062,12 @@ export function deleteCalendarEventsUnderPath(deletedPath: string): void {
   }
 }
 
-export function updateCalendarEvent(filePath: string, updated: CalendarEvent | null): void {
-  // console.log('[store] updateCalendarEvent called', { filePath, updated, eventsCount: state.calendarEvents?.length });
+export function updateCalendarEvent(filePath: string, updated: CalendarEvent[]): void {
+  // console.log('[store] updateCalendarEvent called', { filePath, count: updated.length, eventsCount: state.calendarEvents?.length });
   if (!state.calendarEvents) return;
   const existing = state.calendarEvents.filter(e => e.filePath !== filePath);
   // console.log('[store] existing after filter', existing.length, 'matched?', existing.length !== state.calendarEvents.length);
-  state = { ...state, calendarEvents: updated ? [...existing, updated] : existing };
+  state = { ...state, calendarEvents: [...existing, ...updated] };
   emitChange();
   // console.log('[store] emitChange called, new events count:', state.calendarEvents?.length);
 }

@@ -83,8 +83,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cancelAiStream: () => ipcRenderer.send('ai-stream-cancel'),
 
   // Calendar file-change events (chokidar → renderer)
-  onCalendarFileChanged: (callback: (result: import('./types/shared').CalendarEventResult | null, filePath: string) => void) => {
-    const listener = (_event: Electron.IpcRendererEvent, result: import('./types/shared').CalendarEventResult | null, filePath: string) => callback(result, filePath);
+  // todo-0: remove this 'import' function call (do at top of files only) and also search
+  // everywhere else in the code we might have this.
+  onCalendarFileChanged: (callback: (results: import('./types/shared').CalendarEventResult[], filePath: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, results: import('./types/shared').CalendarEventResult[], filePath: string) => callback(results, filePath);
     ipcRenderer.on('calendar-file-changed', listener);
     return () => { ipcRenderer.removeListener('calendar-file-changed', listener); };
   },

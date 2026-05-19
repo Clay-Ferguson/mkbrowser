@@ -88,11 +88,11 @@ function App() {
   // Listen for calendar file changes from the main process (chokidar) — lives here so
   // it's always active regardless of which view is currently displayed.
   useEffect(() => {
-    return window.electronAPI.onCalendarFileChanged((result: CalendarEventResult | null, filePath: string) => {
-      // console.log('[App] onCalendarFileChanged fired', { filePath, result });
-      const updated: CalendarEvent | null = result
-        ? { id: result.id, title: result.title, start: new Date(result.start), end: new Date(result.end), filePath: result.filePath, snippet: result.snippet }
-        : null;
+    return window.electronAPI.onCalendarFileChanged((results: CalendarEventResult[], filePath: string) => {
+      // console.log('[App] onCalendarFileChanged fired', { filePath, count: results.length });
+      const updated: CalendarEvent[] = results.map(r => ({
+        id: r.id, title: r.title, start: new Date(r.start), end: new Date(r.end), filePath: r.filePath, snippet: r.snippet,
+      }));
       updateCalendarEvent(filePath, updated);
     });
   }, []);
@@ -103,7 +103,7 @@ function App() {
       if (isFolder) {
         deleteCalendarEventsUnderPath(deletedPath);
       } else {
-        updateCalendarEvent(deletedPath, null);
+        updateCalendarEvent(deletedPath, []);
       }
     });
   }, []);

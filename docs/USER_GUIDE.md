@@ -1155,7 +1155,7 @@ MkBrowser includes a built-in calendar view that displays scheduled items derive
 
 ## Opening the Calendar
 
-To open the calendar, go to **Tools → Show Calendar**. MkBrowser will scan the folder you are currently browsing in the Browse View and populate the calendar with any files that contain calendar entries in their Front Matter YAML. The calendar remains open as its own tab and can be switched to at any time.
+To open the calendar, click **Show Calendar** icon (at top of Browse View). MkBrowser will scan the folder you are currently browsing in the Browse View and populate the calendar with any files that contain calendar entries in their Front Matter YAML. The calendar remains open as its own tab and can be switched to at any time.
 
 **Note:** The calendar is populated when you click **Show Calendar**. If you want to refresh the calendar data (for example, after adding new files), simply click **Show Calendar** again. The calendar also watches for file changes automatically — if you edit a file that has a calendar entry, the calendar updates in real time without requiring a manual refresh.
 
@@ -1205,3 +1205,22 @@ Click any event on the calendar to jump directly to that file in the Browse View
 ## What Gets Scanned
 
 The calendar scans all Markdown files (`.md`) inside the folder you were browsing when you opened the calendar. Files without a `due` property in their front matter are silently ignored. Subfolders are included in the scan. Only files inside the original scanned folder are tracked — browsing to a different folder in the Browse View does not affect the calendar until you click **Show Calendar** again.
+
+## Recurring Events
+
+Add an `rrule:` block to make an entry repeat. The property names mirror the iCal RFC 5545 `RRULE` field names:
+
+```yaml
+---
+due: 05/20/2026        # first occurrence / recurrence start
+start: 10:00 AM        # optional — applies to every occurrence
+duration: 1            # optional hours
+rrule:
+  freq: weekly         # daily | weekly | monthly | yearly
+  interval: 2          # every N freq-units (default: 1)
+  byday: MO,WE,FR      # iCal day codes — MO TU WE TH FR SA SU (weekly only)
+  until: 12/31/2026    # recurrence end date (exclusive with count)
+  count: 10            # max number of occurrences (exclusive with until)
+---
+My Calendar event.
+```

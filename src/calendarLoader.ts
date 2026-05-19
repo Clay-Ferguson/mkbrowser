@@ -2,6 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
 import yaml from 'js-yaml';
+import { RRule, Weekday } from 'rrule';
 
 export interface CalendarEventResult {
   id: string;
@@ -54,6 +55,69 @@ function buildExcludePredicate(ignoredPaths: string[]): (name: string, fullPath:
   };
 }
 
+const BYDAY_MAP: Record<string, Weekday> = {
+  MO: RRule.MO, TU: RRule.TU, WE: RRule.WE, TH: RRule.TH,
+  FR: RRule.FR, SA: RRule.SA, SU: RRule.SU,
+};
+
+const FREQ_MAP: Record<string, number> = {
+  daily: RRule.DAILY, weekly: RRule.WEEKLY,
+  monthly: RRule.MONTHLY, yearly: RRule.YEARLY,
+};
+
+interface RRuleYaml {
+  freq?: string;
+  interval?: number;
+  byday?: string;
+  until?: string;
+  count?: number;
+}
+
+function expandRRule(
+  rruleYaml: RRuleYaml,
+  dueDate: Date,
+  startMs: number,
+  endMs: number,
+  durationMs: number,
+  filePath: string,
+  title: string,
+  snippet: string,
+): CalendarEventResult[] {
+  const freq = FREQ_MAP[(rruleYaml.freq ?? '').toLowerCase()];
+  if (freq === undefined) return [];
+
+  const byweekday = rruleYaml.byday
+    ? rruleYaml.byday.split(',').map(s => BYDAY_MAP[s.trim().toUpperCase()]).filter(Boolean)
+    : undefined;
+
+  const until = rruleYaml.until ? parseDueDate(rruleYaml.until) : undefined;
+
+  const isAllDay = startMs === dueDate.getTime() && endMs === dueDate.getTime();
+
+  const rule = new RRule({
+    freq,
+    interval: rruleYaml.interval ?? 1,
+    byweekday: byweekday && byweekday.length > 0 ? byweekday : undefined,
+    until: until ?? undefined,
+    count: rruleYaml.count,
+    dtstart: isAllDay ? dueDate : new Date(startMs),
+  });
+
+  return rule.all().map((occurrenceDate, i) => {
+    let occStart: number;
+    let occEnd: number;
+    if (isAllDay) {
+      occStart = new Date(occurrenceDate.getFullYear(), occurrenceDate.getMonth(), occurrenceDate.getDate()).getTime();
+      occEnd = occStart;
+    } else {
+      occStart = new Date(occurrenceDate.getFullYear(), occurrenceDate.getMonth(), occurrenceDate.getDate(),
+        occurrenceDate.getHours(), occurrenceDate.getMinutes(), 0, 0).getTime();
+      occEnd = occStart + durationMs;
+    }
+    return { id: `${filePath}::${i}`, title, start: occStart, end: occEnd, filePath, snippet };
+  });
+}
+
 function extractFrontMatterYaml(content: string): string | null {
   const match = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/.exec(content);
   return match ? match[1] : null;
@@ -68,23 +132,25 @@ function extractSnippet(content: string): string {
   return joined.slice(0, 400) + '...';
 }
 
-/** Parse a single markdown file and return its calendar entry, or null if it has no valid 'due' property. */
-export async function loadCalendarEntryForFile(filePath: string): Promise<CalendarEventResult | null> {
+/** Parse a single markdown file and return its calendar entries (>1 for recurring events), or [] if no valid 'due'. */
+export async function loadCalendarEntryForFile(filePath: string): Promise<CalendarEventResult[]> {
   try {
     const content = await fs.promises.readFile(filePath, 'utf-8');
     const yamlStr = extractFrontMatterYaml(content);
-    if (!yamlStr) return null;
+    if (!yamlStr) return [];
 
     const parsed = yaml.load(yamlStr) as Record<string, unknown> | null;
-    if (!parsed || typeof parsed.due !== 'string') return null;
+    if (!parsed || typeof parsed.due !== 'string') return [];
 
     const dueDate = parseDueDate(parsed.due);
-    if (!dueDate) return null;
+    if (!dueDate) return [];
 
     const title = path.basename(filePath, '.md');
+    const snippet = extractSnippet(content);
 
     let startMs = dueDate.getTime();
     let endMs = dueDate.getTime();
+    let durationMs = 0;
 
     const startTimeStr = typeof parsed.start === 'string' ? parsed.start : null;
     const duration = typeof parsed.duration === 'number' ? parsed.duration : null;
@@ -95,15 +161,22 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
         const startDate = new Date(dueDate);
         startDate.setHours(time.hours, time.minutes, 0, 0);
         startMs = startDate.getTime();
-        const durationHours = duration ?? 1;
-        endMs = startMs + durationHours * 60 * 60 * 1000;
+        durationMs = (duration ?? 1) * 60 * 60 * 1000;
+        endMs = startMs + durationMs;
       }
     }
 
-    const snippet = extractSnippet(content);
-    return { id: filePath, title, start: startMs, end: endMs, filePath, snippet };
+    if (parsed.rrule && typeof parsed.rrule === 'object' && !Array.isArray(parsed.rrule)) {
+      return expandRRule(
+        parsed.rrule as RRuleYaml,
+        dueDate, startMs, endMs, durationMs,
+        filePath, title, snippet,
+      );
+    }
+
+    return [{ id: filePath, title, start: startMs, end: endMs, filePath, snippet }];
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -125,5 +198,5 @@ export async function loadCalendarEvents(
 
   const files = await api.withPromise();
   const results = await Promise.all(files.map(loadCalendarEntryForFile));
-  return results.filter((r): r is CalendarEventResult => r !== null);
+  return results.flat();
 }

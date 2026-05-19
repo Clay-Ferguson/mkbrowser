@@ -3,7 +3,7 @@ import chokidar from 'chokidar';
 import type { CalendarEventResult } from './calendarLoader';
 import { loadCalendarEntryForFile } from './calendarLoader';
 
-export type CalendarFileChangedCallback = (result: CalendarEventResult | null, filePath: string) => void;
+export type CalendarFileChangedCallback = (results: CalendarEventResult[], filePath: string) => void;
 export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolean) => void;
 
 let currentWatcher: ReturnType<typeof chokidar.watch> | null = null;
@@ -46,13 +46,13 @@ export function startCalendarWatcher(
   currentWatcher.on('change', (filePath: string) => {
     // console.log("************ onChange: "+filePath);
     if (path.extname(filePath).toLowerCase() !== '.md') return;
-    void loadCalendarEntryForFile(filePath).then(result => onChanged(result, filePath));
+    void loadCalendarEntryForFile(filePath).then(results => onChanged(results, filePath));
   });
 
   currentWatcher.on('add', (filePath: string) => {
     // console.log("************ onAdd (file added/renamed): "+filePath);
     if (path.extname(filePath).toLowerCase() !== '.md') return;
-    void loadCalendarEntryForFile(filePath).then(result => onChanged(result, filePath));
+    void loadCalendarEntryForFile(filePath).then(results => onChanged(results, filePath));
   });
 
   currentWatcher.on('unlink', (filePath: string) => {

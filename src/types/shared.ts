@@ -223,7 +223,7 @@ export interface ElectronAPI {
   cancelAiStream: () => void;
 
   // Calendar file-change and delete events
-  onCalendarFileChanged: (callback: (result: CalendarEventResult | null, filePath: string) => void) => () => void;
+  onCalendarFileChanged: (callback: (results: CalendarEventResult[], filePath: string) => void) => () => void;
   onCalendarFileDeleted: (callback: (deletedPath: string, isFolder: boolean) => void) => () => void;
 
   runInExternalTerminal: (command: string) => Promise<{ success: boolean; error?: string }>;

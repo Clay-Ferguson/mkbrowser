@@ -22,6 +22,28 @@ duration: 1.5        # optional — hours (decimal allowed)
 
 If `start` is absent the entry appears as an all-day event. If `duration` is absent but `start` is present, a one-hour default is assumed.
 
+### Recurring Events
+
+Add an `rrule:` block to make an entry repeat. The property names mirror the iCal RFC 5545 `RRULE` field names:
+
+```yaml
+---
+due: 05/20/2026        # first occurrence / recurrence start
+start: 10:00 AM        # optional — applies to every occurrence
+duration: 1            # optional hours
+rrule:
+  freq: weekly         # daily | weekly | monthly | yearly
+  interval: 2          # every N freq-units (default: 1)
+  byday: MO,WE,FR      # iCal day codes — MO TU WE TH FR SA SU (weekly only)
+  until: 12/31/2026    # recurrence end date (exclusive with count)
+  count: 10            # max number of occurrences (exclusive with until)
+---
+```
+
+Each occurrence is expanded into a separate calendar entry before being handed to `react-big-calendar` (which has no built-in recurring-event support). All occurrences share the same source file path, so clicking any occurrence navigates to the same Markdown file.
+
+The `rrule` npm package is used for occurrence expansion, using the same RFC 5545 naming internally.
+
 ## File Scanning — `calendarLoader.ts`
 
 All file-system scanning logic lives in `src/calendarLoader.ts`. The two exported functions are:

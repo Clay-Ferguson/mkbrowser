@@ -434,10 +434,10 @@ function setupIpcHandlers(): void {
 
       // Start (or keep) the file watcher for this folder
       if (getCalendarWatcherFolder() !== folderPath) {
-        startCalendarWatcher(folderPath, (updated, filePath) => {
-          logger.info(`[main] calendar-file-changed: sending to renderer filePath=${filePath} hasResult=${updated !== null}`);
+        startCalendarWatcher(folderPath, (results, filePath) => {
+          logger.info(`[main] calendar-file-changed: sending to renderer filePath=${filePath} count=${results.length}`);
           if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('calendar-file-changed', updated, filePath);
+            mainWindow.webContents.send('calendar-file-changed', results, filePath);
           }
         }, (deletedPath, isFolder) => {
           logger.info(`[main] calendar-file-deleted: deletedPath=${deletedPath} isFolder=${isFolder}`);
