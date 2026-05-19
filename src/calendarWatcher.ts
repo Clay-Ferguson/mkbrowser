@@ -3,9 +3,6 @@ import chokidar from 'chokidar';
 import type { CalendarEventResult } from './calendarLoader';
 import { loadCalendarEntryForFile } from './calendarLoader';
 
-// todo-0: need to update this so that is ONLY ever watches "md" files, and also make the calendar scanner logic (initial file system scan)
-// also ignore all file types other than markdown files
-
 export type CalendarFileChangedCallback = (result: CalendarEventResult | null, filePath: string) => void;
 export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolean) => void;
 
@@ -21,6 +18,8 @@ function buildIgnoredFn(extraPatterns: string[]): (filePath: string) => boolean 
     const base = path.basename(filePath);
     if (base.startsWith('.')) return true;
     if (filePath.includes('node_modules')) return true;
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext && ext !== '.md') return true;
     return compiled.some(p => p.test(base) || p.test(filePath));
   };
 }
@@ -58,6 +57,7 @@ export function startCalendarWatcher(
 
   currentWatcher.on('unlink', (filePath: string) => {
     // console.log("************ onUnlink (file deleted): "+filePath);
+    if (path.extname(filePath).toLowerCase() !== '.md') return;
     onDeleted(filePath, false);
   });
 
