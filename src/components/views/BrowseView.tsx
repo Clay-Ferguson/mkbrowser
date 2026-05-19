@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
   ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
-  FolderPlusIcon, DocumentPlusIcon,
+  FolderPlusIcon, DocumentPlusIcon, CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 import IndexInsertBar from '../IndexInsertBar';
 import type { FileEntry } from '../../global';
@@ -783,7 +783,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           />
         </div>
 
-        <div data-testid="browser-header-actions" className="flex-1 flex items-center justify-end gap-1">
+        <div data-testid="browser-header-actions" className="flex-1 flex items-center justify-end gap-2">
           {/* Cut button - shown when items are selected and no items are cut */}
           {hasSelectedItems && !hasCutItems && (
             <button
@@ -813,19 +813,19 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             <>
               <button
                 onClick={handleOpenCreateDialog}
-                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                className="p-1 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                 title="Create file"
                 data-testid="create-file-button"
               >
-                <DocumentPlusIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
+                <DocumentPlusIcon className="w-6 h-6 text-blue-400" />
               </button>
               <button
                 onClick={handleOpenCreateFolderDialog}
-                className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                className="p-1 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                 title="Create folder"
                 data-testid="create-folder-button"
               >
-                <FolderPlusIcon className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
+                <FolderPlusIcon className="w-6 h-6 text-amber-500" />
               </button>
             </>
           )}
@@ -834,65 +834,75 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           <button
             ref={editButtonRef}
             onClick={() => setShowEditMenu(prev => !prev)}
-            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             title="Edit"
             data-testid="edit-menu-button"
           >
-            <Squares2X2Icon className="w-5 h-5" />
+            <Squares2X2Icon className="w-6 h-6" />
           </button>
 
           {/* Tools menu button */}
           <button
             ref={toolsButtonRef}
             onClick={() => setShowToolsMenu(prev => !prev)}
-            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             title="Tools"
             data-testid="tools-menu-button"
           >
-            <WrenchIcon className="w-5 h-5" />
+            <WrenchIcon className="w-6 h-6" />
+          </button>
+
+          {/* Calendar button */}
+          <button
+            onClick={handleShowCalendar}
+            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            title="Show Calendar"
+            data-testid="calendar-button"
+          >
+            <CalendarDaysIcon className="w-6 h-6" />
           </button>
 
           {/* Sort order menu button */}
           {!hasIndexFile && (<button
             ref={sortButtonRef}
             onClick={() => setShowSortMenu(prev => !prev)}
-            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             title="Sort order"
             data-testid="sort-menu-button"
           >
-            <BarsArrowDownIcon className="w-5 h-5" />
+            <BarsArrowDownIcon className="w-6 h-6" />
           </button>)}
 
           {/* Paste from clipboard button */}
           <button
             onClick={handlePasteFromClipboard}
-            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             title="Paste from clipboard"
             data-testid="paste-clipboard-button"
           >
-            <ClipboardIcon className="w-5 h-5" />
+            <ClipboardIcon className="w-6 h-6" />
           </button>
 
           {/* Search button */}
           <button
             ref={searchButtonRef}
             onClick={() => setShowSearchMenu(prev => !prev)}
-            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             title="Search"
             data-testid="search-menu-button"
           >
-            <MagnifyingGlassIcon className="w-5 h-5" />
+            <MagnifyingGlassIcon className="w-6 h-6" />
           </button>
 
           {/* Expand all button */}
           {showExpandAll && (
             <button
               onClick={expandAllItems}
-              className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+              className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
               title="Expand all"
               data-testid="expand-all-button"
             >
-              <ChevronDownIcon className="w-5 h-5" />
+              <ChevronDownIcon className="w-6 h-6" />
             </button>
           )}
 
@@ -900,22 +910,22 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           {showCollapseAll && (
             <button
               onClick={collapseAllItems}
-              className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+              className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
               title="Collapse all"
               data-testid="collapse-all-button"
             >
-              <ChevronUpIcon className="w-5 h-5" />
+              <ChevronUpIcon className="w-6 h-6" />
             </button>
           )}
 
           {/* Refresh button */}
           <button
             onClick={() => void handleRefresh()}
-            className="p-2 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             title="Refresh"
             data-testid="refresh-button"
           >
-            <ArrowPathIcon className="w-5 h-5" />
+            <ArrowPathIcon className="w-6 h-6" />
           </button>
 
           {/* Edit checkbox floats at top right of scrollable area, inside main */}
@@ -1134,7 +1144,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onExport={() => setShowExportDialog(true)}
           onRunOcr={handleRunOcr}
           onNewAiChat={newAiChat}
-          onShowCalendar={handleShowCalendar}
         />
       )}
 

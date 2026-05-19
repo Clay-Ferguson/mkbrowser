@@ -10,7 +10,6 @@ interface ToolsPopupMenuProps {
   onExport: () => void;
   onNewAiChat: () => void;
   onRunOcr: () => void;
-  onShowCalendar: () => void;
 }
 
 export default function ToolsPopupMenu({
@@ -22,7 +21,6 @@ export default function ToolsPopupMenu({
   onExport,
   onNewAiChat,
   onRunOcr,
-  onShowCalendar,
 }: ToolsPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
@@ -54,11 +52,6 @@ export default function ToolsPopupMenu({
         label="Run OCR"
         data-testid="menu-run-ocr"
         onClick={() => { onRunOcr(); onClose(); }}
-      />
-      <PopupMenuItem
-        label="Show Calendar"
-        data-testid="menu-show-calendar"
-        onClick={() => { onShowCalendar(); onClose(); }}
       />
     </PopupMenu>
   );
