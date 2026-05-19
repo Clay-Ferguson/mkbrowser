@@ -55,6 +55,8 @@ interface CodeMirrorEditorProps {
 export interface CodeMirrorEditorHandle {
   /** Returns the current selection range, or null if nothing is selected (cursor only). */
   getSelection(): { from: number; to: number; text: string } | null;
+  /** Focuses the editor and places the cursor at the given character offset. */
+  focusAtPosition(pos: number): void;
 }
 
 const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false }, ref) {
@@ -89,6 +91,12 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       const { from, to } = view.state.selection.main;
       if (from === to) return null;
       return { from, to, text: view.state.sliceDoc(from, to) };
+    },
+    focusAtPosition(pos: number) {
+      const view = viewRef.current;
+      if (!view) return;
+      view.dispatch({ selection: { anchor: pos, head: pos } });
+      view.focus();
     },
   }));
 

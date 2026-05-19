@@ -142,7 +142,13 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   };
 
   const handleToggleShowProps = () => {
-    setShowPropsInEditor(!showPropsInEditor);
+    const turningOn = !showPropsInEditor;
+    if (turningOn && !edit.editContent.startsWith('---')) {
+      edit.setEditContent('---\n\n---\n' + edit.editContent);
+      // Position cursor on the blank line between the two '---' delimiters (offset 4)
+      setTimeout(() => editorRef.current?.focusAtPosition(4), 50);
+    }
+    setShowPropsInEditor(turningOn);
     onSaveSettings();
   };
 
