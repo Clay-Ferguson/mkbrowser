@@ -451,6 +451,11 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                     onSave={edit.handleSave}
                     onSelectionChange={setHasSelection}
                     showPropsInEditor={showPropsInEditor}
+                    fileName={entry.name}
+                    onMakeCalendarItem={() => {
+                      setShowPropsInEditor(true);
+                      onSaveSettings();
+                    }}
                   />
                 </>
               )}

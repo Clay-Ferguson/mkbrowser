@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
+import MessageDialog from '../dialogs/MessageDialog';
 import { EditorView, placeholder as placeholderExt, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
@@ -50,6 +51,10 @@ interface CodeMirrorEditorProps {
   showPropsInEditor?: boolean;
   /** If true, render as a non-editable view (still selectable, searchable, syntax-highlighted). */
   readOnly?: boolean;
+  /** The file name — used to enable markdown-only context menu items. */
+  fileName?: string;
+  /** Called when the user chooses "Make Calendar Item" from the context menu. */
+  onMakeCalendarItem?: () => void;
 }
 
 export interface CodeMirrorEditorHandle {
@@ -59,7 +64,7 @@ export interface CodeMirrorEditorHandle {
   focusAtPosition(pos: number): void;
 }
 
-const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false }, ref) {
+const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, onMakeCalendarItem }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -110,7 +115,11 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     handleSpellingSuggestion,
     handleInsertTimestamp,
     handleInsertDate,
-  } = useEditorContextMenu({ viewRef, typoRef });
+    handleMakeCalendarItem,
+    isMarkdown,
+    calendarAlreadyExists,
+    setCalendarAlreadyExists,
+  } = useEditorContextMenu({ viewRef, typoRef, fileName, onMakeCalendarItem });
 
   const searchMatchTheme = EditorView.theme({
     '.cm-searchMatch': { backgroundColor: 'yellow', color: 'black' },
@@ -435,7 +444,16 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
         onSpellingSuggestion={handleSpellingSuggestion}
         onInsertTimestamp={handleInsertTimestamp}
         onInsertDate={handleInsertDate}
+        onMakeCalendarItem={handleMakeCalendarItem}
+        isMarkdown={isMarkdown}
       />
+      {calendarAlreadyExists && (
+        <MessageDialog
+          title="Calendar Item Exists"
+          message="This file already contains calendar information (a 'due' property was found in the front matter)."
+          onClose={() => setCalendarAlreadyExists(false)}
+        />
+      )}
     </div>
   );
 });

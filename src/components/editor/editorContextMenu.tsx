@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { EditorView } from '@codemirror/view';
 import Typo from 'typo-js';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
+import { isMarkdownFile, hasDueProperty, injectCalendarFrontMatter } from '../../utils/calendarUtil';
 import type { SpellingSuggestion } from './spellChecker';
 
 export interface ContextMenuState {
@@ -14,10 +15,13 @@ export interface ContextMenuState {
 interface UseEditorContextMenuProps {
   viewRef: React.RefObject<EditorView | null>;
   typoRef: React.RefObject<Typo | null>;
+  fileName?: string;
+  onMakeCalendarItem?: () => void;
 }
 
-export function useEditorContextMenu({ viewRef, typoRef }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, fileName, onMakeCalendarItem }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
+  const [calendarAlreadyExists, setCalendarAlreadyExists] = useState(false);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(prev => ({ ...prev, visible: false }));
@@ -172,6 +176,26 @@ export function useEditorContextMenu({ viewRef, typoRef }: UseEditorContextMenuP
     view.focus();
   }, [viewRef, closeContextMenu]);
 
+  const handleMakeCalendarItem = useCallback(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    const currentContent = view.state.doc.toString();
+    if (hasDueProperty(currentContent)) {
+      setCalendarAlreadyExists(true);
+      closeContextMenu();
+      return;
+    }
+
+    const newContent = injectCalendarFrontMatter(currentContent);
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: newContent },
+    });
+    closeContextMenu();
+    view.focus();
+    onMakeCalendarItem?.();
+  }, [viewRef, closeContextMenu, onMakeCalendarItem]);
+
   // Close context menu when clicking elsewhere
   useEffect(() => {
     if (!contextMenu.visible) return;
@@ -188,6 +212,8 @@ export function useEditorContextMenu({ viewRef, typoRef }: UseEditorContextMenuP
     };
   }, [contextMenu.visible, closeContextMenu]);
 
+  const isMarkdown = !!fileName && isMarkdownFile(fileName);
+
   return {
     contextMenu,
     handleContextMenu,
@@ -198,6 +224,10 @@ export function useEditorContextMenu({ viewRef, typoRef }: UseEditorContextMenuP
     handleSpellingSuggestion,
     handleInsertTimestamp,
     handleInsertDate,
+    handleMakeCalendarItem,
+    isMarkdown,
+    calendarAlreadyExists,
+    setCalendarAlreadyExists,
   };
 }
 
@@ -210,6 +240,8 @@ interface EditorContextMenuProps {
   onSpellingSuggestion: (suggestion: string) => void;
   onInsertTimestamp: () => void;
   onInsertDate: () => void;
+  onMakeCalendarItem?: () => void;
+  isMarkdown?: boolean;
 }
 
 export function EditorContextMenu({
@@ -221,6 +253,8 @@ export function EditorContextMenu({
   onSpellingSuggestion,
   onInsertTimestamp,
   onInsertDate,
+  onMakeCalendarItem,
+  isMarkdown,
 }: EditorContextMenuProps) {
   if (!contextMenu.visible) return null;
 
@@ -297,6 +331,14 @@ export function EditorContextMenu({
         <span>Insert Date</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+D</span>
       </button>
+      {isMarkdown && onMakeCalendarItem && (
+        <button
+          onClick={onMakeCalendarItem}
+          className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+        >
+          Make Calendar Item
+        </button>
+      )}
     </div>
   );
 }
