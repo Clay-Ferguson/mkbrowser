@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, nativeImage } from 'electron';
-import path from 'node:path'; 
+import path from 'node:path';
 import fs from 'node:fs';
+import { spawn, execSync } from 'node:child_process';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
@@ -16,7 +17,7 @@ import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalys
 import { loadCalendarEvents, loadCalendarEntryForFile, type CalendarEventResult } from './calendarLoader';
 import { startCalendarWatcher, stopCalendarWatcher, getCalendarWatcherFolder } from './calendarWatcher';
 import { scanFolderTree, type FolderGraphResult } from './folderGraph';
-import { collectAncestorTags } from './utils/tagUtils';
+import { collectAncestorTags, type HashtagDefinition } from './utils/tagUtils';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
 import { hasScriptedAnswer, queueScriptedAnswer } from './ai/langGraph';
 import type { StreamCallbacks } from './ai/langGraph';
@@ -466,7 +467,7 @@ function setupIpcHandlers(): void {
   });
 
   // Collect tags by walking up ancestor directories reading .TAGS.yaml files
-  ipcMain.handle('collect-ancestor-tags', async (_event, filePath: string): Promise<import('./utils/tagUtils').HashtagDefinition[]> => {
+  ipcMain.handle('collect-ancestor-tags', async (_event, filePath: string): Promise<HashtagDefinition[]> => {
     try {
       return await collectAncestorTags(filePath);
     } catch (error) {
@@ -674,9 +675,7 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('run-in-external-terminal', async (_event, command: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { spawn, execSync } = await import('node:child_process');
-
-      const terminals = [
+const terminals = [
         { cmd: 'x-terminal-emulator', args: ['-e'] },
         { cmd: 'gnome-terminal', args: ['--'] },
         { cmd: 'konsole', args: ['-e'] },

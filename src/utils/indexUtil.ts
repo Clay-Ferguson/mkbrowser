@@ -50,7 +50,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   }
   if (existingIndexContent === null && !createIfMissing) return;
 
-  let dirEntries: import('fs').Dirent[];
+  let dirEntries: fs.Dirent[];
   try {
     dirEntries = await fs.promises.readdir(dirPath, { withFileTypes: true });
   } catch {
@@ -357,7 +357,7 @@ export async function getSortedDirEntries(
   const dirEntries = await fs.promises.readdir(dirPath, { withFileTypes: true });
   const visible = dirEntries.filter((e) => !e.name.startsWith('.'));
 
-  const toItem = (e: import('fs').Dirent) => ({
+  const toItem = (e: fs.Dirent) => ({
     name: e.name,
     entryPath: path.join(dirPath, e.name),
     isDir: e.isDirectory(),
