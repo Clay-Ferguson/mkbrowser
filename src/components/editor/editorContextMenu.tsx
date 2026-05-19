@@ -258,21 +258,21 @@ export function EditorContextMenu({
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
         <span>Cut</span>
-        <span className="text-slate-500 text-xs">Ctrl+X</span>
+        <span className="text-slate-500 text-xs ml-4">Ctrl+X</span>
       </button>
       <button
         onClick={onCopy}
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
         <span>Copy</span>
-        <span className="text-slate-500 text-xs">Ctrl+C</span>
+        <span className="text-slate-500 text-xs ml-4">Ctrl+C</span>
       </button>
       <button
         onClick={onPaste}
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
         <span>Paste</span>
-        <span className="text-slate-500 text-xs">Ctrl+V</span>
+        <span className="text-slate-500 text-xs ml-4">Ctrl+V</span>
       </button>
       <div className="border-t border-slate-600 my-1" />
       <button
@@ -280,7 +280,7 @@ export function EditorContextMenu({
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
         <span>Select All</span>
-        <span className="text-slate-500 text-xs">Ctrl+A</span>
+        <span className="text-slate-500 text-xs ml-4">Ctrl+A</span>
       </button>
       <div className="border-t border-slate-600 my-1" />
       <button
@@ -288,14 +288,14 @@ export function EditorContextMenu({
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
         <span>Insert Timestamp</span>
-        <span className="text-slate-500 text-xs">Ctrl+T</span>
+        <span className="text-slate-500 text-xs ml-4">Ctrl+T</span>
       </button>
       <button
         onClick={onInsertDate}
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
         <span>Insert Date</span>
-        <span className="text-slate-500 text-xs">Ctrl+D</span>
+        <span className="text-slate-500 text-xs ml-4">Ctrl+D</span>
       </button>
     </div>
   );
