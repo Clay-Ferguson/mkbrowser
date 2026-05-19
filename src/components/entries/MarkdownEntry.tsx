@@ -456,6 +456,10 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                       setShowPropsInEditor(true);
                       onSaveSettings();
                     }}
+                    onMakeRepeatingCalendarItem={() => {
+                      setShowPropsInEditor(true);
+                      onSaveSettings();
+                    }}
                   />
                 </>
               )}

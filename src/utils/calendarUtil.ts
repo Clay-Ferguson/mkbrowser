@@ -39,33 +39,34 @@ export function hasDueProperty(content: string): boolean {
   return /^due\s*:/m.test(frontMatter);
 }
 
+function buildCalendarBlock(repeating: boolean): string {
+  const due = getCurrentDateStr();
+  const start = getCurrentTimeStr();
+  const lines = [
+    `due: ${due}`,
+    `start: "${start}"`,
+    `duration: 1`,
+  ];
+  if (repeating) {
+    lines.push(`rrule:`, `  freq: weekly`, `  interval: 1`, `  until: ${getUntilDateStr()}`);
+  }
+  return lines.join('\n');
+}
+
 /**
  * Injects calendar front matter into the given markdown content.
+ * Pass repeating=true to include the rrule block.
  * If there is already a front matter block, merges the calendar fields at the top.
  * If there is no front matter block, prepends one.
  * Returns the modified content.
  */
-export function injectCalendarFrontMatter(content: string): string {
-  const due = getCurrentDateStr();
-  const start = getCurrentTimeStr();
-  const until = getUntilDateStr();
-
-  const calendarBlock = [
-    `due: ${due}`,
-    `start: "${start}"`,
-    `duration: 1`,
-    `rrule:`,
-    `  freq: weekly`,
-    `  interval: 1`,
-    `  until: ${until}`,
-  ].join('\n');
+export function injectCalendarFrontMatter(content: string, repeating: boolean): string {
+  const calendarBlock = buildCalendarBlock(repeating);
 
   if (content.startsWith('---')) {
-    // There is existing front matter — insert calendar fields after the opening ---
     const afterOpen = content.slice(3); // skip first '---'
     return `---\n${calendarBlock}\n${afterOpen.startsWith('\n') ? afterOpen.slice(1) : afterOpen}`;
   }
 
-  // No front matter — prepend a new block
   return `---\n${calendarBlock}\n---\n${content}`;
 }

@@ -55,6 +55,8 @@ interface CodeMirrorEditorProps {
   fileName?: string;
   /** Called when the user chooses "Make Calendar Item" from the context menu. */
   onMakeCalendarItem?: () => void;
+  /** Called when the user chooses "Make Calendar Item (Repeating)" from the context menu. */
+  onMakeRepeatingCalendarItem?: () => void;
 }
 
 export interface CodeMirrorEditorHandle {
@@ -64,7 +66,7 @@ export interface CodeMirrorEditorHandle {
   focusAtPosition(pos: number): void;
 }
 
-const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, onMakeCalendarItem }, ref) {
+const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, onMakeCalendarItem, onMakeRepeatingCalendarItem }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -116,10 +118,11 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     handleInsertTimestamp,
     handleInsertDate,
     handleMakeCalendarItem,
+    handleMakeRepeatingCalendarItem,
     isMarkdown,
     calendarAlreadyExists,
     setCalendarAlreadyExists,
-  } = useEditorContextMenu({ viewRef, typoRef, fileName, onMakeCalendarItem });
+  } = useEditorContextMenu({ viewRef, typoRef, fileName, onMakeCalendarItem, onMakeRepeatingCalendarItem });
 
   const searchMatchTheme = EditorView.theme({
     '.cm-searchMatch': { backgroundColor: 'yellow', color: 'black' },
@@ -445,6 +448,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
         onInsertTimestamp={handleInsertTimestamp}
         onInsertDate={handleInsertDate}
         onMakeCalendarItem={handleMakeCalendarItem}
+        onMakeRepeatingCalendarItem={handleMakeRepeatingCalendarItem}
         isMarkdown={isMarkdown}
       />
       {calendarAlreadyExists && (
