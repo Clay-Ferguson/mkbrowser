@@ -12,6 +12,8 @@ export interface CalendarEventResult {
   end: number;
   /** Full path to the source markdown file */
   filePath: string;
+  /** First 5 lines (up to 400 chars) of body content after front matter */
+  snippet: string;
 }
 
 function parseDueDate(dateStr: string): Date | null {
@@ -57,6 +59,15 @@ function extractFrontMatterYaml(content: string): string | null {
   return match ? match[1] : null;
 }
 
+function extractSnippet(content: string): string {
+  const fmMatch = /^---\r?\n[\s\S]*?\r?\n---[ \t]*\r?\n?/.exec(content);
+  const body = fmMatch ? content.slice(fmMatch[0].length) : content;
+  const lines = body.split(/\r?\n/).filter(l => l.trim().length > 0).slice(0, 5);
+  const joined = lines.join('\n');
+  if (joined.length <= 400) return joined;
+  return joined.slice(0, 400) + '...';
+}
+
 /** Parse a single markdown file and return its calendar entry, or null if it has no valid 'due' property. */
 export async function loadCalendarEntryForFile(filePath: string): Promise<CalendarEventResult | null> {
   try {
@@ -89,7 +100,8 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
       }
     }
 
-    return { id: filePath, title, start: startMs, end: endMs, filePath };
+    const snippet = extractSnippet(content);
+    return { id: filePath, title, start: startMs, end: endMs, filePath, snippet };
   } catch {
     return null;
   }

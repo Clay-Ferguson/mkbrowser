@@ -537,6 +537,8 @@ export interface CalendarEvent {
   end: Date;
   /** Optional file path this event originated from */
   filePath?: string;
+  /** First 5 lines (up to 400 chars) of body content after front matter */
+  snippet?: string;
 }
 
 /**

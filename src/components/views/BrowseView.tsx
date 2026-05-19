@@ -738,6 +738,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           start: new Date(r.start),
           end: new Date(r.end),
           filePath: r.filePath,
+          snippet: r.snippet,
         })));
       } catch (err) {
         onSetError('Failed to load calendar: ' + (err instanceof Error ? err.message : String(err)));

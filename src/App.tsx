@@ -91,7 +91,7 @@ function App() {
     return window.electronAPI.onCalendarFileChanged((result: CalendarEventResult | null, filePath: string) => {
       // console.log('[App] onCalendarFileChanged fired', { filePath, result });
       const updated: CalendarEvent | null = result
-        ? { id: result.id, title: result.title, start: new Date(result.start), end: new Date(result.end), filePath: result.filePath }
+        ? { id: result.id, title: result.title, start: new Date(result.start), end: new Date(result.end), filePath: result.filePath, snippet: result.snippet }
         : null;
       updateCalendarEvent(filePath, updated);
     });

@@ -142,6 +142,8 @@ export interface CalendarEventResult {
   /** Milliseconds since epoch */
   end: number;
   filePath: string;
+  /** First 5 lines (up to 400 chars) of body content after front matter */
+  snippet: string;
 }
 
 export interface FolderGraphScanResult {
