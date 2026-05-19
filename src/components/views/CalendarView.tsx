@@ -92,10 +92,11 @@ export default function CalendarView() {
             onNavigate={(d) => setCalendarViewTime(new Date(d))}
             onSelectEvent={handleSelectEvent}
             tooltipAccessor={(event: CalendarEvent) => {
-              const divider = '________________';
+              const pad = '  •  ';
+              const divider = '________________________________';
               return event.snippet
-                ? `${event.title}\n${divider}\n${event.snippet}`
-                : event.title;
+                ? `${pad}${event.title}\n${divider}\n${event.snippet}`
+                : `${pad}${event.title}`;
             }}
             style={{ height: '100%' }}
             popup
