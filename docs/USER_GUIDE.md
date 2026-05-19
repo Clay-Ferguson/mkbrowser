@@ -1149,3 +1149,59 @@ A great use for this feature is to keep your favorite links and notes in a Markd
 
 **Tip:** You can maintain multiple Markdown files with different `autogen.outputFile` targets, each generating a different HTML dashboard or landing page.
 
+# Calendar
+
+MkBrowser includes a built-in calendar view that displays scheduled items derived directly from the Markdown files in your currently browsed folder.
+
+## Opening the Calendar
+
+To open the calendar, go to **Tools → Show Calendar**. MkBrowser will scan the folder you are currently browsing in the Browse View and populate the calendar with any files that contain calendar entries in their Front Matter YAML. The calendar remains open as its own tab and can be switched to at any time.
+
+**Note:** The calendar is populated when you click **Show Calendar**. If you want to refresh the calendar data (for example, after adding new files), simply click **Show Calendar** again. The calendar also watches for file changes automatically — if you edit a file that has a calendar entry, the calendar updates in real time without requiring a manual refresh.
+
+## Creating Calendar Entries
+
+Calendar entries are defined using [Front Matter YAML](https://jekyllrb.com/docs/front-matter/) at the top of any Markdown file. To make a file appear on the calendar, add a `due` property to the front matter:
+
+```yaml
+---
+due: 05/28/2026
+---
+```
+
+The `due` date must be formatted as `MM/DD/YYYY`. The file's name (without the folder path) is used as the label for the calendar entry.
+
+### Adding a Start Time and Duration
+
+You can optionally specify a start time and duration to place the entry at a specific time of day rather than as an all-day event:
+
+```yaml
+---
+due: 05/28/2026
+start: 2:00 PM
+duration: 1.5
+---
+```
+
+- **`start`** — The time of day the event begins, in 12-hour format (e.g. `9:00 AM`, `2:30 PM`).
+- **`duration`** — How long the event lasts, in hours. Decimal values are supported (e.g. `1.5` = 90 minutes).
+
+If `start` and `duration` are omitted, the entry appears as an all-day event on the specified `due` date.
+
+## Navigating the Calendar
+
+The calendar toolbar provides standard navigation controls:
+
+- **Today** — Jump to the current date.
+- **Back / Next** — Move backward or forward by the currently selected time unit (month, week, or day).
+- **Month / Week / Day / Agenda** — Switch between calendar view modes.
+
+Your current view mode and the date you are viewing are both remembered automatically. If you switch to the Browse View and return to the Calendar tab, the calendar will restore exactly where you left off.
+
+## Jumping to a File
+
+Click any event on the calendar to jump directly to that file in the Browse View. MkBrowser will switch to the Browse tab and scroll the file into view, making it easy to open and edit the corresponding Markdown file.
+
+## What Gets Scanned
+
+The calendar scans all Markdown files (`.md`) inside the folder you were browsing when you opened the calendar. Files without a `due` property in their front matter are silently ignored. Subfolders are included in the scan. Only files inside the original scanned folder are tracked — browsing to a different folder in the Browse View does not affect the calendar until you click **Show Calendar** again.
