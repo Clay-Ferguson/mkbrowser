@@ -41,7 +41,16 @@
       "Bash(curl -s https://registry.npmjs.org/react-big-calendar)",
       "Bash(yarn tsc *)",
       "Bash(yarn build *)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(grep -r \"HF_HUB_OFFLINE\" /home/clay/ferguson/projects/kocreator/ /home/clay/ferguson/projects/mkbrowser/ 2>/dev/null | grep -v \".venv\" | grep -v \"__pycache__\")",
+      "Read(//home/clay/ferguson/projects/kocreator/**)",
+      "Read(//home/clay/.cache/huggingface/hub/models--hexgrad--Kokoro-82M/snapshots/**)",
+      "Read(//home/clay/.cache/huggingface/**)",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(sed -i 's/bm_liam/am_liam/g' /home/clay/ferguson/projects/kocreator/setup.sh /home/clay/ferguson/projects/kocreator/create-video.py /home/clay/ferguson/projects/kocreator/kokoro-txt-to-wav.py)"
+    ],
+    "additionalDirectories": [
+      "/home/clay/ferguson/projects/kocreator"
     ]
   }
 }

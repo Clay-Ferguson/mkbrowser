@@ -38,7 +38,7 @@ select_specific_test() {
 read -p "Build app before running tests? [Y/n]: " do_build
 if [[ ! "$do_build" =~ ^[Nn]$ ]]; then
     echo "Building app with electron-forge..."
-    npm run build
+    npx electron-forge package
     if [ $? -ne 0 ]; then
         echo "Build failed. Exiting."
         exit 1
