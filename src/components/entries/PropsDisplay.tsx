@@ -19,7 +19,7 @@ interface PropsDisplayProps {
  */
 export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: PropsDisplayProps) {
   const propEntries = props
-    ? Object.entries(props).filter(([key, value]) => key !== 'id' && typeof value !== 'object')
+    ? Object.entries(props).filter(([key, value]) => key !== 'id' && typeof value !== 'object').sort(([a], [b]) => a.localeCompare(b))
     : [];
   const hasTags = tags.length > 0;
   const hasProps = propEntries.length > 0;
@@ -39,7 +39,7 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
     </span>
   ));
 
-  const tagPills = tags.map((tag) => (
+  const tagPills = [...tags].sort((a, b) => a.localeCompare(b)).map((tag) => (
     <span
       key={tag}
       onClick={onTagClick}
