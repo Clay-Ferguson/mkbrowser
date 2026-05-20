@@ -560,7 +560,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
           onSave={(newContent) => {
             edit.setEditContent(newContent);
             setShowCalendarDialog(false);
-            setShowPropsInEditor(true);
+            // setShowPropsInEditor(true);
             onSaveSettings();
           }}
           onCancel={() => setShowCalendarDialog(false)}
