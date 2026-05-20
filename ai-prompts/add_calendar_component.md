@@ -2,7 +2,7 @@
  
 We are creating a calendar view/tab for this application. you will be doing this one phase at a time, so that each refactoring step that you do will be kept fairly simple and will build on the previous phases. I'll be writing each new phase as we go along.
 
-currently, you're doing Phase 13.
+currently, you're doing Phase 14.
 
 # Phase 1 (done)
 first, let's create an empty application View/Tab and wire it up to a new "Show Calendar" icon button at the top of our `BrowseView.tsx` (alongside other buttons at the top right of that component), so the user can switch to that tab by clicking the button. to understand the basic architecture for how tabs are implemented in the application read the document named `docs/technical_notes/GUI/application_tabs.md`. we have a consistent architecture that we use for all of our tabs and that document will help you to understand how to get started working with tabs. so add a new menu item named "Show Calendar" which will display this new component tab, and for now it can simply display a text message "Tab Component Works!". notice there's nothing calendar related in this at all. You're just creating the new tab itself. 
@@ -71,6 +71,10 @@ remember when this new "Calendar Info" button is clicked will currently be editi
 
 and finally, our new calendar editing dialog should have a save and cancel button at the bottom of it of course. So the user can close it without saving their changes, if desired.
 
-# Phase 13 (current)
+# Phase 13 (done)
 
 The `EditCalendarDialog.tsx` component now has ability to edit `Due` property. Next let's add to that dialog the ability to also let user enter the start time and duration values that we support in the `Front Matter` for configuring Calendar entries. i would like to use ordinary text fields for these components, let's group them together in some type of border box so the user can tell they're related to each other as a group sort of. also, let's put them in a layout that's side by side with the start time field on the left, and the duration field to the right of it. make sure the duration field isn't too wide because it only needs to hold maximum of four characters. 
+
+# Phase 14 (current)
+
+The last thing we need to add to the `EditCalendarDialog.tsx` component is the ability to allow a 'repeating' option. You've already read the `### Recurring Events` section of `docs/technical_notes/GUI/calendar_view.md` so I think you have all the information you need. for this feature, I will let you do the GUI design yourself, because I have a feeling you might have some better ideas than me on how to do this! one thing I would mention is that it does seem to me like it would be better to use drop-down combo boxes, rather than perhaps radio buttons, for selecting any of the enumerated values/options because our dialogue is already getting a little bit large and we don't want to consume tons of screen space for this, but I think you'll know how to do a great design, that's very usable for the end user.

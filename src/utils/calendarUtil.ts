@@ -136,6 +136,64 @@ export function setDueProperty(content: string, dueValue: string): string {
   return `---\ndue: ${dueValue}\n---\n${content}`;
 }
 
+export interface RRuleProps {
+  freq?: string;
+  interval?: string;
+  byday?: string;
+  until?: string;
+  count?: string;
+}
+
+function getFrontMatterParts(content: string): { fm: string; after: string } | null {
+  if (!content.startsWith('---')) return null;
+  const end = content.indexOf('\n---', 3);
+  if (end === -1) return null;
+  return { fm: content.slice(3, end), after: content.slice(end) };
+}
+
+export function getRRuleProperty(content: string): RRuleProps | null {
+  const parsed = getFrontMatterParts(content);
+  if (!parsed) return null;
+  const match = parsed.fm.match(/^rrule:\n((?:[ \t]+.+\n?)*)/m);
+  if (!match) return null;
+  const block = match[1];
+  const extract = (key: string) => {
+    const m = block.match(new RegExp(`^[ \\t]+${key}\\s*:\\s*(.+)$`, 'm'));
+    return m ? m[1].trim() : undefined;
+  };
+  return {
+    freq: extract('freq'),
+    interval: extract('interval'),
+    byday: extract('byday'),
+    until: extract('until'),
+    count: extract('count'),
+  };
+}
+
+function buildRRuleBlock(rrule: RRuleProps): string {
+  const lines = ['rrule:'];
+  if (rrule.freq) lines.push(`  freq: ${rrule.freq}`);
+  if (rrule.interval && rrule.interval !== '1') lines.push(`  interval: ${rrule.interval}`);
+  if (rrule.byday) lines.push(`  byday: ${rrule.byday}`);
+  if (rrule.until) lines.push(`  until: ${rrule.until}`);
+  if (rrule.count) lines.push(`  count: ${rrule.count}`);
+  return lines.join('\n');
+}
+
+export function setRRuleProperty(content: string, rrule: RRuleProps | null): string {
+  const parsed = getFrontMatterParts(content);
+  if (!parsed) {
+    if (!rrule?.freq) return content;
+    return `---\n${buildRRuleBlock(rrule)}\n---\n${content}`;
+  }
+  const { fm, after } = parsed;
+  const cleaned = fm.replace(/\nrrule:\n((?:[ \t]+.+\n?)*)/, '');
+  if (!rrule?.freq) {
+    return `---${cleaned}${after}`;
+  }
+  return `---${cleaned}\n${buildRRuleBlock(rrule)}${after}`;
+}
+
 /**
  * Injects calendar front matter into the given markdown content.
  * Pass repeating=true to include the rrule block.
