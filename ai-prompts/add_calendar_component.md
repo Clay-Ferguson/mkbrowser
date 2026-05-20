@@ -2,7 +2,7 @@
  
 We are creating a calendar view/tab for this application. you will be doing this one phase at a time, so that each refactoring step that you do will be kept fairly simple and will build on the previous phases. I'll be writing each new phase as we go along.
 
-currently, you're doing Phase 11.
+currently, you're doing Phase 12.
 
 # Phase 1 (done)
 first, let's create an empty application View/Tab and wire it up to a new "Show Calendar" icon button at the top of our `BrowseView.tsx` (alongside other buttons at the top right of that component), so the user can switch to that tab by clicking the button. to understand the basic architecture for how tabs are implemented in the application read the document named `docs/technical_notes/GUI/application_tabs.md`. we have a consistent architecture that we use for all of our tabs and that document will help you to understand how to get started working with tabs. so add a new menu item named "Show Calendar" which will display this new component tab, and for now it can simply display a text message "Tab Component Works!". notice there's nothing calendar related in this at all. You're just creating the new tab itself. 
@@ -52,5 +52,21 @@ Now that we have `calendarViewType` fully working, you can search for that in th
 # Phase 10 (done)
 we have now completed our calendar feature, and so we need to update the `USER_GUIDE.md`. create a new top-level section in the user guide called `Calendar` and add to this section the appropriate information for the end users to know how to create calendar entries using Front Matter YAML properties, and how to open and display the calendar. mention that the calendar renders based on whatever folder the user is browsing, and will contain only calendared entries from inside that folder.
 
-# Phase 11 (current)
+# Phase 11 (done)
 finally let's now create a file named `docs/technical_notes/GUI/calendar_view.md` which will be a technical document for software developers and AI agents that might work on the calendar aspects of this application in the future. give enough technical information in this document so that human or AI could easily get started working on this feature, by reading this file. in the document, mention how we store the state, and mention the names of the two utility files that have most of our implementation in it for scanning the, folders and for monitoring the folder for changes. try to keep this document down to something like 5 to 8 paragraphs, as a general guideline for its length.
+
+# Phase 12 (current)
+
+Phase objective: Button that opens a dialog box where user can edit calendar information for a given file (i.e. editing the calendar properties in the `Front Matter`)
+
+for a refresher on how we have the date feature working in this app read the file named `docs/technical_notes/GUI/calendar_view.md`
+
+our `MarkdownEntry.tsx` component what we display in the `BrowseView.tsx`, as the user is browsing around in their files and folders. let's create a new icon button in that component to the right of the "Show Tags" button. we'll make this new icon be named "Calendar Info" and it's mouse hover text, and for the icon choose some type of icon that might indicate editing of a calendar item if there is such an icon, but just be sure to use a different icon then `CalendarDaysIcon` because we're already using `CalendarDaysIcon` for something else in this app, so we just want something different. The new "Calendar Info" will of course also only be rendered when the user is currently editing the file (just like the "Show Tags" button)
+
+when the user clicks this button we're going to open a new dialog that you'll have to create named `EditCalendarDialog.tsx`. to understand how our dialogs are designed in this app, you can look at how `SearchDialog.tsx` is architected and follow that pattern.
+
+to keep this phase down to a limited scope let's only add a `Due` field for now. in other words, we're not going to add full editing of all the calendar properties, but we're just going to add the ability for the user to edit the `Due` property, because that's enough to get recognized as a calendar entry by this application. you will need to use yarn to intstall the `react-day-picker` NPM package so we can use that as the way the user can enter the date value.
+
+remember when this new "Calendar Info" button is clicked will currently be editing the file with code mirror already so you won't be reading and writing to the file from disk. You'll simply be modifying the state variable that backs the editor component. also be aware that our code mirror does have a custom right-click menu which is implemented in `src/components/editor/editorContextMenu.tsx` which already has the capability of initializing a date into the front matter, so we should try to share as much of that code as possible and move any of it into `calendarUtil.ts` that would make sense to be shared in that way across different GUI components.
+
+and finally, our new calendar editing dialog should have a save and cancel button at the bottom of it of course. So the user can close it without saving their changes, if desired.

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
 import Markdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
@@ -33,6 +33,7 @@ import {
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import StreamingDialog from '../dialogs/StreamingDialog';
+import EditCalendarDialog from '../dialogs/EditCalendarDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
@@ -122,6 +123,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   };
 
   const [tagsVisible, setTagsVisible] = useState(false);
+  const [showCalendarDialog, setShowCalendarDialog] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiRewriteMode, setAiRewriteMode] = useState(false);
   const [selectedPromptName, setSelectedPromptName] = useState<string>('');
@@ -307,6 +309,13 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               {tagsVisible
                 ? <TagIconSolid className="w-5 h-5" />
                 : <TagIconOutline className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={() => setShowCalendarDialog(true)}
+              title="Calendar Info"
+              className="p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer border border-transparent"
+            >
+              <CalendarIcon className="w-5 h-5" />
             </button>
             <button
               onClick={() => setExpandedEditor(!expandedEditor)}
@@ -544,6 +553,18 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             </>
           )}
         </div>
+      )}
+      {showCalendarDialog && (
+        <EditCalendarDialog
+          content={edit.editContent}
+          onSave={(newContent) => {
+            edit.setEditContent(newContent);
+            setShowCalendarDialog(false);
+            setShowPropsInEditor(true);
+            onSaveSettings();
+          }}
+          onCancel={() => setShowCalendarDialog(false)}
+        />
       )}
       {del.showDeleteConfirm && (
         <ConfirmDialog

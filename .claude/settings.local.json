@@ -40,7 +40,8 @@
       "WebFetch(domain:www.npmjs.com)",
       "Bash(curl -s https://registry.npmjs.org/react-big-calendar)",
       "Bash(yarn tsc *)",
-      "Bash(yarn build *)"
+      "Bash(yarn build *)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

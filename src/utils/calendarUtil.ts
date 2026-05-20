@@ -54,6 +54,37 @@ function buildCalendarBlock(repeating: boolean): string {
 }
 
 /**
+ * Extracts the 'due' property value from front matter, or null if not present.
+ */
+export function getDueProperty(content: string): string | null {
+  if (!content.startsWith('---')) return null;
+  const end = content.indexOf('\n---', 3);
+  if (end === -1) return null;
+  const frontMatter = content.slice(3, end);
+  const match = frontMatter.match(/^due\s*:\s*(.+)$/m);
+  return match ? match[1].trim() : null;
+}
+
+/**
+ * Sets or updates the 'due' property in front matter.
+ * If no front matter exists, one is created. If 'due' already exists, it is replaced.
+ */
+export function setDueProperty(content: string, dueValue: string): string {
+  if (content.startsWith('---')) {
+    const end = content.indexOf('\n---', 3);
+    if (end !== -1) {
+      const frontMatter = content.slice(3, end);
+      if (/^due\s*:/m.test(frontMatter)) {
+        const updated = frontMatter.replace(/^due\s*:.*$/m, `due: ${dueValue}`);
+        return `---${updated}${content.slice(end)}`;
+      }
+      return `---\ndue: ${dueValue}${frontMatter}\n---${content.slice(end + 4)}`;
+    }
+  }
+  return `---\ndue: ${dueValue}\n---\n${content}`;
+}
+
+/**
  * Injects calendar front matter into the given markdown content.
  * Pass repeating=true to include the rrule block.
  * If there is already a front matter block, merges the calendar fields at the top.
