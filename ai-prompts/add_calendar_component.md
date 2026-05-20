@@ -2,7 +2,7 @@
  
 We are creating a calendar view/tab for this application. you will be doing this one phase at a time, so that each refactoring step that you do will be kept fairly simple and will build on the previous phases. I'll be writing each new phase as we go along.
 
-currently, you're doing Phase 12.
+currently, you're doing Phase 13.
 
 # Phase 1 (done)
 first, let's create an empty application View/Tab and wire it up to a new "Show Calendar" icon button at the top of our `BrowseView.tsx` (alongside other buttons at the top right of that component), so the user can switch to that tab by clicking the button. to understand the basic architecture for how tabs are implemented in the application read the document named `docs/technical_notes/GUI/application_tabs.md`. we have a consistent architecture that we use for all of our tabs and that document will help you to understand how to get started working with tabs. so add a new menu item named "Show Calendar" which will display this new component tab, and for now it can simply display a text message "Tab Component Works!". notice there's nothing calendar related in this at all. You're just creating the new tab itself. 
@@ -55,7 +55,7 @@ we have now completed our calendar feature, and so we need to update the `USER_G
 # Phase 11 (done)
 finally let's now create a file named `docs/technical_notes/GUI/calendar_view.md` which will be a technical document for software developers and AI agents that might work on the calendar aspects of this application in the future. give enough technical information in this document so that human or AI could easily get started working on this feature, by reading this file. in the document, mention how we store the state, and mention the names of the two utility files that have most of our implementation in it for scanning the, folders and for monitoring the folder for changes. try to keep this document down to something like 5 to 8 paragraphs, as a general guideline for its length.
 
-# Phase 12 (current)
+# Phase 12 (done)
 
 Phase objective: Button that opens a dialog box where user can edit calendar information for a given file (i.e. editing the calendar properties in the `Front Matter`)
 
@@ -70,3 +70,7 @@ to keep this phase down to a limited scope let's only add a `Due` field for now.
 remember when this new "Calendar Info" button is clicked will currently be editing the file with code mirror already so you won't be reading and writing to the file from disk. You'll simply be modifying the state variable that backs the editor component. also be aware that our code mirror does have a custom right-click menu which is implemented in `src/components/editor/editorContextMenu.tsx` which already has the capability of initializing a date into the front matter, so we should try to share as much of that code as possible and move any of it into `calendarUtil.ts` that would make sense to be shared in that way across different GUI components.
 
 and finally, our new calendar editing dialog should have a save and cancel button at the bottom of it of course. So the user can close it without saving their changes, if desired.
+
+# Phase 13 (current)
+
+The `EditCalendarDialog.tsx` component now has ability to edit `Due` property. Next let's add to that dialog the ability to also let user enter the start time and duration values that we support in the `Front Matter` for configuring Calendar entries. i would like to use ordinary text fields for these components, let's group them together in some type of border box so the user can tell they're related to each other as a group sort of. also, let's put them in a layout that's side by side with the start time field on the left, and the duration field to the right of it. make sure the duration field isn't too wide because it only needs to hold maximum of four characters. 

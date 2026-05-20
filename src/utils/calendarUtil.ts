@@ -66,6 +66,58 @@ export function getDueProperty(content: string): string | null {
 }
 
 /**
+ * Extracts the 'start' property value from front matter, or null if not present.
+ */
+export function getStartProperty(content: string): string | null {
+  if (!content.startsWith('---')) return null;
+  const end = content.indexOf('\n---', 3);
+  if (end === -1) return null;
+  const frontMatter = content.slice(3, end);
+  const match = frontMatter.match(/^start\s*:\s*"?(.+?)"?\s*$/m);
+  return match ? match[1].trim() : null;
+}
+
+/**
+ * Extracts the 'duration' property value from front matter, or null if not present.
+ */
+export function getDurationProperty(content: string): string | null {
+  if (!content.startsWith('---')) return null;
+  const end = content.indexOf('\n---', 3);
+  if (end === -1) return null;
+  const frontMatter = content.slice(3, end);
+  const match = frontMatter.match(/^duration\s*:\s*(.+)$/m);
+  return match ? match[1].trim() : null;
+}
+
+/**
+ * Sets or updates a simple string property in front matter.
+ * If the property exists it is replaced; if not, it is inserted after the opening ---.
+ */
+function setFrontMatterProperty(content: string, key: string, value: string): string {
+  if (content.startsWith('---')) {
+    const end = content.indexOf('\n---', 3);
+    if (end !== -1) {
+      const frontMatter = content.slice(3, end);
+      const re = new RegExp(`^${key}\\s*:.*$`, 'm');
+      if (re.test(frontMatter)) {
+        const updated = frontMatter.replace(re, `${key}: ${value}`);
+        return `---${updated}${content.slice(end)}`;
+      }
+      return `---\n${key}: ${value}${frontMatter}\n---${content.slice(end + 4)}`;
+    }
+  }
+  return `---\n${key}: ${value}\n---\n${content}`;
+}
+
+export function setStartProperty(content: string, startValue: string): string {
+  return setFrontMatterProperty(content, 'start', `"${startValue}"`);
+}
+
+export function setDurationProperty(content: string, durationValue: string): string {
+  return setFrontMatterProperty(content, 'duration', durationValue);
+}
+
+/**
  * Sets or updates the 'due' property in front matter.
  * If no front matter exists, one is created. If 'due' already exists, it is replaced.
  */

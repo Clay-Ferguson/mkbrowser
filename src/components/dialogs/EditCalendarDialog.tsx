@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
-import { getDueProperty, setDueProperty } from '../../utils/calendarUtil';
+import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty } from '../../utils/calendarUtil';
 
 interface EditCalendarDialogProps {
   content: string;
@@ -32,11 +32,20 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
   const [selected, setSelected] = useState<Date | undefined>(
     existingDue ? parseDueStr(existingDue) : undefined
   );
+  const [startTime, setStartTime] = useState<string>(getStartProperty(content) ?? '');
+  const [duration, setDuration] = useState<string>(getDurationProperty(content) ?? '');
 
   const handleSave = () => {
     if (!selected) return;
     const dueStr = formatDueDate(selected);
-    onSave(setDueProperty(content, dueStr));
+    let newContent = setDueProperty(content, dueStr);
+    if (startTime.trim()) {
+      newContent = setStartProperty(newContent, startTime.trim());
+    }
+    if (duration.trim()) {
+      newContent = setDurationProperty(newContent, duration.trim());
+    }
+    onSave(newContent);
   };
 
   return (
@@ -54,9 +63,9 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
             classNames={{
               root: 'text-slate-200',
               month_caption: 'text-slate-200 font-semibold',
-              nav: 'text-slate-400',
-              button_previous: 'text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded p-1',
-              button_next: 'text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded p-1',
+              nav: 'text-slate-200',
+              button_previous: 'text-slate-200 hover:text-white hover:bg-slate-700 rounded p-1 [&_svg]:stroke-slate-200 [&_svg]:fill-slate-200',
+              button_next: 'text-slate-200 hover:text-white hover:bg-slate-700 rounded p-1 [&_svg]:stroke-slate-200 [&_svg]:fill-slate-200',
               weekdays: 'text-slate-500 text-xs',
               day: 'text-slate-300',
               day_button: 'w-9 h-9 rounded hover:bg-slate-600 transition-colors cursor-pointer',
@@ -72,6 +81,32 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
             Due: <span className="font-mono text-blue-300">{formatDueDate(selected)}</span>
           </p>
         )}
+
+        <fieldset className="border border-slate-500 rounded p-3 mb-4">
+          <legend className="text-xs text-slate-400 px-1">Time</legend>
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <label className="block text-xs text-slate-400 mb-1">Start Time</label>
+              <input
+                type="text"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                placeholder="e.g. 2:00 PM"
+                className="w-full bg-slate-700 text-slate-100 border border-slate-500 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400"
+              />
+            </div>
+            <div style={{ width: '5rem' }}>
+              <label className="block text-xs text-slate-400 mb-1">Duration</label>
+              <input
+                type="text"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                placeholder="hrs"
+                className="w-full bg-slate-700 text-slate-100 border border-slate-500 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400"
+              />
+            </div>
+          </div>
+        </fieldset>
 
         <div className="flex justify-end gap-3">
           <button
