@@ -163,9 +163,11 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   const [isReplyLoading, setIsReplyLoading] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [showStreamingDialog, setShowStreamingDialog] = useState(false);
+  const showStreamingDialogRef = useRef(false);
   const pendingNavigationRef = useRef<(() => void) | null>(null);
 
   const handleStreamingDialogClose = () => {
+    showStreamingDialogRef.current = false;
     setShowStreamingDialog(false);
     if (pendingNavigationRef.current) {
       pendingNavigationRef.current();
@@ -177,11 +179,22 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     const textToSend = promptContent || content;
     if (!textToSend) return;
     setIsAiLoading(true);
-    setShowStreamingDialog(true);
+
+    // Only show the streaming dialog when actual stream events arrive.
+    // Scripted answers (used in tests) resolve immediately with no events,
+    // so the dialog should never appear for them.
+    const unsubChunk = window.electronAPI.onAiStreamChunk(() => {
+      if (!showStreamingDialogRef.current) {
+        showStreamingDialogRef.current = true;
+        setShowStreamingDialog(true);
+      }
+      unsubChunk();
+    });
 
     try {
       const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
       const result = await window.electronAPI.askAi(textToSend, parentFolder);
+      unsubChunk(); // no-op if already fired; cancels if scripted (no chunks came)
       if ('error' in result) {
         setAiErrorMessage(result.error);
       } else {
@@ -193,9 +206,9 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             navigateToBrowserPath(result.responseFolder);
           }
         };
-        // If the streaming dialog is visible it will trigger navigation when it
-        // closes; otherwise navigate immediately (e.g. scripted / non-streaming).
-        if (showStreamingDialog) {
+        // Use ref (not state) for a synchronous check: if streaming started,
+        // defer navigation until the user closes the dialog; otherwise navigate now.
+        if (showStreamingDialogRef.current) {
           pendingNavigationRef.current = navigate;
         } else {
           navigate();
