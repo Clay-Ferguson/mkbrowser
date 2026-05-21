@@ -6,6 +6,18 @@ import { parseFrontMatter } from './fileUtils';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
 
+/**
+ * Writes content to filePath atomically: writes to a sibling .tmp file first,
+ * then renames it into place. On Linux/macOS, rename() is POSIX-atomic within
+ * the same filesystem, so readers always see either the old complete file or
+ * the new complete file — never a truncated intermediate state.
+ */
+async function writeFileAtomic(filePath: string, content: string): Promise<void> {
+  const tmpPath = filePath + '.tmp';
+  await fs.promises.writeFile(tmpPath, content, 'utf8');
+  await fs.promises.rename(tmpPath, filePath);
+}
+
 export type IndexEntry = { name: string; id?: string; create_time?: number; size?: number };
 
 export interface IndexOptions {
@@ -185,7 +197,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
 
   const newContent = yaml.dump({ files, options: existingOptions }, { indent: 2 });
   if (newContent !== existingIndexContent) {
-    await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+    await writeFileAtomic(indexFilePath, newContent);
   }
 }
 
@@ -198,9 +210,9 @@ export async function writeIndexOptions(
 ): Promise<{ success: boolean; error?: string }> {
   const indexFilePath = path.join(dirPath, '.INDEX.yaml');
   try {
-    const existing = (await readIndexYaml(dirPath)) ?? {}; 
+    const existing = (await readIndexYaml(dirPath)) ?? {};
     const updated: IndexYaml = { ...existing, options: { ...existing.options, ...options } };
-    await fs.promises.writeFile(indexFilePath, yaml.dump(updated, { indent: 2 }), 'utf8');
+    await writeFileAtomic(indexFilePath, yaml.dump(updated, { indent: 2 }));
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };
@@ -262,10 +274,9 @@ export async function validateAttachFolderLocation(dirPath: string): Promise<voi
     const reordered = reorderAttachFolders(indexYaml.files);
     if (reordered === indexYaml.files) return; // no change
 
-    await fs.promises.writeFile(
+    await writeFileAtomic(
       indexFilePath,
       yaml.dump({ ...indexYaml, files: reordered }, { indent: 2 }),
-      'utf8',
     );
   } catch {
     // Best-effort
@@ -302,7 +313,7 @@ export async function moveInIndexYaml(
     [files[idx], files[swapIdx]] = [files[swapIdx], files[idx]];
 
     const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
-    await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+    await writeFileAtomic(indexFilePath, newContent);
     await validateAttachFolderLocation(dirPath);
     return { success: true };
   } catch (err) {
@@ -335,7 +346,7 @@ export async function moveToEdgeInIndexYaml(
     }
 
     const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
-    await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+    await writeFileAtomic(indexFilePath, newContent);
     await validateAttachFolderLocation(dirPath);
     return { success: true };
   } catch (err) {
@@ -445,7 +456,7 @@ export async function ensureFrontMatterIdIfIndexed(
   if (entry) {
     entry.id = fileId;
     const newIndexContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
-    await fs.promises.writeFile(indexFilePath, newIndexContent, 'utf8');
+    await writeFileAtomic(indexFilePath, newIndexContent);
   }
 
   return newContent;
@@ -467,7 +478,7 @@ export async function renameInIndexYaml(
     const entry = indexYaml.files.find((f) => f.name === oldName);
     if (!entry) return;
     entry.name = newName;
-    await fs.promises.writeFile(indexFilePath, yaml.dump(indexYaml, { indent: 2 }), 'utf8');
+    await writeFileAtomic(indexFilePath, yaml.dump(indexYaml, { indent: 2 }));
   } catch {
     // Best-effort; don't throw
   }
@@ -501,7 +512,7 @@ export async function insertIntoIndexYaml(
     }
 
     const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
-    await fs.promises.writeFile(indexFilePath, newContent, 'utf8');
+    await writeFileAtomic(indexFilePath, newContent);
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };

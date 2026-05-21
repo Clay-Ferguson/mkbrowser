@@ -54,7 +54,11 @@ async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
         });
     const newChildren: FileNode[] = sortedEntries.map(e => {
       const existing = oldByPath.get(e.path);
-      if (existing) return existing;
+      if (existing) {
+        if (e.indexOrder !== undefined) return { ...existing, indexOrder: e.indexOrder };
+        if ('indexOrder' in existing) { const { indexOrder: _io, ...rest } = existing; return rest as FileNode; }
+        return existing;
+      }
       return {
         path: e.path,
         name: e.name,
