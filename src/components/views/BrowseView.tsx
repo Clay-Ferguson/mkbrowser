@@ -1011,7 +1011,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                           )}
                         </>
                       ) : entry.isMarkdown ? (
-                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} />
+                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} documentMode={hasIndexFile} />
                       ) : isImageFile(entry.name) ? (
                         <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                       ) : isTextFile(entry.name) ? (
@@ -1048,7 +1048,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                         )}
                       </>
                     ) : entry.isMarkdown ? (
-                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} />
+                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} documentMode={hasIndexFile} />
                     ) : isImageFile(entry.name) ? (
                       <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
                     ) : isTextFile(entry.name) ? (

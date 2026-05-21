@@ -67,7 +67,9 @@ interface MarkdownEntryProps extends BaseEntryProps {
   isAttachment?: boolean;
 }
 
-function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false }: MarkdownEntryProps) {
+const TIMESTAMP_FILENAME_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-(AM|PM)\.md$/;
+
+function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, documentMode = false }: MarkdownEntryProps) {
   const item = useItem(entry.path);
   const hasCutItems = useHasCutItems();
 
@@ -300,7 +302,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             className="text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline"
             title={isExpanded ? 'Collapse content' : 'Expand content'}
           >
-            {entry.name}
+            {!isExpanded || !(documentMode && TIMESTAMP_FILENAME_RE.test(entry.name)) ? entry.name : ''}
           </span>
         )}
         {edit.isEditing ? (

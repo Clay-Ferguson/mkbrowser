@@ -23,6 +23,8 @@ export interface BaseEntryProps {
   onMoveToBottom?: () => void;
   /** When true, hides the selection checkbox (used for entries rendered as attachments) */
   isAttachment?: boolean;
+  /** When true, the folder is in document mode (.INDEX.yaml exists); used to suppress timestamp-generated file names */
+  documentMode?: boolean;
 }
 
 /**
