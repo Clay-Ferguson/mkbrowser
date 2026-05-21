@@ -199,6 +199,16 @@ export function formatDaysDisplay(days: number): string {
   return `${sign}(${parts.join(' ')})`;
 }
 
+// Generate a filename based on current date/time: YYYY-MM-DD--HH-MM-SS-AM/PM.md
+export function generateTimestampFileName(): string {
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const hours24 = now.getHours();
+  const hours12 = hours24 % 12 || 12;
+  const ampm = hours24 < 12 ? 'AM' : 'PM';
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}--${pad(hours12)}-${pad(now.getMinutes())}-${pad(now.getSeconds())}-${ampm}.md`;
+}
+
 // Format current date/time as MM/DD/YY HH:MM AM/PM
 export function formatTimestamp(): string {
   const now = new Date();

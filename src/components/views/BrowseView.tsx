@@ -70,6 +70,7 @@ import {
 import { scrollItemIntoView, scrollElementIntoView } from '../../utils/entryDom';
 import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtils';
 import { getContentWidthClasses } from '../../utils/styles';
+import { generateTimestampFileName } from '../../utils/timeUtil';
 import { hasHumanMd } from '../../ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtils';
 import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../utils/fileOpsUtils';
@@ -500,11 +501,22 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setShowCreateDialog(true);
   }, []);
 
-  const handleInsertFileAt = useCallback((insertIndex: number) => {
+  // No longer used — kept for reference in case we return to prompting users for a file name during document mode editing
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleInsertFileAt_legacy = useCallback((insertIndex: number) => {
     setInsertAtIndex(insertIndex);
     setCreateFileDefaultName('');
     setShowCreateDialog(true);
   }, []);
+
+  const handleInsertFileAt = useCallback(async (insertIndex: number) => {
+    const fileName = generateTimestampFileName();
+    await createFileOp(fileName, currentPath, insertIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
+      setShowCreateDialog(false);
+      setCreateFileDefaultName('');
+      setInsertAtIndex(null);
+    });
+  }, [currentPath, onRefreshDirectory, onSetError, sortedEntries]);
 
   const handleCreateFile = useCallback(async (fileName: string) => {
     await createFileOp(fileName, currentPath, insertAtIndex, sortedEntries, onRefreshDirectory, onSetError, () => {

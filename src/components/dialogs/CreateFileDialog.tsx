@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { generateTimestampFileName } from '../../utils/timeUtil';
 
 interface CreateFileDialogProps {
   defaultName?: string;
@@ -14,18 +15,9 @@ function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDi
     inputRef.current?.focus();
   }, []);
 
-  const generateTimestampName = (): string => {
-    const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const hours24 = now.getHours();
-    const hours12 = hours24 % 12 || 12;
-    const ampm = hours24 < 12 ? 'AM' : 'PM';
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}--${pad(hours12)}-${pad(now.getMinutes())}-${pad(now.getSeconds())}-${ampm}`;
-  };
-
   const handleCreate = () => {
     const trimmedName = fileName.trim();
-    const baseName = trimmedName || generateTimestampName();
+    const baseName = trimmedName || generateTimestampFileName().replace(/\.md$/, '');
     const normalizedName = baseName.includes('.') ? baseName : `${baseName}.md`;
     onCreate(normalizedName);
   };
