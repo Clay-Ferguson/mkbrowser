@@ -121,7 +121,7 @@ Now let's save our work.`
       step++,
       `The file has been saved and the editor has closed.
 Our content is now rendered as formatted Markdown right in the file list.
-That's the basic workflow — create, edit, and save files, all from within MkBrowser.`
+That's the basic workflow to create, edit, and save files, all from within MkBrowser.`
     );
 
     // Verify save completed

@@ -33,7 +33,7 @@ test.describe('Create LaTeX Demo', () => {
       step++,
       `Welcome back to MkBrowser.
 In this demo, we'll explore one of MkBrowser's powerful features: automatic [LaTeX](/lˈeɪtɛk/) rendering for mathematical formulas.
-Let's create a file with a mathematical equation.`
+Let's create a file with a math equation.`
     );
 
     // Click the create file button
@@ -48,7 +48,7 @@ Let's create a file with a mathematical equation.`
       screenshotDir,
       step++,
       `The Create File dialog opens.
-Let's give our file a name that reflects its mathematical content.`
+Let's give our file a name.`
     );
 
     // Type the filename
@@ -60,7 +60,7 @@ Let's give our file a name that reflects its mathematical content.`
       screenshotDir,
       step++,
       `We've named it "my-latex-formula".
-Now let's create the file and add some mathematical content.`
+Now let's create the file and add a math formula.`
     );
 
     // Click Create button in dialog
@@ -93,7 +93,7 @@ $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$`;
       screenshotDir,
       step++,
       `We've entered our explanation and the quadratic formula.
-Notice the [LaTeX](/lˈeɪtɛk/) code is surrounded by double dollar signs — this tells MkBrowser to render it as a mathematical formula.
+Notice the [LaTeX](/lˈeɪtɛk/) code is surrounded by double dollar signs — this tells MkBrowser to render it as a math formula.
 The formula itself uses [LaTeX](/lˈeɪtɛk/) syntax with commands like "frac" for fractions and "sqrt" for square roots.
 Now watch what happens when we save.`
     );
@@ -116,8 +116,8 @@ Now watch what happens when we save.`
     writeNarration(
       screenshotDir,
       step++,
-      `Amazing! The [LaTeX](/lˈeɪtɛk/) code has been automatically rendered into a beautiful, properly formatted mathematical formula.
-The quadratic formula is now displayed with professional typography — fractions, square roots, and all mathematical symbols are perfectly rendered.
+      `Amazing! The [LaTeX](/lˈeɪtɛk/) code has been automatically rendered into a beautiful, properly formatted math formula.
+The quadratic formula is now displayed with professional typography — fractions, square roots, and math symbols are perfectly rendered.
 This makes MkBrowser ideal for taking notes on mathematics, physics, or any technical subject.
 No special tools needed — just write your [LaTeX](/lˈeɪtɛk/) between dollar sign delimiters and MkBrowser handles the rest.`
     );
