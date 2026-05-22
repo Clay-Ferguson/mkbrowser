@@ -2,7 +2,11 @@
 # this project requires NodeJS, and the following script is simply one possible way to install Node
 set -euo pipefail
 
-NODE_VERSION="24.16.0"
+# Node 22 LTS. 
+# WARNING: Do NOT bump to Node 24+: electron-forge 7.11 / electron-packager
+# 18.4.4 bundle extract-zip@2.0.1, whose stream.pipeline call stalls during the
+# Electron template extraction on Node 24, hanging `yarn make` indefinitely.
+NODE_VERSION="22.22.3"
 NVM_VERSION="v0.40.3"
 
 export NVM_DIR="$HOME/.nvm"

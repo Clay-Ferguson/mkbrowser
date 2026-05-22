@@ -50,7 +50,11 @@
       "Bash(sed -i 's/bm_liam/am_liam/g' /home/clay/ferguson/projects/kocreator/setup.sh /home/clay/ferguson/projects/kocreator/create-video.py /home/clay/ferguson/projects/kocreator/kokoro-txt-to-wav.py)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('engines', {}\\), indent=2\\)\\)\")",
       "Bash(chmod +x /home/clay/ferguson/projects/mkbrowser/install-node.sh)",
-      "Bash(bash /home/clay/ferguson/projects/mkbrowser/install-node.sh)"
+      "Bash(bash /home/clay/ferguson/projects/mkbrowser/install-node.sh)",
+      "Bash(npm --version)",
+      "Bash(dpkg-deb --version)",
+      "Bash(rm -rf out/mk-browser-linux-x64)",
+      "Bash(yarn make *)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"
