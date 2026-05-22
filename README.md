@@ -90,7 +90,11 @@ MkBrowser stores configuration in a YAML file under the user’s config director
 
 ## Development Workflow
 
-### Install
+### Install NodeJS
+
+See file `install-node.sh`
+
+### Install App Dependencies
 
 ```bash
 npm install
