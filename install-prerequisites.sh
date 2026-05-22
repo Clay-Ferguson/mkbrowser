@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # install-prerequisites.sh
-# Installs Node.js, NPM, and Yarn on a fresh Ubuntu system
+# Installs system dependencies on a fresh Ubuntu system
 # This prepares the system to build and run MkBrowser
+# NOTE: Node.js and Yarn are installed separately via install-node.sh
 
 set -e  # Exit on any error
 
@@ -10,11 +11,10 @@ echo "🚀 MkBrowser Prerequisites Installer"
 echo "===================================="
 echo ""
 echo "This script will install:"
-echo "  • Node.js (latest LTS)"
-echo "  • NPM (bundled with Node.js)"
-echo "  • Yarn (package manager)"
 echo "  • ffmpeg (video encoding for test captures)"
 echo "  • xdotool (window manipulation for test automation)"
+echo ""
+echo "Note: For Node.js and Yarn, run install-node.sh instead."
 echo ""
 
 # Check if running on Linux
@@ -48,9 +48,6 @@ get_version() {
 }
 
 echo "📋 Current status:"
-echo "  Node.js: $(get_version node)"
-echo "  NPM:     $(get_version npm)"
-echo "  Yarn:    $(get_version yarn)"
 echo "  ffmpeg:  $(get_version ffmpeg)"
 echo "  xdotool: $(get_version xdotool)"
 echo ""
@@ -73,77 +70,19 @@ echo "  • Build tools (curl, ca-certificates, gnupg)"
 echo "  • Test automation tools (ffmpeg, xdotool)"
 sudo apt-get install -y curl ca-certificates gnupg ffmpeg xdotool
 
-# Install Node.js using NodeSource
-echo ""
-echo "📥 Installing Node.js LTS via NodeSource..."
-
-# Create directory for keyrings if it doesn't exist
-sudo mkdir -p /etc/apt/keyrings
-
-# Download and add NodeSource GPG key
-# Remove existing key if present to avoid overwrite prompt
-sudo rm -f /etc/apt/keyrings/nodesource.gpg
-curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-
-# Determine Ubuntu version and set up NodeSource repository
-# Using Node.js 22.x (current LTS)
-NODE_MAJOR=22
-echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-
-# Update and install Node.js
-echo ""
-echo "🔄 Updating package lists with NodeSource repository..."
-sudo apt-get update
-
-echo ""
-echo "⬇️  Installing Node.js..."
-sudo apt-get install -y nodejs
-
-# Verify Node.js and NPM installation
-if command_exists node && command_exists npm; then
-    echo ""
-    echo "✅ Node.js installed successfully!"
-    echo "   Version: $(node --version)"
-    echo "   NPM Version: $(npm --version)"
-else
-    echo ""
-    echo "❌ Error: Node.js installation failed!"
-    exit 1
-fi
-
-# Install Yarn
-echo ""
-echo "📥 Installing Yarn..."
-
-# Install Yarn globally via npm
-sudo npm install -g yarn
-
-# Verify Yarn installation
-if command_exists yarn; then
-    echo ""
-    echo "✅ Yarn installed successfully!"
-    echo "   Version: $(yarn --version)"
-else
-    echo ""
-    echo "❌ Error: Yarn installation failed!"
-    exit 1
-fi
-
 # Final status
 echo ""
 echo "🎉 All prerequisites installed successfully!"
 echo ""
 echo "📋 Final versions:"
-echo "  Node.js: $(node --version)"
-echo "  NPM:     $(npm --version)"
-echo "  Yarn:    $(yarn --version)"
 echo "  ffmpeg:  $(ffmpeg -version | head -n 1)"
 echo "  xdotool: $(xdotool --version 2>&1 | head -n 1)"
 echo ""
 echo "✨ Next steps:"
-echo "  1. Run 'yarn install' to install project dependencies"
-echo "  2. Run 'npm run start:linux' to start the development server"
-echo "  3. Run './build.sh' to create a distributable package and install it"
-echo "  4. Run tests: npm run test:e2e"
-echo "  5. Create user guide videos: npm run test:e2e -- create-file-demo.spec.ts && ../kocreator/create-video.sh \"\$PWD\" create-file-demo"
+echo "  1. Run './install-node.sh' to install Node.js and Yarn"
+echo "  2. Run 'yarn install' to install project dependencies"
+echo "  3. Run 'npm run start:linux' to start the development server"
+echo "  4. Run './build.sh' to create a distributable package and install it"
+echo "  5. Run tests: npm run test:e2e"
+echo "  6. Create user guide videos: npm run test:e2e -- create-file-demo.spec.ts && ../kocreator/create-video.sh \"\$PWD\" create-file-demo"
 echo ""

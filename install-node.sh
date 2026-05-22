@@ -46,3 +46,7 @@ nvm alias default "${NODE_VERSION}"
 echo ""
 echo "Node.js $(node --version) installed and set as default."
 echo "npm version: $(npm --version)"
+
+echo "Installing yarn..."
+npm install -g yarn
+echo "yarn version: $(yarn --version)"
