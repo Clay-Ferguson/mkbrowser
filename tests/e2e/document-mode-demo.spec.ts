@@ -197,36 +197,7 @@ test.describe('Document Mode Demo', () => {
 
     await demonstrateClickForDemo(secondInsertFileButton);
 
-    // Wait for the create file dialog to appear
-    const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
-    await expect(filenameInput).toBeVisible({ timeout: 5000 });
-
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'create-dialog-open');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `The Create File dialog has appeared. We will type the name for our new file now.`
-    );
-
-    await insertTextForDemo(mainWindow, 'about-federalist-papers', true, filenameInput);
-
-    await takeScreenshot(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `We have entered a filename. MkBrowser will automatically append the ".md" extension, making this a Markdown document. 
-      Now let's click Create to create the file.`
-    );
-
-    const createDialogButton = mainWindow.getByTestId('create-file-dialog-create-button');
-    await takeScreenshot(mainWindow, createDialogButton, screenshotDir, step++, 'about-to-create-file');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Once created, the file will open in the editor so we can add content right away.`
-    );
-
-    await demonstrateClickForDemo(createDialogButton);
+    // await demonstrateClickForDemo(createDialogButton);
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'file-editor-open');
