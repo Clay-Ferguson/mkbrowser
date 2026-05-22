@@ -18,7 +18,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
  * way to handle this.  It works, but it feels a bit hacky.  Maybe there's a better way to
  * tell Forge "hey, these deps aren't bundled, make sure they get included in the final package"?
  */
-const EXTERNAL_DEPENDENCY_PREFIXES = ['@langchain/', '@anthropic-ai/', 'langsmith', 'node-pty', 'exifreader'];
+const EXTERNAL_DEPENDENCY_PREFIXES = ['@langchain/', '@anthropic-ai/', 'langsmith', 'exifreader'];
 
 const config: ForgeConfig = {
   packagerConfig: {
