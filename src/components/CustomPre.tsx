@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
-import { logger } from '../../utils/logUtil';
+import { logger } from '../utils/logUtil';
 
 export default function CustomPre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) {
   const [copied, setCopied] = useState(false);

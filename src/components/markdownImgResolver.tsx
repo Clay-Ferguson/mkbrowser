@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { logger } from '../../utils/logUtil';
+import { logger } from '../utils/logUtil';
 
 // Cache for resolved image paths to avoid repeated file system lookups
 // Key format: `${markdownFilePath}|${imageSrc}` -> resolved absolute path or null if not found

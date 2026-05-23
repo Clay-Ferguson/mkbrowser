@@ -1,5 +1,5 @@
 import React from 'react';
-import { setHighlightItem, navigateToBrowserPath } from '../../store';
+import { setHighlightItem, navigateToBrowserPath } from '../store';
 
 interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   entryPath: string;

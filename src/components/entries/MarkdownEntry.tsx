@@ -37,13 +37,13 @@ import EditCalendarDialog from '../dialogs/EditCalendarDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
-import TagsPicker from './TagsPicker';
-import PropsDisplay from './PropsDisplay';
-import { createCustomImage } from './markdownImgResolver';
-import CustomAnchor from './CustomAnchor';
-import CustomCode from './CustomCode';
-import CustomPre from './CustomPre';
-import { createBlockClickComponents } from './blockClickComponents';
+import TagsPicker from '../TagsPicker';
+import PropsDisplay from '../PropsDisplay';
+import { createCustomImage } from '../markdownImgResolver';
+import CustomAnchor from '../CustomAnchor';
+import CustomCode from '../CustomCode';
+import CustomPre from '../CustomPre';
+import { createBlockClickComponents } from '../blockClickComponents';
 import { logger } from '../../utils/logUtil';
 import {
   useEntryCore,

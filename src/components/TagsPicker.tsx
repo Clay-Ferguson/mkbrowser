@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useItem, getItemEditContent, setItemEditContent } from '../../store';
-import { CHECKBOX_CLASSES } from '../../utils/styles';
+import { useItem, getItemEditContent, setItemEditContent } from '../store';
+import { CHECKBOX_CLASSES } from '../utils/styles';
 import {
   loadTagsForFile, type TagsLoadState, type HashtagDefinition,
   tagName, splitFrontMatter, getTagsFromYaml,
   removeTagFromText, insertTagIntoText,
-} from '../../utils/tagUtils';
+} from '../utils/tagUtils';
 
 /**
  * Represents a single hashtag with its checked state.
