@@ -160,7 +160,7 @@ export async function demonstrateTyping(
  *
  * Optionally applies a highlight to the editor for demo screenshots.
  */
-export async function insertText(
+export async function insertText( // &&&
   page: Page,
   text: string,
   options: {

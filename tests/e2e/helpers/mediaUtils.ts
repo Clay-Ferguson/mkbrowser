@@ -137,7 +137,7 @@ export async function takeScreenshot(
  * await insertTextForDemo(mainWindow, mermaidContent, true);
  * await insertTextForDemo(mainWindow, 'my-file', true, filenameInput);
  */
-export async function insertTextForDemo(
+export async function insertTextForDemo( // &&&
   mainWindow: Page,
   text: string,
   showHighlight: boolean,
@@ -188,9 +188,9 @@ export function findActionBarByFileName(scope: Page | Locator, fileName: string)
  * @param locator - The element to click
  *
  * @example
- * await demonstrateClickForDemo(createButton);
+ * await demoClick(createButton);
  */
-export async function demonstrateClickForDemo(
+export async function demoClick(
   locator: Locator,
   options?: Parameters<Locator['click']>[0]
 ): Promise<void> {

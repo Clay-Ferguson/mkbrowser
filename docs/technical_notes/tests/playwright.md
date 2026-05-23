@@ -13,7 +13,7 @@ This is the pattern for writing Playwright E2E tests that capture screenshots an
 * [Core Media Helpers](#core-media-helpers)
   * [`takeScreenshot` — plain screenshot](#takeScreenshot--plain-screenshot)
   * [`writeNarration` — write companion narration file](#writenarration--write-companion-narration-file)
-  * [`demonstrateClickForDemo` — click with demo timing](#demonstrateclickfordemo--click-with-demo-timing)
+  * [`demoClick` — click with demo timing](#demoClick--click-with-demo-timing)
   * [`insertTextForDemo` — type text into the focused element](#inserttextfordemo--type-text-into-the-focused-element)
   * [`logScreenshotSummary` — log counts at end of test](#logscreenshotsummary--log-counts-at-end-of-test)
 * [Typical Step Sequence Pattern](#typical-step-sequence-pattern)
@@ -35,7 +35,7 @@ Place test files in `tests/e2e/` and name them `<demo-name>.spec.ts`. The test n
 
 ```typescript
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 ```
@@ -88,7 +88,7 @@ await takeScreenshot(mainWindow, focusElement, screenshotDir, step++, 'label');
 ```
 Use for general state captures: after navigation, after a save completes, etc. focusElement argument determines what (if anything) to highlight in the screenshot
 
-Use just *before* clicking an element, or after typing into one, to draw the viewer's eye to it. Always take the highlight screenshot *before* `demonstrateClickForDemo` so the element is still visible without any transition state.
+Use just *before* clicking an element, or after typing into one, to draw the viewer's eye to it. Always take the highlight screenshot *before* `demoClick` so the element is still visible without any transition state.
 
 ### `writeNarration` — write companion narration file
 ```typescript
@@ -96,9 +96,9 @@ writeNarration(screenshotDir, step++, 'Narration text that will be read aloud.')
 ```
 `writeNarration` is synchronous. Write it immediately after the screenshot it accompanies. The narration should clearly describe what is visible on screen and what is about to happen next, in plain conversational language suitable for text-to-speech.
 
-### `demonstrateClickForDemo` — click with demo timing
+### `demoClick` — click with demo timing
 ```typescript
-await demonstrateClickForDemo(locator);
+await demoClick(locator);
 ```
 Adds 300 ms before and 1 000 ms after the click so a screen recorder captures the state change clearly.
 
@@ -124,7 +124,7 @@ Every demo test follows this rhythm:
 
 1. **Wait + verify** the initial state is ready, then screenshot + narration.
 2. **Highlight the UI control** that is about to be activated → `takeScreenshot` + narration.
-3. **Interact** → `demonstrateClickForDemo` or `insertTextForDemo`.
+3. **Interact** → `demoClick` or `insertTextForDemo`.
 4. **Screenshot the result** → `takeScreenshot` + narration describing what changed.
 5. Repeat for each meaningful action until the workflow is complete.
 6. **Assert** that the final state is as expected (e.g. `expect(saveButton).not.toBeVisible()`).
@@ -154,7 +154,7 @@ await expect(mainWindow.getByTestId('entry-save-button')).not.toBeVisible({ time
 
 ```typescript
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
+import { takeScreenshot, takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 

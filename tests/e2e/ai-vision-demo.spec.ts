@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -62,7 +62,7 @@ test.describe('AI Vision Demo', () => {
       Let's go into it to see the image we'll be asking about.`
     );
 
-    await demonstrateClickForDemo(visionFolder);
+    await demoClick(visionFolder);
     await mainWindow.waitForTimeout(1500);
 
     // ── 3. Screenshot the image view ──────────────────────────────────
@@ -95,7 +95,7 @@ test.describe('AI Vision Demo', () => {
       `Now let's click the Tools menu to start a new AI chat.`
     );
 
-    await demonstrateClickForDemo(toolsMenuButton);
+    await demoClick(toolsMenuButton);
 
     // ── 6. Click "New AI Chat" ────────────────────────────────────────
     const newAiChatItem = mainWindow.getByTestId('menu-new-ai-chat');
@@ -108,7 +108,7 @@ test.describe('AI Vision Demo', () => {
       We'll click "New AI Chat" to start our vision query.`
     );
 
-    await demonstrateClickForDemo(newAiChatItem);
+    await demoClick(newAiChatItem);
     await mainWindow.waitForTimeout(2000);
 
     // ── 7. Now on the Chat tab — screenshot and narrate ───────────────
@@ -150,7 +150,7 @@ test.describe('AI Vision Demo', () => {
       `Now we'll click the "Ask AI" button to send the image along with our question.`
     );
 
-    await demonstrateClickForDemo(askAiButton);
+    await demoClick(askAiButton);
 
     // ── 11. Wait for the AI response ──────────────────────────────────
     await mainWindow.waitForTimeout(1000);
@@ -173,7 +173,7 @@ test.describe('AI Vision Demo', () => {
       `Now let's go back to the Browse tab to see our files and folders.`
     );
 
-    await demonstrateClickForDemo(browseTab);
+    await demoClick(browseTab);
     await mainWindow.waitForTimeout(1000);
 
     // ── 13. Navigate up one level ─────────────────────────────────────
@@ -186,7 +186,7 @@ test.describe('AI Vision Demo', () => {
     );
     await takeScreenshot(mainWindow, upLevelButton, screenshotDir, step++, 'highlight-up-level');
 
-    await demonstrateClickForDemo(upLevelButton);
+    await demoClick(upLevelButton);
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'back-at-start');

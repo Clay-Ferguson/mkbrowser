@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Advanced Search Feature
@@ -44,7 +44,7 @@ You can see the folder listing in front of us, including the federalist-papers f
       `Let's open the federalist-papers folder by clicking on it so that our search will be scoped to its contents.`
     );
 
-    await demonstrateClickForDemo(federalistFolder);
+    await demoClick(federalistFolder);
 
     await mainWindow.waitForTimeout(1000);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'federalist-folder-open');
@@ -66,7 +66,7 @@ Now let's open the search menu to create a new advanced search.`
 Let's click it to open the search menu.`
     );
 
-    await demonstrateClickForDemo(searchMenuButton);
+    await demoClick(searchMenuButton);
 
     // Click "New Search..." from the popup menu
     const newSearchOption = mainWindow.getByText('New Search...');
@@ -79,7 +79,7 @@ Let's click it to open the search menu.`
 We'll click "New Search..." to open the search dialog where we can configure our query.`
     );
 
-    await demonstrateClickForDemo(newSearchOption);
+    await demoClick(newSearchOption);
 
     // The search dialog should now be open — select Advanced mode
     const advancedOption = mainWindow.getByTestId('search-type-advanced');
@@ -100,7 +100,7 @@ We need to switch to Advanced mode so that we can use boolean expressions in our
       `We'll click the "Advanced" option to enable the full boolean query syntax.`
     );
 
-    await demonstrateClickForDemo(advancedOption);
+    await demoClick(advancedOption);
 
     await mainWindow.waitForTimeout(500);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'advanced-mode-selected');
@@ -164,7 +164,7 @@ MkBrowser will remember this search definition so we can reuse it at any time wi
 Let's click the Search button to run the boolean query across the Federalist Papers.`
     );
 
-    await demonstrateClickForDemo(executeSearchButton);
+    await demoClick(executeSearchButton);
 
     await mainWindow.waitForTimeout(1500);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'search-results-visible');
@@ -187,7 +187,7 @@ and the matching results are displayed here with their surrounding context.`
 To access the search menu again, we first need to switch back to the Browse tab.`
     );
 
-    await demonstrateClickForDemo(browseTab);
+    await demoClick(browseTab);
 
     await mainWindow.waitForTimeout(500);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'back-on-browse-tab');
@@ -210,7 +210,7 @@ The search icon is now visible at the top of the window.`
       `Now let's click the search icon again to see something useful — the saved search definition we just created.`
     );
 
-    await demonstrateClickForDemo(searchMenuButton);
+    await demoClick(searchMenuButton);
 
     await mainWindow.waitForTimeout(500);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'saved-search-visible-in-menu');

@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, setCheckboxForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, setCheckboxForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Generate PDF Feature
@@ -45,7 +45,7 @@ You can see the folder listing in front of us, including the federalist-papers f
 This will navigate into the folder so that our export covers just its contents.`
     );
 
-    await demonstrateClickForDemo(federalistFolder);
+    await demoClick(federalistFolder);
 
     await mainWindow.waitForTimeout(1000);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'federalist-folder-open');
@@ -67,7 +67,7 @@ Let's take a quick look inside the glossary before we export.`
 Let's click on it to see what glossary items are defined inside.`
     );
 
-    await demonstrateClickForDemo(glossaryFolder);
+    await demoClick(glossaryFolder);
 
     await mainWindow.waitForTimeout(1000);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'glossary-folder-open');
@@ -89,7 +89,7 @@ Now let's navigate back to the federalist-papers folder.`
       `To navigate back, we can click the federalist-papers breadcrumb at the top of the screen.`
     );
 
-    await demonstrateClickForDemo(federalistBreadcrumb);
+    await demoClick(federalistBreadcrumb);
 
     await mainWindow.waitForTimeout(1000);
 
@@ -104,7 +104,7 @@ Now let's navigate back to the federalist-papers folder.`
 Let's click it to open the available tools for this folder.`
     );
 
-    await demonstrateClickForDemo(toolsMenuButton);
+    await demoClick(toolsMenuButton);
 
     // Click "Export..." from the dropdown menu
     const exportOption = mainWindow.getByText('Export...');
@@ -118,7 +118,7 @@ We can see the Export option here.
 Let's click it to open the Export dialog where we can configure our output settings.`
     );
 
-    await demonstrateClickForDemo(exportOption);
+    await demoClick(exportOption);
 
     // The Export dialog should now be open
     const outputFolderInput = mainWindow.getByTestId('export-output-folder');
@@ -236,7 +236,7 @@ After assembling the Markdown, MkBrowser will automatically convert it to a poli
 Let's click the Export button to kick off the export process.`
     );
 
-    await demonstrateClickForDemo(exportSubmitButton);
+    await demoClick(exportSubmitButton);
 
     await mainWindow.waitForTimeout(1500);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'export-launched');

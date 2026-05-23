@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test - LaTeX Rendering
@@ -41,7 +41,7 @@ Let's create a file with a math equation.`
     await takeScreenshot(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create');
     writeNarration(screenshotDir, step++, `We'll start by creating a new file.`);
 
-    await demonstrateClickForDemo(createButton);
+    await demoClick(createButton);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'create-dialog-open');
     writeNarration(
@@ -68,7 +68,7 @@ Now let's create the file and add a math formula.`
     await takeScreenshot(mainWindow, createDialogButton, screenshotDir, step++, 'about-to-create-file');
     writeNarration(screenshotDir, step++, `Clicking Create to open our new file.`);
 
-    await demonstrateClickForDemo(createDialogButton);
+    await demoClick(createDialogButton);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'new-file-created');
     writeNarration(
@@ -107,7 +107,7 @@ Now watch what happens when we save.`
       `Let's save the file and see the LaTeX magic happen.`
     );
 
-    await demonstrateClickForDemo(saveButton);
+    await demoClick(saveButton);
 
     // Wait a moment for the rendering to complete
     await mainWindow.waitForTimeout(1000);

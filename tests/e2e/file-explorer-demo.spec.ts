@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, demonstrateRightClickForDemo, findActionBarByFileName, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, demonstrateRightClickForDemo, findActionBarByFileName, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
 
 // Override testDataPath so the app starts browsing /home/clay/ferguson
 const test = baseTest.extend({
@@ -44,7 +44,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
       `Let's click the projects folder to expand it.`
     );
 
-    await demonstrateClickForDemo(projectsFolder);
+    await demoClick(projectsFolder);
     await mainWindow.waitForTimeout(800);
 
     // await takeScreenshot(mainWindow, null, screenshotDir, step++, 'projects-folder-expanded');
@@ -64,7 +64,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
       `Next we'll expand the mkbrowser folder.`
     );
 
-    await demonstrateClickForDemo(mkbrowserFolder);
+    await demoClick(mkbrowserFolder);
     await mainWindow.waitForTimeout(800);
 
     // await takeScreenshot(mainWindow, null, screenshotDir, step++, 'mkbrowser-folder-expanded');
@@ -84,7 +84,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
       `Here we can see the docs folder. Let's click to expand it.`
     );
 
-    await demonstrateClickForDemo(docsFolder);
+    await demoClick(docsFolder);
     await mainWindow.waitForTimeout(800);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'docs-folder-expanded');
@@ -105,7 +105,7 @@ The tree panel on the left-hand side of the app shows your file system as a navi
 Let's click on it to expand it and reveal its internal heading structure.`
     );
 
-    await demonstrateClickForDemo(userGuideFile);
+    await demoClick(userGuideFile);
     await mainWindow.waitForTimeout(1200);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'user-guide-expanded-headings');
@@ -156,7 +156,7 @@ You can see the file listing for the docs folder on the right side.`
 Let's click on the "Searching" heading to expand it and reveal its sub-headings inside the tree.`
     );
 
-    await demonstrateClickForDemo(searchingHeading);
+    await demoClick(searchingHeading);
     await mainWindow.waitForTimeout(800);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'searching-heading-expanded');
@@ -203,7 +203,7 @@ But navigation also works in reverse — from any document on the right, you can
 First, let's collapse the tree completely by clicking the collapse button at the top of the tree panel.`
     );
 
-    await demonstrateClickForDemo(collapseButton);
+    await demoClick(collapseButton);
     await mainWindow.waitForTimeout(800);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'tree-collapsed');
@@ -232,7 +232,7 @@ Hovering over a file title reveals a row of action icons. Let's click the "Revea
     // the action bar inside it — this guarantees we target the correct entry's reveal button.
     const actionBar = findActionBarByFileName(mainWindow, 'USER_GUIDE.md');
     const revealButton = actionBar.getByTestId('entry-reveal-button');
-    await demonstrateClickForDemo(revealButton, { force: true });
+    await demoClick(revealButton, { force: true });
     await mainWindow.waitForTimeout(1200);
 
     await takeScreenshot(mainWindow, revealButton, screenshotDir, step++, 'file-revealed-in-tree');

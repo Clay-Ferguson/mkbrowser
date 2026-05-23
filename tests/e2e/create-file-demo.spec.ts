@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test with Visual Indicators
@@ -48,7 +48,7 @@ Let's create a new file to see how it works.`
       `We'll click the Create File button at the top of the window to add a new file to our folder.`
     );
 
-    await demonstrateClickForDemo(createButton);
+    await demoClick(createButton);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'create-dialog-open');
     writeNarration(
@@ -80,7 +80,7 @@ Notice we didn't include a file extension — MkBrowser will automatically add "
       `Now we'll click the Create button to confirm and create the file.`
     );
 
-    await demonstrateClickForDemo(createDialogButton);
+    await demoClick(createDialogButton);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'new-file-created');
     writeNarration(
@@ -113,7 +113,7 @@ Now let's save our work.`
       `We'll click the Save button to write our changes to disk.`
     );
 
-    await demonstrateClickForDemo(saveButton);
+    await demoClick(saveButton);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'file-saved');
     writeNarration(

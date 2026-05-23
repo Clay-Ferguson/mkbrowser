@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, findActionBarByFileName } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, findActionBarByFileName } from './helpers/mediaUtils';
 
 const federalistPath = '/home/clay/ferguson/projects/mkbrowser/mkbrowser-test/federalist-papers';
 const indexYamlPath = `${federalistPath}/.INDEX.yaml`;
@@ -61,7 +61,7 @@ test.describe('Document Mode Demo', () => {
       But it also gives us access to a more powerful option: enabling Document Mode. Let's click it to open the menu.`
     );
 
-    await demonstrateClickForDemo(sortMenuButton);
+    await demoClick(sortMenuButton);
 
     // Wait for the menu to appear, then highlight "Enable Document Mode"
     const enableDocumentModeItem = mainWindow.getByText('Enable Document Mode');
@@ -75,7 +75,7 @@ test.describe('Document Mode Demo', () => {
       Clicking this will switch this folder into Document Mode, giving us full control over the order in which entries appear. Let's click it now.`
     );
 
-    await demonstrateClickForDemo(enableDocumentModeItem);
+    await demoClick(enableDocumentModeItem);
 
     await mainWindow.waitForTimeout(1000);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'document-mode-enabled');
@@ -101,7 +101,7 @@ test.describe('Document Mode Demo', () => {
       We are going to click this checkbox to turn on Edit Mode for this document, which will unlock additional controls for managing the order and structure of files.`
     );
 
-    await demonstrateClickForDemo(editCheckbox);
+    await demoClick(editCheckbox);
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'edit-mode-enabled');
@@ -132,7 +132,7 @@ test.describe('Document Mode Demo', () => {
       Let's click it to move this file down one position in the document.`
     );
 
-    await demonstrateClickForDemo(moveDownButton, { force: true });
+    await demoClick(moveDownButton, { force: true });
     await mainWindow.waitForTimeout(1000);
 
     const federalist00EntryMoved = mainWindow
@@ -164,7 +164,7 @@ test.describe('Document Mode Demo', () => {
       We will click it to restore the file to its original position at the top of the document.`
     );
 
-    await demonstrateClickForDemo(moveUpButton, { force: true });
+    await demoClick(moveUpButton, { force: true });
     await mainWindow.waitForTimeout(1000);
 
     const federalist00EntryRestored = mainWindow
@@ -195,9 +195,9 @@ test.describe('Document Mode Demo', () => {
       Let's click the second one to insert a brand new file right here at this specific position in the document.`
     );
 
-    await demonstrateClickForDemo(secondInsertFileButton);
+    await demoClick(secondInsertFileButton);
 
-    // await demonstrateClickForDemo(createDialogButton);
+    // await demoClick(createDialogButton);
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'file-editor-open');
@@ -226,7 +226,7 @@ test.describe('Document Mode Demo', () => {
       `Let's now click the Save button to write our content to disk and close the editor.`
     );
 
-    await demonstrateClickForDemo(saveButton);
+    await demoClick(saveButton);
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'file-saved');

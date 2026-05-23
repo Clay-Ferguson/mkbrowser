@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Search Feature
@@ -42,7 +42,7 @@ You can see the folder listing in front of us, including the federalist-papers f
       `Let's open the federalist-papers folder by clicking on it, so we can search within its contents.`
     );
 
-    await demonstrateClickForDemo(federalistFolder);
+    await demoClick(federalistFolder);
 
     await mainWindow.waitForTimeout(1000);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'federalist-folder-open');
@@ -65,7 +65,7 @@ Now let's use the search feature to find specific content across these files.`
 Let's click it to open the search menu.`
     );
 
-    await demonstrateClickForDemo(searchMenuButton);
+    await demoClick(searchMenuButton);
 
     // Click "New Search..." from the popup menu
     const newSearchOption = mainWindow.getByText('New Search...');
@@ -78,7 +78,7 @@ Let's click it to open the search menu.`
 We'll click "New Search..." to open the search dialog and define a new query.`
     );
 
-    await demonstrateClickForDemo(newSearchOption);
+    await demoClick(newSearchOption);
 
     // Type search text into the search query input
     const searchInput = mainWindow.getByTestId('search-query-input');
@@ -113,7 +113,7 @@ Now let's run the search.`
       `We'll click the Search button to execute the query and find all matching files.`
     );
 
-    await demonstrateClickForDemo(executeSearchButton);
+    await demoClick(executeSearchButton);
 
     await mainWindow.waitForTimeout(1500);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'search-results-visible');
@@ -136,7 +136,7 @@ Let's click on one of the results to jump directly to that file.`
       `Let's click on the result for federalist-03-08.md to navigate directly to that file in the browser.`
     );
 
-    await demonstrateClickForDemo(targetResult);
+    await demoClick(targetResult);
 
     await mainWindow.waitForTimeout(500);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'file-navigated');

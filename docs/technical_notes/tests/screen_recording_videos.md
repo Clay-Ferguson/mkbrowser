@@ -118,7 +118,7 @@ writeNarration(screenshotDir, step++, 'Narration text explaining what the user s
 await insertTextForDemo(mainWindow, 'text to type', true, inputLocator);
 
 // Demonstrate clicking with proper timing
-await demonstrateClickForDemo(buttonLocator);
+await demoClick(buttonLocator);
 ```
 
 ### Typical Test Structure
@@ -141,7 +141,7 @@ test('feature demo', async ({ mainWindow }) => {
   writeNarration(screenshotDir, step++, 'Explain what will happen...');
   
   // 3. Perform action
-  await demonstrateClickForDemo(button);
+  await demoClick(button);
   
   // 4. Show result
   await takeScreenshot(mainWindow, screenshotDir, step++, 'result');
@@ -201,7 +201,7 @@ Provides standardized functions for capturing screenshots and writing narration 
 - Optionally accepts a `focusTarget` locator to focus before inserting
 - Works with CodeMirror editors, `<textarea>`, and `<input>` elements
 
-**`demonstrateClickForDemo(locator)`**
+**`demoClick(locator)`**
 - Demonstrates clicks with appropriate pauses for video recording
 - Adds timing before/after clicks for visual clarity
 
@@ -267,7 +267,7 @@ test('complete workflow with visual indicators', async ({ mainWindow }) => {
   writeNarration(screenshotDir, step++, 'We\'ll click the Create File button...');
   
   // Demonstrate actions with proper timing
-  await demonstrateClickForDemo(createButton);
+  await demoClick(createButton);
   await insertTextForDemo(mainWindow, 'my-journal-entry', true, filenameInput);
 });
 ```
@@ -475,7 +475,7 @@ The complete workflow from test creation to video generation:
      takeScreenshot,
      writeNarration,
      insertTextForDemo,
-     demonstrateClickForDemo 
+     demoClick 
    } from './helpers/mediaUtils';
    ```
 
@@ -500,7 +500,7 @@ The complete workflow from test creation to video generation:
      writeNarration(screenshotDir, step++, 'Explain what will happen when button is clicked...');
      
      // Perform action with demo timing
-     await demonstrateClickForDemo(button);
+     await demoClick(button);
      
      // Show result
      await takeScreenshot(mainWindow, screenshotDir, step++, 'after-click');
@@ -674,7 +674,7 @@ cd kokoro
 ### 1. Use Media Utility Helpers
 - Always use `takeScreenshot()` and `writeNarration()` from `mediaUtils.ts` for consistent file naming
 - Use `takeScreenshot()` for screenshots that need visual indicators
-- Use `insertTextForDemo()` and `demonstrateClickForDemo()` for proper demo timing
+- Use `insertTextForDemo()` and `demoClick()` for proper demo timing
 - These helpers handle 3-digit numbering automatically via the `step` counter
 
 ### 2. Screenshot and Narration Pairing

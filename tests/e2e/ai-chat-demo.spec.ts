@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demonstrateClickForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test — AI Chat Feature
@@ -68,7 +68,7 @@ test.describe('AI Chat Demo', () => {
       `First, we'll open the Tools menu at the top of the window.`
     );
 
-    await demonstrateClickForDemo(toolsMenuButton);
+    await demoClick(toolsMenuButton);
 
     // ── 3. Click "New AI Chat" ────────────────────────────────────────
     const newAiChatItem = mainWindow.getByTestId('menu-new-ai-chat');
@@ -82,7 +82,7 @@ test.describe('AI Chat Demo', () => {
       Let's click it to start a conversation.`
     );
 
-    await demonstrateClickForDemo(newAiChatItem);
+    await demoClick(newAiChatItem);
 
     // Wait for the AI chat folder to be created and the editor to open
     await mainWindow.waitForTimeout(2000);
@@ -122,7 +122,7 @@ test.describe('AI Chat Demo', () => {
       `Now we'll click the "Ask AI" button to send our question.`
     );
 
-    await demonstrateClickForDemo(askAiButton);
+    await demoClick(askAiButton);
 
     // ── 6. Wait for the AI response to appear ─────────────────────────
     await expect(mainWindow.getByText('Head to Akihabara').first()).toBeVisible({ timeout: 30000 });
@@ -148,7 +148,7 @@ test.describe('AI Chat Demo', () => {
       `Above the AI's answer, there's a Reply button. We'll click it to continue the conversation.`
     );
 
-    await demonstrateClickForDemo(replyButton);
+    await demoClick(replyButton);
 
     // Wait for the reply editor to open
     await mainWindow.waitForTimeout(2000);
@@ -188,7 +188,7 @@ test.describe('AI Chat Demo', () => {
       `We'll click "Ask AI" one more time.`
     );
 
-    await demonstrateClickForDemo(askAiButton2);
+    await demoClick(askAiButton2);
 
     // ── 10. Wait for the second AI response ───────────────────────────
     await expect(mainWindow.getByText("Check out 'Bar Sekirei.'").first()).toBeVisible({ timeout: 30000 });
@@ -219,7 +219,7 @@ test.describe('AI Chat Demo', () => {
       `Here's the "Show in Browser" button. Clicking it will take us from the Chat tab into the actual folder on disk where this part of the conversation lives.`
     );
 
-    await demonstrateClickForDemo(showInBrowserButton);
+    await demoClick(showInBrowserButton);
 
     // ── 12. Now in browser view ─────────────────
     await mainWindow.waitForTimeout(1000);
@@ -241,7 +241,7 @@ test.describe('AI Chat Demo', () => {
       `We can explore earlier parts of the conversation by navigating up through the folder hierarchy. Let's click the "Up Level" button to go to the parent folder.`
     );
 
-    await demonstrateClickForDemo(upLevelButton);
+    await demoClick(upLevelButton);
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'parent-folder');
@@ -252,7 +252,7 @@ test.describe('AI Chat Demo', () => {
     );
 
     // ── 14. Click "Up Level" again  ────────────
-    await demonstrateClickForDemo(upLevelButton);
+    await demoClick(upLevelButton);
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'earlier-turn-with-images');
