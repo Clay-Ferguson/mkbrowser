@@ -1,6 +1,6 @@
 import type { Page, Locator } from '@playwright/test';
 
-const HIGHLIGHT = {
+export const HIGHLIGHT = {
   // border: '2px solid #ff4444',
   boxShadow: '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)',
   outline: '2px solid #ff6666',
@@ -149,77 +149,6 @@ export async function demonstrateTyping(
   await page.keyboard.type(text, { delay: typingDelay });
 
   // Pause after typing (highlight still visible)
-  await page.waitForTimeout(pauseAfter);
-}
-
-/**
- * Bulk-inserts text into the focused CodeMirror editor via its API.
- * Unlike demonstrateTyping which simulates keystrokes one at a time,
- * this dispatches a single transaction — instant and immune to
- * auto-indent or other keystroke-triggered behavior.
- *
- * Optionally applies a highlight to the editor for demo screenshots.
- */
-export async function insertText( // &&&
-  page: Page,
-  text: string,
-  options: {
-    showHighlight?: boolean;
-    pauseBefore?: number;
-    pauseAfter?: number;
-    highlightDuration?: number;
-  } = {}
-): Promise<void> {
-  const {
-    showHighlight = true,
-    pauseBefore = 500,
-    pauseAfter = 800,
-    highlightDuration = 5000,
-  } = options;
-
-  // Apply persistent highlight to the editor
-  if (showHighlight) {
-    await page.evaluate(({ dur, styles }) => {
-      let editorElement: HTMLElement | null = null;
-
-      const cmEditor = document.querySelector('.cm-editor');
-      if (cmEditor) {
-        editorElement = cmEditor.parentElement?.closest('.rounded') as HTMLElement;
-        if (!editorElement) {
-          editorElement = cmEditor as HTMLElement;
-        }
-      } else {
-        editorElement = document.activeElement as HTMLElement;
-      }
-
-      if (!editorElement) {
-        console.warn('No editor element found for highlighting');
-        return;
-      }
-
-      const originalBoxShadow = editorElement.style.boxShadow;
-      const originalOutline = editorElement.style.outline;
-
-      editorElement.style.setProperty('box-shadow', styles.boxShadow, 'important');
-      editorElement.style.setProperty('outline', styles.outline, 'important');
-      editorElement.style.setProperty('outline-offset', styles.outlineOffset, 'important');
-
-      setTimeout(() => {
-        editorElement!.style.boxShadow = originalBoxShadow;
-        editorElement!.style.outline = originalOutline;
-      }, dur);
-    }, { dur: highlightDuration, styles: HIGHLIGHT });
-
-    await page.waitForTimeout(300);
-  }
-
-  await page.waitForTimeout(pauseBefore);
-
-  // Bulk-insert text as a single input event (like a paste).
-  // Unlike keyboard.type(), this doesn't fire individual key events,
-  // so CodeMirror's auto-indent is never triggered.
-  await page.keyboard.insertText(text);
-
   await page.waitForTimeout(pauseAfter);
 }
 

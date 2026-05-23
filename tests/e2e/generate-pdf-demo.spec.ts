@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, setCheckboxForDemo, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, setCheckboxForDemo, insertText, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Generate PDF Feature
@@ -141,7 +141,7 @@ and several options that control how MkBrowser assembles the exported document.`
 We'll type a path where MkBrowser will write the exported files.`
     );
 
-    await insertTextForDemo(mainWindow, '/home/clay/exports', true, outputFolderInput);
+    await insertText(mainWindow, '/home/clay/exports', true, outputFolderInput);
 
     await takeScreenshot(mainWindow, outputFolderInput, screenshotDir, step++, 'output-folder-entered');
     writeNarration(
@@ -161,7 +161,7 @@ Next, let's enter a name for the exported file.`
       `Now we'll fill in the File Name field with a descriptive name for our exported file.`
     );
 
-    await insertTextForDemo(mainWindow, 'federalist-papers', true, fileNameInput);
+    await insertText(mainWindow, 'federalist-papers', true, fileNameInput);
 
     await takeScreenshot(mainWindow, fileNameInput, screenshotDir, step++, 'file-name-entered');
     writeNarration(

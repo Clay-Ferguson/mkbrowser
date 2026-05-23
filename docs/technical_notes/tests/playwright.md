@@ -14,7 +14,7 @@ This is the pattern for writing Playwright E2E tests that capture screenshots an
   * [`takeScreenshot` — plain screenshot](#takeScreenshot--plain-screenshot)
   * [`writeNarration` — write companion narration file](#writenarration--write-companion-narration-file)
   * [`demoClick` — click with demo timing](#demoClick--click-with-demo-timing)
-  * [`insertTextForDemo` — type text into the focused element](#inserttextfordemo--type-text-into-the-focused-element)
+  * [`insertText` — type text into the focused element](#insertText--type-text-into-the-focused-element)
   * [`logScreenshotSummary` — log counts at end of test](#logscreenshotsummary--log-counts-at-end-of-test)
 * [Typical Step Sequence Pattern](#typical-step-sequence-pattern)
 * [Narration Writing Guidelines](#narration-writing-guidelines)
@@ -35,7 +35,7 @@ Place test files in `tests/e2e/` and name them `<demo-name>.spec.ts`. The test n
 
 ```typescript
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 ```
@@ -102,13 +102,13 @@ await demoClick(locator);
 ```
 Adds 300 ms before and 1 000 ms after the click so a screen recorder captures the state change clearly.
 
-### `insertTextForDemo` — type text into the focused element
+### `insertText` — type text into the focused element
 ```typescript
 // Into an explicit input:
-await insertTextForDemo(mainWindow, 'filename-here', true, filenameInput);
+await insertText(mainWindow, 'filename-here', true, filenameInput);
 
 // Into whatever has focus (e.g. a CodeMirror editor):
-await insertTextForDemo(mainWindow, multiLineContent, true);
+await insertText(mainWindow, multiLineContent, true);
 ```
 The third argument `showHighlight` should be `true` for demo tests. Pass an optional `focusTarget` locator when the element to type into is not already focused.
 
@@ -124,7 +124,7 @@ Every demo test follows this rhythm:
 
 1. **Wait + verify** the initial state is ready, then screenshot + narration.
 2. **Highlight the UI control** that is about to be activated → `takeScreenshot` + narration.
-3. **Interact** → `demoClick` or `insertTextForDemo`.
+3. **Interact** → `demoClick` or `insertText`.
 4. **Screenshot the result** → `takeScreenshot` + narration describing what changed.
 5. Repeat for each meaningful action until the workflow is complete.
 6. **Assert** that the final state is as expected (e.g. `expect(saveButton).not.toBeVisible()`).
@@ -154,7 +154,7 @@ await expect(mainWindow.getByTestId('entry-save-button')).not.toBeVisible({ time
 
 ```typescript
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary } from './helpers/mediaUtils';
+import { takeScreenshot, takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 

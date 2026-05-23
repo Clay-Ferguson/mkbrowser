@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Page, Locator } from '@playwright/test';
-import { screenshotWithHighlight, insertText, highlightElement } from './visual-indicators';
+import { screenshotWithHighlight, highlightElement, HIGHLIGHT } from './visual-indicators';
 
 /**
  * Media utilities for E2E tests - screenshot and video helpers.
@@ -134,15 +134,19 @@ export async function takeScreenshot(
  * @param focusTarget - Optional locator to focus before inserting text
  *
  * @example
- * await insertTextForDemo(mainWindow, mermaidContent, true);
- * await insertTextForDemo(mainWindow, 'my-file', true, filenameInput);
+ * await insertText(mainWindow, mermaidContent, true);
+ * await insertText(mainWindow, 'my-file', true, filenameInput);
  */
-export async function insertTextForDemo( // &&&
+export async function insertText(
   mainWindow: Page,
   text: string,
   showHighlight: boolean,
   focusTarget?: Locator,
+  pauseBefore = 500,
 ): Promise<void> {
+  const pauseAfter = 500;
+  const highlightDuration = 15000;
+
   if (focusTarget) {
     await focusTarget.focus();
 
@@ -150,11 +154,50 @@ export async function insertTextForDemo( // &&&
     // is designed to write the entire content in one go, rather than character by character.
     await mainWindow.keyboard.press('Control+a');
   }
-  await insertText(mainWindow, text, {
-    showHighlight,
-    pauseAfter: 500,
-    highlightDuration: 15000,
-  });
+
+  if (showHighlight) {
+    await mainWindow.evaluate(({ dur, styles }) => {
+      let editorElement: HTMLElement | null = null;
+
+      const cmEditor = document.querySelector('.cm-editor');
+      if (cmEditor) {
+        editorElement = cmEditor.parentElement?.closest('.rounded') as HTMLElement;
+        if (!editorElement) {
+          editorElement = cmEditor as HTMLElement;
+        }
+      } else {
+        editorElement = document.activeElement as HTMLElement;
+      }
+
+      if (!editorElement) {
+        console.warn('No editor element found for highlighting');
+        return;
+      }
+
+      const originalBoxShadow = editorElement.style.boxShadow;
+      const originalOutline = editorElement.style.outline;
+
+      editorElement.style.setProperty('box-shadow', styles.boxShadow, 'important');
+      editorElement.style.setProperty('outline', styles.outline, 'important');
+      editorElement.style.setProperty('outline-offset', styles.outlineOffset, 'important');
+
+      setTimeout(() => {
+        editorElement!.style.boxShadow = originalBoxShadow;
+        editorElement!.style.outline = originalOutline;
+      }, dur);
+    }, { dur: highlightDuration, styles: HIGHLIGHT });
+
+    await mainWindow.waitForTimeout(300);
+  }
+
+  await mainWindow.waitForTimeout(pauseBefore);
+
+  // Bulk-insert text as a single input event (like a paste).
+  // Unlike keyboard.type(), this doesn't fire individual key events,
+  // so CodeMirror's auto-indent is never triggered.
+  await mainWindow.keyboard.insertText(text);
+
+  await mainWindow.waitForTimeout(pauseAfter);
 }
 
 /**

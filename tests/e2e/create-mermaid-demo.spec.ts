@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test - Mermaid Diagram Rendering
@@ -57,7 +57,7 @@ Let's give our file a descriptive name that reflects its content.`
 
     // Type the filename
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
-    await insertTextForDemo(mainWindow, 'my-architecture-diagram', true, filenameInput);
+    await insertText(mainWindow, 'my-architecture-diagram', true, filenameInput);
 
     await takeScreenshot(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
     writeNarration(
@@ -113,7 +113,7 @@ graph TB
     style Worker fill:#2d4a5a
 \`\`\``;
 
-    await insertTextForDemo(mainWindow, mermaidContent, true);
+    await insertText(mainWindow, mermaidContent, true);
 
     // Take screenshot with the content typed
     const cmEditor = mainWindow.locator('.cm-editor').first();

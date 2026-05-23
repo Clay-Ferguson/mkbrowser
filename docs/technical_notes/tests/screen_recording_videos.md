@@ -115,7 +115,7 @@ await takeScreenshot(mainWindow, focusElement, screenshotDir, step++, 'descripti
 writeNarration(screenshotDir, step++, 'Narration text explaining what the user sees...');
 
 // Bulk-insert text with highlight (optionally focus a target element first)
-await insertTextForDemo(mainWindow, 'text to type', true, inputLocator);
+await insertText(mainWindow, 'text to type', true, inputLocator);
 
 // Demonstrate clicking with proper timing
 await demoClick(buttonLocator);
@@ -196,7 +196,7 @@ Provides standardized functions for capturing screenshots and writing narration 
 - Uses atomic highlight application to guarantee visibility in captured image
 - Example: `await takeScreenshot(mainWindow, createButton, screenshotDir, step++, 'about-to-click-create')`
 
-**`insertTextForDemo(mainWindow, text, showHighlight, focusTarget?)`**
+**`insertText(mainWindow, text, showHighlight, focusTarget?)`**
 - Bulk-inserts text at once (like a paste) with optional visual highlight
 - Optionally accepts a `focusTarget` locator to focus before inserting
 - Works with CodeMirror editors, `<textarea>`, and `<input>` elements
@@ -218,12 +218,6 @@ Provides low-level visual cues that show where user interactions occur in screen
 - Border: 6px solid with 3px offset and intense double box-shadow
 - Duration: How long the highlight persists (default: 800ms)
 - Returns after 100ms, leaving highlight visible for screenshots
-
-**`insertText(page, text, options)`**
-- Low-level bulk text insertion with visual highlight
-- Handles both native inputs and CodeMirror editors
-- Options: `showHighlight`, `pauseBefore`, `pauseAfter`, `highlightDuration`
-- Special handling for CodeMirror: Targets the container div with `.rounded` class for better visibility
 
 #### Visual Style:
 - **Color**: Red (#ff4444) for consistency across all indicators
@@ -268,7 +262,7 @@ test('complete workflow with visual indicators', async ({ mainWindow }) => {
   
   // Demonstrate actions with proper timing
   await demoClick(createButton);
-  await insertTextForDemo(mainWindow, 'my-journal-entry', true, filenameInput);
+  await insertText(mainWindow, 'my-journal-entry', true, filenameInput);
 });
 ```
 
@@ -474,7 +468,7 @@ The complete workflow from test creation to video generation:
      takeScreenshot, 
      takeScreenshot,
      writeNarration,
-     insertTextForDemo,
+     insertText,
      demoClick 
    } from './helpers/mediaUtils';
    ```
@@ -583,23 +577,13 @@ Edit the FFmpeg command in `../kocreator/create-video.sh`:
 ```
 
 #### Adjust Text Insertion and Highlight Duration
-Use `insertTextForDemo()` for standard demo text insertion:
+Use `insertText()` for standard demo text insertion:
 ```typescript
 // Insert into the currently focused element
-await insertTextForDemo(mainWindow, 'text to insert', true);
+await insertText(mainWindow, 'text to insert', true);
 
 // Focus a specific element first, then insert
-await insertTextForDemo(mainWindow, 'text to insert', true, inputLocator);
-```
-
-Or use the low-level `insertText()` for more control:
-```typescript
-await insertText(mainWindow, 'text', {
-  showHighlight: true,
-  highlightDuration: 10000,  // 10 seconds
-  pauseBefore: 500,          // Pause before inserting
-  pauseAfter: 800,           // Pause after inserting
-});
+await insertText(mainWindow, 'text to insert', true, inputLocator);
 ```
 
 ## File Structure
@@ -674,7 +658,7 @@ cd kokoro
 ### 1. Use Media Utility Helpers
 - Always use `takeScreenshot()` and `writeNarration()` from `mediaUtils.ts` for consistent file naming
 - Use `takeScreenshot()` for screenshots that need visual indicators
-- Use `insertTextForDemo()` and `demoClick()` for proper demo timing
+- Use `insertText()` and `demoClick()` for proper demo timing
 - These helpers handle 3-digit numbering automatically via the `step` counter
 
 ### 2. Screenshot and Narration Pairing

@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test with Visual Indicators
@@ -61,7 +61,7 @@ Let's type a descriptive name for our new file.`
 
     // Demonstrate typing a filename
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
-    await insertTextForDemo(mainWindow, 'my-journal-entry', true, filenameInput);
+    await insertText(mainWindow, 'my-journal-entry', true, filenameInput);
 
     await takeScreenshot(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
     writeNarration(
@@ -91,7 +91,7 @@ Notice the text editor that appeared — this is a full-featured code editor whe
     );
 
     // Demonstrate typing with visual highlight on the focused input area
-    await insertTextForDemo(mainWindow, 'this is a test', true);
+    await insertText(mainWindow, 'this is a test', true);
 
     // Take screenshot with highlight applied atomically
     const cmEditor = mainWindow.locator('.cm-editor').first();

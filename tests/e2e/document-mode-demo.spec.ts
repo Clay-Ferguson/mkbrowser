@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, findActionBarByFileName } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, findActionBarByFileName } from './helpers/mediaUtils';
 
 const federalistPath = '/home/clay/ferguson/projects/mkbrowser/mkbrowser-test/federalist-papers';
 const indexYamlPath = `${federalistPath}/.INDEX.yaml`;
@@ -207,7 +207,7 @@ test.describe('Document Mode Demo', () => {
       `The editor is now open. Notice it was inserted exactly at the position we chose. Let's type some introductory content for this file.`
     );
 
-    await insertTextForDemo(mainWindow, `The Federalist Papers are a collection of 85 articles and essays written between 1787 and 1788 to promote the ratification of the United States Constitution. Authored by Alexander Hamilton, James Madison, and John Jay under the collective pseudonym "Publius," these documents served as a masterclass in political advocacy and constitutional theory. They were originally published in New York newspapers to convince skeptical citizens that a stronger central government was necessary to preserve the Union. Even today, the papers remain one of the most important sources for interpreting the original intent of the Framers and understanding the underlying logic of the American governing system. Because of their profound impact on legal and political thought, they are widely considered the most significant contribution to political science ever produced in the United States.
+    await insertText(mainWindow, `The Federalist Papers are a collection of 85 articles and essays written between 1787 and 1788 to promote the ratification of the United States Constitution. Authored by Alexander Hamilton, James Madison, and John Jay under the collective pseudonym "Publius," these documents served as a masterclass in political advocacy and constitutional theory. They were originally published in New York newspapers to convince skeptical citizens that a stronger central government was necessary to preserve the Union. Even today, the papers remain one of the most important sources for interpreting the original intent of the Framers and understanding the underlying logic of the American governing system. Because of their profound impact on legal and political thought, they are widely considered the most significant contribution to political science ever produced in the United States.
       `, true);
 
     const cmEditor = mainWindow.locator('.cm-editor').first();

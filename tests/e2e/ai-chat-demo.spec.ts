@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test — AI Chat Feature
@@ -98,7 +98,7 @@ test.describe('AI Chat Demo', () => {
       Let's ask a question.`
     );
 
-    await insertTextForDemo(mainWindow, humanMessage1, true);
+    await insertText(mainWindow, humanMessage1, true);
 
     await takeScreenshot(mainWindow, cmEditor, screenshotDir, step++, 'first-question-entered');
     writeNarration(
@@ -164,7 +164,7 @@ test.describe('AI Chat Demo', () => {
       Let's ask about a place to grab a drink afterward.`
     );
 
-    await insertTextForDemo(mainWindow, humanMessage2, true);
+    await insertText(mainWindow, humanMessage2, true);
 
     await takeScreenshot(mainWindow, replyEditor, screenshotDir, step++, 'second-question-entered');
     writeNarration(

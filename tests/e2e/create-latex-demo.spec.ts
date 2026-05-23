@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test - LaTeX Rendering
@@ -53,7 +53,7 @@ Let's give our file a name.`
 
     // Type the filename
     const filenameInput = mainWindow.getByTestId('create-file-dialog-input');
-    await insertTextForDemo(mainWindow, 'my-latex-formula', true, filenameInput);
+    await insertText(mainWindow, 'my-latex-formula', true, filenameInput);
 
     await takeScreenshot(mainWindow, filenameInput, screenshotDir, step++, 'filename-entered');
     writeNarration(
@@ -84,7 +84,7 @@ We'll start with a brief explanation, then include the quadratic formula.`
 
 $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$`;
 
-    await insertTextForDemo(mainWindow, latexContent, true);
+    await insertText(mainWindow, latexContent, true);
 
     // Take screenshot with the content typed
     const cmEditor = mainWindow.locator('.cm-editor').first();

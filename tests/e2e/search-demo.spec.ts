@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Search Feature
@@ -92,7 +92,7 @@ We can enter our search term here.
 Let's search for the word "political" to find references to that topic across the Federalist Papers.`
     );
 
-    await insertTextForDemo(mainWindow, 'political', true, searchInput);
+    await insertText(mainWindow, 'political', true, searchInput);
 
     await takeScreenshot(mainWindow, searchInput, screenshotDir, step++, 'search-text-entered');
     writeNarration(

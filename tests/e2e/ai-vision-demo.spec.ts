@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -124,7 +124,7 @@ test.describe('AI Vision Demo', () => {
 
     // ── 8. Type the prompt ────────────────────────────────────────────
     const promptText = `What's in this image? Where is this located?\n\n#file:*`;
-    await insertTextForDemo(mainWindow, promptText, true);
+    await insertText(mainWindow, promptText, true);
 
     await takeScreenshot(mainWindow, cmEditor, screenshotDir, step++, 'prompt-entered');
     writeNarration(

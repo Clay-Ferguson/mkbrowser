@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertTextForDemo, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Advanced Search Feature
@@ -122,7 +122,7 @@ We can enter a boolean expression that will be evaluated against each file in th
 We will enter a boolean "and" expression that finds only the files containing both the word "political" and the phrase "free people" at the same time.`
     );
 
-    await insertTextForDemo(mainWindow, '$("political") && $("free people")', true, searchInput);
+    await insertText(mainWindow, '$("political") && $("free people")', true, searchInput);
 
     await takeScreenshot(mainWindow, searchInput, screenshotDir, step++, 'query-entered');
     writeNarration(
@@ -143,7 +143,7 @@ The double-ampersand operator means that both terms must appear in the same file
 Let's call it "Political Free People Search".`
     );
 
-    await insertTextForDemo(mainWindow, 'Political Free People Search', true, searchNameInput);
+    await insertText(mainWindow, 'Political Free People Search', true, searchNameInput);
 
     await takeScreenshot(mainWindow, searchNameInput, screenshotDir, step++, 'name-entered');
     writeNarration(
