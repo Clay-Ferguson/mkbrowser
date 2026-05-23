@@ -80,5 +80,5 @@ exec llama-server \
   --port "$PORT" \
   --ctx-size "$CTX_SIZE" \
   -fa on \
-  --reasoning on \
+  --reasoning off \
   "${EXTRA_ARGS[@]}"

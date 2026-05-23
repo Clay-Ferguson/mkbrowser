@@ -10,7 +10,7 @@ import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
-import { ensureRunning } from '../llamaServer';
+import { ensureRunning } from './llamaServer';
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
 import { preprocessPrompt } from './promptPreprocess';
 import { USE_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';

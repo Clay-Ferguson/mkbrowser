@@ -12,7 +12,7 @@
 
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { getConfig } from './configMgr';
+import { getConfig } from '../configMgr';
 
 export type LlamaServerStatus = 'running' | 'stopped' | 'loading';
 

@@ -34,9 +34,17 @@ import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 import { logger } from '../utils/logUtil';
 import { consumeScriptedAnswer } from './scriptedAnswer';
+import { checkHealth } from './llamaServer';
 
-/** Set to true to use Deep Agents; false to use the original StateGraph path. */
-export const USE_DEEP_AGENTS = true; 
+/** Set to true to use Deep Agents; false to use the original StateGraph path. 
+ * 
+ * todo-0: NOTE: When this mode is enabled, our small local model (Gemma 4) will hang (on slow shared memory CPU), 
+ * and so I think I might need this as a user-configurable setting like named "Thinking Mode". We already have an
+ * "Agentic Mode" checkbox in the user settings however so I need to look carefully at these to see if we need two
+ * checkboxes or just one.
+ * 
+ * */
+export const USE_DEEP_AGENTS = false; 
 
 // Set to true to enable verbose debug logging for Deep Agent invocations.
 const DEBUG = true;
@@ -167,12 +175,26 @@ export async function streamDeepAgent(
 
   debugLog('streamDeepAgent → starting streamEvents');
   try {
+    debugLog('streamDeepAgent → calling agent.streamEvents()');
     const eventStream = agent.streamEvents(
       { messages: [...history, humanMsg] },
       { version: 'v2', signal },
     );
+    debugLog('streamDeepAgent → eventStream created, entering for-await loop');
 
+    let eventCount = 0;
+    const heartbeat = setInterval(async () => {
+      const health = await checkHealth().catch(() => 'error');
+      debugLog(`streamDeepAgent → still waiting… ${eventCount} events received so far | llamacpp health: ${health}`);
+    }, 5000);
+
+    try {
     for await (const event of eventStream) {
+      eventCount++;
+      if (eventCount <= 10 || event.event === 'on_chat_model_start' || event.event === 'on_chain_end') {
+        debugLog(`streamDeepAgent → event[${eventCount}]: ${event.event} name=${event.name ?? '(none)'}`);
+      }
+
       // Token-level chunks from the chat model
       if (event.event === 'on_chat_model_stream') {
         const chunk = event.data?.chunk;
@@ -269,6 +291,9 @@ export async function streamDeepAgent(
           if (extracted) usage = extracted;
         }
       }
+    }
+    } finally {
+      clearInterval(heartbeat);
     }
 
     debugLog('streamDeepAgent → stream completed, content length:', contentAccum.length,

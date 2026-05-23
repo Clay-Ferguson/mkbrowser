@@ -109,7 +109,7 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
   const boundModel = useTools ? model.bindTools(aiTools) : model;
   debugLog('invokeAI → tools bound:', useTools, '(', aiTools.length, 'tools)');
 
-  // 3-minute hard timeout for a single model round-trip.  Ollama can silently
+  // 3-minute hard timeout for a single model round-trip.  llama.cpp can silently
   // hang forever if the model is still loading or if tool-calling confuses it,
   // so we race against an explicit timeout and surface a clear error instead.
   const MODEL_TIMEOUT_MS = 3 * 60 * 1000;

@@ -15,9 +15,9 @@ mkdir -p "$MODELS_DIR"
 # All model files can coexist on disk — download each variant once.
 
 # Gemma 4 E2B: 2.3B effective params (5.1B total with embeddings)
-#MODEL_REPO="unsloth/gemma-4-E2B-it-GGUF"
-#MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"
-#MODEL_SIZE_HINT="~3.1 GB"
+MODEL_REPO="unsloth/gemma-4-E2B-it-GGUF"
+MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"
+MODEL_SIZE_HINT="~3.1 GB"
 
 # Gemma 4 E4B: 4.5B effective params (8B total with embeddings)
 #MODEL_REPO="unsloth/gemma-4-E4B-it-GGUF"
@@ -25,9 +25,9 @@ mkdir -p "$MODELS_DIR"
 #MODEL_SIZE_HINT="~5.0 GB"
 
 # Gemma 4 26B-A4B (MoE): 3.8B active params (25.2B total)
-MODEL_REPO="unsloth/gemma-4-26B-A4B-it-GGUF"
-MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
-MODEL_SIZE_HINT="~13.4 GB"
+# MODEL_REPO="unsloth/gemma-4-26B-A4B-it-GGUF"
+# MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
+# MODEL_SIZE_HINT="~13.4 GB"
 # ─────────────────────────────────────────────────────────────────────────
 
 MODEL_URL="https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}"

@@ -22,7 +22,7 @@ import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleR
 import { hasScriptedAnswer, queueScriptedAnswer } from './ai/langGraph';
 import type { StreamCallbacks } from './ai/langGraph';
 import { getUsageWithCosts, resetUsage } from './ai/usageTracker';
-import { checkHealth, ensureRunning, stopServer } from './llamaServer';
+import { checkHealth, ensureRunning, stopServer } from './ai/llamaServer';
 import { readExifMetadata, writeExifMetadata } from './utils/exifUtil';
 import { logger } from './utils/logUtil';
   // Write EXIF metadata to an image file

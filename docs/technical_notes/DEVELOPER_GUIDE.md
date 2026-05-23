@@ -20,3 +20,10 @@ The `ipcMain.handle(channel, handler)` pattern you see ~40 times in your `main.t
 The **preload script** (`preload.ts`) sits in between as a security boundary. It selectively exposes specific IPC calls to the renderer via `contextBridge.exposeInMainWorld`, so the renderer only sees `window.electronAPI.readFile(path)` — never raw `ipcRenderer` access. That's why your AGENTS.md describes the "three-file sync" requirement: every new capability needs a handler in `main.ts`, a bridge method in `preload.ts`, and a type in `global.d.ts`.
 
 For your refactoring: each `ipcMain.handle(...)` is essentially an independent route handler. You can freely extract them into separate modules (e.g., `ipc/fileHandlers.ts`, `ipc/aiHandlers.ts`) and just import + register them in `main.ts`, the same way you'd split a monolithic Express `app.js` into route files.
+
+## Local AI Model Inference Troubleshooting
+
+For local inference we have 'llamacpp' folder setup to be able to run 'llama-server'. If you happen to be running on extremely limited hardware these are the two settings you can change to turn off some advanced reasoning and agent of capabilities, to run just a minimalist chatbot:
+
+1) In `deepAgents.ts` set `USE_DEEP_AGENTS` variable to false. There's currently no way to alter this without an app rebuild.
+2) In `start-server.sh` make sure you have `--reasoning off`, which makes the model run without reasoniong and so it's tryign to do less and can therefore complete inference in a shorter amount of time with less GPU/CPU power.

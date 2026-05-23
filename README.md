@@ -24,7 +24,7 @@ This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) 
 - Search and export dialogs (UI-level support).
 - Replace in Files: bulk find-and-replace across all text files.
 - PDF export support for Markdown content.
-- AI Chatbot supporting Anthropic, OpenAI, Google AI, Ollama Models
+- AI Chatbot supporting Anthropic, OpenAI, Google AI, Llama.cpp Models
 
 ## GIFs & Screenshots
 
@@ -60,7 +60,7 @@ This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) 
 - **Diagrams**: Mermaid
 - **Config**: YAML (`js-yaml`)
 - **LangChain/LangGraph**: For Local & Cloud API Access
-- **Ollama Configs**: Ollama configuration for local LLMs
+- **Llama.cpp Configs**: Local LLMs
 
 
 ## Architecture Overview

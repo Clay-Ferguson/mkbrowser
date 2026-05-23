@@ -1,7 +1,6 @@
 # llama.cpp — Local LLM Backend
 
-Run local LLM models using [llama.cpp](https://github.com/ggml-org/llama.cpp) as
-an alternative to Ollama. llama.cpp provides an OpenAI-compatible HTTP API, which
+Run local LLM models using [llama.cpp](https://github.com/ggml-org/llama.cpp). llama.cpp provides an OpenAI-compatible HTTP API, which
 MkBrowser connects to via the `LLAMACPP` provider.
 
 ## Quick Start
