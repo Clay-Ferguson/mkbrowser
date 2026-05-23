@@ -18,7 +18,6 @@ test.describe('Create LaTeX Demo', () => {
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
 
-
     let step = 1;
 
     // Wait for initial load

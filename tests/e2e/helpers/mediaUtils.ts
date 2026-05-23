@@ -249,9 +249,9 @@ export async function demoClick(
  * @param locator - The element to right-click
  *
  * @example
- * await demonstrateRightClickForDemo(fileNode);
+ * await demoRightClick(fileNode);
  */
-export async function demonstrateRightClickForDemo(
+export async function demoRightClick(
   locator: Locator
 ): Promise<void> {
   await locator.page().waitForTimeout(300);
@@ -271,11 +271,11 @@ export async function demonstrateRightClickForDemo(
  * @param shouldBeChecked - true to ensure the element ends up checked, false to ensure unchecked
  *
  * @example
- * await setCheckboxForDemo(includeSubfolders, true);   // ensure checked
- * await setCheckboxForDemo(includeSubfolders, false);  // ensure unchecked
- * await setCheckboxForDemo(radioOption, true);         // select a radio button
+ * await setCheckbox(includeSubfolders, true);   // ensure checked
+ * await setCheckbox(includeSubfolders, false);  // ensure unchecked
+ * await setCheckbox(radioOption, true);         // select a radio button
  */
-export async function setCheckboxForDemo(
+export async function setCheckbox(
   locator: Locator,
   shouldBeChecked: boolean
 ): Promise<void> {

@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, demonstrateRightClickForDemo, findActionBarByFileName, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, demoRightClick, findActionBarByFileName, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
 
 // Override testDataPath so the app starts browsing /home/clay/ferguson
 const test = baseTest.extend({
@@ -47,13 +47,6 @@ The tree panel on the left-hand side of the app shows your file system as a navi
     await demoClick(projectsFolder);
     await mainWindow.waitForTimeout(800);
 
-    // await takeScreenshot(mainWindow, null, screenshotDir, step++, 'projects-folder-expanded');
-    // writeNarration(
-    //   screenshotDir,
-    //   step++,
-    //   `Next, let's open the mkbrowser folder.`
-    // );
-
     // --- Click the "mkbrowser" folder ---
     const mkbrowserFolder = tree.getByText('mkbrowser').first();
     await mkbrowserFolder.scrollIntoViewIfNeeded();
@@ -66,13 +59,6 @@ The tree panel on the left-hand side of the app shows your file system as a navi
 
     await demoClick(mkbrowserFolder);
     await mainWindow.waitForTimeout(800);
-
-    // await takeScreenshot(mainWindow, null, screenshotDir, step++, 'mkbrowser-folder-expanded');
-    // writeNarration(
-    //   screenshotDir,
-    //   step++,
-    //   `Now let's open the docs folder.`
-    // );
 
     // --- Click the "docs" folder ---
     const docsFolder = tree.getByText('docs').first();
@@ -135,7 +121,7 @@ This is one of the most powerful navigation features of MkBrowser.`
 Right-clicking a file opens its containing folder in the main content area on the right-hand side of the app.`
     );
 
-    await demonstrateRightClickForDemo(userGuideFileAgain);
+    await demoRightClick(userGuideFileAgain);
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'right-click-user-guide-folder-opened');
@@ -178,7 +164,7 @@ We can drill into any section of the document directly from the file explorer.`
 Let's right-click it — this should scroll the right-hand side of the app directly to that section of the document.`
     );
 
-    await demonstrateRightClickForDemo(savingSearchNode);
+    await demoRightClick(savingSearchNode);
     await mainWindow.waitForTimeout(1200);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'right-click-saving-search-definitions-scrolled');

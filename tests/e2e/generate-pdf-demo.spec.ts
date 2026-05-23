@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, setCheckboxForDemo, insertText, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, setCheckbox, insertText, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Generate PDF Feature
@@ -186,7 +186,7 @@ Next, let's enter a name for the exported file.`
 We'll click all four of them.`
     );
 
-    await setCheckboxForDemo(includeSubfolders, true);
+    await setCheckbox(includeSubfolders, true);
     await takeScreenshot(mainWindow, includeSubfolders, screenshotDir, step++, 'checkbox-include-subfolders-checked');
     writeNarration(
       screenshotDir,
@@ -195,7 +195,7 @@ We'll click all four of them.`
 MkBrowser will recurse into any subfolders when assembling the document.`
     );
 
-    await setCheckboxForDemo(includeFilenames, true);
+    await setCheckbox(includeFilenames, true);
     await takeScreenshot(mainWindow, includeFilenames, screenshotDir, step++, 'checkbox-include-filenames-checked');
     writeNarration(
       screenshotDir,
@@ -204,7 +204,7 @@ MkBrowser will recurse into any subfolders when assembling the document.`
 Each file's name will appear as a heading in the exported document so readers can easily identify the source of each section.`
     );
 
-    await setCheckboxForDemo(includeDividers, true);
+    await setCheckbox(includeDividers, true);
     await takeScreenshot(mainWindow, includeDividers, screenshotDir, step++, 'checkbox-include-dividers-checked');
     writeNarration(
       screenshotDir,
@@ -213,7 +213,7 @@ Each file's name will appear as a heading in the exported document so readers ca
 Horizontal rules will be inserted between sections to give the document a clean, well-structured look.`
     );
 
-    await setCheckboxForDemo(exportToPdf, true);
+    await setCheckbox(exportToPdf, true);
     await takeScreenshot(mainWindow, exportToPdf, screenshotDir, step++, 'export-format-pdf');
     writeNarration(
       screenshotDir,
