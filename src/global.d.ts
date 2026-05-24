@@ -1,5 +1,6 @@
 export type {
   HashtagDefinition,
+  TagCategory,
   FontSize,
   SortOrder,
   ContentWidth,

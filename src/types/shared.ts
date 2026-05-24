@@ -1,6 +1,6 @@
-import type { HashtagDefinition } from '../utils/tagUtils';
+import type { HashtagDefinition, TagCategory } from '../utils/tagUtils';
 
-export type { HashtagDefinition };
+export type { HashtagDefinition, TagCategory };
 
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
@@ -194,7 +194,7 @@ export interface ElectronAPI {
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;
   scanFolderTree: (folderPath: string) => Promise<FolderGraphScanResult>;
-  loadTags: () => Promise<HashtagDefinition[]>;
+  loadTags: () => Promise<TagCategory[]>;
   setWindowTitle: (title: string) => Promise<void>;
   selectExportFolder: () => Promise<string | null>;
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;

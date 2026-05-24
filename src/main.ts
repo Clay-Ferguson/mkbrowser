@@ -17,7 +17,7 @@ import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalys
 import { loadCalendarEvents, loadCalendarEntryForFile, type CalendarEventResult } from './calendarLoader';
 import { startCalendarWatcher, stopCalendarWatcher, getCalendarWatcherFolder } from './calendarWatcher';
 import { scanFolderTree, type FolderGraphResult } from './folderGraph';
-import { loadTags, type HashtagDefinition } from './utils/tagUtils';
+import { loadTags, type TagCategory } from './utils/tagUtils';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
 import { hasScriptedAnswer, queueScriptedAnswer } from './ai/langGraph';
 import type { StreamCallbacks } from './ai/langGraph';
@@ -467,7 +467,7 @@ function setupIpcHandlers(): void {
   });
 
   // Load tags from the tags.yaml in the config folder
-  ipcMain.handle('load-tags', async (): Promise<HashtagDefinition[]> => {
+  ipcMain.handle('load-tags', async (): Promise<TagCategory[]> => {
     try {
       const configDir = path.join(app.getPath('home'), '.config', 'mk-browser');
       return await loadTags(configDir);

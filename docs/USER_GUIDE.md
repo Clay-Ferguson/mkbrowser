@@ -14,7 +14,6 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [Editor Keyboard Shortcuts](#editor-keyboard-shortcuts)
   * [Automatic Table of Contents Generation](#automatic-table-of-contents-generation)
   * [Tag Picker](#tag-picker)
-    * [Setting up `tags.yaml` files](#setting-up-tagsyaml-files)
   * [Renaming](#renaming)
   * [File Operations (Cut, Copy, Paste, Delete)](#file-operations-cut-copy-paste-delete)
 * [Edit Menu Features](#edit-menu-features)

@@ -2,47 +2,43 @@ import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 
-/**
- * A single hashtag definition loaded from the `tags.yaml` file.
- * `tag` always includes the `#` prefix (e.g. `"#cooking"`).
- * `description` is the multi-line description shown as a tooltip.
- * `group` (optional) identifies a set of mutually exclusive tags.
- */
+/** A single hashtag definition. `tag` always includes the `#` prefix (e.g. `"#cooking"`). */
 export interface HashtagDefinition {
   tag: string;
   description: string;
-  group?: string;
+}
+
+/** A named group of hashtags as defined in `tags.yaml`. */
+export interface TagCategory {
+  name: string;
+  tags: HashtagDefinition[];
 }
 
 /** Result of an async tag-loading operation */
 export type TagsLoadState =
   | { status: 'loading' }
-  | { status: 'loaded'; tags: HashtagDefinition[] };
+  | { status: 'loaded'; categories: TagCategory[] };
 
 /** Calls the main-process IPC to load tags from the config folder. */
-export async function fetchTags(): Promise<HashtagDefinition[]> {
+export async function fetchTags(): Promise<TagCategory[]> {
   return window.electronAPI.loadTags();
 }
 
 /**
- * Read `tags.yaml` from `configDir` and return its hashtag definitions sorted
- * alphabetically (case-insensitive). Returns an empty array if the file does not exist.
- *
- * This is the main-process implementation behind the `load-tags` IPC.
+ * Read `tags.yaml` from `configDir` and return tag categories.
+ * Returns an empty array if the file does not exist.
  *
  * Expected YAML format:
  * ```yaml
  * hashtags:
- *   cooking:
- *     description: |
- *       Use this for all culinary posts.
- *     group: category
- *   travel:
- *     description: |
- *       Reserved for international trips.
+ *   category:
+ *     trip:
+ *       description: Full travel itineraries.
+ *   type:
+ *     todo:
+ *       description: Current tasks.
  * ```
- * Keys are plain tag names (without `#`); the `#` prefix is added automatically.
- * `group` is optional — omit it for tags that don't belong to a mutually exclusive set.
+ * Top-level keys under `hashtags` are group names; their children are tag names.
  */
 export function tagName(tag: string): string {
   return tag.startsWith('#') ? tag.slice(1) : tag;
@@ -113,7 +109,7 @@ export function insertTagIntoText(text: string, tag: string): string {
   return assembleFrontMatter(`tags:\n  - ${name}`, text);
 }
 
-export async function loadTags(configDir: string): Promise<HashtagDefinition[]> {
+export async function loadTags(configDir: string): Promise<TagCategory[]> {
   const tagsFile = path.join(configDir, 'tags.yaml');
   let content: string;
   try {
@@ -122,22 +118,17 @@ export async function loadTags(configDir: string): Promise<HashtagDefinition[]> 
     return [];
   }
 
-  const parsed = yaml.load(content) as { hashtags?: Record<string, unknown> } | null;
+  type RawTags = Record<string, { description?: string } | null>;
+  type RawFile = { hashtags?: Record<string, RawTags | null> };
+  const parsed = yaml.load(content) as RawFile | null;
   const hashtags = parsed?.hashtags;
   if (!hashtags || typeof hashtags !== 'object') return [];
 
-  const results: HashtagDefinition[] = [];
-  for (const [key, value] of Object.entries(hashtags)) {
-    const tag = `#${key}`;
-    let description = '';
-    let group: string | undefined;
-    if (typeof value === 'object' && value !== null) {
-      const v = value as Record<string, unknown>;
-      description = typeof v.description === 'string' ? v.description.trim() : '';
-      group = typeof v.group === 'string' ? v.group : undefined;
-    }
-    results.push({ tag, description, group });
-  }
-
-  return results.sort((a, b) => a.tag.localeCompare(b.tag, undefined, { sensitivity: 'base' }));
+  return Object.entries(hashtags).map(([groupName, groupTags]) => ({
+    name: groupName,
+    tags: Object.entries(groupTags ?? {}).map(([tagKey, tagVal]) => ({
+      tag: `#${tagKey}`,
+      description: (tagVal?.description ?? '').trim(),
+    })).sort((a, b) => a.tag.localeCompare(b.tag, undefined, { sensitivity: 'base' })),
+  }));
 }
