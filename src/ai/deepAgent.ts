@@ -39,7 +39,7 @@ import { checkHealth } from './llamaServer';
 /** 
  * Set to true to use Deep Agents; false to use the original StateGraph path. 
  * 
- * todo-0: NOTE: When this mode is enabled, our small local model (Gemma 4) will appear to hang (on slow shared memory CPU),
+ * NOTE: When this mode is enabled, our small local model (Gemma 4) will appear to hang (on slow shared memory CPU),
  * but that's just because using Deep Agents does things that consume way more tokens than the code path thru the LangChain
  * code where we're NOT using this flag. I'm making this an optional flag so that it is possible to run small models in a 
  * somewhat performant way with a reasonable TPS (Tokens Per Second) at least by setting this flag and rebuilding. For now

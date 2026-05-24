@@ -3,17 +3,7 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 
 /**
- * Tag utility module — loads tags for the TagsPicker by walking up the directory
- * tree from a file's location, reading `.TAGS.yaml` files at each level, and
- * building a map of hashtag definitions from their content.
- *
- * Tags are returned sorted alphabetically (case-insensitive). When the same tag
- * key appears in multiple files, the last file encountered (furthest ancestor)
- * wins.
- */
-
-/**
- * A single hashtag definition loaded from a `.TAGS.yaml` file.
+ * A single hashtag definition loaded from the `tags.yaml` file.
  * `tag` always includes the `#` prefix (e.g. `"#cooking"`).
  * `description` is the multi-line description shown as a tooltip.
  * `group` (optional) identifies a set of mutually exclusive tags.
@@ -29,25 +19,16 @@ export type TagsLoadState =
   | { status: 'loading' }
   | { status: 'loaded'; tags: HashtagDefinition[] };
 
-/**
- * Load tags for a given file path by walking up ancestor directories
- * and collecting hashtag definitions from `.TAGS.yaml` files.
- *
- * This calls the `collect-ancestor-tags` IPC which does the actual
- * filesystem work in the main process.
- *
- * @param filePath - Absolute path to the file being edited
- * @returns Array of unique `HashtagDefinition` objects sorted alphabetically
- */
-export async function loadTagsForFile(filePath: string): Promise<HashtagDefinition[]> {
-  return window.electronAPI.collectAncestorTags(filePath);
+/** Calls the main-process IPC to load tags from the config folder. */
+export async function fetchTags(): Promise<HashtagDefinition[]> {
+  return window.electronAPI.loadTags();
 }
 
 /**
- * Walk up the directory tree from the given file, reading `.TAGS.yaml` at each
- * level and collecting hashtag definitions. Returns them sorted case-insensitively.
+ * Read `tags.yaml` from `configDir` and return its hashtag definitions sorted
+ * alphabetically (case-insensitive). Returns an empty array if the file does not exist.
  *
- * This is the main-process implementation behind the `collect-ancestor-tags` IPC.
+ * This is the main-process implementation behind the `load-tags` IPC.
  *
  * Expected YAML format:
  * ```yaml
@@ -132,45 +113,31 @@ export function insertTagIntoText(text: string, tag: string): string {
   return assembleFrontMatter(`tags:\n  - ${name}`, text);
 }
 
-export async function collectAncestorTags(filePath: string): Promise<HashtagDefinition[]> {
-  const map = new Map<string, HashtagDefinition>();
-
-  // Start from the directory containing the file
-  let dir = path.dirname(filePath);
-  const root = path.parse(dir).root;
-
-  // Walk up the directory tree
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    const tagsFile = path.join(dir, '.TAGS.yaml');
-    try {
-      const content = await fs.promises.readFile(tagsFile, 'utf-8');
-      const parsed = yaml.load(content) as { hashtags?: Record<string, unknown> } | null;
-      const hashtags = parsed?.hashtags;
-      if (hashtags && typeof hashtags === 'object') {
-        for (const [key, value] of Object.entries(hashtags)) {
-          const tag = `#${key}`;
-          let description = '';
-          let group: string | undefined;
-          if (typeof value === 'object' && value !== null) {
-            const v = value as Record<string, unknown>;
-            description = typeof v.description === 'string' ? v.description.trim() : '';
-            group = typeof v.group === 'string' ? v.group : undefined;
-          }
-          map.set(tag, { tag, description, group });
-        }
-      }
-    } catch {
-      // .TAGS.yaml doesn't exist at this level — that's fine, keep walking
-    }
-
-    // Stop at filesystem root
-    if (dir === root || dir === path.dirname(dir)) break;
-    dir = path.dirname(dir);
+export async function loadTags(configDir: string): Promise<HashtagDefinition[]> {
+  const tagsFile = path.join(configDir, 'tags.yaml');
+  let content: string;
+  try {
+    content = await fs.promises.readFile(tagsFile, 'utf-8');
+  } catch {
+    return [];
   }
 
-  // Sort tags alphabetically (case-insensitive)
-  return Array.from(map.values()).sort((a, b) =>
-    a.tag.localeCompare(b.tag, undefined, { sensitivity: 'base' })
-  );
+  const parsed = yaml.load(content) as { hashtags?: Record<string, unknown> } | null;
+  const hashtags = parsed?.hashtags;
+  if (!hashtags || typeof hashtags !== 'object') return [];
+
+  const results: HashtagDefinition[] = [];
+  for (const [key, value] of Object.entries(hashtags)) {
+    const tag = `#${key}`;
+    let description = '';
+    let group: string | undefined;
+    if (typeof value === 'object' && value !== null) {
+      const v = value as Record<string, unknown>;
+      description = typeof v.description === 'string' ? v.description.trim() : '';
+      group = typeof v.group === 'string' ? v.group : undefined;
+    }
+    results.push({ tag, description, group });
+  }
+
+  return results.sort((a, b) => a.tag.localeCompare(b.tag, undefined, { sensitivity: 'base' }));
 }

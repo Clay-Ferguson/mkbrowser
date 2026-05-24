@@ -17,7 +17,7 @@ import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalys
 import { loadCalendarEvents, loadCalendarEntryForFile, type CalendarEventResult } from './calendarLoader';
 import { startCalendarWatcher, stopCalendarWatcher, getCalendarWatcherFolder } from './calendarWatcher';
 import { scanFolderTree, type FolderGraphResult } from './folderGraph';
-import { collectAncestorTags, type HashtagDefinition } from './utils/tagUtils';
+import { loadTags, type HashtagDefinition } from './utils/tagUtils';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
 import { hasScriptedAnswer, queueScriptedAnswer } from './ai/langGraph';
 import type { StreamCallbacks } from './ai/langGraph';
@@ -466,12 +466,13 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Collect tags by walking up ancestor directories reading .TAGS.yaml files
-  ipcMain.handle('collect-ancestor-tags', async (_event, filePath: string): Promise<HashtagDefinition[]> => {
+  // Load tags from the tags.yaml in the config folder
+  ipcMain.handle('load-tags', async (): Promise<HashtagDefinition[]> => {
     try {
-      return await collectAncestorTags(filePath);
+      const configDir = path.join(app.getPath('home'), '.config', 'mk-browser');
+      return await loadTags(configDir);
     } catch (error) {
-      logger.error('Error collecting ancestor tags:', error);
+      logger.error('Error loading tags:', error);
       return [];
     }
   });

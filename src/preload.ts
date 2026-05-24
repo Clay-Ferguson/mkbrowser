@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),
   scanFolderTree: (folderPath: string) => ipcRenderer.invoke('scan-folder-tree', folderPath),
-  collectAncestorTags: (filePath: string) => ipcRenderer.invoke('collect-ancestor-tags', filePath),
+  loadTags: () => ipcRenderer.invoke('load-tags'),
   setWindowTitle: (title: string) => ipcRenderer.invoke('set-window-title', title),
   selectExportFolder: () => ipcRenderer.invoke('select-export-folder'),
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => 

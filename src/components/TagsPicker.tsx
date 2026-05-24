@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useItem, getItemEditContent, setItemEditContent } from '../store';
 import { CHECKBOX_CLASSES } from '../utils/styles';
 import {
-  loadTagsForFile, type TagsLoadState, type HashtagDefinition,
+  fetchTags, type TagsLoadState, type HashtagDefinition,
   tagName, splitFrontMatter, getTagsFromYaml,
   removeTagFromText, insertTagIntoText,
 } from '../utils/tagUtils';
@@ -28,10 +28,6 @@ interface TagsPickerProps {
  * TagsPicker — renders a horizontal wrapping list of hashtag checkboxes.
  * Displayed beneath a MarkdownEntry when it is in edit mode.
  *
- * Tags are loaded asynchronously by walking up ancestor directories and
- * collecting hashtags from `.TAGS.yaml` files. While loading, a spinner is shown.
- * If no `.TAGS.yaml` files are found (or they contain no tags), nothing is rendered.
- *
  * Checked state is derived directly from the editor content on every render,
  * so checkboxes stay perfectly in sync whether the user types in the editor
  * or clicks a checkbox. Toggling a checkbox on appends the hashtag to the
@@ -47,14 +43,14 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     let cancelled = false;
     setLoadState({ status: 'loading' });
 
-    loadTagsForFile(filePath).then((tags) => {
+    fetchTags().then((tags: HashtagDefinition[]) => {
       if (!cancelled) {
         setLoadState({ status: 'loaded', tags });
       }
     });
 
     return () => { cancelled = true; };
-  }, [filePath]);
+  }, []);
 
   if (loadState.status === 'loading') {
     return null;

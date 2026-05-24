@@ -14,7 +14,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [Editor Keyboard Shortcuts](#editor-keyboard-shortcuts)
   * [Automatic Table of Contents Generation](#automatic-table-of-contents-generation)
   * [Tag Picker](#tag-picker)
-    * [Setting up `.TAGS.yaml` files](#setting-up-tagsyaml-files)
+    * [Setting up `tags.yaml` files](#setting-up-tagsyaml-files)
   * [Renaming](#renaming)
   * [File Operations (Cut, Copy, Paste, Delete)](#file-operations-cut-copy-paste-delete)
 * [Edit Menu Features](#edit-menu-features)
@@ -196,7 +196,7 @@ If your file has no `<\!-- TOC -->` comment, nothing happens. If it has headings
 
 ## Tag Picker
 
-While editing a Markdown file, a **tag picker** appears below the editor. It shows a row of clickable checkboxes — one for each hashtag defined in any `.TAGS.yaml` file(s) found in the file's ancestor directories. You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand. Tags are added into the 'tags' property of the Markdown Front Matter, creating a Front Matter section as necessary. NOTE: This is identical to the "Obsidian" way of storing tags.
+While editing a Markdown file, a **tag picker** appears below the editor. You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand. Tags are added into the 'tags' property of the Markdown Front Matter, creating a Front Matter section as necessary. NOTE: This is identical to the "Obsidian" way of storing tags.
 
 - **Checked** tags are already present somewhere in the file's content and are highlighted in blue.
 - **Unchecked** tags are not currently in the content.
@@ -205,60 +205,6 @@ While editing a Markdown file, a **tag picker** appears below the editor. It sho
 - **Hover** over any tag to see its description.
 
 The checkboxes stay in sync with the editor as you type, so you can freely mix typing and clicking.
-
-### Setting up `.TAGS.yaml` files
-
-The tag picker gets its list of available tags from `.TAGS.yaml` files placed in your folder tree. When you open a file for editing, MkBrowser walks up through that file's ancestor directories and reads every `.TAGS.yaml` it finds. The tags defined in those files become the options in the tag picker. Tags are sorted alphabetically.
-
-**Example:** if your notes folder structure is:
-
-```
-~/notes/
-  .TAGS.yaml          ← defines #project #personal #archive
-  work/
-    .TAGS.yaml        ← defines #meeting #action-item
-    q1-review.md
-```
-
-When editing `q1-review.md`, the tag picker will show all five tags: `#project`, `#personal`, `#archive`, `#meeting`, `#action-item`, sorted alphabetically. If the same tag name is defined in more than one file, the definition from the furthest ancestor wins.
-
-**To create a `.TAGS.yaml` file**, create a new file named `.TAGS.yaml` in any folder using the following format:
-
-```yaml
-# Hashtag Configuration File
-hashtags:
-  project:
-    description: |
-      Use for anything related to an active project.
-    group: category
-  personal:
-    description: |
-      Personal notes and reminders.
-    group: category
-  archive:
-    description: |
-      Content that is finished and no longer active.
-    group: category
-  p1:
-    description: |
-      Highest priority — needs immediate attention.
-    group: priority
-  p2:
-    description: |
-      Medium priority.
-    group: priority
-  p3:
-    description: |
-      Low priority.
-    group: priority
-  done:
-    description: |
-      Completed items.
-```
-
-Each key under `hashtags` is a tag name (without the `#` — MkBrowser adds it automatically). Each tag has two properties: `description` (shown as a tooltip when you hover) and the optional `group` (a string that identifies a set of mutually exclusive tags — tags sharing the same group name will eventually support radio-button-style selection).
-
-If no `.TAGS.yaml` files are found anywhere in the ancestor tree, the tag picker is hidden entirely.
 
 ## Renaming
 You can rename any file or folder:

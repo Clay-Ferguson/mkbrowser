@@ -194,7 +194,7 @@ export interface ElectronAPI {
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;
   scanFolderTree: (folderPath: string) => Promise<FolderGraphScanResult>;
-  collectAncestorTags: (filePath: string) => Promise<HashtagDefinition[]>;
+  loadTags: () => Promise<HashtagDefinition[]>;
   setWindowTitle: (title: string) => Promise<void>;
   selectExportFolder: () => Promise<string | null>;
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;
