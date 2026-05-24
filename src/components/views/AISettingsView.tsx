@@ -312,18 +312,18 @@ function AISettingsView() {
               <h2 className="text-lg font-semibold text-slate-100 mb-2">AI Settings</h2>
 
               <div className="space-y-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={aiEnabled}
-                    onChange={(e) => handleAiEnabledChange(e.target.checked)}
-                    className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                  />
-                  <span className="text-slate-200">Enable AI Features</span>
-                </label>
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={aiEnabled}
+                      onChange={(e) => handleAiEnabledChange(e.target.checked)}
+                      className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
+                    />
+                    <span className="text-slate-200">Enable AI</span>
+                  </label>
 
-                {aiEnabled && (
-                  <>
+                  {aiEnabled && (
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -336,7 +336,11 @@ function AISettingsView() {
                       />
                       <span className="text-slate-200">Agentic Mode</span>
                     </label>
+                  )}
+                </div>
 
+                {aiEnabled && (
+                  <>
                     {agenticMode && (
                       <div>
                         <label className="text-slate-300 text-sm block mb-1">Allowed Folders (one absolute path per line):</label>

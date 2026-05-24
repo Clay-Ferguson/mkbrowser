@@ -36,15 +36,17 @@ import { logger } from '../utils/logUtil';
 import { consumeScriptedAnswer } from './scriptedAnswer';
 import { checkHealth } from './llamaServer';
 
-/** Set to true to use Deep Agents; false to use the original StateGraph path. 
+/** 
+ * Set to true to use Deep Agents; false to use the original StateGraph path. 
  * 
- * todo-0: NOTE: When this mode is enabled, our small local model (Gemma 4) will hang (on slow shared memory CPU), 
- * and so I think I might need this as a user-configurable setting like named "Thinking Mode". We already have an
- * "Agentic Mode" checkbox in the user settings however so I need to look carefully at these to see if we need two
- * checkboxes or just one.
+ * todo-0: NOTE: When this mode is enabled, our small local model (Gemma 4) will appear to hang (on slow shared memory CPU),
+ * but that's just because using Deep Agents does things that consume way more tokens than the code path thru the LangChain
+ * code where we're NOT using this flag. I'm making this an optional flag so that it is possible to run small models in a 
+ * somewhat performant way with a reasonable TPS (Tokens Per Second) at least by setting this flag and rebuilding. For now
+ * I don't consider this important enough to make it a user configurable setting at runtime.
  * 
- * */
-export const USE_DEEP_AGENTS = false; 
+ */
+export const USE_DEEP_AGENTS = true;
 
 // Set to true to enable verbose debug logging for Deep Agent invocations.
 const DEBUG = true;
