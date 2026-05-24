@@ -88,7 +88,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   return (
     <div className="pb-3" style={{ fontFamily: MONO_FONT }}>
       <div className="flex flex-col gap-y-2">
-        {loadState.categories.map((category) => (
+        {[...loadState.categories].sort((a, b) => a.name.localeCompare(b.name)).map((category) => (
           <div key={category.name} className="flex items-start gap-2">
             <span className="min-w-[4rem] text-xs font-bold text-slate-400 uppercase pt-1.5 shrink-0">
               {category.name}
