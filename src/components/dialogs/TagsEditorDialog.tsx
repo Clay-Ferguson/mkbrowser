@@ -195,8 +195,16 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
           <div className="flex flex-1 min-h-0">
             {/* Left: Categories */}
             <div className="w-2/5 border-r border-slate-600 flex flex-col">
-              <div className="px-4 pt-3 pb-3 text-sm font-bold text-slate-300 uppercase tracking-wider flex-shrink-0">
-                Categories
+              <div className="pl-4 pr-6 pt-3 pb-3 text-sm font-bold text-slate-300 uppercase tracking-wider flex-shrink-0 flex items-center justify-between">
+                <span>Categories</span>
+                <button
+                  type="button"
+                  title="Add Category"
+                  onClick={addCategory}
+                  className="text-slate-400 hover:text-slate-100 text-lg leading-none cursor-pointer transition-colors"
+                >
+                  ＋
+                </button>
               </div>
               <div className="flex-1 overflow-y-auto px-2">
                 {[...categories].sort((a, b) => a.name.localeCompare(b.name)).map((cat) => (
@@ -247,15 +255,6 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                   </div>
                 ))}
               </div>
-              <div className="px-3 py-2 border-t border-slate-600 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={addCategory}
-                  className="w-full text-sm text-slate-400 hover:text-slate-200 border border-dashed border-slate-600 hover:border-slate-400 rounded px-3 py-1.5 transition-colors cursor-pointer"
-                >
-                  + Add Category
-                </button>
-              </div>
             </div>
 
             {/* Right: Tags */}
@@ -266,8 +265,16 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                 </div>
               ) : (
                 <>
-                  <div className="pl-4 pr-2 pt-3 pb-3 text-sm font-bold text-slate-300 uppercase tracking-wider flex-shrink-0">
-                    Tags in &ldquo;{selectedCat.name || 'unnamed'}&rdquo;
+                  <div className="pl-4 pr-6 pt-3 pb-3 text-sm font-bold text-slate-300 uppercase tracking-wider flex-shrink-0 flex items-center justify-between">
+                    <span>Tags in &ldquo;{selectedCat.name || 'unnamed'}&rdquo;</span>
+                    <button
+                      type="button"
+                      title="Add Tag"
+                      onClick={() => addTag(selectedCat.id)}
+                      className="text-slate-400 hover:text-slate-100 text-lg leading-none cursor-pointer transition-colors"
+                    >
+                      ＋
+                    </button>
                   </div>
                   <div className="flex-1 overflow-y-auto pl-4 pr-2 py-2 space-y-3">
                     {selectedCat.tags.map((tag) => (
@@ -304,15 +311,6 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                     {selectedCat.tags.length === 0 && (
                       <p className="text-slate-500 text-sm">No tags yet. Add one below.</p>
                     )}
-                  </div>
-                  <div className="pl-4 pr-2 py-2 border-t border-slate-600 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => addTag(selectedCat.id)}
-                      className="w-full text-sm text-slate-400 hover:text-slate-200 border border-dashed border-slate-600 hover:border-slate-400 rounded px-3 py-1.5 transition-colors cursor-pointer"
-                    >
-                      + Add Tag
-                    </button>
                   </div>
                 </>
               )}
