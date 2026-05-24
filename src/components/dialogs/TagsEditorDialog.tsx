@@ -69,7 +69,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     fetchTags().then((cats) => {
       const editor = fromLoaded(cats);
       setCategories(editor);
-      if (editor.length > 0) setSelectedCatId(editor[0].id);
+      if (editor.length > 0) setSelectedCatId([...editor].sort((a, b) => a.name.localeCompare(b.name))[0].id);
       setLoading(false);
     });
   }, []);
@@ -199,7 +199,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                 Categories
               </div>
               <div className="flex-1 overflow-y-auto px-2">
-                {categories.map((cat) => (
+                {[...categories].sort((a, b) => a.name.localeCompare(b.name)).map((cat) => (
                   <div
                     key={cat.id}
                     className={`flex items-center gap-1 px-2 py-1.5 rounded cursor-pointer group ${
