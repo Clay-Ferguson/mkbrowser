@@ -4,6 +4,7 @@ import { isAiThreadByEntries } from '../ai/aiPatterns';
 import type { FileEntry } from '../global';
 import appLogo from '../../public/icon-256.png';
 import FilePopupMenu from './menus/FilePopupMenu';
+import TagsEditorDialog from './dialogs/TagsEditorDialog';
 
 interface TabConfig {
   id: AppView;
@@ -37,6 +38,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
   const rootPath = useRootPath();
   const logoRef = useRef<HTMLButtonElement>(null);
   const [showFileMenu, setShowFileMenu] = useState(false);
+  const [showTagsEditor, setShowTagsEditor] = useState(false);
 
   const navigateUp = useCallback(() => {
     if (!currentPath || currentPath === rootPath) return;
@@ -94,7 +96,11 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
             showTab('ai-settings');
             setCurrentView('ai-settings');
           }}
+          onEditHashtags={() => setShowTagsEditor(true)}
         />
+      )}
+      {showTagsEditor && (
+        <TagsEditorDialog onClose={() => setShowTagsEditor(false)} />
       )}
       {tabs.map((tab) => (
         <button

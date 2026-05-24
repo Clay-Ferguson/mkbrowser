@@ -195,6 +195,7 @@ export interface ElectronAPI {
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;
   scanFolderTree: (folderPath: string) => Promise<FolderGraphScanResult>;
   loadTags: () => Promise<TagCategory[]>;
+  saveTags: (yamlContent: string) => Promise<void>;
   setWindowTitle: (title: string) => Promise<void>;
   selectExportFolder: () => Promise<string | null>;
   exportFolderContents: (sourceFolder: string, outputFolder: string, outputFileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean) => Promise<ExportResult>;

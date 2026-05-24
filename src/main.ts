@@ -477,6 +477,13 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Save tags.yaml to the config folder
+  ipcMain.handle('save-tags', async (_event, yamlContent: string): Promise<void> => {
+    const configDir = path.join(app.getPath('home'), '.config', 'mk-browser');
+    const tagsFile = path.join(configDir, 'tags.yaml');
+    await fs.promises.writeFile(tagsFile, yamlContent, 'utf-8');
+  });
+
   // Select folder for export output
   ipcMain.handle('select-export-folder', async (): Promise<string | null> => {
     const result = await dialog.showOpenDialog({

@@ -109,6 +109,20 @@ export function insertTagIntoText(text: string, tag: string): string {
   return assembleFrontMatter(`tags:\n  - ${name}`, text);
 }
 
+/** Converts a TagCategory[] back to the canonical tags.yaml YAML string. */
+export function serializeTagsToYaml(categories: TagCategory[]): string {
+  const hashtags: Record<string, Record<string, { description: string }>> = {};
+  for (const cat of categories) {
+    hashtags[cat.name] = {};
+    for (const tag of cat.tags) {
+      const name = tagName(tag.tag);
+      const desc = tag.description.trim();
+      hashtags[cat.name][name] = { description: desc ? desc + '\n' : '\n' };
+    }
+  }
+  return yaml.dump({ hashtags }, { lineWidth: -1 });
+}
+
 export async function loadTags(configDir: string): Promise<TagCategory[]> {
   const tagsFile = path.join(configDir, 'tags.yaml');
   let content: string;
