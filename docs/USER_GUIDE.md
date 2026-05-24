@@ -195,15 +195,39 @@ If your file has no `<\!-- TOC -->` comment, nothing happens. If it has headings
 
 ## Tag Picker
 
-While editing a Markdown file, a **tag picker** appears below the editor. You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand. Tags are added into the 'tags' property of the Markdown Front Matter, creating a Front Matter section as necessary. NOTE: This is identical to the "Obsidian" way of storing tags.
+While editing a Markdown file, a **tag picker** appears below the editor. You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand. Tags are added into the `tags` property of the Markdown front matter, creating a front matter section as necessary. This is identical to the way Obsidian stores tags.
 
-- **Checked** tags are already present somewhere in the file's content and are highlighted in blue.
+- **Checked** tags are already present in the file's front matter and are highlighted in blue.
 - **Unchecked** tags are not currently in the content.
-- Clicking an unchecked tag **appends** it to the end of the content.
-- Clicking a checked tag **removes** all occurrences of that tag from the content.
+- Clicking an unchecked tag **adds** it to the front matter tags list.
+- Clicking a checked tag **removes** it from the tags list.
 - **Hover** over any tag to see its description.
 
 The checkboxes stay in sync with the editor as you type, so you can freely mix typing and clicking.
+
+### Category behavior
+
+Tags are organised into **categories**. Within a category the picker behaves like a set of radio buttons — selecting one tag automatically deselects any other tag that was previously selected in the same category. This keeps mutually-exclusive choices (e.g. priority: `#p1`, `#p2`, `#p3`) tidy without manual cleanup.
+
+The special category named **`all`** is an exception to this rule. Tags inside an `all` category act as independent checkboxes: any number of them can be selected simultaneously. Use this category for general-purpose tags that are not mutually exclusive.
+
+### Managing your hashtag library (Tags Editor)
+
+You can define the full set of available hashtags — and how they are organised — through the **Tags Editor** dialog. Open it from the **Edit** menu → **Edit Hashtags**.
+
+The dialog is split into two panes:
+
+- **Left pane — Categories**: lists all your tag categories in alphabetical order. Click a category to select it and see its tags on the right.
+  - **Add Category**: click the `+ Add Category` button at the bottom of the list to create a new category. The name field opens immediately for you to type the category name. Press `Enter` or click away to confirm; press `Esc` to cancel.
+  - **Rename**: hover over a category row and click the pencil icon (✎) that appears, then edit the name inline.
+  - **Delete**: hover over a category row and click the ✕ button. A category can only be deleted when it has no tags; remove all tags from it first.
+
+- **Right pane — Tags**: shows all tags belonging to the selected category.
+  - Each tag has a **name** field (the `#` prefix is added automatically) and an optional **description** that appears as a tooltip in the picker.
+  - **Add Tag**: click `+ Add Tag` at the bottom of the right pane to add a new row.
+  - **Delete a tag**: hover over a tag row and click the ✕ button that appears on the right.
+
+Click **Save** to write the changes to disk, or **Cancel** to discard them. Validation prevents saving if any category or tag name is empty, if two categories share the same name, or if a category contains duplicate tag names.
 
 ## Renaming
 You can rename any file or folder:

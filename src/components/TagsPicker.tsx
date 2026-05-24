@@ -44,10 +44,13 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     const isChecked = activeTags.includes(tagName(def.tag));
 
     if (!isChecked) {
-      // Radio-button behaviour within the category: remove other checked tags first
-      for (const sibling of category.tags) {
-        if (sibling.tag !== def.tag && activeTags.includes(tagName(sibling.tag))) {
-          currentContent = removeTagFromText(currentContent, sibling.tag);
+      // Radio-button behaviour within the category: remove other checked tags first.
+      // Exception: "all" category allows multiple selections.
+      if (category.name.toLowerCase() !== 'all') {
+        for (const sibling of category.tags) {
+          if (sibling.tag !== def.tag && activeTags.includes(tagName(sibling.tag))) {
+            currentContent = removeTagFromText(currentContent, sibling.tag);
+          }
         }
       }
       currentContent = insertTagIntoText(currentContent, def.tag);
