@@ -522,6 +522,7 @@ export async function gatherThreadEntries(
 
   const entries: ThreadEntry[] = [];
   let walker = folderPath;
+  let lastAddedRole: 'ai' | 'human' | null = null;
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -542,10 +543,15 @@ export async function gatherThreadEntries(
           modifiedTime: stat.mtimeMs,
           createdTime: stat.birthtimeMs,
         });
+        lastAddedRole = 'ai';
       } catch {
         break;
       }
     } else if (walkerIsHuman) {
+      // Two consecutive HUMAN.md files means we've hit the top of the conversation
+      if (lastAddedRole === 'human') {
+        break;
+      }
       try {
         const stat = await fs.stat(walkerHumanFile);
         entries.unshift({
@@ -556,6 +562,7 @@ export async function gatherThreadEntries(
           modifiedTime: stat.mtimeMs,
           createdTime: stat.birthtimeMs,
         });
+        lastAddedRole = 'human';
       } catch {
         break;
       }
