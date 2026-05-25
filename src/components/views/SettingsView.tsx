@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import TagsEditorDialog from '../dialogs/TagsEditorDialog';
 import {
   setFontSize,
   setFoldersOnTop,
@@ -56,6 +58,7 @@ interface SettingsViewProps {
 
 function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const settings = useSettings();
+  const [showTagsEditor, setShowTagsEditor] = useState(false);
 
   // Scroll position persistence
   const { containerRef: mainContainerRef, handleScroll: handleMainScroll } = useScrollPersistence(
@@ -222,9 +225,20 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
             />
           </section>
+
+          <button
+            type="button"
+            onClick={() => setShowTagsEditor(true)}
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 rounded-lg transition-colors cursor-pointer"
+          >
+            Edit Hashtags
+          </button>
         </div>
         </div>
       </main>
+      {showTagsEditor && (
+        <TagsEditorDialog onClose={() => setShowTagsEditor(false)} />
+      )}
     </div>
   );
 }

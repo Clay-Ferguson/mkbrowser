@@ -8,7 +8,6 @@ interface FilePopupMenuProps {
   onQuit: () => void;
   onSettings: () => void;
   onAiSettings: () => void;
-  onEditHashtags: () => void;
 }
 
 export default function FilePopupMenu({
@@ -18,7 +17,6 @@ export default function FilePopupMenu({
   onQuit,
   onSettings,
   onAiSettings,
-  onEditHashtags,
 }: FilePopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
@@ -37,11 +35,6 @@ export default function FilePopupMenu({
         label="AI Settings"
         data-testid="menu-ai-settings"
         onClick={() => { onAiSettings(); onClose(); }}
-      />
-      <PopupMenuItem
-        label="Edit Hashtags"
-        data-testid="menu-edit-hashtags"
-        onClick={() => { onEditHashtags(); onClose(); }}
       />
       <PopupMenuDivider />
       <PopupMenuItem
