@@ -4,7 +4,7 @@ import remarkStringify from 'remark-stringify';
 import { toc } from 'mdast-util-toc';
 import type { Root, Heading } from 'mdast';
 import GithubSlugger from 'github-slugger';
-import type { MarkdownHeadingNode } from '../store/types';
+import type { MarkdownHeadingNode } from '../types/types';
 
 const START_TAG = '<!-- TOC -->';
 const END_TAG = '<!-- /TOC -->';

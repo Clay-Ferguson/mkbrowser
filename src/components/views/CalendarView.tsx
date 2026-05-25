@@ -4,7 +4,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath } from '../../store';
-import type { CalendarEvent } from '../../store/types';
+import type { CalendarEvent } from '../../types/types';
 
 const localizer = dateFnsLocalizer({
   format,

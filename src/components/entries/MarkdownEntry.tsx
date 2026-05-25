@@ -9,7 +9,7 @@ import rehypeKatex from 'rehype-katex';
 import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import type { FileEntry } from '../../global';
-import type { AppView } from '../../store/types';
+import type { AppView } from '../../types/types';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { removeTOC } from '../../utils/tocUtil';
 import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks } from '../../utils/mkUtil';

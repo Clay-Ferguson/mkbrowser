@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import type { SortOrder } from '../../store/types';
+import type { SortOrder } from '../../types/types';
 import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
 const sortOptions: { value: SortOrder; label: string }[] = [

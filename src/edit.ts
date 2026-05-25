@@ -1,4 +1,4 @@
-import type { ItemData } from './store/types';
+import type { ItemData } from './types/types';
 import { splitFile as splitFileUtil, joinFiles as joinFilesUtil } from './utils/editor/editUtil';
 
 /**

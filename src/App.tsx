@@ -34,7 +34,7 @@ import {
   updateCalendarEvent,
   deleteCalendarEventsUnderPath,
 } from './store';
-import type { CalendarEvent } from './store/types';
+import type { CalendarEvent } from './types/types';
 import type { CalendarEventResult } from './types/shared';
 import type { FileNode } from './store';
 import { loadConfig } from './config';

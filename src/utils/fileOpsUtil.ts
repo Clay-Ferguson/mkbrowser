@@ -1,4 +1,4 @@
-import type { ItemData } from '../store/types';
+import type { ItemData } from '../types/types';
 import type { FileEntry } from '../global';
 import { isImageFile } from './fileUtil';
 import {

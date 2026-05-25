@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, FolderGraphState, TreeNode, FileNode, MarkdownHeadingNode, CalendarEvent } from './types';
-import { createItemData } from './types';
+import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, FolderGraphState, TreeNode, FileNode, MarkdownHeadingNode, CalendarEvent } from '../types/types';
+import { createItemData } from '../types/types';
 import { splitFrontMatter, getTagsFromYaml, getPropsFromYaml } from '../utils/tagUtil';
 
 /**

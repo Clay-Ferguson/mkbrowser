@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import ConfirmDialog from './ConfirmDialog';
 import DlgHeader from './common/DlgHeader';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
-import type { SearchDefinition } from '../../store/types';
+import type { SearchDefinition } from '../../types/types';
 import * as globalHighlight from '../../utils/globalHighlight';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS } from '../../utils/styles';
 

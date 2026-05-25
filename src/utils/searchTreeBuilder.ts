@@ -1,4 +1,4 @@
-import { FolderGraphState, FolderGraphNode, FolderGraphLink, SearchResultItem } from '../store/types';
+import { FolderGraphState, FolderGraphNode, FolderGraphLink, SearchResultItem } from '../types/types';
 
 /**
  * Build a FolderGraphState (the same shape FolderGraphView consumes) from
