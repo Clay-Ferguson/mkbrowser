@@ -56,7 +56,7 @@ import {
   SelectionCheckbox,
   type BaseEntryProps,
 } from './common';
-
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE } from '../../utils/styles';
 
 
 interface MarkdownEntryProps extends BaseEntryProps {
@@ -346,7 +346,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 onClick={handleAiRewrite}
                 disabled={edit.saving || isRewriting}
                 title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 cursor-pointer"
+                className={BUTTON_CLASS_SM_PURPLE}
               >
                 {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
               </button>
@@ -359,7 +359,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                   await handleAskAi(edit.editContent);
                 }}
                 disabled={edit.saving || isAiLoading}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
+                className={`${BUTTON_CLASS_SM_PURPLE} flex-shrink-0`}
               >
                 {isAiLoading ? 'Streaming...' : 'Ask AI'}
               </button>
@@ -377,7 +377,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 <button
                   onClick={edit.handleSave}
                   disabled={edit.saving}
-                  className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-50 cursor-pointer"
+                  className={BUTTON_CLASS_SM_BLUE}
                   data-testid="entry-save-button"
                 >
                   {edit.saving ? 'Saving...' : 'Save'}
@@ -407,7 +407,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             {hasCutItems && onPasteAsAttachment && !entry.hasAttachFolder && (
               <button
                 onClick={(e) => { e.stopPropagation(); onPasteAsAttachment(entry.path); }}
-                className="flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer"
+                className={BUTTON_CLASS_ICON_SOLID_BLUE}
                 title="Paste cut items as attachments to this file"
                 aria-label="Paste cut items as attachments to this file"
               >
@@ -421,7 +421,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                   setHighlightItem(entry.path);
                   navigateToBrowserPath(folderPath, entry.path);
                 }}
-                className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors cursor-pointer"
+                className={BUTTON_CLASS_BLUE}
                 title="Show in Browse View"
                 data-testid="show-in-browser-button"
               >
@@ -433,7 +433,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 data-testid="ai-reply-button"
                 onClick={handleReply}
                 disabled={isReplyLoading}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer"
+                className={`${BUTTON_CLASS_SM_PURPLE} flex-shrink-0`}
               >
                 {isReplyLoading ? 'Creating...' : 'Reply'}
               </button>

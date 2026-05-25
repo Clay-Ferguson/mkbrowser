@@ -24,7 +24,22 @@ export function getContentWidthClasses(contentWidth: ContentWidth): string {
 
 export const CHECKBOX_CLASS = 'h-5 w-5 accent-blue-500 flex-shrink-0 cursor-pointer';
 
-export const BUTTON_CLASS =      'p-1.5 text-slate-400 hover:text-white      hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
-export const BUTTON_CLASS_CYAN = 'p-1.5 text-slate-400 hover:text-cyan-400   hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
-export const BUTTON_CLASS_RED =  'p-1.5 text-slate-400 hover:text-red-400    hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
-export const BUTTON_CLASS_BLUE = 'p-1.5 text-slate-400 hover:text-blue-400   hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
+export const BUTTON_CLASS_NORMAL = 'p-1.5 text-slate-400 hover:text-white      hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
+export const BUTTON_CLASS_CYAN =   'p-1.5 text-slate-400 hover:text-cyan-400   hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
+export const BUTTON_CLASS_RED =    'p-1.5 text-slate-400 hover:text-red-400    hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
+export const BUTTON_CLASS_BLUE =   'p-1.5 text-slate-400 hover:text-blue-400   hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
+
+// Large dialog action buttons
+export const BUTTON_CLASS_DLG_CANCEL = 'px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors cursor-pointer';
+export const BUTTON_CLASS_DLG_BLUE   = 'px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+export const BUTTON_CLASS_DLG_GREEN  = 'px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+export const BUTTON_CLASS_DLG_RED    = 'px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+
+// Small inline action buttons
+export const BUTTON_CLASS_SM_BLUE   = 'px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+export const BUTTON_CLASS_SM_RED    = 'px-3 py-1 text-sm text-white bg-red-600 hover:bg-red-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+export const BUTTON_CLASS_SM_PURPLE = 'px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+export const BUTTON_CLASS_SM_GREEN  = 'px-3 py-1 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+
+// Solid blue icon button (blue background, for primary icon actions)
+export const BUTTON_CLASS_ICON_SOLID_BLUE = 'flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer';

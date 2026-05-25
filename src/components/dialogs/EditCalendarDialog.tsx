@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import DlgHeader from './common/DlgHeader';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
 import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, RRuleProps } from '../../utils/calendarUtil';
@@ -228,14 +229,14 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
         <div className="flex justify-end gap-3 pt-4 mt-2 border-t border-slate-600">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+            className={BUTTON_CLASS_DLG_CANCEL}
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!selected}
-            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed rounded transition-colors"
+            className={BUTTON_CLASS_DLG_BLUE}
           >
             Save
           </button>

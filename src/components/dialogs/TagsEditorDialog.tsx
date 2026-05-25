@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtils';
 import type { TagCategory, HashtagDefinition } from '../../utils/tagUtils';
 import DlgHeader from './common/DlgHeader';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
 
 interface EditorTag {
   id: string;
@@ -316,7 +317,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors cursor-pointer"
+              className={BUTTON_CLASS_DLG_CANCEL}
             >
               Cancel
             </button>
@@ -324,7 +325,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
               type="button"
               onClick={handleSave}
               disabled={saving || loading}
-              className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className={BUTTON_CLASS_DLG_BLUE}
             >
               {saving ? 'Saving…' : 'Save'}
             </button>

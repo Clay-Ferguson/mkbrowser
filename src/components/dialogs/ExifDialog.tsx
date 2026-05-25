@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { logger } from '../../utils/logUtil';
 import DlgHeader from './common/DlgHeader';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN } from '../../utils/styles';
 
 interface ExifDialogProps {
   data: Record<string, Record<string, string>>;
@@ -240,13 +241,13 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
             <>
               <button
                 onClick={handleEdit}
-                className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors"
+                className={BUTTON_CLASS_DLG_GREEN}
               >
                 Edit
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
-                className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors"
+                className={BUTTON_CLASS_DLG_BLUE}
               >
                 Close
               </button>
@@ -263,7 +264,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-60"
+                className={BUTTON_CLASS_DLG_BLUE}
                 disabled={saving}
               >
                 {saving ? 'Saving...' : 'Save'}

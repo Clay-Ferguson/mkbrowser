@@ -11,6 +11,7 @@ import { DEFAULT_AI_REWRITE_PERSONA } from '../../ai/aiPrompts';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import MessageDialog from '../dialogs/MessageDialog';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED } from '../../utils/styles';
 
 function AISettingsView() {
   // AI config state (lives on AppConfig, not AppSettings)
@@ -387,7 +388,7 @@ function AISettingsView() {
                             onClick={handleEditModel}
                             title="Edit selected model"
                             disabled={aiModels.length === 0}
-                            className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            className={BUTTON_CLASS_BLUE}
                           >
                             <PencilIcon className="w-5 h-5" />
                           </button>
@@ -397,7 +398,7 @@ function AISettingsView() {
                             }}
                             title="Delete selected model"
                             disabled={aiModels.length === 0 || selectedModelIsReadonly}
-                            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            className={BUTTON_CLASS_RED}
                           >
                             <TrashIcon className="w-5 h-5" />
                           </button>
@@ -567,7 +568,7 @@ function AISettingsView() {
                         setAiRewritePrompts(updated);
                         void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: name });
                       }}
-                      className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-500 disabled:bg-green-600/50 disabled:cursor-not-allowed rounded transition-colors"
+                      className={BUTTON_CLASS_DLG_GREEN}
                     >
                       Save
                     </button>
@@ -575,7 +576,7 @@ function AISettingsView() {
                       type="button"
                       disabled={!selectedPromptName.trim() || !aiRewritePrompts.some((p) => p.name === selectedPromptName)}
                       onClick={() => setShowPromptDeleteConfirm(true)}
-                      className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-500 disabled:bg-red-600/50 disabled:cursor-not-allowed rounded transition-colors"
+                      className={BUTTON_CLASS_DLG_RED}
                     >
                       Delete
                     </button>

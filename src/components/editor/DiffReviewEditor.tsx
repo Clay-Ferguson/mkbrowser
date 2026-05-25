@@ -8,6 +8,7 @@ import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { unifiedMergeView, acceptChunk, rejectChunk, getChunks } from '@codemirror/merge';
 import { useSettings, type FontSize } from '../../store';
+import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN } from '../../utils/styles';
 
 const FONT_SIZE_MAP: Record<FontSize, string> = {
   small: '12px',
@@ -133,13 +134,13 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onAcc
       <div className="flex items-center gap-2">
         <button
           onClick={handleAcceptAll}
-          className="px-3 py-1 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors"
+          className={BUTTON_CLASS_SM_GREEN}
         >
           Accept All
         </button>
         <button
           onClick={handleDone}
-          className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors"
+          className={BUTTON_CLASS_SM_BLUE}
         >
           Done
         </button>

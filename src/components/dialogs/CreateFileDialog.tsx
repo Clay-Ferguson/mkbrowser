@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { generateTimestampFileName } from '../../utils/timeUtil';
 import DlgHeader from './common/DlgHeader';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
 
 interface CreateFileDialogProps {
   defaultName?: string;
@@ -52,13 +53,13 @@ function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDi
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+            className={BUTTON_CLASS_DLG_CANCEL}
           >
             Cancel
           </button>
           <button
             onClick={handleCreate}
-            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors"
+            className={BUTTON_CLASS_DLG_BLUE}
             data-testid="create-file-dialog-create-button"
           >
             Create

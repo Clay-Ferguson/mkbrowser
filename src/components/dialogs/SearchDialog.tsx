@@ -4,6 +4,7 @@ import DlgHeader from './common/DlgHeader';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import type { SearchDefinition } from '../../store/types';
 import * as globalHighlight from '../../utils/globalHighlight';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED } from '../../utils/styles';
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
@@ -328,7 +329,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               onClick={handleSave}
               disabled={!searchName.trim()}
               data-testid="save-search-button"
-              className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-500 disabled:bg-green-600/50 disabled:cursor-not-allowed rounded transition-colors"
+              className={BUTTON_CLASS_DLG_GREEN}
             >
               Save
             </button>
@@ -340,7 +341,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               }}
               disabled={!searchName.trim()}
               data-testid="delete-search-button"
-              className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-500 disabled:bg-red-600/50 disabled:cursor-not-allowed rounded transition-colors"
+              className={BUTTON_CLASS_DLG_RED}
             >
               Delete
             </button>
@@ -356,7 +357,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 onCancel();
               }}
               data-testid="cancel-search-button"
-              className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+              className={BUTTON_CLASS_DLG_CANCEL}
             >
               Close
             </button>
@@ -364,7 +365,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               onClick={handleSearch}
               disabled={!searchQuery.trim() && !mostRecent}
               data-testid="execute-search-button"
-              className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed rounded transition-colors"
+              className={BUTTON_CLASS_DLG_BLUE}
             >
               Search
             </button>

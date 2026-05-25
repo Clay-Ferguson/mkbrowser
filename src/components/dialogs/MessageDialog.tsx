@@ -1,4 +1,5 @@
 import DlgHeader from './common/DlgHeader';
+import { BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
 
 interface MessageDialogProps {
   message: string;
@@ -17,7 +18,7 @@ function MessageDialog({ message, onClose, title = 'Message', buttonLabel = 'OK'
           <div className="flex justify-end">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors mouse-cursor"
+              className={BUTTON_CLASS_DLG_BLUE}
             >
               {buttonLabel}
             </button>

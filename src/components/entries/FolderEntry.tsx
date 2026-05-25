@@ -2,6 +2,7 @@ import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import { useHasCutItems, useItem, useHasIndexFile, useIndexYaml } from '../../store';
 import { buildEntryHeaderId } from '../../utils/entryDom';
+import { BUTTON_CLASS_ICON_SOLID_BLUE } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useEntryCore,
@@ -121,7 +122,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
             {hasCutItems && onPasteIntoFolder && (
               <button
                 onClick={(e) => { e.stopPropagation(); onPasteIntoFolder(entry.path); }}
-                className="flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer"
+                className={BUTTON_CLASS_ICON_SOLID_BLUE}
                 title="Paste cut items into this folder"
                 aria-label="Paste cut items into this folder"
               >

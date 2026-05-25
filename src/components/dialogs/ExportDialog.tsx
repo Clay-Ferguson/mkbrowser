@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import DlgHeader from './common/DlgHeader';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
 
 interface ExportDialogProps {
   defaultFolder: string;
@@ -204,7 +205,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+            className={BUTTON_CLASS_DLG_CANCEL}
             data-testid="export-cancel-button"
           >
             Cancel
@@ -212,7 +213,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
           <button
             onClick={handleExport}
             disabled={!isValid}
-            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed rounded transition-colors"
+            className={BUTTON_CLASS_DLG_BLUE}
             data-testid="export-submit-button"
           >
             Export

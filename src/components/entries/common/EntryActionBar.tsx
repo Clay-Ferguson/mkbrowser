@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
-import { BUTTON_CLASS, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../utils/styles';
+import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../utils/styles';
 import { toggleBookmark, addBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 
@@ -112,7 +112,7 @@ export function EntryActionBar({
             e.stopPropagation();
             onEditClick();
           }}
-          className={BUTTON_CLASS}
+          className={BUTTON_CLASS_NORMAL}
           title="Edit content"
           data-testid="entry-edit-button"
         >
@@ -122,7 +122,7 @@ export function EntryActionBar({
       {showEditActions && (
         <button
           onClick={onRenameClick}
-          className={BUTTON_CLASS}
+          className={BUTTON_CLASS_NORMAL}
           title="Rename"
           data-testid="entry-rename-button"
         >
@@ -194,7 +194,7 @@ export function EntryActionBar({
               onMoveUp();
             }
           }}
-          className={BUTTON_CLASS}
+          className={BUTTON_CLASS_NORMAL}
           title="Move up (Ctrl: move to top)"
           data-testid="entry-move-up-button"
         >
@@ -211,7 +211,7 @@ export function EntryActionBar({
               onMoveDown();
             }
           }}
-          className={BUTTON_CLASS}
+          className={BUTTON_CLASS_NORMAL}
           title="Move down (Ctrl: move to bottom)"
           data-testid="entry-move-down-button"
         >

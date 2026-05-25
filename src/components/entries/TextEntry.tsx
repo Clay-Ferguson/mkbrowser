@@ -29,6 +29,7 @@ import {
 } from './common';
 import { logger } from '../../utils/logUtil';
 import { getTextFileLanguage } from '../../utils/fileUtils';
+import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_RED, BUTTON_CLASS_SM_PURPLE } from '../../utils/styles';
 
 
 type TextEntryProps = BaseEntryProps;
@@ -168,7 +169,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
                 onClick={aiRewrite}
                 disabled={edit.saving || isRewriting}
                 title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
-                className="px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors disabled:opacity-50"
+                className={BUTTON_CLASS_SM_PURPLE}
               >
                 {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
               </button>
@@ -178,14 +179,14 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
                 <button
                   onClick={edit.handleCancel}
                   disabled={edit.saving}
-                  className="px-3 py-1 text-sm text-white bg-red-600 hover:bg-red-500 rounded transition-colors disabled:opacity-50"
+                  className={BUTTON_CLASS_SM_RED}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={edit.handleSave}
                   disabled={edit.saving}
-                  className="px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-50"
+                  className={BUTTON_CLASS_SM_BLUE}
                   data-testid="entry-save-button"
                 >
                   {edit.saving ? 'Saving...' : 'Save'}
