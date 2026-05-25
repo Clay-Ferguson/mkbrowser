@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_INPUT_CLASS, DLG_LABEL_CLASS } from '../../utils/styles';
 
 interface CreateFolderDialogProps {
   defaultName?: string;
@@ -42,18 +42,18 @@ function CreateFolderDialog({ defaultName = '', onCreate, onCancel }: CreateFold
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className={DLG_OVERLAY_CLASS}>
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-md mx-4 shadow-xl overflow-hidden">
         <DlgHeader title="Create new folder" onClose={onCancel} />
         <div className="p-6">
-        <label className="block text-sm text-slate-400 mb-2">Folder name</label>
+        <label className={DLG_LABEL_CLASS}>Folder name</label>
         <input
           ref={inputRef}
           type="text"
           value={folderName}
           onChange={(e) => setFolderName(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
+          className={DLG_INPUT_CLASS}
           placeholder="Leave blank for YYYY-MM-DD--HH-MM-SS"
         />
         <div className="flex justify-end gap-3 mt-6">

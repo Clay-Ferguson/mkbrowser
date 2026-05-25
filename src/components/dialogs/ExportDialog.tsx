@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 interface ExportDialogProps {
   defaultFolder: string;
@@ -56,7 +56,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
   const isValid = outputFolder.trim() && fileName.trim() && !fileNameHasExtension;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className={DLG_OVERLAY_CLASS}>
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-lg mx-4 shadow-xl overflow-hidden">
         <DlgHeader title="Export Folder Contents" onClose={onCancel} />
         <div className="p-6">
@@ -66,7 +66,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
 
         {/* Output Folder */}
         <div className="mb-4">
-          <label className="block text-sm text-slate-400 mb-2">Output Folder</label>
+          <label className={DLG_LABEL_CLASS}>Output Folder</label>
           <div className="flex gap-2">
             <input
               type="text"
@@ -89,7 +89,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
 
         {/* File Name */}
         <div className="mb-4">
-          <label className="block text-sm text-slate-400 mb-2">File Name</label>
+          <label className={DLG_LABEL_CLASS}>File Name</label>
           <input
             ref={fileNameInputRef}
             type="text"
@@ -202,7 +202,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3">
+        <div className={DLG_FOOTER_CLASS}>
           <button
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import DlgHeader from './common/DlgHeader';
+import { DLG_OVERLAY_CLASS } from '../../utils/styles';
 
 interface StreamingDialogProps {
   onClose: () => void;
@@ -88,7 +89,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className={DLG_OVERLAY_CLASS}>
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl flex flex-col mx-4 my-4"
            style={{ width: '80vw', height: '75vh', maxWidth: '900px', maxHeight: '85vh' }}>
         <DlgHeader

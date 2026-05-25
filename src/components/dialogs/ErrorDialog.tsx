@@ -1,5 +1,5 @@
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS } from '../../utils/styles';
 
 interface ErrorDialogProps {
   message: string;
@@ -10,7 +10,7 @@ interface ErrorDialogProps {
 
 function ErrorDialog({ message, onClose, title = 'Error', buttonLabel = 'OK' }: ErrorDialogProps) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className={DLG_OVERLAY_CLASS}>
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 max-w-md mx-4 shadow-xl max-h-[70vh] flex flex-col overflow-hidden">
         <DlgHeader title={title} onClose={onClose} />
         <div className="p-6 flex flex-col flex-1 overflow-hidden">

@@ -1,5 +1,5 @@
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS } from '../../utils/styles';
 
 interface MessageDialogProps {
   message: string;
@@ -10,7 +10,7 @@ interface MessageDialogProps {
 
 function MessageDialog({ message, onClose, title = 'Message', buttonLabel = 'OK' }: MessageDialogProps) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className={DLG_OVERLAY_CLASS}>
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 max-w-md mx-4 shadow-xl overflow-hidden">
         <DlgHeader title={title} onClose={onClose} />
         <div className="p-6">

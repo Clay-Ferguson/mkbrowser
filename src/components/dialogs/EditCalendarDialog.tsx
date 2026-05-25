@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS } from '../../utils/styles';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
 import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, RRuleProps } from '../../utils/calendarUtil';
@@ -85,7 +85,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className={DLG_OVERLAY_CLASS}>
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl overflow-hidden">
         <DlgHeader title={selected ? `Calendar — ${formatDueDate(selected)}` : 'Calendar'} onClose={onCancel} />
         <div className="p-6">

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { generateTimestampFileName } from '../../utils/timeUtil';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_INPUT_CLASS, DLG_LABEL_CLASS } from '../../utils/styles';
 
 interface CreateFileDialogProps {
   defaultName?: string;
@@ -35,18 +35,18 @@ function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDi
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className={DLG_OVERLAY_CLASS}>
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-md mx-4 shadow-xl overflow-hidden">
         <DlgHeader title="Create new file" onClose={onCancel} />
         <div className="p-6">
-        <label className="block text-sm text-slate-400 mb-2">File name</label>
+        <label className={DLG_LABEL_CLASS}>File name</label>
         <input
           ref={inputRef}
           type="text"
           value={fileName}
           onChange={(e) => setFileName(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
+          className={DLG_INPUT_CLASS}
           placeholder="Leave blank for YYYY-MM-DD--HH-MM-SS.md"
           data-testid="create-file-dialog-input"
         />

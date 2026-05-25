@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { logger } from '../../utils/logUtil';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_OVERLAY_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 interface ExifDialogProps {
   data: Record<string, Record<string, string>>;
@@ -184,7 +184,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
     }
   };
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleBackdropClick}>
+    <div className={DLG_OVERLAY_CLASS} onClick={handleBackdropClick}>
       <div
         className={`bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl font-mono w-full mx-4 overflow-hidden ${editMode ? 'max-w-6xl' : 'max-w-5xl'}`}
         style={{ minWidth: 400 }}
@@ -236,7 +236,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
           </div>
         )}
 
-        <div className="flex justify-end gap-3">
+        <div className={DLG_FOOTER_CLASS}>
           {!editMode && (
             <>
               <button

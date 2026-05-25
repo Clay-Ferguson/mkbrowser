@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtils';
 import type { TagCategory, HashtagDefinition } from '../../utils/tagUtils';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS } from '../../utils/styles';
 
 interface EditorTag {
   id: string;
@@ -173,7 +173,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className={DLG_OVERLAY_CLASS}
       onKeyDown={handleKeyDown}
     >
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl flex flex-col w-full max-w-3xl mx-4" style={{ height: '75vh' }}>

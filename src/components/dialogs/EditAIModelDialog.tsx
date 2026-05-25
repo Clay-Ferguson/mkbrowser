@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { AIModelConfig } from '../../types/shared';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
 
@@ -79,7 +79,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className={DLG_OVERLAY_CLASS}
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
     >
@@ -164,7 +164,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
         </div>
 
         {/* Button bar */}
-        <div className="flex justify-end gap-3 mt-6">
+        <div className={`${DLG_FOOTER_CLASS} mt-6`}>
           <button
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}

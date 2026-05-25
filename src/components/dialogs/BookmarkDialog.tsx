@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_INPUT_CLASS, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 interface BookmarkDialogProps {
   path: string;
@@ -45,7 +45,7 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={(e) => e.stopPropagation()}>
+    <div className={DLG_OVERLAY_CLASS} onClick={(e) => e.stopPropagation()}>
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-md mx-4 shadow-xl overflow-hidden">
         <DlgHeader title={initialName !== undefined ? 'Edit Bookmark' : 'Add Bookmark'} onClose={onCancel} />
         <div className="p-6">
@@ -57,19 +57,19 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm text-slate-400 mb-2">Display Name</label>
+          <label className={DLG_LABEL_CLASS}>Display Name</label>
           <input
             ref={inputRef}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
+            className={DLG_INPUT_CLASS}
             placeholder="Bookmark name..."
           />
         </div>
 
-        <div className="flex justify-end gap-3">
+        <div className={DLG_FOOTER_CLASS}>
           <button
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
