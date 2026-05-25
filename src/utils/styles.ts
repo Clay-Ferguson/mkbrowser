@@ -46,6 +46,7 @@ export const BUTTON_CLASS_ICON_SOLID_BLUE = 'flex-shrink-0 p-1 bg-blue-600 hover
 
 // Dialog structural classes
 export const DLG_OVERLAY_CLASS = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+export const DLG_CONTAINER = 'bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl';
 export const DLG_INPUT_CLASS = 'w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm';
 export const DLG_LABEL_CLASS = 'block text-sm text-slate-400 mb-2';
 export const DLG_FOOTER_CLASS = 'flex justify-end gap-3';

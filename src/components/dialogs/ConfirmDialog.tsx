@@ -1,5 +1,5 @@
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_RED, DLG_OVERLAY_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_RED, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 interface ConfirmDialogProps {
   message: string;
@@ -24,7 +24,7 @@ function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogProps) {
 
   return (
     <div className={DLG_OVERLAY_CLASS} onClick={handleBackdropClick}>
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 max-w-md mx-4 shadow-xl overflow-hidden">
+      <div className={`${DLG_CONTAINER} max-w-md mx-4 overflow-hidden`}>
         <DlgHeader title="Confirm" onClose={onCancel} />
         <div className="p-6">
         <p className="text-slate-200 mb-6">{message}</p>

@@ -4,7 +4,7 @@ import DlgHeader from './common/DlgHeader';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import type { SearchDefinition } from '../../store/types';
 import * as globalHighlight from '../../utils/globalHighlight';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, DLG_OVERLAY_CLASS, DLG_LABEL_CLASS } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS } from '../../utils/styles';
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
@@ -149,7 +149,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
   return (
     <div className={DLG_OVERLAY_CLASS}>
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-2xl mx-4 shadow-xl overflow-hidden">
+      <div className={`${DLG_CONTAINER} w-full max-w-2xl mx-4 overflow-hidden`}>
         <DlgHeader title="Search" onClose={onCancel} />
         <div className="p-6">
         <label className={DLG_LABEL_CLASS}>

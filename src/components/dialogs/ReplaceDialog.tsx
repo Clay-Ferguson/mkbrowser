@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_INPUT_CLASS, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_INPUT_CLASS, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 interface ReplaceDialogProps {
   onReplace: (searchText: string, replaceText: string) => void;
@@ -33,7 +33,7 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
 
   return (
     <div className={DLG_OVERLAY_CLASS}>
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-md mx-4 shadow-xl overflow-hidden">
+      <div className={`${DLG_CONTAINER} w-full max-w-md mx-4 overflow-hidden`}>
         <DlgHeader title="Replace in Files" onClose={onCancel} />
         <div className="p-6">
         <div className="mb-4">

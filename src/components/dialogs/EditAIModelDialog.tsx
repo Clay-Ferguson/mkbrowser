@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { AIModelConfig } from '../../types/shared';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
 
@@ -83,7 +83,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
     >
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-md mx-4 shadow-xl overflow-hidden">
+      <div className={`${DLG_CONTAINER} w-full max-w-md mx-4 overflow-hidden`}>
         <DlgHeader title={title} onClose={onCancel} />
         <div className="p-6">
         {isReadonly && (
