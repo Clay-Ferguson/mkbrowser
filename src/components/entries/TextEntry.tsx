@@ -29,7 +29,7 @@ import {
 } from './common';
 import { logger } from '../../utils/logUtil';
 import { getTextFileLanguage } from '../../utils/fileUtils';
-import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_RED, BUTTON_CLASS_SM_PURPLE } from '../../utils/styles';
+import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_RED, BUTTON_CLASS_SM_PURPLE, ENTRY_OUTER, ENTRY_HIGHLIGHTED, ENTRY_HEADER_ROW, ENTRY_HEADER_EXPANDED, ENTRY_NAME_SPAN, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
 
 
 type TextEntryProps = BaseEntryProps;
@@ -120,8 +120,8 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   };
 
   return (
-    <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''} overflow-hidden`}>
-      <div className={`flex items-center gap-3 px-2 py-0 bg-blue-800/50 group-hover:bg-blue-700/70 ${isExpanded ? 'border border-slate-500' : ''} transition-colors`}>
+    <div className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
+      <div className={`${ENTRY_HEADER_ROW} ${isExpanded ? ENTRY_HEADER_EXPANDED : ''}`}>
         {!isAttachment && (!hasIndexFile || editMode) && (
           <SelectionCheckbox
             path={entry.path}
@@ -147,7 +147,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
           <span
             id={buildEntryHeaderId(entry.path)}
             onClick={handleToggleExpanded}
-            className="text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline"
+            className={ENTRY_NAME_SPAN}
             title={isExpanded ? 'Collapse content' : 'Expand content'}
           >
             {entry.name}
@@ -158,7 +158,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
             <button
               onClick={() => setExpandedEditor(!expandedEditor)}
               title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
-              className="p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer"
+              className={ENTRY_EDITOR_ICON_BTN}
             >
               {expandedEditor
                 ? <ArrowsPointingInIcon className="w-5 h-5" />
@@ -214,9 +214,9 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
         )}
       </div>
       {isExpanded && (
-        <div className="px-6 py-4">
+        <div className={ENTRY_CONTENT_AREA}>
           {loading && !content ? (
-            <div className="text-slate-400 text-sm">Loading...</div>
+            <div className={ENTRY_LOADING}>Loading...</div>
           ) : edit.isEditing ? (
             item?.reviewing && item.rewrittenContent !== undefined ? (
               <DiffReviewEditor

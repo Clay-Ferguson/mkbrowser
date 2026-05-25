@@ -56,7 +56,7 @@ import {
   SelectionCheckbox,
   type BaseEntryProps,
 } from './common';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_OUTER, ENTRY_HIGHLIGHTED, ENTRY_HEADER_ROW, ENTRY_HEADER_EXPANDED, ENTRY_NAME_SPAN, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
 
 
 interface MarkdownEntryProps extends BaseEntryProps {
@@ -273,8 +273,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   const columnBlockComponents = columns.map(col => createBlockClickComponents(edit.handleEditClick, col.lineOffset));
 
   return (
-    <div data-testid="browser-entry-markdown" className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''} overflow-hidden`}>
-      <div className={`flex items-center gap-3 px-2 py-0 bg-blue-800/50 group-hover:bg-blue-700/70 ${isExpanded ? 'border border-slate-500' : ''} transition-colors`}>
+    <div data-testid="browser-entry-markdown" className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
+      <div className={`${ENTRY_HEADER_ROW} ${isExpanded ? ENTRY_HEADER_EXPANDED : ''}`}>
         {!isAttachment && (!hasIndexFile || editMode) && (
           <SelectionCheckbox
             path={entry.path}
@@ -299,7 +299,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
           <span
             id={buildEntryHeaderId(entry.path)}
             onClick={handleToggleExpanded}
-            className="text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline"
+            className={ENTRY_NAME_SPAN}
             title={isExpanded ? 'Collapse content' : 'Expand content'}
           >
             {!isExpanded || !(documentMode && TIMESTAMP_FILENAME_RE.test(entry.name)) ? entry.name : ''}
@@ -310,7 +310,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             <button
               onClick={handleToggleShowProps}
               title={showPropsInEditor ? 'Hide properties' : 'Show properties'}
-              className={`p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer border ${showPropsInEditor ? 'border-slate-400' : 'border-transparent'}`}
+              className={`${ENTRY_EDITOR_ICON_BTN} border ${showPropsInEditor ? 'border-slate-400' : 'border-transparent'}`}
             >
               {showPropsInEditor
                 ? <PropsIconSolid className="w-5 h-5" />
@@ -319,7 +319,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             <button
               onClick={handleToggleTagsVisible}
               title={tagsVisible ? 'Hide tags' : 'Show tags'}
-              className={`p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer border ${tagsVisible ? 'border-slate-400' : 'border-transparent'}`}
+              className={`${ENTRY_EDITOR_ICON_BTN} border ${tagsVisible ? 'border-slate-400' : 'border-transparent'}`}
             >
               {tagsVisible
                 ? <TagIconSolid className="w-5 h-5" />
@@ -328,14 +328,14 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             <button
               onClick={() => setShowCalendarDialog(true)}
               title="Calendar Info"
-              className="p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer border border-transparent"
+              className={`${ENTRY_EDITOR_ICON_BTN} border border-transparent`}
             >
               <CalendarIcon className="w-5 h-5" />
             </button>
             <button
               onClick={() => setExpandedEditor(!expandedEditor)}
               title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
-              className="p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer"
+              className={ENTRY_EDITOR_ICON_BTN}
             >
               {expandedEditor
                 ? <ArrowsPointingInIcon className="w-5 h-5" />
@@ -442,9 +442,9 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
         )}
       </div>
       {isExpanded && (
-        <div className="px-6 py-4">
+        <div className={ENTRY_CONTENT_AREA}>
           {loading && !content ? (
-            <div className="text-slate-400 text-sm">Loading...</div>
+            <div className={ENTRY_LOADING}>Loading...</div>
           ) : edit.isEditing ? (
             <>
               {item?.reviewing && item.rewrittenContent !== undefined ? (

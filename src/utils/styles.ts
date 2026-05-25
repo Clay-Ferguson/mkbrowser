@@ -50,3 +50,14 @@ export const DLG_CONTAINER = 'bg-slate-800 rounded-lg border-2 border-slate-400 
 export const DLG_INPUT_CLASS = 'w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm';
 export const DLG_LABEL_CLASS = 'block text-sm text-slate-400 mb-2';
 export const DLG_FOOTER_CLASS = 'flex justify-end gap-3';
+
+// Entry component structural classes
+export const ENTRY_OUTER = 'bg-slate-800 group overflow-hidden';
+export const ENTRY_HIGHLIGHTED = 'border-2 border-purple-500 relative z-10';
+export const ENTRY_HEADER_ROW = 'flex items-center gap-3 px-2 py-0 bg-blue-800/50 group-hover:bg-blue-700/70 transition-colors';
+export const ENTRY_HEADER_EXPANDED = 'border border-slate-500';
+export const ENTRY_NAME_SPAN = 'text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline';
+export const ENTRY_CONTENT_AREA = 'px-6 py-4';
+export const ENTRY_LOADING = 'text-slate-400 text-sm';
+export const ENTRY_EDITOR_ICON_BTN = 'p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer';
+export const RENAME_INPUT_CLASS = 'flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm';

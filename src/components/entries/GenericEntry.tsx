@@ -11,6 +11,7 @@ import {
   SelectionCheckbox,
   type BaseEntryProps,
 } from './common';
+import { ENTRY_OUTER, ENTRY_HIGHLIGHTED, ENTRY_HEADER_ROW, ENTRY_NAME_SPAN } from '../../utils/styles';
 
 type GenericEntryProps = BaseEntryProps;
 
@@ -45,8 +46,8 @@ function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onM
   };
 
   return (
-    <div className={`bg-slate-800 group ${isHighlighted ? 'border-2 border-purple-500 relative z-10' : ''}`}>
-      <div className={`flex items-center gap-3 px-2 py-0 bg-blue-800/50 group-hover:bg-blue-700/70 transition-colors`}>
+    <div className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
+      <div className={ENTRY_HEADER_ROW}>
         {!isAttachment && (!hasIndexFile || editMode) && (
           <SelectionCheckbox
             path={entry.path}
@@ -70,7 +71,7 @@ function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onM
           <span
             id={buildEntryHeaderId(entry.path)}
             onClick={handleToggleExpanded}
-            className="text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline"
+            className={ENTRY_NAME_SPAN}
             title={isExpanded ? 'Collapse content' : 'Expand content'}
           >
             {entry.name}
