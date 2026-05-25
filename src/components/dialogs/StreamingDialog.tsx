@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import DlgHeader from './common/DlgHeader';
 
 interface StreamingDialogProps {
   onClose: () => void;
@@ -90,32 +91,15 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl flex flex-col mx-4 my-4"
            style={{ width: '80vw', height: '75vh', maxWidth: '900px', maxHeight: '85vh' }}>
-        {/* Header */}
-        <div className="flex justify-between items-center px-4 py-2 border-b border-slate-600 flex-shrink-0">
-          <span className="text-slate-300 text-sm">
-            {status === 'pending' && 'Consulting the AI...'}
-            {status === 'streaming' && 'Streaming AI Response...'}
-            {status === 'done' && 'AI Answer'}
-            {status === 'error' && 'Error'}
-            {status === 'cancelled' && 'Stopping...'}
-          </span>
-          {(status === 'pending' || status === 'streaming') && (
-            <button
-              onClick={handleStop}
-              className="px-3 py-1 text-sm text-slate-900 bg-red-400 hover:bg-red-300 rounded transition-colors font-semibold"
-            >
-              Stop
-            </button>
-          )}
-          {(status === 'done' || status === 'error' || status === 'cancelled') && (
-            <button
-              onClick={onClose}
-              className="px-3 py-1 text-sm text-white bg-slate-600 hover:bg-slate-500 rounded transition-colors"
-            >
-              Close
-            </button>
-          )}
-        </div>
+        <DlgHeader
+          title={
+            status === 'pending' ? 'Consulting the AI...' :
+            status === 'streaming' ? 'Streaming AI Response...' :
+            status === 'done' ? 'AI Answer' :
+            status === 'error' ? 'Error' : 'Stopping...'
+          }
+          onClose={status === 'done' || status === 'error' || status === 'cancelled' ? onClose : handleStop}
+        />
 
         {/* Content */}
         <div ref={containerRef} className="flex-1 overflow-y-auto p-4">

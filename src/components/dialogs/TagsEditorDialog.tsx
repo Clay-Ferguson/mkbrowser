@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtils';
 import type { TagCategory, HashtagDefinition } from '../../utils/tagUtils';
+import DlgHeader from './common/DlgHeader';
 
 interface EditorTag {
   id: string;
@@ -176,17 +177,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     >
       <div className="bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl flex flex-col w-full max-w-3xl mx-4" style={{ height: '75vh' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-600 flex-shrink-0">
-          <h3 className="text-lg font-semibold text-slate-100">Edit Hashtags</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 text-xl leading-none cursor-pointer"
-            aria-label="Close"
-          >
-            ×
-          </button>
-        </div>
+        <DlgHeader title="Edit Hashtags" onClose={onClose} />
 
         {/* Body */}
         {loading ? (

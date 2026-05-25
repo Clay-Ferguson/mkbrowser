@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import DlgHeader from './common/DlgHeader';
 
 interface BookmarkDialogProps {
   path: string;
@@ -44,9 +45,9 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={(e) => e.stopPropagation()}>
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 w-full max-w-md mx-4 shadow-xl">
-        <h2 className="text-lg font-semibold text-slate-100 mb-4">{initialName !== undefined ? 'Edit Bookmark' : 'Add Bookmark'}</h2>
-
+      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-md mx-4 shadow-xl overflow-hidden">
+        <DlgHeader title={initialName !== undefined ? 'Edit Bookmark' : 'Add Bookmark'} onClose={onCancel} />
+        <div className="p-6">
         <div className="mb-4">
           <label className="block text-sm text-slate-400 mb-1">Path</label>
           <p className="text-sm text-slate-300 bg-slate-900 px-3 py-2 rounded border border-slate-700 break-all">
@@ -81,6 +82,7 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
           >
             Save
           </button>
+        </div>
         </div>
       </div>
     </div>

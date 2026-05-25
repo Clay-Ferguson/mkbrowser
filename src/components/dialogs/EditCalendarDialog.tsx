@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DlgHeader from './common/DlgHeader';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
 import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, RRuleProps } from '../../utils/calendarUtil';
@@ -84,11 +85,9 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 shadow-xl">
-        <h2 className="text-lg font-semibold text-slate-100 mb-4">
-          Calendar{selected && <span className="font-mono text-blue-300 ml-2">{formatDueDate(selected)}</span>}
-        </h2>
-
+      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl overflow-hidden">
+        <DlgHeader title={selected ? `Calendar — ${formatDueDate(selected)}` : 'Calendar'} onClose={onCancel} />
+        <div className="p-6">
         <div className="flex justify-center mb-4 rdp-slate">
           <DayPicker
             mode="single"
@@ -240,6 +239,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
           >
             Save
           </button>
+        </div>
         </div>
       </div>
     </div>

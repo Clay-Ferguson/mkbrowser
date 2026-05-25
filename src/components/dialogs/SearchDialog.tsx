@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ConfirmDialog from './ConfirmDialog';
+import DlgHeader from './common/DlgHeader';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import type { SearchDefinition } from '../../store/types';
 import * as globalHighlight from '../../utils/globalHighlight';
@@ -147,9 +148,9 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 w-full max-w-2xl mx-4 shadow-xl">
-        <h2 className="text-lg font-semibold text-slate-100 mb-3">Search</h2>
-
+      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-2xl mx-4 shadow-xl overflow-hidden">
+        <DlgHeader title="Search" onClose={onCancel} />
+        <div className="p-6">
         <label className="block text-sm text-slate-400 mb-2">
           {searchType === 'advanced' ? 'JavaScript expression' : searchType === 'wildcard' ? 'Search text (use * as wildcard, matches up to 25 characters)' : 'Search text'}
         </label>
@@ -368,6 +369,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               Search
             </button>
           </div>
+        </div>
         </div>
       </div>
 

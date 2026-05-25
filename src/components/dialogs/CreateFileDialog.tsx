@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { generateTimestampFileName } from '../../utils/timeUtil';
+import DlgHeader from './common/DlgHeader';
 
 interface CreateFileDialogProps {
   defaultName?: string;
@@ -34,8 +35,9 @@ function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDi
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 w-full max-w-md mx-4 shadow-xl">
-        <h2 className="text-lg font-semibold text-slate-100 mb-3">Create new file</h2>
+      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-md mx-4 shadow-xl overflow-hidden">
+        <DlgHeader title="Create new file" onClose={onCancel} />
+        <div className="p-6">
         <label className="block text-sm text-slate-400 mb-2">File name</label>
         <input
           ref={inputRef}
@@ -61,6 +63,7 @@ function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDi
           >
             Create
           </button>
+        </div>
         </div>
       </div>
     </div>

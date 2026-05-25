@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { logger } from '../../utils/logUtil';
+import DlgHeader from './common/DlgHeader';
 
 interface ExifDialogProps {
   data: Record<string, Record<string, string>>;
@@ -184,23 +185,12 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleBackdropClick}>
       <div
-        className={`bg-slate-800 rounded-lg border-2 border-slate-400 p-6 shadow-xl font-mono w-full mx-4 ${editMode ? 'max-w-6xl' : 'max-w-5xl'}`}
+        className={`bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl font-mono w-full mx-4 overflow-hidden ${editMode ? 'max-w-6xl' : 'max-w-5xl'}`}
         style={{ minWidth: 400 }}
         onClick={handleContentClick}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-slate-100 text-lg font-semibold">EXIF — {fileName}</h2>
-          {editMode && (
-            <button
-              onClick={handleAddDescription}
-              className="px-3 py-1.5 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors"
-              title="Add description field for storing text"
-            >
-              Add Description
-            </button>
-          )}
-        </div>
-
+        <DlgHeader title={`EXIF — ${fileName}`} onClose={onClose} />
+        <div className="p-6">
         {isEmpty ? (
           <p className="text-slate-400 mb-6">No EXIF metadata found in this image.</p>
         ) : (
@@ -265,6 +255,13 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
           {editMode && (
             <>
               <button
+                onClick={handleAddDescription}
+                className="px-3 py-2 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors mr-auto"
+                title="Add description field for storing text"
+              >
+                Add Description
+              </button>
+              <button
                 onClick={handleSave}
                 className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-60"
                 disabled={saving}
@@ -280,6 +277,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
               </button>
             </>
           )}
+        </div>
         </div>
       </div>
     </div>

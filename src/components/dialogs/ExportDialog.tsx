@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
+import DlgHeader from './common/DlgHeader';
 
 interface ExportDialogProps {
   defaultFolder: string;
@@ -55,9 +56,9 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 w-full max-w-lg mx-4 shadow-xl">
-        <h2 className="text-lg font-semibold text-slate-100 mb-4">Export Folder Contents</h2>
-        
+      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-lg mx-4 shadow-xl overflow-hidden">
+        <DlgHeader title="Export Folder Contents" onClose={onCancel} />
+        <div className="p-6">
         <p className="text-sm text-slate-400 mb-4">
           Export all markdown and text files from the current folder into a single concatenated markdown file.
         </p>
@@ -216,6 +217,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
           >
             Export
           </button>
+        </div>
         </div>
       </div>
     </div>

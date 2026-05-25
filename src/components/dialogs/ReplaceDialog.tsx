@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import DlgHeader from './common/DlgHeader';
 
 interface ReplaceDialogProps {
   onReplace: (searchText: string, replaceText: string) => void;
@@ -31,9 +32,9 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 w-full max-w-md mx-4 shadow-xl">
-        <h2 className="text-lg font-semibold text-slate-100 mb-4">Replace in Files</h2>
-
+      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-md mx-4 shadow-xl overflow-hidden">
+        <DlgHeader title="Replace in Files" onClose={onCancel} />
+        <div className="p-6">
         <div className="mb-4">
           <label className="block text-sm text-slate-400 mb-2">
             Search for
@@ -81,6 +82,7 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
           >
             Replace
           </button>
+        </div>
         </div>
       </div>
     </div>

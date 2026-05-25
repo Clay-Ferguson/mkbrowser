@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { AIModelConfig } from '../../types/shared';
+import DlgHeader from './common/DlgHeader';
 
 const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
 
@@ -81,9 +82,9 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
     >
-      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 p-6 w-full max-w-md mx-4 shadow-xl">
-        <h3 className="text-lg font-semibold text-slate-100 mb-4">{title}</h3>
-
+      <div className="bg-slate-800 rounded-lg border-2 border-slate-400 w-full max-w-md mx-4 shadow-xl overflow-hidden">
+        <DlgHeader title={title} onClose={onCancel} />
+        <div className="p-6">
         {isReadonly && (
           <p className="text-sm text-slate-300 mb-4">
             This is a built-in model and can’t be edited.
@@ -176,6 +177,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
           >
             Save
           </button>
+        </div>
         </div>
       </div>
     </div>
