@@ -1,5 +1,5 @@
 import { setItemSelected } from '../../../store';
-import { CHECKBOX_CLASSES } from '../../../utils/styles';
+import { CHECKBOX_CLASS } from '../../../utils/styles';
 
 interface SelectionCheckboxProps {
   /** Full path of the entry */
@@ -23,7 +23,7 @@ export function SelectionCheckbox({ path, name, isSelected, onClick }: Selection
       checked={isSelected}
       onChange={(e) => setItemSelected(path, e.target.checked)}
       onClick={onClick}
-      className={CHECKBOX_CLASSES}
+      className={CHECKBOX_CLASS}
       aria-label={`Select ${name}`}
     />
   );

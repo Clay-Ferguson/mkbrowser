@@ -1,6 +1,5 @@
 import { forwardRef } from 'react';
 import { buildEntryHeaderId } from '../../../utils/entryDom';
-import { RENAME_INPUT_CLASSES } from '../../../utils/styles';
 
 interface RenameInputProps {
   /** Full path of the entry (used for element ID) */
@@ -43,7 +42,7 @@ export const RenameInput = forwardRef<HTMLInputElement, RenameInputProps>(
         onBlur={onBlur}
         onClick={onClick}
         disabled={disabled}
-        className={`${RENAME_INPUT_CLASSES} ${className}`}
+        className={`flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm ${className}`}
       />
     );
   }

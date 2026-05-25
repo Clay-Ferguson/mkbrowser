@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useItem, getItemEditContent, setItemEditContent } from '../store';
-import { CHECKBOX_CLASSES } from '../utils/styles';
+import { CHECKBOX_CLASS } from '../utils/styles';
 import {
   fetchTags, type TagsLoadState, type TagCategory, type HashtagDefinition,
   tagName, splitFrontMatter, getTagsFromYaml,
@@ -78,7 +78,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
           type="checkbox"
           checked={checked}
           onChange={() => handleToggle(category, def)}
-          className={`${CHECKBOX_CLASSES} cursor-pointer`}
+          className={`${CHECKBOX_CLASS}`}
         />
         <span className="whitespace-nowrap">{def.tag}</span>
       </label>

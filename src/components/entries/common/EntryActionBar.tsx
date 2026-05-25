@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
-import { BUTTON_CLZ_RENAME, BUTTON_CLZ_OPEN_EXTERNAL, BUTTON_CLZ_DELETE, BUTTON_CLZ_BOOKMARK } from '../../../utils/styles';
+import { BUTTON_CLASS, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../utils/styles';
 import { toggleBookmark, addBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 
@@ -112,7 +112,7 @@ export function EntryActionBar({
             e.stopPropagation();
             onEditClick();
           }}
-          className={BUTTON_CLZ_RENAME}
+          className={BUTTON_CLASS}
           title="Edit content"
           data-testid="entry-edit-button"
         >
@@ -122,7 +122,7 @@ export function EntryActionBar({
       {showEditActions && (
         <button
           onClick={onRenameClick}
-          className={BUTTON_CLZ_RENAME}
+          className={BUTTON_CLASS}
           title="Rename"
           data-testid="entry-rename-button"
         >
@@ -133,7 +133,7 @@ export function EntryActionBar({
         <button
           onClick={onDeleteClick}
           disabled={deleting}
-          className={BUTTON_CLZ_DELETE}
+          className={BUTTON_CLASS_RED}
           title="Delete"
           data-testid="entry-delete-button"
         >
@@ -142,7 +142,7 @@ export function EntryActionBar({
       )}
       <button
         onClick={handleOpenExternal}
-        className={BUTTON_CLZ_OPEN_EXTERNAL}
+        className={BUTTON_CLASS_CYAN}
         title="Open with OS App"
         data-testid="entry-open-external-button"
       >
@@ -155,7 +155,7 @@ export function EntryActionBar({
             setHighlightItem(path);
             setPendingIndexTreeReveal(path);
           }}
-          className={BUTTON_CLZ_BOOKMARK}
+          className={BUTTON_CLASS_BLUE}
           title="Reveal in folder tree"
           data-testid="entry-reveal-button"
         >
@@ -164,7 +164,7 @@ export function EntryActionBar({
       )}
       <button
         onClick={handleBookmarkClick}
-        className={BUTTON_CLZ_BOOKMARK}
+        className={BUTTON_CLASS_BLUE}
         title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
         data-testid="entry-bookmark-button"
       >
@@ -177,7 +177,7 @@ export function EntryActionBar({
       {onPasteClipboardAsAttachment && (
         <button
           onClick={(e) => { e.stopPropagation(); onPasteClipboardAsAttachment(); }}
-          className={BUTTON_CLZ_BOOKMARK}
+          className={BUTTON_CLASS_BLUE}
           title="Paste Clipboard as Attachment under this file"
           data-testid="entry-paste-clipboard-attachment-button"
         >
@@ -194,7 +194,7 @@ export function EntryActionBar({
               onMoveUp();
             }
           }}
-          className={BUTTON_CLZ_RENAME}
+          className={BUTTON_CLASS}
           title="Move up (Ctrl: move to top)"
           data-testid="entry-move-up-button"
         >
@@ -211,7 +211,7 @@ export function EntryActionBar({
               onMoveDown();
             }
           }}
-          className={BUTTON_CLZ_RENAME}
+          className={BUTTON_CLASS}
           title="Move down (Ctrl: move to bottom)"
           data-testid="entry-move-down-button"
         >
