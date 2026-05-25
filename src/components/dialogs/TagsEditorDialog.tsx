@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtils';
-import type { TagCategory, HashtagDefinition } from '../../utils/tagUtils';
+import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtil';
+import type { TagCategory, HashtagDefinition } from '../../utils/tagUtil';
 import DlgHeader from './common/DlgHeader';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER } from '../../utils/styles';
 

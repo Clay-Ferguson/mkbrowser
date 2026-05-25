@@ -11,8 +11,8 @@ import 'katex/dist/katex.min.css';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../store/types';
 import { buildEntryHeaderId } from '../../utils/entryDom';
-import { removeTOC } from '../../utils/tocUtils';
-import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks } from '../../utils/mkUtils';
+import { removeTOC } from '../../utils/tocUtil';
+import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks } from '../../utils/mkUtil';
 import {
   useItem,
   useSettings,

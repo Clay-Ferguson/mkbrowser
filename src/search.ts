@@ -11,7 +11,7 @@ import ExifReader from 'exifreader';
 import yaml from 'js-yaml';
 import { extractTimestamp, parseDateString, past, future, today } from './utils/timeUtil';
 import { createContentSearcher } from './utils/searchUtil';
-import { splitFrontMatter } from './utils/tagUtils';
+import { splitFrontMatter } from './utils/tagUtil';
 
 /** Module-level YAML parse cache: keyed by file path, cleared at the start of each search */
 let yamlCache: Map<string, Record<string, unknown> | null> = new Map();

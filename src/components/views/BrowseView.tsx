@@ -68,12 +68,12 @@ import {
   type SearchDefinition,
 } from '../../store';
 import { scrollItemIntoView, scrollElementIntoView } from '../../utils/entryDom';
-import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtils';
+import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtil';
 import { getContentWidthClasses } from '../../utils/styles';
 import { generateTimestampFileName } from '../../utils/timeUtil';
 import { hasHumanMd } from '../../ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtil';
-import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../utils/fileOpsUtils';
+import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../utils/fileOpsUtil';
 
 const ATTACH_SUFFIX = '.attach';
 

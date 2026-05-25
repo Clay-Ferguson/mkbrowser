@@ -5,7 +5,7 @@ import {
   fetchTags, type TagsLoadState, type TagCategory, type HashtagDefinition,
   tagName, splitFrontMatter, getTagsFromYaml,
   removeTagFromText, insertTagIntoText,
-} from '../utils/tagUtils';
+} from '../utils/tagUtil';
 
 export { removeTagFromText, insertTagIntoText };
 

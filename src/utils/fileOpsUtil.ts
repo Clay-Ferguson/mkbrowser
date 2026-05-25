@@ -1,6 +1,6 @@
 import type { ItemData } from '../store/types';
 import type { FileEntry } from '../global';
-import { isImageFile } from './fileUtils';
+import { isImageFile } from './fileUtil';
 import {
   deleteItems,
   clearAllSelections,

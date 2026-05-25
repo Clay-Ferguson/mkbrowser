@@ -1,4 +1,4 @@
-import type { HashtagDefinition, TagCategory } from '../utils/tagUtils';
+import type { HashtagDefinition, TagCategory } from '../utils/tagUtil';
 
 export type { HashtagDefinition, TagCategory };
 

@@ -28,7 +28,7 @@ import {
   type BaseEntryProps,
 } from './common';
 import { logger } from '../../utils/logUtil';
-import { getTextFileLanguage } from '../../utils/fileUtils';
+import { getTextFileLanguage } from '../../utils/fileUtil';
 import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_RED, BUTTON_CLASS_SM_PURPLE, ENTRY_OUTER, ENTRY_HIGHLIGHTED, ENTRY_HEADER_ROW, ENTRY_HEADER_EXPANDED, ENTRY_NAME_SPAN, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
 
 

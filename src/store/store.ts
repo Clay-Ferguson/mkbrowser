@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, FolderGraphState, TreeNode, FileNode, MarkdownHeadingNode, CalendarEvent } from './types';
 import { createItemData } from './types';
-import { splitFrontMatter, getTagsFromYaml, getPropsFromYaml } from '../utils/tagUtils';
+import { splitFrontMatter, getTagsFromYaml, getPropsFromYaml } from '../utils/tagUtil';
 
 /**
  * Default settings

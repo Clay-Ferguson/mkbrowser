@@ -6,10 +6,10 @@ import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 
-import { readDirectory, parseFrontMatter } from './utils/fileUtils';
+import { readDirectory, parseFrontMatter } from './utils/fileUtil';
 import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, renameInIndexYaml } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
-import { processTOC } from './utils/tocUtils';
+import { processTOC } from './utils/tocUtil';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
 import { searchFolder, type SearchResult } from './search';
@@ -17,7 +17,7 @@ import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalys
 import { loadCalendarEvents, loadCalendarEntryForFile, type CalendarEventResult } from './utils/calendar/calendarLoader';
 import { startCalendarWatcher, stopCalendarWatcher, getCalendarWatcherFolder } from './utils/calendar/calendarWatcher';
 import { scanFolderTree, type FolderGraphResult } from './folderGraph';
-import { loadTags, type TagCategory } from './utils/tagUtils';
+import { loadTags, type TagCategory } from './utils/tagUtil';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
 import { hasScriptedAnswer, queueScriptedAnswer } from './ai/langGraph';
 import type { StreamCallbacks } from './ai/langGraph';
@@ -34,7 +34,7 @@ import { logger } from './utils/logUtil';
       return false;
     }
   });
-import { exportFolderContents, exportToPdf } from './utils/exportUtils';
+import { exportFolderContents, exportToPdf } from './utils/exportUtil';
 import { runShellScript } from './utils/launcherUtil';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).

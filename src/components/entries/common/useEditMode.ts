@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing, upsertItem } from '../../../store';
 import { applyGlobalHighlight, globalHighlightText } from '../../../utils/globalHighlight';
-import { removeTOC } from '../../../utils/tocUtils';
+import { removeTOC } from '../../../utils/tocUtil';
 import type { EditModeState } from './types';
 
 interface UseEditModeOptions {

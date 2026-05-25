@@ -28,7 +28,7 @@ import {
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
 import { pasteCutItems } from '../../edit';
-import { extractHeadingTree } from '../../utils/tocUtils';
+import { extractHeadingTree } from '../../utils/tocUtil';
 import { scrollElementIntoView } from '../../utils/entryDom';
 
 // ── Type guards ──────────────────────────────────────────────────────────────

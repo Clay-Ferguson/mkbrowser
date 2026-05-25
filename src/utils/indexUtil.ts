@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 import { customAlphabet } from 'nanoid';
-import { parseFrontMatter } from './fileUtils';
+import { parseFrontMatter } from './fileUtil';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
 
