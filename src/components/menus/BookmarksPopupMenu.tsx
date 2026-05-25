@@ -4,6 +4,7 @@ import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import MessageDialog from '../dialogs/MessageDialog';
 import BookmarkDialog from '../dialogs/BookmarkDialog';
 import { toggleBookmark, isBookmarked, getSettings, removeBookmark, updateBookmarkName, type Bookmark } from '../../store';
+import { MENU_ROW, MENU_ICON_BTN } from '../../utils/styles';
 
 interface BookmarksPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
@@ -84,7 +85,7 @@ export default function BookmarksPopupMenu({
             return (
               <div
                 key={fullPath}
-                className="flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-800 group"
+                className={MENU_ROW}
               >
                 <button
                   className="flex items-center gap-2 flex-1 text-left text-sm text-slate-200 cursor-pointer min-w-0"
@@ -95,14 +96,14 @@ export default function BookmarksPopupMenu({
                 </button>
                 <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity pl-2">
                   <button
-                    className="p-1 rounded text-slate-400 hover:text-slate-100 hover:bg-blue-700 cursor-pointer"
+                    className={`${MENU_ICON_BTN} hover:text-slate-100`}
                     title="Edit bookmark"
                     onClick={(e) => { e.stopPropagation(); setEditingBookmark(bookmark); }}
                   >
                     <PencilIcon className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    className="p-1 rounded text-slate-400 hover:text-red-400 hover:bg-blue-700 cursor-pointer"
+                    className={`${MENU_ICON_BTN} hover:text-red-400`}
                     title="Delete bookmark"
                     onClick={(e) => { e.stopPropagation(); handleDelete(fullPath); }}
                   >

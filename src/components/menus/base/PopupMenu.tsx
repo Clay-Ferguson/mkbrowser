@@ -1,5 +1,6 @@
 import { useRef, useLayoutEffect, useEffect, useState, type ReactNode, type RefObject, type ComponentType } from 'react';
 import { CheckIcon } from '@heroicons/react/24/solid';
+import { MENU_CONTAINER, MENU_ITEM_BASE, MENU_ITEM_ENABLED, MENU_ITEM_DISABLED, MENU_DIVIDER } from '../../../utils/styles';
 
 export interface PopupMenuProps {
   /** Ref to the button/element that triggered the menu */
@@ -88,7 +89,7 @@ export default function PopupMenu({ anchorRef, onClose, children, style: extraSt
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px]"
+      className={MENU_CONTAINER}
       style={{
         top: position?.top ?? -9999,
         left: position?.left ?? -9999,
@@ -125,13 +126,7 @@ export function PopupMenuItem({
 
   return (
     <button
-      className={`w-full text-left py-2 text-sm transition-colors flex items-center gap-2 ${
-        hasCheckboxArea ? 'px-3' : 'px-4'
-      } ${
-        disabled
-          ? 'text-slate-500 cursor-not-allowed'
-          : 'text-slate-200 hover:bg-blue-800 cursor-pointer'
-      }`}
+      className={`${MENU_ITEM_BASE} ${hasCheckboxArea ? 'px-3' : 'px-4'} ${disabled ? MENU_ITEM_DISABLED : MENU_ITEM_ENABLED}`}
       onClick={() => {
         if (!disabled) {
           onClick();
@@ -153,5 +148,5 @@ export function PopupMenuItem({
 
 /** A horizontal divider line inside a PopupMenu. */
 export function PopupMenuDivider() {
-  return <div className="border-t border-slate-500 my-1" />;
+  return <div className={MENU_DIVIDER} />;
 }

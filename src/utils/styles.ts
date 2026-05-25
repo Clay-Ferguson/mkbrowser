@@ -61,3 +61,13 @@ export const ENTRY_CONTENT_AREA = 'px-6 py-4';
 export const ENTRY_LOADING = 'text-slate-400 text-sm';
 export const ENTRY_EDITOR_ICON_BTN = 'p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer';
 export const RENAME_INPUT_CLASS = 'flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm';
+
+// Popup menu structural classes
+export const MENU_CONTAINER    = 'fixed z-50 bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px]';
+export const MENU_ITEM_BASE    = 'w-full text-left py-2 text-sm transition-colors flex items-center gap-2';
+export const MENU_ITEM_ENABLED = 'text-slate-200 hover:bg-blue-800 cursor-pointer';
+export const MENU_ITEM_DISABLED = 'text-slate-500 cursor-not-allowed';
+export const MENU_DIVIDER      = 'border-t border-slate-500 my-1';
+// Row with inline action buttons revealed on hover (e.g. bookmark rows)
+export const MENU_ROW          = 'flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-800 group';
+export const MENU_ICON_BTN     = 'p-1 rounded text-slate-400 hover:bg-blue-700 cursor-pointer';
