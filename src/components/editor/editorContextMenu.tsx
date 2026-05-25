@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { EditorView } from '@codemirror/view';
 import Typo from 'typo-js';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
-import { isMarkdownFile, hasDueProperty, injectCalendarFrontMatter } from '../../utils/calendarUtil';
+import { isMarkdownFile, hasDueProperty, injectCalendarFrontMatter } from '../../utils/calendar/calendarUtil';
 import type { SpellingSuggestion } from './spellChecker';
 
 export interface ContextMenuState {

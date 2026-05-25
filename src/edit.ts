@@ -1,5 +1,5 @@
 import type { ItemData } from './store/types';
-import { splitFile as splitFileUtil, joinFiles as joinFilesUtil } from './utils/editUtil';
+import { splitFile as splitFileUtil, joinFiles as joinFilesUtil } from './utils/editor/editUtil';
 
 /**
  * Get the parent path (directory) of a given path

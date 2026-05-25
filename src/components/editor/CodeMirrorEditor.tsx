@@ -14,9 +14,9 @@ import { python } from '@codemirror/lang-python';
 import Typo from 'typo-js';
 import { useSettings, type FontSize } from '../../store';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
-import { hashtagPlugin, hashtagTheme } from '../../utils/editorHashtagUtil';
-import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editorDateUtil';
-import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, hrLinePlugin } from '../../utils/editorFrontMatterUtil';
+import { hashtagPlugin, hashtagTheme } from '../../utils/editor/editorHashtagUtil';
+import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editor/editorDateUtil';
+import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, hrLinePlugin } from '../../utils/editor/editorFrontMatterUtil';
 // import { customRenderPlugin, customRenderTheme } from '../../utils/editorCustomRenderUtil'; // <--- Keep for future reference (no longer needed for now)
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';

@@ -1,6 +1,6 @@
 import { Decoration, DecorationSet, ViewPlugin, ViewUpdate, EditorView, hoverTooltip } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
-import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from './timeUtil';
+import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../timeUtil';
 
 // Decoration for date patterns
 export const dateMark = Decoration.mark({ class: 'cm-date' });

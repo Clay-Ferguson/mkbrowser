@@ -3,7 +3,7 @@ import DlgHeader from './common/DlgHeader';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER } from '../../utils/styles';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
-import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, RRuleProps } from '../../utils/calendarUtil';
+import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, RRuleProps } from '../../utils/calendar/calendarUtil';
 
 interface EditCalendarDialogProps {
   content: string;

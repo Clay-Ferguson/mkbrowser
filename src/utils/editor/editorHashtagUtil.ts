@@ -1,6 +1,6 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
-import { HASHTAG_REGEX } from './hashtagRegex';
+import { HASHTAG_REGEX } from '../hashtagRegex';
 
 // Decorations for hashtags
 const hashtagP1Mark = Decoration.mark({ class: 'cm-hashtag-p1' });
