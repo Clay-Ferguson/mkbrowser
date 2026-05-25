@@ -72,7 +72,7 @@ import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtils';
 import { getContentWidthClasses } from '../../utils/styles';
 import { generateTimestampFileName } from '../../utils/timeUtil';
 import { hasHumanMd } from '../../ai/aiPatterns';
-import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtils';
+import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtil';
 import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../utils/fileOpsUtils';
 
 const ATTACH_SUFFIX = '.attach';
