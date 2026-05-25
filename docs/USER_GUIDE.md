@@ -213,7 +213,7 @@ The special category named **`all`** is an exception to this rule. Tags inside a
 
 ### Managing your hashtag library (Tags Editor)
 
-You can define the full set of available hashtags — and how they are organised — through the **Tags Editor** dialog. Open it from the **Edit** menu → **Edit Hashtags**.
+You can define the full set of available hashtags — and how they are organised — through the **Settings View** dialog, with the **Edit Hashtags** button.
 
 The dialog is split into two panes:
 
