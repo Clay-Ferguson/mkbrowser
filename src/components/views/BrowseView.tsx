@@ -978,64 +978,35 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             </div>
           )}
 
-          {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line */}
+          {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line.
+              A single unified branch is used (rather than a `hasIndexFile ? A : B` ternary) so the outer element stays a stable
+              <div> when hasIndexFile flips on load — that lets React reconcile the keyed children instead of unmounting/remounting
+              the whole entry list (the remount storm was tripping React's max-update-depth). Index-only bits (move handlers,
+              IndexInsertBars, attach-folder gating) are computed conditionally inside the map. */}
           {!loading && sortedEntries.length > 0 && (
-            hasIndexFile ? (
-              <div>
-                {editMode && !(expandedEditor && anyItemEditing) && !visibleEntries[0]?.name.endsWith(ATTACH_SUFFIX) && <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />}
-                {visibleEntries.map((entry, idx) => {
-                  const moveUp = idx > 0 ? () => void handleMoveEntry(entry.name, 'up') : undefined;
-                  const moveDown = idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
-                  const moveToTop = idx > 0 ? () => void handleMoveEntryToEdge(entry.name, 'top') : undefined;
-                  const moveToBottom = idx < sortedEntries.length - 1 ? () => void handleMoveEntryToEdge(entry.name, 'bottom') : undefined;
-                  const prevEntry = visibleEntries[idx - 1];
-                  const indentFolder = entry.name.endsWith(ATTACH_SUFFIX) && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
-                  const parentExpanded = !indentFolder || (!!prevEntry && (items.get(prevEntry.path)?.isExpanded ?? false));
-                  return (
-                    <div key={entry.path}>
-                      {entry.isDirectory ? (
-                        <>
-                          {(!entry.name.endsWith(ATTACH_SUFFIX) || editMode) && parentExpanded && (
-                            <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} indentFolder={indentFolder} />
-                          )}
-                          {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && parentExpanded && (
-                            <AttachFolderContents
-                              entries={entry.attachments}
-                              level={1}
-                              onNavigate={navigateTo}
-                              onRename={handleEntryRename}
-                              onDelete={handleEntryDelete}
-                              onSaveSettings={onSaveSettings}
-                              onPasteIntoFolder={doPasteIntoFolder}
-                            />
-                          )}
-                        </>
-                      ) : entry.isMarkdown ? (
-                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} documentMode={hasIndexFile} />
-                      ) : isImageFile(entry.name) ? (
-                        <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
-                      ) : isTextFile(entry.name) ? (
-                        <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
-                      ) : (
-                        <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
-                      )}
-                      {editMode && !(expandedEditor && anyItemEditing) && !visibleEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="[&>div+div]:-mt-px">
-                {visibleEntries.map((entry, idx) => {
-                  const prevEntry = visibleEntries[idx - 1];
-                  const indentFolder = entry.name.endsWith(ATTACH_SUFFIX) && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
-                  const parentExpanded = !indentFolder || (!!prevEntry && (items.get(prevEntry.path)?.isExpanded ?? false));
-                  return (
+            <div className={hasIndexFile ? undefined : '[&>div+div]:-mt-px'}>
+              {hasIndexFile && editMode && !(expandedEditor && anyItemEditing) && !visibleEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
+                <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />
+              )}
+              {visibleEntries.map((entry, idx) => {
+                const moveUp = hasIndexFile && idx > 0 ? () => void handleMoveEntry(entry.name, 'up') : undefined;
+                const moveDown = hasIndexFile && idx < sortedEntries.length - 1 ? () => void handleMoveEntry(entry.name, 'down') : undefined;
+                const moveToTop = hasIndexFile && idx > 0 ? () => void handleMoveEntryToEdge(entry.name, 'top') : undefined;
+                const moveToBottom = hasIndexFile && idx < sortedEntries.length - 1 ? () => void handleMoveEntryToEdge(entry.name, 'bottom') : undefined;
+                const prevEntry = visibleEntries[idx - 1];
+                const isAttach = entry.name.endsWith(ATTACH_SUFFIX);
+                const indentFolder = isAttach && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
+                const parentExpanded = !indentFolder || (!!prevEntry && (items.get(prevEntry.path)?.isExpanded ?? false));
+                // Index mode hides attach folders unless editing; non-index mode always shows them.
+                const showFolder = parentExpanded && (hasIndexFile ? (!isAttach || editMode) : true);
+                return (
                   <div key={entry.path}>
                     {entry.isDirectory ? (
                       <>
-                        {parentExpanded && <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} indentFolder={indentFolder} />}
-                        {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && parentExpanded && (
+                        {showFolder && (
+                          <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={isAttach} indentFolder={indentFolder} />
+                        )}
+                        {isAttach && entry.attachments && parentExpanded && (
                           <AttachFolderContents
                             entries={entry.attachments}
                             level={1}
@@ -1048,19 +1019,21 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                         )}
                       </>
                     ) : entry.isMarkdown ? (
-                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} documentMode={hasIndexFile} />
+                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} documentMode={hasIndexFile} />
                     ) : isImageFile(entry.name) ? (
-                      <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
+                      <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                     ) : isTextFile(entry.name) ? (
-                      <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
+                      <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                     ) : (
-                      <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} />
+                      <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                    )}
+                    {hasIndexFile && editMode && !(expandedEditor && anyItemEditing) && !visibleEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
+                      <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
                     )}
                   </div>
-                  );
-                })}
-              </div>
-            )
+                );
+              })}
+            </div>
           )}
         </div>
       </main>

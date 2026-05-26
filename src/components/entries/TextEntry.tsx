@@ -41,13 +41,23 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
   const fileLanguage = getTextFileLanguage(entry.name);
-  const [selectedPromptName, setSelectedPromptName] = useState<string>('');
-  const [aiRewriteMode, setAiRewriteMode] = useState(false);
+  // Consolidated into a single state object so the mount-time config load fires
+  // ONE React update instead of two, and guarded so a resolve after unmount
+  // doesn't setState on a dead component (see MarkdownEntry for the same fix).
+  const [aiConfig, setAiConfig] = useState({ selectedPromptName: '', aiRewriteMode: false });
+  const { selectedPromptName, aiRewriteMode } = aiConfig;
   useEffect(() => {
+    let cancelled = false;
     window.electronAPI.getConfig().then((config) => {
-      setSelectedPromptName(config.aiRewritePrompt ?? '');
-      setAiRewriteMode(!!config.aiRewriteMode);
+      if (cancelled) return;
+      setAiConfig({
+        selectedPromptName: config.aiRewritePrompt ?? '',
+        aiRewriteMode: !!config.aiRewriteMode,
+      });
     });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const {
