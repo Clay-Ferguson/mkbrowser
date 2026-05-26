@@ -33,6 +33,8 @@ import { pasteCutItems } from '../../edit';
 import { extractHeadingTree } from '../../utils/tocUtil';
 import { scrollElementIntoView } from '../../utils/entryDom';
 
+const INDENT_SIZE = 20;
+
 // ── Type guards ──────────────────────────────────────────────────────────────
 
 function isFileNode(node: TreeNode): node is FileNode {
@@ -450,7 +452,7 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
                   text-slate-400 border-l-2 border-transparent
                   ${hasChildren ? 'cursor-pointer hover:bg-slate-700' : 'cursor-default hover:bg-slate-700'}
                 `}
-                style={{ paddingLeft: `${8 + depth * 12}px` }}
+                style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px` }}
                 onClick={() => handleHeadingClick(node)}
                 onContextMenu={e => handleHeadingContextMenu(node, e)}
               >
@@ -499,7 +501,7 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
 
           const isRunning = runningScript === node.path;
           const rowStyle: React.CSSProperties = {
-            paddingLeft: `${8 + depth * 12}px`,
+            paddingLeft: `${8 + depth * INDENT_SIZE}px`,
             ...(isRunning ? { animation: 'scriptRunFlash 3s ease-in forwards' } : {}),
           };
 
