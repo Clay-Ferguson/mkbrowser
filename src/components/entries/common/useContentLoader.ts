@@ -29,6 +29,14 @@ export function useContentLoader({
 
   // Load content if not cached or cache is stale
   useEffect(() => {
+    // Guards against an unmounted component (or a stale effect run after the
+    // deps changed) writing its async readFile result into the store. Entries
+    // can mount/unmount several times in quick succession on load (e.g. when
+    // hasIndexFile flips and the list subtree re-mounts); without this guard
+    // every aborted mount's readFile still resolves and calls setItemContent,
+    // and that flood of store updates trips React's "Maximum update depth".
+    let ignore = false;
+
     const loadContent = async () => {
       if (!isExpanded) {
         return;
@@ -42,18 +50,23 @@ export function useContentLoader({
       setLoading(true);
       try {
         const content = await window.electronAPI.readFile(path);
+        if (ignore) return;
         setItemContent(path, content);
         if (globalHighlightText) {
           requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
         }
       } catch {
-        setItemContent(path, errorMessage);
+        if (!ignore) setItemContent(path, errorMessage);
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     };
 
     loadContent();
+
+    return () => {
+      ignore = true;
+    };
   }, [path, modifiedTime, isExpanded, errorMessage]);
 
   // Get content from cache

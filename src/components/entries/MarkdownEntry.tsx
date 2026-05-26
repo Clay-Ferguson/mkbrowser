@@ -124,18 +124,36 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     toggleItemExpanded(entry.path);
   };
 
-  const [tagsVisible, setTagsVisible] = useState(false);
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
-  const [aiEnabled, setAiEnabled] = useState(false);
-  const [aiRewriteMode, setAiRewriteMode] = useState(false);
-  const [selectedPromptName, setSelectedPromptName] = useState<string>('');
+  // Consolidated into a single state object so the mount-time config load
+  // fires ONE React update instead of four. Four separate setState calls per
+  // mount multiplied the update pressure that was tripping React's nested
+  // update limit when entries re-mount.
+  const [entryConfig, setEntryConfig] = useState({
+    aiEnabled: false,
+    aiRewriteMode: false,
+    selectedPromptName: '',
+    tagsVisible: false,
+  });
+  const { aiEnabled, aiRewriteMode, selectedPromptName, tagsVisible } = entryConfig;
+  const setTagsVisible = useCallback((visible: boolean) => {
+    setEntryConfig((prev) => ({ ...prev, tagsVisible: visible }));
+  }, []);
+
   useEffect(() => {
+    let cancelled = false;
     window.electronAPI.getConfig().then((config) => {
-      setAiEnabled(!!config.aiEnabled);
-      setAiRewriteMode(!!config.aiRewriteMode);
-      setSelectedPromptName(config.aiRewritePrompt ?? '');
-      setTagsVisible(config.tagsPanelVisible ?? false);
+      if (cancelled) return;
+      setEntryConfig({
+        aiEnabled: !!config.aiEnabled,
+        aiRewriteMode: !!config.aiRewriteMode,
+        selectedPromptName: config.aiRewritePrompt ?? '',
+        tagsVisible: config.tagsPanelVisible ?? false,
+      });
     });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleToggleTagsVisible = async () => {
