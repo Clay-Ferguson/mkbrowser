@@ -1,7 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, nativeImage } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
-import { spawn, execSync } from 'node:child_process';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
@@ -25,17 +24,8 @@ import { getUsageWithCosts, resetUsage } from './ai/usageTracker';
 import { checkHealth, ensureRunning, stopServer } from './ai/llamaServer';
 import { readExifMetadata, writeExifMetadata } from './utils/exifUtil';
 import { logger } from './utils/logUtil';
-  // Write EXIF metadata to an image file
-  ipcMain.handle('write-exif', async (_event, filePath: string, data: Record<string, Record<string, string>>): Promise<boolean> => {
-    try {
-      return await writeExifMetadata(filePath, data);
-    } catch (error) {
-      logger.error('Error writing EXIF data:', error);
-      return false;
-    }
-  });
 import { exportFolderContents, exportToPdf } from './utils/exportUtil';
-import { runShellScript } from './utils/launcherUtil';
+import { runShellScript, runInExternalTerminal } from './utils/launcherUtil';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
 const ENABLE_STREAM_RESPONSE = true;
@@ -49,8 +39,6 @@ if (started) {
 protocol.registerSchemesAsPrivileged([
   { scheme: 'local-file', privileges: { bypassCSP: true, stream: true, supportFetchAPI: true } }
 ]);
-
-
 
 import type { FileEntry } from './global';
 
@@ -182,6 +170,16 @@ function setupIpcHandlers(): void {
     } catch (error) {
       logger.error('Error reading EXIF data:', error);
       return {};
+    }
+  });
+
+  // Write EXIF metadata to an image file
+  ipcMain.handle('write-exif', async (_event, filePath: string, data: Record<string, Record<string, string>>): Promise<boolean> => {
+    try {
+      return await writeExifMetadata(filePath, data);
+    } catch (error) {
+      logger.error('Error writing EXIF data:', error);
+      return false;
     }
   });
 
@@ -683,46 +681,13 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle('run-in-external-terminal', async (_event, command: string): Promise<{ success: boolean; error?: string }> => {
     try {
-const terminals = [
-        { cmd: 'x-terminal-emulator', args: ['-e'] },
-        { cmd: 'gnome-terminal', args: ['--'] },
-        { cmd: 'konsole', args: ['-e'] },
-        { cmd: 'xfce4-terminal', args: ['-e'] },
-        { cmd: 'xterm', args: ['-e'] },
-        { cmd: 'kitty', args: ['--'] },
-        { cmd: 'alacritty', args: ['-e'] },
-      ];
-
-      let terminalCmd: string | null = null;
-      let terminalArgs: string[] = [];
-
-      for (const terminal of terminals) {
-        try {
-          execSync(`which ${terminal.cmd}`, { stdio: 'ignore' });
-          terminalCmd = terminal.cmd;
-          terminalArgs = terminal.args;
-          break;
-        } catch {
-          // Terminal not found, try next
-        }
-      }
-
-      if (!terminalCmd) {
-        return { success: false, error: 'No terminal emulator found. Please install gnome-terminal, konsole, xterm, or another terminal emulator.' };
-      }
-
-      const child = spawn(terminalCmd, [...terminalArgs, 'bash', '-c', `${command}; exec bash`], {
-        detached: true,
-        stdio: 'ignore',
-      });
-      child.unref();
-
-      return { success: true };
+      return await runInExternalTerminal(command);
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
 }
+
 async function handleCommandLineArgs(): Promise<void> {
   // process.argv structure differs between dev and production:
   // Development: [electron, main.js, ...userArgs] - use slice(2)
