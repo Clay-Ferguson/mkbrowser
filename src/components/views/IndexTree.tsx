@@ -1,6 +1,8 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
-import { ClipboardDocumentIcon } from '@heroicons/react/24/solid';
+import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { ClipboardDocumentIcon, FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
+import { getIconForFileExtension } from '../../utils/fileUtil';
+import type { FileIconType } from '../../utils/fileUtil';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import {
   useRootPath,
@@ -47,6 +49,15 @@ function isMarkdownFile(node: FileNode): node is MarkdownFileNode {
 
 function isShellScript(node: FileNode): boolean {
   return !node.isDirectory && node.name.toLowerCase().endsWith('.sh');
+}
+
+function renderFileIcon(iconType: FileIconType) {
+  switch (iconType) {
+    case 'markdown': return <DocumentTextIcon className="w-5 h-5 text-blue-400 shrink-0" />;
+    case 'text':     return <DocumentTextIcon className="w-5 h-5 text-emerald-400 shrink-0" />;
+    case 'image':    return <PhotoIcon className="w-5 h-5 text-green-500 shrink-0" />;
+    default:         return <DocumentIcon className="w-5 h-5 text-slate-300 shrink-0" />;
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -504,17 +515,14 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
               }}
               onContextMenu={e => handleFileNodeContextMenu(node, e)}
             >
-              <span
-                className={
-                  `shrink-0 w-3 text-center mr-1 ` +
-                  (node.path === highlightItem ? 'text-purple-400' : node.isDirectory ? 'text-yellow-400' : isMd ? 'text-sky-400' : 'text-slate-400')
-                }
-              >
-                {node.isDirectory
-                  ? (node.isLoading ? '⋯' : node.isExpanded ? '▼' : '▶')
-                  : isMd
-                    ? (node.isLoading ? '⋯' : node.isExpanded ? '▼' : '▶')
-                    : '●'
+              <span className="shrink-0 flex items-center mr-1">
+                {node.isLoading
+                  ? <span className="w-4 h-4 text-center text-slate-400">⋯</span>
+                  : node.isDirectory
+                    ? (node.isExpanded
+                        ? <FolderOpenIcon className="w-5 h-5 text-amber-500" />
+                        : <FolderIcon className="w-5 h-5 text-amber-500" />)
+                    : renderFileIcon(getIconForFileExtension(node.name))
                 }
               </span>
               <span>{node.name}</span>

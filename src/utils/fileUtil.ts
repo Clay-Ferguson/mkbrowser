@@ -117,6 +117,18 @@ export function getTextFileLanguage(fileName: string): TextFileLanguage {
   const ext = lower.slice(lower.lastIndexOf('.'));
   return TEXT_FILE_LANGUAGES[ext] ?? 'text';
 }
+
+export type FileIconType = 'markdown' | 'text' | 'image' | 'generic';
+
+export function getIconForFileExtension(fileName: string): FileIconType {
+  const lower = fileName.toLowerCase();
+  const ext = lower.slice(lower.lastIndexOf('.'));
+  if (ext === '.md') return 'markdown';
+  if (ext in TEXT_FILE_LANGUAGES) return 'text';
+  if (IMAGE_EXTENSIONS.has(ext)) return 'image';
+  return 'generic';
+}
+
 /**
  * Apply sort comparison based on the selected sort order.
  */
