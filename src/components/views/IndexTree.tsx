@@ -13,7 +13,6 @@ import {
   useHasCutItems,
   useHighlightItem,
   setIndexTreeRoot,
-  setIndexTreeNodeLoading,
   expandIndexTreeNode,
   collapseIndexTreeNode,
   collapseAllIndexTreeNodes,
@@ -180,12 +179,10 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
       if (!node || !node.isDirectory) return;
 
       if (!node.isExpanded || node.children === null) {
-        setIndexTreeNodeLoading(ancestorPath, true);
         try {
           const entries = await window.electronAPI.readDirectory(ancestorPath);
           expandIndexTreeNode(ancestorPath, makeNodes(entries));
         } catch {
-          setIndexTreeNodeLoading(ancestorPath, false);
           return;
         }
       }
@@ -234,13 +231,12 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
         expandIndexTreeNode(node.path, node.children);
         return;
       }
-      setIndexTreeNodeLoading(node.path, true);
       try {
         const content = await window.electronAPI.readFile(node.path);
         const headings = extractHeadingTree(node.path, content);
         expandIndexTreeNode(node.path, headings);
       } catch {
-        setIndexTreeNodeLoading(node.path, false);
+        // leave node collapsed on error
       }
       return;
     }
@@ -252,12 +248,11 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
       return;
     }
 
-    setIndexTreeNodeLoading(node.path, true);
     try {
       const entries = await window.electronAPI.readDirectory(node.path);
       expandIndexTreeNode(node.path, makeNodes(entries));
     } catch {
-      setIndexTreeNodeLoading(node.path, false);
+      // leave node collapsed on error
     }
   }, []);
 
@@ -518,13 +513,11 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
               onContextMenu={e => handleFileNodeContextMenu(node, e)}
             >
               <span className="shrink-0 flex items-center mr-1">
-                {node.isLoading
-                  ? <span className="w-5 h-5 text-center text-slate-400">⋯</span>
-                  : node.isDirectory
-                    ? (node.isExpanded
-                        ? <FolderOpenIcon className="w-5 h-5 text-amber-500" />
-                        : <FolderIcon className="w-5 h-5 text-amber-500" />)
-                    : renderFileIcon(getIconForFileExtension(node.name))
+                {node.isDirectory
+                  ? (node.isExpanded
+                      ? <FolderOpenIcon className="w-5 h-5 text-amber-500" />
+                      : <FolderIcon className="w-5 h-5 text-amber-500" />)
+                  : renderFileIcon(getIconForFileExtension(node.name))
                 }
               </span>
               <span>{node.name}</span>
