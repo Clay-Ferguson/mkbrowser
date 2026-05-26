@@ -519,7 +519,7 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
             >
               <span className="shrink-0 flex items-center mr-1">
                 {node.isLoading
-                  ? <span className="w-4 h-4 text-center text-slate-400">⋯</span>
+                  ? <span className="w-5 h-5 text-center text-slate-400">⋯</span>
                   : node.isDirectory
                     ? (node.isExpanded
                         ? <FolderOpenIcon className="w-5 h-5 text-amber-500" />
