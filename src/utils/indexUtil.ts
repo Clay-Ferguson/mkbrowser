@@ -115,7 +115,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
             const updated = { id: fileId, ...fm };
             newContent = `---\n${yaml.dump(updated)}---\n${body}`;
           }
-          await fs.promises.writeFile(filePath, newContent, 'utf8');
+          await writeFileAtomic(filePath, newContent);
         }
         nameToId.set(entry.name, fileId);
         idToName.set(fileId, entry.name);
