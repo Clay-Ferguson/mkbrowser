@@ -4,7 +4,9 @@ import { MENU_CONTAINER, MENU_ITEM_BASE, MENU_ITEM_ENABLED, MENU_ITEM_DISABLED, 
 
 export interface PopupMenuProps {
   /** Ref to the button/element that triggered the menu */
-  anchorRef: RefObject<HTMLElement | null>;
+  anchorRef?: RefObject<HTMLElement | null>;
+  /** Mouse coordinates to position the menu at (alternative to anchorRef) */
+  mousePosition?: { x: number; y: number };
   /** Called when the menu should close (click outside, Escape, item click) */
   onClose: () => void;
   children: ReactNode;
@@ -13,19 +15,15 @@ export interface PopupMenuProps {
 }
 
 /**
- * Reusable popup menu that positions itself below an anchor element.
+ * Reusable popup menu that positions itself below an anchor element or at mouse coordinates.
  * Handles click-outside dismiss, Escape key, and viewport edge-clipping.
  */
-export default function PopupMenu({ anchorRef, onClose, children, style: extraStyle }: PopupMenuProps) {
+export default function PopupMenu({ anchorRef, mousePosition, onClose, children, style: extraStyle }: PopupMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
-  // Calculate position relative to anchor, adjusting for viewport edges
+  // Calculate position relative to anchor or mouse position, adjusting for viewport edges
   useLayoutEffect(() => {
-    const anchor = anchorRef.current;
-    if (!anchor) return;
-
-    const anchorRect = anchor.getBoundingClientRect();
     const menu = menuRef.current;
     if (!menu) return;
 
@@ -33,13 +31,28 @@ export default function PopupMenu({ anchorRef, onClose, children, style: extraSt
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    // Default: below the anchor, left-aligned with anchor's left edge
-    let top = anchorRect.bottom + 4;
-    let left = anchorRect.left;
+    let top: number;
+    let left: number;
 
-    // If menu overflows right edge, align menu's right edge with anchor's right edge
+    if (mousePosition) {
+      top = mousePosition.y;
+      left = mousePosition.x;
+    } else {
+      const anchor = anchorRef?.current;
+      if (!anchor) return;
+      const anchorRect = anchor.getBoundingClientRect();
+      top = anchorRect.bottom + 4;
+      left = anchorRect.left;
+
+      // If menu overflows right edge, align menu's right edge with anchor's right edge
+      if (left + menuRect.width > viewportWidth - 8) {
+        left = anchorRect.right - menuRect.width;
+      }
+    }
+
+    // Clamp right edge
     if (left + menuRect.width > viewportWidth - 8) {
-      left = anchorRect.right - menuRect.width;
+      left = viewportWidth - menuRect.width - 8;
     }
 
     // If still overflowing left, clamp to left edge
@@ -47,9 +60,9 @@ export default function PopupMenu({ anchorRef, onClose, children, style: extraSt
       left = 8;
     }
 
-    // If menu overflows bottom, flip above the anchor
+    // If menu overflows bottom, flip above the cursor/anchor
     if (top + menuRect.height > viewportHeight - 8) {
-      top = anchorRect.top - menuRect.height - 4;
+      top = (mousePosition ? mousePosition.y : (anchorRef?.current?.getBoundingClientRect().top ?? top)) - menuRect.height - 4;
     }
 
     // If flipped above and still overflowing top, clamp to top edge
@@ -58,16 +71,14 @@ export default function PopupMenu({ anchorRef, onClose, children, style: extraSt
     }
 
     setPosition({ top, left });
-  }, [anchorRef]);
+  }, [anchorRef, mousePosition]);
 
   // Click-outside dismiss
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
       const target = e.target as Node;
-      if (
-        menuRef.current && !menuRef.current.contains(target) &&
-        anchorRef.current && !anchorRef.current.contains(target)
-      ) {
+      const anchorContains = anchorRef?.current?.contains(target) ?? false;
+      if (menuRef.current && !menuRef.current.contains(target) && !anchorContains) {
         onClose();
       }
     };

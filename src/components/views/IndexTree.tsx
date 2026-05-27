@@ -4,6 +4,7 @@ import { ClipboardDocumentIcon, FolderIcon, FolderOpenIcon } from '@heroicons/re
 import { getIconForFileExtension } from '../../utils/fileUtil';
 import type { FileIconType } from '../../utils/fileUtil';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
+import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
 import {
   useRootPath,
   useCurrentPath,
@@ -139,6 +140,12 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
   const [runningScript, setRunningScript] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    isDirectory: boolean;
+    onBrowse: () => void;
+  } | null>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
   useEffect(() => {
@@ -344,26 +351,40 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
 
   const handleHeadingContextMenu = (node: MarkdownHeadingNode, e: React.MouseEvent) => {
     e.preventDefault();
-    const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
-    const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
-    setHighlightItem(filePath);
-    if (document.getElementById(node.slug)) {
-      scrollElementIntoView(node.slug, true);
-    } else {
-      setPendingScrollToHeadingSlug(node.slug);
-      navigateToBrowserPath(folderPath, filePath);
-    }
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      isDirectory: false,
+      onBrowse: () => {
+        const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
+        const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
+        setHighlightItem(filePath);
+        if (document.getElementById(node.slug)) {
+          scrollElementIntoView(node.slug, true);
+        } else {
+          setPendingScrollToHeadingSlug(node.slug);
+          navigateToBrowserPath(folderPath, filePath);
+        }
+      },
+    });
   };
 
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();
-    if (node.isDirectory) {
-      navigateToBrowserPath(node.path);
-    } else {
-      const folderPath = node.path.substring(0, node.path.lastIndexOf('/'));
-      setHighlightItem(node.path);
-      navigateToBrowserPath(folderPath, node.path);
-    }
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      isDirectory: node.isDirectory,
+      onBrowse: () => {
+        if (node.isDirectory) {
+          navigateToBrowserPath(node.path);
+        } else {
+          const folderPath = node.path.substring(0, node.path.lastIndexOf('/'));
+          setHighlightItem(node.path);
+          navigateToBrowserPath(folderPath, node.path);
+        }
+      },
+    });
   };
 
   if (!treeRoot?.children) {
@@ -432,6 +453,14 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
           bookmarks={settings.bookmarks || []}
           rootPath={rootPath ?? ''}
           onNavigate={handleBookmarkNavigate}
+        />
+      )}
+      {contextMenu && (
+        <IndexTreeContextMenu
+          mousePosition={{ x: contextMenu.x, y: contextMenu.y }}
+          isDirectory={contextMenu.isDirectory}
+          onClose={() => setContextMenu(null)}
+          onBrowse={contextMenu.onBrowse}
         />
       )}
       <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
