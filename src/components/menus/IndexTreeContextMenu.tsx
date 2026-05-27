@@ -6,9 +6,10 @@ interface IndexTreeContextMenuProps {
   onClose: () => void;
   onBrowse: () => void;
   onPaste?: () => void;
+  onPasteLink?: () => void;
 }
 
-export default function IndexTreeContextMenu({ mousePosition, isDirectory, onClose, onBrowse, onPaste }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory, onClose, onBrowse, onPaste, onPasteLink }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       <PopupMenuItem
@@ -19,6 +20,12 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory, onClo
         <PopupMenuItem
           label="Paste into Folder"
           onClick={() => { onPaste(); onClose(); }}
+        />
+      )}
+      {onPasteLink && (
+        <PopupMenuItem
+          label="Paste Link"
+          onClick={() => { onPasteLink(); onClose(); }}
         />
       )}
     </PopupMenu>

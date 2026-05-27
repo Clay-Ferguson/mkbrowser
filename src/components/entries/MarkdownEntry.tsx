@@ -45,6 +45,7 @@ import CustomCode from '../CustomCode';
 import CustomPre from '../CustomPre';
 import { createBlockClickComponents } from '../blockClickComponents';
 import { logger } from '../../utils/logUtil';
+import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
 import {
   useEntryCore,
   useRename,
@@ -180,6 +181,17 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   const [isRewriting, setIsRewriting] = useState(false);
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
+
+  useEffect(() => {
+    if (edit.isEditing && editorRef.current) {
+      registerActiveMarkdownEditor(entry.path, editorRef.current);
+    } else {
+      unregisterActiveMarkdownEditor(entry.path);
+    }
+    return () => {
+      unregisterActiveMarkdownEditor(entry.path);
+    };
+  }, [edit.isEditing, entry.path]);
   const [isReplyLoading, setIsReplyLoading] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [showStreamingDialog, setShowStreamingDialog] = useState(false);

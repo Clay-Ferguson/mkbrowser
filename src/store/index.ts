@@ -100,6 +100,7 @@ export {
   useExpansionCounts,
   useScrollPositions,
   useHasCutItems,
+  useEditingMarkdownPath,
   useFolderAnalysis,
   useFolderGraph,
   setRootPath,

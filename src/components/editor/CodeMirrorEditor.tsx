@@ -64,6 +64,8 @@ export interface CodeMirrorEditorHandle {
   getSelection(): { from: number; to: number; text: string } | null;
   /** Focuses the editor and places the cursor at the given character offset. */
   focusAtPosition(pos: number): void;
+  /** Inserts text at the current cursor position (replacing any selection). */
+  insertAtCursor(text: string): void;
 }
 
 const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, onMakeCalendarItem, onMakeRepeatingCalendarItem }, ref) {
@@ -103,6 +105,16 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       const view = viewRef.current;
       if (!view) return;
       view.dispatch({ selection: { anchor: pos, head: pos } });
+      view.focus();
+    },
+    insertAtCursor(text: string) {
+      const view = viewRef.current;
+      if (!view) return;
+      const { from, to } = view.state.selection.main;
+      view.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + text.length },
+      });
       view.focus();
     },
   }));

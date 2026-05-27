@@ -1641,6 +1641,17 @@ export function useHasCutItems(): boolean {
 }
 
 /**
+ * Hook to get the path of the currently-editing markdown file, or null if none.
+ */
+export function useEditingMarkdownPath(): string | null {
+  const items = useSyncExternalStore(subscribe, getItemsSnapshot);
+  for (const [path, item] of items.entries()) {
+    if (item.editing && path.endsWith('.md')) return path;
+  }
+  return null;
+}
+
+/**
  * Hook to subscribe to folder analysis state
  */
 export function useFolderAnalysis(): FolderAnalysisState | null {

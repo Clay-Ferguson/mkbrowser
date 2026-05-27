@@ -13,6 +13,7 @@ import {
   usePendingIndexTreeReveal,
   useHasCutItems,
   useHighlightItem,
+  useEditingMarkdownPath,
   setIndexTreeRoot,
   expandIndexTreeNode,
   collapseIndexTreeNode,
@@ -32,8 +33,30 @@ import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '
 import { pasteCutItems } from '../../edit';
 import { extractHeadingTree } from '../../utils/tocUtil';
 import { scrollElementIntoView } from '../../utils/entryDom';
+import { getActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
 
 const INDENT_SIZE = 20;
+
+function extractFrontMatterId(rawContent: string): string | null {
+  if (!rawContent.startsWith('---')) return null;
+  const afterOpen = rawContent.slice(3);
+  const closingIdx = afterOpen.search(/\n(---|\.\.\.)\s*(\n|$)/);
+  if (closingIdx === -1) return null;
+  const yamlBlock = afterOpen.slice(0, closingIdx);
+  const match = yamlBlock.match(/^id:\s*(.+)$/m);
+  return match ? match[1].trim() : null;
+}
+
+function computeRelativePath(fromDir: string, toFile: string): string {
+  const fromParts = fromDir.split('/').filter(Boolean);
+  const toParts = toFile.split('/').filter(Boolean);
+  let i = 0;
+  while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) i++;
+  const ups = fromParts.length - i;
+  const downs = toParts.slice(i);
+  const rel = [...Array(ups).fill('..'), ...downs].join('/');
+  return rel || './';
+}
 
 // ── Type guards ──────────────────────────────────────────────────────────────
 
@@ -136,6 +159,7 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
   const pendingReveal = usePendingIndexTreeReveal();
   const hasCutItems = useHasCutItems();
   const highlightItem = useHighlightItem();
+  const editingMarkdownPath = useEditingMarkdownPath();
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
@@ -146,6 +170,7 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
     isDirectory: boolean;
     onBrowse: () => void;
     onPaste?: () => void;
+    onPasteLink?: () => void;
   } | null>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
@@ -372,6 +397,7 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
 
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();
+    const activeEditor = editingMarkdownPath ? getActiveMarkdownEditor() : null;
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -387,6 +413,22 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
       },
       ...(hasCutItems && node.isDirectory ? {
         onPaste: () => void handlePasteIntoFolder(node, e),
+      } : {}),
+      ...(activeEditor && !node.isDirectory ? {
+        onPasteLink: () => {
+          const editorDir = activeEditor.path.substring(0, activeEditor.path.lastIndexOf('/'));
+          const relPath = computeRelativePath(editorDir, node.path);
+          const label = node.path.substring(node.path.lastIndexOf('/') + 1).replace(/\.md$/, '');
+          if (node.path.endsWith('.md')) {
+            window.electronAPI.readFile(node.path).then((raw) => {
+              const id = extractFrontMatterId(raw);
+              const suffix = id ? `<!-- id:${id} -->` : '';
+              activeEditor.handle.insertAtCursor(`[${label}](${relPath})${suffix}`);
+            });
+          } else {
+            activeEditor.handle.insertAtCursor(`[${label}](${relPath})`);
+          }
+        },
       } : {}),
     });
   };
@@ -466,6 +508,7 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
           onClose={() => setContextMenu(null)}
           onBrowse={contextMenu.onBrowse}
           onPaste={contextMenu.onPaste}
+          onPasteLink={contextMenu.onPasteLink}
         />
       )}
       <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
