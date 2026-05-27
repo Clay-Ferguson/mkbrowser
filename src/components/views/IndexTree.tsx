@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
-import { ClipboardDocumentIcon, FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
+import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { getIconForFileExtension } from '../../utils/fileUtil';
 import type { FileIconType } from '../../utils/fileUtil';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
@@ -145,6 +145,7 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
     y: number;
     isDirectory: boolean;
     onBrowse: () => void;
+    onPaste?: () => void;
   } | null>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
@@ -384,6 +385,9 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
           navigateToBrowserPath(folderPath, node.path);
         }
       },
+      ...(hasCutItems && node.isDirectory ? {
+        onPaste: () => void handlePasteIntoFolder(node, e),
+      } : {}),
     });
   };
 
@@ -461,6 +465,7 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
           isDirectory={contextMenu.isDirectory}
           onClose={() => setContextMenu(null)}
           onBrowse={contextMenu.onBrowse}
+          onPaste={contextMenu.onPaste}
         />
       )}
       <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
@@ -550,17 +555,6 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
                 }
               </span>
               <span>{node.name}</span>
-              {hasCutItems && node.isDirectory && (
-                <button
-                  type="button"
-                  onClick={e => void handlePasteIntoFolder(node, e)}
-                  className="shrink-0 ml-auto p-1 mr-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer"
-                  title="Paste cut items here"
-                  aria-label="Paste cut items here"
-                >
-                  <ClipboardDocumentIcon className="w-4 h-4 text-white" />
-                </button>
-              )}
             </div>
           );
         })}
