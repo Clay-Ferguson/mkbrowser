@@ -1,5 +1,7 @@
 import path from 'node:path';
-import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { loadCalendarEntryForFile, loadCalendarEvents } from '../src/utils/calendar/calendarLoader';
 import {
   isMarkdownFile,
@@ -15,8 +17,97 @@ import {
   injectCalendarFrontMatter,
 } from '../src/utils/calendar/calendarUtil';
 
-const DATA = path.resolve(__dirname, '../test-data/calendar');
-const f = (name: string) => path.join(DATA, name);
+let tmpDir: string;
+
+function f(name: string): string {
+  return path.join(tmpDir, name);
+}
+
+function write(name: string, content: string): void {
+  const full = f(name);
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, content, 'utf-8');
+}
+
+beforeEach(() => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'calendar-test-'));
+
+  write('simple-event.md', `---
+due: 6/15/2026
+---
+This is a simple calendar event for testing.
+`);
+
+  write('timed-event.md', `---
+due: 7/4/2026
+start: "2:00 PM"
+duration: 2
+---
+A timed event with explicit duration.
+`);
+
+  write('timed-event-default-duration.md', `---
+due: 8/1/2026
+start: "9:00 AM"
+---
+A timed event with no explicit duration.
+`);
+
+  write('two-digit-year.md', `---
+due: 3/10/27
+---
+Event with two-digit year.
+`);
+
+  write('no-frontmatter.md', `This file has no front matter at all.\n`);
+
+  write('no-due.md', `---
+title: No Due Field
+---
+This file has front matter but no due field.
+`);
+
+  write('long-body.md', `---
+due: 9/1/2026
+---
+Line one of the body.
+Line two of the body.
+Line three of the body.
+Line four of the body.
+Line five of the body.
+Line six should be truncated.
+Line seven should be truncated.
+`);
+
+  write('recurring-weekly.md', `---
+due: 6/1/2026
+rrule:
+  freq: weekly
+  count: 3
+---
+A weekly recurring event.
+`);
+
+  write('recurring-byday.md', `---
+due: 6/1/2026
+rrule:
+  freq: weekly
+  byday: MO,WE,FR
+  count: 6
+---
+A recurring event on Mon, Wed, Fri.
+`);
+
+  write('ignored/ignored-event.md', `---
+due: 6/1/2026
+---
+This event is in an ignored directory.
+`);
+});
+
+afterEach(() => {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
 
 // ---------------------------------------------------------------------------
 // loadCalendarEntryForFile
@@ -144,27 +235,27 @@ describe('loadCalendarEntryForFile — byday recurring (MO/WE/FR, count: 6)', ()
 
 describe('loadCalendarEvents — directory scan', () => {
   it('returns events from all valid .md files in the calendar test-data folder', async () => {
-    const results = await loadCalendarEvents(DATA);
+    const results = await loadCalendarEvents(tmpDir);
     // At minimum: simple-event, timed-event, timed-event-default-duration,
     // two-digit-year, long-body, recurring-weekly(3), recurring-byday(6)
     expect(results.length).toBeGreaterThanOrEqual(10);
   });
 
   it('does not return entries from files without a due field', async () => {
-    const results = await loadCalendarEvents(DATA);
+    const results = await loadCalendarEvents(tmpDir);
     const filePaths = results.map(ev => ev.filePath);
     expect(filePaths).not.toContain(f('no-frontmatter.md'));
     expect(filePaths).not.toContain(f('no-due.md'));
   });
 
   it('excludes files in ignored directories when ignoredPaths is set', async () => {
-    const results = await loadCalendarEvents(DATA, ['ignored']);
+    const results = await loadCalendarEvents(tmpDir, ['ignored']);
     const filePaths = results.map(ev => ev.filePath);
     expect(filePaths.some(p => p.includes('ignored'))).toBe(false);
   });
 
   it('includes files in ignored directory when no ignoredPaths given', async () => {
-    const results = await loadCalendarEvents(DATA);
+    const results = await loadCalendarEvents(tmpDir);
     const filePaths = results.map(ev => ev.filePath);
     expect(filePaths.some(p => p.includes('ignored'))).toBe(true);
   });
