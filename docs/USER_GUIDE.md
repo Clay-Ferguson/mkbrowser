@@ -155,6 +155,31 @@ When a Markdown file is expanded, you can edit its content:
 3. Press `Save` button or use `Ctrl+S` / `Cmd+S` to save your changes.
 4. Click the **Close** button (X icon) to return to the rendered view.
 
+### Inserting Links to Other Files
+
+While editing a Markdown file you can quickly insert a link to any other file in the Index Tree without typing the path by hand:
+
+1. Start editing a Markdown file (the code editor must be open).
+2. Position the cursor where you want the link to appear.
+3. In the **Index Tree** panel on the left, right-click the file you want to link to.
+4. Choose **Paste Link** from the context menu.
+
+MkBrowser inserts a relative Markdown link at the cursor position, for example:
+
+```
+[notes](../reference/notes.md)
+```
+
+If the target file is a Markdown file that contains a front matter `id` property, the id is embedded as an HTML comment immediately after the link:
+
+```
+[notes](../reference/notes.md)<!-- id:abc123 -->
+```
+
+This lets other tools (and future MkBrowser features) resolve the link by id even if the file is later renamed or moved.
+
+> **Note:** The **Paste Link** item only appears in the context menu when a Markdown file is currently open for editing.
+
 ### Editor Keyboard Shortcuts
 
 While the code editor has focus, the following keyboard shortcuts are available:
