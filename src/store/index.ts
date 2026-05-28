@@ -70,6 +70,7 @@ export {
   setIgnoredPaths,
   setContentWidth,
   setOcrToolsFolder,
+  setCalendarItemsFolder,
   toggleBookmark,
   addBookmark,
   isBookmarked,

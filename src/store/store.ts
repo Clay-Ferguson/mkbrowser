@@ -16,6 +16,7 @@ const defaultSettings: AppSettings = {
   contentWidth: 'medium',
   bookmarks: [],
   ocrToolsFolder: '',
+  calendarItemsFolder: '',
   indexTreeWidth: 'narrow',
   showPropsInEditor: true,
 };
@@ -1373,6 +1374,17 @@ export function setOcrToolsFolder(ocrToolsFolder: string): void {
   state = {
     ...state,
     settings: { ...state.settings, ocrToolsFolder },
+  };
+  emitChange();
+}
+
+/**
+ * Update the calendar items folder setting (where new calendar files are created)
+ */
+export function setCalendarItemsFolder(calendarItemsFolder: string): void {
+  state = {
+    ...state,
+    settings: { ...state.settings, calendarItemsFolder },
   };
   emitChange();
 }

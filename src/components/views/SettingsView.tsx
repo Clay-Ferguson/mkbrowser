@@ -7,6 +7,7 @@ import {
   setIgnoredPaths,
   setContentWidth,
   setOcrToolsFolder,
+  setCalendarItemsFolder,
   setIndexTreeWidth,
   setSettingsScrollPosition,
   getSettingsScrollPosition,
@@ -105,6 +106,11 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const handleOcrToolsFolderChange = (ocrToolsFolder: string) => {
     setOcrToolsFolder(ocrToolsFolder);
     // Trigger save to persist the setting
+    onSaveSettings();
+  };
+
+  const handleCalendarItemsFolderChange = (calendarItemsFolder: string) => {
+    setCalendarItemsFolder(calendarItemsFolder);
     onSaveSettings();
   };
 
@@ -222,6 +228,22 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               value={settings.ocrToolsFolder}
               onChange={(e) => handleOcrToolsFolderChange(e.target.value)}
               placeholder="/path/to/ocr-tools"
+              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+            />
+          </section>
+
+          {/* Calendar Setting */}
+          <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+            <h2 className="text-lg font-semibold text-slate-100 mb-2">Calendar</h2>
+            <p className="text-sm text-slate-400 mb-4">
+              Folder where new calendar item files are created.
+            </p>
+
+            <input
+              type="text"
+              value={settings.calendarItemsFolder}
+              onChange={(e) => handleCalendarItemsFolderChange(e.target.value)}
+              placeholder="/path/to/calendar"
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
             />
           </section>

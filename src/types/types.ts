@@ -264,6 +264,8 @@ export interface AppSettings {
   bookmarks: Bookmark[];
   /** Folder path where OCR tool utilities are stored */
   ocrToolsFolder: string;
+  /** Folder path where new calendar item files are created */
+  calendarItemsFolder: string;
   /** Folder tree sidebar visibility and width */
   indexTreeWidth: IndexTreeWidth;
   /** Whether to show front matter (Properties) in the editor */

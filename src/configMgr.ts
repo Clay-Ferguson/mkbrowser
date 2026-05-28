@@ -33,6 +33,7 @@ export const defaultSettings: AppSettings = {
   contentWidth: 'medium',
   bookmarks: [],
   ocrToolsFolder: '',
+  calendarItemsFolder: '',
 };
 
 // ---------------------------------------------------------------------------

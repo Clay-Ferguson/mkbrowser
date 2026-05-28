@@ -4,13 +4,10 @@ import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh } from '../../store';
+import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useSettings } from '../../store';
 import type { CalendarEvent } from '../../types/types';
-import { generateTimestampFileName } from '../../utils/timeUtil';
 import { logger } from '../../utils/logUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
-
-const NEW_CALENDAR_FILE_FOLDER = '/home/clay/ferguson/2 - Calendar';
 
 function formatDueDate(d: Date): string {
   const pad = (n: number) => n.toString().padStart(2, '0');
@@ -50,6 +47,7 @@ export default function CalendarView() {
   const calendarViewType = useCalendarViewType();
   const view = viewTypeToRbc[calendarViewType] ?? Views.MONTH;
   const date = useCalendarViewTime();
+  const settings = useSettings();
   const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
 
   const handleViewChange = (v: View) => {
@@ -84,8 +82,13 @@ export default function CalendarView() {
     const { content } = pendingSlot;
     setPendingSlot(null);
 
+    const folder = settings.calendarItemsFolder;
+    if (!folder) {
+      logger.error('Calendar items folder is not configured. Set it in Settings.');
+      return;
+    }
     const normalizedName = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
-    const filePath = `${NEW_CALENDAR_FILE_FOLDER}/${normalizedName}`;
+    const filePath = `${folder}/${normalizedName}`;
     try {
       const result = await window.electronAPI.createFile(filePath, content);
       if (!result.success) {
@@ -93,7 +96,7 @@ export default function CalendarView() {
         return;
       }
       setHighlightItem(filePath);
-      navigateToBrowserPath(NEW_CALENDAR_FILE_FOLDER, filePath);
+      navigateToBrowserPath(folder, filePath);
       setPendingEditFile(filePath, undefined, 'browser');
       // Force BrowseView to re-read the directory so the new file is in entries
       // before the pending-edit handler fires — otherwise, if currentPath was

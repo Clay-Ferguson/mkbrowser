@@ -35,6 +35,7 @@ export interface AppSettings {
   contentWidth: ContentWidth;
   bookmarks: Bookmark[];
   ocrToolsFolder: string;
+  calendarItemsFolder: string;
   showPropsInEditor?: boolean;
 }
 
