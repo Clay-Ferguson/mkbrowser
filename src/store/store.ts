@@ -1028,7 +1028,7 @@ export function getThreadScrollPosition(): number {
 /**
  * Set folder analysis results
  */
-export function setFolderAnalysis(data: FolderAnalysisState): void {
+export function setFolderAnalysis(data: FolderAnalysisState | null): void {
   state = { ...state, folderAnalysis: data };
   emitChange();
 }
@@ -1689,6 +1689,14 @@ export function showTab(tab: AppView): void {
   if (state.visibleTabs.has(tab)) return;
   const next = new Set(state.visibleTabs);
   next.add(tab);
+  state = { ...state, visibleTabs: next };
+  emitChange();
+}
+
+export function hideTab(tab: AppView): void {
+  if (!state.visibleTabs.has(tab)) return;
+  const next = new Set(state.visibleTabs);
+  next.delete(tab);
   state = { ...state, visibleTabs: next };
   emitChange();
 }

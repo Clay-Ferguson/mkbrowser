@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { showTab, useCurrentView, setCurrentView, useFolderAnalysis, useFolderGraph, useSearchResults, useVisibleTabs, useCurrentPath, useRootPath, setCurrentPath, setHighlightItem, setPendingScrollToFile, type AppView } from '../store';
+import { showTab, hideTab, useCurrentView, setCurrentView, useFolderAnalysis, useFolderGraph, useSearchResults, useVisibleTabs, useCurrentPath, useRootPath, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, setSearchResults, type AppView } from '../store';
 import { isAiThreadByEntries } from '../ai/aiPatterns';
 import type { FileEntry } from '../global';
 import appLogo from '../../public/icon-256.png';
@@ -50,6 +50,21 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
 
   const visibleTabs = useVisibleTabs();
 
+  const makeCloseHandler = (tabId: AppView, close: () => void) => () => {
+    close();
+    if (currentView === tabId) setCurrentView('browser');
+  };
+
+  const closeHandlers: Partial<Record<AppView, () => void>> = {
+    'thread': makeCloseHandler('thread', () => hideTab('thread')),
+    'search-results': makeCloseHandler('search-results', () => setSearchResults([], '', '')),
+    'folder-analysis': makeCloseHandler('folder-analysis', () => setFolderAnalysis(null)),
+    'folder-graph': makeCloseHandler('folder-graph', () => setFolderGraph(null)),
+    'settings': makeCloseHandler('settings', () => hideTab('settings')),
+    'ai-settings': makeCloseHandler('ai-settings', () => hideTab('ai-settings')),
+    'calendar': makeCloseHandler('calendar', () => hideTab('calendar')),
+  };
+
   // Determine whether the thread tab should be visible based on loaded entries
   const isInAiThread = isAiThreadByEntries(entries) || currentView === 'thread';
 
@@ -96,23 +111,39 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
           }}
         />
       )}
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          data-testid={`tab-button-${tab.id}`}
-          type="button"
-          onClick={() => setCurrentView(tab.id)}
-          className={`
-            text-base font-medium pb-1 transition-colors cursor-pointer
-            ${currentView === tab.id
-              ? 'text-slate-100 border-b-4 border-blue-500'
-              : 'text-slate-400 hover:text-slate-200 border-b-4 border-transparent'
-            }
-          `}
-        >
-          {tab.label}
-        </button>
-      ))}
+      {tabs.map((tab) => {
+        const onClose = closeHandlers[tab.id];
+        return (
+          <div key={tab.id} className="flex items-center gap-1 border-r border-slate-400 pr-4">
+            <button
+              data-testid={`tab-button-${tab.id}`}
+              type="button"
+              onClick={() => setCurrentView(tab.id)}
+              className={`
+                text-base font-medium pb-1 transition-colors cursor-pointer
+                ${currentView === tab.id
+                  ? 'text-slate-100 border-b-4 border-blue-500'
+                  : 'text-slate-400 hover:text-slate-200 border-b-4 border-transparent'
+                }
+              `}
+            >
+              {tab.label}
+            </button>
+            {onClose && (
+              <button
+                type="button"
+                data-testid={`tab-close-${tab.id}`}
+                onClick={(e) => { e.stopPropagation(); onClose(); }}
+                className="mb-1 ml-1 text-2xl text-slate-400 hover:text-slate-100 transition-colors cursor-pointer leading-none"
+                aria-label={`Close ${tab.label} tab`}
+                title={`Close ${tab.label} tab`}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        );
+      })}
       {currentView === 'browser' && currentPath !== rootPath && (
         <button
           onClick={navigateUp}

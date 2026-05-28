@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
 import {
   forceSimulation,
   forceLink,
@@ -19,8 +18,6 @@ import {
   useHighlightItem,
   navigateToBrowserPath,
   setHighlightItem,
-  setFolderGraph,
-  setCurrentView,
 } from '../../store';
 
 interface SimNode extends SimulationNodeDatum {
@@ -295,17 +292,6 @@ function FolderGraphView() {
           )}
           <span className="text-slate-500 ml-3">drag nodes · scroll to zoom · click to open</span>
         </div>
-        <button
-          onClick={() => {
-            setFolderGraph(null);
-            setCurrentView('browser');
-          }}
-          title="Close graph view"
-          aria-label="Close graph view"
-          className="flex-shrink-0 text-slate-400 hover:text-slate-100 hover:bg-slate-700 rounded p-1 transition-colors"
-        >
-          <XMarkIcon className="w-6 h-6" />
-        </button>
       </header>
       <div ref={containerRef} className="flex-1 min-h-0 relative">
         <svg ref={svgRef} className="absolute inset-0 w-full h-full block" />

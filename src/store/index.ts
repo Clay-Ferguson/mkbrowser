@@ -106,6 +106,7 @@ export {
   setRootPath,
   useRootPath,
   showTab,
+  hideTab,
   isTabVisible,
   useVisibleTabs,
   setIndexTreeWidth,
