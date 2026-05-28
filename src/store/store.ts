@@ -40,6 +40,7 @@ const initialState: AppState = {
   pendingEditFile: null,
   pendingEditLineNumber: null,
   pendingEditView: null,
+  directoryRefreshNonce: 0,
   scrollPositions: {
     browser: new Map(),
     'search-results': 0,
@@ -1185,6 +1186,18 @@ export function clearPendingScrollToHeadingSlug(): void {
  */
 export function setPendingEditFile(filePath: string, lineNumber?: number, view?: AppView): void {
   state = { ...state, pendingEditFile: filePath, pendingEditLineNumber: lineNumber ?? null, pendingEditView: view ?? 'browser' };
+  emitChange();
+}
+
+export function useDirectoryRefreshNonce(): number {
+  return useSyncExternalStore(subscribe, () => state.directoryRefreshNonce);
+}
+
+/**
+ * Ask BrowseView to reload the current directory even if currentPath hasn't changed.
+ */
+export function requestDirectoryRefresh(): void {
+  state = { ...state, directoryRefreshNonce: state.directoryRefreshNonce + 1 };
   emitChange();
 }
 

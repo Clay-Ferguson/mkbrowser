@@ -408,6 +408,13 @@ export interface AppState {
    * Full file path to start editing after navigation completes.
    * Set when clicking edit from search results, cleared after editing starts.
    */
+  /**
+   * Monotonic counter; incrementing it asks BrowseView to reload the current
+   * directory even when currentPath hasn't changed (e.g., a file was created
+   * out-of-band by CalendarView).
+   */
+  directoryRefreshNonce: number;
+
   pendingEditFile: string | null;
 
   /**

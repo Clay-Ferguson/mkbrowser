@@ -55,6 +55,8 @@ export {
   clearPendingScrollToHeadingSlug,
   setPendingEditFile,
   clearPendingEditFile,
+  useDirectoryRefreshNonce,
+  requestDirectoryRefresh,
   setPendingThreadScrollToBottom,
   clearPendingThreadScrollToBottom,
   setSearchResults,

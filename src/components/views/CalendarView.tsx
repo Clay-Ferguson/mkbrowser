@@ -3,8 +3,24 @@ import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath } from '../../store';
+import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh } from '../../store';
 import type { CalendarEvent } from '../../types/types';
+import { generateTimestampFileName } from '../../utils/timeUtil';
+import { logger } from '../../utils/logUtil';
+
+const NEW_CALENDAR_FILE_FOLDER = '/home/clay/ferguson/2 - Calendar';
+
+function formatDueDate(d: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
+}
+
+function formatStartTime(d: Date): string {
+  const h24 = d.getHours();
+  const h12 = h24 % 12 || 12;
+  const ampm = h24 < 12 ? 'AM' : 'PM';
+  return `${h12}:${d.getMinutes().toString().padStart(2, '0')} ${ampm}`;
+}
 
 const localizer = dateFnsLocalizer({
   format,
@@ -34,6 +50,44 @@ export default function CalendarView() {
     window.electronAPI.getConfig().then(config => {
       window.electronAPI.saveConfig({ ...config, calendarViewType: vt });
     });
+  };
+
+  const handleSelectSlot = async (slotInfo: { start: Date; end: Date }) => {
+    const { start, end } = slotInfo;
+    const isAllDay =
+      start.getHours() === 0 && start.getMinutes() === 0 && start.getSeconds() === 0 &&
+      (end.getTime() - start.getTime()) % (24 * 60 * 60 * 1000) === 0;
+
+    const lines = ['---', `due: ${formatDueDate(start)}`];
+    if (!isAllDay) {
+      const durationHours = (end.getTime() - start.getTime()) / (60 * 60 * 1000);
+      const durationStr = Number.isInteger(durationHours) ? String(durationHours) : String(durationHours);
+      lines.push(`start: ${formatStartTime(start)}`);
+      lines.push(`duration: ${durationStr}`);
+    }
+    lines.push('---', '');
+    const content = lines.join('\n');
+
+    const fileName = generateTimestampFileName();
+    const filePath = `${NEW_CALENDAR_FILE_FOLDER}/${fileName}`;
+
+    try {
+      const result = await window.electronAPI.createFile(filePath, content);
+      if (!result.success) {
+        logger.error('Failed to create calendar file:', result.error);
+        return;
+      }
+      setHighlightItem(filePath);
+      navigateToBrowserPath(NEW_CALENDAR_FILE_FOLDER, filePath);
+      setPendingEditFile(filePath, undefined, 'browser');
+      // Force BrowseView to re-read the directory so the new file is in entries
+      // before the pending-edit handler fires — otherwise, if currentPath was
+      // already the calendar folder, no reload would happen and the edit
+      // request would silently target a path that isn't rendered.
+      requestDirectoryRefresh();
+    } catch (err) {
+      logger.error('Failed to create calendar file:', err);
+    }
   };
 
   const handleSelectEvent = (event: CalendarEvent) => {
@@ -91,6 +145,8 @@ export default function CalendarView() {
             onView={handleViewChange}
             onNavigate={(d) => setCalendarViewTime(new Date(d))}
             onSelectEvent={handleSelectEvent}
+            selectable
+            onSelectSlot={handleSelectSlot}
             tooltipAccessor={(event: CalendarEvent) => {
               const pad = '  •  ';
               const divider = '________________________________';

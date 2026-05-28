@@ -25,6 +25,7 @@ import {
   useItems,
   useCurrentView,
   useCurrentPath,
+  useDirectoryRefreshNonce,
   useFolderGraph,
   useSettings,
   getIndexTreeRoot,
@@ -86,6 +87,7 @@ function App() {
   const items = useItems();
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
+  const directoryRefreshNonce = useDirectoryRefreshNonce();
   const folderGraph = useFolderGraph();
   const settings = useSettings();
 
@@ -214,10 +216,10 @@ function App() {
     }
   }, [currentPath]);
 
-  // Load directory when path changes
+  // Load directory when path changes, or when an out-of-band refresh is requested
   useEffect(() => {
     loadDirectory();
-  }, [loadDirectory]);
+  }, [loadDirectory, directoryRefreshNonce]);
 
   // Remove entries that were deleted from the store (e.g. via SearchResultsView)
   useEffect(() => {
