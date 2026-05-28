@@ -10,7 +10,7 @@ import CalendarView from './components/views/CalendarView';
 import AISettingsView from './components/views/AISettingsView';
 import ThreadView from './components/views/ThreadView';
 import BrowseView from './components/views/BrowseView';
-import IndexTree from './components/views/IndexTree';
+import IndexTreeView from './components/views/IndexTreeView';
 import AppTabButtons from './components/AppTabButtons';
 import {
   upsertItems,
@@ -405,7 +405,7 @@ function App() {
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
           <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
           <div className="flex-1 flex flex-row min-h-0">
-            {settings.indexTreeWidth !== 'hidden' && <IndexTree onRefreshDirectory={refreshDirectory} />}
+            {settings.indexTreeWidth !== 'hidden' && <IndexTreeView onRefreshDirectory={refreshDirectory} />}
             <div className="flex-1 flex flex-col min-h-0 min-w-0">
               <BrowseView
                 entries={entries}

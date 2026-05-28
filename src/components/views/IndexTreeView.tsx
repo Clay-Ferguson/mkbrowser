@@ -151,7 +151,7 @@ function findNodeByPath(root: FileNode, path: string): FileNode | null {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) {
+function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) {
   const rootPath = useRootPath();
   const currentPath = useCurrentPath();
   const treeRoot = useIndexTreeRoot();
@@ -607,4 +607,4 @@ function IndexTree({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) 
   );
 }
 
-export default IndexTree;
+export default IndexTreeView;
