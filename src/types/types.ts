@@ -525,7 +525,7 @@ export interface AppState {
    * The currently selected calendar view (month/week/day/agenda).
    * Persisted to AppConfig so it survives app restarts.
    */
-  calendarViewType: 'month' | 'week' | 'day' | 'agenda';
+  calendarViewType: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
 
   /**
    * The date currently displayed in the calendar (the navigated-to date).

@@ -32,6 +32,7 @@ const localizer = dateFnsLocalizer({
 const viewTypeToRbc: Record<string, View> = {
   month: Views.MONTH,
   week: Views.WEEK,
+  work_week: Views.WORK_WEEK,
   day: Views.DAY,
   agenda: Views.AGENDA,
 };
@@ -51,7 +52,7 @@ export default function CalendarView() {
   const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
 
   const handleViewChange = (v: View) => {
-    const vt = v as 'month' | 'week' | 'day' | 'agenda';
+    const vt = v as 'month' | 'week' | 'work_week' | 'day' | 'agenda';
     setCalendarViewType(vt);
     window.electronAPI.getConfig().then(config => {
       window.electronAPI.saveConfig({ ...config, calendarViewType: vt });
@@ -158,7 +159,7 @@ export default function CalendarView() {
           <Calendar
             localizer={localizer}
             events={events}
-            views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+            views={[Views.MONTH, Views.WEEK, Views.WORK_WEEK, Views.DAY, Views.AGENDA]}
             view={view}
             date={date}
             onView={handleViewChange}

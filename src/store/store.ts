@@ -1106,11 +1106,11 @@ export function useCalendarLoading(): boolean {
   return useSyncExternalStore(subscribe, getCalendarLoadingSnapshot);
 }
 
-export function useCalendarViewType(): 'month' | 'week' | 'day' | 'agenda' {
+export function useCalendarViewType(): 'month' | 'week' | 'work_week' | 'day' | 'agenda' {
   return useSyncExternalStore(subscribe, () => state.calendarViewType);
 }
 
-export function setCalendarViewType(viewType: 'month' | 'week' | 'day' | 'agenda'): void {
+export function setCalendarViewType(viewType: 'month' | 'week' | 'work_week' | 'day' | 'agenda'): void {
   state = { ...state, calendarViewType: viewType };
   emitChange();
 }

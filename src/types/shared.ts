@@ -81,7 +81,7 @@ export interface AppConfig {
   /** Whether the AI Rewrite button is shown in entry editors. */
   aiRewriteMode?: boolean;
   /** Last selected calendar view type (month/week/day/agenda). */
-  calendarViewType?: 'month' | 'week' | 'day' | 'agenda';
+  calendarViewType?: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
 }
 
 export interface FileEntry {
