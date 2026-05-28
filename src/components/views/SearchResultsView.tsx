@@ -22,7 +22,6 @@ import {
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import { buildFolderGraphFromSearchResults } from '../../utils/searchTreeBuilder';
-import { getDaysFromToday, formatDaysDisplay } from '../../utils/timeUtil';
 import { getContentWidthClasses, BUTTON_CLASS_BLUE, BUTTON_CLASS_RED } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
@@ -55,18 +54,11 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     return 'text-green-400';
   };
 
-  // Debug: Log search results to see if foundTime is present
-  // console.log('Search results:', searchResults);
-  // console.log('First result:', searchResults[0]);
-
   // Sort results based on the selected sort option and direction
   const sortedResults = [...searchResults].sort((a, b) => {
     let timeA: number;
     let timeB: number;
-    if (searchSortBy === 'line-time') {
-      timeA = a.foundTime || 0;
-      timeB = b.foundTime || 0;
-    } else if (searchSortBy === 'created-time') {
+    if (searchSortBy === 'created-time') {
       timeA = a.createdTime || 0;
       timeB = b.createdTime || 0;
     } else {
@@ -217,7 +209,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             <div className="text-sm text-slate-300 mb-4">
               {searchResults.length} file{searchResults.length !== 1 ? 's' : ''} found
               <span className="ml-2 text-slate-300">
-                • Sorted by {searchSortBy === 'line-time' ? 'time on line' : searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortDirection === 'asc' ? 'oldest first' : 'newest first'})
+                • Sorted by {searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortDirection === 'asc' ? 'oldest first' : 'newest first'})
               </span>
             </div>
 
@@ -244,14 +236,6 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                       {result.lineNumber && result.lineNumber > 0 && (
                         <span className="text-sm text-amber-400">:{result.lineNumber}</span>
                       )}
-                      {result.foundTime && result.foundTime > 0 && (() => {
-                        const days = getDaysFromToday(result.foundTime);
-                        return (
-                          <span className={`text-sm font-semibold ${getDaysColorClass(days)}`}>
-                            {formatDaysDisplay(days)}
-                          </span>
-                        );
-                      })()}
                     </div>
                     {/* Show matching line text if available */}
                     {result.lineText && (

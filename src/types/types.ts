@@ -170,7 +170,6 @@ export interface SearchResultItem {
   lineNumber?: number; // 1-based line number (0 or undefined for entire file matches)
   lineText?: string; // The matching line text (only for line-by-line search)
   extraLine?: string; // First non-empty line below match that isn't itself a match
-  foundTime?: number; // Timestamp found by ts() function in advanced search (milliseconds since epoch)
   modifiedTime?: number; // File modification timestamp (milliseconds since epoch)
   createdTime?: number; // File creation timestamp (milliseconds since epoch)
 }
@@ -208,7 +207,7 @@ export type SearchType = 'literal' | 'wildcard' | 'advanced';
 /**
  * Sort order for search results
  */
-export type SearchSortBy = 'modified-time' | 'created-time' | 'line-time';
+export type SearchSortBy = 'modified-time' | 'created-time';
 
 /**
  * Sort direction for search results (chronological ordering)

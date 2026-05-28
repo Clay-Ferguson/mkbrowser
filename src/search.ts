@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import { fdir } from 'fdir';
 import ExifReader from 'exifreader';
 import yaml from 'js-yaml';
-import { extractTimestamp, parseDateString, past, future, today } from './utils/timeUtil';
+import { parseDateString, past, future, today } from './utils/timeUtil';
 import { createContentSearcher } from './utils/searchUtil';
 import { splitFrontMatter } from './utils/tagUtil';
 
@@ -55,7 +55,6 @@ export interface SearchResult {
   lineNumber?: number;
   lineText?: string;
   extraLine?: string;
-  foundTime?: number;
   modifiedTime?: number;
   createdTime?: number;
 }
@@ -66,7 +65,6 @@ export type SearchMode = 'content' | 'filenames';
 interface MatchResult {
   matches: boolean;
   matchCount: number;
-  foundTime?: number;
 }
 
 /** Helper to escape regex special characters (except *) */
@@ -112,19 +110,17 @@ export function createMatchPredicate(
 ): (content: string, filePath?: string) => MatchResult {
   if (type === 'advanced') {
     return (content: string, filePath?: string) => {
-      const ts = extractTimestamp(content);
       const { $, getMatchCount } = createContentSearcher(content);
       const prop = createPropFunction(content, filePath);
       try {
         const expressionCode = `return (${queryStr});`;
-        const evalFunction = new Function('$', 'ts', 'past', 'future', 'today', 'prop', expressionCode);
-        const rawResult = evalFunction($, ts, past, future, today, prop);
+        const evalFunction = new Function('$', 'past', 'future', 'today', 'prop', expressionCode);
+        const rawResult = evalFunction($, past, future, today, prop);
         const matches = Boolean(rawResult);
         const matchCount = getMatchCount();
         return {
           matches,
           matchCount: matches ? Math.max(matchCount, 1) : 0,
-          foundTime: ts > 0 ? ts : undefined,
         };
       } catch {
         return { matches: false, matchCount: 0 };
@@ -136,9 +132,9 @@ export function createMatchPredicate(
       const matches = regex.test(content);
       if (matches) {
         const allMatches = content.match(new RegExp(regex.source, 'gi'));
-        return { matches: true, matchCount: allMatches ? allMatches.length : 1, foundTime: undefined };
+        return { matches: true, matchCount: allMatches ? allMatches.length : 1};
       }
-      return { matches: false, matchCount: 0, foundTime: undefined };
+      return { matches: false, matchCount: 0};
     };
   } else {
     // Literal mode: case-insensitive text search
@@ -151,7 +147,7 @@ export function createMatchPredicate(
         matchCount++;
         searchIndex += queryLower.length;
       }
-      return { matches: matchCount > 0, matchCount, foundTime: undefined };
+      return { matches: matchCount > 0, matchCount };
     };
   }
 }
@@ -283,7 +279,7 @@ export async function searchFolder(
       const entryName = path.basename(entryPath);
 
       if (matchPredicate) {
-        const { matches, matchCount, foundTime } = matchPredicate(entryName);
+        const { matches, matchCount } = matchPredicate(entryName);
         if (!matches) continue;
 
         const relativePath = path.relative(folderPath, entryPath);
@@ -298,7 +294,6 @@ export async function searchFolder(
           path: entryPath,
           relativePath,
           matchCount,
-          ...(foundTime !== undefined && { foundTime }),
           ...(modifiedTime !== undefined && { modifiedTime }),
           ...(createdTime !== undefined && { createdTime }),
         });
@@ -353,7 +348,7 @@ export async function searchFolder(
 
           if (isImage && !content) continue;
 
-          const { matches, matchCount, foundTime } = matchPredicate(content, filePath);
+          const { matches, matchCount } = matchPredicate(content, filePath);
 
           if (matches) {
             const relativePath = path.relative(folderPath, filePath);
@@ -368,7 +363,6 @@ export async function searchFolder(
               path: filePath,
               relativePath,
               matchCount,
-              ...(foundTime !== undefined && { foundTime }),
               ...(modifiedTime !== undefined && { modifiedTime }),
               ...(createdTime !== undefined && { createdTime }),
             });
