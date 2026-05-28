@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -7,6 +8,7 @@ import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendar
 import type { CalendarEvent } from '../../types/types';
 import { generateTimestampFileName } from '../../utils/timeUtil';
 import { logger } from '../../utils/logUtil';
+import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
 
 const NEW_CALENDAR_FILE_FOLDER = '/home/clay/ferguson/2 - Calendar';
 
@@ -37,12 +39,18 @@ const viewTypeToRbc: Record<string, View> = {
   agenda: Views.AGENDA,
 };
 
+interface PendingSlot {
+  content: string;
+  defaultFileName: string;
+}
+
 export default function CalendarView() {
   const events = useCalendarEvents();
   const loading = useCalendarLoading();
   const calendarViewType = useCalendarViewType();
   const view = viewTypeToRbc[calendarViewType] ?? Views.MONTH;
   const date = useCalendarViewTime();
+  const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
 
   const handleViewChange = (v: View) => {
     const vt = v as 'month' | 'week' | 'day' | 'agenda';
@@ -52,7 +60,7 @@ export default function CalendarView() {
     });
   };
 
-  const handleSelectSlot = async (slotInfo: { start: Date; end: Date }) => {
+  const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
     const { start, end } = slotInfo;
     const isAllDay =
       start.getHours() === 0 && start.getMinutes() === 0 && start.getSeconds() === 0 &&
@@ -68,9 +76,16 @@ export default function CalendarView() {
     lines.push('---', '');
     const content = lines.join('\n');
 
-    const fileName = generateTimestampFileName();
-    const filePath = `${NEW_CALENDAR_FILE_FOLDER}/${fileName}`;
+    setPendingSlot({ content, defaultFileName: '' });
+  };
 
+  const handleCreateCalendarFile = async (fileName: string) => {
+    if (!pendingSlot) return;
+    const { content } = pendingSlot;
+    setPendingSlot(null);
+
+    const normalizedName = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
+    const filePath = `${NEW_CALENDAR_FILE_FOLDER}/${normalizedName}`;
     try {
       const result = await window.electronAPI.createFile(filePath, content);
       if (!result.success) {
@@ -99,6 +114,7 @@ export default function CalendarView() {
   };
 
   return (
+    <>
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
       {loading && (
         <div className="flex-1 flex items-center justify-center">
@@ -160,5 +176,13 @@ export default function CalendarView() {
         </div>
       )}
     </div>
+    {pendingSlot && (
+      <NewCalendarFileDialog
+        initialFileName={pendingSlot.defaultFileName}
+        onCreate={handleCreateCalendarFile}
+        onCancel={() => setPendingSlot(null)}
+      />
+    )}
+    </>
   );
 }
