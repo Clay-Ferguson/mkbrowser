@@ -56,6 +56,12 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
   // Sort results based on the selected sort option and direction
   const sortedResults = [...searchResults].sort((a, b) => {
+    if (searchSortBy === 'file-name') {
+      const nameA = a.relativePath.split('/').pop() || a.relativePath;
+      const nameB = b.relativePath.split('/').pop() || b.relativePath;
+      const cmp = nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+      return searchSortDirection === 'asc' ? cmp : -cmp;
+    }
     let timeA: number;
     let timeB: number;
     if (searchSortBy === 'created-time') {
@@ -209,7 +215,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             <div className="text-sm text-slate-300 mb-4">
               {searchResults.length} file{searchResults.length !== 1 ? 's' : ''} found
               <span className="ml-2 text-slate-300">
-                • Sorted by {searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortDirection === 'asc' ? 'oldest first' : 'newest first'})
+                • Sorted by {searchSortBy === 'file-name' ? 'file name' : searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortBy === 'file-name' ? (searchSortDirection === 'asc' ? 'A–Z' : 'Z–A') : (searchSortDirection === 'asc' ? 'oldest first' : 'newest first')})
               </span>
             </div>
 

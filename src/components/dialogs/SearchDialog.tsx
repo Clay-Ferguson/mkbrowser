@@ -8,7 +8,7 @@ import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN,
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
-export type SearchSortBy = 'modified-time' | 'created-time';
+export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
 export type SearchSortDirection = 'asc' | 'desc';
 
 export interface SearchOptions {
@@ -274,6 +274,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             >
               <option value="modified-time">File Modification Time</option>
               <option value="created-time">File Creation Time</option>
+              <option value="file-name">File Name</option>
             </select>
           </div>
           <div>

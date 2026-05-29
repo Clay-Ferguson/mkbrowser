@@ -207,7 +207,7 @@ export type SearchType = 'literal' | 'wildcard' | 'advanced';
 /**
  * Sort order for search results
  */
-export type SearchSortBy = 'modified-time' | 'created-time';
+export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
 
 /**
  * Sort direction for search results (chronological ordering)

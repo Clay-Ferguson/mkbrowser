@@ -7,7 +7,7 @@ export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | '
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
-export type SearchSortBy = 'modified-time' | 'created-time';
+export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
 export type SearchSortDirection = 'asc' | 'desc';
 
 export interface SearchDefinition {
