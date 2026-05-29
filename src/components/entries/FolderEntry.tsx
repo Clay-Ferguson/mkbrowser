@@ -2,6 +2,7 @@ import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import { useHasCutItems, useItem, useHasIndexFile, useIndexYaml } from '../../store';
 import { buildEntryHeaderId } from '../../utils/entryDom';
+import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
 import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
@@ -78,7 +79,14 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
             onClick={handleCheckboxClick}
           />
         )}
-        <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
+        {/* Entry Icon */}
+        <span
+          className="flex-shrink-0 cursor-grab"
+          draggable
+          onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: true })}
+        >
+          <FolderIcon className="w-5 h-5 text-amber-500" />
+        </span>
         {isRenaming ? (
           <RenameInput
             ref={rename.inputRef}

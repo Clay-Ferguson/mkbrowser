@@ -11,6 +11,7 @@ import 'katex/dist/katex.min.css';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../types/types';
 import { buildEntryHeaderId } from '../../utils/entryDom';
+import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
 import { removeTOC } from '../../utils/tocUtil';
 import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks } from '../../utils/mkUtil';
 import {
@@ -313,7 +314,14 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             isSelected={isSelected}
           />
         )}
-        <DocumentTextIcon className="w-5 h-5 text-blue-400 flex-shrink-0" />
+        {/* Entry Icon */}
+        <span
+          className="flex-shrink-0 cursor-grab"
+          draggable
+          onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: false })}
+        >
+          <DocumentTextIcon className="w-5 h-5 text-blue-400" />
+        </span>
         {isRenaming ? (
           <RenameInput
             ref={rename.inputRef}

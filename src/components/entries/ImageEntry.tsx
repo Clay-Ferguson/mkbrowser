@@ -3,6 +3,7 @@ import { PhotoIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
+import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
 import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected, useHasIndexFile, useIndexYaml } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
@@ -189,8 +190,14 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
             isSelected={isSelected}
           />
         )}
-        {/* Image icon */}
-        <PhotoIcon className="w-5 h-5 text-green-500 flex-shrink-0" />
+        {/* Entry Icon */}
+        <span
+          className="flex-shrink-0 cursor-grab"
+          draggable
+          onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: false })}
+        >
+          <PhotoIcon className="w-5 h-5 text-green-500" />
+        </span>
         {isRenaming ? (
           <RenameInput
             ref={rename.inputRef}

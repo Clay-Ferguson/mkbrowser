@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { DocumentTextIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
+import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
 import {
   useItem,
   clearItemGoToLine,
@@ -139,8 +140,14 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
             isSelected={isSelected}
           />
         )}
-        {/* Text file icon - document with lines */}
-        <DocumentTextIcon className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        {/* Entry Icon */}
+        <span
+          className="flex-shrink-0 cursor-grab"
+          draggable
+          onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: false })}
+        >
+          <DocumentTextIcon className="w-5 h-5 text-emerald-400" />
+        </span>
         {isRenaming ? (
           <RenameInput
             ref={rename.inputRef}

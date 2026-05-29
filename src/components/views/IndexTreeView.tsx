@@ -31,6 +31,7 @@ import {
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
 import { pasteCutItems } from '../../edit';
+import { ENTRY_DND_MIME, parseDragPayload, canDropInto, moveEntryIntoFolder } from '../../utils/dragAndDrop';
 import { extractHeadingTree } from '../../utils/tocUtil';
 import { scrollElementIntoView } from '../../utils/entryDom';
 import { getActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
@@ -164,6 +165,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
   const [runningScript, setRunningScript] = useState<string | null>(null);
+  const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -289,6 +291,22 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     }
   }, []);
 
+  // Reloads a folder node's children from disk, but only if that folder is currently
+  // expanded in the tree. Collapsed folders need no update — their contents are loaded
+  // lazily on next expand.
+  const reloadExpandedFolder = useCallback(async (folderPath: string) => {
+    const root = getIndexTreeRoot();
+    if (!root) return;
+    const node = findNodeByPath(root, folderPath);
+    if (!node?.isExpanded) return;
+    try {
+      const entries = await window.electronAPI.readDirectory(folderPath);
+      expandIndexTreeNode(folderPath, makeNodes(entries));
+    } catch {
+      // leave tree as-is
+    }
+  }, []);
+
   const handlePasteIntoFolder = useCallback(async (node: FileNode, e: React.MouseEvent) => {
     e.stopPropagation();
     const cutItems = getCutItems();
@@ -317,30 +335,42 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       onRefreshDirectory?.();
     }
 
-    // Refresh children only if the folder is already expanded
-    if (node.isExpanded) {
-      try {
-        const entries = await window.electronAPI.readDirectory(node.path);
-        expandIndexTreeNode(node.path, makeNodes(entries));
-      } catch {
-        // leave tree as-is
-      }
+    // Refresh both the destination and source folders if they are expanded.
+    await reloadExpandedFolder(node.path);
+    await reloadExpandedFolder(sourceFolder);
+  }, [currentPath, onRefreshDirectory, reloadExpandedFolder]);
+
+  const handleDropOnFolder = useCallback(async (node: FileNode, e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverPath(null);
+
+    const payload = parseDragPayload(e.dataTransfer.getData(ENTRY_DND_MIME));
+    if (!payload || !node.isDirectory) return;
+    if (!canDropInto(payload, node.path)) return;
+
+    const result = await moveEntryIntoFolder(payload, node.path);
+    if (!result.success) return;
+
+    // Drop the moved item from the store so the browse view stops showing it.
+    deleteItems([payload.path]);
+
+    // Refresh the browse view if it is showing either affected folder.
+    if (node.path === currentPath || result.sourceFolder === currentPath) {
+      onRefreshDirectory?.();
     }
 
-    // Refresh the source folder too, so it no longer shows the moved items
-    const root = getIndexTreeRoot();
-    if (root) {
-      const sourceNode = findNodeByPath(root, sourceFolder);
-      if (sourceNode?.isExpanded) {
-        try {
-          const entries = await window.electronAPI.readDirectory(sourceFolder);
-          expandIndexTreeNode(sourceFolder, makeNodes(entries));
-        } catch {
-          // leave tree as-is
-        }
-      }
-    }
-  }, [currentPath, onRefreshDirectory]);
+    await reloadExpandedFolder(node.path);
+    await reloadExpandedFolder(result.sourceFolder);
+  }, [currentPath, onRefreshDirectory, reloadExpandedFolder]);
+
+  const handleDragOverFolder = useCallback((node: FileNode, e: React.DragEvent) => {
+    if (!node.isDirectory) return;
+    if (!e.dataTransfer.types.includes(ENTRY_DND_MIME)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverPath !== node.path) setDragOverPath(node.path);
+  }, [dragOverPath]);
 
   const handleRunScript = useCallback((node: FileNode) => {
     if (runningScript) return;
@@ -572,6 +602,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           }
 
           const isRunning = runningScript === node.path;
+          const isDragOver = node.isDirectory && dragOverPath === node.path;
           const rowStyle: React.CSSProperties = {
             paddingLeft: `${8 + depth * INDENT_SIZE}px`,
             ...(isRunning ? { animation: 'scriptRunFlash 3s ease-in forwards' } : {}),
@@ -581,13 +612,18 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
             <div
               key={node.path}
               data-tree-path={node.path}
-              className={className}
+              className={`${className}${isDragOver ? ' bg-blue-600/40 outline outline-1 outline-blue-400' : ''}`}
               style={rowStyle}
               onClick={e => {
                 if (isSh && e.ctrlKey) { handleRunScript(node); return; }
                 if (isClickable) void handleNodeClick(node);
               }}
               onContextMenu={e => handleFileNodeContextMenu(node, e)}
+              {...(node.isDirectory ? {
+                onDragOver: (e: React.DragEvent) => handleDragOverFolder(node, e),
+                onDragLeave: () => setDragOverPath(prev => (prev === node.path ? null : prev)),
+                onDrop: (e: React.DragEvent) => void handleDropOnFolder(node, e),
+              } : {})}
             >
               <span className="shrink-0 flex items-center mr-1">
                 {node.isDirectory

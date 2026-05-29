@@ -1,6 +1,7 @@
 import { DocumentIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { formatFlyoverInfo } from '../../utils/fileUtil';
+import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
 import { toggleItemExpanded, useHasIndexFile, useIndexYaml } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
@@ -56,7 +57,14 @@ function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onM
             isSelected={isSelected}
           />
         )}
-        <DocumentIcon className="w-5 h-5 text-slate-300 flex-shrink-0" />
+        {/* Entry Icon */}
+        <span
+          className="flex-shrink-0 cursor-grab"
+          draggable
+          onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: false })}
+        >
+          <DocumentIcon className="w-5 h-5 text-slate-300" />
+        </span>
         {isRenaming ? (
           <RenameInput
             ref={rename.inputRef}
