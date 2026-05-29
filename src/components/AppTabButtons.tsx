@@ -1,9 +1,11 @@
 import { useRef, useState, useCallback } from 'react';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 import { showTab, hideTab, useCurrentView, setCurrentView, useFolderAnalysis, useFolderGraph, useSearchResults, useVisibleTabs, useCurrentPath, useRootPath, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, setSearchResults, type AppView } from '../store';
 import { isAiThreadByEntries } from '../ai/aiPatterns';
 import type { FileEntry } from '../global';
 import appLogo from '../../public/icon-256.png';
 import FilePopupMenu from './menus/FilePopupMenu';
+import SystemPopupMenu from './menus/SystemPopupMenu';
 
 interface TabConfig {
   id: AppView;
@@ -36,7 +38,9 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
   const currentPath = useCurrentPath();
   const rootPath = useRootPath();
   const logoRef = useRef<HTMLButtonElement>(null);
+  const systemMenuRef = useRef<HTMLButtonElement>(null);
   const [showFileMenu, setShowFileMenu] = useState(false);
+  const [showSystemMenu, setShowSystemMenu] = useState(false);
 
   const navigateUp = useCallback(() => {
     if (!currentPath || currentPath === rootPath) return;
@@ -101,6 +105,12 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
           onClose={() => setShowFileMenu(false)}
           onSelectFolder={onSelectFolder}
           onQuit={onQuit}
+        />
+      )}
+      {showSystemMenu && (
+        <SystemPopupMenu
+          anchorRef={systemMenuRef}
+          onClose={() => setShowSystemMenu(false)}
           onSettings={() => {
             showTab('settings');
             setCurrentView('settings');
@@ -144,16 +154,29 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
           </div>
         );
       })}
-      {currentView === 'browser' && currentPath !== rootPath && (
+      <div className="ml-auto flex items-center gap-2">
         <button
-          onClick={navigateUp}
-          className="ml-auto px-3 py-1 mb-1 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 border border-gray-400 rounded-lg transition-colors cursor-pointer"
-          title="Go up one level"
-          data-testid="navigate-up-button"
+          ref={systemMenuRef}
+          type="button"
+          onClick={() => setShowSystemMenu((prev) => !prev)}
+          className="p-1 text-slate-400 hover:text-slate-100 hover:bg-slate-700 rounded transition-colors cursor-pointer"
+          aria-label="System menu"
+          title="System menu"
+          data-testid="system-menu-button"
         >
-          Up Level
+          <Bars3Icon className="w-5 h-5" />
         </button>
-      )}
+        {currentView === 'browser' && currentPath !== rootPath && (
+          <button
+            onClick={navigateUp}
+            className="px-3 py-1 mb-1 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 border border-gray-400 rounded-lg transition-colors cursor-pointer"
+            title="Go up one level"
+            data-testid="navigate-up-button"
+          >
+            Up Level
+          </button>
+        )}
+      </div>
     </nav>
   );
 }
