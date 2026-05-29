@@ -155,6 +155,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
+    path: string;
     isDirectory: boolean;
     onBrowse: () => void;
     onNewFolder?: () => void;
@@ -445,6 +446,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
+      path: node.path,
       isDirectory: false,
       onBrowse: () => {
         const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
@@ -466,6 +468,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
+      path: node.path,
       isDirectory: node.isDirectory,
       onBrowse: () => {
         if (node.isDirectory) {
@@ -620,7 +623,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
                   text-slate-400 border-l-2 border-transparent
                   ${hasChildren ? 'cursor-pointer hover:bg-slate-700' : 'cursor-default hover:bg-slate-700'}
                 `}
-                style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px` }}
+                style={{
+                  paddingLeft: `${8 + depth * INDENT_SIZE}px`,
+                  ...(contextMenu?.path === node.path ? { backgroundColor: '#1e40af' } : {}),
+                }}
                 onClick={() => handleHeadingClick(node)}
                 onContextMenu={e => handleHeadingContextMenu(node, e)}
               >
@@ -669,9 +675,11 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
           const isRunning = runningScript === node.path;
           const isDragOver = node.isDirectory && dragOverPath === node.path;
+          const isContextTarget = contextMenu?.path === node.path;
           const rowStyle: React.CSSProperties = {
             paddingLeft: `${8 + depth * INDENT_SIZE}px`,
             ...(isRunning ? { animation: 'scriptRunFlash 3s ease-in forwards' } : {}),
+            ...(isContextTarget ? { backgroundColor: '#1e40af' } : {}),
           };
 
           return (
