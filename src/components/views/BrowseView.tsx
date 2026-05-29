@@ -792,6 +792,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             rootPath={rootPath}
             currentPath={currentPath}
             onNavigate={navigateTo}
+            onRefreshDirectory={onRefreshDirectory}
           />
         </div>
 

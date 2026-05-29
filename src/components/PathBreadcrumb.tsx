@@ -1,15 +1,26 @@
+import { useState } from 'react';
 import { HomeIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
-import { useSettings, useHighlightItem, setPendingIndexTreeReveal } from '../store';
+import { useSettings, useHighlightItem, setPendingIndexTreeReveal, deleteItems } from '../store';
+import {
+  ENTRY_DND_MIME,
+  parseDragPayload,
+  canDropInto,
+  moveEntryIntoFolder,
+  reloadExpandedTreeFolder,
+} from '../utils/dragAndDrop';
 
 export type PathBreadcrumbProps = {
   rootPath: string;
   currentPath: string;
   onNavigate: (path: string) => void;
+  /** Called after a drop moves an item into the currently-browsed folder, so the view refreshes. */
+  onRefreshDirectory?: () => void;
 };
 
-function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
+function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory }: PathBreadcrumbProps) {
   const settings = useSettings();
   const highlightItem = useHighlightItem();
+  const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const normalizedRoot = rootPath.replace(/\/+$/, '');
   const normalizedCurrent = currentPath.replace(/\/+$/, '');
   const relativePath = normalizedCurrent.startsWith(normalizedRoot)
@@ -27,6 +38,40 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
   };
 
   const atRoot = normalizedCurrent === normalizedRoot;
+
+  // Makes a breadcrumb segment a drop target for files/folders dragged from the BrowseView
+  // entry icons or the IndexTreeView.
+  const dropProps = (folderPath: string) => ({
+    onDragOver: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes(ENTRY_DND_MIME)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (dragOverPath !== folderPath) setDragOverPath(folderPath);
+    },
+    onDragLeave: () => setDragOverPath(prev => (prev === folderPath ? null : prev)),
+    onDrop: (e: React.DragEvent) => void (async () => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragOverPath(null);
+
+      const payload = parseDragPayload(e.dataTransfer.getData(ENTRY_DND_MIME));
+      if (!payload || !canDropInto(payload, folderPath)) return;
+
+      const result = await moveEntryIntoFolder(payload, folderPath);
+      if (!result.success) return;
+
+      deleteItems([payload.path]);
+      await reloadExpandedTreeFolder(folderPath);
+      await reloadExpandedTreeFolder(result.sourceFolder);
+
+      // Only the currently-browsed folder (the rightmost breadcrumb) is shown in the BrowseView;
+      // refresh it if the drop changed its contents (item moved into or out of it).
+      if (folderPath === normalizedCurrent || result.sourceFolder === normalizedCurrent) {
+        onRefreshDirectory?.();
+      }
+    })(),
+  });
+
   return (
     <div data-testid="path-breadcrumb" className="flex flex-wrap items-center gap-1 text-base">
       {parts.length > 0 &&
@@ -34,7 +79,8 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
         type="button"
         onClick={() => !atRoot && onNavigate(normalizedRoot)}
         disabled={atRoot}
-        className="p-2 text-slate-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer flex-shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-transparent"
+        {...dropProps(normalizedRoot)}
+        className={`p-2 text-slate-400 hover:bg-slate-700 border rounded cursor-pointer flex-shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-transparent ${dragOverPath === normalizedRoot ? 'bg-blue-600/60 border-blue-400' : 'border-transparent hover:border-slate-500'}`}
         aria-label="Go to root folder"
         title="Go to root folder"
       >
@@ -47,20 +93,24 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
 
       {parts.map((part, index) => {
         const isLast = index === parts.length - 1;
+        const segmentPath = buildPathForIndex(index);
+        const isDragOver = dragOverPath === segmentPath;
         return (
           <div key={`${part}-${index}`} className="flex items-center">
             <span className="text-slate-200 mx-1">/</span>
             {isLast ? (
               <span
-                className="px-2 py-1 text-purple-400 font-bold break-all"
+                {...dropProps(segmentPath)}
+                className={`px-2 py-1 text-purple-400 font-bold break-all rounded border ${isDragOver ? 'bg-blue-600/60 border-blue-400' : 'border-transparent'}`}
               >
                 {part}
               </span>
             ) : (
               <button
                 type="button"
-                onClick={() => onNavigate(buildPathForIndex(index))}
-                className="px-2 py-1 text-slate-200 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer no-underline break-all transition-colors"
+                onClick={() => onNavigate(segmentPath)}
+                {...dropProps(segmentPath)}
+                className={`px-2 py-1 text-slate-200 hover:bg-slate-700 border rounded cursor-pointer no-underline break-all transition-colors ${isDragOver ? 'bg-blue-600/60 border-blue-400' : 'border-transparent hover:border-slate-500'}`}
               >
                 {part}
               </button>

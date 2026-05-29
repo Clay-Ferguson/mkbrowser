@@ -1,7 +1,5 @@
 # Objective: Add feature for Mouse Drag-and-Drop Files/Folders
 
-we will do this work in phases. phase 1 is already complete and works well.
-
 ## Phase 1 (completed)
 
 in this application, we already support a "cut and paste" feature where the user can cut and paste files and folders into a different folder. the way this works currently is that the user will use the checkboxes that appear in the `BrowseView.tsx`. the checkbox itself has a component that renders it which is named `SelectionCheckbox` which is actually embedded into our "Entry" components (entry components are all named like `src/components/entries/*Entry.tsx`, by the way). once the user has one or more selections made in these check boxes buttons named "Cut" (with flyover "Cut Selected Items") and "Del" (with flyover "Delete Selected Items") will begin to appear at the top of the `BrowseView.tsx` to allow the user to be able to cut or paste into the current folder that they're browsing. i'm telling you all this so you can understand what we currently have working already and the cut and paste feature works well. 
@@ -16,6 +14,10 @@ don't forget to make the IndexTreeView.tsx component reload the folder content, 
 
 in the past, I've seen drag and drop implementations where the thing being dragged will have sort of an outline view of it that is moving with the mouse to the location where the drop happens, and if you can do this, then probably the thing we should make be the outline indicator of what's being dragged would be the parent "DIV" DOM element, that is the parent of the icon. most of these parents look something like "<div className={`${ENTRY_HEADER_ROW}`..." but not all of them do, but I think if you maybe just go by whatever is the parent the file icon that was clicked to initiate the drag, then you can make that parent be the thing that appears to be getting dragged if that makes sense. if it's unclear what I'm talking about when I discuss what it looks like during the drag, that's fine, and you can just use your own judgment and I'm sure you would have done the right thing.
 
-## Phase 2 (current)
+## Phase 2 (completed)
 
 Next we want to another drag-and-drop feature, which is essentially the reverse of what we've just added. by reverse what I mean is that we want to be able to drag a file or folder from the `IndexTreeView.tsx` drop it onto any `FolderEntry.tsx` component. once again, we want to use the file or folder icon as the thing, the user must click to initiate the drag gesture. based on everything you know from Phase 1 work that you have just completed, everything about how you would implement this new dragging and dropping from the tree should be self-explanatory and obvious. 
+
+## Phase 3 (completed) 
+
+next, we want to make the breadcrumbs be a drop target. if you look in the component named `PathBreadcrumb.tsx` you can see how we have each path component rendered, and I would like to make each one of those path components be a drop target so the user can drop a file into any of those. this breadcrumb component appears at the top of the `BrowseView.tsx` to display to the user what part of their file system they're currently browsing. this means that the rightmost path component in the `PathBreadcrumb` component will represent the current browsed folder that's being displayed in the brows view. so only if you're dropping onto that particular right most breadcrumb will you need to refresh the `BrowseView`, because if you're dropping onto any of the parent folders (all the breadcrumbs except for the rightmost one) then nothing on the `BrowseView.tsx` will change as a result of the drop operation. 
