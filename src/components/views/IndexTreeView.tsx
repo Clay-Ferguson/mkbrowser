@@ -5,6 +5,8 @@ import { getIconForFileExtension } from '../../utils/fileUtil';
 import type { FileIconType } from '../../utils/fileUtil';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
+import CreateFolderDialog from '../dialogs/CreateFolderDialog';
+import RenameFolderDialog from '../dialogs/RenameFolderDialog';
 import {
   useRootPath,
   useCurrentPath,
@@ -154,9 +156,13 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     y: number;
     isDirectory: boolean;
     onBrowse: () => void;
+    onNewFolder?: () => void;
+    onRenameFolder?: () => void;
     onPaste?: () => void;
     onPasteLink?: () => void;
   } | null>(null);
+  const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);
+  const [renameFolderTarget, setRenameFolderTarget] = useState<{ path: string; name: string } | null>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
   useEffect(() => {
@@ -307,6 +313,44 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     await reloadExpandedTreeFolder(sourceFolder);
   }, [currentPath, onRefreshDirectory]);
 
+  const handleCreateFolder = useCallback(async (folderName: string) => {
+    const parentPath = createFolderParent;
+    if (!parentPath) return;
+    const folderPath = `${parentPath}/${folderName}`;
+    const result = await window.electronAPI.createFolder(folderPath);
+    setCreateFolderParent(null);
+    if (!result.success) return;
+
+    await window.electronAPI.reconcileIndexedFiles(parentPath, false);
+
+    // If the browse view is currently showing this folder, refresh it.
+    if (parentPath === currentPath) {
+      onRefreshDirectory?.();
+    }
+
+    // Refresh the parent folder in the tree if it is expanded.
+    await reloadExpandedTreeFolder(parentPath);
+  }, [createFolderParent, currentPath, onRefreshDirectory]);
+
+  const handleRenameFolder = useCallback(async (newName: string) => {
+    const target = renameFolderTarget;
+    setRenameFolderTarget(null);
+    if (!target) return;
+
+    const parentPath = target.path.substring(0, target.path.lastIndexOf('/'));
+    const newPath = `${parentPath}/${newName}`;
+    const success = await window.electronAPI.renameFile(target.path, newPath);
+    if (!success) return;
+
+    // If the browse view is showing the renamed folder or its parent, refresh it.
+    if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
+      onRefreshDirectory?.();
+    }
+
+    // Refresh the parent folder in the tree if it is expanded.
+    await reloadExpandedTreeFolder(parentPath);
+  }, [renameFolderTarget, currentPath, onRefreshDirectory]);
+
   const handleDropOnFolder = useCallback(async (node: FileNode, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -408,6 +452,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           navigateToBrowserPath(folderPath, node.path);
         }
       },
+      ...(node.isDirectory ? {
+        onNewFolder: () => setCreateFolderParent(node.path),
+        onRenameFolder: () => setRenameFolderTarget({ path: node.path, name: node.name }),
+      } : {}),
       ...(hasCutItems && node.isDirectory ? {
         onPaste: () => void handlePasteIntoFolder(node, e),
       } : {}),
@@ -504,8 +552,23 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           isDirectory={contextMenu.isDirectory}
           onClose={() => setContextMenu(null)}
           onBrowse={contextMenu.onBrowse}
+          onNewFolder={contextMenu.onNewFolder}
+          onRenameFolder={contextMenu.onRenameFolder}
           onPaste={contextMenu.onPaste}
           onPasteLink={contextMenu.onPasteLink}
+        />
+      )}
+      {createFolderParent && (
+        <CreateFolderDialog
+          onCreate={(folderName) => void handleCreateFolder(folderName)}
+          onCancel={() => setCreateFolderParent(null)}
+        />
+      )}
+      {renameFolderTarget && (
+        <RenameFolderDialog
+          currentName={renameFolderTarget.name}
+          onRename={(newName) => void handleRenameFolder(newName)}
+          onCancel={() => setRenameFolderTarget(null)}
         />
       )}
       <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
