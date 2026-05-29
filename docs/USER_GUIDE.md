@@ -272,6 +272,18 @@ You can manage your files using the application menu or keyboard shortcuts.
     - Select items and choose **Cut** from the **Edit** menu to move files.
     - Navigate to the destination folder and choose **Paste**.
 
+## Drag and Drop
+
+In addition to Cut/Paste, you can move a single file or folder by dragging and dropping it onto a destination folder. The file or folder **icon** is the drag handle: click and hold an icon, then drag it onto a target. When you release, the item is moved into that folder on disk.
+
+Dragging works in both directions between the **folder tree** (the panel on the left) and the **browse view** (the main panel), and you can also drop onto the **breadcrumbs** at the top of the browse view:
+
+- **From the browse view → the tree**: drag a file or folder icon in the main panel and drop it onto any folder in the tree.
+- **From the tree → the browse view**: drag a file or folder icon in the tree and drop it onto any folder shown in the main panel.
+- **Onto the breadcrumbs**: drop onto any segment of the breadcrumb path (including the home/root icon) to move the item into that folder. This is a quick way to move an item "up" into a parent of the folder you're currently browsing.
+
+As you drag, an outline of the item follows the cursor, and the folder you're hovering over is highlighted to show where the item will land. The destination folder's contents refresh automatically wherever the change is visible.
+
 # Edit Menu Features
 
 The **Edit** menu provides a set of tools for managing and manipulating your files and selections. Below are the main features available:
