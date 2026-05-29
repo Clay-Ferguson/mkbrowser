@@ -6,7 +6,7 @@ import type { FileIconType } from '../../utils/fileUtil';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
 import CreateFolderDialog from '../dialogs/CreateFolderDialog';
-import RenameFolderDialog from '../dialogs/RenameFolderDialog';
+import RenameDialog from '../dialogs/RenameDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useRootPath,
@@ -158,14 +158,14 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     isDirectory: boolean;
     onBrowse: () => void;
     onNewFolder?: () => void;
-    onRenameFolder?: () => void;
-    onDeleteFolder?: () => void;
+    onRename?: () => void;
+    onDelete?: () => void;
     onPaste?: () => void;
     onPasteLink?: () => void;
   } | null>(null);
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);
-  const [renameFolderTarget, setRenameFolderTarget] = useState<{ path: string; name: string } | null>(null);
-  const [deleteFolderTarget, setDeleteFolderTarget] = useState<{ path: string; name: string } | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
   useEffect(() => {
@@ -335,9 +335,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     await reloadExpandedTreeFolder(parentPath);
   }, [createFolderParent, currentPath, onRefreshDirectory]);
 
-  const handleRenameFolder = useCallback(async (newName: string) => {
-    const target = renameFolderTarget;
-    setRenameFolderTarget(null);
+  const handleRename = useCallback(async (newName: string) => {
+    const target = renameTarget;
+    setRenameTarget(null);
     if (!target) return;
 
     const parentPath = target.path.substring(0, target.path.lastIndexOf('/'));
@@ -345,18 +345,18 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     const success = await window.electronAPI.renameFile(target.path, newPath);
     if (!success) return;
 
-    // If the browse view is showing the renamed folder or its parent, refresh it.
+    // If the browse view is showing the renamed item or its parent, refresh it.
     if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
       onRefreshDirectory?.();
     }
 
     // Refresh the parent folder in the tree if it is expanded.
     await reloadExpandedTreeFolder(parentPath);
-  }, [renameFolderTarget, currentPath, onRefreshDirectory]);
+  }, [renameTarget, currentPath, onRefreshDirectory]);
 
-  const handleDeleteFolder = useCallback(async () => {
-    const target = deleteFolderTarget;
-    setDeleteFolderTarget(null);
+  const handleDelete = useCallback(async () => {
+    const target = deleteTarget;
+    setDeleteTarget(null);
     if (!target) return;
 
     const parentPath = target.path.substring(0, target.path.lastIndexOf('/'));
@@ -366,14 +366,14 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     deleteItems([target.path]);
     await window.electronAPI.reconcileIndexedFiles(parentPath, false);
 
-    // If the browse view is showing the deleted folder or its parent, refresh it.
+    // If the browse view is showing the deleted item or its parent, refresh it.
     if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
       onRefreshDirectory?.();
     }
 
     // Refresh the parent folder in the tree if it is expanded.
     await reloadExpandedTreeFolder(parentPath);
-  }, [deleteFolderTarget, currentPath, onRefreshDirectory]);
+  }, [deleteTarget, currentPath, onRefreshDirectory]);
 
   const handleDropOnFolder = useCallback(async (node: FileNode, e: React.DragEvent) => {
     e.preventDefault();
@@ -476,10 +476,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           navigateToBrowserPath(folderPath, node.path);
         }
       },
+      onRename: () => setRenameTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
+      onDelete: () => setDeleteTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       ...(node.isDirectory ? {
         onNewFolder: () => setCreateFolderParent(node.path),
-        onRenameFolder: () => setRenameFolderTarget({ path: node.path, name: node.name }),
-        onDeleteFolder: () => setDeleteFolderTarget({ path: node.path, name: node.name }),
       } : {}),
       ...(hasCutItems && node.isDirectory ? {
         onPaste: () => void handlePasteIntoFolder(node, e),
@@ -578,8 +578,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           onClose={() => setContextMenu(null)}
           onBrowse={contextMenu.onBrowse}
           onNewFolder={contextMenu.onNewFolder}
-          onRenameFolder={contextMenu.onRenameFolder}
-          onDeleteFolder={contextMenu.onDeleteFolder}
+          onRename={contextMenu.onRename}
+          onDelete={contextMenu.onDelete}
           onPaste={contextMenu.onPaste}
           onPasteLink={contextMenu.onPasteLink}
         />
@@ -590,18 +590,21 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           onCancel={() => setCreateFolderParent(null)}
         />
       )}
-      {renameFolderTarget && (
-        <RenameFolderDialog
-          currentName={renameFolderTarget.name}
-          onRename={(newName) => void handleRenameFolder(newName)}
-          onCancel={() => setRenameFolderTarget(null)}
+      {renameTarget && (
+        <RenameDialog
+          currentName={renameTarget.name}
+          isDirectory={renameTarget.isDirectory}
+          onRename={(newName) => void handleRename(newName)}
+          onCancel={() => setRenameTarget(null)}
         />
       )}
-      {deleteFolderTarget && (
+      {deleteTarget && (
         <ConfirmDialog
-          message={`Delete folder "${deleteFolderTarget.name}" and all of its contents?`}
-          onConfirm={() => void handleDeleteFolder()}
-          onCancel={() => setDeleteFolderTarget(null)}
+          message={deleteTarget.isDirectory
+            ? `Delete folder "${deleteTarget.name}" and all of its contents?`
+            : `Delete file "${deleteTarget.name}"?`}
+          onConfirm={() => void handleDelete()}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
       <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
