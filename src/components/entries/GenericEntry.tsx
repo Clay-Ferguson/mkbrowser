@@ -1,5 +1,6 @@
 import { DocumentIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
+import { formatFlyoverInfo } from '../../utils/fileUtil';
 import { toggleItemExpanded, useHasIndexFile, useIndexYaml } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
@@ -72,7 +73,7 @@ function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onM
             id={buildEntryHeaderId(entry.path)}
             onClick={handleToggleExpanded}
             className={ENTRY_NAME_SPAN}
-            title={isExpanded ? 'Collapse content' : 'Expand content'}
+            title={formatFlyoverInfo(entry)}
           >
             {entry.name}
           </span>

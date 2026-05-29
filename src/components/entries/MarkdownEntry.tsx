@@ -45,6 +45,7 @@ import CustomCode from '../CustomCode';
 import CustomPre from '../CustomPre';
 import { createBlockClickComponents } from '../blockClickComponents';
 import { logger } from '../../utils/logUtil';
+import { formatFlyoverInfo } from '../../utils/fileUtil';
 import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
 import {
   useEntryCore,
@@ -330,7 +331,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             id={buildEntryHeaderId(entry.path)}
             onClick={handleToggleExpanded}
             className={ENTRY_NAME_SPAN}
-            title={isExpanded ? 'Collapse content' : 'Expand content'}
+            title={formatFlyoverInfo(entry)}
           >
             {!isExpanded || !(documentMode && TIMESTAMP_FILENAME_RE.test(entry.name)) ? entry.name : ''}
           </span>

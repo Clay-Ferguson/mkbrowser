@@ -297,3 +297,8 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
   return fileEntries;
 }
 
+export function formatFlyoverInfo(entry: FileEntry): string {
+  const fmt = (ms: number) => ms ? new Date(ms).toLocaleString() : 'Unknown';
+  return `File Info\n─────────────\nCreated: ${fmt(entry.createdTime)}\nModified: ${fmt(entry.modifiedTime)}`;
+}
+
