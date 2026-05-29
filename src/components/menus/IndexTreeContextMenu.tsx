@@ -7,18 +7,19 @@ interface IndexTreeContextMenuProps {
   onBrowse: () => void;
   onNewFolder?: () => void;
   onRenameFolder?: () => void;
+  onDeleteFolder?: () => void;
   onPaste?: () => void;
   onPasteLink?: () => void;
 }
 
-export default function IndexTreeContextMenu({ mousePosition, isDirectory, onClose, onBrowse, onNewFolder, onRenameFolder, onPaste, onPasteLink }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory, onClose, onBrowse, onNewFolder, onRenameFolder, onDeleteFolder, onPaste, onPasteLink }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       <PopupMenuItem
         label={isDirectory ? 'Browse to Folder' : 'Browse to File'}
         onClick={() => { onBrowse(); onClose(); }}
       />
-      {(onNewFolder || onRenameFolder) && <PopupMenuDivider />}
+      {(onNewFolder || onRenameFolder || onDeleteFolder) && <PopupMenuDivider />}
       {onNewFolder && (
         <PopupMenuItem
           label="New Folder"
@@ -29,6 +30,12 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory, onClo
         <PopupMenuItem
           label="Rename Folder"
           onClick={() => { onRenameFolder(); onClose(); }}
+        />
+      )}
+      {onDeleteFolder && (
+        <PopupMenuItem
+          label="Delete Folder"
+          onClick={() => { onDeleteFolder(); onClose(); }}
         />
       )}
       {onPaste && (

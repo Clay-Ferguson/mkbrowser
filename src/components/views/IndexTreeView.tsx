@@ -7,6 +7,7 @@ import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
 import CreateFolderDialog from '../dialogs/CreateFolderDialog';
 import RenameFolderDialog from '../dialogs/RenameFolderDialog';
+import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useRootPath,
   useCurrentPath,
@@ -158,11 +159,13 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     onBrowse: () => void;
     onNewFolder?: () => void;
     onRenameFolder?: () => void;
+    onDeleteFolder?: () => void;
     onPaste?: () => void;
     onPasteLink?: () => void;
   } | null>(null);
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);
   const [renameFolderTarget, setRenameFolderTarget] = useState<{ path: string; name: string } | null>(null);
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<{ path: string; name: string } | null>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
   useEffect(() => {
@@ -351,6 +354,27 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     await reloadExpandedTreeFolder(parentPath);
   }, [renameFolderTarget, currentPath, onRefreshDirectory]);
 
+  const handleDeleteFolder = useCallback(async () => {
+    const target = deleteFolderTarget;
+    setDeleteFolderTarget(null);
+    if (!target) return;
+
+    const parentPath = target.path.substring(0, target.path.lastIndexOf('/'));
+    const success = await window.electronAPI.deleteFile(target.path);
+    if (!success) return;
+
+    deleteItems([target.path]);
+    await window.electronAPI.reconcileIndexedFiles(parentPath, false);
+
+    // If the browse view is showing the deleted folder or its parent, refresh it.
+    if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
+      onRefreshDirectory?.();
+    }
+
+    // Refresh the parent folder in the tree if it is expanded.
+    await reloadExpandedTreeFolder(parentPath);
+  }, [deleteFolderTarget, currentPath, onRefreshDirectory]);
+
   const handleDropOnFolder = useCallback(async (node: FileNode, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -455,6 +479,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       ...(node.isDirectory ? {
         onNewFolder: () => setCreateFolderParent(node.path),
         onRenameFolder: () => setRenameFolderTarget({ path: node.path, name: node.name }),
+        onDeleteFolder: () => setDeleteFolderTarget({ path: node.path, name: node.name }),
       } : {}),
       ...(hasCutItems && node.isDirectory ? {
         onPaste: () => void handlePasteIntoFolder(node, e),
@@ -554,6 +579,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           onBrowse={contextMenu.onBrowse}
           onNewFolder={contextMenu.onNewFolder}
           onRenameFolder={contextMenu.onRenameFolder}
+          onDeleteFolder={contextMenu.onDeleteFolder}
           onPaste={contextMenu.onPaste}
           onPasteLink={contextMenu.onPasteLink}
         />
@@ -569,6 +595,13 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           currentName={renameFolderTarget.name}
           onRename={(newName) => void handleRenameFolder(newName)}
           onCancel={() => setRenameFolderTarget(null)}
+        />
+      )}
+      {deleteFolderTarget && (
+        <ConfirmDialog
+          message={`Delete folder "${deleteFolderTarget.name}" and all of its contents?`}
+          onConfirm={() => void handleDeleteFolder()}
+          onCancel={() => setDeleteFolderTarget(null)}
         />
       )}
       <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">

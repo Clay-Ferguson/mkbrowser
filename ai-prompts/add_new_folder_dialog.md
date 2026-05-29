@@ -8,6 +8,10 @@ what I would like for you to do is add to this context menu the new menu item na
 
 obviously, the way this will work will be that the user can open that dialog and then enter a new folder name and then click a "Create Folder" button at the bottom of the dialog, and that will cause the new folder to get created on the file system, and then it will trigger the `IndexTreeView.tsx` to run the function that it currently has to refresh the currently opened folder, which I think is a function that should already exist.
 
-## Phase 2 (current)
+## Phase 2 (done)
 
 Next let's make another new context menu item named "Rename Folder" which we'll open up a new dialogue that you'll create named `RenameFolderDialog.tsx`. it should be obvious how this new menu item will work because it will simply open up the dialog, and default it to the current folder name, and then let the user enter the new folder name, and click "Rename" button. then the dialog should close and the tree should update, of course. in case it helps you to know this, the current way we have for renaming a folder does not involve a dialog, but is simply an edit field rendered in line in the page, so this time, I'm sure you actually will need to create a new dialog. also, let's go ahead and add a divider line above these two new folder menu items that we've added to visually separate them out from the other menu items.
+
+## Phase 3 (current)
+
+Next let's add a "Delete Folder" item onto the same menu. This will, use the `ConfirmDialog.tsx` component to let the user confirm they want to delete the folder,before deleting the folder. i think everything else about this feature is self-explanatory, so you can just implement this the obvious way.
