@@ -6,6 +6,7 @@ export interface LoadConfigResult {
   error: string | null;
   lastExportFolder: string;
   aiEnabled: boolean;
+  recentFolders: string[];
 }
 
 /**
@@ -34,14 +35,14 @@ export async function loadConfig(): Promise<LoadConfigResult> {
           }
         }
         setCurrentPath(initialPath);
-        return { rootPath: config.browseFolder, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled };
+        return { rootPath: config.browseFolder, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled, recentFolders: config.recentFolders ?? [] };
       } else {
-        return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled };
+        return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled, recentFolders: config.recentFolders ?? [] };
       }
     } else {
-      return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled };
+      return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled, recentFolders: config.recentFolders ?? [] };
     }
   } catch {
-    return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '', aiEnabled: false };
+    return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '', aiEnabled: false, recentFolders: [] };
   }
 }

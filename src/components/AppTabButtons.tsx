@@ -16,6 +16,8 @@ interface AppTabButtonsProps {
   entries: FileEntry[];
   onSelectFolder: () => void;
   onQuit: () => void;
+  recentFolders: string[];
+  onOpenRecentFolder: (folder: string) => void;
 }
 
 // Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings
@@ -30,7 +32,7 @@ const allTabs: TabConfig[] = [
   { id: 'calendar', label: 'Calendar' },
 ];
 
-function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) {
+function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
   const currentView = useCurrentView();
   const folderAnalysis = useFolderAnalysis();
   const folderGraph = useFolderGraph();
@@ -105,6 +107,8 @@ function AppTabButtons({ entries, onSelectFolder, onQuit }: AppTabButtonsProps) 
           onClose={() => setShowFileMenu(false)}
           onSelectFolder={onSelectFolder}
           onQuit={onQuit}
+          recentFolders={recentFolders}
+          onOpenRecentFolder={onOpenRecentFolder}
         />
       )}
       {showSystemMenu && (

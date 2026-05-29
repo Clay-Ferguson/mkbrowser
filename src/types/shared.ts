@@ -82,6 +82,8 @@ export interface AppConfig {
   aiRewriteMode?: boolean;
   /** Last selected calendar view type (month/week/day/agenda). */
   calendarViewType?: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
+  /** Recently browsed folders, most recent first, max 10. */
+  recentFolders?: string[];
 }
 
 export interface FileEntry {

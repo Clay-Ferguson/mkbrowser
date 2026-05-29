@@ -84,6 +84,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [aiEnabled, setAiEnabled] = useState<boolean>(false);
   const [lastExportFolder, setLastExportFolder] = useState<string>('');
+  const [recentFolders, setRecentFolders] = useState<string[]>([]);
   const items = useItems();
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
@@ -155,6 +156,7 @@ function App() {
       const result = await loadConfig();
       setLastExportFolder(result.lastExportFolder);
       setAiEnabled(result.aiEnabled);
+      setRecentFolders(result.recentFolders);
       if (result.error) {
         setError(result.error);
         setLoading(false);
@@ -261,6 +263,19 @@ function App() {
     }
   }, [loadDirectory]);
 
+  // Track recently browsed folders whenever currentPath changes
+  useEffect(() => {
+    if (!currentPath) return;
+    setRecentFolders(prev => {
+      const updated = [currentPath, ...prev.filter(f => f !== currentPath)].slice(0, 10);
+      // Persist asynchronously — non-critical
+      window.electronAPI.getConfig().then(config => {
+        window.electronAPI.saveConfig({ ...config, recentFolders: updated }).catch(() => {});
+      }).catch(() => {});
+      return updated;
+    });
+  }, [currentPath]);
+
   const handleSelectFolder = useCallback(async () => {
     const folder = await window.electronAPI.selectFolder();
     if (folder) {
@@ -270,6 +285,19 @@ function App() {
       setCurrentPath(folder);
     }
   }, []);
+
+  const handleOpenRecentFolder = useCallback(async (folder: string) => {
+    if (rootPath && folder.startsWith(rootPath)) {
+      setCurrentPath(folder);
+      setCurrentView('browser');
+    } else {
+      const config = await window.electronAPI.getConfig();
+      await window.electronAPI.saveConfig({ ...config, browseFolder: folder, curSubFolder: undefined });
+      setRootPath(folder);
+      setCurrentPath(folder);
+      setCurrentView('browser');
+    }
+  }, [rootPath]);
 
   const handleQuit = useCallback(() => {
     void window.electronAPI.quit();
@@ -349,7 +377,7 @@ function App() {
           className="flex-1 flex flex-col min-h-0 bg-slate-900"
           style={{ display: currentView === 'folder-graph' ? 'flex' : 'none' }}
         >
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <FolderGraphView />
           {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
         </div>
@@ -357,7 +385,7 @@ function App() {
 
       {currentView === 'search-results' && (
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
           {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
         </div>
@@ -365,7 +393,7 @@ function App() {
 
       {currentView === 'settings' && (
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <SettingsView onSaveSettings={handleSaveSettings} />
           {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
         </div>
@@ -373,7 +401,7 @@ function App() {
 
       {currentView === 'ai-settings' && (
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <AISettingsView />
           {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
         </div>
@@ -381,7 +409,7 @@ function App() {
 
       {currentView === 'calendar' && (
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <CalendarView />
           {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
         </div>
@@ -389,7 +417,7 @@ function App() {
 
       {currentView === 'folder-analysis' && (
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
           {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
         </div>
@@ -397,7 +425,7 @@ function App() {
 
       {currentView === 'thread' && (
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <ThreadView onSaveSettings={handleSaveSettings} />
           {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
         </div>
@@ -405,7 +433,7 @@ function App() {
 
       {currentView === 'browser' && (
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} />
+          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <div className="flex-1 flex flex-row min-h-0">
             {settings.indexTreeWidth !== 'hidden' && <IndexTreeView onRefreshDirectory={refreshDirectory} />}
             <div className="flex-1 flex flex-col min-h-0 min-w-0">
