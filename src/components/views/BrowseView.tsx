@@ -1004,7 +1004,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                     {entry.isDirectory ? (
                       <>
                         {showFolder && (
-                          <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={isAttach} indentFolder={indentFolder} />
+                          <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onRefreshDirectory={onRefreshDirectory} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={isAttach} indentFolder={indentFolder} />
                         )}
                         {isAttach && entry.attachments && parentExpanded && (
                           <AttachFolderContents

@@ -1,6 +1,7 @@
 import type React from 'react';
-import type { ItemData } from '../types/types';
+import type { ItemData, FileNode } from '../types/types';
 import { pasteCutItems } from '../edit';
+import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
 
 /**
  * Custom drag-and-drop MIME type used to carry a single dragged file/folder between
@@ -102,4 +103,54 @@ export async function moveEntryIntoFolder(payload: DragPayload, destFolder: stri
   ]);
 
   return { success: true, sourceFolder };
+}
+
+/**
+ * Builds the IndexTreeView's lazily-loaded child nodes from a directory listing, omitting
+ * Attachment (*.attach) folders, which are never shown in the tree.
+ */
+export function makeTreeNodes(
+  entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>
+): FileNode[] {
+  return entries.filter(e => !(e.isDirectory && e.name.endsWith('.attach'))).map(e => ({
+    path: e.path,
+    name: e.name,
+    isDirectory: e.isDirectory,
+    isExpanded: false,
+    isLoading: false,
+    children: null,
+    ...(e.indexOrder !== undefined ? { indexOrder: e.indexOrder } : {}),
+  }));
+}
+
+/** Depth-first search for a directory/file node by absolute path within the tree. */
+export function findTreeNodeByPath(root: FileNode, path: string): FileNode | null {
+  if (root.path === path) return root;
+  if (!root.children) return null;
+  for (const child of root.children) {
+    if (!('isDirectory' in child)) continue;
+    const found = findTreeNodeByPath(child as FileNode, path);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * Reloads a folder node's children from disk in the IndexTreeView, but only if that folder
+ * is currently expanded. Collapsed folders need no update — their contents are loaded lazily
+ * on next expand. Shared by both drag-and-drop directions and the cut/paste flow.
+ *
+ * @param folderPath - Absolute path of the folder to reload.
+ */
+export async function reloadExpandedTreeFolder(folderPath: string): Promise<void> {
+  const root = getIndexTreeRoot();
+  if (!root) return;
+  const node = findTreeNodeByPath(root, folderPath);
+  if (!node?.isExpanded) return;
+  try {
+    const entries = await window.electronAPI.readDirectory(folderPath);
+    expandIndexTreeNode(folderPath, makeTreeNodes(entries));
+  } catch {
+    // leave tree as-is
+  }
 }

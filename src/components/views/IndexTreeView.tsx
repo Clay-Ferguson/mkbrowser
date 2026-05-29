@@ -31,7 +31,16 @@ import {
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
 import { pasteCutItems } from '../../edit';
-import { ENTRY_DND_MIME, parseDragPayload, canDropInto, moveEntryIntoFolder } from '../../utils/dragAndDrop';
+import {
+  ENTRY_DND_MIME,
+  parseDragPayload,
+  canDropInto,
+  moveEntryIntoFolder,
+  makeEntryDragStartHandler,
+  reloadExpandedTreeFolder,
+  makeTreeNodes as makeNodes,
+  findTreeNodeByPath as findNodeByPath,
+} from '../../utils/dragAndDrop';
 import { extractHeadingTree } from '../../utils/tocUtil';
 import { scrollElementIntoView } from '../../utils/entryDom';
 import { getActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
@@ -88,21 +97,6 @@ function renderFileIcon(iconType: FileIconType) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeNodes(
-  entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>
-): FileNode[] {
-  // return with Attachments folders removed. We don't want to display those on the tree.
-  return entries.filter(e => !(e.isDirectory && e.name.endsWith('.attach'))).map(e => ({
-    path: e.path,
-    name: e.name,
-    isDirectory: e.isDirectory,
-    isExpanded: false,
-    isLoading: false,
-    children: null,
-    ...(e.indexOrder !== undefined ? { indexOrder: e.indexOrder } : {}),
-  }));
-}
-
 function isAnyExpanded(nodes: TreeNode[]): boolean {
   return nodes.some(n => n.isExpanded);
 }
@@ -137,17 +131,6 @@ function flattenVisible(
 
 function isParentOf(candidatePath: string, currentPath: string): boolean {
   return currentPath.startsWith(candidatePath + '/');
-}
-
-function findNodeByPath(root: FileNode, path: string): FileNode | null {
-  if (root.path === path) return root;
-  if (!root.children) return null;
-  for (const child of root.children) {
-    if (!isFileNode(child)) continue;
-    const found = findNodeByPath(child, path);
-    if (found) return found;
-  }
-  return null;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -291,22 +274,6 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     }
   }, []);
 
-  // Reloads a folder node's children from disk, but only if that folder is currently
-  // expanded in the tree. Collapsed folders need no update — their contents are loaded
-  // lazily on next expand.
-  const reloadExpandedFolder = useCallback(async (folderPath: string) => {
-    const root = getIndexTreeRoot();
-    if (!root) return;
-    const node = findNodeByPath(root, folderPath);
-    if (!node?.isExpanded) return;
-    try {
-      const entries = await window.electronAPI.readDirectory(folderPath);
-      expandIndexTreeNode(folderPath, makeNodes(entries));
-    } catch {
-      // leave tree as-is
-    }
-  }, []);
-
   const handlePasteIntoFolder = useCallback(async (node: FileNode, e: React.MouseEvent) => {
     e.stopPropagation();
     const cutItems = getCutItems();
@@ -336,9 +303,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     }
 
     // Refresh both the destination and source folders if they are expanded.
-    await reloadExpandedFolder(node.path);
-    await reloadExpandedFolder(sourceFolder);
-  }, [currentPath, onRefreshDirectory, reloadExpandedFolder]);
+    await reloadExpandedTreeFolder(node.path);
+    await reloadExpandedTreeFolder(sourceFolder);
+  }, [currentPath, onRefreshDirectory]);
 
   const handleDropOnFolder = useCallback(async (node: FileNode, e: React.DragEvent) => {
     e.preventDefault();
@@ -360,9 +327,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       onRefreshDirectory?.();
     }
 
-    await reloadExpandedFolder(node.path);
-    await reloadExpandedFolder(result.sourceFolder);
-  }, [currentPath, onRefreshDirectory, reloadExpandedFolder]);
+    await reloadExpandedTreeFolder(node.path);
+    await reloadExpandedTreeFolder(result.sourceFolder);
+  }, [currentPath, onRefreshDirectory]);
 
   const handleDragOverFolder = useCallback((node: FileNode, e: React.DragEvent) => {
     if (!node.isDirectory) return;
@@ -625,7 +592,11 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
                 onDrop: (e: React.DragEvent) => void handleDropOnFolder(node, e),
               } : {})}
             >
-              <span className="shrink-0 flex items-center mr-1">
+              <span
+                className="shrink-0 flex items-center mr-1 cursor-grab"
+                draggable
+                onDragStart={makeEntryDragStartHandler({ path: node.path, name: node.name, isDirectory: node.isDirectory })}
+              >
                 {node.isDirectory
                   ? (node.isExpanded
                       ? <FolderOpenIcon className="w-5 h-5 text-amber-500" />
