@@ -39,7 +39,7 @@ const END_LABELS: Record<string, string> = { never: 'Never', until: 'On date', c
 function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogProps) {
   const existingDue = getDueProperty(content);
   const [selected, setSelected] = useState<Date | undefined>(
-    existingDue ? parseDueStr(existingDue) : undefined
+    existingDue ? parseDueStr(existingDue) : new Date()
   );
   const [startTime, setStartTime] = useState<string>(getStartProperty(content) ?? '');
   const [duration, setDuration] = useState<string>(getDurationProperty(content) ?? '');
