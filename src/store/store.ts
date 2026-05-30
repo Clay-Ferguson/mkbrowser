@@ -67,6 +67,7 @@ const initialState: AppState = {
   calendarViewType: 'month',
   calendarViewTime: new Date(),
   imageSize: 'small',
+  imageSizeTransitioning: false,
 };
 
 /**
@@ -1904,5 +1905,19 @@ export function useImageSize(): import('../types/shared').ImageSize {
 
 export function setImageSizeStore(size: import('../types/shared').ImageSize): void {
   state = { ...state, imageSize: size };
+  emitChange();
+}
+
+export function useImageSizeTransitioning(): boolean {
+  return useSyncExternalStore(subscribe, () => state.imageSizeTransitioning);
+}
+
+export function setImageSizeTransitioning(value: boolean): void {
+  state = { ...state, imageSizeTransitioning: value };
+  emitChange();
+}
+
+export function setImageSizeWithTransition(size: import('../types/shared').ImageSize): void {
+  state = { ...state, imageSize: size, imageSizeTransitioning: true };
   emitChange();
 }

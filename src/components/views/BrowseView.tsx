@@ -65,6 +65,7 @@ import {
   setIndexYaml,
   useIndexYaml,
   useExpandedEditor,
+  useImageSizeTransitioning,
   type SearchDefinition,
 } from '../../store';
 import { scrollItemIntoView, scrollElementIntoView } from '../../utils/entryDom';
@@ -161,6 +162,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const indexYaml = useIndexYaml();
   const editMode = indexYaml?.options?.edit_mode ?? false;
   const expandedEditor = useExpandedEditor();
+  const imageSizeTransitioning = useImageSizeTransitioning();
 
   const items = useItems();
   const currentView = useCurrentView();
@@ -782,7 +784,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   };
 
   return (
-    <>
+    <div
+      className="flex-1 flex flex-col min-h-0"
+      style={{
+        opacity: imageSizeTransitioning ? 0 : 1,
+        // While hidden, no transition (instant). On reveal, fade 0 -> 1 over 1s.
+        transition: imageSizeTransitioning ? 'none' : 'opacity 1000ms ease-out',
+      }}
+    >
       {/* Combined header: breadcrumbs left, actions right, wraps responsively */}
 
       <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
@@ -1156,7 +1165,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onClose={() => setReplaceResultMessage(null)}
         />
       )}
-    </>
+    </div>
   );
 }
 

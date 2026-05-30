@@ -4,7 +4,7 @@ import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
-import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected, useHasIndexFile, useIndexYaml, useImageSize, setImageSizeStore } from '../../store';
+import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected, useHasIndexFile, useIndexYaml, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import ExifDialog from '../dialogs/ExifDialog';
@@ -55,17 +55,41 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
   // Image size from global store (shared across all ImageEntry instances)
   const imageSize = useImageSize();
 
-  const handleToggleImageSize = async (e: React.MouseEvent) => {
+  const handleToggleImageSize = (e: React.MouseEvent) => {
     e.stopPropagation();
     const newSize = imageSize === 'small' ? 'large' : 'small';
     const thisImageUrl = imageUrl;
-    setImageSizeStore(newSize);
-    const config = await window.electronAPI.getConfig();
-    await window.electronAPI.saveConfig({ ...config, imageSize: newSize });
-    setTimeout(() => {
-      const imgEl = document.querySelector(`img[src="${thisImageUrl}"]`);
-      imgEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 750);
+
+    // Phase 1: hide the view instantly (opacity 0) AND apply the new size in a
+    // single render, so the larger images are laid out while invisible.
+    setImageSizeWithTransition(newSize);
+
+    // This rAF ensures that we can set the size option on our images 
+    // which makes them all render at a different size, and have the page 
+    // render (where all images may have changed size and therefore the 
+    // scroll position has completely changed) in a way where the user sees
+    // the screen update but the image they were previously looking at is still 
+    // right at the center of the screen, even though the scrolling and positioning 
+    // of everything will have completely changed.
+    // 
+    // After the new (larger) layout has painted at opacity 0, jump the
+    // scroll to center the clicked image while it's still invisible, then drop
+    // the transitioning flag to fade the view back in at the correct position.
+    // Two rAFs guarantee the opacity:0 frame is painted first so the CSS
+    // opacity transition actually fires (0 -> 1) instead of snapping.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const imgEl = document.querySelector(`img[src="${thisImageUrl}"]`);
+        imgEl?.scrollIntoView({ behavior: 'instant', block: 'center' });
+        setImageSizeTransitioning(false);
+      });
+    });
+
+    // Persist the choice independently — it must not gate the animation timing.
+    void (async () => {
+      const config = await window.electronAPI.getConfig();
+      await window.electronAPI.saveConfig({ ...config, imageSize: newSize });
+    })();
   };
 
   // Fullscreen state

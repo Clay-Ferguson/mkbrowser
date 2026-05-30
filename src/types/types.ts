@@ -539,6 +539,12 @@ export interface AppState {
    */
   imageSize: import('../types/shared').ImageSize;
 
+  /**
+   * True while the image-size toggle animation is running (fade-in over 750ms).
+   * BrowseView reads this to apply the fade-in CSS animation.
+   */
+  imageSizeTransitioning: boolean;
+
 }
 
 /**

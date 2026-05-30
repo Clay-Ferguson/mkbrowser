@@ -143,4 +143,7 @@ export {
   deleteCalendarEventsUnderPath,
   useImageSize,
   setImageSizeStore,
+  useImageSizeTransitioning,
+  setImageSizeTransitioning,
+  setImageSizeWithTransition,
 } from './store';
