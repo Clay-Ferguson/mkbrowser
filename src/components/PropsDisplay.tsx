@@ -1,4 +1,14 @@
+import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../utils/timeUtil';
+
 const MONO_FONT = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
+
+function getDateTooltip(value: unknown): string | undefined {
+  const str = String(value);
+  const timestamp = extractTimestamp(str);
+  if (timestamp <= 0) return undefined;
+  const days = getDaysFromToday(timestamp);
+  return "Date:\n\n"+formatDaysDisplay(days);
+}
 
 interface PropsDisplayProps {
   tags: string[];
@@ -26,18 +36,22 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
 
   if (!hasTags && !hasProps) return null;
 
-  const propPills = propEntries.map(([key, value]) => (
-    <span
-      key={key}
-      onClick={() => onPropClick?.(key)}
-      className={`inline-flex items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden${onPropClick ? ' cursor-pointer hover:brightness-125' : ''}`}
-      style={{ fontFamily: MONO_FONT }}
-    >
-      <span className="px-2 py-0.5 bg-amber-700/50 text-amber-200">{key}</span>
-      <span className="w-px bg-slate-400/60" />
-      <span className="px-2 py-0.5 bg-slate-600/50 text-slate-200">{String(value)}</span>
-    </span>
-  ));
+  const propPills = propEntries.map(([key, value]) => {
+    const dateTooltip = getDateTooltip(value);
+    return (
+      <span
+        key={key}
+        onClick={() => onPropClick?.(key)}
+        className={`inline-flex items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden${onPropClick ? ' cursor-pointer hover:brightness-125' : ''}`}
+        style={{ fontFamily: MONO_FONT }}
+        title={dateTooltip}
+      >
+        <span className="px-2 py-0.5 bg-amber-700/50 text-amber-200">{key}</span>
+        <span className="w-px bg-slate-400/60" />
+        <span className="px-2 py-0.5 bg-slate-600/50 text-slate-200">{String(value)}</span>
+      </span>
+    );
+  });
 
   const tagPills = [...tags].sort((a, b) => a.localeCompare(b)).map((tag) => (
     <span
