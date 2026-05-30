@@ -134,13 +134,13 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
   return (
     <div className={DLG_OVERLAY_CLASS}>
-      <div className={`${DLG_CONTAINER} w-full max-w-4xl mx-4 overflow-hidden`}>
+      <div className={`${DLG_CONTAINER} w-full max-w-4xl mx-4 flex flex-col`} style={{ maxHeight: '90vh' }}>
         <DlgHeader title="Search" onClose={onCancel} />
-        <div className="flex" style={{ minHeight: '480px' }}>
+        <div className="flex min-h-0 flex-1" style={{ minHeight: '480px' }}>
 
           {/* Left panel: saved search definitions */}
           <div className="flex flex-col border-r border-slate-600" style={{ width: '33.333%' }}>
-            <div className="p-6 pb-2 border-b border-slate-700">
+            <div className="p-6 pb-1">
               <label className={DLG_LABEL_CLASS}>Search Definition Name</label>
               <input
                 type="text"
@@ -150,32 +150,32 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 data-testid="search-name-input"
                 className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
               />
-              <div className="flex justify-end gap-2 mt-2">
+              <div className="flex justify-end gap-1 mt-1">
                 <button
                   onClick={handleSave}
                   disabled={!searchName.trim()}
                   data-testid="save-search-button"
                   title="Save search definition"
-                  className="p-1.5 rounded text-green-400 hover:text-green-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1 rounded text-green-400 hover:text-green-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
-                  <ArrowDownTrayIcon className="w-5 h-5" />
+                  <ArrowDownTrayIcon className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => { if (searchName.trim()) setShowDeleteConfirm(true); }}
                   disabled={!searchName.trim()}
                   data-testid="delete-search-button"
                   title="Delete search definition"
-                  className="p-1.5 rounded text-red-400 hover:text-red-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
-                  <TrashIcon className="w-5 h-5" />
+                  <TrashIcon className="w-4 h-4" />
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-auto p-2">
+            <div className="flex-1 p-2" style={{ overflow: 'auto' }}>
               {sortedDefinitions.length === 0 ? (
                 <p className="text-xs text-slate-500 p-2">No saved searches yet.</p>
               ) : (
-                <ul className="space-y-0.5">
+                <ul className="space-y-0.5" style={{ minWidth: 'max-content' }}>
                   {sortedDefinitions.map((def) => (
                     <li key={def.name}>
                       <button
@@ -197,7 +197,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           </div>
 
           {/* Right panel: search options */}
-          <div className="flex flex-col flex-1 p-6 overflow-auto">
+          <div className="flex flex-col flex-1 p-6 overflow-y-auto min-h-0">
             <label className={DLG_LABEL_CLASS}>
               {searchType === 'advanced' ? 'JavaScript expression' : searchType === 'wildcard' ? 'Search text (use * as wildcard, matches up to 25 characters)' : 'Search text'}
             </label>
