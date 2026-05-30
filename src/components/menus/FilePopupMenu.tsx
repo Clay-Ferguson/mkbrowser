@@ -29,6 +29,12 @@ export default function FilePopupMenu({
     return folder;
   };
 
+  // Skip any recent item that resolves to the root ("/"). Navigating to root has its own
+  // dedicated icon, so it adds no value as a Recent Items entry.
+  const recentItems = recentFolders
+    .map((folder) => ({ folder, label: folderLabel(folder) }))
+    .filter(({ label }) => label !== '/');
+
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
       <PopupMenuItem
@@ -36,20 +42,20 @@ export default function FilePopupMenu({
         onClick={() => { onSelectFolder(); onClose(); }}
         data-testid="menu-open-folder"
       />
-      {recentFolders.length > 0 && (
+      {recentItems.length > 0 && (
         <>
           <PopupMenuDivider />
-          {recentFolders.map((folder) => (
+          {recentItems.map(({ folder, label }) => (
             <PopupMenuItem
               key={folder}
-              label={folderLabel(folder)}
+              label={label}
               onClick={() => { onOpenRecentFolder(folder); onClose(); }}
             />
           ))}
           <PopupMenuDivider />
         </>
       )}
-      {recentFolders.length === 0 && <PopupMenuDivider />}
+      {recentItems.length === 0 && <PopupMenuDivider />}
       <PopupMenuItem
         label="Quit"
         onClick={() => { onQuit(); onClose(); }}
