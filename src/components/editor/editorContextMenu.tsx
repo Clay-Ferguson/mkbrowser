@@ -272,7 +272,7 @@ export function EditorContextMenu({
 
   return (
     <div
-      className="fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-1 z-50 min-w-[140px]"
+      className="fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-1 z-[1000] min-w-[140px]"
       style={{ left: contextMenu.x, top: contextMenu.y }}
       onClick={(e) => e.stopPropagation()}
     >

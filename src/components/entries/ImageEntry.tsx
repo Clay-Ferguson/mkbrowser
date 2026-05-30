@@ -315,7 +315,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
       {/* Fullscreen overlay - use keyboard: Left/Right arrows to navigate, Delete to delete, Escape to close */}
       {isFullscreen && (
         <div
-          className="fixed inset-0 z-50 bg-black/95"
+          className="fixed inset-0 z-[1000] bg-black/95"
           onClick={() => {
             setIsFullscreen(false);
             setIsActualSize(false);
