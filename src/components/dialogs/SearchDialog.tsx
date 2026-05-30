@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ConfirmDialog from './ConfirmDialog';
 import DlgHeader from './common/DlgHeader';
-import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import type { SearchDefinition } from '../../types/types';
 import * as globalHighlight from '../../utils/globalHighlight';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS } from '../../utils/styles';
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
@@ -57,55 +57,41 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Convert search definitions to combobox options (sorted alphabetically)
-  const searchDefinitionOptions: ComboboxOption[] = [...searchDefinitions]
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .map((def) => ({
-      value: def.name,
-      label: def.name,
-    }));
+  const sortedDefinitions = [...searchDefinitions].sort((a, b) => a.name.localeCompare(b.name));
 
-  // Handle selection of a saved search definition from the combobox
-  const handleSelectSearchDefinition = (option: ComboboxOption) => {
-    const selectedDef = searchDefinitions.find((def) => def.name === option.value);
-    if (selectedDef) {
-      setSearchName(selectedDef.name);
-      setSearchQuery(selectedDef.searchText.replace(/\{\{nl\}\}/g, '\n'));
-      setSearchType(selectedDef.searchMode);
-      setSearchMode(selectedDef.searchTarget);
-      setSortBy(selectedDef.sortBy || 'modified-time');
-      setSortDirection(selectedDef.sortDirection || 'desc');
-      setSearchImageExif(selectedDef.searchImageExif ?? false);
-      setMostRecent(selectedDef.mostRecent ?? false);
-      // Adjust textarea height after loading content
-      setTimeout(adjustTextareaHeight, 0);
-    }
+  const handleSelectSearchDefinition = (def: SearchDefinition) => {
+    setSearchName(def.name);
+    setSearchQuery(def.searchText.replace(/\{\{nl\}\}/g, '\n'));
+    setSearchType(def.searchMode);
+    setSearchMode(def.searchTarget);
+    setSortBy(def.sortBy || 'modified-time');
+    setSortDirection(def.sortDirection || 'desc');
+    setSearchImageExif(def.searchImageExif ?? false);
+    setMostRecent(def.mostRecent ?? false);
+    setTimeout(adjustTextareaHeight, 0);
   };
 
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
 
-  // Auto-resize textarea based on content
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      const lineHeight = 20; // approximate line height in pixels
-      const minHeight = lineHeight * 4; // 4 rows minimum
+      const lineHeight = 20;
+      const minHeight = lineHeight * 4;
       const newHeight = Math.max(minHeight, textarea.scrollHeight);
       textarea.style.height = `${newHeight}px`;
     }
   };
 
   const handleSearch = () => {
-    // Replace newlines with spaces for search execution
     const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
     if (!cleanedQuery && !mostRecent) return;
 
     setError(null);
 
-    // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
 
     globalHighlight.setGlobalHighlightText(searchType === 'literal' ? cleanedQuery : '');
@@ -117,7 +103,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
     setError(null);
 
-    // Encode newlines as {{nl}} for persistence in search definition
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
 
     onSave({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
@@ -125,7 +110,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setSearchQuery(e.target.value);
-    if (error) setError(null); // Clear error when user types
+    if (error) setError(null);
     adjustTextareaHeight();
   };
 
@@ -149,228 +134,250 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
   return (
     <div className={DLG_OVERLAY_CLASS}>
-      <div className={`${DLG_CONTAINER} w-full max-w-2xl mx-4 overflow-hidden`}>
+      <div className={`${DLG_CONTAINER} w-full max-w-4xl mx-4 overflow-hidden`}>
         <DlgHeader title="Search" onClose={onCancel} />
-        <div className="p-6">
-        <label className={DLG_LABEL_CLASS}>
-          {searchType === 'advanced' ? 'JavaScript expression' : searchType === 'wildcard' ? 'Search text (use * as wildcard, matches up to 25 characters)' : 'Search text'}
-        </label>
-        <textarea
-          ref={textareaRef}
-          value={searchQuery}
-          onChange={handleQueryChange}
-          onKeyDown={handleKeyDown}
-          data-testid="search-query-input"
-          rows={4}
-          className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm font-mono resize-none ${error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
-            }`}
-          placeholder={searchType === 'advanced' ? 'Functions: $, past, future, today' : searchType === 'wildcard' ? 'intro*duction' : 'Enter search text...'}
-          style={{ minHeight: '80px' }}
-        />
+        <div className="flex" style={{ minHeight: '480px' }}>
 
-        {/* Search Image EXIF and Most Recent checkboxes */}
-        <div className="flex items-center gap-6 mb-3 mt-3">
-          <label className={`flex items-center gap-2 ${searchMode === 'filenames' ? 'opacity-50' : 'cursor-pointer'}`}>
-            <input
-              type="checkbox"
-              checked={searchImageExif}
-              onChange={(e) => setSearchImageExif(e.target.checked)}
-              disabled={searchMode === 'filenames'}
-              data-testid="search-image-exif"
-              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          {/* Left panel: saved search definitions */}
+          <div className="flex flex-col border-r border-slate-600" style={{ width: '33.333%' }}>
+            <div className="p-6 pb-2 border-b border-slate-700">
+              <label className={DLG_LABEL_CLASS}>Search Definition Name</label>
+              <input
+                type="text"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                placeholder="Enter a name..."
+                data-testid="search-name-input"
+                className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
+              />
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  onClick={handleSave}
+                  disabled={!searchName.trim()}
+                  data-testid="save-search-button"
+                  title="Save search definition"
+                  className="p-1.5 rounded text-green-400 hover:text-green-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ArrowDownTrayIcon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => { if (searchName.trim()) setShowDeleteConfirm(true); }}
+                  disabled={!searchName.trim()}
+                  data-testid="delete-search-button"
+                  title="Delete search definition"
+                  className="p-1.5 rounded text-red-400 hover:text-red-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <TrashIcon className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-2">
+              {sortedDefinitions.length === 0 ? (
+                <p className="text-xs text-slate-500 p-2">No saved searches yet.</p>
+              ) : (
+                <ul className="space-y-0.5">
+                  {sortedDefinitions.map((def) => (
+                    <li key={def.name}>
+                      <button
+                        onClick={() => handleSelectSearchDefinition(def)}
+                        className={`w-full text-left px-3 py-1.5 rounded text-sm whitespace-nowrap overflow-hidden text-ellipsis ${
+                          searchName === def.name
+                            ? 'bg-blue-600 text-white'
+                            : 'text-slate-300 hover:bg-slate-700'
+                        }`}
+                        title={def.name}
+                      >
+                        {def.name}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          {/* Right panel: search options */}
+          <div className="flex flex-col flex-1 p-6 overflow-auto">
+            <label className={DLG_LABEL_CLASS}>
+              {searchType === 'advanced' ? 'JavaScript expression' : searchType === 'wildcard' ? 'Search text (use * as wildcard, matches up to 25 characters)' : 'Search text'}
+            </label>
+            <textarea
+              ref={textareaRef}
+              value={searchQuery}
+              onChange={handleQueryChange}
+              onKeyDown={handleKeyDown}
+              data-testid="search-query-input"
+              rows={4}
+              className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm font-mono resize-none ${error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
+                }`}
+              placeholder={searchType === 'advanced' ? 'Functions: $, past, future, today' : searchType === 'wildcard' ? 'intro*duction' : 'Enter search text...'}
+              style={{ minHeight: '80px' }}
             />
-            <span className="text-sm text-slate-300">Search Image EXIF</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={mostRecent}
-              onChange={(e) => setMostRecent(e.target.checked)}
-              data-testid="search-most-recent"
-              className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded"
-            />
-            <span className="text-sm text-slate-300">Recent Files</span>
-          </label>
-        </div>
 
-        {/* Search mode radio buttons */}
-        <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
-          <legend className="text-xs text-slate-400 px-2">Search Target</legend>
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="searchMode"
-                checked={searchMode === 'content'}
-                onChange={() => setSearchMode('content')}
-                data-testid="search-mode-content"
-                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-              />
-              <span className="text-sm text-slate-300">File Contents</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="searchMode"
-                checked={searchMode === 'filenames'}
-                onChange={() => setSearchMode('filenames')}
-                data-testid="search-mode-filenames"
-                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-              />
-              <span className="text-sm text-slate-300">File Names</span>
-            </label>
-          </div>
-        </fieldset>
+            <div className="flex items-center gap-6 mb-3 mt-3">
+              <label className={`flex items-center gap-2 ${searchMode === 'filenames' ? 'opacity-50' : 'cursor-pointer'}`}>
+                <input
+                  type="checkbox"
+                  checked={searchImageExif}
+                  onChange={(e) => setSearchImageExif(e.target.checked)}
+                  disabled={searchMode === 'filenames'}
+                  data-testid="search-image-exif"
+                  className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <span className="text-sm text-slate-300">Search Image EXIF</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={mostRecent}
+                  onChange={(e) => setMostRecent(e.target.checked)}
+                  data-testid="search-most-recent"
+                  className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded"
+                />
+                <span className="text-sm text-slate-300">Recent Files</span>
+              </label>
+            </div>
 
-        {/* Search Mode radio buttons */}
-        <fieldset className="border border-slate-600 rounded-md p-3 mb-4">
-          <legend className="text-xs text-slate-400 px-2">Search Mode</legend>
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="searchType"
-                checked={searchType === 'literal'}
-                onChange={() => setSearchType('literal')}
-                data-testid="search-type-literal"
-                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-              />
-              <span className="text-sm text-slate-300">Literal</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="searchType"
-                checked={searchType === 'wildcard'}
-                onChange={() => setSearchType('wildcard')}
-                data-testid="search-type-wildcard"
-                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-              />
-              <span className="text-sm text-slate-300">Wild Card</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="searchType"
-                checked={searchType === 'advanced'}
-                onChange={() => setSearchType('advanced')}
-                data-testid="search-type-advanced"
-                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-              />
-              <span className="text-sm text-slate-300">Advanced</span>
-            </label>
-          </div>
-        </fieldset>
+            <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
+              <legend className="text-xs text-slate-400 px-2">Search Target</legend>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="searchMode"
+                    checked={searchMode === 'content'}
+                    onChange={() => setSearchMode('content')}
+                    data-testid="search-mode-content"
+                    className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+                  />
+                  <span className="text-sm text-slate-300">File Contents</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="searchMode"
+                    checked={searchMode === 'filenames'}
+                    onChange={() => setSearchMode('filenames')}
+                    data-testid="search-mode-filenames"
+                    className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+                  />
+                  <span className="text-sm text-slate-300">File Names</span>
+                </label>
+              </div>
+            </fieldset>
 
-        {/* Sort By and Direction dropdowns */}
-        <div className="flex gap-3 mb-3">
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Sort Results By</label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SearchSortBy)}
-              data-testid="sort-by-select"
-              className="bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
-            >
-              <option value="modified-time">File Modification Time</option>
-              <option value="created-time">File Creation Time</option>
-              <option value="file-name">File Name</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Direction</label>
-            <select
-              value={sortDirection}
-              onChange={(e) => setSortDirection(e.target.value as SearchSortDirection)}
-              data-testid="sort-direction-select"
-              className="bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
-            >
-              <option value="desc">DESC (newest first)</option>
-              <option value="asc">ASC (oldest first)</option>
-            </select>
-          </div>
-        </div>
+            <fieldset className="border border-slate-600 rounded-md p-3 mb-4">
+              <legend className="text-xs text-slate-400 px-2">Search Mode</legend>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="searchType"
+                    checked={searchType === 'literal'}
+                    onChange={() => setSearchType('literal')}
+                    data-testid="search-type-literal"
+                    className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+                  />
+                  <span className="text-sm text-slate-300">Literal</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="searchType"
+                    checked={searchType === 'wildcard'}
+                    onChange={() => setSearchType('wildcard')}
+                    data-testid="search-type-wildcard"
+                    className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+                  />
+                  <span className="text-sm text-slate-300">Wild Card</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="searchType"
+                    checked={searchType === 'advanced'}
+                    onChange={() => setSearchType('advanced')}
+                    data-testid="search-type-advanced"
+                    className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+                  />
+                  <span className="text-sm text-slate-300">Advanced</span>
+                </label>
+              </div>
+            </fieldset>
 
-        {error ? (
-          <p className="text-xs text-red-400 mt-2">{error}</p>
-        ) : (
-          <p className="text-xs text-slate-500 mt-2">
-            {searchType === 'advanced' ? (
-              <>Uses <code className="bg-slate-700 px-1 rounded">$("text")</code> function, or past(ts), future(ts), future(ts, days), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
-            ) : searchType === 'wildcard' ? (
-              <>Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters. Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
-            ) : searchMode === 'filenames' ? (
-              <>Searches file and folder names recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
-            ) : searchImageExif ? (
-              <>Searches .md, .txt, and image EXIF metadata recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+            <div className="flex gap-3 mb-3">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Sort Results By</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SearchSortBy)}
+                  data-testid="sort-by-select"
+                  className="bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
+                >
+                  <option value="modified-time">File Modification Time</option>
+                  <option value="created-time">File Creation Time</option>
+                  <option value="file-name">File Name</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Direction</label>
+                <select
+                  value={sortDirection}
+                  onChange={(e) => setSortDirection(e.target.value as SearchSortDirection)}
+                  data-testid="sort-direction-select"
+                  className="bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
+                >
+                  <option value="desc">DESC (newest first)</option>
+                  <option value="asc">ASC (oldest first)</option>
+                </select>
+              </div>
+            </div>
+
+            {error ? (
+              <p className="text-xs text-red-400 mt-2">{error}</p>
             ) : (
-              <>Searches .md and .txt files recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+              <p className="text-xs text-slate-500 mt-2">
+                {searchType === 'advanced' ? (
+                  <>Uses <code className="bg-slate-700 px-1 rounded">$("text")</code> function, or past(ts), future(ts), future(ts, days), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
+                ) : searchType === 'wildcard' ? (
+                  <>Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters. Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+                ) : searchMode === 'filenames' ? (
+                  <>Searches file and folder names recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+                ) : searchImageExif ? (
+                  <>Searches .md, .txt, and image EXIF metadata recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+                ) : (
+                  <>Searches .md and .txt files recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+                )}
+              </p>
             )}
-          </p>
-        )}
-        <div className="mt-4">
-          <label className={DLG_LABEL_CLASS}>
-            Search Name (optional - saves this search if provided)
-          </label>
-          <EditableCombobox
-            value={searchName}
-            onChange={setSearchName}
-            onSelect={handleSelectSearchDefinition}
-            options={searchDefinitionOptions}
-            placeholder="Enter a name to save, or select existing..."
-            className="w-full"
-            data-testid="search-name-input"
-          />
-        </div>
 
-        <div className="flex justify-between items-center gap-3 mt-6">
-          <div className="flex gap-3">
-            <button
-              onClick={handleSave}
-              disabled={!searchName.trim()}
-              data-testid="save-search-button"
-              className={BUTTON_CLASS_DLG_GREEN}
-            >
-              Save
-            </button>
-            <button
-              onClick={() => {
-                if (searchName.trim()) {
-                  setShowDeleteConfirm(true);
-                }
-              }}
-              disabled={!searchName.trim()}
-              data-testid="delete-search-button"
-              className={BUTTON_CLASS_DLG_RED}
-            >
-              Delete
-            </button>
+            <div className="flex justify-end items-center gap-3 mt-6">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    if (searchType === 'literal') {
+                      const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
+                      globalHighlight.setGlobalHighlightText(cleanedQuery || null);
+                      requestAnimationFrame(() => globalHighlight.applyGlobalHighlight(cleanedQuery || null));
+                    }
+                    onCancel();
+                  }}
+                  data-testid="cancel-search-button"
+                  className={BUTTON_CLASS_DLG_CANCEL}
+                >
+                  Close
+                </button>
+                <button
+                  onClick={handleSearch}
+                  disabled={!searchQuery.trim() && !mostRecent}
+                  data-testid="execute-search-button"
+                  className={BUTTON_CLASS_DLG_BLUE}
+                >
+                  Search
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => {
-                if (searchType === 'literal') {
-                  const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
-                  globalHighlight.setGlobalHighlightText(cleanedQuery || null);
-                  requestAnimationFrame(() => globalHighlight.applyGlobalHighlight(cleanedQuery || null));
-                }
-                onCancel();
-              }}
-              data-testid="cancel-search-button"
-              className={BUTTON_CLASS_DLG_CANCEL}
-            >
-              Close
-            </button>
-            <button
-              onClick={handleSearch}
-              disabled={!searchQuery.trim() && !mostRecent}
-              data-testid="execute-search-button"
-              className={BUTTON_CLASS_DLG_BLUE}
-            >
-              Search
-            </button>
-          </div>
-        </div>
         </div>
       </div>
 
