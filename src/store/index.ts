@@ -141,4 +141,6 @@ export {
   setCalendarViewTime,
   updateCalendarEvent,
   deleteCalendarEventsUnderPath,
+  useImageSize,
+  setImageSizeStore,
 } from './store';

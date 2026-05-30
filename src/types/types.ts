@@ -533,6 +533,12 @@ export interface AppState {
    */
   calendarViewTime: Date;
 
+  /**
+   * Image display size: 'small' (default, max-h-96) or 'large' (max-h-[48rem]).
+   * Persisted to AppConfig. Changing this triggers a re-render of all ImageEntry components.
+   */
+  imageSize: import('../types/shared').ImageSize;
+
 }
 
 /**

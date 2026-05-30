@@ -13,7 +13,7 @@ import * as yaml from 'js-yaml';
 import { enforceDefaultAIModels } from './ai/aiModel';
 import type { AppSettings, AppConfig, AIModelConfig } from './types/shared';
 
-export type { FontSize, SortOrder, ContentWidth, SearchMode, SearchType, SearchSortBy, SearchSortDirection, SearchDefinition, Bookmark, AppSettings, AIModelConfig, AIRewritePromptDef, AppConfig } from './types/shared';
+export type { FontSize, SortOrder, ContentWidth, ImageSize, SearchMode, SearchType, SearchSortBy, SearchSortDirection, SearchDefinition, Bookmark, AppSettings, AIModelConfig, AIRewritePromptDef, AppConfig } from './types/shared';
 
 // Config file location (Linux XDG standard: ~/.config/mk-browser/config.yaml)
 const CONFIG_DIR = path.join(app.getPath('home'), '.config', 'mk-browser');

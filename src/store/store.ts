@@ -66,6 +66,7 @@ const initialState: AppState = {
   calendarLoading: false,
   calendarViewType: 'month',
   calendarViewTime: new Date(),
+  imageSize: 'small',
 };
 
 /**
@@ -1895,4 +1896,13 @@ export function clearPendingIndexTreeReveal(): void {
  */
 export function usePendingIndexTreeReveal(): string | null {
   return useSyncExternalStore(subscribe, getPendingIndexTreeRevealSnapshot);
+}
+
+export function useImageSize(): import('../types/shared').ImageSize {
+  return useSyncExternalStore(subscribe, () => state.imageSize);
+}
+
+export function setImageSizeStore(size: import('../types/shared').ImageSize): void {
+  state = { ...state, imageSize: size };
+  emitChange();
 }

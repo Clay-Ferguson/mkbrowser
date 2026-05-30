@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { PhotoIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { PhotoIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon } from '@heroicons/react/24/outline';
 import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
-import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected, useHasIndexFile, useIndexYaml } from '../../store';
+import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected, useHasIndexFile, useIndexYaml, useImageSize, setImageSizeStore } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import ExifDialog from '../dialogs/ExifDialog';
@@ -51,6 +51,22 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
     path: entry.path,
     onDelete,
   });
+
+  // Image size from global store (shared across all ImageEntry instances)
+  const imageSize = useImageSize();
+
+  const handleToggleImageSize = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newSize = imageSize === 'small' ? 'large' : 'small';
+    const thisImageUrl = imageUrl;
+    setImageSizeStore(newSize);
+    const config = await window.electronAPI.getConfig();
+    await window.electronAPI.saveConfig({ ...config, imageSize: newSize });
+    setTimeout(() => {
+      const imgEl = document.querySelector(`img[src="${thisImageUrl}"]`);
+      imgEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 750);
+  };
 
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -245,13 +261,20 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
               <img
                 src={imageUrl}
                 alt={entry.name}
-                className="max-w-full max-h-96 object-contain rounded cursor-pointer hover:opacity-90 transition-opacity"
+                className={`max-w-full ${imageSize === 'large' ? 'max-h-[48rem]' : 'max-h-96'} object-contain rounded cursor-pointer hover:opacity-90 transition-opacity`}
                 loading="lazy"
                 onClick={() => setIsFullscreen(true)}
                 title="Click to view fullscreen"
-                // onLoad={() => {logger.log('[ImageEntry] Image loaded successfully:', imageUrl)}} 
+                // onLoad={() => {logger.log('[ImageEntry] Image loaded successfully:', imageUrl)}}
                 onError={(e) => logger.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
               />
+              <button
+                onClick={handleToggleImageSize}
+                className="absolute top-2 right-9 p-1 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors"
+                title={imageSize === 'small' ? 'Switch to large image size' : 'Switch to small image size'}
+              >
+                {imageSize === 'small' ? <MagnifyingGlassPlusIcon className="w-5 h-5" /> : <MagnifyingGlassMinusIcon className="w-5 h-5" />}
+              </button>
               <button
                 onClick={(e) => handleExifClick(e, entry.path, entry.name)}
                 disabled={exifLoading}

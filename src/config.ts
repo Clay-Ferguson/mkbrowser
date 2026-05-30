@@ -1,4 +1,4 @@
-import { setSettings, setCurrentPath, setCalendarViewType } from './store';
+import { setSettings, setCurrentPath, setCalendarViewType, setImageSizeStore } from './store';
 
 export interface LoadConfigResult {
   rootPath: string | null;
@@ -22,6 +22,9 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     }
     if (config.calendarViewType) {
       setCalendarViewType(config.calendarViewType);
+    }
+    if (config.imageSize) {
+      setImageSizeStore(config.imageSize);
     }
     if (config.browseFolder) {
       const exists = await window.electronAPI.pathExists(config.browseFolder);

@@ -3,6 +3,7 @@ import type { HashtagDefinition, TagCategory } from '../utils/tagUtil';
 export type { HashtagDefinition, TagCategory };
 
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
+export type ImageSize = 'small' | 'large';
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 export type SearchMode = 'content' | 'filenames';
@@ -84,6 +85,8 @@ export interface AppConfig {
   calendarViewType?: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
   /** Recently browsed folders, most recent first, max 10. */
   recentFolders?: string[];
+  /** Image display size: 'small' (default, max-h-96) or 'large' (max-h-[48rem]). */
+  imageSize?: ImageSize;
 }
 
 export interface FileEntry {
