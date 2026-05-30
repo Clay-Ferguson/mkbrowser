@@ -2,6 +2,28 @@
  * Utility functions for edit operations (Split, etc.)
  */
 
+import yaml from 'js-yaml';
+import { parseFrontMatter } from '../fileUtil';
+
+/**
+ * For a markdown file being appended (not the lead file), strips its front
+ * matter and converts it to a fenced YAML code block (removing the `id`
+ * property). Returns the content ready to append.
+ */
+function prepareMarkdownForAppend(filePath: string, rawContent: string): string {
+  const isMarkdown = filePath.endsWith('.md') || filePath.endsWith('.markdown');
+  if (!isMarkdown) return rawContent;
+
+  const { yaml: frontMatter, content } = parseFrontMatter(rawContent);
+  if (!frontMatter) return rawContent;
+
+  // Remove the id property — it's no longer valid after the file is deleted
+  const { id: _id, ...rest } = frontMatter as Record<string, unknown>;
+  const yamlStr = yaml.dump(rest, { lineWidth: -1 }).trimEnd();
+  const fencedBlock = '```yaml\n' + yamlStr + '\n```\n';
+  return fencedBlock + content;
+}
+
 export interface SplitFileResult {
   success: boolean;
   error?: string;
@@ -148,10 +170,12 @@ export async function joinFiles(
       return nameA.localeCompare(nameB);
     });
     
-    // Read all file contents
+    // Read all file contents; for appended files (not the lead), convert front matter to a fenced code block
     const contents: string[] = [];
-    for (const filePath of sortedPaths) {
-      const content = await readFile(filePath);
+    for (let i = 0; i < sortedPaths.length; i++) {
+      const filePath = sortedPaths[i];
+      const raw = await readFile(filePath);
+      const content = i === 0 ? raw : prepareMarkdownForAppend(filePath, raw);
       contents.push(content);
     }
     
