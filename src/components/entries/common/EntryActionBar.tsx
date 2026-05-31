@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../utils/styles';
 import { toggleBookmark, addBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
@@ -18,10 +18,6 @@ interface EntryActionBarProps {
   onDeleteClick: (e?: React.MouseEvent) => void;
   /** Handler to persist settings after bookmark toggle */
   onSaveSettings: () => void;
-  /** Whether to show an edit button (for editable files) */
-  showEditButton?: boolean;
-  /** Handler for edit button */
-  onEditClick?: () => void;
   /** Move up in .INDEX.yaml (only provided in indexed mode; undefined hides the button) */
   onMoveUp?: () => void;
   /** Move down in .INDEX.yaml (only provided in indexed mode; undefined hides the button) */
@@ -50,8 +46,6 @@ export function EntryActionBar({
   deleting,
   onDeleteClick,
   onSaveSettings,
-  showEditButton = false,
-  onEditClick,
   onMoveUp,
   onMoveDown,
   onMoveToTop,
@@ -102,19 +96,6 @@ export function EntryActionBar({
     )}
     <div data-testid="entry-action-bar" className={`flex items-center gap-1 ${className}`}>
       <div className="opacity-0 pointer-events-none [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:pointer-events-auto group-hover:[transition:opacity_200ms_ease_400ms] flex items-center gap-1">
-      {showEditActions && showEditButton && onEditClick && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onEditClick();
-          }}
-          className={BUTTON_CLASS_NORMAL}
-          title="Edit content"
-          data-testid="entry-edit-button"
-        >
-          <PencilSquareIcon className="w-5 h-5" />
-        </button>
-      )}
       {showEditActions && (
         <button
           onClick={onDeleteClick}

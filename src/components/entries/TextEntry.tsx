@@ -220,15 +220,16 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
             onMoveDown={onMoveDown}
             onMoveToTop={onMoveToTop}
             onMoveToBottom={onMoveToBottom}
-            showEditButton
-            onEditClick={edit.handleEditClick}
             className="-mr-1.5"
             isAttachment={isAttachment}
           />
         )}
       </div>
       {isExpanded && (
-        <div className={ENTRY_CONTENT_AREA}>
+        <div
+          className={ENTRY_CONTENT_AREA}
+          onMouseUp={!edit.isEditing ? (e) => { if (!window.getSelection()?.toString()) edit.handleEditClick(); } : undefined}
+        >
           {loading && !content ? (
             <div className={ENTRY_LOADING}>Loading...</div>
           ) : edit.isEditing ? (

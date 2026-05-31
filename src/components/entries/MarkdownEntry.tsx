@@ -434,8 +434,6 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               onMoveDown={onMoveDown}
               onMoveToTop={onMoveToTop}
               onMoveToBottom={onMoveToBottom}
-              showEditButton
-              onEditClick={edit.handleEditClick}
               className="-mr-1.5"
               isAttachment={isAttachment}
               onPasteClipboardAsAttachment={onPasteClipboardAsAttachment ? () => onPasteClipboardAsAttachment(entry.path) : undefined}
@@ -478,7 +476,10 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
         )}
       </div>
       {isExpanded && (
-        <div className={ENTRY_CONTENT_AREA}>
+        <div
+          className={ENTRY_CONTENT_AREA}
+          onMouseUp={!edit.isEditing ? (e) => { if (!window.getSelection()?.toString()) edit.handleEditClick(); } : undefined}
+        >
           {loading && !content ? (
             <div className={ENTRY_LOADING}>Loading...</div>
           ) : edit.isEditing ? (
@@ -545,9 +546,6 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               {columns.length > 1 ? (
                 <div
                   style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}
-                  className="cursor-pointer"
-                  onMouseUp={() => { if (!window.getSelection()?.toString()) edit.handleEditClick(); }}
-                  title="Click to edit"
                 >
                   {columns.map((col, i) => (
                     <article
@@ -577,9 +575,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
                 </div>
               ) : (
                 <article
-                  className="prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2 cursor-pointer"
-                  onMouseUp={() => { if (!window.getSelection()?.toString()) edit.handleEditClick(); }}
-                  title="Click to edit"
+                  className="prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2"
                 >
                   <Markdown
                     remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
