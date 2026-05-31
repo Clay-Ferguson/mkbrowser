@@ -366,7 +366,7 @@ function setupIpcHandlers(): void {
   });
 
   // Write options section of .INDEX.yaml
-  ipcMain.handle('write-index-options', async (_event, dirPath: string, options: { edit_mode?: boolean }): Promise<{ success: boolean; error?: string }> => {
+  ipcMain.handle('write-index-options', async (_event, dirPath: string, options: Record<string, unknown>): Promise<{ success: boolean; error?: string }> => {
     return writeIndexOptions(dirPath, options);
   });
 

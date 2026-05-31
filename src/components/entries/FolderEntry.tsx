@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
-import { useHasCutItems, useItem, useHasIndexFile, useIndexYaml, deleteItems } from '../../store';
+import { useHasCutItems, useItem, useHasIndexFile, deleteItems } from '../../store';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import {
   makeEntryDragStartHandler,
@@ -49,8 +49,6 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
   const hasCutItems = useHasCutItems();
   const item = useItem(entry.path);
   const hasIndexFile = useHasIndexFile();
-  const indexYaml = useIndexYaml();
-  const editMode = indexYaml?.options?.edit_mode ?? false;
   const aiHint = item?.aiHint;
   const rename = useRename({
     path: entry.path,
@@ -117,7 +115,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
         onDrop={(e) => void handleDrop(e)}
         className={`w-full flex items-center gap-3 px-2 py-0 ${isDragOver ? 'bg-blue-600/60 outline outline-1 outline-blue-400' : isHighlighted ? 'bg-blue-800/50' : 'bg-blue-800/50 hover:bg-blue-700/70'} transition-colors text-left cursor-pointer`}
       >
-        {(!hasIndexFile || editMode) && (
+        {(
           <SelectionCheckbox
             path={entry.path}
             name={entry.name}

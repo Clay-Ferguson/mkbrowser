@@ -62,10 +62,7 @@ export function EntryActionBar({
   onPasteClipboardAsAttachment,
   isFolder = false,
 }: EntryActionBarProps) {
-  const hasIndexFile = useHasIndexFile();
-  const indexYaml = useIndexYaml();
-  const editMode = indexYaml?.options?.edit_mode ?? false;
-  const showEditActions = !hasIndexFile || editMode;
+  const showEditActions = true;
   const settings = useSettings();
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
 

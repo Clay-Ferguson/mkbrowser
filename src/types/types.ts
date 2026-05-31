@@ -494,7 +494,7 @@ export interface AppState {
    * Parsed contents of .INDEX.yaml for the current directory.
    * Null when no index file exists or has not yet been loaded.
    */
-  indexYaml: { files?: { name: string; id?: string }[]; options?: { edit_mode?: boolean } } | null;
+  indexYaml: { files?: { name: string; id?: string }[]; options?: Record<string, unknown> } | null;
 
   /**
    * When true, BrowseView hides all entries except the one being edited,

@@ -8,7 +8,6 @@ import {
   toggleItemExpanded,
   setItemReviewing,
   useHasIndexFile,
-  useIndexYaml,
   useExpandedEditor,
   setExpandedEditor,
 } from '../../store';
@@ -70,8 +69,6 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
 
   const hasIndexFile = useHasIndexFile();
-  const indexYaml = useIndexYaml();
-  const editMode = indexYaml?.options?.edit_mode ?? false;
   const expandedEditor = useExpandedEditor();
 
   const rename = useRename({
@@ -133,7 +130,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
   return (
     <div className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
       <div className={`${ENTRY_HEADER_ROW} ${isExpanded ? ENTRY_HEADER_EXPANDED : ''}`}>
-        {!isAttachment && (!hasIndexFile || editMode) && (
+        {!isAttachment && (
           <SelectionCheckbox
             path={entry.path}
             name={entry.name}

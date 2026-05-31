@@ -77,17 +77,17 @@ describe('readIndexYaml', () => {
 
 describe('writeIndexOptions', () => {
   it('creates .INDEX.yaml with options when none exists', async () => {
-    const result = await writeIndexOptions(tmpDir, { edit_mode: true });
+    const result = await writeIndexOptions(tmpDir, { pinned: true });
     expect(result.success).toBe(true);
     const data = readIndex();
-    expect(data.options?.edit_mode).toBe(true);
+    expect(data.options?.pinned).toBe(true);
   });
 
   it('merges options into existing .INDEX.yaml preserving files', async () => {
-    writeIndex({ files: [{ name: 'a.md' }], options: { edit_mode: false } });
-    await writeIndexOptions(tmpDir, { edit_mode: true });
+    writeIndex({ files: [{ name: 'a.md' }], options: { pinned: false } });
+    await writeIndexOptions(tmpDir, { pinned: true });
     const data = readIndex();
-    expect(data.options.edit_mode).toBe(true);
+    expect(data.options.pinned).toBe(true);
     expect(data.files[0].name).toBe('a.md');
   });
 });

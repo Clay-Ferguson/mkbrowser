@@ -108,6 +108,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('reconcile-indexed-files', dirPath, createIfMissing),
   readIndexYaml: (dirPath: string) =>
     ipcRenderer.invoke('read-index-yaml', dirPath),
-  writeIndexOptions: (dirPath: string, options: { edit_mode?: boolean }) =>
+  writeIndexOptions: (dirPath: string, options: Record<string, unknown>) =>
     ipcRenderer.invoke('write-index-options', dirPath, options),
 } as ElectronAPI);

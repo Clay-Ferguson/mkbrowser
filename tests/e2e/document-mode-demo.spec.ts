@@ -87,30 +87,6 @@ test.describe('Document Mode Demo', () => {
       MkBrowser has created a hidden file named INDEX dot Y A M L in the folder to record and maintain the entry order.`
     );
 
-    // --- Phase 2: Enable Edit Mode and demonstrate move operations ---
-
-    // Find and highlight the Edit Mode checkbox
-    const editCheckbox = mainWindow.getByTestId('doc-mode-edit-checkbox');
-    await expect(editCheckbox).toBeVisible({ timeout: 5000 });
-
-    await takeScreenshot(mainWindow, editCheckbox, screenshotDir, step++, 'edit-checkbox-highlighted');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Now that Document Mode is active you can see an "Edit" checkbox in the toolbar at the top right. 
-      We are going to click this checkbox to turn on Edit Mode for this document, which will unlock additional controls for managing the order and structure of files.`
-    );
-
-    await demoClick(editCheckbox);
-    await mainWindow.waitForTimeout(1000);
-
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'edit-mode-enabled');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Edit Mode is now enabled. You can see that "Insert File" and "Insert Folder" buttons have appeared throughout the document, positioned between entries so you can add new content at any specific location in the document.`
-    );
-
     // Hover over federalist-00.md to reveal its action bar
     const federalist00Entry = mainWindow
       .getByTestId('browser-entry-markdown')

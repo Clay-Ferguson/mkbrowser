@@ -2,7 +2,7 @@ import { DocumentIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { formatFlyoverInfo } from '../../utils/fileUtil';
 import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
-import { toggleItemExpanded, useHasIndexFile, useIndexYaml } from '../../store';
+import { toggleItemExpanded, useHasIndexFile } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useEntryCore,
@@ -27,8 +27,6 @@ function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onM
   } = useEntryCore({ path: entry.path, name: entry.name });
 
   const hasIndexFile = useHasIndexFile();
-  const indexYaml = useIndexYaml();
-  const editMode = indexYaml?.options?.edit_mode ?? false;
 
   const rename = useRename({
     path: entry.path,
@@ -50,7 +48,7 @@ function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onM
   return (
     <div className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
       <div className={ENTRY_HEADER_ROW}>
-        {!isAttachment && (!hasIndexFile || editMode) && (
+        {!isAttachment && (
           <SelectionCheckbox
             path={entry.path}
             name={entry.name}

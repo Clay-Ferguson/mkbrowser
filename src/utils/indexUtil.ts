@@ -21,7 +21,7 @@ async function writeFileAtomic(filePath: string, content: string): Promise<void>
 export type IndexEntry = { name: string; id?: string; create_time?: number; size?: number };
 
 export interface IndexOptions {
-  edit_mode?: boolean;
+  [key: string]: unknown;
 }
 
 export interface IndexYaml {

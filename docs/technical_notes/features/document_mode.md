@@ -27,7 +27,7 @@ The user experience is Jupyter-like, but we're using individual markdown files a
 
 The way a user would initialize this special "Document View" for any given folder is simply by navigating to that folder and then picking, **Custom File Ordering** from the sort options menu (`SortPopupMenu.tsx`). This will automatically create the `.INDEX.yaml` file (and initializle it) and switch the user into the Document View mode. The react global state variable that indicates we're in document mode is `hasIndexFile`.
 
-Whenever a folder is a document there will also be an additional mode flag called "Edit Mode", which can be turned on and off by a checkbox at the top right of the screen (labeled "Edit"). When the user has Edit Mode enabled there will be additional icon buttons on the screen that allow certain features (related to ordering and creating of new files) to appear on the screen which are helpful for editing a document. The react global state variable for edit mode is named `indexYaml?.options?.edit_mode`.
+The document-editing controls (insert bars, selection checkboxes, and the ordering/creation buttons) are always visible whenever a folder is a document — there is no separate "Edit Mode" toggle.
 
 
 ## The `.INDEX.yaml` File
@@ -35,8 +35,7 @@ Whenever a folder is a document there will also be an additional mode flag calle
 `.INDEX.yaml` is a hidden YAML file placed directly inside the directory it controls. It has two top-level keys:
 
 - **`files`** — an ordered list of entries. Each entry has at minimum a `name` field (the exact filename or folder name as it appears on disk). Markdown files also carry an `id` field — a 9-character uppercase hex string used as a stable identity across renames.
-- **`options`** _(optional)_ — a map of directory-level settings. Currently supports:
-  - `edit_mode` (`boolean`) — when `true`, the directory opens in edit mode by default.
+- **`options`** _(optional)_ — a map of directory-level settings. It is reserved for future per-directory settings and is preserved across reconciliation.
 
 ### Example
 
@@ -50,8 +49,6 @@ files:
     id: F5E6D7C8B
   - name: cover.png
   - name: notes.txt
-options:
-  edit_mode: true
 ```
 
 Key points:

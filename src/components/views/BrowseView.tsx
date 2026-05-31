@@ -160,7 +160,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const hasIndexFile = useHasIndexFile();
   const indexYaml = useIndexYaml();
-  const editMode = indexYaml?.options?.edit_mode ?? false;
   const expandedEditor = useExpandedEditor();
   const imageSizeTransitioning = useImageSizeTransitioning();
 
@@ -648,13 +647,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     runOcr(currentPath, settings.ocrToolsFolder, items, onSetError);
   }, [currentPath, settings.ocrToolsFolder, items, onSetError]);
 
-  const handleEditModeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newEditMode = e.target.checked;
-    const updated = { ...(indexYaml ?? {}), options: { ...(indexYaml?.options ?? {}), edit_mode: newEditMode } };
-    setIndexYaml(updated);
-    void window.electronAPI.writeIndexOptions(currentPath, { edit_mode: newEditMode });
-  }, [indexYaml, currentPath]);
-
   const handleSelectSortOrder = useCallback((order: Parameters<typeof setSortOrder>[0]) => {
     setSortOrder(order);
     void onSaveSettings();
@@ -949,20 +941,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             <ArrowPathIcon className="w-6 h-6" />
           </button>
 
-          {/* Edit checkbox floats at top right of scrollable area, inside main */}
-          {hasIndexFile && (
-            <label data-testid="doc-mode-edit-checkbox" className="flex items-center gap-1 cursor-pointer ml-4">
-              <input
-                type="checkbox"
-                className="w-5 h-5"
-                style={{ accentColor: '#38bdf8' }}
-                checked={indexYaml?.options?.edit_mode ?? false}
-                onChange={handleEditModeChange}
-              />
-              <span className="text-slate-200 text-sm">Edit</span>
-            </label>
-          )}
-
         </div>
       </header>
 
@@ -994,7 +972,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               IndexInsertBars, attach-folder gating) are computed conditionally inside the map. */}
           {!loading && sortedEntries.length > 0 && (
             <div className={hasIndexFile ? undefined : '[&>div+div]:-mt-px'}>
-              {hasIndexFile && editMode && !(expandedEditor && anyItemEditing) && !visibleEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
+              {hasIndexFile && !(expandedEditor && anyItemEditing) && !visibleEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
                 <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />
               )}
               {visibleEntries.map((entry, idx) => {
@@ -1006,8 +984,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 const isAttach = entry.name.endsWith(ATTACH_SUFFIX);
                 const indentFolder = isAttach && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
                 const parentExpanded = !indentFolder || (!!prevEntry && (items.get(prevEntry.path)?.isExpanded ?? false));
-                // Index mode hides attach folders unless editing; non-index mode always shows them.
-                const showFolder = parentExpanded && (hasIndexFile ? (!isAttach || editMode) : true);
+                // Folders are shown whenever their parent is expanded (attach folders included).
+                const showFolder = parentExpanded;
                 return (
                   <div key={entry.path}>
                     {entry.isDirectory ? (
@@ -1036,7 +1014,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                     ) : (
                       <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                     )}
-                    {hasIndexFile && editMode && !(expandedEditor && anyItemEditing) && !visibleEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
+                    {hasIndexFile && !(expandedEditor && anyItemEditing) && !visibleEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
                       <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
                     )}
                   </div>

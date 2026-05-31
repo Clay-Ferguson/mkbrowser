@@ -86,8 +86,6 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
 
   const { showToc, showPropsInEditor } = useSettings();
   const hasIndexFile = useHasIndexFile();
-  const indexYaml = useIndexYaml();
-  const editMode = indexYaml?.options?.edit_mode ?? false;
   const expandedEditor = useExpandedEditor();
 
   const rename = useRename({
@@ -306,7 +304,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   return (
     <div data-testid="browser-entry-markdown" className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
       <div className={`${ENTRY_HEADER_ROW} ${isExpanded ? ENTRY_HEADER_EXPANDED : ''}`}>
-        {!isAttachment && (!hasIndexFile || editMode) && (
+        {!isAttachment && (
           <SelectionCheckbox
             path={entry.path}
             name={entry.name}
