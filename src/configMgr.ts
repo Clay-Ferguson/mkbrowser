@@ -248,24 +248,23 @@ export function getConfig(): AppConfig {
 }
 
 /**
- * Replace the entire in-memory config and persist to disk.
- */
-export function setConfig(config: AppConfig): void {
-  // Enforce defaults and normalize AI model selection before persisting.
-  createDefaultAISettings(config);
-  _config = config;
-  persistConfig();
-}
-
-/**
  * Merge partial updates into the in-memory config and persist to disk.
- * Pass `curSubFolder: undefined` to delete the key.
+ *
+ * This is the ONLY way to mutate config from the renderer: each call touches
+ * only the keys it carries, and the main process is single-threaded, so
+ * concurrent updates to different keys can never clobber each other. There is
+ * deliberately no whole-config "replace" path exposed to the renderer.
+ *
+ * Any key whose value is `undefined` is treated as a deletion (e.g. pass
+ * `curSubFolder: undefined` to remove it entirely).
  */
 export function updateConfig(updates: Partial<AppConfig>): void {
   _config = { ..._config, ...updates };
-  // Remove keys explicitly set to undefined
-  if ('curSubFolder' in updates && updates.curSubFolder === undefined) {
-    delete _config.curSubFolder;
+  // A key explicitly set to undefined means "delete this key"
+  for (const key of Object.keys(updates) as (keyof AppConfig)[]) {
+    if (updates[key] === undefined) {
+      delete _config[key];
+    }
   }
 
   // Enforce defaults and normalize AI model selection before persisting.

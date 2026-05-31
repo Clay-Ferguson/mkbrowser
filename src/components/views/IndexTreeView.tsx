@@ -419,8 +419,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const closeBookmarksMenu = () => setShowBookmarksMenu(false);
   const saveTreeWidth = async (width: typeof settings.indexTreeWidth) => {
     setIndexTreeWidth(width);
-    const config = await window.electronAPI.getConfig();
-    await window.electronAPI.saveConfig({ ...config, settings: getSettings() });
+    await window.electronAPI.updateConfig({ settings: getSettings() });
   };
   const handleNarrowTree = () => saveTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
   const handleWidenTree = () => saveTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');

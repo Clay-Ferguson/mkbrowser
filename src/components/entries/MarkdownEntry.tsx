@@ -162,8 +162,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   const handleToggleTagsVisible = async () => {
     const newVisible = !tagsVisible;
     setTagsVisible(newVisible);
-    const config = await window.electronAPI.getConfig();
-    await window.electronAPI.saveConfig({ ...config, tagsPanelVisible: newVisible });
+    await window.electronAPI.updateConfig({ tagsPanelVisible: newVisible });
   };
 
   const handleToggleShowProps = () => {

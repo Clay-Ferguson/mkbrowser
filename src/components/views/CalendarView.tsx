@@ -54,9 +54,7 @@ export default function CalendarView() {
   const handleViewChange = (v: View) => {
     const vt = v as 'month' | 'week' | 'work_week' | 'day' | 'agenda';
     setCalendarViewType(vt);
-    window.electronAPI.getConfig().then(config => {
-      window.electronAPI.saveConfig({ ...config, calendarViewType: vt });
-    });
+    window.electronAPI.updateConfig({ calendarViewType: vt });
   };
 
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {

@@ -36,7 +36,7 @@ import {
   deleteCalendarEventsUnderPath,
 } from './store';
 import type { CalendarEvent } from './types/types';
-import type { CalendarEventResult } from './types/shared';
+import type { CalendarEventResult, AppConfig } from './types/shared';
 import type { FileNode } from './store';
 import { loadConfig } from './config';
 import { applyGlobalHighlight, globalHighlightText } from './utils/globalHighlight';
@@ -239,29 +239,23 @@ function App() {
   }, [currentPath]);
 
   // Persist current subfolder AND recent folders whenever navigation changes.
-  // These must share a single read-modify-write of the config: saveConfig
-  // replaces the entire config object, so two independent effects each doing
-  // getConfig()/saveConfig() would race and clobber each other's changes.
+  // Each is its own config key, sent via updateConfig so the main process
+  // merges them in without touching anything else — no whole-config rewrite,
+  // no clobbering of other settings written concurrently.
   useEffect(() => {
     if (!currentPath) return;
-    const persistNavigation = async () => {
-      try {
-        const config = await window.electronAPI.getConfig();
-        // Recent folders, most recent first, max 10
-        const prevRecent = config.recentFolders ?? [];
-        const updatedRecent = [currentPath, ...prevRecent.filter(f => f !== currentPath)].slice(0, 10);
-        setRecentFolders(updatedRecent);
-        const next = { ...config, recentFolders: updatedRecent };
-        // Current subfolder (only meaningful once we have a root to compare against)
-        if (rootPath) {
-          next.curSubFolder = currentPath === rootPath ? undefined : currentPath;
-        }
-        await window.electronAPI.saveConfig(next);
-      } catch {
-        // Non-critical — config will be updated on next navigation
+    setRecentFolders(prevRecent => {
+      const updatedRecent = [currentPath, ...prevRecent.filter(f => f !== currentPath)].slice(0, 10);
+      const updates: Partial<AppConfig> = { recentFolders: updatedRecent };
+      // Current subfolder (only meaningful once we have a root to compare against)
+      if (rootPath) {
+        updates.curSubFolder = currentPath === rootPath ? undefined : currentPath;
       }
-    };
-    persistNavigation();
+      window.electronAPI.updateConfig(updates).catch(() => {
+        // Non-critical — config will be updated on next navigation
+      });
+      return updatedRecent;
+    });
   }, [currentPath, rootPath]);
 
   const refreshDirectory = useCallback(() => {
@@ -275,8 +269,7 @@ function App() {
   const handleSelectFolder = useCallback(async () => {
     const folder = await window.electronAPI.selectFolder();
     if (folder) {
-      const config = await window.electronAPI.getConfig();
-      await window.electronAPI.saveConfig({ ...config, browseFolder: folder, curSubFolder: undefined });
+      await window.electronAPI.updateConfig({ browseFolder: folder, curSubFolder: undefined });
       setRootPath(folder);
       setCurrentPath(folder);
     }
@@ -287,8 +280,7 @@ function App() {
       setCurrentPath(folder);
       setCurrentView('browser');
     } else {
-      const config = await window.electronAPI.getConfig();
-      await window.electronAPI.saveConfig({ ...config, browseFolder: folder, curSubFolder: undefined });
+      await window.electronAPI.updateConfig({ browseFolder: folder, curSubFolder: undefined });
       setRootPath(folder);
       setCurrentPath(folder);
       setCurrentView('browser');
@@ -319,12 +311,7 @@ function App() {
 
   const handleSaveSettings = useCallback(async () => {
     try {
-      const currentSettings = getSettings();
-      const config = await window.electronAPI.getConfig();
-      await window.electronAPI.saveConfig({
-        ...config,
-        settings: currentSettings,
-      });
+      await window.electronAPI.updateConfig({ settings: getSettings() });
     } catch {
       setError('Failed to save settings');
     }

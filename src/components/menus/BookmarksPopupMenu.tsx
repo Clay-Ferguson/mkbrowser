@@ -34,20 +34,19 @@ export default function BookmarksPopupMenu({
     a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
   );
 
-  const saveConfig = async () => {
-    const config = await window.electronAPI.getConfig();
-    await window.electronAPI.saveConfig({ ...config, settings: getSettings() });
+  const persistBookmarks = async () => {
+    await window.electronAPI.updateConfig({ settings: getSettings() });
   };
 
   const handleDelete = async (fullPath: string) => {
     removeBookmark(fullPath);
-    await saveConfig();
+    await persistBookmarks();
   };
 
   const handleEditSave = async (name: string) => {
     if (!editingBookmark) return;
     updateBookmarkName(editingBookmark.path, name);
-    await saveConfig();
+    await persistBookmarks();
     setEditingBookmark(null);
   };
 
@@ -56,8 +55,7 @@ export default function BookmarksPopupMenu({
     if (!exists) {
       if (isBookmarked(fullPath)) {
         toggleBookmark(fullPath);
-        const config = await window.electronAPI.getConfig();
-        await window.electronAPI.saveConfig({ ...config, settings: getSettings() });
+        await window.electronAPI.updateConfig({ settings: getSettings() });
       }
       setMissingPath(fullPath);
       return;

@@ -66,16 +66,13 @@ export function createContentSearcher(content: string): {
 export async function saveSearchDefinitionToConfig(definition: SearchDefinition): Promise<void> {
   try {
     const currentSettings = getSettings();
-    const config = await window.electronAPI.getConfig();
     const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
       (def) => def.name !== definition.name
     );
     updatedSearchDefinitions.push(definition);
-    await window.electronAPI.saveConfig({
-      ...config,
-      settings: { ...currentSettings, searchDefinitions: updatedSearchDefinitions },
-    });
-    setSettings({ ...currentSettings, searchDefinitions: updatedSearchDefinitions });
+    const updatedSettings = { ...currentSettings, searchDefinitions: updatedSearchDefinitions };
+    setSettings(updatedSettings);
+    await window.electronAPI.updateConfig({ settings: updatedSettings });
   } catch (err) {
     logger.error('Failed to save search definition:', err);
   }
@@ -84,15 +81,12 @@ export async function saveSearchDefinitionToConfig(definition: SearchDefinition)
 export async function deleteSearchDefinitionFromConfig(name: string): Promise<void> {
   try {
     const currentSettings = getSettings();
-    const config = await window.electronAPI.getConfig();
     const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
       (def) => def.name !== name
     );
-    await window.electronAPI.saveConfig({
-      ...config,
-      settings: { ...currentSettings, searchDefinitions: updatedSearchDefinitions },
-    });
-    setSettings({ ...currentSettings, searchDefinitions: updatedSearchDefinitions });
+    const updatedSettings = { ...currentSettings, searchDefinitions: updatedSearchDefinitions };
+    setSettings(updatedSettings);
+    await window.electronAPI.updateConfig({ settings: updatedSettings });
   } catch (err) {
     logger.error('Failed to delete search definition:', err);
   }

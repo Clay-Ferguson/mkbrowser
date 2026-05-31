@@ -73,8 +73,7 @@ function AISettingsView() {
 
   const saveAiConfigField = useCallback(async (updates: Partial<AppConfig>) => {
     try {
-      const config = await window.electronAPI.getConfig();
-      await window.electronAPI.saveConfig({ ...config, ...updates });
+      await window.electronAPI.updateConfig(updates);
     } catch {
       // Silently fail — config will be stale until next save
     }

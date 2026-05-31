@@ -86,10 +86,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
     });
 
     // Persist the choice independently — it must not gate the animation timing.
-    void (async () => {
-      const config = await window.electronAPI.getConfig();
-      await window.electronAPI.saveConfig({ ...config, imageSize: newSize });
-    })();
+    void window.electronAPI.updateConfig({ imageSize: newSize });
   };
 
   // Fullscreen state

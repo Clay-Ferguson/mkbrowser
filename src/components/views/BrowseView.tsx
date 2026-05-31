@@ -468,8 +468,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     onSetError(null);
 
     onSetLastExportFolder(outputFolder);
-    const config = await window.electronAPI.getConfig();
-    await window.electronAPI.saveConfig({ ...config, lastExportFolder: outputFolder });
+    await window.electronAPI.updateConfig({ lastExportFolder: outputFolder });
 
     const result = await window.electronAPI.exportFolderContents(currentPath, outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers);
 

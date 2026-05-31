@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, native
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
-import { initConfig, getConfig, setConfig, updateConfig } from './configMgr';
+import { initConfig, getConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 
 import { readDirectory, parseFrontMatter } from './utils/fileUtil';
@@ -124,9 +124,11 @@ function setupIpcHandlers(): void {
     return getConfig();
   });
 
-  // Save configuration — updates in-memory state and flushes to disk
-  ipcMain.handle('save-config', (_event, config: AppConfig): void => {
-    setConfig(config);
+  // Merge partial config updates into in-memory state and flush to disk.
+  // Renderer callers send only the keys they own; the merge happens here on
+  // the single main-process thread, so concurrent updates can't clobber.
+  ipcMain.handle('update-config', (_event, updates: Partial<AppConfig>): void => {
+    updateConfig(updates);
   });
 
   // Set window title

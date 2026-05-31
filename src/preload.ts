@@ -5,7 +5,7 @@ import type { AppConfig, ElectronAPI, CalendarEventResult } from './types/shared
 contextBridge.exposeInMainWorld('electronAPI', {
   quit: () => ipcRenderer.invoke('quit'),
   getConfig: () => ipcRenderer.invoke('get-config'),
-  saveConfig: (config: AppConfig) => ipcRenderer.invoke('save-config', config),
+  updateConfig: (updates: Partial<AppConfig>) => ipcRenderer.invoke('update-config', updates),
   selectFolder: () => ipcRenderer.invoke('select-folder'),
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
     ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),
