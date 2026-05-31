@@ -6,24 +6,30 @@ interface IndexInsertBarProps {
 }
 
 function IndexInsertBar({ onInsertFile, onInsertFolder }: IndexInsertBarProps) {
+  // A zero-height wrapper keeps the insert point at its correct vertical position
+  // in the flow without consuming any vertical space. The buttons are absolutely
+  // positioned into the right-hand gutter (reserved by padding on the entry list)
+  // and stacked over-under to minimize horizontal footprint.
   return (
-    <div className="flex justify-center gap-2 py-0">
-      <button
-        data-testid="insert-file-here"
-        onClick={onInsertFile}
-        className="p-2 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-        title="Insert file here"
-      >
-        <DocumentPlusIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
-      </button>
-      <button
-        data-testid="insert-folder-here"
-        onClick={onInsertFolder}
-        className="p-2 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
-        title="Insert folder here"
-      >
-        <FolderPlusIcon className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
-      </button>
+    <div className="relative h-0">
+      <div className="absolute top-0 right-0 translate-x-full flex flex-row gap-1">
+        <button
+          data-testid="insert-file-here"
+          onClick={onInsertFile}
+          className="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+          title="Insert file here"
+        >
+          <DocumentPlusIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
+        </button>
+        <button
+          data-testid="insert-folder-here"
+          onClick={onInsertFolder}
+          className="p-1.5 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+          title="Insert folder here"
+        >
+          <FolderPlusIcon className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
+        </button>
+      </div>
     </div>
   );
 }

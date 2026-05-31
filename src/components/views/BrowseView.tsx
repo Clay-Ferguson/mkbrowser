@@ -971,7 +971,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               the whole entry list (the remount storm was tripping React's max-update-depth). Index-only bits (move handlers,
               IndexInsertBars, attach-folder gating) are computed conditionally inside the map. */}
           {!loading && sortedEntries.length > 0 && (
-            <div className={hasIndexFile ? undefined : '[&>div+div]:-mt-px'}>
+            <div className={hasIndexFile ? 'pr-12' : '[&>div+div]:-mt-px'}>
               {hasIndexFile && !(expandedEditor && anyItemEditing) && !visibleEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
                 <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />
               )}
