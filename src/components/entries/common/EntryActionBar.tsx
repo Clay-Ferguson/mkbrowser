@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { PencilSquareIcon, PencilIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../utils/styles';
 import { toggleBookmark, addBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
@@ -48,7 +48,6 @@ export function EntryActionBar({
   path,
   isBookmarked,
   deleting,
-  onRenameClick,
   onDeleteClick,
   onSaveSettings,
   showEditButton = false,
@@ -114,16 +113,6 @@ export function EntryActionBar({
           data-testid="entry-edit-button"
         >
           <PencilSquareIcon className="w-5 h-5" />
-        </button>
-      )}
-      {showEditActions && (
-        <button
-          onClick={onRenameClick}
-          className={BUTTON_CLASS_NORMAL}
-          title="Rename"
-          data-testid="entry-rename-button"
-        >
-          <PencilIcon className="w-5 h-5" />
         </button>
       )}
       {showEditActions && (

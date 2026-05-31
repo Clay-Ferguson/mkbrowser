@@ -110,6 +110,7 @@ function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, on
     <div className={`${indentFolder ? '' : 'bg-slate-800'} group ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`} style={indentFolder ? { paddingLeft: '32px' } : undefined}>
       <div
         onClick={() => !isRenaming && onNavigate(entry.path)}
+        onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={(e) => void handleDrop(e)}

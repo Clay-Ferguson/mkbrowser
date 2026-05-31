@@ -47,7 +47,7 @@ function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onM
 
   return (
     <div className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
-      <div className={ENTRY_HEADER_ROW}>
+      <div className={ENTRY_HEADER_ROW} onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}>
         {!isAttachment && (
           <SelectionCheckbox
             path={entry.path}
