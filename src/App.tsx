@@ -238,21 +238,30 @@ function App() {
     }
   }, [currentPath]);
 
-  // Persist current subfolder to config whenever navigation changes
+  // Persist current subfolder AND recent folders whenever navigation changes.
+  // These must share a single read-modify-write of the config: saveConfig
+  // replaces the entire config object, so two independent effects each doing
+  // getConfig()/saveConfig() would race and clobber each other's changes.
   useEffect(() => {
-    if (!currentPath || !rootPath) return;
-    const saveCurSubFolder = async () => {
+    if (!currentPath) return;
+    const persistNavigation = async () => {
       try {
         const config = await window.electronAPI.getConfig();
-        const curSubFolder = currentPath === rootPath ? undefined : currentPath;
-        if (config.curSubFolder !== curSubFolder) {
-          await window.electronAPI.saveConfig({ ...config, curSubFolder });
+        // Recent folders, most recent first, max 10
+        const prevRecent = config.recentFolders ?? [];
+        const updatedRecent = [currentPath, ...prevRecent.filter(f => f !== currentPath)].slice(0, 10);
+        setRecentFolders(updatedRecent);
+        const next = { ...config, recentFolders: updatedRecent };
+        // Current subfolder (only meaningful once we have a root to compare against)
+        if (rootPath) {
+          next.curSubFolder = currentPath === rootPath ? undefined : currentPath;
         }
+        await window.electronAPI.saveConfig(next);
       } catch {
         // Non-critical — config will be updated on next navigation
       }
     };
-    saveCurSubFolder();
+    persistNavigation();
   }, [currentPath, rootPath]);
 
   const refreshDirectory = useCallback(() => {
@@ -262,19 +271,6 @@ function App() {
       refreshExpandedNodes(root).then(newRoot => setIndexTreeRoot(newRoot));
     }
   }, [loadDirectory]);
-
-  // Track recently browsed folders whenever currentPath changes
-  useEffect(() => {
-    if (!currentPath) return;
-    setRecentFolders(prev => {
-      const updated = [currentPath, ...prev.filter(f => f !== currentPath)].slice(0, 10);
-      // Persist asynchronously — non-critical
-      window.electronAPI.getConfig().then(config => {
-        window.electronAPI.saveConfig({ ...config, recentFolders: updated }).catch(() => {});
-      }).catch(() => {});
-      return updated;
-    });
-  }, [currentPath]);
 
   const handleSelectFolder = useCallback(async () => {
     const folder = await window.electronAPI.selectFolder();
