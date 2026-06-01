@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { generateTimestampFolderName } from '../../utils/timeUtil';
 import DlgHeader from './common/DlgHeader';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_INPUT_CLASS, DLG_LABEL_CLASS } from '../../utils/styles';
 
@@ -16,18 +17,9 @@ function CreateFolderDialog({ defaultName = '', onCreate, onCancel }: CreateFold
     inputRef.current?.focus();
   }, []);
 
-  const generateTimestampName = (): string => {
-    const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const hours24 = now.getHours();
-    const hours12 = hours24 % 12 || 12;
-    const ampm = hours24 < 12 ? 'AM' : 'PM';
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}--${pad(hours12)}-${pad(now.getMinutes())}-${pad(now.getSeconds())}-${ampm}`;
-  };
-
   const handleCreate = () => {
     const trimmedName = folderName.trim();
-    const finalName = trimmedName || generateTimestampName();
+    const finalName = trimmedName || generateTimestampFolderName();
     onCreate(finalName);
   };
 
