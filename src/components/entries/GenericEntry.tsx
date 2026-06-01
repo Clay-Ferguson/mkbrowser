@@ -2,7 +2,7 @@ import { DocumentIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { formatFlyoverInfo } from '../../utils/fileUtil';
 import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
-import { toggleItemExpanded, useHasIndexFile } from '../../store';
+import { toggleItemExpanded } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useEntryCore,
@@ -25,8 +25,6 @@ function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onM
     isHighlighted,
     isBookmarked,
   } = useEntryCore({ path: entry.path, name: entry.name });
-
-  const hasIndexFile = useHasIndexFile();
 
   const rename = useRename({
     path: entry.path,

@@ -4,7 +4,7 @@ import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
-import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected, useHasIndexFile, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
+import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import ExifDialog from '../dialogs/ExifDialog';
@@ -34,8 +34,6 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
     isHighlighted,
     isBookmarked,
   } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
-
-  const hasIndexFile = useHasIndexFile();
 
   const rename = useRename({
     path: entry.path,
