@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import DlgHeader from './common/DlgHeader';
+import CheckboxField from './common/CheckboxField';
+import RadioField from './common/RadioField';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS, DLG_FOOTER_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE } from '../../utils/styles';
 
 interface ExportDialogProps {
@@ -115,83 +117,57 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
 
         {/* Include Subfolders Checkbox */}
         <div className="mb-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeSubfolders}
-              onChange={(e) => setIncludeSubfolders(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
-              data-testid="export-include-subfolders"
-            />
-            <span className="text-sm text-slate-300">Include Subfolders</span>
-          </label>
-          <p className="text-xs text-slate-500 mt-1 ml-6">
-            When enabled, files from all subfolders will be included in the export.
-          </p>
+          <CheckboxField
+            label="Include Subfolders"
+            checked={includeSubfolders}
+            onChange={setIncludeSubfolders}
+            testId="export-include-subfolders"
+            description="When enabled, files from all subfolders will be included in the export."
+          />
         </div>
 
         {/* Include Filenames Checkbox */}
         <div className="mb-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeFilenames}
-              onChange={(e) => setIncludeFilenames(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
-              data-testid="export-include-filenames"
-            />
-            <span className="text-sm text-slate-300">Include Filenames</span>
-          </label>
-          <p className="text-xs text-slate-500 mt-1 ml-6">
-            When enabled, each file&apos;s name will be shown before its content.
-          </p>
+          <CheckboxField
+            label="Include Filenames"
+            checked={includeFilenames}
+            onChange={setIncludeFilenames}
+            testId="export-include-filenames"
+            description={<>When enabled, each file&apos;s name will be shown before its content.</>}
+          />
         </div>
 
         {/* Divider Lines Checkbox */}
         <div className="mb-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={includeDividers}
-              onChange={(e) => setIncludeDividers(e.target.checked)}
-              className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
-              data-testid="export-include-dividers"
-            />
-            <span className="text-sm text-slate-300">Divider Lines</span>
-          </label>
-          <p className="text-xs text-slate-500 mt-1 ml-6">
-            When enabled, a horizontal line will separate each file&apos;s content.
-          </p>
+          <CheckboxField
+            label="Divider Lines"
+            checked={includeDividers}
+            onChange={setIncludeDividers}
+            testId="export-include-dividers"
+            description={<>When enabled, a horizontal line will separate each file&apos;s content.</>}
+          />
         </div>
 
         {/* Output Format Radio Group */}
         <div className="mb-6 border border-slate-600 rounded p-3">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Output Format</p>
           <div className="flex flex-row gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="outputFormat"
-                value="markdown"
-                checked={outputFormat === 'markdown'}
-                onChange={() => setOutputFormat('markdown')}
-                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
-                data-testid="export-format-markdown"
-              />
-              <span className="text-sm text-slate-300">Markdown</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="outputFormat"
-                value="pdf"
-                checked={outputFormat === 'pdf'}
-                onChange={() => setOutputFormat('pdf')}
-                className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800"
-                data-testid="export-format-pdf"
-              />
-              <span className="text-sm text-slate-300">PDF</span>
-            </label>
+            <RadioField
+              name="outputFormat"
+              value="markdown"
+              checked={outputFormat === 'markdown'}
+              onChange={() => setOutputFormat('markdown')}
+              label="Markdown"
+              testId="export-format-markdown"
+            />
+            <RadioField
+              name="outputFormat"
+              value="pdf"
+              checked={outputFormat === 'pdf'}
+              onChange={() => setOutputFormat('pdf')}
+              label="PDF"
+              testId="export-format-pdf"
+            />
           </div>
           {outputFormat === 'pdf' && (
             <p className="text-xs text-slate-500 mt-2">

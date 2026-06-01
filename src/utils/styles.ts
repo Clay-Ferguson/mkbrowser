@@ -24,6 +24,14 @@ export function getContentWidthClasses(contentWidth: ContentWidth): string {
 
 export const CHECKBOX_CLASS = 'h-5 w-5 accent-blue-500 flex-shrink-0 cursor-pointer';
 
+// Checkbox/radio <input> styling for dialog form fields. DLG_CHECK_RADIO_BASE is
+// the shared sizing/border/focus styling; compose it with a `text-blue-*` accent
+// (and `rounded` for checkboxes). CHECKBOX_FIELD_CLASS / RADIO_FIELD_CLASS are the
+// defaults used by the CheckboxField / RadioField common components.
+export const DLG_CHECK_RADIO_BASE = 'w-4 h-4 border-slate-600 bg-slate-900 focus:ring-blue-500 focus:ring-offset-slate-800';
+export const CHECKBOX_FIELD_CLASS = `${DLG_CHECK_RADIO_BASE} rounded text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed`;
+export const RADIO_FIELD_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-600`;
+
 export const BUTTON_CLASS_NORMAL = 'p-1.5 text-slate-400 hover:text-white      hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
 export const BUTTON_CLASS_CYAN =   'p-1.5 text-slate-400 hover:text-cyan-400   hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
 export const BUTTON_CLASS_RED =    'p-1.5 text-slate-400 hover:text-red-400    hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';

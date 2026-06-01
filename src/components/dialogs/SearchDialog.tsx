@@ -2,9 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ConfirmDialog from './ConfirmDialog';
 import DlgHeader from './common/DlgHeader';
+import CheckboxField from './common/CheckboxField';
+import RadioGroup from './common/RadioGroup';
 import type { SearchDefinition } from '../../types/types';
 import * as globalHighlight from '../../utils/globalHighlight';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../utils/styles';
+
+// Search's checkbox/radio inputs use a blue-500 accent (vs the blue-600 default
+// in CheckboxField/RadioField), so override the input class to preserve it.
+const SEARCH_CHECKBOX_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-500 rounded disabled:opacity-50 disabled:cursor-not-allowed`;
+const SEARCH_RADIO_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-500`;
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
@@ -215,95 +222,49 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             />
 
             <div className="flex items-center gap-6 mb-3 mt-3">
-              <label className={`flex items-center gap-2 ${searchMode === 'filenames' ? 'opacity-50' : 'cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  checked={searchImageExif}
-                  onChange={(e) => setSearchImageExif(e.target.checked)}
-                  disabled={searchMode === 'filenames'}
-                  data-testid="search-image-exif"
-                  className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-                <span className="text-sm text-slate-300">Search Image EXIF</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={mostRecent}
-                  onChange={(e) => setMostRecent(e.target.checked)}
-                  data-testid="search-most-recent"
-                  className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800 rounded"
-                />
-                <span className="text-sm text-slate-300">Recent Files</span>
-              </label>
+              <CheckboxField
+                label="Search Image EXIF"
+                checked={searchImageExif}
+                onChange={setSearchImageExif}
+                disabled={searchMode === 'filenames'}
+                testId="search-image-exif"
+                inputClassName={SEARCH_CHECKBOX_CLASS}
+              />
+              <CheckboxField
+                label="Recent Files"
+                checked={mostRecent}
+                onChange={setMostRecent}
+                testId="search-most-recent"
+                inputClassName={SEARCH_CHECKBOX_CLASS}
+              />
             </div>
 
-            <fieldset className="border border-slate-600 rounded-md p-3 mb-3">
-              <legend className="text-xs text-slate-400 px-2">Search Target</legend>
-              <div className="flex items-center gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="searchMode"
-                    checked={searchMode === 'content'}
-                    onChange={() => setSearchMode('content')}
-                    data-testid="search-mode-content"
-                    className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-                  />
-                  <span className="text-sm text-slate-300">File Contents</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="searchMode"
-                    checked={searchMode === 'filenames'}
-                    onChange={() => setSearchMode('filenames')}
-                    data-testid="search-mode-filenames"
-                    className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-                  />
-                  <span className="text-sm text-slate-300">File Names</span>
-                </label>
-              </div>
-            </fieldset>
+            <RadioGroup
+              legend="Search Target"
+              name="searchMode"
+              value={searchMode}
+              onChange={setSearchMode}
+              className="mb-3"
+              inputClassName={SEARCH_RADIO_CLASS}
+              options={[
+                { value: 'content', label: 'File Contents', testId: 'search-mode-content' },
+                { value: 'filenames', label: 'File Names', testId: 'search-mode-filenames' },
+              ]}
+            />
 
-            <fieldset className="border border-slate-600 rounded-md p-3 mb-4">
-              <legend className="text-xs text-slate-400 px-2">Search Mode</legend>
-              <div className="flex items-center gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="searchType"
-                    checked={searchType === 'literal'}
-                    onChange={() => setSearchType('literal')}
-                    data-testid="search-type-literal"
-                    className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-                  />
-                  <span className="text-sm text-slate-300">Literal</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="searchType"
-                    checked={searchType === 'wildcard'}
-                    onChange={() => setSearchType('wildcard')}
-                    data-testid="search-type-wildcard"
-                    className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-                  />
-                  <span className="text-sm text-slate-300">Wild Card</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="searchType"
-                    checked={searchType === 'advanced'}
-                    onChange={() => setSearchType('advanced')}
-                    data-testid="search-type-advanced"
-                    className="w-4 h-4 border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
-                  />
-                  <span className="text-sm text-slate-300">Advanced</span>
-                </label>
-              </div>
-            </fieldset>
+            <RadioGroup
+              legend="Search Mode"
+              name="searchType"
+              value={searchType}
+              onChange={setSearchType}
+              className="mb-4"
+              inputClassName={SEARCH_RADIO_CLASS}
+              options={[
+                { value: 'literal', label: 'Literal', testId: 'search-type-literal' },
+                { value: 'wildcard', label: 'Wild Card', testId: 'search-type-wildcard' },
+                { value: 'advanced', label: 'Advanced', testId: 'search-type-advanced' },
+              ]}
+            />
 
             <div className="flex gap-3 mb-3">
               <div>
