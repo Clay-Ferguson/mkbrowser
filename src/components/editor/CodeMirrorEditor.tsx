@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
-import MessageDialog from '../dialogs/MessageDialog';
+import AlertDialog from '../dialogs/AlertDialog';
 import { EditorView, placeholder as placeholderExt, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
@@ -464,7 +464,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
         isMarkdown={isMarkdown}
       />
       {calendarAlreadyExists && (
-        <MessageDialog
+        <AlertDialog
+          preserveWhitespace
           title="Calendar Item Exists"
           message="This file already contains calendar information (a 'due' property was found in the front matter)."
           onClose={() => setCalendarAlreadyExists(false)}

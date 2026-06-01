@@ -11,7 +11,7 @@ import {
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
-import ErrorDialog from '../dialogs/ErrorDialog';
+import AlertDialog from '../dialogs/AlertDialog';
 import {
   useEditableEntry,
   useToggleExpanded,
@@ -212,7 +212,9 @@ function TextEntry(props: TextEntryProps) {
         </div>
       </EntryShell>
       {aiErrorMessage && (
-        <ErrorDialog
+        <AlertDialog
+          scrollable
+          title="Error"
           message={aiErrorMessage}
           onClose={() => setAiErrorMessage(null)}
         />

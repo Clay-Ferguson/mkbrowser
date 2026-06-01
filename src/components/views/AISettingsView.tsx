@@ -10,7 +10,7 @@ import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../ai/aiPrompts';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
-import MessageDialog from '../dialogs/MessageDialog';
+import AlertDialog from '../dialogs/AlertDialog';
 import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED } from '../../utils/styles';
 
 function AISettingsView() {
@@ -627,7 +627,8 @@ function AISettingsView() {
 
       {/* Readonly name collision message */}
       {readonlyNameMessage && (
-        <MessageDialog
+        <AlertDialog
+          preserveWhitespace
           title="Cannot Overwrite Model"
           message={readonlyNameMessage}
           onClose={() => setReadonlyNameMessage(null)}

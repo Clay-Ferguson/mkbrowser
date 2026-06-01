@@ -21,7 +21,7 @@ import ConfirmDialog from '../dialogs/ConfirmDialog';
 import SearchDialog, { type SearchOptions, type SearchDialogInitialValues } from '../dialogs/SearchDialog';
 import ReplaceDialog from '../dialogs/ReplaceDialog';
 import ExportDialog from '../dialogs/ExportDialog';
-import MessageDialog from '../dialogs/MessageDialog';
+import AlertDialog from '../dialogs/AlertDialog';
 import PathBreadcrumb from '../PathBreadcrumb';
 import {
   clearAllSelections,
@@ -1136,7 +1136,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       )}
 
       {replaceResultMessage && (
-        <MessageDialog
+        <AlertDialog
+          preserveWhitespace
           title="Replace Results"
           message={replaceResultMessage}
           onClose={() => setReplaceResultMessage(null)}

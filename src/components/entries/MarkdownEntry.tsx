@@ -28,7 +28,7 @@ import {
   setExpandedEditor,
   setShowPropsInEditor,
 } from '../../store';
-import ErrorDialog from '../dialogs/ErrorDialog';
+import AlertDialog from '../dialogs/AlertDialog';
 import StreamingDialog from '../dialogs/StreamingDialog';
 import EditCalendarDialog from '../dialogs/EditCalendarDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
@@ -554,7 +554,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         />
       )}
       {aiErrorMessage && (
-        <ErrorDialog
+        <AlertDialog
+          scrollable
+          title="Error"
           message={aiErrorMessage}
           onClose={() => setAiErrorMessage(null)}
         />

@@ -4,7 +4,7 @@ import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import { setHighlightItem, setPendingScrollToFile, deleteItems, useItem, setItemSelected, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
-import ErrorDialog from '../dialogs/ErrorDialog';
+import AlertDialog from '../dialogs/AlertDialog';
 import ExifDialog from '../dialogs/ExifDialog';
 import {
   useEntry,
@@ -328,7 +328,8 @@ function ImageEntry(props: ImageEntryProps) {
 
       {/* End of images alert */}
       {showEndAlert && (
-        <ErrorDialog
+        <AlertDialog
+          scrollable
           title="End of Images"
           message="You have reached the end of the images in this folder."
           onClose={() => setShowEndAlert(false)}
@@ -337,7 +338,8 @@ function ImageEntry(props: ImageEntryProps) {
 
       {/* Beginning of images alert */}
       {showBeginningAlert && (
-        <ErrorDialog
+        <AlertDialog
+          scrollable
           title="Beginning of Images"
           message="You have reached the beginning of the images in this folder."
           onClose={() => setShowBeginningAlert(false)}

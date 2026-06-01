@@ -1,7 +1,7 @@
 import { useState, type RefObject } from 'react';
 import { FolderIcon, DocumentIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
-import MessageDialog from '../dialogs/MessageDialog';
+import AlertDialog from '../dialogs/AlertDialog';
 import BookmarkDialog from '../dialogs/BookmarkDialog';
 import { toggleBookmark, isBookmarked, getSettings, removeBookmark, updateBookmarkName, type Bookmark } from '../../store';
 import { MENU_ROW, MENU_ICON_BTN } from '../../utils/styles';
@@ -114,7 +114,8 @@ export default function BookmarksPopupMenu({
         )}
       </PopupMenu>
       {missingPath && (
-        <MessageDialog
+        <AlertDialog
+          preserveWhitespace
           title="Bookmark Not Found"
           message={`The bookmarked path no longer exists and has been removed:\n\n${missingPath}`}
           onClose={() => { setMissingPath(null); onClose(); }}

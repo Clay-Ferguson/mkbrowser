@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import type { FileEntry } from './global';
-import ErrorDialog from './components/dialogs/ErrorDialog';
+import AlertDialog from './components/dialogs/AlertDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
 import FolderAnalysisView from './components/views/FolderAnalysisView';
@@ -339,7 +339,9 @@ function App() {
         </div>
 
         {error && (
-          <ErrorDialog
+          <AlertDialog
+            scrollable
+            title="Error"
             message={error}
             onClose={() => setError(null)}
           />
@@ -362,7 +364,7 @@ function App() {
         >
           <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <FolderGraphView />
-          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
         </div>
       )}
 
@@ -370,7 +372,7 @@ function App() {
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
           <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
-          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
         </div>
       )}
 
@@ -378,7 +380,7 @@ function App() {
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
           <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <SettingsView onSaveSettings={handleSaveSettings} />
-          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
         </div>
       )}
 
@@ -386,7 +388,7 @@ function App() {
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
           <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <AISettingsView />
-          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
         </div>
       )}
 
@@ -394,7 +396,7 @@ function App() {
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
           <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <CalendarView />
-          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
         </div>
       )}
 
@@ -402,7 +404,7 @@ function App() {
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
           <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
-          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
         </div>
       )}
 
@@ -410,7 +412,7 @@ function App() {
         <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
           <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
           <ThreadView onSaveSettings={handleSaveSettings} />
-          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
         </div>
       )}
 
@@ -432,7 +434,7 @@ function App() {
               />
             </div>
           </div>
-          {error && <ErrorDialog message={error} onClose={() => setError(null)} />}
+          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
         </div>
       )}
     </>
