@@ -8,6 +8,7 @@ import { fdir } from 'fdir';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { logger } from '../utils/logUtil';
+import { wildcardToAnchoredRegex } from '../utils/pathPattern';
 
 const debug = false;
 
@@ -78,9 +79,9 @@ export interface PreprocessResult {
  *   `notes.txt` → /^notes\.txt$/
  */
 export function wildcardToRegex(pattern: string): RegExp {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-  const withWildcards = escaped.replace(/\*/g, '.*');
-  return new RegExp(`^${withWildcards}$`);
+  // Case-sensitive, anchored match — #file: patterns are matched against
+  // exact filenames in a folder.
+  return wildcardToAnchoredRegex(pattern, false);
 }
 
 /**

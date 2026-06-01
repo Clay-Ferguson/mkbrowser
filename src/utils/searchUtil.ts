@@ -1,6 +1,10 @@
 import { getSettings, setSettings, type SearchDefinition } from '../store';
 import { logger } from './logUtil';
 
+// Re-exported for backwards compatibility; the implementation now lives in the
+// process-neutral pathPattern module so it can be shared with the main process.
+export { buildIgnoredPatterns } from './pathPattern';
+
 /**
  * Parse a newline-delimited ignored-paths string into a trimmed, non-empty array.
  */
@@ -9,18 +13,6 @@ export function parseIgnoredPaths(raw: string): string[] {
     .split('\n')
     .map(p => p.trim())
     .filter(p => p.length > 0);
-}
-
-/**
- * Convert an array of wildcard path patterns (e.g. "*.log", "temp*") into
- * anchored, case-insensitive RegExp objects suitable for matching filenames.
- */
-export function buildIgnoredPatterns(paths: string[]): RegExp[] {
-  return paths.map(pattern => {
-    const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-    const regexPattern = escaped.replace(/\*/g, '.*');
-    return new RegExp(`^${regexPattern}$`, 'i');
-  });
 }
 
 /**

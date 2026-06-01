@@ -12,6 +12,7 @@ import yaml from 'js-yaml';
 import { parseDateString, past, future, today } from './utils/timeUtil';
 import { createContentSearcher } from './utils/searchUtil';
 import { splitFrontMatter } from './utils/tagUtil';
+import { escapeRegexExceptWildcard, buildExcludePredicate } from './utils/pathPattern';
 
 /** Module-level YAML parse cache: keyed by file path, cleared at the start of each search */
 let yamlCache: Map<string, Record<string, unknown> | null> = new Map();
@@ -65,11 +66,6 @@ export type SearchMode = 'content' | 'filenames';
 interface MatchResult {
   matches: boolean;
   matchCount: number;
-}
-
-/** Helper to escape regex special characters (except *) */
-function escapeRegexExceptWildcard(str: string): string {
-  return str.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /** Convert wildcard pattern to regex (each * matches up to 25 chars) */
@@ -150,24 +146,6 @@ export function createMatchPredicate(
       return { matches: matchCount > 0, matchCount };
     };
   }
-}
-
-/**
- * Build the exclude predicate from an array of ignored path patterns.
- * Patterns support wildcards via `*`.
- */
-function buildExcludePredicate(ignoredPaths: string[]): (name: string, fullPath: string) => boolean {
-  const ignoredPatterns = ignoredPaths.map(pattern => {
-    const escaped = pattern.replace(/[.+?^${}()|[\]\\/]/g, '\\$&');
-    const regexPattern = escaped.replace(/\*/g, '.*');
-    return new RegExp(`^${regexPattern}$`, 'i');
-  });
-
-  return (name: string, fullPath: string): boolean => {
-    // Always exclude hidden files/folders (starting with '.')
-    if (name.startsWith('.')) return true;
-    return ignoredPatterns.some(p => p.test(name) || p.test(fullPath));
-  };
 }
 
 /**

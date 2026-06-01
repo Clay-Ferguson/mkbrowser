@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fdir } from 'fdir';
+import { escapeRegexLiteral } from './utils/pathPattern';
 
 export interface ReplaceResult {
   path: string;
@@ -8,13 +9,6 @@ export interface ReplaceResult {
   replacementCount: number;
   success: boolean;
   error?: string;
-}
-
-/**
- * Escapes special regex characters in a string so it can be used as a literal match.
- */
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -62,7 +56,7 @@ export async function searchAndReplace(
   const files = await api.withPromise();
 
   // Create a regex that matches the literal search text globally
-  const escapedSearch = escapeRegex(searchText);
+  const escapedSearch = escapeRegexLiteral(searchText);
   const searchRegex = new RegExp(escapedSearch, 'g');
 
   // Process each file

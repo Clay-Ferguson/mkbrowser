@@ -8,6 +8,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
 import { HASHTAG_REGEX } from './utils/hashtagRegex';
+import { buildExcludePredicate } from './utils/pathPattern';
 
 /**
  * Result of a folder analysis scan
@@ -17,24 +18,6 @@ export interface FolderAnalysisResult {
   hashtags: Array<{ tag: string; count: number }>;
   /** Total number of files that were scanned */
   totalFiles: number;
-}
-
-/**
- * Build the exclude predicate from an array of ignored path patterns.
- * Patterns support wildcards via `*`.
- */
-function buildExcludePredicate(ignoredPaths: string[]): (name: string, fullPath: string) => boolean {
-  const ignoredPatterns = ignoredPaths.map(pattern => {
-    const escaped = pattern.replace(/[.+?^${}()|[\]\\/]/g, '\\$&');
-    const regexPattern = escaped.replace(/\*/g, '.*');
-    return new RegExp(`^${regexPattern}$`, 'i');
-  });
-
-  return (name: string, fullPath: string): boolean => {
-    // Always exclude hidden files/folders (starting with '.')
-    if (name.startsWith('.')) return true;
-    return ignoredPatterns.some(p => p.test(name) || p.test(fullPath));
-  };
 }
 
 /**

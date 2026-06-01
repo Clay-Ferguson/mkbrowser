@@ -12,6 +12,7 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
+import { buildExcludePredicate } from './utils/pathPattern';
 
 /** Hard cap on recursion depth from the root folder (root = 0). */
 export const MAX_DEPTH = 5;
@@ -46,23 +47,6 @@ export interface FolderGraphResult {
   links: FolderGraphLinkData[];
   /** True if the scan hit MAX_NODES and was cut short */
   truncated: boolean;
-}
-
-/**
- * Build the same exclude predicate folderAnalysis uses: hidden files/folders
- * (leading dot) plus user-configured ignore patterns with `*` wildcards.
- */
-function buildExcludePredicate(ignoredPaths: string[]): (name: string, fullPath: string) => boolean {
-  const ignoredPatterns = ignoredPaths.map(pattern => {
-    const escaped = pattern.replace(/[.+?^${}()|[\]\\/]/g, '\\$&');
-    const regexPattern = escaped.replace(/\*/g, '.*');
-    return new RegExp(`^${regexPattern}$`, 'i');
-  });
-
-  return (name: string, fullPath: string): boolean => {
-    if (name.startsWith('.')) return true;
-    return ignoredPatterns.some(p => p.test(name) || p.test(fullPath));
-  };
 }
 
 /**

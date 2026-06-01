@@ -2,6 +2,7 @@ import path from 'node:path';
 import chokidar from 'chokidar';
 import type { CalendarEventResult } from './calendarLoader';
 import { loadCalendarEntryForFile } from './calendarLoader';
+import { escapeRegexExceptWildcard } from '../pathPattern';
 
 export type CalendarFileChangedCallback = (results: CalendarEventResult[], filePath: string) => void;
 export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolean) => void;
@@ -11,7 +12,7 @@ let currentFolder: string | null = null;
 
 function buildIgnoredFn(extraPatterns: string[]): (filePath: string) => boolean {
   const compiled = extraPatterns.map(pat => {
-    const escaped = pat.replace(/[.+?^${}()|[\]\\/]/g, '\\$&');
+    const escaped = escapeRegexExceptWildcard(pat);
     return new RegExp(`(^|[/\\\\])${escaped.replace(/\*/g, '.*')}([/\\\\]|$)`, 'i');
   });
   return (filePath: string) => {
