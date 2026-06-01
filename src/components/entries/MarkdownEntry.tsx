@@ -44,11 +44,7 @@ import { createBlockClickComponents } from '../blockClickComponents';
 import { logger } from '../../utils/logUtil';
 import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
 import {
-  useEntryCore,
-  useRename,
-  useDelete,
-  useContentLoader,
-  useEditMode,
+  useEditableEntry,
   useToggleExpanded,
   EntryActionBar,
   EntryShell,
@@ -67,46 +63,20 @@ interface MarkdownEntryProps extends BaseEntryProps {
 
 const TIMESTAMP_FILENAME_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-(AM|PM)\.md$/;
 
-function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, documentMode = false }: MarkdownEntryProps) {
+function MarkdownEntry(props: MarkdownEntryProps) {
+  const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, documentMode = false } = props;
   const item = useItem(entry.path);
   const hasCutItems = useHasCutItems();
 
-  const {
-    isRenaming,
-    isExpanded,
-    isSelected,
-    isHighlighted,
-    isBookmarked,
-  } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
+  const { core, rename, del, loading, content, edit } = useEditableEntry(props, {
+    defaultExpanded: true,
+    errorMessage: '*Error reading file*',
+  });
+  const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
   const { showToc, showPropsInEditor } = useSettings();
   const hasIndexFile = useHasIndexFile();
   const expandedEditor = useExpandedEditor();
-
-  const rename = useRename({
-    path: entry.path,
-    name: entry.name,
-    isRenaming,
-    onRename,
-    onSaveSettings,
-  });
-
-  const del = useDelete({
-    path: entry.path,
-    onDelete,
-  });
-
-  const { loading, content } = useContentLoader({
-    path: entry.path,
-    modifiedTime: entry.modifiedTime,
-    isExpanded,
-    errorMessage: '*Error reading file*',
-  });
-
-  const edit = useEditMode({
-    path: entry.path,
-    content,
-  });
 
   const blockComponents = createBlockClickComponents(edit.handleEditClick);
 

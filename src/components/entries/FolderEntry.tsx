@@ -14,9 +14,7 @@ import {
 import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
-  useEntryCore,
-  useRename,
-  useDelete,
+  useEntry,
   EntryActionBar,
   RenameInput,
   SelectionCheckbox,
@@ -31,31 +29,16 @@ interface FolderEntryProps extends BaseEntryProps {
   indentFolder?: boolean;
 }
 
-function FolderEntry({ entry, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder, onRefreshDirectory, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder, indentFolder }: FolderEntryProps) {
-  const {
-    isRenaming,
-    isSelected,
-    isHighlighted,
-    isBookmarked,
-  } = useEntryCore({ path: entry.path, name: entry.name });
+function FolderEntry(props: FolderEntryProps) {
+  const { entry, onNavigate, onSaveSettings, onPasteIntoFolder, onRefreshDirectory, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder, indentFolder } = props;
+  // Folders select the full name on rename; they don't use isExpanded.
+  const { core, rename, del } = useEntry(props, { selectFullName: true });
+  const { isRenaming, isSelected, isHighlighted, isBookmarked } = core;
 
   const hasCutItems = useHasCutItems();
   const item = useItem(entry.path);
   const hasIndexFile = useHasIndexFile();
   const aiHint = item?.aiHint;
-  const rename = useRename({
-    path: entry.path,
-    name: entry.name,
-    isRenaming,
-    onRename,
-    onSaveSettings,
-    selectFullName: true, // Folders select full name
-  });
-
-  const del = useDelete({
-    path: entry.path,
-    onDelete,
-  });
 
   const handleInputClick = (e: React.MouseEvent) => {
     e.stopPropagation();

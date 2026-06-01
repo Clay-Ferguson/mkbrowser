@@ -1,8 +1,6 @@
 import { DocumentIcon } from '@heroicons/react/24/outline';
 import {
-  useEntryCore,
-  useRename,
-  useDelete,
+  useEntry,
   useToggleExpanded,
   EntryActionBar,
   EntryShell,
@@ -11,27 +9,10 @@ import {
 
 type GenericEntryProps = BaseEntryProps;
 
-function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false }: GenericEntryProps) {
-  const {
-    isRenaming,
-    isExpanded,
-    isSelected,
-    isHighlighted,
-    isBookmarked,
-  } = useEntryCore({ path: entry.path, name: entry.name });
-
-  const rename = useRename({
-    path: entry.path,
-    name: entry.name,
-    isRenaming,
-    onRename,
-    onSaveSettings,
-  });
-
-  const del = useDelete({
-    path: entry.path,
-    onDelete,
-  });
+function GenericEntry(props: GenericEntryProps) {
+  const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
+  const { core, rename, del } = useEntry(props);
+  const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
   const handleToggleExpanded = useToggleExpanded(entry.path);
 

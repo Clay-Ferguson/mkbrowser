@@ -7,9 +7,7 @@ import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import ExifDialog from '../dialogs/ExifDialog';
 import {
-  useEntryCore,
-  useRename,
-  useDelete,
+  useEntry,
   useToggleExpanded,
   EntryActionBar,
   EntryShell,
@@ -21,29 +19,12 @@ interface ImageEntryProps extends BaseEntryProps {
   isAttachment?: boolean;
 }
 
-function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false }: ImageEntryProps) {
+function ImageEntry(props: ImageEntryProps) {
+  const { entry, allImages, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
   // logger.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
 
-  const {
-    isRenaming,
-    isExpanded,
-    isSelected,
-    isHighlighted,
-    isBookmarked,
-  } = useEntryCore({ path: entry.path, name: entry.name, defaultExpanded: true });
-
-  const rename = useRename({
-    path: entry.path,
-    name: entry.name,
-    isRenaming,
-    onRename,
-    onSaveSettings,
-  });
-
-  const del = useDelete({
-    path: entry.path,
-    onDelete,
-  });
+  const { core, rename, del } = useEntry(props, { defaultExpanded: true });
+  const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
   // Image size from global store (shared across all ImageEntry instances)
   const imageSize = useImageSize();

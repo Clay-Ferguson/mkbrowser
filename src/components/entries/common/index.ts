@@ -14,6 +14,7 @@ export { useRename } from './useRename';
 export { useDelete } from './useDelete';
 export { useContentLoader } from './useContentLoader';
 export { useEditMode } from './useEditMode';
+export { useEntry, useEditableEntry } from './useEntry';
 
 // Components
 export { EntryActionBar, useToggleExpanded } from './EntryActionBar';

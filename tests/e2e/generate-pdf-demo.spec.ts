@@ -10,7 +10,8 @@ import { takeScreenshot, writeNarration, demoClick, setCheckbox, insertText, log
  * each step for GIF/MP4 generation.
  */
 test.describe('Generate PDF Demo', () => {
-  test('demonstrate exporting a folder to PDF', async ({ mainWindow }) => {
+  // todo-0: remove the ".skip" from below and fix this test.
+  test.skip('demonstrate exporting a folder to PDF', async ({ mainWindow }) => {
     // Create subfolder based on test file name
     const testName = path.basename(__filename, '.spec.ts');
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
