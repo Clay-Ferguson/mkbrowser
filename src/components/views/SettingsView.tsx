@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import TagsEditorDialog from '../dialogs/TagsEditorDialog';
+import CheckboxField from '../dialogs/common/CheckboxField';
+import { SETTINGS_CHECKBOX_CLASS } from '../../utils/styles';
 import {
   setFontSize,
   setFoldersOnTop,
@@ -178,25 +180,21 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                 </select>
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.foldersOnTop}
-                  onChange={(e) => handleFoldersOnTopChange(e.target.checked)}
-                  className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                />
-                <span className="text-slate-200">Folders on Top</span>
-              </label>
+              <CheckboxField
+                label="Folders on Top"
+                checked={settings.foldersOnTop}
+                onChange={handleFoldersOnTopChange}
+                inputClassName={SETTINGS_CHECKBOX_CLASS}
+                spanClassName="text-slate-200"
+              />
 
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={settings.showToc}
-                  onChange={(e) => handleShowTocChange(e.target.checked)}
-                  className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                />
-                <span className="text-slate-200">Show Table of Contents</span>
-              </label>
+              <CheckboxField
+                label="Show Table of Contents"
+                checked={settings.showToc}
+                onChange={handleShowTocChange}
+                inputClassName={SETTINGS_CHECKBOX_CLASS}
+                spanClassName="text-slate-200"
+              />
             </div>
           </section>
 

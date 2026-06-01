@@ -11,7 +11,8 @@ import { DEFAULT_AI_REWRITE_PERSONA } from '../../ai/aiPrompts';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import AlertDialog from '../dialogs/AlertDialog';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED } from '../../utils/styles';
+import CheckboxField from '../dialogs/common/CheckboxField';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, SETTINGS_CHECKBOX_CLASS } from '../../utils/styles';
 
 function AISettingsView() {
   // AI config state (lives on AppConfig, not AppSettings)
@@ -313,29 +314,25 @@ function AISettingsView() {
 
               <div className="space-y-4">
                 <div className="flex items-center gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={aiEnabled}
-                      onChange={(e) => handleAiEnabledChange(e.target.checked)}
-                      className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                    />
-                    <span className="text-slate-200">Enable AI</span>
-                  </label>
+                  <CheckboxField
+                    label="Enable AI"
+                    checked={aiEnabled}
+                    onChange={handleAiEnabledChange}
+                    inputClassName={SETTINGS_CHECKBOX_CLASS}
+                    spanClassName="text-slate-200"
+                  />
 
                   {aiEnabled && (
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={agenticMode}
-                        onChange={(e) => {
-                          setAgenticMode(e.target.checked);
-                          saveAiConfigField({ agenticMode: e.target.checked });
-                        }}
-                        className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span className="text-slate-200">Agentic Mode</span>
-                    </label>
+                    <CheckboxField
+                      label="Agentic Mode"
+                      checked={agenticMode}
+                      onChange={(checked) => {
+                        setAgenticMode(checked);
+                        saveAiConfigField({ agenticMode: checked });
+                      }}
+                      inputClassName={SETTINGS_CHECKBOX_CLASS}
+                      spanClassName="text-slate-200"
+                    />
                   )}
                 </div>
 
@@ -521,18 +518,17 @@ function AISettingsView() {
             {aiEnabled && (
               <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
                 <h2 className="text-lg font-semibold text-slate-100 mb-4">Rewrite Settings</h2>
-                <label className="flex items-center gap-2 cursor-pointer mb-4">
-                  <input
-                    type="checkbox"
-                    checked={aiRewriteMode}
-                    onChange={(e) => {
-                      setAiRewriteMode(e.target.checked);
-                      void saveAiConfigField({ aiRewriteMode: e.target.checked });
-                    }}
-                    className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                  />
-                  <span className="text-slate-200">Enable AI Rewrite</span>
-                </label>
+                <CheckboxField
+                  label="Enable AI Rewrite"
+                  checked={aiRewriteMode}
+                  onChange={(checked) => {
+                    setAiRewriteMode(checked);
+                    void saveAiConfigField({ aiRewriteMode: checked });
+                  }}
+                  inputClassName={SETTINGS_CHECKBOX_CLASS}
+                  spanClassName="text-slate-200"
+                  className="mb-4"
+                />
                 <div>
                   <label className="text-slate-300 text-sm block mb-2">Persona</label>
                   {/* Combobox row: name selector + Save + Delete */}
@@ -598,18 +594,17 @@ function AISettingsView() {
                     Reset to Default
                   </button>
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer mt-4">
-                  <input
-                    type="checkbox"
-                    checked={fullDocContext}
-                    onChange={(e) => {
-                      setFullDocContext(e.target.checked);
-                      void saveAiConfigField({ fullDocContext: e.target.checked });
-                    }}
-                    className="w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer"
-                  />
-                  <span className="text-slate-200">Full Document Context</span>
-                </label>
+                <CheckboxField
+                  label="Full Document Context"
+                  checked={fullDocContext}
+                  onChange={(checked) => {
+                    setFullDocContext(checked);
+                    void saveAiConfigField({ fullDocContext: checked });
+                  }}
+                  inputClassName={SETTINGS_CHECKBOX_CLASS}
+                  spanClassName="text-slate-200"
+                  className="mt-4"
+                />
               </section>
             )}
           </div>

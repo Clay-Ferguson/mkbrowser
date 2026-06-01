@@ -11,6 +11,10 @@ interface CheckboxFieldProps {
   testId?: string;
   /** Override the <input> class string (e.g. a different accent color). */
   inputClassName?: string;
+  /** Override the label text <span> class string. */
+  spanClassName?: string;
+  /** Extra classes appended to the <label> wrapper (e.g. margins). */
+  className?: string;
   /** Override the description <p> class string. */
   descriptionClassName?: string;
 }
@@ -28,10 +32,12 @@ const CheckboxField: React.FC<CheckboxFieldProps> = ({
   description,
   testId,
   inputClassName = CHECKBOX_FIELD_CLASS,
+  spanClassName = 'text-sm text-slate-300',
+  className = '',
   descriptionClassName = 'text-xs text-slate-500 mt-1 ml-6',
 }) => (
   <>
-    <label className={`flex items-center gap-2 ${disabled ? 'opacity-50' : 'cursor-pointer'}`}>
+    <label className={`flex items-center gap-2 ${disabled ? 'opacity-50' : 'cursor-pointer'} ${className}`}>
       <input
         type="checkbox"
         checked={checked}
@@ -40,7 +46,7 @@ const CheckboxField: React.FC<CheckboxFieldProps> = ({
         data-testid={testId}
         className={inputClassName}
       />
-      <span className="text-sm text-slate-300">{label}</span>
+      <span className={spanClassName}>{label}</span>
     </label>
     {description && <p className={descriptionClassName}>{description}</p>}
   </>

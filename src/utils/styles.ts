@@ -32,6 +32,9 @@ export const DLG_CHECK_RADIO_BASE = 'w-4 h-4 border-slate-600 bg-slate-900 focus
 export const CHECKBOX_FIELD_CLASS = `${DLG_CHECK_RADIO_BASE} rounded text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed`;
 export const RADIO_FIELD_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-600`;
 
+// Larger slate-700 checkbox used by the Settings views (composed with CheckboxField).
+export const SETTINGS_CHECKBOX_CLASS = 'w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer';
+
 export const BUTTON_CLASS_NORMAL = 'p-1.5 text-slate-400 hover:text-white      hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
 export const BUTTON_CLASS_CYAN =   'p-1.5 text-slate-400 hover:text-cyan-400   hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
 export const BUTTON_CLASS_RED =    'p-1.5 text-slate-400 hover:text-red-400    hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
