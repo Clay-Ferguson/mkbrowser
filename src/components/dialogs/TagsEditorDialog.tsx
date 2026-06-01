@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtil';
 import type { TagCategory, HashtagDefinition } from '../../utils/tagUtil';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_INPUT_CLASS_ALT_COMPACT } from '../../utils/styles';
 
 interface EditorTag {
   id: string;
@@ -169,7 +169,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     }
   }, [onClose]);
 
-  const inputCls = 'bg-slate-700 border border-slate-600 text-slate-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+  const inputCls = DLG_INPUT_CLASS_ALT_COMPACT;
 
   return (
     <div

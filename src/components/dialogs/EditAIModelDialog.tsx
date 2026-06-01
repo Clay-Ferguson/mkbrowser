@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { AIModelConfig } from '../../types/shared';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_FOOTER_CLASS } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_FOOTER_CLASS, DLG_INPUT_CLASS_ALT } from '../../utils/styles';
 
 const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
 
@@ -103,7 +103,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Claude Haiku"
               disabled={isReadonly}
-              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className={DLG_INPUT_CLASS_ALT}
             />
           </div>
 
@@ -114,7 +114,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               value={provider}
               onChange={(e) => setProvider(e.target.value as AIModelConfig['provider'])}
               disabled={isReadonly}
-              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className={`${DLG_INPUT_CLASS_ALT} cursor-pointer`}
             >
               {AI_PROVIDERS.map((p) => (
                 <option key={p} value={p}>{p}</option>
@@ -131,7 +131,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               onChange={(e) => setModel(e.target.value)}
               placeholder="e.g. claude-3-haiku-20240307"
               disabled={isReadonly}
-              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className={`${DLG_INPUT_CLASS_ALT} font-mono`}
             />
           </div>
 
@@ -145,7 +145,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               value={inputPer1MText}
               onChange={(e) => setInputPer1MText(e.target.value)}
               disabled={isReadonly}
-              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className={`${DLG_INPUT_CLASS_ALT} font-mono`}
             />
           </div>
 
@@ -158,7 +158,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               value={outputPer1MText}
               onChange={(e) => setOutputPer1MText(e.target.value)}
               disabled={isReadonly}
-              className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className={`${DLG_INPUT_CLASS_ALT} font-mono`}
             />
           </div>
         </div>

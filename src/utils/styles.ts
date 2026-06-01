@@ -51,7 +51,18 @@ export const BUTTON_CLASS_ICON_SOLID_BLUE = 'flex-shrink-0 p-1 bg-blue-600 hover
 // or autocomplete tooltips on top of modal dialogs.
 export const DLG_OVERLAY_CLASS = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]';
 export const DLG_CONTAINER = 'bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl';
-export const DLG_INPUT_CLASS = 'w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm';
+// slate-900 input theme. The border color is applied by the caller so error
+// states can swap in a red border without re-spelling the whole base string.
+// DLG_INPUT_CLASS_BASE omits both width and border color; compose it with a
+// width (`w-full`, `flex-1`) and a `border-{color} focus:border-{color}` pair.
+export const DLG_INPUT_CLASS_BASE = 'bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm';
+export const DLG_INPUT_CLASS = `w-full ${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`;
+
+// slate-700 "ring" input theme. DLG_INPUT_CLASS_ALT is the full-size field used
+// in form dialogs (compose `font-mono`, `cursor-pointer`, etc. as needed);
+// DLG_INPUT_CLASS_ALT_COMPACT is the smaller inline variant.
+export const DLG_INPUT_CLASS_ALT = 'w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:opacity-60 disabled:cursor-not-allowed';
+export const DLG_INPUT_CLASS_ALT_COMPACT = 'bg-slate-700 border border-slate-600 text-slate-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
 export const DLG_LABEL_CLASS = 'block text-sm text-slate-400 mb-2';
 export const DLG_FOOTER_CLASS = 'flex justify-end gap-3';
 

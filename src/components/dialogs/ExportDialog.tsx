@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS, DLG_FOOTER_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE } from '../../utils/styles';
 
 interface ExportDialogProps {
   defaultFolder: string;
@@ -73,7 +73,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
               value={outputFolder}
               onChange={(e) => setOutputFolder(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm"
+              className={`${DLG_INPUT_CLASS} flex-1`}
               placeholder="/path/to/output/folder"
               data-testid="export-output-folder"
             />
@@ -96,7 +96,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             value={fileName}
             onChange={(e) => setFileName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm ${
+            className={`w-full ${DLG_INPUT_CLASS_BASE} ${
               fileNameHasExtension
                 ? 'border-red-500 focus:border-red-400'
                 : 'border-slate-600 focus:border-blue-500'

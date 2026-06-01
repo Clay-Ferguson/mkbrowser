@@ -4,7 +4,7 @@ import ConfirmDialog from './ConfirmDialog';
 import DlgHeader from './common/DlgHeader';
 import type { SearchDefinition } from '../../types/types';
 import * as globalHighlight from '../../utils/globalHighlight';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE } from '../../utils/styles';
 
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
@@ -148,7 +148,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 onChange={(e) => setSearchName(e.target.value)}
                 placeholder="Enter a name..."
                 data-testid="search-name-input"
-                className="w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
+                className={DLG_INPUT_CLASS}
               />
               <div className="flex justify-end gap-1 mt-1">
                 <button
@@ -208,7 +208,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               onKeyDown={handleKeyDown}
               data-testid="search-query-input"
               rows={4}
-              className={`w-full bg-slate-900 text-slate-200 px-3 py-2 rounded border focus:outline-none text-sm font-mono resize-none ${error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
+              className={`w-full ${DLG_INPUT_CLASS_BASE} font-mono resize-none ${error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
                 }`}
               placeholder={searchType === 'advanced' ? 'Functions: $, past, future, today' : searchType === 'wildcard' ? 'intro*duction' : 'Enter search text...'}
               style={{ minHeight: '80px' }}
@@ -312,7 +312,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SearchSortBy)}
                   data-testid="sort-by-select"
-                  className="bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
+                  className={`${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`}
                 >
                   <option value="modified-time">File Modification Time</option>
                   <option value="created-time">File Creation Time</option>
@@ -325,7 +325,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                   value={sortDirection}
                   onChange={(e) => setSortDirection(e.target.value as SearchSortDirection)}
                   data-testid="sort-direction-select"
-                  className="bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
+                  className={`${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`}
                 >
                   <option value="desc">DESC (newest first)</option>
                   <option value="asc">ASC (oldest first)</option>
