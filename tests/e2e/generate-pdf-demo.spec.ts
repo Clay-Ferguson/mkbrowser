@@ -8,10 +8,13 @@ import { takeScreenshot, writeNarration, demoClick, setCheckbox, insertText, log
  * This test walks through using the Export dialog to generate a PDF from
  * the Federalist Papers content, capturing screenshots and narration at
  * each step for GIF/MP4 generation.
+ * 
+ * WARNING: currently, running this test does require a human to be present to close the PDF preview window, and to press enter in the 
+ * console window that pops up (operating system terminal window) in order to close that, because without doing these things
+ * images for the video will not be created and the flow will not be correct to generate the correct video.
  */
 test.describe('Generate PDF Demo', () => {
-  // todo-0: remove the ".skip" from below and fix this test.
-  test.skip('demonstrate exporting a folder to PDF', async ({ mainWindow }) => {
+  test('demonstrate exporting a folder to PDF', async ({ mainWindow }) => {
     // Create subfolder based on test file name
     const testName = path.basename(__filename, '.spec.ts');
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
