@@ -1,19 +1,13 @@
 import { DocumentIcon } from '@heroicons/react/24/outline';
-import { buildEntryHeaderId } from '../../utils/entryDom';
-import { formatFlyoverInfo } from '../../utils/fileUtil';
-import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
-import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useEntryCore,
   useRename,
   useDelete,
   useToggleExpanded,
   EntryActionBar,
-  RenameInput,
-  SelectionCheckbox,
+  EntryShell,
   type BaseEntryProps,
 } from './common';
-import { ENTRY_OUTER, ENTRY_HIGHLIGHTED, ENTRY_HEADER_ROW, ENTRY_NAME_SPAN } from '../../utils/styles';
 
 type GenericEntryProps = BaseEntryProps;
 
@@ -42,69 +36,35 @@ function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onM
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
   return (
-    <div className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
-      <div className={ENTRY_HEADER_ROW} onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}>
-        {!isAttachment && (
-          <SelectionCheckbox
-            path={entry.path}
-            name={entry.name}
-            isSelected={isSelected}
-          />
-        )}
-        {/* Entry Icon */}
-        <span
-          className="flex-shrink-0 cursor-grab"
-          draggable
-          onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: false })}
-        >
-          <DocumentIcon className="w-5 h-5 text-slate-300" />
-        </span>
-        {isRenaming ? (
-          <RenameInput
-            ref={rename.inputRef}
-            path={entry.path}
-            name={entry.name}
-            value={rename.newName}
-            onChange={rename.setNewName}
-            onKeyDown={rename.handleKeyDown}
-            onBlur={rename.handleSave}
-            disabled={rename.saving}
-          />
-        ) : (
-          <span
-            id={buildEntryHeaderId(entry.path)}
-            onClick={handleToggleExpanded}
-            className={ENTRY_NAME_SPAN}
-            title={formatFlyoverInfo(entry)}
-          >
-            {entry.name}
-          </span>
-        )}
-        {!isRenaming && (
-          <EntryActionBar
-            path={entry.path}
-            isBookmarked={isBookmarked}
-            deleting={del.deleting}
-            onRenameClick={rename.handleRenameClick}
-            onDeleteClick={del.handleDeleteClick}
-            onSaveSettings={onSaveSettings}
-            onMoveUp={onMoveUp}
-            onMoveDown={onMoveDown}
-            onMoveToTop={onMoveToTop}
-            onMoveToBottom={onMoveToBottom}
-            className="-mr-1.5"
-            isAttachment={isAttachment}
-          />
-        )}
-        {del.showDeleteConfirm && (
-          <ConfirmDialog
-            message={`Move "${entry.name}" to trash?`}
-            onConfirm={del.handleDeleteConfirm}
-            onCancel={del.handleDeleteCancel}
-          />
-        )}
-      </div>
-    </div>
+    <EntryShell
+      entry={entry}
+      icon={<DocumentIcon className="w-5 h-5 text-slate-300" />}
+      isAttachment={isAttachment}
+      isHighlighted={isHighlighted}
+      isExpanded={isExpanded}
+      isSelected={isSelected}
+      isRenaming={isRenaming}
+      rename={rename}
+      del={del}
+      onToggleExpanded={handleToggleExpanded}
+      expandedAffectsHeader={false}
+      headerRight={
+        <EntryActionBar
+          path={entry.path}
+          isBookmarked={isBookmarked}
+          deleting={del.deleting}
+          onRenameClick={rename.handleRenameClick}
+          onDeleteClick={del.handleDeleteClick}
+          onSaveSettings={onSaveSettings}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
+          onMoveToTop={onMoveToTop}
+          onMoveToBottom={onMoveToBottom}
+          className="-mr-1.5"
+          isAttachment={isAttachment}
+        />
+      }
+    />
   );
 }
 

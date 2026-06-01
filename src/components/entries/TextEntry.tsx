@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { DocumentTextIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
-import { buildEntryHeaderId } from '../../utils/entryDom';
-import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
 import {
   useItem,
   clearItemGoToLine,
@@ -10,11 +8,10 @@ import {
   useExpandedEditor,
   setExpandedEditor,
 } from '../../store';
-import ConfirmDialog from '../dialogs/ConfirmDialog';
-import ErrorDialog from '../dialogs/ErrorDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
+import ErrorDialog from '../dialogs/ErrorDialog';
 import {
   useEntryCore,
   useRename,
@@ -23,13 +20,12 @@ import {
   useEditMode,
   useToggleExpanded,
   EntryActionBar,
-  RenameInput,
-  SelectionCheckbox,
+  EntryShell,
   type BaseEntryProps,
 } from './common';
 import { logger } from '../../utils/logUtil';
-import { getTextFileLanguage, formatFlyoverInfo } from '../../utils/fileUtil';
-import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_RED, BUTTON_CLASS_SM_PURPLE, ENTRY_OUTER, ENTRY_HIGHLIGHTED, ENTRY_HEADER_ROW, ENTRY_HEADER_EXPANDED, ENTRY_NAME_SPAN, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
+import { getTextFileLanguage } from '../../utils/fileUtil';
+import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_RED, BUTTON_CLASS_SM_PURPLE, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
 
 
 type TextEntryProps = BaseEntryProps;
@@ -125,108 +121,83 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
     }
   };
 
-  return (
-    <div className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
-      <div className={`${ENTRY_HEADER_ROW} ${isExpanded ? ENTRY_HEADER_EXPANDED : ''}`} onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}>
-        {!isAttachment && (
-          <SelectionCheckbox
-            path={entry.path}
-            name={entry.name}
-            isSelected={isSelected}
-          />
-        )}
-        {/* Entry Icon */}
-        <span
-          className="flex-shrink-0 cursor-grab"
-          draggable
-          onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: false })}
+  const headerRight = edit.isEditing ? (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setExpandedEditor(!expandedEditor)}
+        title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
+        className={ENTRY_EDITOR_ICON_BTN}
+      >
+        {expandedEditor
+          ? <ArrowsPointingInIcon className="w-5 h-5" />
+          : <ArrowsPointingOutIcon className="w-5 h-5" />}
+      </button>
+      {!item?.reviewing && aiRewriteMode && (
+        <button
+          onClick={aiRewrite}
+          disabled={edit.saving || isRewriting}
+          title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
+          className={BUTTON_CLASS_SM_PURPLE}
         >
-          <DocumentTextIcon className="w-5 h-5 text-emerald-400" />
-        </span>
-        {isRenaming ? (
-          <RenameInput
-            ref={rename.inputRef}
-            path={entry.path}
-            name={entry.name}
-            value={rename.newName}
-            onChange={rename.setNewName}
-            onKeyDown={rename.handleKeyDown}
-            onBlur={rename.handleSave}
-            disabled={rename.saving}
-            className="font-medium"
-          />
-        ) : (
-          <span
-            id={buildEntryHeaderId(entry.path)}
-            onClick={handleToggleExpanded}
-            className={ENTRY_NAME_SPAN}
-            title={formatFlyoverInfo(entry)}
+          {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
+        </button>
+      )}
+      {!item?.reviewing && (
+        <>
+          <button
+            onClick={edit.handleCancel}
+            disabled={edit.saving}
+            className={BUTTON_CLASS_SM_RED}
           >
-            {entry.name}
-          </span>
-        )}
-        {edit.isEditing ? (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setExpandedEditor(!expandedEditor)}
-              title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
-              className={ENTRY_EDITOR_ICON_BTN}
-            >
-              {expandedEditor
-                ? <ArrowsPointingInIcon className="w-5 h-5" />
-                : <ArrowsPointingOutIcon className="w-5 h-5" />}
-            </button>
-            {!item?.reviewing && aiRewriteMode && (
-              <button
-                onClick={aiRewrite}
-                disabled={edit.saving || isRewriting}
-                title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
-                className={BUTTON_CLASS_SM_PURPLE}
-              >
-                {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
-              </button>
-            )}
-            {!item?.reviewing && (
-              <>
-                <button
-                  onClick={edit.handleCancel}
-                  disabled={edit.saving}
-                  className={BUTTON_CLASS_SM_RED}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={edit.handleSave}
-                  disabled={edit.saving}
-                  className={BUTTON_CLASS_SM_BLUE}
-                  data-testid="entry-save-button"
-                >
-                  {edit.saving ? 'Saving...' : 'Save'}
-                </button>
-              </>
-            )}
-          </div>
-        ) : !isRenaming && (
-          <EntryActionBar
-            path={entry.path}
-            isBookmarked={isBookmarked}
-            deleting={del.deleting}
-            onRenameClick={rename.handleRenameClick}
-            onDeleteClick={del.handleDeleteClick}
-            onSaveSettings={onSaveSettings}
-            onMoveUp={onMoveUp}
-            onMoveDown={onMoveDown}
-            onMoveToTop={onMoveToTop}
-            onMoveToBottom={onMoveToBottom}
-            className="-mr-1.5"
-            isAttachment={isAttachment}
-          />
-        )}
-      </div>
-      {isExpanded && (
+            Cancel
+          </button>
+          <button
+            onClick={edit.handleSave}
+            disabled={edit.saving}
+            className={BUTTON_CLASS_SM_BLUE}
+            data-testid="entry-save-button"
+          >
+            {edit.saving ? 'Saving...' : 'Save'}
+          </button>
+        </>
+      )}
+    </div>
+  ) : (
+    <EntryActionBar
+      path={entry.path}
+      isBookmarked={isBookmarked}
+      deleting={del.deleting}
+      onRenameClick={rename.handleRenameClick}
+      onDeleteClick={del.handleDeleteClick}
+      onSaveSettings={onSaveSettings}
+      onMoveUp={onMoveUp}
+      onMoveDown={onMoveDown}
+      onMoveToTop={onMoveToTop}
+      onMoveToBottom={onMoveToBottom}
+      className="-mr-1.5"
+      isAttachment={isAttachment}
+    />
+  );
+
+  return (
+    <>
+      <EntryShell
+        entry={entry}
+        icon={<DocumentTextIcon className="w-5 h-5 text-emerald-400" />}
+        isAttachment={isAttachment}
+        isHighlighted={isHighlighted}
+        isExpanded={isExpanded}
+        isSelected={isSelected}
+        isRenaming={isRenaming}
+        rename={rename}
+        del={del}
+        onToggleExpanded={handleToggleExpanded}
+        renameClassName="font-medium"
+        headerRight={headerRight}
+      >
         <div
           className={ENTRY_CONTENT_AREA}
-          onMouseUp={!edit.isEditing ? (e) => { if (!window.getSelection()?.toString()) edit.handleEditClick(); } : undefined}
+          onMouseUp={!edit.isEditing ? () => { if (!window.getSelection()?.toString()) edit.handleEditClick(); } : undefined}
         >
           {loading && !content ? (
             <div className={ENTRY_LOADING}>Loading...</div>
@@ -269,21 +240,14 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
             />
           )}
         </div>
-      )}
-      {del.showDeleteConfirm && (
-        <ConfirmDialog
-          message={`Move "${entry.name}" to trash?`}
-          onConfirm={del.handleDeleteConfirm}
-          onCancel={del.handleDeleteCancel}
-        />
-      )}
+      </EntryShell>
       {aiErrorMessage && (
         <ErrorDialog
           message={aiErrorMessage}
           onClose={() => setAiErrorMessage(null)}
         />
       )}
-    </div>
+    </>
   );
 }
 

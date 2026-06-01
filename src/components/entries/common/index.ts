@@ -19,3 +19,4 @@ export { useEditMode } from './useEditMode';
 export { EntryActionBar, useToggleExpanded } from './EntryActionBar';
 export { RenameInput } from './RenameInput';
 export { SelectionCheckbox } from './SelectionCheckbox';
+export { EntryShell } from './EntryShell';

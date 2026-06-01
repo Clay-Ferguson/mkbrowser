@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { PhotoIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon } from '@heroicons/react/24/outline';
 import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
-import { buildEntryHeaderId } from '../../utils/entryDom';
-import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
 import { setHighlightItem, setPendingScrollToFile, deleteItems, useItem, setItemSelected, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
@@ -14,11 +12,9 @@ import {
   useDelete,
   useToggleExpanded,
   EntryActionBar,
-  RenameInput,
-  SelectionCheckbox,
+  EntryShell,
   type BaseEntryProps,
 } from './common';
-import { ENTRY_OUTER, ENTRY_HIGHLIGHTED, ENTRY_HEADER_ROW, ENTRY_HEADER_EXPANDED } from '../../utils/styles';
 
 interface ImageEntryProps extends BaseEntryProps {
   allImages: FileEntryType[];
@@ -212,46 +208,21 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
   // logger.log('[ImageEntry] Image URL:', imageUrl);
 
   return (
-    <div className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
-      {/* Header row */}
-      <div className={`${ENTRY_HEADER_ROW} ${isExpanded ? ENTRY_HEADER_EXPANDED : ''}`} onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}>
-        {!isAttachment && (
-          <SelectionCheckbox
-            path={entry.path}
-            name={entry.name}
-            isSelected={isSelected}
-          />
-        )}
-        {/* Entry Icon */}
-        <span
-          className="flex-shrink-0 cursor-grab"
-          draggable
-          onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: false })}
-        >
-          <PhotoIcon className="w-5 h-5 text-green-500" />
-        </span>
-        {isRenaming ? (
-          <RenameInput
-            ref={rename.inputRef}
-            path={entry.path}
-            name={entry.name}
-            value={rename.newName}
-            onChange={rename.setNewName}
-            onKeyDown={rename.handleKeyDown}
-            onBlur={rename.handleSave}
-            disabled={rename.saving}
-          />
-        ) : (
-          <span
-            id={buildEntryHeaderId(entry.path)}
-            onClick={handleToggleExpanded}
-            className="text-green-400 truncate flex-1 cursor-pointer no-underline"
-            title={isExpanded ? 'Collapse image' : 'Expand image'}
-          >
-            {entry.name}
-          </span>
-        )}
-        {!isRenaming && (
+    <>
+      <EntryShell
+        entry={entry}
+        icon={<PhotoIcon className="w-5 h-5 text-green-500" />}
+        isAttachment={isAttachment}
+        isHighlighted={isHighlighted}
+        isExpanded={isExpanded}
+        isSelected={isSelected}
+        isRenaming={isRenaming}
+        rename={rename}
+        del={del}
+        onToggleExpanded={handleToggleExpanded}
+        nameClassName="text-green-400 truncate flex-1 cursor-pointer no-underline"
+        nameTitle={isExpanded ? 'Collapse image' : 'Expand image'}
+        headerRight={
           <EntryActionBar
             path={entry.path}
             isBookmarked={isBookmarked}
@@ -266,11 +237,9 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
             className="-mr-1.5"
             isAttachment={isAttachment}
           />
-        )}
-      </div>
-
-      {/* Expanded image content */}
-      {isExpanded && (
+        }
+      >
+        {/* Expanded image content */}
         <div className="px-4 pb-4">
           <div className="bg-slate-900 rounded-lg p-4 flex items-center justify-center">
             <div className="relative inline-block">
@@ -302,7 +271,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
             </div>
           </div>
         </div>
-      )}
+      </EntryShell>
 
       {/* Fullscreen overlay - use keyboard: Left/Right arrows to navigate, Delete to delete, Escape to close */}
       {isFullscreen && (
@@ -403,14 +372,6 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
         />
       )}
 
-      {del.showDeleteConfirm && (
-        <ConfirmDialog
-          message={`Move "${entry.name}" to trash?`}
-          onConfirm={del.handleDeleteConfirm}
-          onCancel={del.handleDeleteCancel}
-        />
-      )}
-
       {showExifDialog && exifData && (
         <ExifDialog
           data={exifData}
@@ -419,7 +380,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
           onClose={() => { setShowExifDialog(false); setExifData(null); }}
         />
       )}
-    </div>
+    </>
   );
 }
 

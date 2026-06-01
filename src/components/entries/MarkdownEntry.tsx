@@ -10,8 +10,6 @@ import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../types/types';
-import { buildEntryHeaderId } from '../../utils/entryDom';
-import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
 import { removeTOC } from '../../utils/tocUtil';
 import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks } from '../../utils/mkUtil';
 import {
@@ -30,7 +28,6 @@ import {
   setExpandedEditor,
   setShowPropsInEditor,
 } from '../../store';
-import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import StreamingDialog from '../dialogs/StreamingDialog';
 import EditCalendarDialog from '../dialogs/EditCalendarDialog';
@@ -45,7 +42,6 @@ import CustomCode from '../CustomCode';
 import CustomPre from '../CustomPre';
 import { createBlockClickComponents } from '../blockClickComponents';
 import { logger } from '../../utils/logUtil';
-import { formatFlyoverInfo } from '../../utils/fileUtil';
 import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
 import {
   useEntryCore,
@@ -55,11 +51,10 @@ import {
   useEditMode,
   useToggleExpanded,
   EntryActionBar,
-  RenameInput,
-  SelectionCheckbox,
+  EntryShell,
   type BaseEntryProps,
 } from './common';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_OUTER, ENTRY_HIGHLIGHTED, ENTRY_HEADER_ROW, ENTRY_HEADER_EXPANDED, ENTRY_NAME_SPAN, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
 
 
 interface MarkdownEntryProps extends BaseEntryProps {
@@ -299,48 +294,8 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
   const columns = splitOnColumnBreaks(processedContent);
   const columnBlockComponents = columns.map(col => createBlockClickComponents(edit.handleEditClick, col.lineOffset));
 
-  return (
-    <div data-testid="browser-entry-markdown" className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
-      <div className={`${ENTRY_HEADER_ROW} ${isExpanded ? ENTRY_HEADER_EXPANDED : ''}`} onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}>
-        {!isAttachment && (
-          <SelectionCheckbox
-            path={entry.path}
-            name={entry.name}
-            isSelected={isSelected}
-          />
-        )}
-        {/* Entry Icon */}
-        <span
-          className="flex-shrink-0 cursor-grab"
-          draggable
-          onDragStart={makeEntryDragStartHandler({ path: entry.path, name: entry.name, isDirectory: false })}
-        >
-          <DocumentTextIcon className="w-5 h-5 text-blue-400" />
-        </span>
-        {isRenaming ? (
-          <RenameInput
-            ref={rename.inputRef}
-            path={entry.path}
-            name={entry.name}
-            value={rename.newName}
-            onChange={rename.setNewName}
-            onKeyDown={rename.handleKeyDown}
-            onBlur={rename.handleSave}
-            disabled={rename.saving}
-            className="font-medium"
-          />
-        ) : (
-          <span
-            id={buildEntryHeaderId(entry.path)}
-            onClick={handleToggleExpanded}
-            className={ENTRY_NAME_SPAN}
-            title={formatFlyoverInfo(entry)}
-          >
-            {!isExpanded || !(documentMode && TIMESTAMP_FILENAME_RE.test(entry.name)) ? entry.name : ''}
-          </span>
-        )}
-        {edit.isEditing ? (
-          <div className="flex items-center gap-2">
+  const headerRight = edit.isEditing ? (
+    <div className="flex items-center gap-2">
             <button
               onClick={handleToggleShowProps}
               title={showPropsInEditor ? 'Hide properties' : 'Show properties'}
@@ -419,7 +374,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               </>
             )}
           </div>
-        ) : !isRenaming && (
+        ) : (
           <>
             <EntryActionBar
               path={entry.path}
@@ -471,12 +426,29 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
               </button>
             )}
           </>
-        )}
-      </div>
-      {isExpanded && (
+        );
+
+  return (
+    <>
+      <EntryShell
+        data-testid="browser-entry-markdown"
+        entry={entry}
+        icon={<DocumentTextIcon className="w-5 h-5 text-blue-400" />}
+        isAttachment={isAttachment}
+        isHighlighted={isHighlighted}
+        isExpanded={isExpanded}
+        isSelected={isSelected}
+        isRenaming={isRenaming}
+        rename={rename}
+        del={del}
+        onToggleExpanded={handleToggleExpanded}
+        renameClassName="font-medium"
+        nameContent={!isExpanded || !(documentMode && TIMESTAMP_FILENAME_RE.test(entry.name)) ? entry.name : ''}
+        headerRight={headerRight}
+      >
         <div
           className={ENTRY_CONTENT_AREA}
-          onMouseUp={!edit.isEditing ? (e) => { if (!window.getSelection()?.toString()) edit.handleEditClick(); } : undefined}
+          onMouseUp={!edit.isEditing ? () => { if (!window.getSelection()?.toString()) edit.handleEditClick(); } : undefined}
         >
           {loading && !content ? (
             <div className={ENTRY_LOADING}>Loading...</div>
@@ -598,7 +570,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             </>
           )}
         </div>
-      )}
+      </EntryShell>
       {showCalendarDialog && (
         <EditCalendarDialog
           content={edit.editContent}
@@ -609,13 +581,6 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
             onSaveSettings();
           }}
           onCancel={() => setShowCalendarDialog(false)}
-        />
-      )}
-      {del.showDeleteConfirm && (
-        <ConfirmDialog
-          message={`Move "${entry.name}" to trash?`}
-          onConfirm={del.handleDeleteConfirm}
-          onCancel={del.handleDeleteCancel}
         />
       )}
       {aiErrorMessage && (
@@ -630,7 +595,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
           onCancel={handleCancelStream}
         />
       )}
-    </div>
+    </>
   );
 }
 
