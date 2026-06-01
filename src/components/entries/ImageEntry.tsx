@@ -4,7 +4,7 @@ import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
-import { setHighlightItem, setPendingScrollToFile, toggleItemExpanded, deleteItems, useItem, setItemSelected, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
+import { setHighlightItem, setPendingScrollToFile, deleteItems, useItem, setItemSelected, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ErrorDialog from '../dialogs/ErrorDialog';
 import ExifDialog from '../dialogs/ExifDialog';
@@ -12,6 +12,7 @@ import {
   useEntryCore,
   useRename,
   useDelete,
+  useToggleExpanded,
   EntryActionBar,
   RenameInput,
   SelectionCheckbox,
@@ -189,9 +190,7 @@ function ImageEntry({ entry, allImages, onRename, onDelete, onSaveSettings, onMo
     setShowFullscreenDeleteConfirm(false);
   };
 
-  const handleToggleExpanded = () => {
-    toggleItemExpanded(entry.path);
-  };
+  const handleToggleExpanded = useToggleExpanded(entry.path);
 
   const handleExifClick = async (e: React.MouseEvent, imagePath: string, imageName: string) => {
     e.stopPropagation();

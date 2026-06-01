@@ -2,12 +2,12 @@ import { DocumentIcon } from '@heroicons/react/24/outline';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { formatFlyoverInfo } from '../../utils/fileUtil';
 import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
-import { toggleItemExpanded } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useEntryCore,
   useRename,
   useDelete,
+  useToggleExpanded,
   EntryActionBar,
   RenameInput,
   SelectionCheckbox,
@@ -39,9 +39,7 @@ function GenericEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onM
     onDelete,
   });
 
-  const handleToggleExpanded = () => {
-    toggleItemExpanded(entry.path);
-  };
+  const handleToggleExpanded = useToggleExpanded(entry.path);
 
   return (
     <div className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>

@@ -5,7 +5,6 @@ import { makeEntryDragStartHandler } from '../../utils/dragAndDrop';
 import {
   useItem,
   clearItemGoToLine,
-  toggleItemExpanded,
   setItemReviewing,
   useHasIndexFile,
   useExpandedEditor,
@@ -22,6 +21,7 @@ import {
   useDelete,
   useContentLoader,
   useEditMode,
+  useToggleExpanded,
   EntryActionBar,
   RenameInput,
   SelectionCheckbox,
@@ -102,9 +102,7 @@ function TextEntry({ entry, onRename, onDelete, onSaveSettings, onMoveUp, onMove
     }
   }, [edit.editContent, content, edit.handleCancel]);
 
-  const handleToggleExpanded = () => {
-    toggleItemExpanded(entry.path);
-  };
+  const handleToggleExpanded = useToggleExpanded(entry.path);
 
   const aiRewrite = async () => {
     const selection = editorRef.current?.getSelection();

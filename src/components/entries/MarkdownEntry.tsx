@@ -20,7 +20,6 @@ import {
   useHasCutItems,
   setHighlightItem,
   clearItemGoToLine,
-  toggleItemExpanded,
   navigateToBrowserPath,
   setPendingEditFile,
   setPendingThreadScrollToBottom,
@@ -54,6 +53,7 @@ import {
   useDelete,
   useContentLoader,
   useEditMode,
+  useToggleExpanded,
   EntryActionBar,
   RenameInput,
   SelectionCheckbox,
@@ -121,9 +121,7 @@ function MarkdownEntry({ entry, view, onRename, onDelete, onSaveSettings, onMove
     }
   }, [edit.editContent, content, edit.handleCancel]);
 
-  const handleToggleExpanded = () => {
-    toggleItemExpanded(entry.path);
-  };
+  const handleToggleExpanded = useToggleExpanded(entry.path);
 
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
   // Consolidated into a single state object so the mount-time config load
