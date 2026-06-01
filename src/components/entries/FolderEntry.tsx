@@ -21,19 +21,12 @@ import {
   RenameInput,
   SelectionCheckbox,
 } from './common';
+import type { BaseEntryProps } from './common';
 
-interface FolderEntryProps {
-  entry: FileEntry;
+interface FolderEntryProps extends BaseEntryProps {
   onNavigate: (path: string) => void;
-  onRename: () => void;
-  onDelete: () => void;
-  onSaveSettings: () => void;
   onPasteIntoFolder?: (folderPath: string) => void;
   onRefreshDirectory?: () => void;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
-  onMoveToTop?: () => void;
-  onMoveToBottom?: () => void;
   isAttachFolder?: boolean;
   indentFolder?: boolean;
 }
