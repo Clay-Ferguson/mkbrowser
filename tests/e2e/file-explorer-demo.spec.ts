@@ -11,8 +11,7 @@ const test = baseTest.extend({
 });
 
 test.describe('File Explorer Tree Demo', () => {
-  // todo-0: remove the ".skip" from below and fix this test.
-  test.skip('demonstrate file explorer tree navigation', async ({ mainWindow }) => {
+  test('demonstrate file explorer tree navigation', async ({ mainWindow }) => {
     const testName = path.basename(__filename, '.spec.ts');
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
 
@@ -119,10 +118,33 @@ This is one of the most powerful navigation features of MkBrowser.`
       screenshotDir,
       step++,
       `Now let's try a right-click on the user guide in the tree.
-Right-clicking a file opens its containing folder in the main content area on the right-hand side of the app.`
+Right-clicking a file in the tree opens a context menu with several actions you can take on that item.`
     );
 
     await demoRightClick(userGuideFileAgain);
+    await mainWindow.waitForTimeout(1000);
+
+    // The right-click opens a context menu. Verify it appeared and show it off.
+    const userGuideBrowseItem = mainWindow.getByTestId('browse-to-folder');
+    await expect(userGuideBrowseItem).toBeVisible({ timeout: 5000 });
+
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'user-guide-context-menu-open');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `A context menu has appeared. It offers actions for the selected item, such as renaming, deleting, or pasting.
+To open the file's containing folder in the main content area, we'll click the "Browse to File" item at the top of the menu.`
+    );
+
+    // Highlight the menu item, then click it to actually browse.
+    await takeScreenshot(mainWindow, userGuideBrowseItem, screenshotDir, step++, 'about-to-click-browse-to-folder');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Let's click the "Browse to File" menu item to navigate to the folder that contains the user guide.`
+    );
+
+    await demoClick(userGuideBrowseItem);
     await mainWindow.waitForTimeout(1000);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'right-click-user-guide-folder-opened');
@@ -162,10 +184,33 @@ We can drill into any section of the document directly from the file explorer.`
       screenshotDir,
       step++,
       `We can see the sub-heading "Saving Search Definitions" in the tree.
-Let's right-click it — this should scroll the right-hand side of the app directly to that section of the document.`
+Let's right-click it to open the context menu for that heading.`
     );
 
     await demoRightClick(savingSearchNode);
+    await mainWindow.waitForTimeout(1200);
+
+    // The right-click opens a context menu for the heading. Verify it appeared.
+    const savingSearchBrowseItem = mainWindow.getByTestId('browse-to-folder');
+    await expect(savingSearchBrowseItem).toBeVisible({ timeout: 5000 });
+
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'saving-search-context-menu-open');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Again the context menu appears, this time for the heading.
+We'll click the "Browse to File" item, which scrolls the right-hand side of the app directly to that section of the document.`
+    );
+
+    // Highlight the menu item, then click it to jump to the heading.
+    await takeScreenshot(mainWindow, savingSearchBrowseItem, screenshotDir, step++, 'about-to-click-browse-to-heading');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Let's click the "Browse to File" menu item to jump straight to the "Saving Search Definitions" section.`
+    );
+
+    await demoClick(savingSearchBrowseItem);
     await mainWindow.waitForTimeout(1200);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'right-click-saving-search-definitions-scrolled');
@@ -173,7 +218,7 @@ Let's right-click it — this should scroll the right-hand side of the app direc
       screenshotDir,
       step++,
       `The right-hand panel has scrolled directly to the "Saving Search Definitions" section of the USER_GUIDE document.
-Right-clicking any heading in the File Explorer Tree is a fast way to jump to that exact section in the reader.`
+Using the context menu in the File Explorer Tree is a fast way to jump to that exact section in the reader.`
     );
 
     // --- Phase 3 ---
