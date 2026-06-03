@@ -62,6 +62,7 @@ const initialState: AppState = {
   indexYaml: null,
   expandedEditor: false,
   calendarFolder: null,
+  activeCalendarFolder: null,
   calendarEvents: null,
   calendarLoading: false,
   calendarViewType: 'month',
@@ -1048,6 +1049,19 @@ export function setCalendarFolder(folder: string | null): void {
 
 export function useCalendarFolder(): string | null {
   return useSyncExternalStore(subscribe, getCalendarFolderSnapshot);
+}
+
+function getActiveCalendarFolderSnapshot(): string | null {
+  return state.activeCalendarFolder;
+}
+
+export function setActiveCalendarFolder(folder: string | null): void {
+  state = { ...state, activeCalendarFolder: folder };
+  emitChange();
+}
+
+export function useActiveCalendarFolder(): string | null {
+  return useSyncExternalStore(subscribe, getActiveCalendarFolderSnapshot);
 }
 
 /**

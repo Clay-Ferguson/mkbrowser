@@ -4,7 +4,7 @@ import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useSettings } from '../../store';
+import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useSettings, useActiveCalendarFolder } from '../../store';
 import type { CalendarEvent } from '../../types/types';
 import { logger } from '../../utils/logUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
@@ -49,6 +49,7 @@ export default function CalendarView() {
   const view = viewTypeToRbc[calendarViewType] ?? Views.MONTH;
   const date = useCalendarViewTime();
   const settings = useSettings();
+  const activeCalendarFolder = useActiveCalendarFolder();
   const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
 
   const handleViewChange = (v: View) => {
@@ -118,6 +119,15 @@ export default function CalendarView() {
   return (
     <>
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+      {activeCalendarFolder && (
+        <div
+          className="w-full px-4 py-2 bg-slate-800 border-b border-slate-700 text-slate-300 text-sm truncate cursor-pointer hover:bg-slate-700"
+          onClick={() => navigateToBrowserPath(activeCalendarFolder)}
+          title="Browse to this folder"
+        >
+          <span className="text-slate-500">Calendar folder:</span> {activeCalendarFolder}
+        </div>
+      )}
       {loading && (
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">

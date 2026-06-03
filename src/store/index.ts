@@ -131,6 +131,8 @@ export {
   useExpandedEditor,
   setCalendarFolder,
   useCalendarFolder,
+  setActiveCalendarFolder,
+  useActiveCalendarFolder,
   setCalendarEvents,
   setCalendarLoading,
   useCalendarEvents,

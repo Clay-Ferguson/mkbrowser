@@ -511,6 +511,13 @@ export interface AppState {
   calendarFolder: string | null;
 
   /**
+   * The folder name displayed above the calendar — the folder the calendar
+   * was built from. Preserved so the user can see which folder was active in
+   * the BrowseView when they opened the calendar.
+   */
+  activeCalendarFolder: string | null;
+
+  /**
    * Calendar events loaded from the file system (null = not yet loaded).
    */
   calendarEvents: CalendarEvent[] | null;
