@@ -15,14 +15,19 @@ mkdir -p "$MODELS_DIR"
 # All model files can coexist on disk — download each variant once.
 
 # Gemma 4 E2B: 2.3B effective params (5.1B total with embeddings)
-MODEL_REPO="unsloth/gemma-4-E2B-it-GGUF"
-MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"
-MODEL_SIZE_HINT="~3.1 GB"
+#MODEL_REPO="unsloth/gemma-4-E2B-it-GGUF"
+#MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"
+#MODEL_SIZE_HINT="~3.1 GB"
 
 # Gemma 4 E4B: 4.5B effective params (8B total with embeddings)
 #MODEL_REPO="unsloth/gemma-4-E4B-it-GGUF"
 #MODEL_FILE="gemma-4-E4B-it-Q4_K_M.gguf"
 #MODEL_SIZE_HINT="~5.0 GB"
+
+# Gemma 4 12B (dense): 12B params
+MODEL_REPO="unsloth/gemma-4-12b-it-GGUF"
+MODEL_FILE="gemma-4-12b-it-Q4_K_M.gguf"
+MODEL_SIZE_HINT="~7.1 GB"
 
 # Gemma 4 26B-A4B (MoE): 3.8B active params (25.2B total)
 # MODEL_REPO="unsloth/gemma-4-26B-A4B-it-GGUF"

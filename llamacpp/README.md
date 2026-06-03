@@ -54,11 +54,12 @@ curl http://localhost:8080/v1/chat/completions \
 
 ## Switching Models
 
-Three Gemma 4 model variants are supported:
+Four Gemma 4 model variants are supported:
 
 | Variant | Params | Quant | File Size | Context | Notes |
 |---------|--------|-------|-----------|---------|-------|
-| **26B-A4B** | 3.8B active / 25.2B total (MoE) | UD-IQ4_XS | ~13.4 GB | 8192 | Highest quality, default |
+| **26B-A4B** | 3.8B active / 25.2B total (MoE) | UD-IQ4_XS | ~13.4 GB | 8192 | Highest quality |
+| **12B** | 12B (dense) | Q4_K_M | ~7.1 GB | 16384 | Strong quality, current default |
 | **E4B** | 4.5B effective (8B total) | Q4_K_M | ~5.0 GB | 16384 | Good balance |
 | **E2B** | 2.3B effective (5.1B total) | Q4_K_M | ~3.1 GB | 16384 | Lightest, fastest |
 
@@ -69,13 +70,13 @@ uncomment the other:
 ```bash
 # Uncomment ONE group of settings below.
 
-# Gemma 4 E2B: 2.3B effective params (~3.1 GB)
-MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"         # ← active
-CTX_SIZE="16384"                                  # ← active
-
 # Gemma 4 E4B: 4.5B effective params (~5.0 GB)
 #MODEL_FILE="gemma-4-E4B-it-Q4_K_M.gguf"         # ← inactive
 #CTX_SIZE="16384"                                  # ← inactive
+
+# Gemma 4 12B (dense): 12B params (~7.1 GB)
+MODEL_FILE="gemma-4-12b-it-Q4_K_M.gguf"          # ← active
+CTX_SIZE="16384"                                  # ← active
 
 # Gemma 4 26B-A4B (MoE): 3.8B active params (~13.4 GB)
 #MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"  # ← inactive

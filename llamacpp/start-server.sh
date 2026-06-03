@@ -23,7 +23,11 @@ LIB_DIR="$HOME/.local/lib/llama.cpp"
 #CTX_SIZE="16384"
 
 # Gemma 4 E4B: 4.5B effective params (~5.0 GB)
-MODEL_FILE="gemma-4-E4B-it-Q4_K_M.gguf"
+#MODEL_FILE="gemma-4-E4B-it-Q4_K_M.gguf"
+#CTX_SIZE="16384"
+
+# Gemma 4 12B (dense): 12B params (~7.1 GB)
+MODEL_FILE="gemma-4-12b-it-Q4_K_M.gguf"
 CTX_SIZE="16384"
 
 # Gemma 4 26B-A4B (MoE): 3.8B active params (~13.4 GB)

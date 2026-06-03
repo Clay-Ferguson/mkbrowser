@@ -46,7 +46,7 @@ import { checkHealth } from './llamaServer';
  * I don't consider this important enough to make it a user configurable setting at runtime.
  * 
  */
-export const USE_DEEP_AGENTS = true;
+export const USE_DEEP_AGENTS = false;
 
 // Set to true to enable verbose debug logging for Deep Agent invocations.
 const DEBUG = true;
