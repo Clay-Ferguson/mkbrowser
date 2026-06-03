@@ -65,6 +65,24 @@ const FREQ_MAP: Record<string, number> = {
   monthly: RRule.MONTHLY, yearly: RRule.YEARLY,
 };
 
+/**
+ * Safety cap on the number of occurrences generated for a single recurring item.
+ * Without this, an unbounded rrule (no `until` and no `count` — i.e. an "ends:
+ * never" repeat) makes RRule.all() loop forever, hanging the calendar. This also
+ * guards against huge counts or far-future `until` dates.
+ */
+const MAX_OCCURRENCES = 400;
+
+/**
+ * Never populate the calendar with occurrences more than this far into the
+ * future. This bounds total memory/render load across *all* recurring items
+ * (each one is independently capped at MAX_OCCURRENCES, which alone could still
+ * add up to many thousands of entries). For most frequencies this horizon is
+ * the operative limit; MAX_OCCURRENCES is the backstop for very fine-grained
+ * repeats (e.g. daily).
+ */
+const MAX_FUTURE_YEARS = 2;
+
 interface RRuleYaml {
   freq?: string;
   interval?: number;
@@ -103,7 +121,16 @@ function expandRRule(
     dtstart: isAllDay ? dueDate : new Date(startMs),
   });
 
-  return rule.all().map((occurrenceDate, i) => {
+  // we have the max occurrences and this time horizon in place so that we can 
+  // be sure that calendar items that are configured to repeat forever, won't 
+  // overflow memory or overload the calendar component 
+  const horizon = new Date();
+  horizon.setFullYear(horizon.getFullYear() + MAX_FUTURE_YEARS);
+  const horizonMs = horizon.getTime();
+
+  return rule
+    .all((date, len) => date.getTime() <= horizonMs && len < MAX_OCCURRENCES)
+    .map((occurrenceDate, i) => {
     let occStart: number;
     let occEnd: number;
     if (isAllDay) {
