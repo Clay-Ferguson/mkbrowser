@@ -136,6 +136,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
             <div>
               <label className="block text-xs text-slate-400 mb-1">Repeat</label>
               <select
+                data-testid="calendar-frequency-type-option"
                 value={freq}
                 onChange={(e) => { setFreq(e.target.value); setByday([]); setEndType('never'); }}
                 className="bg-slate-700 text-slate-100 border border-slate-500 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400"
@@ -150,6 +151,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                 <label className="block text-xs text-slate-400 mb-1">Every</label>
                 <div className="flex items-center gap-1">
                   <input
+                    data-testid="calendar-frequency-repeat-option"
                     type="text"
                     maxLength={4}
                     value={interval}
@@ -234,6 +236,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
             Cancel
           </button>
           <button
+            data-testid="calendar-info-save"
             onClick={handleSave}
             disabled={!selected}
             className={BUTTON_CLASS_DLG_BLUE}

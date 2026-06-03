@@ -34,7 +34,7 @@ function NewCalendarFileDialog({ initialFileName, onCreate, onCancel }: NewCalen
   };
 
   return (
-    <div className={DLG_OVERLAY_CLASS} onClick={(e) => e.stopPropagation()}>
+    <div data-testid="new-calendar-item-dlg" className={DLG_OVERLAY_CLASS} onClick={(e) => e.stopPropagation()}>
       <div className={`${DLG_CONTAINER} w-full max-w-md mx-4 overflow-hidden`}>
         <DlgHeader title="New Calendar Item" onClose={onCancel} />
         <div className="p-6">
@@ -48,6 +48,7 @@ function NewCalendarFileDialog({ initialFileName, onCreate, onCancel }: NewCalen
               onKeyDown={handleKeyDown}
               className={DLG_INPUT_CLASS}
               placeholder="File name..."
+              data-testid="new-calendar-item-dlg-filename"
             />
           </div>
 
@@ -55,7 +56,7 @@ function NewCalendarFileDialog({ initialFileName, onCreate, onCancel }: NewCalen
             <button onClick={onCancel} className={BUTTON_CLASS_DLG_CANCEL}>
               Cancel
             </button>
-            <button onClick={handleCreate} disabled={!fileName.trim()} className={BUTTON_CLASS_DLG_BLUE}>
+            <button  data-testid="new-calendar-item-dlg-create" onClick={handleCreate} disabled={!fileName.trim()} className={BUTTON_CLASS_DLG_BLUE}>
               Create File
             </button>
           </div>

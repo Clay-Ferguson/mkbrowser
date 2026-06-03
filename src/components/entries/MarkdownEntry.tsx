@@ -285,6 +285,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                 : <TagIconOutline className="w-5 h-5" />}
             </button>
             <button
+              data-testid="edit-calendar-info"
               onClick={() => setShowCalendarDialog(true)}
               title="Calendar Info"
               className={`${ENTRY_EDITOR_ICON_BTN} border border-transparent`}
