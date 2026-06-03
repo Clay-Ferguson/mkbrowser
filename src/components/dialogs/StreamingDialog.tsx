@@ -120,6 +120,25 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
             <p className="text-red-400 font-semibold mt-2">Error: {errorMessage}</p>
           )}
         </div>
+
+        {/* Footer */}
+        <div className="flex justify-end px-4 py-3 border-t border-slate-700">
+          {status === 'streaming' || status === 'pending' ? (
+            <button
+              onClick={handleStop}
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded cursor-pointer"
+            >
+              Stop
+            </button>
+          ) : (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm rounded cursor-pointer"
+            >
+              Close
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

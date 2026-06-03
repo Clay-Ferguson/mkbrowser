@@ -56,6 +56,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   stopLlamaServer: () => ipcRenderer.invoke('stop-llama-server'),
 
   // AI streaming events
+  onAiStreamStart: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('ai-stream-start', listener);
+    return () => { ipcRenderer.removeListener('ai-stream-start', listener); };
+  },
   onAiStreamChunk: (callback: (text: string) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, text: string) => callback(text);
     ipcRenderer.on('ai-stream-chunk', listener);

@@ -221,6 +221,7 @@ export interface ElectronAPI {
   stopLlamaServer: () => Promise<{ success: boolean; error?: string }>;
 
   // AI streaming events
+  onAiStreamStart: (callback: () => void) => () => void;
   onAiStreamChunk: (callback: (text: string) => void) => () => void;
   onAiStreamThinking: (callback: (text: string) => void) => () => void;
   onAiStreamTool: (callback: (toolName: string, summary: string) => void) => () => void;

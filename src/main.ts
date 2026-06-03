@@ -560,6 +560,12 @@ function setupIpcHandlers(): void {
     // running inside the context of a playwright test, and we just capture screenshots for playwright, 
     // so we don't need any real time screen updates 
     if (ENABLE_STREAM_RESPONSE && !hasScriptedAnswer()) {
+      // Signal the renderer immediately (before the model warms up) so the
+      // streaming dialog can appear right away in its "pending" state. This is
+      // skipped for scripted (test) answers so the dialog never shows there.
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('ai-stream-start');
+      }
       callbacks = {
         onChunk: (token: string) => {
           if (mainWindow && !mainWindow.isDestroyed()) {

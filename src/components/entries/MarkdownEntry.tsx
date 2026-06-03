@@ -174,21 +174,32 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     if (!textToSend) return;
     setIsAiLoading(true);
 
-    // Only show the streaming dialog when actual stream events arrive.
-    // Scripted answers (used in tests) resolve immediately with no events,
-    // so the dialog should never appear for them.
-    const unsubChunk = window.electronAPI.onAiStreamChunk(() => {
+    // Show the streaming dialog as soon as the backend commits to the real
+    // streaming path (ai-stream-start), so it appears instantly in its
+    // "pending" state during the (potentially long) model warm-up — well
+    // before the first chunk arrives. Scripted answers (used in tests) resolve
+    // immediately and never emit this event, so the dialog stays hidden there.
+    const showDialog = () => {
       if (!showStreamingDialogRef.current) {
         showStreamingDialogRef.current = true;
         setShowStreamingDialog(true);
       }
+    };
+    const unsubStart = window.electronAPI.onAiStreamStart(() => {
+      showDialog();
+      unsubStart();
+    });
+    // Fallback: also show on the first chunk in case the start event is missed.
+    const unsubChunk = window.electronAPI.onAiStreamChunk(() => {
+      showDialog();
       unsubChunk();
     });
 
     try {
       const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
       const result = await window.electronAPI.askAi(textToSend, parentFolder);
-      unsubChunk(); // no-op if already fired; cancels if scripted (no chunks came)
+      unsubStart();
+      unsubChunk(); // no-ops if already fired; cancels if scripted (no events came)
       if ('error' in result) {
         setAiErrorMessage(result.error);
       } else {
