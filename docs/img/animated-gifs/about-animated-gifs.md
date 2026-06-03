@@ -29,3 +29,6 @@
 
 ## How to Generate a PDF
 ![](./generate-pdf-demo.gif)
+
+## Calendar View
+![](./calendar-view-demo.gif)
