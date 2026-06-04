@@ -1,5 +1,5 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
-import { RangeSetBuilder, Prec, StateField, EditorState } from '@codemirror/state';
+import { RangeSetBuilder, RangeSet, Prec, StateField, EditorState, EditorSelection, Text } from '@codemirror/state';
 
 const frontMatterMark = Decoration.mark({ class: 'cm-front-matter' });
 const frontMatterDelimMark = Decoration.mark({ class: 'cm-front-matter-delim' });
@@ -104,6 +104,50 @@ export const frontMatterHideField = StateField.define<DecorationSet>({
     return tr.docChanged ? buildFrontMatterHideDecorations(tr.state) : deco.map(tr.changes);
   },
   provide(field) { return EditorView.decorations.from(field); },
+});
+
+// Returns the document position just past the hidden front matter (the start of the
+// first visible line), or -1 if there is no front matter to hide. Mirrors the range
+// computed in buildFrontMatterHideDecorations so the cursor guard can never drift from
+// what is actually hidden.
+export function frontMatterHiddenEnd(doc: Text): number {
+  const firstLine = doc.line(1);
+  if (firstLine.text.trim() !== '---') return -1;
+  for (let i = 2; i <= doc.lines; i++) {
+    const line = doc.line(i);
+    if (line.text.trim() === '---') {
+      return line.number < doc.lines ? line.to + 1 : line.to;
+    }
+  }
+  return -1;
+}
+
+// Treat the hidden front-matter region as a single atomic unit so arrow-key motion,
+// backspace, and delete skip over it instead of dropping the cursor into hidden text.
+// Reuses the exact range set produced by frontMatterHideField.
+export const frontMatterAtomicRanges = EditorView.atomicRanges.of(
+  (view) => view.state.field(frontMatterHideField, false) ?? RangeSet.empty
+);
+
+// Safety net for selections that are set directly rather than via cursor motion
+// (Ctrl-Home, a click in the collapsed gap, Ctrl-A): clamp every selection endpoint so
+// it can never land before the first visible line.
+export const frontMatterCursorGuard = EditorState.transactionFilter.of((tr) => {
+  const end = frontMatterHiddenEnd(tr.newDoc);
+  if (end <= 0) return tr;
+
+  const sel = tr.newSelection;
+  let changed = false;
+  const ranges = sel.ranges.map((r) => {
+    if (r.anchor < end || r.head < end) {
+      changed = true;
+      return EditorSelection.range(Math.max(r.anchor, end), Math.max(r.head, end));
+    }
+    return r;
+  });
+  if (!changed) return tr;
+
+  return [tr, { selection: EditorSelection.create(ranges, sel.mainIndex) }];
 });
 
 export const frontMatterTheme = EditorView.baseTheme({

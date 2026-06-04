@@ -16,7 +16,7 @@ import { useSettings, type FontSize } from '../../store';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../utils/editor/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editor/editorDateUtil';
-import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, hrLinePlugin } from '../../utils/editor/editorFrontMatterUtil';
+import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../utils/editor/editorFrontMatterUtil';
 // import { customRenderPlugin, customRenderTheme } from '../../utils/editorCustomRenderUtil'; // <--- Keep for future reference (no longer needed for now)
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
@@ -213,7 +213,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       spellCheckCompartment.current.of([]),
       spellCheckTheme,
       frontMatterCompartment.current.of(
-        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, hrLinePlugin, frontMatterTheme]
+        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
       ),
       hashtagPlugin,
       hashtagTheme,
@@ -346,6 +346,14 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
           } catch (err) {
             // logger.error('Failed to scroll to line:', err);
           }
+        } else if (!showPropsInEditor) {
+          // Transaction filters don't run on the initial state, so the cursor would
+          // otherwise default to position 0 (inside the hidden front matter). Nudge it
+          // down to the first visible line.
+          const end = frontMatterHiddenEnd(viewRef.current.state.doc);
+          if (end > 0) {
+            viewRef.current.dispatch({ selection: { anchor: end, head: end } });
+          }
         }
 
         // If there's a global search term active, open the search panel pre-populated
@@ -435,7 +443,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
     view.dispatch({
       effects: frontMatterCompartment.current.reconfigure(
-        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, hrLinePlugin, frontMatterTheme]
+        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
       ),
     });
   }, [showPropsInEditor]);

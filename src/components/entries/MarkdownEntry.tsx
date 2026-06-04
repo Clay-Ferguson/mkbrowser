@@ -277,138 +277,138 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   const headerRight = edit.isEditing ? (
     <div className="flex items-center gap-2">
-            <button
-              onClick={handleToggleShowProps}
-              title={showPropsInEditor ? 'Hide properties' : 'Show properties'}
-              className={`${ENTRY_EDITOR_ICON_BTN} border ${showPropsInEditor ? 'border-slate-400' : 'border-transparent'}`}
-            >
-              {showPropsInEditor
-                ? <PropsIconSolid className="w-5 h-5" />
-                : <PropsIconOutline className="w-5 h-5" />}
-            </button>
-            <button
-              onClick={handleToggleTagsVisible}
-              title={tagsVisible ? 'Hide tags' : 'Show tags'}
-              className={`${ENTRY_EDITOR_ICON_BTN} border ${tagsVisible ? 'border-slate-400' : 'border-transparent'}`}
-            >
-              {tagsVisible
-                ? <TagIconSolid className="w-5 h-5" />
-                : <TagIconOutline className="w-5 h-5" />}
-            </button>
-            <button
-              data-testid="edit-calendar-info"
-              onClick={() => setShowCalendarDialog(true)}
-              title="Calendar Info"
-              className={`${ENTRY_EDITOR_ICON_BTN} border border-transparent`}
-            >
-              <CalendarIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setExpandedEditor(!expandedEditor)}
-              title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
-              className={ENTRY_EDITOR_ICON_BTN}
-            >
-              {expandedEditor
-                ? <ArrowsPointingInIcon className="w-5 h-5" />
-                : <ArrowsPointingOutIcon className="w-5 h-5" />}
-            </button>
-            {!item?.reviewing && aiRewriteMode && (
-              <button
-                onClick={handleAiRewrite}
-                disabled={edit.saving || isRewriting}
-                title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
-                className={BUTTON_CLASS_SM_PURPLE}
-              >
-                {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
-              </button>
-            )}
-            {isHumanFile && !item?.reviewing && (
-              <button
-                data-testid="ask-ai-button"
-                onClick={async () => {
-                  await edit.handleSave();
-                  await handleAskAi(edit.editContent);
-                }}
-                disabled={edit.saving || isAiLoading}
-                className={`${BUTTON_CLASS_SM_PURPLE} flex-shrink-0`}
-              >
-                {isAiLoading ? 'Streaming...' : 'Ask AI'}
-              </button>
-            )}
-            {!item?.reviewing && (
-              <>
-                <button
-                  onClick={edit.handleCancel}
-                  disabled={edit.saving}
-                  className="px-3 py-1 text-sm text-white bg-red-700 hover:bg-red-600 rounded transition-colors disabled:opacity-50 cursor-pointer"
-                  data-testid="entry-cancel-button"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={edit.handleSave}
-                  disabled={edit.saving}
-                  className={BUTTON_CLASS_SM_BLUE}
-                  data-testid="entry-save-button"
-                >
-                  {edit.saving ? 'Saving...' : 'Save'}
-                </button>
-              </>
-            )}
-          </div>
-        ) : (
-          <>
-            <EntryActionBar
-              path={entry.path}
-              isBookmarked={isBookmarked}
-              deleting={del.deleting}
-              onRenameClick={rename.handleRenameClick}
-              onDeleteClick={del.handleDeleteClick}
-              onSaveSettings={onSaveSettings}
-              onMoveUp={onMoveUp}
-              onMoveDown={onMoveDown}
-              onMoveToTop={onMoveToTop}
-              onMoveToBottom={onMoveToBottom}
-              className="-mr-1.5"
-              isAttachment={isAttachment}
-              onPasteClipboardAsAttachment={onPasteClipboardAsAttachment ? () => onPasteClipboardAsAttachment(entry.path) : undefined}
-            />
-            {hasCutItems && onPasteAsAttachment && !entry.hasAttachFolder && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onPasteAsAttachment(entry.path); }}
-                className={BUTTON_CLASS_ICON_SOLID_BLUE}
-                title="Paste cut items as attachments to this file"
-                aria-label="Paste cut items as attachments to this file"
-              >
-                <PaperClipIcon className="w-4 h-4 text-white" />
-              </button>
-            )}
-            {view === 'thread' && (
-              <button
-                onClick={() => {
-                  const folderPath = entry.path.substring(0, entry.path.lastIndexOf('/'));
-                  setHighlightItem(entry.path);
-                  navigateToBrowserPath(folderPath, entry.path);
-                }}
-                className={BUTTON_CLASS_BLUE}
-                title="Show in Browse View"
-                data-testid="show-in-browser-button"
-              >
-                <ArrowLeftEndOnRectangleIcon className="w-5 h-5" />
-              </button>
-            )}
-            {isAiFile && (
-              <button
-                data-testid="ai-reply-button"
-                onClick={handleReply}
-                disabled={isReplyLoading}
-                className={`${BUTTON_CLASS_SM_PURPLE} flex-shrink-0`}
-              >
-                {isReplyLoading ? 'Creating...' : 'Reply'}
-              </button>
-            )}
-          </>
-        );
+      <button
+        onClick={handleToggleShowProps}
+        title={showPropsInEditor ? 'Hide properties' : 'Show properties'}
+        className={`${ENTRY_EDITOR_ICON_BTN} border ${showPropsInEditor ? 'border-slate-400' : 'border-transparent'}`}
+      >
+        {showPropsInEditor
+          ? <PropsIconSolid className="w-5 h-5" />
+          : <PropsIconOutline className="w-5 h-5" />}
+      </button>
+      <button
+        onClick={handleToggleTagsVisible}
+        title={tagsVisible ? 'Hide tags' : 'Show tags'}
+        className={`${ENTRY_EDITOR_ICON_BTN} border ${tagsVisible ? 'border-slate-400' : 'border-transparent'}`}
+      >
+        {tagsVisible
+          ? <TagIconSolid className="w-5 h-5" />
+          : <TagIconOutline className="w-5 h-5" />}
+      </button>
+      <button
+        data-testid="edit-calendar-info"
+        onClick={() => setShowCalendarDialog(true)}
+        title="Calendar Info"
+        className={`${ENTRY_EDITOR_ICON_BTN} border border-transparent`}
+      >
+        <CalendarIcon className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => setExpandedEditor(!expandedEditor)}
+        title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
+        className={ENTRY_EDITOR_ICON_BTN}
+      >
+        {expandedEditor
+          ? <ArrowsPointingInIcon className="w-5 h-5" />
+          : <ArrowsPointingOutIcon className="w-5 h-5" />}
+      </button>
+      {!item?.reviewing && aiRewriteMode && (
+        <button
+          onClick={handleAiRewrite}
+          disabled={edit.saving || isRewriting}
+          title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
+          className={BUTTON_CLASS_SM_PURPLE}
+        >
+          {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
+        </button>
+      )}
+      {isHumanFile && !item?.reviewing && (
+        <button
+          data-testid="ask-ai-button"
+          onClick={async () => {
+            await edit.handleSave();
+            await handleAskAi(edit.editContent);
+          }}
+          disabled={edit.saving || isAiLoading}
+          className={`${BUTTON_CLASS_SM_PURPLE} flex-shrink-0`}
+        >
+          {isAiLoading ? 'Streaming...' : 'Ask AI'}
+        </button>
+      )}
+      {!item?.reviewing && (
+        <>
+          <button
+            onClick={edit.handleCancel}
+            disabled={edit.saving}
+            className="px-3 py-1 text-sm text-white bg-red-700 hover:bg-red-600 rounded transition-colors disabled:opacity-50 cursor-pointer"
+            data-testid="entry-cancel-button"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={edit.handleSave}
+            disabled={edit.saving}
+            className={BUTTON_CLASS_SM_BLUE}
+            data-testid="entry-save-button"
+          >
+            {edit.saving ? 'Saving...' : 'Save'}
+          </button>
+        </>
+      )}
+    </div>
+  ) : (
+    <>
+      <EntryActionBar
+        path={entry.path}
+        isBookmarked={isBookmarked}
+        deleting={del.deleting}
+        onRenameClick={rename.handleRenameClick}
+        onDeleteClick={del.handleDeleteClick}
+        onSaveSettings={onSaveSettings}
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+        onMoveToTop={onMoveToTop}
+        onMoveToBottom={onMoveToBottom}
+        className="-mr-1.5"
+        isAttachment={isAttachment}
+        onPasteClipboardAsAttachment={onPasteClipboardAsAttachment ? () => onPasteClipboardAsAttachment(entry.path) : undefined}
+      />
+      {hasCutItems && onPasteAsAttachment && !entry.hasAttachFolder && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPasteAsAttachment(entry.path); }}
+          className={BUTTON_CLASS_ICON_SOLID_BLUE}
+          title="Paste cut items as attachments to this file"
+          aria-label="Paste cut items as attachments to this file"
+        >
+          <PaperClipIcon className="w-4 h-4 text-white" />
+        </button>
+      )}
+      {view === 'thread' && (
+        <button
+          onClick={() => {
+            const folderPath = entry.path.substring(0, entry.path.lastIndexOf('/'));
+            setHighlightItem(entry.path);
+            navigateToBrowserPath(folderPath, entry.path);
+          }}
+          className={BUTTON_CLASS_BLUE}
+          title="Show in Browse View"
+          data-testid="show-in-browser-button"
+        >
+          <ArrowLeftEndOnRectangleIcon className="w-5 h-5" />
+        </button>
+      )}
+      {isAiFile && (
+        <button
+          data-testid="ai-reply-button"
+          onClick={handleReply}
+          disabled={isReplyLoading}
+          className={`${BUTTON_CLASS_SM_PURPLE} flex-shrink-0`}
+        >
+          {isReplyLoading ? 'Creating...' : 'Reply'}
+        </button>
+      )}
+    </>
+  );
 
   return (
     <>
