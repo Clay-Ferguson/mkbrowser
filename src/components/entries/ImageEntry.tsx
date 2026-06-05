@@ -4,7 +4,6 @@ import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import { setHighlightItem, setPendingScrollToFile, deleteItems, useItem, setItemSelected, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
-import AlertDialog from '../dialogs/AlertDialog';
 import ExifDialog from '../dialogs/ExifDialog';
 import {
   useEntry,
@@ -68,8 +67,6 @@ function ImageEntry(props: ImageEntryProps) {
   const [isActualSize, setIsActualSize] = useState(false);
   const [showFullscreenDeleteConfirm, setShowFullscreenDeleteConfirm] = useState(false);
   const [fullscreenImagePath, setFullscreenImagePath] = useState(entry.path);
-  const [showEndAlert, setShowEndAlert] = useState(false);
-  const [showBeginningAlert, setShowBeginningAlert] = useState(false);
   const [showExifDialog, setShowExifDialog] = useState(false);
   const [exifData, setExifData] = useState<Record<string, Record<string, string>> | null>(null);
   const [exifLoading, setExifLoading] = useState(false);
@@ -91,18 +88,12 @@ function ImageEntry(props: ImageEntryProps) {
         setFullscreenImagePath(entry.path); // Reset to this entry's image
       } else if (e.key === 'ArrowRight') {
         const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-        if (currentIndex === -1 || currentIndex >= allImages.length - 1) {
-          setShowEndAlert(true);
-        } else {
-          setFullscreenImagePath(allImages[currentIndex + 1].path);
-        }
+        const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % allImages.length;
+        setFullscreenImagePath(allImages[nextIndex].path);
       } else if (e.key === 'ArrowLeft') {
         const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-        if (currentIndex === -1 || currentIndex <= 0) {
-          setShowBeginningAlert(true);
-        } else {
-          setFullscreenImagePath(allImages[currentIndex - 1].path);
-        }
+        const prevIndex = currentIndex <= 0 ? allImages.length - 1 : currentIndex - 1;
+        setFullscreenImagePath(allImages[prevIndex].path);
       } else if (e.key === 'Delete') {
         setShowFullscreenDeleteConfirm(true);
       } else if (e.key === ' ') {
@@ -324,26 +315,6 @@ function ImageEntry(props: ImageEntryProps) {
             </div>
           )}
         </div>
-      )}
-
-      {/* End of images alert */}
-      {showEndAlert && (
-        <AlertDialog
-          scrollable
-          title="End of Images"
-          message="You have reached the end of the images in this folder."
-          onClose={() => setShowEndAlert(false)}
-        />
-      )}
-
-      {/* Beginning of images alert */}
-      {showBeginningAlert && (
-        <AlertDialog
-          scrollable
-          title="Beginning of Images"
-          message="You have reached the beginning of the images in this folder."
-          onClose={() => setShowBeginningAlert(false)}
-        />
       )}
 
       {/* Fullscreen delete confirmation */}
