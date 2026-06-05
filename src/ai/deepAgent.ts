@@ -55,22 +55,24 @@ function debugLog(...args: unknown[]) {
   if (DEBUG) logger.log('[deepAgent DEBUG]', ...args);
 }
 
-import { MKBROWSER_SYSTEM_PROMPT } from './aiPrompts';
+import { buildSystemPrompt } from './aiPrompts';
 
 /**
  * Create a Deep Agent configured for MkBrowser.
  *
  * Returns a compiled LangGraph graph with the same .invoke() / .streamEvents()
  * API as the hand-built StateGraph in aiUtil.ts.
+ *
+ * @param persona  Resolved persona prompt to weave into the system prompt.
  */
-function createMkBrowserDeepAgent() {
+function createMkBrowserDeepAgent(persona?: string) {
   const model = createChatModel();
 
   debugLog('createMkBrowserDeepAgent → creating deep agent');
   const useTools = aiTools.length > 0 && getConfig().agenticMode;
   const agent = createDeepAgent({
     model,
-    systemPrompt: MKBROWSER_SYSTEM_PROMPT,
+    systemPrompt: buildSystemPrompt(persona),
     ...(useTools ? { tools: aiTools } : {}),
   });
 
@@ -86,6 +88,7 @@ const MODEL_TIMEOUT_MS = 3 * 60 * 1000;
 export async function invokeDeepAgent(
   prompt: PreprocessResult,
   history: BaseMessage[] = [],
+  persona?: string,
 ): Promise<AIInvokeResult> {
   const scripted = consumeScriptedAnswer();
   if (scripted !== null) {
@@ -94,7 +97,7 @@ export async function invokeDeepAgent(
     return { content: scripted, usage: undefined };
   }
   debugLog('invokeDeepAgent → creating agent');
-  const agent = createMkBrowserDeepAgent();
+  const agent = createMkBrowserDeepAgent(persona);
   const humanMsg = buildHumanMessage(prompt);
 
   const { provider, model: modelName } = getActiveModelConfig();
@@ -157,6 +160,7 @@ export async function streamDeepAgent(
   history: BaseMessage[] = [],
   callbacks: StreamCallbacks,
   signal?: AbortSignal,
+  persona?: string,
 ): Promise<AIInvokeResult> {
   const scripted = consumeScriptedAnswer();
   if (scripted !== null) {
@@ -165,7 +169,7 @@ export async function streamDeepAgent(
     return { content: scripted, usage: undefined };
   }
   debugLog('streamDeepAgent → creating agent');
-  const agent = createMkBrowserDeepAgent();
+  const agent = createMkBrowserDeepAgent(persona);
   const humanMsg = buildHumanMessage(prompt);
 
   let contentAccum = '';

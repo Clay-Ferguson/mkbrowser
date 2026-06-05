@@ -8,7 +8,7 @@ import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/messages';
 import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
-import { MKBROWSER_SYSTEM_PROMPT } from './aiPrompts';
+import { buildSystemPrompt } from './aiPrompts';
 import type { PreprocessResult } from './promptPreprocess';
 import { createChatModel, getActiveModelConfig } from './aiModel';
 import { logger } from '../utils/logUtil';
@@ -45,6 +45,21 @@ export function buildHumanMessage(result: PreprocessResult): HumanMessage {
   }
 
   return new HumanMessage({ content });
+}
+
+/**
+ * Resolve the user's currently-selected persona prompt from config.
+ *
+ * Personas are stored as `aiRewritePrompts` (an array of {name, prompt}) with
+ * the active one named by `aiRewritePrompt`. Returns the persona's prompt text,
+ * or undefined when none is selected (so callers can fall back as appropriate).
+ */
+export function resolveActivePersona(): string | undefined {
+  const config = getConfig();
+  const selectedPromptName = config.aiRewritePrompt;
+  if (!selectedPromptName) return undefined;
+  const namedPrompt = (config.aiRewritePrompts ?? []).find((p) => p.name === selectedPromptName);
+  return namedPrompt?.prompt;
 }
 
 /** Token usage metadata returned alongside AI responses. */
@@ -92,8 +107,11 @@ export interface StreamCallbacks {
  * model requests before producing a final text response.
  *
  * Optionally accepts prior conversation history to provide context.
+ *
+ * @param persona  Resolved persona prompt to weave into the system prompt, or
+ *                 undefined for the base system prompt with no persona.
  */
-export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] = []): Promise<AIInvokeResult> {
+export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] = [], persona?: string): Promise<AIInvokeResult> {
   // Check for a scripted answer (queued by Playwright tests)
   const scriptedAnswer = consumeScriptedAnswer();
   if (scriptedAnswer !== null) {
@@ -169,7 +187,7 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
   debugLog('invokeAI → provider:', provider, '| model:', modelName);
   try {
     const result = await graph.invoke({
-      messages: [new SystemMessage(MKBROWSER_SYSTEM_PROMPT), ...history, humanMsg],
+      messages: [new SystemMessage(buildSystemPrompt(persona)), ...history, humanMsg],
     });
 
     debugLog('invokeAI → graph finished successfully');
@@ -216,12 +234,15 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
  * @param history  Prior conversation messages.
  * @param callbacks  Streaming event callbacks.
  * @param signal   Optional AbortSignal for cancellation.
+ * @param persona  Resolved persona prompt to weave into the system prompt, or
+ *                 undefined for the base system prompt with no persona.
  */
 export async function streamAI(
   prompt: PreprocessResult,
   history: BaseMessage[] = [],
   callbacks: StreamCallbacks,
   signal?: AbortSignal,
+  persona?: string,
 ): Promise<AIInvokeResult> {
   debugLog('streamAI → creating model');
   const model = createChatModel();
@@ -272,7 +293,7 @@ export async function streamAI(
   debugLog('streamAI → starting streamEvents');
   try {
     const eventStream = graph.streamEvents(
-      { messages: [new SystemMessage(MKBROWSER_SYSTEM_PROMPT), ...history, humanMsg] },
+      { messages: [new SystemMessage(buildSystemPrompt(persona)), ...history, humanMsg] },
       { version: 'v2', signal },
     );
 

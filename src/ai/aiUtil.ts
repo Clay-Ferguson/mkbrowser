@@ -15,7 +15,7 @@ import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PRO
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
 import { readIndexYaml } from '../utils/indexUtil';
-import { invokeAI, streamAI, hasScriptedAnswer, type AIUsageInfo, type AIInvokeResult, type StreamCallbacks } from './langGraph';
+import { invokeAI, streamAI, resolveActivePersona, hasScriptedAnswer, type AIUsageInfo, type AIInvokeResult, type StreamCallbacks } from './langGraph';
 import { logger } from '../utils/logUtil';
 
 /**
@@ -242,13 +242,17 @@ export async function handleAskAI(
   let usage: AIUsageInfo | undefined;
   const config = getConfig();
 
+  // Apply the user's selected persona so it stays operative in conversation,
+  // exactly as it does for one-shot AI Rewrite calls.
+  const persona = resolveActivePersona();
+
   if (streamCallbacks && !hasScriptedAnswer()) {
     // ── Streaming path ──
     logger.log("running streaming AI call");
     try {
       const result = (ALLOW_DEEP_AGENTS && config.agenticMode)
-        ? await streamDeepAgent(processedPrompt, history, streamCallbacks, signal)
-        : await streamAI(processedPrompt, history, streamCallbacks, signal);
+        ? await streamDeepAgent(processedPrompt, history, streamCallbacks, signal, persona)
+        : await streamAI(processedPrompt, history, streamCallbacks, signal, persona);
       content = result.content;
       thinking = result.thinking;
       usage = result.usage;
@@ -273,8 +277,8 @@ export async function handleAskAI(
     // ── Non-streaming path ──
     logger.log("running non-streaming AI call");
     const result = (ALLOW_DEEP_AGENTS && config.agenticMode)
-      ? await invokeDeepAgent(processedPrompt, history)
-      : await invokeAI(processedPrompt, history);
+      ? await invokeDeepAgent(processedPrompt, history, persona)
+      : await invokeAI(processedPrompt, history, persona);
     content = result.content;
     thinking = result.thinking;
     usage = result.usage;
@@ -357,6 +361,7 @@ async function buildDocumentContext(
  */
 async function invokeRewrite(
   prompt: PreprocessResult,
+  persona: string,
   streamCallbacks: StreamCallbacks | null,
   signal?: AbortSignal,
   onStreamDone?: () => void,
@@ -368,8 +373,8 @@ async function invokeRewrite(
   if (streamCallbacks && !hasScriptedAnswer()) {
     try {
       const result = useDeepAgent
-        ? await streamDeepAgent(prompt, [], streamCallbacks, signal)
-        : await streamAI(prompt, [], streamCallbacks, signal);
+        ? await streamDeepAgent(prompt, [], streamCallbacks, signal, persona)
+        : await streamAI(prompt, [], streamCallbacks, signal, persona);
       onStreamDone?.();
       return result;
     } catch (streamErr) {
@@ -378,7 +383,7 @@ async function invokeRewrite(
     }
   }
 
-  return useDeepAgent ? await invokeDeepAgent(prompt) : await invokeAI(prompt);
+  return useDeepAgent ? await invokeDeepAgent(prompt, [], persona) : await invokeAI(prompt, [], persona);
 }
 
 /**
@@ -404,22 +409,21 @@ export async function handleRewriteContent(
     await ensureRunning();
   }
 
-  // Resolve the rewrite prompt template
-  const selectedPromptName = config.aiRewritePrompt;
-  const namedPrompt = selectedPromptName
-    ? (config.aiRewritePrompts ?? []).find((p) => p.name === selectedPromptName)
-    : undefined;
-  const personaPart = namedPrompt?.prompt ?? DEFAULT_AI_REWRITE_PERSONA;
+  // Resolve the persona. It's woven into the system prompt by the invocation
+  // layer (see resolveActivePersona/buildSystemPrompt), so it's no longer
+  // prefixed to the prompt text here. Fall back to the default editor persona
+  // when the user hasn't selected one.
+  const persona = resolveActivePersona() ?? DEFAULT_AI_REWRITE_PERSONA;
 
   const { aboveContent, belowContent } = await buildDocumentContext(filePath, hasIndexFile);
 
   const prompt = {
-    text: `${personaPart} ${AI_REWRITE_PROMPT}\n\n${aboveContent}<content>\n${content}\n</content>${belowContent}`,
+    text: `${AI_REWRITE_PROMPT}\n\n${aboveContent}<content>\n${content}\n</content>${belowContent}`,
     images: [] as never[],
     fileDirectivesFound: false,
   };
 
-  const result = await invokeRewrite(prompt, streamCallbacks, signal, onStreamDone, onStreamError);
+  const result = await invokeRewrite(prompt, persona, streamCallbacks, signal, onStreamDone, onStreamError);
 
   // If the user cancelled before any content streamed, surface a clean error.
   if (signal?.aborted && result.content.length === 0) {
@@ -459,12 +463,11 @@ export async function handleRewriteContentSection(
     await ensureRunning();
   }
 
-  // Resolve the rewrite prompt template
-  const selectedPromptName = config.aiRewritePrompt;
-  const namedPrompt = selectedPromptName
-    ? (config.aiRewritePrompts ?? []).find((p) => p.name === selectedPromptName)
-    : undefined;
-  const personaPart = namedPrompt?.prompt ?? DEFAULT_AI_REWRITE_PERSONA;
+  // Resolve the persona. It's woven into the system prompt by the invocation
+  // layer (see resolveActivePersona/buildSystemPrompt), so it's no longer
+  // prefixed to the prompt text here. Fall back to the default editor persona
+  // when the user hasn't selected one.
+  const persona = resolveActivePersona() ?? DEFAULT_AI_REWRITE_PERSONA;
 
   // Build content with <rewrite_region> tags wrapping the selected portion
   const textWithSelection =
@@ -477,12 +480,12 @@ export async function handleRewriteContentSection(
   const { aboveContent, belowContent } = await buildDocumentContext(filePath, hasIndexFile);
 
   const prompt = {
-    text: `${personaPart} ${AI_REWRITE_SELECTION_PROMPT}\n\n${aboveContent}<content>\n${textWithSelection}\n</content>${belowContent}`,
+    text: `${AI_REWRITE_SELECTION_PROMPT}\n\n${aboveContent}<content>\n${textWithSelection}\n</content>${belowContent}`,
     images: [] as never[],
     fileDirectivesFound: false,
   };
 
-  const result = await invokeRewrite(prompt, streamCallbacks, signal, onStreamDone, onStreamError);
+  const result = await invokeRewrite(prompt, persona, streamCallbacks, signal, onStreamDone, onStreamError);
 
   // If the user cancelled before any content streamed, surface a clean error.
   if (signal?.aborted && result.content.length === 0) {
