@@ -83,9 +83,14 @@ export async function ensureRunning(): Promise<void> {
 
   const scriptPath = path.join(folder, START_SCRIPT);
 
+  // Pass reasoning mode to the start script: "on" when Agentic Mode is
+  // enabled, otherwise "off". The user must restart the server for a
+  // change to this setting to take effect.
+  const reasoning = config.agenticMode ? 'on' : 'off';
+
   // Spawn the start script as a fully detached process.
   // It survives MkBrowser restarts. We don't hold the child reference.
-  const child = spawn('bash', [scriptPath], {
+  const child = spawn('bash', [scriptPath, reasoning], {
     detached: true,
     stdio: 'ignore',
     env: { ...process.env },

@@ -7,10 +7,22 @@
 # when using a LLAMACPP provider model.
 #
 # Usage:
-#   ./start-server.sh              # Start with defaults
-#   ./start-server.sh --port 9090  # Override port
+#   ./start-server.sh              # Start with defaults (reasoning off)
+#   ./start-server.sh on           # Start with reasoning on
+#   ./start-server.sh off          # Start with reasoning off
+#   ./start-server.sh on --port 9090  # reasoning on + override port
 #
 set -euo pipefail
+
+# ── Reasoning Mode ───────────────────────────────────────────────────────
+# Optional first argument: "on" or "off" (controls --reasoning). Defaults
+# to "off". MkBrowser passes "on" when Agentic Mode is enabled.
+REASONING="off"
+if [[ "${1:-}" == "on" || "${1:-}" == "off" ]]; then
+  REASONING="$1"
+  shift
+fi
+# ─────────────────────────────────────────────────────────────────────────
 
 MODELS_DIR="$HOME/.local/share/llama.cpp/models"
 LIB_DIR="$HOME/.local/lib/llama.cpp"
@@ -84,5 +96,5 @@ exec llama-server \
   --port "$PORT" \
   --ctx-size "$CTX_SIZE" \
   -fa on \
-  --reasoning off \
+  --reasoning "$REASONING" \
   "${EXTRA_ARGS[@]}"

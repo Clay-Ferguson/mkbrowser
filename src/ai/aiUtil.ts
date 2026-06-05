@@ -13,7 +13,7 @@ import { recordUsage } from './usageTracker';
 import { ensureRunning } from './llamaServer';
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
 import { preprocessPrompt } from './promptPreprocess';
-import { USE_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
+import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
 import { readIndexYaml } from '../utils/indexUtil';
 import { invokeAI, streamAI, hasScriptedAnswer, type AIUsageInfo, type StreamCallbacks } from './langGraph';
 import { logger } from '../utils/logUtil';
@@ -240,12 +240,13 @@ export async function handleAskAI(
   let content: string;
   let thinking: string | undefined;
   let usage: AIUsageInfo | undefined;
+  const config = getConfig();
 
   if (streamCallbacks && !hasScriptedAnswer()) {
     // ── Streaming path ──
     logger.log("running streaming AI call");
     try {
-      const result = USE_DEEP_AGENTS
+      const result = (ALLOW_DEEP_AGENTS && config.agenticMode)
         ? await streamDeepAgent(processedPrompt, history, streamCallbacks, signal)
         : await streamAI(processedPrompt, history, streamCallbacks, signal);
       content = result.content;
@@ -271,7 +272,7 @@ export async function handleAskAI(
   } else {
     // ── Non-streaming path ──
     logger.log("running non-streaming AI call");
-    const result = USE_DEEP_AGENTS
+    const result = (ALLOW_DEEP_AGENTS && config.agenticMode)
       ? await invokeDeepAgent(processedPrompt, history)
       : await invokeAI(processedPrompt, history);
     content = result.content;
@@ -281,7 +282,6 @@ export async function handleAskAI(
 
   // Record token usage if available
   if (usage) {
-    const config = getConfig();
     const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
     const provider = activeModel?.provider ?? 'ANTHROPIC';
     recordUsage(provider, usage.input_tokens, usage.output_tokens);
@@ -379,7 +379,7 @@ export async function handleRewriteContent(
     fileDirectivesFound: false,
   };
 
-  const result = USE_DEEP_AGENTS
+  const result = (ALLOW_DEEP_AGENTS && config.agenticMode)
     ? await invokeDeepAgent(prompt)
     : await invokeAI(prompt);
 
@@ -435,7 +435,7 @@ export async function handleRewriteContentSection(
     fileDirectivesFound: false,
   };
 
-  const result = USE_DEEP_AGENTS
+  const result = (ALLOW_DEEP_AGENTS && config.agenticMode)
     ? await invokeDeepAgent(prompt)
     : await invokeAI(prompt);
 
