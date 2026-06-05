@@ -86,6 +86,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
   const handleStop = () => {
     setStatus('cancelled');
     onCancel();
+    onClose();
   };
 
   return (
