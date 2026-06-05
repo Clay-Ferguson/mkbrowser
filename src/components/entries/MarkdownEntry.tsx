@@ -231,17 +231,51 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const handleAiRewrite = async () => {
     const selection = editorRef.current?.getSelection();
     setIsRewriting(true);
+
+    // Show the streaming dialog as soon as the backend commits to the real
+    // streaming path (ai-stream-start), so it appears instantly in its
+    // "pending" state during model warm-up — well before the first chunk.
+    // Scripted answers (used in tests) never emit this event, so the dialog
+    // stays hidden there. Mirrors the Ask AI flow in handleAskAi.
+    const showDialog = () => {
+      if (!showStreamingDialogRef.current) {
+        showStreamingDialogRef.current = true;
+        setShowStreamingDialog(true);
+      }
+    };
+    const unsubStart = window.electronAPI.onAiStreamStart(() => {
+      showDialog();
+      unsubStart();
+    });
+    // Fallback: also show on the first chunk in case the start event is missed.
+    const unsubChunk = window.electronAPI.onAiStreamChunk(() => {
+      showDialog();
+      unsubChunk();
+    });
+
     try {
       const result = selection
         ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
         : await window.electronAPI.rewriteContent(edit.editContent, entry.path, hasIndexFile);
+      unsubStart();
+      unsubChunk(); // no-ops if already fired; cancels if scripted (no events came)
       if ('error' in result) {
         logger.error('Rewrite failed:', result.error);
         setAiErrorMessage(result.error);
       } else {
-        setItemReviewing(entry.path, true, result.rewrittenContent);
+        // Use ref (not state) for a synchronous check: if streaming started,
+        // defer entering review mode until the user closes the dialog;
+        // otherwise enter review immediately.
+        const enterReview = () => setItemReviewing(entry.path, true, result.rewrittenContent);
+        if (showStreamingDialogRef.current) {
+          pendingNavigationRef.current = enterReview;
+        } else {
+          enterReview();
+        }
       }
     } catch (err) {
+      unsubStart();
+      unsubChunk();
       logger.error('Rewrite failed:', err);
       setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
     } finally {

@@ -16,7 +16,7 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory, onClo
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       <PopupMenuItem
-        label={isDirectory ? 'Browse to Folder' : 'Browse to File'}
+        label='Browse'
         onClick={() => { onBrowse(); onClose(); }}
         data-testid='browse-to-folder'
       />

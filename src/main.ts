@@ -614,23 +614,80 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Build the streaming plumbing shared by both rewrite handlers: an
+  // AbortController wired to the renderer's cancel request, plus stream
+  // callbacks that forward tokens to the StreamingDialog. Returns null
+  // callbacks for scripted (test) answers so no stream events fire there.
+  const setupRewriteStreaming = () => {
+    const abortController = new AbortController();
+    let callbacks: StreamCallbacks | null = null;
+
+    if (ENABLE_STREAM_RESPONSE && !hasScriptedAnswer()) {
+      // Signal the renderer immediately so the dialog appears in its "pending"
+      // state during model warm-up, before the first token arrives.
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('ai-stream-start');
+      }
+      callbacks = {
+        onChunk: (token: string) => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('ai-stream-chunk', token);
+          }
+        },
+        onThinkingChunk: (token: string) => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('ai-stream-thinking', token);
+          }
+        },
+        onToolCall: (toolName: string, summary: string) => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('ai-stream-tool', toolName, summary);
+          }
+        },
+      };
+    }
+
+    const cancelHandler = () => { abortController.abort(); };
+    ipcMain.once('ai-stream-cancel', cancelHandler);
+
+    const onStreamDone = () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('ai-stream-done');
+      }
+    };
+    const onStreamError = (err: unknown) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('ai-stream-error', friendlyAIError(err));
+      }
+    };
+    const cleanup = () => { ipcMain.removeListener('ai-stream-cancel', cancelHandler); };
+
+    return { abortController, callbacks, onStreamDone, onStreamError, cleanup };
+  };
+
   // Rewrite content via AI: takes raw text, returns improved version
   ipcMain.handle('rewrite-content', async (_event, content: string, filePath: string, hasIndexFile: boolean) => {
+    const { abortController, callbacks, onStreamDone, onStreamError, cleanup } = setupRewriteStreaming();
     try {
-      return await handleRewriteContent(content, filePath, hasIndexFile);
+      return await handleRewriteContent(content, filePath, hasIndexFile, callbacks, abortController.signal, onStreamDone, onStreamError);
     } catch (error) {
       logger.error('Error in rewrite-content handler:', error);
       return { error: friendlyAIError(error) };
+    } finally {
+      cleanup();
     }
   });
 
   // Rewrite a selected region of content via AI
   ipcMain.handle('rewrite-content-selection', async (_event, content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => {
+    const { abortController, callbacks, onStreamDone, onStreamError, cleanup } = setupRewriteStreaming();
     try {
-      return await handleRewriteContentSection(content, selectionFrom, selectionTo, filePath, hasIndexFile);
+      return await handleRewriteContentSection(content, selectionFrom, selectionTo, filePath, hasIndexFile, callbacks, abortController.signal, onStreamDone, onStreamError);
     } catch (error) {
       logger.error('Error in rewrite-content-selection handler:', error);
       return { error: friendlyAIError(error) };
+    } finally {
+      cleanup();
     }
   });
 

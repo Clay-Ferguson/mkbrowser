@@ -12,10 +12,10 @@ import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
 import { ensureRunning } from './llamaServer';
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
-import { preprocessPrompt } from './promptPreprocess';
+import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
 import { readIndexYaml } from '../utils/indexUtil';
-import { invokeAI, streamAI, hasScriptedAnswer, type AIUsageInfo, type StreamCallbacks } from './langGraph';
+import { invokeAI, streamAI, hasScriptedAnswer, type AIUsageInfo, type AIInvokeResult, type StreamCallbacks } from './langGraph';
 import { logger } from '../utils/logUtil';
 
 /**
@@ -349,13 +349,53 @@ async function buildDocumentContext(
 }
 
 /**
+ * Run a rewrite prompt through the AI, streaming when callbacks are provided.
+ *
+ * Mirrors the streaming/non-streaming branching in {@link handleAskAI} so the
+ * AI Rewrite buttons can drive the same StreamingDialog as Ask AI. Scripted
+ * (test) answers always take the non-streaming path so no stream events fire.
+ */
+async function invokeRewrite(
+  prompt: PreprocessResult,
+  streamCallbacks: StreamCallbacks | null,
+  signal?: AbortSignal,
+  onStreamDone?: () => void,
+  onStreamError?: (err: unknown) => void,
+): Promise<AIInvokeResult> {
+  const config = getConfig();
+  const useDeepAgent = ALLOW_DEEP_AGENTS && config.agenticMode;
+
+  if (streamCallbacks && !hasScriptedAnswer()) {
+    try {
+      const result = useDeepAgent
+        ? await streamDeepAgent(prompt, [], streamCallbacks, signal)
+        : await streamAI(prompt, [], streamCallbacks, signal);
+      onStreamDone?.();
+      return result;
+    } catch (streamErr) {
+      onStreamError?.(streamErr);
+      throw streamErr;
+    }
+  }
+
+  return useDeepAgent ? await invokeDeepAgent(prompt) : await invokeAI(prompt);
+}
+
+/**
  * Rewrite content using the configured AI rewrite prompt.
  * Returns the rewritten text and optional usage info.
+ *
+ * When `streamCallbacks` is provided, tokens are streamed to the renderer so
+ * the StreamingDialog can show live progress (see {@link invokeRewrite}).
  */
 export async function handleRewriteContent(
   content: string,
   filePath: string,
   hasIndexFile: boolean,
+  streamCallbacks: StreamCallbacks | null = null,
+  signal?: AbortSignal,
+  onStreamDone?: () => void,
+  onStreamError?: (err: unknown) => void,
 ): Promise<{ rewrittenContent: string; usage?: AIUsageInfo } | { error: string }> {
   // If using a LLAMACPP model, ensure the server is running before inference
   const config = getConfig();
@@ -379,9 +419,12 @@ export async function handleRewriteContent(
     fileDirectivesFound: false,
   };
 
-  const result = (ALLOW_DEEP_AGENTS && config.agenticMode)
-    ? await invokeDeepAgent(prompt)
-    : await invokeAI(prompt);
+  const result = await invokeRewrite(prompt, streamCallbacks, signal, onStreamDone, onStreamError);
+
+  // If the user cancelled before any content streamed, surface a clean error.
+  if (signal?.aborted && result.content.length === 0) {
+    return { error: 'Rewrite cancelled by user' };
+  }
 
   // Record token usage if available
   if (result.usage) {
@@ -404,6 +447,10 @@ export async function handleRewriteContentSection(
   selectionTo: number,
   filePath: string,
   hasIndexFile: boolean,
+  streamCallbacks: StreamCallbacks | null = null,
+  signal?: AbortSignal,
+  onStreamDone?: () => void,
+  onStreamError?: (err: unknown) => void,
 ): Promise<{ rewrittenContent: string; usage?: AIUsageInfo } | { error: string }> {
   // If using a LLAMACPP model, ensure the server is running before inference
   const config = getConfig();
@@ -435,9 +482,12 @@ export async function handleRewriteContentSection(
     fileDirectivesFound: false,
   };
 
-  const result = (ALLOW_DEEP_AGENTS && config.agenticMode)
-    ? await invokeDeepAgent(prompt)
-    : await invokeAI(prompt);
+  const result = await invokeRewrite(prompt, streamCallbacks, signal, onStreamDone, onStreamError);
+
+  // If the user cancelled before any content streamed, surface a clean error.
+  if (signal?.aborted && result.content.length === 0) {
+    return { error: 'Rewrite cancelled by user' };
+  }
 
   // Record token usage if available
   if (result.usage) {
