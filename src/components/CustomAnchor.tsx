@@ -7,6 +7,7 @@ interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement
 
 export default function CustomAnchor({ href, children, entryPath, ...props }: CustomAnchorProps) {
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.stopPropagation();
     if (!href) return;
 
     // Handle external URLs - open in system browser
@@ -71,8 +72,16 @@ export default function CustomAnchor({ href, children, entryPath, ...props }: Cu
     }
   };
 
+  // The markdown container initiates editing on `onMouseUp` (so click-drag text
+  // selection still works), NOT on click. Stopping click propagation alone won't
+  // prevent edit mode — we must also stop the mouseup from bubbling to the container.
   return (
-    <a href={href} onClick={handleClick} {...props}>
+    <a
+      href={href}
+      onClick={handleClick}
+      onMouseUp={(e) => e.stopPropagation()}
+      {...props}
+    >
       {children}
     </a>
   );
