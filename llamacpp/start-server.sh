@@ -82,12 +82,16 @@ esac
 # standard Q4_K_M 12B build, with accuracy close to the original BF16.
 # In other words, this QAT model is "smarter" (better answers/inference) than 
 # the non-QAT model above, but runs in about the same memory.
-MODEL_FILE="gemma-4-12B-it-qat-UD-Q4_K_XL.gguf"
-CTX_SIZE="16384"
+#MODEL_FILE="gemma-4-12B-it-qat-UD-Q4_K_XL.gguf"
+#CTX_SIZE="16384"
 
 # Gemma 4 26B-A4B (MoE): 3.8B active params (~13.4 GB)
-# MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
-# CTX_SIZE="8192"
+# Mixture-of-Experts: all 25.2B params live in memory but only ~3.8B activate
+# per token, so generation stays fast while quality is higher than the 12B.
+# Context kept at 8192 to leave memory headroom alongside the larger weights,
+# although there is reason to believe 16384 will alwo work on my hardware.
+MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
+CTX_SIZE="8192"
 # ─────────────────────────────────────────────────────────────────────────
 
 # ── Server Configuration ─────────────────────────────────────────────────

@@ -59,8 +59,8 @@ Five Gemma 4 model variants are supported:
 
 | Variant | Params | Quant | File Size | Context | Notes |
 |---------|--------|-------|-----------|---------|-------|
-| **26B-A4B** | 3.8B active / 25.2B total (MoE) | UD-IQ4_XS | ~13.4 GB | 8192 | Highest quality |
-| **12B QAT** | 12B (dense) | UD-Q4_K_XL | ~6.7 GB | 16384 | Quantization-Aware Training; lower memory (~7 GB total), potentially faster, accuracy close to BF16. **Current default** |
+| **26B-A4B** | 3.8B active / 25.2B total (MoE) | UD-IQ4_XS | ~13.4 GB | 8192 | Highest quality; MoE keeps generation fast despite the large size. **Current default** |
+| **12B QAT** | 12B (dense) | UD-Q4_K_XL | ~6.7 GB | 16384 | Quantization-Aware Training; lower memory (~7 GB total), potentially faster, accuracy close to BF16 |
 | **12B** | 12B (dense) | Q4_K_M | ~7.1 GB | 16384 | Strong quality |
 | **E4B** | 4.5B effective (8B total) | Q4_K_M | ~5.0 GB | 16384 | Good balance |
 | **E2B** | 2.3B effective (5.1B total) | Q4_K_M | ~3.1 GB | 16384 | Lightest, fastest |

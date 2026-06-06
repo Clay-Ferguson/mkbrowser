@@ -32,14 +32,17 @@ mkdir -p "$MODELS_DIR"
 # Gemma 4 12B QAT (dense, Quantization-Aware Training): 12B params
 # Lower memory footprint (~7 GB total) and potentially faster than the
 # standard Q4_K_M 12B build, with accuracy close to the original BF16.
-MODEL_REPO="unsloth/gemma-4-12b-it-qat-GGUF"
-MODEL_FILE="gemma-4-12B-it-qat-UD-Q4_K_XL.gguf"
-MODEL_SIZE_HINT="~6.7 GB"
+#MODEL_REPO="unsloth/gemma-4-12b-it-qat-GGUF"
+#MODEL_FILE="gemma-4-12B-it-qat-UD-Q4_K_XL.gguf"
+#MODEL_SIZE_HINT="~6.7 GB"
 
 # Gemma 4 26B-A4B (MoE): 3.8B active params (25.2B total)
-# MODEL_REPO="unsloth/gemma-4-26B-A4B-it-GGUF"
-# MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
-# MODEL_SIZE_HINT="~13.4 GB"
+# A Mixture-of-Experts model: holds all 25.2B params in memory (~13.4 GB) but
+# only activates ~3.8B per token, so generation stays fast while quality is
+# high. A strong fit for unified-memory machines with plenty of RAM.
+MODEL_REPO="unsloth/gemma-4-26B-A4B-it-GGUF"
+MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
+MODEL_SIZE_HINT="~13.4 GB"
 # ─────────────────────────────────────────────────────────────────────────
 
 MODEL_URL="https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}"
