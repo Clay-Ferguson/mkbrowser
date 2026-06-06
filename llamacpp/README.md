@@ -30,9 +30,10 @@ Then in MkBrowser **Settings → AI**:
 
 | Script | Purpose |
 |--------|---------|
-| `setup.sh` | Download and install llama.cpp binaries to `~/.local/bin/` |
+| `setup.sh` | Download and install the **CPU-only** llama.cpp binaries to `~/.local/bin/` |
+| `setup-with-vulkan.sh` | Download and install a **Vulkan (GPU)** llama.cpp build side-by-side (see [Vulkan Driver](#vulkan-driver)) |
 | `download-model.sh` | Download a quantized Gemma 4 GGUF model to `~/.local/share/llama.cpp/models/` |
-| `start-server.sh` | Launch `llama-server` on `localhost:8080` |
+| `start-server.sh` | Launch the server on `localhost:8080`; selects CPU or GPU via the `BACKEND` env var |
 
 ## Verifying the Server
 
@@ -95,6 +96,80 @@ restart `./start-server.sh`.
 > **Note:** The 26B-A4B model uses a reduced context size (8192) to fit
 > comfortably in 32 GB RAM alongside OS and KV cache overhead.
 
+## Vulkan Driver
+
+By default this project runs entirely on the **CPU**. `setup.sh` installs the
+plain CPU build of llama.cpp, and `start-server.sh` runs inference across your
+processor cores. That works everywhere, but it leaves any GPU in the machine
+idle. The optional `setup-with-vulkan.sh` script installs a second,
+**GPU-accelerated** build that offloads the model to your graphics hardware via
+[Vulkan](https://www.vulkan.org/).
+
+**What is Vulkan, and why use it here?** Vulkan is a cross-vendor, open standard
+for talking to GPUs — both for graphics and for general compute. For local LLMs
+it serves the same role that CUDA does for NVIDIA cards or ROCm does for AMD
+cards: it lets llama.cpp run the model's math on the GPU instead of the CPU. The
+big advantage of Vulkan is that it is *vendor-neutral*. CUDA only works on
+NVIDIA hardware and ROCm only on certain AMD cards, and both can be painful to
+install. Vulkan, by contrast, runs on Intel integrated graphics, AMD GPUs, and
+NVIDIA GPUs alike, using the driver that ships with the OS. That makes it the
+most practical way to get GPU acceleration on the kind of hardware that doesn't
+have a discrete NVIDIA card.
+
+**The two setups, side by side.** The scripts are deliberately independent and
+non-destructive. `setup.sh` installs the CPU build into
+`~/.local/lib/llama.cpp/`; `setup-with-vulkan.sh` installs the Vulkan build into
+a *separate* directory, `~/.local/lib/llama.cpp-vulkan/`, under a separate
+binary name. Because nothing overlaps, installing or removing the Vulkan build
+never disturbs the working CPU build — to remove GPU support you can simply
+delete the `-vulkan` directory. You choose which one runs at launch time with an
+environment variable:
+
+```bash
+BACKEND=cpu ./start-server.sh   # CPU build (the universal fallback)
+BACKEND=gpu ./start-server.sh   # Vulkan build, offloads all layers to the GPU
+```
+
+In `gpu` mode the server adds `--n-gpu-layers 99`, which offloads the entire
+model onto the GPU. The Vulkan installer also runs a self-check at the end that
+asks llama.cpp to enumerate GPU devices, so you'll know immediately whether your
+hardware is usable before you try to serve a real model.
+
+**This setup was tuned for one specific machine.** It was developed and tested
+on a **Dell XPS laptop with an Intel Core Ultra 9 288V (Lunar Lake)**, which
+pairs 8 CPU cores with an **Intel Arc 140V integrated GPU** and **32 GB of
+on-package "unified" LPDDR5X memory**. "Unified" means the CPU and the GPU share
+the same physical memory pool rather than the GPU having its own dedicated VRAM.
+That architecture is what makes GPU offload attractive here: a discrete entry-
+level GPU might only have 4–8 GB of VRAM and couldn't hold a ~6.7 GB model at
+all, but because the Arc iGPU can address the shared 32 GB pool, it can host the
+full model with room to spare. If you're on a similar unified-memory machine
+(many recent Intel and AMD laptops, for example), this same approach should
+apply with little or no change.
+
+**What to realistically expect.** On a unified-memory system the GPU and CPU
+draw from the *same* memory at the *same* bandwidth, so GPU offload does not
+necessarily make token *generation* dramatically faster — that phase is limited
+by memory bandwidth, not raw compute. Where the GPU clearly wins is **prompt
+processing** (digesting a long prompt or document before the first token), which
+is compute-bound, and in **freeing up the CPU** so the rest of the laptop stays
+responsive while the model is working. On machines with a genuinely more capable
+GPU than this little iGPU, the generation speedup can be much larger. In other
+words, Vulkan offload is worth it even on modest "unified memory" / low-end-GPU
+hardware, but the benefit shows up more in latency and system responsiveness
+than in a giant tokens-per-second jump.
+
+**Requirements and caveats.** This is **Linux-only** (developed on Ubuntu) — the
+scripts download prebuilt Ubuntu x86_64 binaries and rely on the system's
+Mesa-provided Vulkan driver, so they do not apply to macOS or Windows. The
+Vulkan path needs a reasonably **recent Mesa driver**: on brand-new GPUs (this
+laptop included) the early drivers were too immature and GPU detection failed;
+a later Mesa release fixed it. If `setup-with-vulkan.sh` reports that no GPU
+device was found, updating your graphics/Mesa packages is the first thing to
+try. The installer checks for the Vulkan loader (`libvulkan.so.1`) and an
+appropriate driver up front and tells you what to install if anything is
+missing. If GPU mode ever misbehaves, the CPU build is always one command away.
+
 ## Customization
 
 ### Server parameters
@@ -110,6 +185,6 @@ Common flags:
 - `--port N` — HTTP port (default: 8080)
 - `--ctx-size N` — Context window size in tokens (default: varies by model)
 - `--threads N` — CPU threads (default: auto-detect)
-- `--n-gpu-layers N` — Offload layers to GPU (for CUDA/ROCm builds)
+- `--n-gpu-layers N` — Offload layers to GPU (Vulkan/CUDA/ROCm builds; see [Vulkan Driver](#vulkan-driver))
 
 See `llama-server --help` for all options.

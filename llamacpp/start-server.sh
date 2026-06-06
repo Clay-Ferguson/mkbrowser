@@ -12,6 +12,11 @@
 #   ./start-server.sh off          # Start with reasoning off
 #   ./start-server.sh on --port 9090  # reasoning on + override port
 #
+# Backend (CPU vs GPU) is chosen via the BACKEND env var (default "cpu"):
+#   BACKEND=gpu ./start-server.sh        # run on the Intel Arc iGPU (Vulkan)
+#   BACKEND=gpu ./start-server.sh on     # GPU + reasoning on
+# (GPU mode requires ./setup-with-vulkan.sh to have been run first.)
+#
 set -euo pipefail
 
 # ── Reasoning Mode ───────────────────────────────────────────────────────
@@ -25,7 +30,37 @@ fi
 # ─────────────────────────────────────────────────────────────────────────
 
 MODELS_DIR="$HOME/.local/share/llama.cpp/models"
-LIB_DIR="$HOME/.local/lib/llama.cpp"
+
+# ── Backend Selection: CPU vs GPU (Vulkan / Intel Arc) ───────────────────
+# Choose which llama.cpp build to launch:
+#   "cpu" → the CPU-only build installed by ./setup.sh
+#   "gpu" → the default Vulkan build installed by ./setup-with-vulkan.sh, which
+#           offloads the model to the Intel Arc iGPU (adds --n-gpu-layers).
+# The two builds live in separate directories with separate binaries, so the
+# CPU setup is never disturbed. Pick one by editing BACKEND below, or override
+# from the environment without editing this file:  BACKEND=gpu ./start-server.sh
+BACKEND="${BACKEND:-gpu}"
+
+# Layers to offload to the GPU in "gpu" mode. 99 = offload all layers.
+NGL="${NGL:-99}"
+
+case "$BACKEND" in
+  cpu)
+    LIB_DIR="$HOME/.local/lib/llama.cpp"
+    SERVER_BIN="$LIB_DIR/llama-server"
+    GPU_ARGS=()
+    ;;
+  gpu)
+    LIB_DIR="$HOME/.local/lib/llama.cpp-vulkan"
+    SERVER_BIN="$LIB_DIR/llama-server"
+    GPU_ARGS=(--n-gpu-layers "$NGL")
+    ;;
+  *)
+    echo "ERROR: Unknown BACKEND='$BACKEND' (expected 'cpu' or 'gpu')."
+    exit 1
+    ;;
+esac
+# ─────────────────────────────────────────────────────────────────────────
 
 # ── Model Selection ──────────────────────────────────────────────────────
 # Uncomment ONE group of settings below.
@@ -66,8 +101,14 @@ MODEL_PATH="$MODELS_DIR/$MODEL_FILE"
 EXTRA_ARGS=("$@")
 
 # Verify prerequisites
-if ! command -v llama-server &>/dev/null; then
-  echo "ERROR: llama-server not found. Run ./setup.sh first."
+if [[ ! -x "$SERVER_BIN" ]]; then
+  if [[ "$BACKEND" == "gpu" ]]; then
+    echo "ERROR: Vulkan build not found at $SERVER_BIN."
+    echo "Run ./setup-with-vulkan.sh first."
+  else
+    echo "ERROR: llama-server not found at $SERVER_BIN."
+    echo "Run ./setup.sh first."
+  fi
   exit 1
 fi
 
@@ -82,6 +123,11 @@ export LD_LIBRARY_PATH="$LIB_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 echo "=== Starting llama.cpp Server ==="
 echo ""
+if [[ "$BACKEND" == "gpu" ]]; then
+  echo "  Backend:      gpu (Vulkan / Intel Arc, --n-gpu-layers $NGL)"
+else
+  echo "  Backend:      cpu"
+fi
 echo "  Model:        $MODEL_FILE"
 echo "  Context size: $CTX_SIZE"
 echo "  Endpoint:     http://${HOST}:${PORT}"
@@ -107,7 +153,7 @@ echo $$ > "$PID_FILE"
 #                      hurts laptop responsiveness, so we pin generation to 4.
 #   --threads-batch 8  Prompt ingestion (prefill) is compute-bound rather than
 #                      bandwidth-bound, so it benefits from all 8 cores.
-exec llama-server \
+exec "$SERVER_BIN" \
   --model "$MODEL_PATH" \
   --host "$HOST" \
   --port "$PORT" \
@@ -115,5 +161,6 @@ exec llama-server \
   -fa on \
   --threads 4 \
   --threads-batch 8 \
+  "${GPU_ARGS[@]}" \
   --reasoning "$REASONING" \
   "${EXTRA_ARGS[@]}"
