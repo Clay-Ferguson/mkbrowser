@@ -522,6 +522,7 @@ function AISettingsView() {
                   {/* Combobox row: name selector + Save + Delete */}
                   <div className="flex gap-3 mb-3">
                     <EditableCombobox
+                      data-testid="ai-persona-combobox"
                       value={selectedPromptName}
                       onChange={(name) => {
                         setSelectedPromptName(name);

@@ -15,7 +15,7 @@ export default function SystemPopupMenu({
   onAiSettings,
 }: SystemPopupMenuProps) {
   return (
-    <PopupMenu anchorRef={anchorRef} onClose={onClose}>
+    <PopupMenu data-testid="system-popup-menu" anchorRef={anchorRef} onClose={onClose}>
       <PopupMenuItem
         label="Settings"
         data-testid="menu-settings"
