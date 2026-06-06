@@ -23,7 +23,7 @@ then you'll narrate that we're going to start a new chat conversation thread, an
 
 you can abruptly end the demo at this point because we will let this be the end of phase one work. don't narrate anything about the demo being complete however of course.
 
-## Phase 2
+## Phase 2 (current)
 
 let's modify our test so that the first thing it does is it should delete any file named `HUMAN.md` folder we start out in which is `mkbrowser-test`, because if that file already exists, then we're going to run into a problem when we try to initiate the "Chat" and we get a warning about the file already existing. so we can ensure the demo runs smoothly every time if we simply delete that file (if it exists) when we start the demo.
 
