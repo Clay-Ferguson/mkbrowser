@@ -263,7 +263,15 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
                   className="flex items-center gap-3 px-2 py-1 bg-blue-800/50 hover:bg-blue-700/70 transition-colors cursor-pointer rounded-sm"
                 >
                   <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                  <span className="font-medium text-slate-200 truncate">{folder.name}</span>
+                  <span className="font-medium text-slate-200 flex-shrink-0">{folder.name}</span>
+                  {folder.aiHint && (
+                    <span
+                      className="text-slate-400 italic text-sm truncate min-w-0"
+                      title={folder.aiHint}
+                    >
+                      {folder.aiHint}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

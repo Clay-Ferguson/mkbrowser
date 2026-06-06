@@ -4,7 +4,7 @@ import type { FileEntry } from "../global";
 import { logger } from './logUtil';
 import type { SortOrder } from "../store";
 import yaml from 'js-yaml';
-import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from '../ai/aiPatterns';
+import { readAiHint } from '../ai/aiHint';
 import { readIndexYaml } from './indexUtil';
 
 export interface FrontMatterResult {
@@ -243,21 +243,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
 
     // Load AI conversation hint for H*/A* folders when aiEnabled
     if (isDirectory && aiEnabled) {
-      const folderName = entry.name;
-      let hintFile: string | undefined;
-      if (HUMAN_FOLDER_REGEX.test(folderName)) {
-        hintFile = 'HUMAN.md';
-      } else if (AI_FOLDER_REGEX.test(folderName)) {
-        hintFile = 'AI.md';
-      }
-      if (hintFile) {
-        try {
-          const hintContent = await fs.promises.readFile(path.join(fullPath, hintFile), 'utf8');
-          fileEntry.aiHint = hintContent.slice(0, 120).trim();
-        } catch {
-          // File doesn't exist or can't be read — no hint
-        }
-      }
+      fileEntry.aiHint = await readAiHint(fullPath, entry.name);
     }
 
     fileEntries.push(fileEntry);

@@ -17,6 +17,7 @@ import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent
 import { readIndexYaml } from '../utils/indexUtil';
 import { invokeAI, streamAI, resolveActivePersona, hasScriptedAnswer, type AIUsageInfo, type AIInvokeResult, type StreamCallbacks } from './langGraph';
 import { logger } from '../utils/logUtil';
+import { readAiHint } from './aiHint';
 
 /**
  * Convert a raw AI API error into a short, user-friendly message.
@@ -568,6 +569,8 @@ export interface ThreadChildFolder {
   name: string;
   /** Absolute path to the folder */
   path: string;
+  /** Short preview snippet from the folder's HUMAN.md / AI.md, if any */
+  aiHint?: string;
 }
 
 /** Matches conversation branch folder names: H, A, H1, A2, etc. */
@@ -583,10 +586,12 @@ async function gatherThreadChildFolders(folderPath: string): Promise<ThreadChild
     const dirents = await fs.readdir(folderPath, { withFileTypes: true });
     for (const dirent of dirents) {
       if (dirent.isDirectory() && THREAD_CHILD_FOLDER_RE.test(dirent.name)) {
+        const childPath = path.join(folderPath, dirent.name);
         childFolders.push({
           role: dirent.name.startsWith('H') ? 'human' : 'ai',
           name: dirent.name,
-          path: path.join(folderPath, dirent.name),
+          path: childPath,
+          aiHint: await readAiHint(childPath, dirent.name),
         });
       }
     }

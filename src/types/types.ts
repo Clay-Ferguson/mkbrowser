@@ -600,6 +600,8 @@ export interface ThreadChildFolder {
   name: string;
   /** Absolute path to the folder */
   path: string;
+  /** Short preview snippet from the folder's HUMAN.md / AI.md, if any */
+  aiHint?: string;
 }
 
 /**
