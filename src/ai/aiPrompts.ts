@@ -9,7 +9,7 @@ code blocks, tables, and other Markdown constructs as appropriate.`;
 
 /** Default AI rewrite prompt — used when the user has not customised the prompt in settings. */
 export const DEFAULT_AI_REWRITE_PERSONA = //
-`You are a skilled editor and writer.`;
+`You are a helpful agent.`;
 
 /**
  * Build the system prompt for an AI invocation, optionally prefixing the

@@ -1077,41 +1077,37 @@ The setting is saved automatically. It remains active across sessions until you 
 
 **Note:** Loading every file in a large document into the AI prompt can use significantly more tokens and may increase cost and response time. Consider enabling this option selectively for documents where cross-file consistency matters most.
 
-### Customizing the Rewrite Prompt
+## AI Personas
 
-MkBrowser lets you create multiple **named rewrite personas** so you can switch between different AI instructions depending on the type of writing you're working on. The currently selected prompt is what gets sent to the AI when you click **Rewrite**.
+You can create multiple named **AI Personas** in the AI Settings View. Personas are how you describe to the AI what role you want it to play in chat conversations (or when using the "AI Rewrite" feature)
 
-An example of a "Persona" would be something you could name "Hemmingway" which would contain this text: "You write very elaborately in the style of Ernest Hemmingway, adding your own flair and lengthening significantly the text, by adding your own creative (even if fictitious) ideas."
+An example of a "Persona" would be something you could name "Hemmingway" which would contain this text: "You write very elaborately in the style of Ernest Hemmingway, adding your own flair and significantly lengthening the text, by adding your own creative (even if fictitious) ideas."
 
-Prompts are managed in **Settings → AI Settings** under the **Prompts** section.
+Prompts are managed in **Settings → AI Settings** under the **Personas** section.
 
-#### Creating a new prompt
+todo-0: Put screenshot here.
+
+### Creating a new prompt
 
 1. Open **Settings → AI Settings** and scroll to the **Prompts** section.
 2. Type a new name (e.g. `Academic`, `Casual`, `Concise`) into the name field at the top of the section.
 3. Type your instructions into the textarea below.
 4. Click **Save**.
 
-#### Selecting the active prompt
+### Selecting the active prompt
 
 Click the dropdown arrow on the name field, or start typing a name, to see your saved prompts. Select one from the list — its text will load into the textarea and it becomes the active prompt used by the **Rewrite** button.
 
-#### Editing an existing prompt
+### Editing an existing prompt
 
 1. Select the prompt you want to change from the name field.
 2. Edit the text in the textarea.
 3. Click **Save** to update it.
 
-#### Deleting a prompt
+### Deleting a prompt
 
 1. Select the prompt you want to remove.
 2. Click **Delete** and confirm.
-
-#### Reset to Default
-
-While a prompt is selected, the **Reset to Default** button replaces the textarea content with the built-in default instructions (fix grammar, improve clarity, enhance readability). Click **Save** afterwards if you want to keep that as the prompt's new content.
-
-If no prompt is selected, or all prompts have been deleted, the built-in default instructions are used automatically when you click **Rewrite**.
 
 **Tip:** Create a prompt for each writing context you work in — for example, a formal academic tone, plain language for a general audience, or a structured bullet-point format. Switch between them from the name dropdown without leaving your document.
 

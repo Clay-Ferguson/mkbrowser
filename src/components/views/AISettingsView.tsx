@@ -246,6 +246,33 @@ function AISettingsView() {
       >
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="space-y-6">
+
+            {/* AI Settings */}
+            <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+              <h2 className="text-lg font-semibold text-slate-100 mb-4">AI Settings</h2>
+              <div className="flex items-center gap-6">
+                <CheckboxField
+                  label="Enable AI"
+                  checked={aiEnabled}
+                  onChange={handleAiEnabledChange}
+                  inputClassName={SETTINGS_CHECKBOX_CLASS}
+                  spanClassName="text-slate-200"
+                />
+                {aiEnabled && (
+                  <CheckboxField
+                    label="Agentic Mode"
+                    checked={agenticMode}
+                    onChange={(checked) => {
+                      setAgenticMode(checked);
+                      saveAiConfigField({ agenticMode: checked });
+                    }}
+                    inputClassName={SETTINGS_CHECKBOX_CLASS}
+                    spanClassName="text-slate-200"
+                  />
+                )}
+              </div>
+            </section>
+
             {/* AI Usage Statistics */}
             {aiEnabled && usageData && usageData.totalRequests > 0 && (
               <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
@@ -308,229 +335,190 @@ function AISettingsView() {
               </section>
             )}
 
-            {/* AI Settings */}
-            <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-              <h2 className="text-lg font-semibold text-slate-100 mb-2">AI Settings</h2>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-6">
-                  <CheckboxField
-                    label="Enable AI"
-                    checked={aiEnabled}
-                    onChange={handleAiEnabledChange}
-                    inputClassName={SETTINGS_CHECKBOX_CLASS}
-                    spanClassName="text-slate-200"
-                  />
-
-                  {aiEnabled && (
-                    <CheckboxField
-                      label="Agentic Mode"
-                      checked={agenticMode}
-                      onChange={(checked) => {
-                        setAgenticMode(checked);
-                        saveAiConfigField({ agenticMode: checked });
-                      }}
-                      inputClassName={SETTINGS_CHECKBOX_CLASS}
-                      spanClassName="text-slate-200"
-                    />
-                  )}
-                </div>
-
-                {aiEnabled && (
-                  <>
-                    {agenticMode && (
-                      <div>
-                        <label className="text-slate-300 text-sm block mb-1">Allowed Folders (one absolute path per line):</label>
-                        <textarea
-                          value={agenticAllowedFolders}
-                          onChange={(e) => setAgenticAllowedFolders(e.target.value)}
-                          onBlur={() => saveAiConfigField({ agenticAllowedFolders })}
-                          placeholder={"/home/user/projects\n/home/user/documents"}
-                          rows={4}
-                          className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
-                        />
-                      </div>
-                    )}
-
-                    {/* AI Model — collapsed: show selected name; expanded: full table */}
-                    <div>
-                      {!modelTableExpanded && selectedAiModel && (
-                        <div className="text-lg font-semibold text-slate-100 mb-1">AI Model: {selectedAiModel}</div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setModelTableExpanded((v) => !v)}
-                        className="flex items-center gap-2 text-slate-300 text-sm font-medium hover:text-slate-100 transition-colors"
-                      >
-                        <ChevronRightIcon
-                          className={`w-4 h-4 transition-transform ${modelTableExpanded ? 'rotate-90' : ''}`}
-                        />
-                        <span>{modelTableExpanded ? 'Hide models' : 'Change model'}</span>
-                      </button>
-                    </div>
-
-                    {modelTableExpanded && (
-                      <div className="space-y-2">
-                        {/* Action buttons */}
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            onClick={handleCreateModel}
-                            title="Create new model"
-                            className="p-1.5 text-slate-400 hover:text-green-400 hover:bg-slate-700 rounded transition-colors"
-                          >
-                            <PlusIcon className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={handleEditModel}
-                            title="Edit selected model"
-                            disabled={aiModels.length === 0}
-                            className={BUTTON_CLASS_BLUE}
-                          >
-                            <PencilIcon className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (!selectedModelIsReadonly) setShowDeleteConfirm(true);
-                            }}
-                            title="Delete selected model"
-                            disabled={aiModels.length === 0 || selectedModelIsReadonly}
-                            className={BUTTON_CLASS_RED}
-                          >
-                            <TrashIcon className="w-5 h-5" />
-                          </button>
-                        </div>
-
-                        {/* AI Models table with radio selection */}
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="text-slate-400 text-left">
-                              <th className="pb-2 w-8"></th>
-                              <th className="pb-2 font-medium">Name</th>
-                              <th className="pb-2 font-medium">Provider</th>
-                              <th className="pb-2 font-medium">Model</th>
-                              <th className="pb-2 font-medium text-center">Vision</th>
-                              <th className="pb-2 font-medium text-right">Input $/1M</th>
-                              <th className="pb-2 font-medium text-right">Output $/1M</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {aiModels.map((m) => {
-                              const isSelected = normalizeModelKey(m.name) === normalizeModelKey(selectedAiModel);
-                              return (
-                                <tr
-                                  key={m.name}
-                                  onClick={() => handleAiModelChange(m.name)}
-                                  className={`text-slate-200 border-t border-slate-700 cursor-pointer transition-colors hover:bg-slate-700/30 ${isSelected ? 'bg-slate-700/50' : ''}`}
-                                >
-                                  <td className="py-2 text-center">
-                                    <input
-                                      type="radio"
-                                      name="ai-model-select"
-                                      checked={isSelected}
-                                      onChange={() => handleAiModelChange(m.name)}
-                                      className="w-5 h-5 cursor-pointer accent-blue-500"
-                                    />
-                                  </td>
-                                  <td className="py-2 font-mono text-xs">{m.name}</td>
-                                  <td className="py-2 font-mono text-xs">{m.provider}</td>
-                                  <td className="py-2 font-mono text-xs">{m.model}</td>
-                                  <td className="py-2 text-center text-green-400">{m.vision ? '✓' : ''}</td>
-                                  <td className="py-2 text-right text-green-400">${m.inputPer1M.toFixed(2)}</td>
-                                  <td className="py-2 text-right text-green-400">${m.outputPer1M.toFixed(2)}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-
-                    {selectedModel?.provider === 'LLAMACPP' && (
-                      <div className="space-y-3 bg-slate-750 rounded-lg p-4 border border-slate-600">
-                        <h3 className="text-sm font-medium text-slate-300">llama.cpp Server</h3>
-
-                        {/* Server status + controls */}
-                        <div className="flex items-center gap-3">
-                          <span className="text-slate-400 text-sm">Status:</span>
-                          <span className={`text-sm font-medium ${llamaServerStatus === 'running' ? 'text-green-400' :
-                            llamaServerStatus === 'loading' ? 'text-yellow-400' :
-                              'text-slate-500'
-                            }`}>
-                            {llamaServerStatus === 'running' ? 'Running' :
-                              llamaServerStatus === 'loading' ? 'Loading model…' :
-                                'Stopped'}
-                          </span>
-                          <button
-                            disabled={llamaServerBusy || llamaServerStatus === 'running' || llamaServerStatus === 'loading'}
-                            onClick={startLlama}
-                            className="px-3 py-1 text-xs bg-green-700 hover:bg-green-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
-                          >
-                            Start
-                          </button>
-                          <button
-                            disabled={llamaServerBusy || llamaServerStatus === 'stopped'}
-                            onClick={stopLlama}
-                            className="px-3 py-1 text-xs bg-red-700 hover:bg-red-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
-                          >
-                            Stop
-                          </button>
-                          <button
-                            disabled={llamaServerBusy}
-                            onClick={refreshLlama}
-                            className="px-3 py-1 text-xs bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:text-slate-500 text-slate-200 rounded transition-colors"
-                          >
-                            Refresh
-                          </button>
-                        </div>
-
-                        {/* Base URL */}
-                        <div className="flex items-center gap-2">
-                          <label className="text-slate-300 text-sm whitespace-nowrap">Base URL:</label>
-                          <input
-                            type="text"
-                            value={llamacppBaseUrl}
-                            onChange={(e) => handleLlamacppBaseUrlChange(e.target.value)}
-                            onBlur={handleLlamacppBaseUrlBlur}
-                            className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
-                          />
-                        </div>
-
-                        {/* Llama.cpp folder path */}
-                        <div className="flex items-center gap-2">
-                          <label className="text-slate-300 text-sm whitespace-nowrap">Llama.cpp folder:</label>
-                          <input
-                            type="text"
-                            value={llamacppFolder}
-                            onChange={(e) => setLlamacppFolder(e.target.value)}
-                            onBlur={() => saveAiConfigField({ llamacppFolder })}
-                            placeholder="/path/to/llamacpp"
-                            className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </section>
-
-            {/* Prompts */}
+            {/* AI Model */}
             {aiEnabled && (
               <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
-                <h2 className="text-lg font-semibold text-slate-100 mb-4">Rewrite Settings</h2>
-                <CheckboxField
-                  label="Enable AI Rewrite"
-                  checked={aiRewriteMode}
-                  onChange={(checked) => {
-                    setAiRewriteMode(checked);
-                    void saveAiConfigField({ aiRewriteMode: checked });
-                  }}
-                  inputClassName={SETTINGS_CHECKBOX_CLASS}
-                  spanClassName="text-slate-200"
-                  className="mb-4"
-                />
+                <div className="space-y-4">
+                  {agenticMode && (
+                    <div>
+                      <label className="text-slate-300 text-sm block mb-1">Allowed Folders (one absolute path per line):</label>
+                      <textarea
+                        value={agenticAllowedFolders}
+                        onChange={(e) => setAgenticAllowedFolders(e.target.value)}
+                        onBlur={() => saveAiConfigField({ agenticAllowedFolders })}
+                        placeholder={"/home/user/projects\n/home/user/documents"}
+                        rows={4}
+                        className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {/* AI Model — collapsed: show selected name; expanded: full table */}
+                  <div>
+                    {!modelTableExpanded && selectedAiModel && (
+                      <div className="text-lg font-semibold text-slate-100 mb-1">AI Model: {selectedAiModel}</div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setModelTableExpanded((v) => !v)}
+                      className="flex items-center gap-2 text-slate-300 text-sm font-medium hover:text-slate-100 transition-colors"
+                    >
+                      <ChevronRightIcon
+                        className={`w-4 h-4 transition-transform ${modelTableExpanded ? 'rotate-90' : ''}`}
+                      />
+                      <span>{modelTableExpanded ? 'Hide models' : 'Change model'}</span>
+                    </button>
+                  </div>
+
+                  {modelTableExpanded && (
+                    <div className="space-y-2">
+                      {/* Action buttons */}
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={handleCreateModel}
+                          title="Create new model"
+                          className="p-1.5 text-slate-400 hover:text-green-400 hover:bg-slate-700 rounded transition-colors"
+                        >
+                          <PlusIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={handleEditModel}
+                          title="Edit selected model"
+                          disabled={aiModels.length === 0}
+                          className={BUTTON_CLASS_BLUE}
+                        >
+                          <PencilIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (!selectedModelIsReadonly) setShowDeleteConfirm(true);
+                          }}
+                          title="Delete selected model"
+                          disabled={aiModels.length === 0 || selectedModelIsReadonly}
+                          className={BUTTON_CLASS_RED}
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* AI Models table with radio selection */}
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-slate-400 text-left">
+                            <th className="pb-2 w-8"></th>
+                            <th className="pb-2 font-medium">Name</th>
+                            <th className="pb-2 font-medium">Provider</th>
+                            <th className="pb-2 font-medium">Model</th>
+                            <th className="pb-2 font-medium text-center">Vision</th>
+                            <th className="pb-2 font-medium text-right">Input $/1M</th>
+                            <th className="pb-2 font-medium text-right">Output $/1M</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {aiModels.map((m) => {
+                            const isSelected = normalizeModelKey(m.name) === normalizeModelKey(selectedAiModel);
+                            return (
+                              <tr
+                                key={m.name}
+                                onClick={() => handleAiModelChange(m.name)}
+                                className={`text-slate-200 border-t border-slate-700 cursor-pointer transition-colors hover:bg-slate-700/30 ${isSelected ? 'bg-slate-700/50' : ''}`}
+                              >
+                                <td className="py-2 text-center">
+                                  <input
+                                    type="radio"
+                                    name="ai-model-select"
+                                    checked={isSelected}
+                                    onChange={() => handleAiModelChange(m.name)}
+                                    className="w-5 h-5 cursor-pointer accent-blue-500"
+                                  />
+                                </td>
+                                <td className="py-2 font-mono text-xs">{m.name}</td>
+                                <td className="py-2 font-mono text-xs">{m.provider}</td>
+                                <td className="py-2 font-mono text-xs">{m.model}</td>
+                                <td className="py-2 text-center text-green-400">{m.vision ? '✓' : ''}</td>
+                                <td className="py-2 text-right text-green-400">${m.inputPer1M.toFixed(2)}</td>
+                                <td className="py-2 text-right text-green-400">${m.outputPer1M.toFixed(2)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {selectedModel?.provider === 'LLAMACPP' && (
+                    <div className="space-y-3 bg-slate-750 rounded-lg p-4 border border-slate-600">
+                      <h3 className="text-sm font-medium text-slate-300">llama.cpp Server</h3>
+
+                      {/* Server status + controls */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-400 text-sm">Status:</span>
+                        <span className={`text-sm font-medium ${llamaServerStatus === 'running' ? 'text-green-400' :
+                          llamaServerStatus === 'loading' ? 'text-yellow-400' :
+                            'text-slate-500'
+                          }`}>
+                          {llamaServerStatus === 'running' ? 'Running' :
+                            llamaServerStatus === 'loading' ? 'Loading model…' :
+                              'Stopped'}
+                        </span>
+                        <button
+                          disabled={llamaServerBusy || llamaServerStatus === 'running' || llamaServerStatus === 'loading'}
+                          onClick={startLlama}
+                          className="px-3 py-1 text-xs bg-green-700 hover:bg-green-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
+                        >
+                          Start
+                        </button>
+                        <button
+                          disabled={llamaServerBusy || llamaServerStatus === 'stopped'}
+                          onClick={stopLlama}
+                          className="px-3 py-1 text-xs bg-red-700 hover:bg-red-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
+                        >
+                          Stop
+                        </button>
+                        <button
+                          disabled={llamaServerBusy}
+                          onClick={refreshLlama}
+                          className="px-3 py-1 text-xs bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:text-slate-500 text-slate-200 rounded transition-colors"
+                        >
+                          Refresh
+                        </button>
+                      </div>
+
+                      {/* Base URL */}
+                      <div className="flex items-center gap-2">
+                        <label className="text-slate-300 text-sm whitespace-nowrap">Base URL:</label>
+                        <input
+                          type="text"
+                          value={llamacppBaseUrl}
+                          onChange={(e) => handleLlamacppBaseUrlChange(e.target.value)}
+                          onBlur={handleLlamacppBaseUrlBlur}
+                          className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
+                        />
+                      </div>
+
+                      {/* Llama.cpp folder path */}
+                      <div className="flex items-center gap-2">
+                        <label className="text-slate-300 text-sm whitespace-nowrap">Llama.cpp folder:</label>
+                        <input
+                          type="text"
+                          value={llamacppFolder}
+                          onChange={(e) => setLlamacppFolder(e.target.value)}
+                          onBlur={() => saveAiConfigField({ llamacppFolder })}
+                          placeholder="/path/to/llamacpp"
+                          className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Personas */}
+            {aiEnabled && (
+              <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+                <h2 className="text-lg font-semibold text-slate-100 mb-4">AI Personas</h2>
                 <div>
-                  <label className="text-slate-300 text-sm block mb-2">Persona</label>
                   {/* Combobox row: name selector + Save + Delete */}
                   <div className="flex gap-3 mb-3">
                     <EditableCombobox
@@ -585,26 +573,38 @@ function AISettingsView() {
                     placeholder={DEFAULT_AI_REWRITE_PERSONA}
                     className="w-full bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-base font-mono disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-slate-500"
                   />
-                  <button
-                    type="button"
-                    disabled={!selectedPromptName.trim()}
-                    onClick={() => setPromptEditorContent(DEFAULT_AI_REWRITE_PERSONA)}
-                    className="mt-2 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-slate-100 border border-slate-600 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    Reset to Default
-                  </button>
                 </div>
-                <CheckboxField
-                  label="Full Document Context"
-                  checked={fullDocContext}
-                  onChange={(checked) => {
-                    setFullDocContext(checked);
-                    void saveAiConfigField({ fullDocContext: checked });
-                  }}
-                  inputClassName={SETTINGS_CHECKBOX_CLASS}
-                  spanClassName="text-slate-200"
-                  className="mt-4"
-                />
+              </section>
+            )}
+
+            {/* AI Rewrite Options */}
+            {aiEnabled && (
+              <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+                <h2 className="text-lg font-semibold text-slate-100 mb-4">AI Rewrite Options</h2>
+                <div className="flex items-center gap-6">
+                  <CheckboxField
+                    label="Enable AI Rewrite"
+                    checked={aiRewriteMode}
+                    onChange={(checked) => {
+                      setAiRewriteMode(checked);
+                      void saveAiConfigField({ aiRewriteMode: checked });
+                    }}
+                    inputClassName={SETTINGS_CHECKBOX_CLASS}
+                    spanClassName="text-slate-200"
+                  />
+                  {aiRewriteMode && (
+                    <CheckboxField
+                      label="Rewrite using Full Doc Context"
+                      checked={fullDocContext}
+                      onChange={(checked) => {
+                        setFullDocContext(checked);
+                        void saveAiConfigField({ fullDocContext: checked });
+                      }}
+                      inputClassName={SETTINGS_CHECKBOX_CLASS}
+                      spanClassName="text-slate-200"
+                    />
+                  )}
+                </div>
               </section>
             )}
           </div>
