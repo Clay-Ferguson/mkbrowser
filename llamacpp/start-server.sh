@@ -39,7 +39,15 @@ LIB_DIR="$HOME/.local/lib/llama.cpp"
 #CTX_SIZE="16384"
 
 # Gemma 4 12B (dense): 12B params (~7.1 GB)
-MODEL_FILE="gemma-4-12b-it-Q4_K_M.gguf"
+#MODEL_FILE="gemma-4-12b-it-Q4_K_M.gguf"
+#CTX_SIZE="16384"
+
+# Gemma 4 12B QAT (dense, Quantization-Aware Training): 12B params (~6.7 GB)
+# Lower memory footprint (~7 GB total) and potentially faster than the
+# standard Q4_K_M 12B build, with accuracy close to the original BF16.
+# In other words, this QAT model is "smarter" (better answers/inference) than 
+# the non-QAT model above, but runs in about the same memory.
+MODEL_FILE="gemma-4-12B-it-qat-UD-Q4_K_XL.gguf"
 CTX_SIZE="16384"
 
 # Gemma 4 26B-A4B (MoE): 3.8B active params (~13.4 GB)
@@ -90,11 +98,22 @@ echo ""
 PID_FILE="$HOME/.local/share/llama.cpp/llama-server.pid"
 echo $$ > "$PID_FILE"
 
+# Thread tuning for the Intel Core Ultra 9 288V (Lunar Lake): 8 cores, no
+# hyperthreading = 4 fast P-cores + 4 low-power E-cores.
+#   --threads 4        Token generation is memory-bandwidth-bound, and the 4
+#                      P-cores nearly saturate the LPDDR5X bandwidth on their
+#                      own. Including the slower E-cores tends to gate each
+#                      token (every token waits on the slowest thread) and
+#                      hurts laptop responsiveness, so we pin generation to 4.
+#   --threads-batch 8  Prompt ingestion (prefill) is compute-bound rather than
+#                      bandwidth-bound, so it benefits from all 8 cores.
 exec llama-server \
   --model "$MODEL_PATH" \
   --host "$HOST" \
   --port "$PORT" \
   --ctx-size "$CTX_SIZE" \
   -fa on \
+  --threads 4 \
+  --threads-batch 8 \
   --reasoning "$REASONING" \
   "${EXTRA_ARGS[@]}"

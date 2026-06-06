@@ -25,9 +25,16 @@ mkdir -p "$MODELS_DIR"
 #MODEL_SIZE_HINT="~5.0 GB"
 
 # Gemma 4 12B (dense): 12B params
-MODEL_REPO="unsloth/gemma-4-12b-it-GGUF"
-MODEL_FILE="gemma-4-12b-it-Q4_K_M.gguf"
-MODEL_SIZE_HINT="~7.1 GB"
+#MODEL_REPO="unsloth/gemma-4-12b-it-GGUF"
+#MODEL_FILE="gemma-4-12b-it-Q4_K_M.gguf"
+#MODEL_SIZE_HINT="~7.1 GB"
+
+# Gemma 4 12B QAT (dense, Quantization-Aware Training): 12B params
+# Lower memory footprint (~7 GB total) and potentially faster than the
+# standard Q4_K_M 12B build, with accuracy close to the original BF16.
+MODEL_REPO="unsloth/gemma-4-12b-it-qat-GGUF"
+MODEL_FILE="gemma-4-12B-it-qat-UD-Q4_K_XL.gguf"
+MODEL_SIZE_HINT="~6.7 GB"
 
 # Gemma 4 26B-A4B (MoE): 3.8B active params (25.2B total)
 # MODEL_REPO="unsloth/gemma-4-26B-A4B-it-GGUF"
