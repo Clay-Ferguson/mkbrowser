@@ -589,6 +589,20 @@ export interface ThreadEntry {
 }
 
 /**
+ * A conversation branch folder ("A*" / "H*") directly underneath the folder
+ * being viewed in the ThreadView.  Their presence means the user is viewing
+ * the conversation in the middle, and they can be clicked to drill deeper.
+ */
+export interface ThreadChildFolder {
+  /** Role implied by the folder name's first character (H=human, A=ai) */
+  role: 'human' | 'ai';
+  /** Folder name (e.g. "A", "A1", "H") */
+  name: string;
+  /** Absolute path to the folder */
+  path: string;
+}
+
+/**
  * Common image file extensions
  */
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);

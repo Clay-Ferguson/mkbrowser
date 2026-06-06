@@ -556,12 +556,56 @@ export interface ThreadEntry {
 }
 
 /**
+ * A conversation branch folder directly underneath the folder being viewed.
+ * These are the "A*" (AI) / "H*" (Human) folders that continue the thread
+ * past the turn currently displayed.  When present, the user is viewing the
+ * conversation somewhere in the middle rather than at its tail.
+ */
+export interface ThreadChildFolder {
+  /** Role implied by the folder name's first character (H=human, A=ai) */
+  role: 'human' | 'ai';
+  /** Folder name (e.g. "A", "A1", "H") */
+  name: string;
+  /** Absolute path to the folder */
+  path: string;
+}
+
+/** Matches conversation branch folder names: H, A, H1, A2, etc. */
+const THREAD_CHILD_FOLDER_RE = /^[AH]\d*$/;
+
+/**
+ * List the conversation branch folders ("A*" / "H*") directly underneath
+ * folderPath, sorted naturally by name.
+ */
+async function gatherThreadChildFolders(folderPath: string): Promise<ThreadChildFolder[]> {
+  const childFolders: ThreadChildFolder[] = [];
+  try {
+    const dirents = await fs.readdir(folderPath, { withFileTypes: true });
+    for (const dirent of dirents) {
+      if (dirent.isDirectory() && THREAD_CHILD_FOLDER_RE.test(dirent.name)) {
+        childFolders.push({
+          role: dirent.name.startsWith('H') ? 'human' : 'ai',
+          name: dirent.name,
+          path: path.join(folderPath, dirent.name),
+        });
+      }
+    }
+  } catch {
+    // Folder unreadable — treat as having no children
+  }
+  childFolders.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  return childFolders;
+}
+
+/**
  * Walk up the H/A folder hierarchy from folderPath, collecting
- * HUMAN.md / AI.md entries in chronological (top-down) order.
+ * HUMAN.md / AI.md entries in chronological (top-down) order.  Also returns
+ * any conversation branch folders ("A*" / "H*") directly underneath
+ * folderPath so the caller can let the user drill deeper into the thread.
  */
 export async function gatherThreadEntries(
   folderPath: string,
-): Promise<{ isThread: boolean; entries: ThreadEntry[] }> {
+): Promise<{ isThread: boolean; entries: ThreadEntry[]; childFolders: ThreadChildFolder[] }> {
   // Check whether folderPath is part of a thread at all
   const humanFilePath = path.join(folderPath, 'HUMAN.md');
   const isHumanFolder = await fs.access(humanFilePath).then(() => true).catch(() => false);
@@ -570,7 +614,7 @@ export async function gatherThreadEntries(
   const isAIFolder = await fs.access(aiFilePath).then(() => true).catch(() => false);
 
   if (!isHumanFolder && !isAIFolder) {
-    return { isThread: false, entries: [] };
+    return { isThread: false, entries: [], childFolders: [] };
   }
 
   const entries: ThreadEntry[] = [];
@@ -626,5 +670,6 @@ export async function gatherThreadEntries(
     walker = path.dirname(walker);
   }
 
-  return { isThread: true, entries };
+  const childFolders = await gatherThreadChildFolders(folderPath);
+  return { isThread: true, entries, childFolders };
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
-import type { ThreadEntry } from '../../store';
+import type { ThreadEntry, ThreadChildFolder } from '../../store';
 import {
   useCurrentPath,
   useRootPath,
@@ -40,6 +41,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const pendingEditLineNumber = usePendingEditLineNumber();
   const pendingEditView = usePendingEditView();
   const [threadEntries, setThreadEntries] = useState<ThreadEntry[]>([]);
+  const [childFolders, setChildFolders] = useState<ThreadChildFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isThread, setIsThread] = useState(true);
 
@@ -53,6 +55,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const loadThread = useCallback(async () => {
     if (!currentPath) {
       setIsThread(false);
+      setChildFolders([]);
       setLoading(false);
       return;
     }
@@ -62,6 +65,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
       const result = await window.electronAPI.gatherThreadEntries(currentPath);
       setIsThread(result.isThread);
       setThreadEntries(result.entries);
+      setChildFolders(result.childFolders);
 
       // Seed the store with item data for each entry so that useContentLoader
       // inside MarkdownEntry can look them up and cache content.
@@ -79,6 +83,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
     } catch (err) {
       logger.error('Failed to load thread entries:', err);
       setIsThread(false);
+      setChildFolders([]);
     } finally {
       setLoading(false);
     }
@@ -146,6 +151,13 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   // Navigate breadcrumb — switches to browser view at the given path
   const handleBreadcrumbNavigate = useCallback((path: string) => {
     navigateToBrowserPath(path);
+  }, []);
+
+  // Drill into a conversation branch folder while staying on the thread tab.
+  // currentPath is shared with the browse view, but we keep currentView as
+  // 'thread' so the user remains in the thread UI as they navigate deeper.
+  const handleChildFolderClick = useCallback((folderPath: string) => {
+    navigateToBrowserPath(folderPath, undefined, 'thread');
   }, []);
 
   const breadcrumbHeader = (
@@ -233,6 +245,30 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
             </div>
           );
         })}
+
+        {/* Conversation branch folders directly under the current folder.
+            Their presence means we're viewing the thread mid-stream; clicking
+            one drills the thread view deeper into that turn. */}
+        {childFolders.length > 0 && (
+          <div className="pt-2 space-y-1">
+            {childFolders.map((folder) => (
+              <div
+                key={folder.path}
+                className={`border-l-4 pl-2 ${
+                  folder.role === 'human' ? 'border-blue-500' : 'border-emerald-500'
+                }`}
+              >
+                <div
+                  onClick={() => handleChildFolderClick(folder.path)}
+                  className="flex items-center gap-3 px-2 py-1 bg-blue-800/50 hover:bg-blue-700/70 transition-colors cursor-pointer rounded-sm"
+                >
+                  <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                  <span className="font-medium text-slate-200 truncate">{folder.name}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </main>
     </>

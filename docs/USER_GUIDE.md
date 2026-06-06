@@ -11,11 +11,15 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Running Shell Scripts](#running-shell-scripts)
     * [Suppressing the Terminal Window](#suppressing-the-terminal-window)
   * [Editing Files](#editing-files)
+    * [Inserting Links to Other Files](#inserting-links-to-other-files)
     * [Editor Keyboard Shortcuts](#editor-keyboard-shortcuts)
   * [Automatic Table of Contents Generation](#automatic-table-of-contents-generation)
   * [Tag Picker](#tag-picker)
+    * [Category behavior](#category-behavior)
+    * [Managing your hashtag library (Tags Editor)](#managing-your-hashtag-library-tags-editor)
   * [Renaming](#renaming)
   * [File Operations (Cut, Copy, Paste, Delete)](#file-operations-cut-copy-paste-delete)
+  * [Drag and Drop](#drag-and-drop)
 * [Edit Menu Features](#edit-menu-features)
   * [Undo Cut](#undo-cut)
   * [Select All](#select-all)
@@ -103,11 +107,23 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [How to use Rewrite](#how-to-use-rewrite)
     * [Rewriting a Selection](#rewriting-a-selection)
     * [Full Document Context](#full-document-context)
-    * [Customizing the Rewrite Prompt](#customizing-the-rewrite-prompt)
+  * [AI Personas](#ai-personas)
+    * [Creating a new prompt](#creating-a-new-prompt)
+    * [Selecting the active prompt](#selecting-the-active-prompt)
+    * [Editing an existing prompt](#editing-an-existing-prompt)
+    * [Deleting a prompt](#deleting-a-prompt)
 * [Automatic Markdown-to-HTML Export (Front Matter Autogen)](#automatic-markdown-to-html-export-front-matter-autogen)
   * [How It Works](#how-it-works)
   * [Use Case: Browser Landing Page](#use-case-browser-landing-page)
   * [Technical Details](#technical-details)
+* [Calendar](#calendar)
+  * [Opening the Calendar](#opening-the-calendar)
+  * [Creating Calendar Entries](#creating-calendar-entries)
+    * [Adding a Start Time and Duration](#adding-a-start-time-and-duration)
+  * [Navigating the Calendar](#navigating-the-calendar)
+  * [Jumping to a File](#jumping-to-a-file)
+  * [What Gets Scanned](#what-gets-scanned-1)
+  * [Recurring Events](#recurring-events)
 <!-- /TOC -->
 
 # Desktop Icon (Linux)
@@ -830,7 +846,9 @@ This course costs $99.
 
 # AI Chat
 
-MkBrowser includes an integrated AI chat feature that organizes each conversation into a folder-based history. Each turn in the conversation is saved in its own folder as the chat progresses: your prompt is written to `HUMAN.md`, and MkBrowser saves the AI's reply to `AI.md`. When using a reasoning model (such as Gemma 4), MkBrowser also saves the model's internal chain-of-thought to `THINK.md` alongside the reply, so you can see exactly how the model arrived at its answer.
+MkBrowser includes an integrated AI chat feature that organizes each conversation into a folder-based history. Each turn in the conversation is saved in its own folder as the chat progresses: your prompt is written to `HUMAN.md`, and MkBrowser saves the AI's reply to `AI.md`. When using a reasoning model (such as Gemma 4), MkBrowser also saves the model's internal chain-of-thought to `THINK.md` alongside the reply, so you can see exactly how the model arrived at its answer. 
+
+As the chat conversation progresses each back and forth turn will result in a new subfolder being created underneath the previous turn, such that you'll end up with a folder structure that looks like `A/H/A/H` (A=AI, H=Human). We use the very short folder names, so that the path can be very long and the conversation can be very long without the folder length limitation being an issue.
 
 ## Benefits of Folder-based Chat History
 
