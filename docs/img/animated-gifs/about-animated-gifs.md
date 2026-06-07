@@ -38,3 +38,6 @@
 
 ## Calendar View
 ![](./calendar-view-demo.gif)
+
+## Working with Custom Hashtags
+![](./custom-tags-demo.gif)
