@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import type { ThreadEntry, ThreadChildFolder } from '../../store';
+import type { AppConfig } from '../../types/shared';
 import {
   useCurrentPath,
   useRootPath,
@@ -44,6 +45,13 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const [childFolders, setChildFolders] = useState<ThreadChildFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isThread, setIsThread] = useState(true);
+  const [personaName, setPersonaName] = useState<string>('[Default Agent]');
+
+  useEffect(() => {
+    window.electronAPI.getConfig().then((config: AppConfig) => {
+      setPersonaName(config.aiRewritePrompt || '[Default Agent]');
+    });
+  }, []);
 
   // Scroll persistence
   const { containerRef: mainContainerRef, handleScroll: handleMainScroll } = useScrollPersistence(
@@ -168,6 +176,9 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
           currentPath={currentPath}
           onNavigate={handleBreadcrumbNavigate}
         />
+      </div>
+      <div className="w-full text-sm text-slate-400 mt-0.5 text-center">
+        Chat with Persona: <span className="text-slate-200 font-medium">{personaName}</span>
       </div>
     </header>
   );

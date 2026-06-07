@@ -135,18 +135,21 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onAcc
         <button
           onClick={handleAcceptAll}
           className={BUTTON_CLASS_SM_GREEN}
+          data-testid="diff-accept-all-button"
         >
           Accept All
         </button>
         <button
           onClick={handleDone}
           className={BUTTON_CLASS_SM_BLUE}
+          data-testid="diff-done-button"
         >
           Done
         </button>
         <button
           onClick={onCancel}
           className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+          data-testid="diff-cancel-button"
         >
           Cancel Rewrite
         </button>

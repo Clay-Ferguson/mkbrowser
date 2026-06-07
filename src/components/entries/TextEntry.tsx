@@ -118,6 +118,7 @@ function TextEntry(props: TextEntryProps) {
             onClick={edit.handleCancel}
             disabled={edit.saving}
             className={BUTTON_CLASS_SM_RED}
+            data-testid="entry-cancel-button"
           >
             Cancel
           </button>
@@ -152,6 +153,7 @@ function TextEntry(props: TextEntryProps) {
   return (
     <>
       <EntryShell
+        data-testid="browser-entry-text"
         entry={entry}
         icon={<DocumentTextIcon className="w-5 h-5 text-emerald-400" />}
         isAttachment={isAttachment}

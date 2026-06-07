@@ -609,6 +609,7 @@ function AISettingsView() {
                     }}
                     inputClassName={SETTINGS_CHECKBOX_CLASS}
                     spanClassName="text-slate-200"
+                    testId="enable-ai-rewrite"
                   />
                   {aiRewriteMode && (
                     <CheckboxField
@@ -620,6 +621,7 @@ function AISettingsView() {
                       }}
                       inputClassName={SETTINGS_CHECKBOX_CLASS}
                       spanClassName="text-slate-200"
+                      testId="rewrite-using-full-doc-context"
                     />
                   )}
                 </div>

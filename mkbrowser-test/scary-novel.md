@@ -1,0 +1,5 @@
+Then, through the heavy, stagnant air of the room, he heard it again. The sound came from just beyond the cottage door, cutting through the silence like a dull blade. It was not a sound one could easily name. It was not the clean scrape of a branch against stone, nor was it the sudden, honest thump of a falling weight. It was something more complex and more terrible—a rhythmic, unsettling fusion of both, a sliding weight that seemed to drag itself across the threshold.
+
+A sudden, cold electricity surged through him. The hairs on the nape of his neck rose, stiff and sharp, and a similar prickling sensation raced down the length of his arms, as if the very air had turned to needles. In that moment, the uncertainty that had plagued his thoughts for hours vanished, replaced by a hard, crystalline certainty. There was something out there. Something waiting in the dark, breathing the same warm summer night.
+
+With a deliberate, agonizing slowness, he rose from the chair. His movements were heavy, as if he were moving through deep water, and his heart beat a steady, hollow rhythm against his ribs. He reached out, his fingers trembling slightly, searching for his...
