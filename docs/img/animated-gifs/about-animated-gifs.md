@@ -6,14 +6,20 @@
 ## How to Use File Explorer
 ![](./file-explorer-demo.gif)
 
-## How to Use Document Mode
-![](./document-mode-demo.gif)
-
 ## How to Chat with an AI
 ![](./create-file-demo.gif)
 
 ## How to use AI Vision
 ![](./ai-vision-demo.gif)
+
+## AI Co-Authoring/Writing
+![](./ai-rewrite-demo.gif)
+
+## AI Personas (User-Customizable AI Agent)
+![](./chat-persona-demo.gif)
+
+## How to Use Document Mode
+![](./document-mode-demo.gif)
 
 ## How to do Simple Search
 ![](./search-demo.gif)
