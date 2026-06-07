@@ -54,8 +54,9 @@ echo ""
 echo "Select test scope:"
 echo "1) Run all tests"
 echo "2) Run specific test"
+echo "3) Build Video from Existing Images/Wavs"
 echo ""
-read -p "Enter choice [1-2]: " choice
+read -p "Enter choice [1-3]: " choice
 
 SPECIFIC_TEST=""
 
@@ -77,6 +78,14 @@ case $choice in
         echo "Running specific test: $SPECIFIC_TEST.spec.ts..."
         npx playwright test tests/e2e/$SPECIFIC_TEST.spec.ts
         ;;
+    3) 
+        SPECIFIC_TEST=$(select_specific_test)
+        if [ $? -ne 0 ] || [ -z "$SPECIFIC_TEST" ]; then
+            echo "Invalid test selection. Exiting."
+            exit 1
+        fi
+        echo "Selected $SPECIFIC_TEST. Skipping actual test run."
+        ;;
     *)
         echo "Invalid choice. Running all tests..."
         npm run test:e2e
@@ -91,9 +100,9 @@ echo "Tests completed with exit code: $TEST_EXIT_CODE"
 echo ""
 
 if [ $TEST_EXIT_CODE -eq 0 ]; then
-    echo "✓ All tests passed! Opening HTML report..."
+    echo "✓ All tests passed!"
 else
-    echo "✗ Some tests failed. Opening HTML report for details..."
+    echo "✗ Some tests failed."
 fi
 
 echo ""
