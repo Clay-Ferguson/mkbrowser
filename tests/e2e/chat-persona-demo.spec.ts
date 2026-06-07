@@ -70,8 +70,18 @@ test.describe('AI Chat Persona Demo', () => {
 
     await demoClick(aiSettingsItem);
 
-    // ── 4. Locate the persona combobox and scroll it into view ────────
+    //==========
     await mainWindow.waitForTimeout(500);
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'ai-settings-view');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `We're now in the AI Settings view. Let's scroll down to the Persona Section`
+    );
+
+    //==========
+
+    // ── 4. Locate the persona combobox and scroll it into view ────────
     const personaCombobox = mainWindow.getByTestId('ai-persona-combobox');
     await expect(personaCombobox).toBeVisible({ timeout: 5000 });
     await personaCombobox.scrollIntoViewIfNeeded();
@@ -81,9 +91,8 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We're now in the AI Settings view.
-      Down here in the AI Personas section is where we can define our personas, and select the active one.
-      Let's open it and choose the "Pirate" persona.`
+      `Down here in the AI Personas section is where we can define our personas, and select the active one.
+      We can open it to see what personas are defined.`
     );
 
     // ── 5. Open the dropdown and select the "Pirate" persona ──────────
