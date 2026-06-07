@@ -41,9 +41,8 @@ test.describe('AI Chat Persona Demo', () => {
       screenshotDir,
       step++,
       `Welcome back to MkBrowser.
-      In this demo we're going to look at how you can give your AI agent a custom personality, which we call a Persona,
-      and then have a conversation with it.
-      To get started, we'll open the System menu so we can reach the AI Settings.`
+      In this demo we're going to look at how you can give your AI agent a custom personality, which we call a Persona.
+      A Persona is just a text block containing instructions telling the AI how to behave, or what to do, during conversations.`
     );
 
     // ── 2. Open the System popup menu ─────────────────────────────────
@@ -53,7 +52,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Here in the top right corner is the System menu button.
+      `Here in the top right corner is the System Menu button.
       Let's click it to open the System popup menu.`
     );
 
@@ -66,9 +65,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `The System menu is open.
-      We can see an "AI Settings" option.
-      Let's click it to open the AI Settings view.`
+      `Let's click the "AI Settings" option, to open the AI Settings view.`
     );
 
     await demoClick(aiSettingsItem);
@@ -85,7 +82,7 @@ test.describe('AI Chat Persona Demo', () => {
       screenshotDir,
       step++,
       `We're now in the AI Settings view.
-      Down here in the AI Personas section is a dropdown where we can pick which persona our agent should use.
+      Down here in the AI Personas section is where we can define our personas, and select the active one.
       Let's open it and choose the "Pirate" persona.`
     );
 
@@ -109,10 +106,9 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've selected the Pirate persona.
-      This persona tells the AI to behave like a pirate and to write like a pirate,
-      so every answer it gives will be full of swashbuckling pirate talk.
-      Now let's head back to the Browse view to start chatting.`
+      `This persona tells the AI to behave like a pirate and to write like a pirate,
+      so every answer it gives will be full of swashbuckling pirate talk. 
+      You can give any arbitrary instructions you want, and it doesn't have to be limited to describing personalities or role-playing like we're doing here.`
     );
 
     // ── 6. Switch back to the Browse view ─────────────────────────────
@@ -123,7 +119,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Up here in the tab bar, we'll click the "Browse" button to switch back to the Browse view.`
+      `Now we'll click the "Browse" Tab to switch back to the Browse view.`
     );
 
     await demoClick(browseTab);
@@ -133,8 +129,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We're back in the Browse view.
-      Now let's start a brand new chat conversation with our Pirate agent.`
+      `Now let's start a brand new chat conversation with our Pirate agent.`
     );
 
     // ── 7. Open the Tools menu ────────────────────────────────────────
@@ -144,8 +139,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Starting a new chat lives under the Tools menu.
-      Let's click the Tools menu button to open it.`
+      `We'll next click the Tools menu, which is the easiest way to start a new AI chat, rooted in our current folder.`
     );
 
     await demoClick(toolsMenuButton);
@@ -173,7 +167,7 @@ test.describe('AI Chat Persona Demo', () => {
       screenshotDir,
       step++,
       `A new chat has started, and here in the Chat tab we have an editor ready for our message.
-      Let's enter a prompt to begin a conversation with our pirate friend.`
+      Let's enter a prompt to begin a conversation with the Agent.`
     );
 
     const firstPrompt = 'what do you usually do on a warm summer night?';
@@ -183,9 +177,7 @@ test.describe('AI Chat Persona Demo', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `We've typed our question: "what do you usually do on a warm summer night?".
-      Now we'll click the "Ask AI" button, which appears here because this file is named HUMAN.md,
-      marking it as a message from us to the AI.`
+      `We've typed our question: "what do you usually do on a warm summer night?".`
     );
 
     // ── 10. Queue the scripted pirate answer, then click "Ask AI" ─────
@@ -226,10 +218,8 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
     writeNarration(
       screenshotDir,
       step++,
-      `And there's our answer — written entirely in pirate-speak, just as the persona promised.
-      The Pirate tells us about stargazin', sea shanties, and keepin' a weather eye on the horizon.
-      We've learned a little something about pirate nightlife.
-      Let's ask one more question.`
+      `And there's our answer — written entirely in pirate-speak.
+       We've learned a little something about pirate nightlife.`
     );
 
     // ── 12. Click the "Reply" button to continue the conversation ─────
@@ -239,7 +229,7 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
     writeNarration(
       screenshotDir,
       step++,
-      `Above the Pirate's answer there's a "Reply" button.
+      `On the Pirate's answer file there's a "Reply" button.
       Let's click it to ask a follow-up question.`
     );
 
@@ -251,15 +241,14 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
     await expect(replyEditor).toBeVisible({ timeout: 10000 });
 
     const secondPrompt =
-      "Ahoy! I've heard there's a newfangled device sailors put on their ships nowadays to navigate by the stars without all the squintin'. Have ye come across it? And what be the trusty device ye use yourself these days?";
+      "Ahoy! I've heard there's a newfangled device sailors put on their ships nowadays to navigate better. Have you heard of it?";
     await insertText(mainWindow, secondPrompt, true);
 
     await takeScreenshot(mainWindow, replyEditor, screenshotDir, step++, 'second-prompt-entered');
     writeNarration(
       screenshotDir,
       step++,
-      `This time we'll get a bit cheeky and ask the Pirate whether he's heard of the modern gadgets
-      folks use to navigate by the stars, and what device he himself relies on.`
+      `We've entered a question asking about navigation technology.`
     );
 
     // ── 14. Queue the second scripted answer, then click "Ask AI" ─────
@@ -273,7 +262,6 @@ Aye, I've caught wind o' these modern marvels — them "GPS" boxes that whisper 
 | :--- | :--- |
 | **The Sextant** | Me trusty brass companion! It measures the angle 'twixt a star and the horizon, and never once has it run dry of power. |
 | **The Compass** | Points me north through fog, storm, and rum-soaked nights alike. |
-| **Me Own Two Eyes** | The stars have guided sailors since afore yer grandpappy's grandpappy — they'll not fail me now! |
 
 So keep yer glowin' boxes, matey. I'll take me sextant and a sky full o' stars any night o' the week!`;
 
@@ -309,10 +297,7 @@ So keep yer glowin' boxes, matey. I'll take me sextant and a sky full o' stars a
     writeNarration(
       screenshotDir,
       step++,
-      `Wonderful — the Pirate knows all about GPS, but he calls it "magic in a tin" and won't trust a gadget that begs for batteries.
-      He'll stick with his trusty sextant, his compass, and his own two eyes.
-      And that's how easy it is to give your AI agent a personality of its very own and have a little fun chatting with it.
-      Thanks for watching, and happy swashbucklin'!`
+      `Looks like our Pirate knows about GPS, because we didn't include any mention of what historical period he's limited to, when we defined the Persona.`
     );
 
     logScreenshotSummary(screenshotDir);
