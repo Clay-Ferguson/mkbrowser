@@ -14,6 +14,8 @@ import AlertDialog from '../dialogs/AlertDialog';
 import CheckboxField from '../dialogs/common/CheckboxField';
 import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, SETTINGS_CHECKBOX_CLASS } from '../../utils/styles';
 
+const DEFAULT_PERSONA_NAME = '[Default Agent]';
+
 function AISettingsView() {
   // AI config state (lives on AppConfig, not AppSettings)
   const [aiEnabled, setAiEnabled] = useState<boolean>(false);
@@ -59,12 +61,16 @@ function AISettingsView() {
       if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
       if (config.fullDocContext !== undefined) setFullDocContext(config.fullDocContext);
       if (config.aiRewriteMode !== undefined) setAiRewriteMode(config.aiRewriteMode);
-      const savedName = config.aiRewritePrompt ?? '';
+      const savedName = config.aiRewritePrompt || DEFAULT_PERSONA_NAME;
       const savedPrompts = config.aiRewritePrompts ?? [];
       setSelectedPromptName(savedName);
       setAiRewritePrompts(savedPrompts);
-      const matched = savedName ? savedPrompts.find((p) => p.name === savedName) : undefined;
-      setPromptEditorContent(matched?.prompt ?? '');
+      if (savedName === DEFAULT_PERSONA_NAME) {
+        setPromptEditorContent(DEFAULT_AI_REWRITE_PERSONA);
+      } else {
+        const matched = savedPrompts.find((p) => p.name === savedName);
+        setPromptEditorContent(matched?.prompt ?? '');
+      }
     });
     // Load AI usage stats
     window.electronAPI.getAiUsage().then(setUsageData);
@@ -526,24 +532,35 @@ function AISettingsView() {
                       value={selectedPromptName}
                       onChange={(name) => {
                         setSelectedPromptName(name);
-                        // If the typed name no longer matches a saved prompt, clear the editor
-                        const matched = aiRewritePrompts.find((p) => p.name === name);
-                        setPromptEditorContent(matched?.prompt ?? '');
+                        if (name === DEFAULT_PERSONA_NAME) {
+                          setPromptEditorContent(DEFAULT_AI_REWRITE_PERSONA);
+                        } else {
+                          const matched = aiRewritePrompts.find((p) => p.name === name);
+                          setPromptEditorContent(matched?.prompt ?? '');
+                        }
                       }}
                       onSelect={(option: ComboboxOption) => {
                         setSelectedPromptName(option.value);
-                        const matched = aiRewritePrompts.find((p) => p.name === option.value);
-                        setPromptEditorContent(matched?.prompt ?? '');
+                        if (option.value === DEFAULT_PERSONA_NAME) {
+                          setPromptEditorContent(DEFAULT_AI_REWRITE_PERSONA);
+                        } else {
+                          const matched = aiRewritePrompts.find((p) => p.name === option.value);
+                          setPromptEditorContent(matched?.prompt ?? '');
+                        }
+                        void saveAiConfigField({ aiRewritePrompt: option.value });
                       }}
-                      options={[...aiRewritePrompts]
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map((p) => ({ value: p.name, label: p.name }))}
+                      options={[
+                        { value: DEFAULT_PERSONA_NAME, label: DEFAULT_PERSONA_NAME },
+                        ...[...aiRewritePrompts]
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map((p) => ({ value: p.name, label: p.name })),
+                      ]}
                       placeholder="Enter a name or select existing..."
                       className="flex-1"
                     />
                     <button
                       type="button"
-                      disabled={!selectedPromptName.trim()}
+                      disabled={!selectedPromptName.trim() || selectedPromptName === DEFAULT_PERSONA_NAME}
                       onClick={() => {
                         const name = selectedPromptName.trim();
                         if (!name) return;
@@ -558,7 +575,7 @@ function AISettingsView() {
                     </button>
                     <button
                       type="button"
-                      disabled={!selectedPromptName.trim() || !aiRewritePrompts.some((p) => p.name === selectedPromptName)}
+                      disabled={!selectedPromptName.trim() || selectedPromptName === DEFAULT_PERSONA_NAME || !aiRewritePrompts.some((p) => p.name === selectedPromptName)}
                       onClick={() => setShowPromptDeleteConfirm(true)}
                       className={BUTTON_CLASS_DLG_RED}
                     >
@@ -569,7 +586,7 @@ function AISettingsView() {
                   <textarea
                     value={promptEditorContent}
                     onChange={(e) => setPromptEditorContent(e.target.value)}
-                    disabled={!selectedPromptName.trim()}
+                    disabled={!selectedPromptName.trim() || selectedPromptName === DEFAULT_PERSONA_NAME}
                     rows={5}
                     placeholder={DEFAULT_AI_REWRITE_PERSONA}
                     className="w-full bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-base font-mono disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-slate-500"
