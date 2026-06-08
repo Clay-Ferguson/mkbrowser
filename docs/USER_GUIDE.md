@@ -6,8 +6,11 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
 
 <!-- TOC -->
 * [Desktop Icon (Linux)](#desktop-icon-linux)
+* [Tab Bar](#tab-bar)
 * [Browsing and Editing](#browsing-and-editing)
   * [Viewing Content](#viewing-content)
+  * [Expand All / Collapse All](#expand-all--collapse-all)
+  * [Clickable Hashtags](#clickable-hashtags)
   * [Running Shell Scripts](#running-shell-scripts)
     * [Suppressing the Terminal Window](#suppressing-the-terminal-window)
   * [Editing Files](#editing-files)
@@ -19,7 +22,15 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [Managing your hashtag library (Tags Editor)](#managing-your-hashtag-library-tags-editor)
   * [Renaming](#renaming)
   * [File Operations (Cut, Copy, Paste, Delete)](#file-operations-cut-copy-paste-delete)
+  * [Navigating Folders](#navigating-folders)
+    * [Recent Folders](#recent-folders)
+    * [Up Level](#up-level)
   * [Drag and Drop](#drag-and-drop)
+* [Bookmarks](#bookmarks)
+  * [Adding a Bookmark](#adding-a-bookmark)
+  * [Removing a Bookmark](#removing-a-bookmark)
+  * [Navigating with Bookmarks](#navigating-with-bookmarks)
+  * [Renaming and Deleting Bookmarks](#renaming-and-deleting-bookmarks)
 * [Edit Menu Features](#edit-menu-features)
   * [Undo Cut](#undo-cut)
   * [Select All](#select-all)
@@ -46,6 +57,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
 * [Searching](#searching)
   * [Using Search](#using-search)
   * [Advanced Search Predicates](#advanced-search-predicates)
+  * [Search Highlight](#search-highlight)
   * [Saving Search Definitions](#saving-search-definitions)
 * [Replace in Files](#replace-in-files-1)
   * [Using Replace in Files](#using-replace-in-files)
@@ -57,6 +69,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [What Gets Scanned](#what-gets-scanned)
   * [Analysis Results](#analysis-results)
   * [The Analysis Tab](#the-analysis-tab)
+  * [Clicking a Hashtag](#clicking-a-hashtag)
 * [Folder Graph](#folder-graph)
   * [Launching the Graph](#launching-the-graph)
   * [Reading the Graph](#reading-the-graph)
@@ -65,6 +78,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Scan Limits](#scan-limits)
   * [Search-based Graph](#search-based-graph)
 * [Exporting](#exporting)
+* [OCR](#ocr)
 * [Markdown Support](#markdown-support)
   * [Column Layout (`|||`)](#column-layout-)
 * [Wikilinks](#wikilinks)
@@ -75,6 +89,9 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Escaping Dollar Signs for Currency](#escaping-dollar-signs-for-currency)
   * [Example](#example)
 * [AI Chat](#ai-chat)
+  * [Chat Thread View](#chat-thread-view)
+    * [AI Conversation Hint Text](#ai-conversation-hint-text)
+    * [Replying in a Thread](#replying-in-a-thread)
   * [Benefits of Folder-based Chat History](#benefits-of-folder-based-chat-history)
     * [1. Complete Transparency](#1-complete-transparency)
     * [2. Full Portability](#2-full-portability)
@@ -95,6 +112,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [Enable AI Features](#enable-ai-features)
     * [AI Model](#ai-model)
     * [llama.cpp Base URL](#llamacpp-base-url)
+    * [llama.cpp Server Controls](#llamacpp-server-controls)
     * [AI Settings View](#ai-settings-view)
     * [Supported Models](#supported-models)
     * [Agentic Mode](#agentic-mode)
@@ -105,14 +123,21 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [Patterns and wildcards](#patterns-and-wildcards)
     * [What gets sent to the AI](#what-gets-sent-to-the-ai)
   * [AI Rewrite](#ai-rewrite)
+    * [Enabling AI Rewrite](#enabling-ai-rewrite)
     * [How to use Rewrite](#how-to-use-rewrite)
     * [Rewriting a Selection](#rewriting-a-selection)
     * [Full Document Context](#full-document-context)
+    * [Expand Editor](#expand-editor)
   * [AI Personas](#ai-personas)
     * [Creating a new prompt](#creating-a-new-prompt)
     * [Selecting the active prompt](#selecting-the-active-prompt)
     * [Editing an existing prompt](#editing-an-existing-prompt)
     * [Deleting a prompt](#deleting-a-prompt)
+* [Settings](#settings)
+  * [Appearance](#appearance)
+  * [Files to Ignore](#files-to-ignore)
+  * [Calendar Items Folder](#calendar-items-folder)
+* [Image Viewer and EXIF Metadata](#image-viewer-and-exif-metadata)
 * [Automatic Markdown-to-HTML Export (Front Matter Autogen)](#automatic-markdown-to-html-export-front-matter-autogen)
   * [How It Works](#how-it-works)
   * [Use Case: Browser Landing Page](#use-case-browser-landing-page)
@@ -140,6 +165,12 @@ To add MkBrowser to your application launcher on Ubuntu/GNOME so you can pin it 
 4. Right-click the icon and choose **Add to Favorites** to pin it to your dock.
 
 
+# Tab Bar
+
+MkBrowser uses a tab bar at the top of the window to switch between views: **Browse**, **Chat**, **Search**, **Analysis**, **Graph**, **Settings**, **AI Settings**, and **Calendar**. The Browse tab is always present. The others appear only when they are active (e.g. Search appears after you run a search; Chat appears when you navigate into an AI conversation folder).
+
+Each tab that was opened has an **×** button next to its label. Clicking it closes the tab and returns you to the Browse view. Closing a tab also discards its associated state (e.g. closing Search clears the results; closing Analysis clears the analysis data).
+
 # Browsing and Editing
 
 MkBrowser displays your files and folders in a single streamlined list.
@@ -148,6 +179,14 @@ MkBrowser displays your files and folders in a single streamlined list.
 - **Markdown Files**: Click on any `.md` file to expand it and view its rendered content directly in the list. You don't need to open a separate preview pane.
 - **Images**: Click on image files to preview them inline.
 - **Folders**: Click on a folder to navigate into it.
+
+## Expand All / Collapse All
+
+When you have several files open (expanded) at once, **Expand All** and **Collapse All** icon buttons appear in the Browse toolbar. Click **Expand All** to open every file in the current folder simultaneously, or **Collapse All** to close them all in one click.
+
+## Clickable Hashtags
+
+Any hashtag rendered inside a Markdown file (e.g. `#project`, `#urgent`) is a live link. Clicking one runs a literal content search for that tag and switches to the Search Results tab, so you can instantly see every file in the folder that shares the same tag.
 
 ## Running Shell Scripts
 
@@ -291,6 +330,16 @@ You can manage your files using the application menu or keyboard shortcuts.
     - Select items and choose **Cut** from the **Edit** menu to move files.
     - Navigate to the destination folder and choose **Paste**.
 
+## Navigating Folders
+
+### Recent Folders
+
+MkBrowser remembers up to 10 folders you have visited recently. Click the **application logo** (top-left corner) to open the File menu — recently visited folders are listed there. Click any entry to jump back to it immediately. If the folder is inside the current root it navigates there directly; otherwise it reopens MkBrowser with that folder as the new root.
+
+### Up Level
+
+When you have drilled into a subfolder, an **Up Level** button appears in the top-right of the tab bar. Clicking it navigates to the parent folder and highlights the subfolder you just came from, so you can see it in context.
+
 ## Drag and Drop
 
 In addition to Cut/Paste, you can move a single file or folder by dragging and dropping it onto a destination folder. The file or folder **icon** is the drag handle: click and hold an icon, then drag it onto a target. When you release, the item is moved into that folder on disk.
@@ -302,6 +351,36 @@ Dragging works in both directions between the **folder tree** (the panel on the 
 - **Onto the breadcrumbs**: drop onto any segment of the breadcrumb path (including the home/root icon) to move the item into that folder. This is a quick way to move an item "up" into a parent of the folder you're currently browsing.
 
 As you drag, an outline of the item follows the cursor, and the folder you're hovering over is highlighted to show where the item will land. The destination folder's contents refresh automatically wherever the change is visible.
+
+# Bookmarks
+
+Bookmarks give you quick access to frequently visited files and folders. They are managed from the **Index Tree** panel on the left side of the Browse view.
+
+## Adding a Bookmark
+
+Every file and folder in the browse list has a **bookmark icon** (a flag/ribbon outline) that appears in its action bar. Click it to bookmark that item:
+
+1. A dialog appears asking you to give the bookmark a name. The item's filename is pre-filled as a default.
+2. Enter a name and click **Save** (or press `Enter`).
+
+The icon turns solid blue to indicate the item is bookmarked.
+
+## Removing a Bookmark
+
+Click the solid blue bookmark icon on any bookmarked item to remove it immediately — no confirmation required.
+
+## Navigating with Bookmarks
+
+Click the **Bookmarks** button (bookmark icon) at the top of the **Index Tree** panel to open the bookmarks menu. It lists all bookmarks that fall under the current root folder, sorted alphabetically. Click any entry to navigate directly to that file or folder.
+
+If a bookmarked path no longer exists on disk, MkBrowser removes it automatically and shows a notice.
+
+## Renaming and Deleting Bookmarks
+
+Hover over any bookmark in the menu to reveal two icon buttons on the right:
+
+- **Pencil icon** — opens a dialog to rename the bookmark.
+- **Trash icon** — deletes the bookmark immediately.
 
 # Edit Menu Features
 
@@ -631,6 +710,12 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
     prop('tags')?.includes('urgent') && $('#deadline')
     ```
 
+## Search Highlight
+
+After a search, MkBrowser highlights every occurrence of the search term across all rendered Markdown content in the Browse view — not just in the Search Results tab. This makes it easy to spot matching text as you scroll through your files.
+
+To remove the highlight, open the **Search** menu and click **Clear Search Highlight**. The option only appears when a highlight is active.
+
 ## Saving Search Definitions
 You can save frequently used searches for quick access later.
 
@@ -708,6 +793,13 @@ After running an analysis, an **Analysis** tab appears in the tab bar at the top
 
 **Note:** The Analysis tab only appears after you've run at least one analysis. It is not shown on a fresh application start.
 
+## Clicking a Hashtag
+
+In the Analysis results list, every hashtag is a clickable button:
+
+- **Click** a hashtag to run a literal content search for that tag and switch to the Search Results tab.
+- **Ctrl+Click** a hashtag to run an advanced-mode search (`$("hashtag")`) instead, which uses the full expression evaluator and can be combined with other predicates.
+
 # Folder Graph
 
 The Folder Graph gives you an interactive, visual map of the folder you're currently browsing. Subfolders and files are drawn as nodes connected by lines that represent the parent → child relationship, laid out using a physics simulation so related items naturally cluster together.
@@ -778,6 +870,18 @@ You can export the contents of the current folder into a single document.
     - **Include Dividers**: Adds a visual separator between files.
     - **Export to PDF**: If checked, the application will attempt to generate a PDF file instead of a Markdown file.
 3. Click **Export** to finish.
+
+# OCR
+
+MkBrowser can run Optical Character Recognition (OCR) on images in the current folder via **Tools → Run OCR**. This menu item only appears when the **OCR Tools Folder** path has been configured in Settings.
+
+To set it up:
+
+1. Open **Settings** and locate the **OCR** section.
+2. Enter the absolute path to your OCR tools folder in the **OCR Tools Folder** field.
+3. Once configured, navigate to a folder containing images and choose **Tools → Run OCR**.
+
+MkBrowser passes the images to the external OCR tool and writes the resulting text files into the current folder.
 
 # Markdown Support
 
@@ -876,6 +980,26 @@ MkBrowser includes an integrated AI chat feature that organizes each conversatio
 
 As the chat conversation progresses each back and forth turn will result in a new subfolder being created underneath the previous turn, such that you'll end up with a folder structure that looks like `A/H/A/H` (A=AI, H=Human). We use the very short folder names, so that the path can be very long and the conversation can be very long without the folder length limitation being an issue.
 
+## Chat Thread View
+
+When you navigate into an AI conversation folder (one that contains `HUMAN.md` or `AI.md` files), a **Chat** tab automatically appears in the tab bar. Clicking it switches to the Thread view, which renders the full conversation as a vertically stacked list of turns — oldest at the top, newest at the bottom — so you can read the entire exchange without jumping between files.
+
+The Thread view header shows the name of the active AI persona being used for the conversation.
+
+### AI Conversation Hint Text
+
+In the Browse view, AI conversation folders display a short italic preview of the AI's last response next to the folder name. This gives you a quick at-a-glance summary of what each branch of the conversation contains, without having to open it.
+
+### Replying in a Thread
+
+While viewing a conversation in the Chat tab, a **Reply** button appears at the bottom of the thread. Clicking it:
+
+1. Creates a new `HUMAN.md` file in the correct subfolder for the next turn.
+2. Opens that file immediately in the editor, ready for you to type your next message.
+3. After you save and the AI responds, the thread reloads to show the new exchange.
+
+You can also navigate into child branch folders (sibling responses, rephrased prompts) directly from the Thread view and the tab stays on Chat — the breadcrumb updates to show your position in the conversation tree.
+
 ## Benefits of Folder-based Chat History
 
 ### 1. Complete Transparency
@@ -962,6 +1086,11 @@ When you create or edit a model, you’ll be asked for:
 
 If you try to create a new entry with the same **Name** as an existing entry, MkBrowser will prompt you to confirm overwriting the existing one.
 
+The model table also shows two columns that are useful for cost planning:
+
+- **Vision** — a checkmark (✓) indicates the model supports image inputs (multimodal prompts).
+- **Input $/1M / Output $/1M** — the estimated cost per million input and output tokens, respectively. These are used to compute the figures shown in AI Usage Statistics.
+
 ### llama.cpp Base URL
 
 The **llama.cpp Base URL** field is only shown when the selected model's **Provider** is `LLAMACPP`.
@@ -970,6 +1099,18 @@ The **llama.cpp Base URL** field is only shown when the selected model's **Provi
 - Change this if your llama-server is running on a different host or port.
 
 This setting is saved when the field loses focus (click away / tab out).
+
+### llama.cpp Server Controls
+
+When the selected model's **Provider** is `LLAMACPP`, an additional server control panel appears in AI Settings with the following buttons:
+
+- **Start** — launches the llama-server process using the configured **Llama.cpp folder** path.
+- **Stop** — shuts down the running server.
+- **Refresh** — checks the current server status without restarting it.
+
+The status indicator shows **Running**, **Loading model…**, or **Stopped**. The **Start** and **Stop** buttons are disabled when they would have no effect (e.g. Start is disabled while the server is already running or loading).
+
+You must also set the **Llama.cpp folder** field to the directory that contains the `llama-server` executable. This is separate from the Base URL — the folder is used to *launch* the server, while the URL is used to *talk* to it.
 
 ### AI Settings View
 
@@ -1072,6 +1213,16 @@ Notes:
 
 MkBrowser includes an AI-powered **Rewrite** feature that can improve the content you're currently editing. When you have a Markdown or text file open in the editor, a **Rewrite** button appears in the toolbar alongside the Save and Cancel buttons.
 
+### Enabling AI Rewrite
+
+The Rewrite feature is disabled by default. To turn it on:
+
+1. Open **Settings → AI Settings**.
+2. Scroll to the **AI Rewrite Options** section.
+3. Check the **Enable AI Rewrite** checkbox.
+
+Once enabled, the **Rewrite** button appears in the editor toolbar whenever you open a file for editing.
+
 ### How to use Rewrite
 
 1. Open a file for editing by clicking the **Edit** button (pencil icon).
@@ -1121,6 +1272,12 @@ The setting is saved automatically. It remains active across sessions until you 
 
 **Note:** Loading every file in a large document into the AI prompt can use significantly more tokens and may increase cost and response time. Consider enabling this option selectively for documents where cross-file consistency matters most.
 
+### Expand Editor
+
+When editing a file, a small **Expand editor** button (double-arrow icon) appears in the editor toolbar. Clicking it makes the code editor fill the entire browse area — all other file entries are hidden — giving you a distraction-free full-width editing surface. Click the button again (now showing collapse arrows) to return to the normal view with other entries visible.
+
+This is especially useful when working on long files or when you need to see as much of the document as possible while editing.
+
 ## AI Personas
 
 You can create multiple named **AI Personas** in the AI Settings View. Personas are how you describe to the AI what role you want it to play in chat conversations (or when using the "AI Rewrite" feature)
@@ -1154,6 +1311,52 @@ Click the dropdown arrow on the name field, or start typing a name, to see your 
 2. Click **Delete** and confirm.
 
 **Tip:** Create a prompt for each writing context you work in — for example, a formal academic tone, plain language for a general audience, or a structured bullet-point format. Switch between them from the name dropdown without leaving your document.
+
+# Settings
+
+The Settings view (accessible from the **System menu** → **Settings**, or the Settings tab) controls the application's visual layout and general behaviour.
+
+## Appearance
+
+| Setting | Options | Description |
+|---------|---------|-------------|
+| **Font Size** | Small / Medium / Large / Extra Large | Controls the text size used throughout the application. |
+| **Content Width** | Narrow / Medium / Wide / Full Width | Sets the maximum width of the content area in the Browse view. Narrower widths improve readability on wide monitors. |
+| **Folder Tree** | Hidden / Narrow / Medium / Wide | Controls the width of the Index Tree panel on the left. Choose **Hidden** to remove the panel entirely and give the browse area maximum space. |
+| **Folders on Top** | checkbox | When checked, folders are always sorted above files regardless of the current sort order. |
+| **Show Table of Contents** | checkbox | When checked, a rendered table of contents is shown inline inside any Markdown file that contains a `<!-- TOC -->` block. |
+
+Changes to all appearance settings take effect immediately and are saved automatically.
+
+## Files to Ignore
+
+Enter folder or file names (one per line) that should be excluded from search results, Replace in Files, Folder Analysis, and Folder Graph scans. For example:
+
+```
+node_modules
+.git
+dist
+```
+
+Entries are matched by name anywhere in the tree — you do not need to specify full paths.
+
+## Calendar Items Folder
+
+Enter the absolute path to the folder where new calendar item files should be created when you use the **New Event** button in the Calendar view. If left empty, new calendar files are created in the folder currently open in the Browse view.
+
+# Image Viewer and EXIF Metadata
+
+Clicking any image file in the Browse view expands it and shows an inline preview. An **EXIF** button appears on the image card (both in the expanded view and in the collapsed row). Clicking it opens the EXIF dialog, which displays all embedded metadata read from the image file, grouped by category:
+
+- **Exif** — camera settings, exposure, focal length, etc.
+- **GPS** — location coordinates if recorded by the device.
+- **IPTC / XMP** — editorial and descriptive metadata.
+- **File Details** — basic file properties.
+- Additional groups (ICC Color Profile, JFIF, PNG, WebP, GIF, Photoshop) appear when present.
+
+### Editing EXIF Data
+
+The EXIF dialog is not read-only. Click the **Edit** button in the dialog to switch into edit mode, where every metadata value becomes an editable text field. After making changes, click **Save** to write the updated metadata back to the image file on disk. Click **Cancel** to discard changes.
 
 # Automatic Markdown-to-HTML Export (Front Matter Autogen)
 
