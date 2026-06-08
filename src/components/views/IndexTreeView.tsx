@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
-import { getIconForFileExtension } from '../../utils/fileUtil';
+import { getIconForFileExtension, isImageFile } from '../../utils/fileUtil';
 import type { FileIconType } from '../../utils/fileUtil';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
@@ -497,6 +497,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
               const suffix = id ? `<!-- id:${id} -->` : '';
               activeEditor.handle.insertAtCursor(`[${label}](${relPath})${suffix}`);
             });
+          } else if (isImageFile(node.name)) {
+            activeEditor.handle.insertAtCursor(`![${label}](${relPath})`);
           } else {
             activeEditor.handle.insertAtCursor(`[${label}](${relPath})`);
           }
