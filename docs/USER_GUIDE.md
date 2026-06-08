@@ -173,6 +173,10 @@ Each tab that was opened has an **×** button next to its label. Clicking it clo
 
 # Browsing and Editing
 
+**🎬 [Demo Video (with Audio): File Explorer](https://clay-ferguson.github.io/videos/file-explorer/)**
+
+![File Explorer Demo](./img/animated-gifs/file-explorer-demo.gif)
+
 MkBrowser displays your files and folders in a single streamlined list.
 
 ## Viewing Content
@@ -205,6 +209,11 @@ If you want the script to run silently in the background without a visible conso
 When MkBrowser detects this directive, it executes the script without opening a terminal window.
 
 ## Editing Files
+
+**🎬 [Demo Video (with Audio): Create File](https://clay-ferguson.github.io/videos/create-file/)**
+
+![Create File Demo](./img/animated-gifs/create-file-demo.gif)
+
 When a Markdown file is expanded, you can edit its content:
 1. Click the **Edit** button (pencil icon) in the top-right corner of the file card.
 2. The view switches to a code editor where you can make changes.
@@ -277,6 +286,10 @@ On your next save, MkBrowser will regenerate the TOC in place, keeping it in syn
 If your file has no `<\!-- TOC -->` comment, nothing happens. If it has headings but none at the configured depth, or no headings at all, the file is saved unchanged.
 
 ## Tag Picker
+
+**🎬 [Demo Video (with Audio): Working with Custom Hashtags](https://clay-ferguson.github.io/videos/hashtags-demo/)**
+
+![Custom Hashtags Demo](./img/animated-gifs/custom-tags-demo.gif)
 
 While editing a Markdown file, a **tag picker** appears below the editor. You can use it to quickly add or remove hashtags from the file you are editing without typing them by hand. Tags are added into the `tags` property of the Markdown front matter, creating a front matter section as necessary. This is identical to the way Obsidian stores tags.
 
@@ -574,6 +587,10 @@ In **Document Mode**, the contents of any `.attach` folder are shown inline belo
 
 # Document Mode
 
+**🎬 [Demo Video (with Audio): Document Mode](https://clay-ferguson.github.io/videos/document-mode/)**
+
+![Document Mode Demo](./img/animated-gifs/document-mode-demo.gif)
+
 Document Mode lets you treat any specific folder as a structured document, where each file (or subfolder) in that folder represents a block of content, in the context of a larger document, represented by the whole folder. Instead of files/folders appearing in some arbitrary filesystem order, `Document Mode` gives you full control over the sequence — so you can arrange your content exactly as it should read as a "Document". This block-based approach to editing will be familiar to people who have used Jupyter Notebooks because it's a similar concept.
 
 This is useful any time a folder represents something with a meaningful order: a book where each chapter is a file, a course where each lesson is a subfolder, a report broken into sections, or any collection where sequence matters.
@@ -616,6 +633,10 @@ You can do this from within MkBrowser (enable editing, then delete the file usin
 
 # Searching
 
+**🎬 [Demo Video (with Audio): Search](https://clay-ferguson.github.io/videos/search/)**
+
+![Search Demo](./img/animated-gifs/search-demo.gif)
+
 MkBrowser includes a powerful search feature to help you find content across your notes.
 
 ## Using Search
@@ -629,6 +650,11 @@ MkBrowser includes a powerful search feature to help you find content across you
         - **Advanced**: Use custom predicate functions (see below).
 
 ## Advanced Search Predicates
+
+**🎬 [Demo Video (with Audio): Advanced Search](https://clay-ferguson.github.io/videos/advanced-search/)**
+
+![Advanced Search Demo](./img/animated-gifs/advanced-search-demo.gif)
+
 In **Advanced Mode**, you can write JavaScript-like expressions to filter files. The following custom functions and variables are available:
 
 *   **`$('text')`**: Returns `true` if the file content contains the text "text" (case-insensitive).
@@ -859,6 +885,10 @@ This is useful for understanding how your search hits are distributed across the
 
 # Exporting
 
+**🎬 [Demo Video (with Audio): Generate PDF](https://clay-ferguson.github.io/videos/generate-pdf/)**
+
+![Generate PDF Demo](./img/animated-gifs/generate-pdf-demo.gif)
+
 You can export the contents of the current folder into a single document.
 
 1. Click the **Export** button in the toolbar.
@@ -884,6 +914,10 @@ To set it up:
 MkBrowser passes the images to the external OCR tool and writes the resulting text files into the current folder.
 
 # Markdown Support
+
+**🎬 [Demo Video (with Audio): Create Mermaid Diagram](https://clay-ferguson.github.io/videos/create-mermaid/)**
+
+![Create Mermaid Diagram Demo](./img/animated-gifs/create-mermaid-demo.gif)
 
 MkBrowser renders Markdown using **GitHub Flavored Markdown (GFM)**, which includes tables, strikethrough, task lists, and autolinks. On top of standard GFM, the following extended features are supported:
 
@@ -920,6 +954,10 @@ MkBrowser supports wikilink syntax, a popular convention (used by Obsidian, Noti
 Clicking a wikilink navigates to the linked file, just like clicking any other Markdown link in MkBrowser.
 
 # LaTeX Math Support
+
+**🎬 [Demo Video (with Audio): Create LaTeX](https://clay-ferguson.github.io/videos/create-latex/)**
+
+![Create LaTeX Demo](./img/animated-gifs/create-latex-demo.gif)
 
 MkBrowser supports rendering mathematical equations using LaTeX syntax via KaTeX, compatible with GitHub's math rendering.
 
@@ -975,6 +1013,10 @@ $$
 This course costs $99.
 
 # AI Chat
+
+**🎬 [Demo Video (with Audio): AI Chat](https://clay-ferguson.github.io/videos/ai-chat/)**
+
+![AI Chat Demo](./img/animated-gifs/ai-chat-demo.gif)
 
 MkBrowser includes an integrated AI chat feature that organizes each conversation into a folder-based history. Each turn in the conversation is saved in its own folder as the chat progresses: your prompt is written to `HUMAN.md`, and MkBrowser saves the AI's reply to `AI.md`. When using a reasoning model (such as Gemma 4), MkBrowser also saves the model's internal chain-of-thought to `THINK.md` alongside the reply, so you can see exactly how the model arrived at its answer. 
 
@@ -1172,6 +1214,10 @@ Use **Reset** to clear the saved usage stats. This cannot be undone.
 
 ## Attaching files with `#file:`
 
+**🎬 [Demo Video (with Audio): AI Vision](https://clay-ferguson.github.io/videos/ai-vision/)**
+
+![AI Vision Demo](./img/animated-gifs/ai-vision-demo.gif)
+
 MkBrowser supports a lightweight “attachment directive” you can put directly into your prompt.
 
 If a line in `HUMAN.md` matches this format:
@@ -1210,6 +1256,10 @@ Notes:
 - If a pattern matches zero files, it’s silently ignored.
 
 ## AI Rewrite
+
+**🎬 [Demo Video (with Audio): AI Co-Authoring/Writing](https://clay-ferguson.github.io/videos/ai-rewrite-demo/)**
+
+![AI Co-Authoring/Writing Demo](./img/animated-gifs/ai-rewrite-demo.gif)
 
 MkBrowser includes an AI-powered **Rewrite** feature that can improve the content you're currently editing. When you have a Markdown or text file open in the editor, a **Rewrite** button appears in the toolbar alongside the Save and Cancel buttons.
 
@@ -1279,6 +1329,10 @@ When editing a file, a small **Expand editor** button (double-arrow icon) appear
 This is especially useful when working on long files or when you need to see as much of the document as possible while editing.
 
 ## AI Personas
+
+**🎬 [Demo Video (with Audio): AI Personas (User-Customized AI Agent)](https://clay-ferguson.github.io/videos/chat-persona-demo/)**
+
+![AI Personas Demo](./img/animated-gifs/chat-persona-demo.gif)
 
 You can create multiple named **AI Personas** in the AI Settings View. Personas are how you describe to the AI what role you want it to play in chat conversations (or when using the "AI Rewrite" feature)
 
@@ -1399,6 +1453,10 @@ A great use for this feature is to keep your favorite links and notes in a Markd
 **Tip:** You can maintain multiple Markdown files with different `autogen.outputFile` targets, each generating a different HTML dashboard or landing page.
 
 # Calendar
+
+**🎬 [Demo Video (with Audio): Calendar Features](https://clay-ferguson.github.io/videos/calendar-demo/)**
+
+![Calendar Features Demo](./img/animated-gifs/calendar-view-demo.gif)
 
 MkBrowser includes a built-in calendar view that displays scheduled items derived directly from the Markdown files in your currently browsed folder.
 
