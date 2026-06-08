@@ -6,8 +6,6 @@ This README is aimed at developers; a separate [User Guide](docs/USER_GUIDE.md) 
 
 **[Demo Videos](https://clay-ferguson.github.io/videos/)**
 
-**[Animated GIFs](docs/img/animated-gifs/about-animated-gifs.md)**
-
 ## Features
 
 A comprehensive list of what MkBrowser can do. See the [User Guide](docs/USER_GUIDE.md) for full details on any item.

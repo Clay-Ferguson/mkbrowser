@@ -1,6 +1,6 @@
 # MkBrowser User Guide 
 
-MkBrowser is a file explorer and Markdown editor that helps you manage Markdown notes with inline rendering.
+MkBrowser is a file explorer and Markdown editor that helps you manage Markdown notes with inline rendering. This User Guide gives complete instructions, but watching **[All Demo Videos](https://clay-ferguson.github.io/videos/)** first is an easier way to get started.
 
 ![Screenshot](./img/screenshot.png)
 
