@@ -61,6 +61,7 @@ const initialState: AppState = {
   hasIndexFile: false,
   indexYaml: null,
   expandedEditor: false,
+  selectedLinkItems: [],
   calendarFolder: null,
   activeCalendarFolder: null,
   calendarEvents: null,
@@ -238,6 +239,10 @@ function getIndexYamlSnapshot(): AppState['indexYaml'] {
 
 function getExpandedEditorSnapshot(): boolean {
   return state.expandedEditor;
+}
+
+function getSelectedLinkItemsSnapshot(): string[] {
+  return state.selectedLinkItems;
 }
 
 /**
@@ -1324,6 +1329,14 @@ export function setIndexYaml(indexYaml: AppState['indexYaml']): void {
 }
 
 /**
+ * Store the full paths captured by "Copy Link" for later "Paste Link".
+ */
+export function setSelectedLinkItems(paths: string[]): void {
+  state = { ...state, selectedLinkItems: paths };
+  emitChange();
+}
+
+/**
  * Update the sort order setting
  */
 export function setSortOrder(sortOrder: SortOrder): void {
@@ -1648,6 +1661,13 @@ export function useHasIndexFile(): boolean {
 
 export function useExpandedEditor(): boolean {
   return useSyncExternalStore(subscribe, getExpandedEditorSnapshot);
+}
+
+/**
+ * Hook to subscribe to the paths captured by "Copy Link"
+ */
+export function useSelectedLinkItems(): string[] {
+  return useSyncExternalStore(subscribe, getSelectedLinkItemsSnapshot);
 }
 
 /**

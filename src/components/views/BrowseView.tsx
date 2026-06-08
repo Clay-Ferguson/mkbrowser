@@ -65,6 +65,7 @@ import {
   useHasIndexFile,
   setIndexYaml,
   useIndexYaml,
+  setSelectedLinkItems,
   useExpandedEditor,
   useImageSizeTransitioning,
   type SearchDefinition,
@@ -648,6 +649,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     runOcr(currentPath, settings.ocrToolsFolder, items, onSetError);
   }, [currentPath, settings.ocrToolsFolder, items, onSetError]);
 
+  const handleCopyLink = useCallback(() => {
+    const paths = Array.from(items.values())
+      .filter((item) => item.isSelected)
+      .map((item) => item.path);
+    setSelectedLinkItems(paths);
+    clearAllSelections();
+  }, [items]);
+
   const handleSelectSortOrder = useCallback((order: Parameters<typeof setSortOrder>[0]) => {
     setSortOrder(order);
     void onSaveSettings();
@@ -1101,10 +1110,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onSplit={() => void handleSplitFile()}
           onJoin={() => void handleJoinFiles()}
           onReplaceInFiles={() => setShowReplaceDialog(true)}
+          onCopyLink={handleCopyLink}
           undoCutDisabled={!hasCutItems}
           unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
           splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
           joinDisabled={selectedFileCount < 2 || hasSelectedFolders}
+          copyLinkDisabled={!hasSelectedItems}
         />
       )}
 

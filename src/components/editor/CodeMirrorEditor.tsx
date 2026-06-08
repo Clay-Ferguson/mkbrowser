@@ -53,6 +53,8 @@ interface CodeMirrorEditorProps {
   readOnly?: boolean;
   /** The file name — used to enable markdown-only context menu items. */
   fileName?: string;
+  /** The full path of the file being edited — used to compute relative "Paste Link" paths. */
+  filePath?: string;
   /** Called when the user chooses "Make Calendar Item" from the context menu. */
   onMakeCalendarItem?: () => void;
   /** Called when the user chooses "Make Calendar Item (Repeating)" from the context menu. */
@@ -68,7 +70,7 @@ export interface CodeMirrorEditorHandle {
   insertAtCursor(text: string): void;
 }
 
-const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, onMakeCalendarItem, onMakeRepeatingCalendarItem }, ref) {
+const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -125,6 +127,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     handleCut,
     handleCopy,
     handlePaste,
+    handlePasteLink,
+    canPasteLink,
     handleSelectAll,
     handleSpellingSuggestion,
     handleInsertTimestamp,
@@ -134,7 +138,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     isMarkdown,
     calendarAlreadyExists,
     setCalendarAlreadyExists,
-  } = useEditorContextMenu({ viewRef, typoRef, fileName, onMakeCalendarItem, onMakeRepeatingCalendarItem });
+  } = useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem });
 
   const searchMatchTheme = EditorView.theme({
     '.cm-searchMatch': { backgroundColor: 'yellow', color: 'black' },
@@ -463,6 +467,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
         onCut={handleCut}
         onCopy={handleCopy}
         onPaste={handlePaste}
+        onPasteLink={handlePasteLink}
+        canPasteLink={canPasteLink}
         onSelectAll={handleSelectAll}
         onSpellingSuggestion={handleSpellingSuggestion}
         onInsertTimestamp={handleInsertTimestamp}

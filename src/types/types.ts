@@ -504,6 +504,13 @@ export interface AppState {
   expandedEditor: boolean;
 
   /**
+   * Full paths of files/folders captured by the "Copy Link" action, used to
+   * later paste relative markdown links/images into the editor via "Paste Link".
+   * Not persisted — defaults to empty on restart.
+   */
+  selectedLinkItems: string[];
+
+  /**
    * The folder that was scanned to populate calendarEvents.
    * Tracked independently from the current browse path so the calendar
    * remains stable while the user navigates elsewhere.

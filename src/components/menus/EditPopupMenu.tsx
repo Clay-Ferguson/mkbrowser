@@ -10,11 +10,13 @@ interface EditPopupMenuProps {
   onSplit: () => void;
   onJoin: () => void;
   onReplaceInFiles: () => void;
+  onCopyLink: () => void;
   // Disable conditions
   undoCutDisabled: boolean;
   unselectAllDisabled: boolean;
   splitDisabled: boolean;
   joinDisabled: boolean;
+  copyLinkDisabled: boolean;
 }
 
 export default function EditPopupMenu({
@@ -26,10 +28,12 @@ export default function EditPopupMenu({
   onSplit,
   onJoin,
   onReplaceInFiles,
+  onCopyLink,
   undoCutDisabled,
   unselectAllDisabled,
   splitDisabled,
   joinDisabled,
+  copyLinkDisabled,
 }: EditPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
@@ -63,6 +67,13 @@ export default function EditPopupMenu({
       <PopupMenuItem
         label="Replace in Files"
         onClick={() => { onReplaceInFiles(); onClose(); }}
+      />
+      <PopupMenuDivider />
+      <PopupMenuItem
+        label="Copy Link"
+        data-testid="menu-copy-link"
+        onClick={() => { onCopyLink(); onClose(); }}
+        disabled={copyLinkDisabled}
       />
     </PopupMenu>
   );

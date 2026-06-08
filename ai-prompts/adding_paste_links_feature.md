@@ -1,0 +1,11 @@
+# Goal: New "Paste Link" Feature
+
+let's add a feature that lets users "copy and paste" links to files, by adding an edit menu item named "Copy Link" on the `EditPopupMenu.tsx` — and then adding a right mouse click context menu item named "Paste Link" to our existing code mirror context menu (`editorContextMenu.tsx`).
+
+the edit menu will be available when the user is working in the `BrowseView.tsx`, and we already have chat boxes on all of the "*Entry.tsx" items (files and folders) that are displayed on this view. so what we can do is make the "Copy Link" menu item take the selected files and folders that are selected via the checkboxes (same checkboxes we're already using for our existing cut-and-paste feature), and then save them into global state an array named 'selectedLinkItems' which will be an array of strings where each string is the full path of the item that was selected. we're saving the full path of the file names so that when the user does a "Paste Link" selection, we can at that point determine what the relative path name would be relative to the file being pasted into and then we'll paste those links as relative links, and we'll paste them as markdown syntax links. this will of course mean we will have a markdown URL if it's a file that were pasting the link to, but if one of the links is an image, then we'll paste that as an inline display of the image, using the markdown syntax to display an inline image.
+
+so, for example, a user could go somewhere and select several images, in the browse view, and then pick "Copy Link" menu item, then go over and begin editing some markdown file potentially in some different folder, and simply click the "Paste Link" context menu item to paste all of the links directly at the cursor location in the code mirror editor. this would mean that when they saved the editor they would be seeing all the images displayed there, of course. and if they had selected non-image files, then they'll just be seeing a standard link to the file when the markdown is rendered.
+
+we only need to have the "Paste Link" context menu item in the code mirror editor when the user is adding a markdown file. 
+
+please implement this now and feel free to ask me any questions for clarification if I didn't nail down all the specifics.

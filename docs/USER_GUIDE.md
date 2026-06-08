@@ -27,6 +27,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Split](#split)
   * [Join](#join)
   * [Replace in Files](#replace-in-files)
+  * [Copy Link](#copy-link)
   * [Cut and Paste](#cut-and-paste)
   * [Delete](#delete)
   * [Split and Join](#split-and-join)
@@ -196,6 +197,8 @@ This lets other tools (and future MkBrowser features) resolve the link by id eve
 
 > **Note:** The **Paste Link** item only appears in the context menu when a Markdown file is currently open for editing.
 
+> **Tip:** To link to files (or images) from anywhere in the browser — including other folders — select them with their checkboxes and use **Copy Link**, then **Paste Link** in the editor. See [Copy Link](#copy-link) for the full workflow.
+
 ### Editor Keyboard Shortcuts
 
 While the code editor has focus, the following keyboard shortcuts are available:
@@ -321,6 +324,29 @@ See [Split and Join](#split-and-join) for full details. Combines two or more sel
 
 ## Replace in Files
 See [Replace in Files](#replace-in-files) for details. Opens a dialog to search and replace text across all `.md` and `.txt` files in the current folder and subfolders.
+
+## Copy Link
+
+**Copy Link** lets you capture one or more files (or folders) in the browser and later paste them as relative Markdown links into any Markdown file you are editing — even one in a completely different folder. Image files are pasted as inline images, so they display directly in the rendered document.
+
+To use it:
+
+1. In the browser, use the checkboxes to select the files and/or folders you want to link to. (These are the same checkboxes used by the Cut and Paste feature.)
+2. Open the **Edit** menu and choose **Copy Link**. The selected paths are remembered, and the checkboxes are cleared automatically.
+3. Start editing the Markdown file you want the links to appear in, and place the cursor where the links should go.
+4. Right-click in the editor and choose **Paste Link** from the context menu.
+
+MkBrowser inserts a Markdown link for each captured item, computing the correct path **relative to the file you are editing**. Each link appears on its own line, separated by a blank line. For example, after copying an image and a document and pasting them into a file in a sibling folder:
+
+```
+![diagram.png](../images/diagram.png)
+
+[notes.md](../reference/notes.md)
+```
+
+When rendered, the image is displayed inline and the document appears as a normal clickable link. File names that contain spaces or other special characters are handled automatically.
+
+> **Note:** **Copy Link** simply remembers the selected items; it does not move or modify any files. The captured items stay remembered until you run **Copy Link** again, so you can paste the same set of links into multiple files. The **Paste Link** context-menu item only appears while editing a Markdown file.
 
 
 ## Cut and Paste

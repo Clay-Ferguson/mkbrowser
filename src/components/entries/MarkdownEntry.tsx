@@ -499,6 +499,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                     onSelectionChange={setHasSelection}
                     showPropsInEditor={showPropsInEditor}
                     fileName={entry.name}
+                    filePath={entry.path}
                     onMakeCalendarItem={() => {
                       setShowPropsInEditor(true);
                       onSaveSettings();

@@ -1,5 +1,6 @@
 import React from 'react';
 import { setHighlightItem, navigateToBrowserPath } from '../store';
+import { decodeMarkdownUrl } from '../utils/linkUtil';
 
 interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   entryPath: string;
@@ -38,18 +39,22 @@ export default function CustomAnchor({ href, children, entryPath, ...props }: Cu
     if (!href.includes('://')) {
       e.preventDefault();
 
+      // Markdown URLs are percent-encoded (e.g. spaces become %20); decode back
+      // to the literal filesystem path before resolving.
+      const decodedHref = decodeMarkdownUrl(href);
+
       // Get the directory containing this markdown file
       const currentDir = entryPath.substring(0, entryPath.lastIndexOf('/'));
 
       // Resolve the relative path
       let targetPath: string;
-      if (href.startsWith('/')) {
+      if (decodedHref.startsWith('/')) {
         // Absolute path from root - use as-is
-        targetPath = href;
+        targetPath = decodedHref;
       } else {
         // Relative path - resolve from current directory
         const parts = currentDir.split('/');
-        const hrefParts = href.split('/');
+        const hrefParts = decodedHref.split('/');
 
         for (const part of hrefParts) {
           if (part === '..') {

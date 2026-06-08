@@ -129,6 +129,8 @@ export {
   useIndexYaml,
   setExpandedEditor,
   useExpandedEditor,
+  setSelectedLinkItems,
+  useSelectedLinkItems,
   setCalendarFolder,
   useCalendarFolder,
   setActiveCalendarFolder,

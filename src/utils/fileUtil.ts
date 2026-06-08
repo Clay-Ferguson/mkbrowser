@@ -93,7 +93,9 @@ export async function trimLeadingWhitespaceFromNames(
 }
 
 // Common image file extensions
-export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);export function isImageFile(fileName: string): boolean {
+export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);
+
+export function isImageFile(fileName: string): boolean {
   const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
   return IMAGE_EXTENSIONS.has(ext);
 }

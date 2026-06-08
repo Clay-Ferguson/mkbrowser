@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { logger } from '../utils/logUtil';
+import { decodeMarkdownUrl } from '../utils/linkUtil';
 
 // Cache for resolved image paths to avoid repeated file system lookups
 // Key format: `${markdownFilePath}|${imageSrc}` -> resolved absolute path or null if not found
@@ -19,12 +20,16 @@ const MAX_IMAGE_SEARCH_DEPTH = 10;
  */
 async function resolveImagePath(entryPath: string, imageSrc: string): Promise<string | null> {
   const cacheKey = `${entryPath}|${imageSrc}`;
-  
+
   // Check cache first
   if (imagePathCache.has(cacheKey)) {
     return imagePathCache.get(cacheKey) ?? null;
   }
-  
+
+  // Markdown URLs are percent-encoded (e.g. spaces become %20); decode back to
+  // the literal filesystem path before resolving against disk.
+  imageSrc = decodeMarkdownUrl(imageSrc);
+
   // Get the directory containing this markdown file
   const currentDir = entryPath.substring(0, entryPath.lastIndexOf('/'));
   

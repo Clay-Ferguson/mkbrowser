@@ -3,7 +3,11 @@ import { EditorView } from '@codemirror/view';
 import Typo from 'typo-js';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { isMarkdownFile, hasDueProperty, injectCalendarFrontMatter } from '../../utils/calendar/calendarUtil';
+import { buildMarkdownLinks } from '../../utils/linkUtil';
+import { useSelectedLinkItems } from '../../store';
 import type { SpellingSuggestion } from './spellChecker';
+
+// todo-0: rename this file to start with capital letter.
 
 export interface ContextMenuState {
   visible: boolean;
@@ -16,13 +20,15 @@ interface UseEditorContextMenuProps {
   viewRef: React.RefObject<EditorView | null>;
   typoRef: React.RefObject<Typo | null>;
   fileName?: string;
+  filePath?: string;
   onMakeCalendarItem?: () => void;
   onMakeRepeatingCalendarItem?: () => void;
 }
 
-export function useEditorContextMenu({ viewRef, typoRef, fileName, onMakeCalendarItem, onMakeRepeatingCalendarItem }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   const [calendarAlreadyExists, setCalendarAlreadyExists] = useState(false);
+  const selectedLinkItems = useSelectedLinkItems();
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(prev => ({ ...prev, visible: false }));
@@ -124,6 +130,20 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onMakeCalenda
     closeContextMenu();
     view.focus();
   }, [viewRef, closeContextMenu]);
+
+  const handlePasteLink = useCallback(() => {
+    const view = viewRef.current;
+    if (!view || !filePath || selectedLinkItems.length === 0) return;
+
+    const text = buildMarkdownLinks(filePath, selectedLinkItems);
+    const { from, to } = view.state.selection.main;
+    view.dispatch({
+      changes: { from, to, insert: text },
+      selection: { anchor: from + text.length },
+    });
+    closeContextMenu();
+    view.focus();
+  }, [viewRef, filePath, selectedLinkItems, closeContextMenu]);
 
   const handleSelectAll = useCallback(() => {
     const view = viewRef.current;
@@ -229,6 +249,8 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, onMakeCalenda
     handleCut,
     handleCopy,
     handlePaste,
+    handlePasteLink,
+    canPasteLink: !!filePath && selectedLinkItems.length > 0,
     handleSelectAll,
     handleSpellingSuggestion,
     handleInsertTimestamp,
@@ -246,6 +268,8 @@ interface EditorContextMenuProps {
   onCut: () => void;
   onCopy: () => void;
   onPaste: () => void;
+  onPasteLink: () => void;
+  canPasteLink: boolean;
   onSelectAll: () => void;
   onSpellingSuggestion: (suggestion: string) => void;
   onInsertTimestamp: () => void;
@@ -260,6 +284,8 @@ export function EditorContextMenu({
   onCut,
   onCopy,
   onPaste,
+  onPasteLink,
+  canPasteLink,
   onSelectAll,
   onSpellingSuggestion,
   onInsertTimestamp,
@@ -320,6 +346,16 @@ export function EditorContextMenu({
         <span>Paste</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+V</span>
       </button>
+      {isMarkdown && (
+        <button
+          onClick={onPasteLink}
+          disabled={!canPasteLink}
+          className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between ${canPasteLink ? 'text-slate-200 hover:bg-slate-700' : 'text-slate-500 cursor-not-allowed'}`}
+          data-testid="editor-paste-link"
+        >
+          <span>Paste Link</span>
+        </button>
+      )}
       <div className="border-t border-slate-600 my-1" />
       <button
         onClick={onSelectAll}
