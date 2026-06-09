@@ -57,7 +57,6 @@ interface SimLink extends SimulationLinkDatum<SimNode> {
 }
 
 const NODE_RADIUS_BASE = 5;
-const LABEL_MAX_CHARS = 24;
 
 // Physics model for keeping nodes from colliding.
 //   true  → rectangular collision on each node's circle + label footprint, so
@@ -103,10 +102,6 @@ function colorForNode(d: SimNode, highlighted: boolean): string {
 function nodeRadius(d: SimNode): number {
   if (!d.isDirectory) return NODE_RADIUS_BASE;
   return NODE_RADIUS_BASE + Math.min(10, Math.sqrt(d.childCount));
-}
-
-function truncateLabel(name: string): string {
-  return name.length > LABEL_MAX_CHARS ? name.slice(0, LABEL_MAX_CHARS - 1) + '…' : name;
 }
 
 const PREVIEW_MAX_CHARS = 500;
@@ -229,7 +224,7 @@ function FolderGraphView() {
       .attr('stroke', '#0f172a')
       .attr('stroke-width', 3)
       .attr('stroke-opacity', 0.75)
-      .text(d => truncateLabel(d.name));
+      .text(d => d.name);
 
     // Measure each label so forceLabelRect can treat the circle + its text as a
     // single rectangular footprint. getBBox gives exact metrics for the rendered
@@ -240,7 +235,7 @@ function FolderGraphView() {
         const r = nodeRadius(d);
         let tx = r + 4;
         let ty = -6;
-        let tw = truncateLabel(d.name).length * 6.2;
+        let tw = d.name.length * 6.2;
         let th = 12;
         try {
           const bb = this.getBBox();
