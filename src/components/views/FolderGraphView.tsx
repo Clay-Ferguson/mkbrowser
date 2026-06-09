@@ -14,6 +14,7 @@ import { drag as d3drag, type D3DragEvent } from 'd3-drag';
 import { zoom as d3zoom, zoomIdentity, type D3ZoomEvent } from 'd3-zoom';
 import 'd3-transition';
 import { forceLabelRect } from './forceLabelRect';
+import { forceCrossGroupRepel } from './forceCrossGroupRepel';
 import {
   useFolderGraph,
   useHighlightItem,
@@ -43,6 +44,11 @@ interface SimNode extends SimulationNodeDatum {
   by0?: number;
   bx1?: number;
   by1?: number;
+  /**
+   * Repulsion-group key (the parent folder path) for file nodes; undefined for
+   * folders so they sit out the cross-folder repulsion. See CrossGroupNode.
+   */
+  crossRepelGroup?: string;
 }
 
 interface SimLink extends SimulationLinkDatum<SimNode> {
@@ -62,6 +68,21 @@ const LABEL_MAX_CHARS = 24;
 const USE_LABEL_PHYSICS = true;
 // Breathing room (px) added around each label box before collisions are resolved.
 const LABEL_BOX_PADDING = 2;
+
+// Baseline repulsion between all nodes, and the range past which it's ignored
+// (see the 'charge' force). Named so the cross-folder repulsion can match them.
+const CHARGE_STRENGTH = -220;
+const CHARGE_DISTANCE_MAX = 180;
+
+// When true, files in *different* folders repel each other with an extra dose of
+// charge equal to the baseline — so a cross-folder file pair feels double the
+// repulsion of a same-folder pair, keeping the two folders' file clusters from
+// intermingling and obscuring their connector lines. See forceCrossGroupRepel.ts.
+// Flip to false to remove the effect (folders then rely on the baseline charge).
+const USE_CROSS_FOLDER_REPULSION = true;
+// Magnitude of the *extra* cross-folder repulsion. Equal to |CHARGE_STRENGTH|
+// makes the total exactly double for cross-folder file pairs.
+const CROSS_FOLDER_EXTRA_STRENGTH = 330; // try 220, 330, or 440
 
 // Node colors by type, tuned for a dark slate-900 background.
 const COLOR_ROOT = '#ef4444';     // bright red
@@ -159,6 +180,10 @@ function FolderGraphView() {
       isDirectory: n.isDirectory,
       depth: n.depth,
       childCount: childCount.get(n.id) ?? 0,
+      // Files are grouped by their parent folder so cross-folder file pairs can
+      // be repelled extra; folders opt out (undefined). Consumed only when
+      // USE_CROSS_FOLDER_REPULSION is on.
+      crossRepelGroup: n.isDirectory ? undefined : n.id.substring(0, n.id.lastIndexOf('/')),
     }));
     const simLinks: SimLink[] = rawLinks.map(l => ({ source: l.source, target: l.target }));
 
@@ -290,7 +315,14 @@ function FolderGraphView() {
       // visibly the root's links) far past its target length. Limiting charge
       // to a local radius lets links — not long-range repulsion — set the
       // distance between clusters.
-      .force('charge', forceManyBody<SimNode>().strength(-220).distanceMax(180))
+      .force('charge', forceManyBody<SimNode>().strength(CHARGE_STRENGTH).distanceMax(CHARGE_DISTANCE_MAX))
+      // Extra repulsion between files in different folders (layered on top of the
+      // baseline charge above), capped at the same range so the doubling stays local.
+      .force('crossRepel', USE_CROSS_FOLDER_REPULSION
+        ? forceCrossGroupRepel<SimNode>()
+            .strength(CROSS_FOLDER_EXTRA_STRENGTH)
+            .distanceMax(CHARGE_DISTANCE_MAX)
+        : null)
       .force('center', forceCenter(width / 2, height / 2))
       .force('collide', USE_LABEL_PHYSICS
         ? forceLabelRect<SimNode>().strength(0.7)
