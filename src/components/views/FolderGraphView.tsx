@@ -289,6 +289,8 @@ function FolderGraphView() {
     // back regenerates the preview, while repeat hovers reuse the cache.
     nodeSel.on('mouseenter', (event: MouseEvent, d) => {
       if (d.isDirectory) return; // only files have content to preview
+      const ext = d.name.slice(d.name.lastIndexOf('.')).toLowerCase();
+      if (ext !== '.md' && ext !== '.txt') return; // only preview markdown/text files
       const titleSel = select(event.currentTarget as SVGGElement).select<SVGTitleElement>('title');
       void (async () => {
         try {
