@@ -219,11 +219,12 @@ function FolderGraphView() {
 
     // Label: paint-order=stroke gives a dark outline so text reads against
     // any background (graph edges, other nodes).
-    nodeSel.append('text')
+    const labelSel = nodeSel.append('text')
       .attr('x', d => nodeRadius(d) + 4)
       .attr('y', '0.32em')
       .attr('font-size', 11)
-      .attr('fill', d => colorForNode(d, false))
+      .attr('fill', d => colorForNode(d, highlightRef.current === d.id))
+      .attr('font-weight', d => highlightRef.current === d.id ? 'bold' : 'normal')
       .attr('paint-order', 'stroke')
       .attr('stroke', '#0f172a')
       .attr('stroke-width', 3)
@@ -260,7 +261,12 @@ function FolderGraphView() {
     }
 
     const applyHighlight = (): void => {
-      circleSel.attr('fill', d => colorForNode(d, highlightRef.current === d.id));
+      const hl = highlightRef.current;
+      circleSel.attr('fill', d => colorForNode(d, hl === d.id));
+      // Highlighted label: purple and bold so it's easy to spot.
+      labelSel
+        .attr('fill', d => colorForNode(d, hl === d.id))
+        .attr('font-weight', d => hl === d.id ? 'bold' : 'normal');
     };
     (svg as SVGSVGElement & { __applyHighlight?: () => void }).__applyHighlight = applyHighlight;
 
