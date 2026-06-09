@@ -650,14 +650,14 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
           let className = 'flex items-center gap-1 py-0.5 whitespace-nowrap select-none';
           if (node.path === highlightItem) {
-            className += ' text-purple-400 border-l-2 border-transparent';
+            className += ' text-purple-400 border-l-2 border-transparent hover:bg-slate-700';
             className += isClickable ? ' cursor-pointer' : ' cursor-default';
           } //
           else if (node.isDirectory && node.path === currentPath) {
-            className += ' text-slate-100 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer';
+            className += ' text-slate-100 bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-purple-500 cursor-pointer';
           } //
           else if (node.isDirectory && isParentOf(node.path, currentPath)) {
-            className += ' text-slate-200 bg-purple-700/50 border-l-2 border-purple-500 cursor-pointer';
+            className += ' text-slate-200 bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-purple-500 cursor-pointer';
           } //
           else if (node.isDirectory) {
             className += node.isExpanded
