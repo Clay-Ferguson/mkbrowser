@@ -156,6 +156,9 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     '& .cm-activeLineGutter': {
       backgroundColor: 'rgba(255, 255, 255, 0.15) !important',
     },
+    '& .cm-selectionBackground, &.cm-focused .cm-selectionBackground, & .cm-content ::selection': {
+      backgroundColor: '#1d4ed8 !important',
+    },
   });
 
   const createFontSizeTheme = useCallback((fontSize: FontSize) => {
