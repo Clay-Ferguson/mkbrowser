@@ -13,6 +13,7 @@ import { select } from 'd3-selection';
 import { drag as d3drag, type D3DragEvent } from 'd3-drag';
 import { zoom as d3zoom, zoomIdentity, type D3ZoomEvent } from 'd3-zoom';
 import 'd3-transition';
+import { forceLabelRect } from './forceLabelRect';
 import {
   useFolderGraph,
   useHighlightItem,
@@ -34,6 +35,14 @@ interface SimNode extends SimulationNodeDatum {
    * If the file's current mtime is newer, the cache is stale and regenerated.
    */
   previewTimestamp?: number;
+  /**
+   * Label footprint box edges as offsets from the node center, populated when
+   * USE_LABEL_PHYSICS is on and consumed by forceLabelRect. See RectCollideNode.
+   */
+  bx0?: number;
+  by0?: number;
+  bx1?: number;
+  by1?: number;
 }
 
 interface SimLink extends SimulationLinkDatum<SimNode> {
@@ -43,6 +52,16 @@ interface SimLink extends SimulationLinkDatum<SimNode> {
 
 const NODE_RADIUS_BASE = 5;
 const LABEL_MAX_CHARS = 24;
+
+// Physics model for keeping nodes from colliding.
+//   true  → rectangular collision on each node's circle + label footprint, so
+//           file-name labels never overlap (labels stay glued to their circles
+//           and whole nodes spread apart). See forceLabelRect.ts.
+//   false → original circle-only collision (labels can overlap when circles are
+//           close). Flip this one constant to revert to the previous physics.
+const USE_LABEL_PHYSICS = true;
+// Breathing room (px) added around each label box before collisions are resolved.
+const LABEL_BOX_PADDING = 2;
 
 // Node colors by type, tuned for a dark slate-900 background.
 const COLOR_ROOT = '#ef4444';     // bright red
@@ -186,6 +205,35 @@ function FolderGraphView() {
       .attr('stroke-opacity', 0.75)
       .text(d => truncateLabel(d.name));
 
+    // Measure each label so forceLabelRect can treat the circle + its text as a
+    // single rectangular footprint. getBBox gives exact metrics for the rendered
+    // text (the SVG is laid out by now — this effect only runs once `ready`);
+    // we fall back to a character-count estimate if it's unavailable.
+    if (USE_LABEL_PHYSICS) {
+      nodeSel.select<SVGTextElement>('text').each(function (d) {
+        const r = nodeRadius(d);
+        let tx = r + 4;
+        let ty = -6;
+        let tw = truncateLabel(d.name).length * 6.2;
+        let th = 12;
+        try {
+          const bb = this.getBBox();
+          if (bb.width > 0) {
+            tx = bb.x;
+            ty = bb.y;
+            tw = bb.width;
+            th = bb.height;
+          }
+        } catch {
+          // Keep the estimate.
+        }
+        d.bx0 = -r - LABEL_BOX_PADDING;
+        d.bx1 = tx + tw + LABEL_BOX_PADDING;
+        d.by0 = Math.min(-r, ty) - LABEL_BOX_PADDING;
+        d.by1 = Math.max(r, ty + th) + LABEL_BOX_PADDING;
+      });
+    }
+
     const applyHighlight = (): void => {
       circleSel.attr('fill', d => colorForNode(d, highlightRef.current === d.id));
     };
@@ -244,7 +292,9 @@ function FolderGraphView() {
       // distance between clusters.
       .force('charge', forceManyBody<SimNode>().strength(-220).distanceMax(180))
       .force('center', forceCenter(width / 2, height / 2))
-      .force('collide', forceCollide<SimNode>().radius(d => nodeRadius(d) + 4));
+      .force('collide', USE_LABEL_PHYSICS
+        ? forceLabelRect<SimNode>().strength(0.7)
+        : forceCollide<SimNode>().radius(d => nodeRadius(d) + 4));
 
     const tick = () => {
       linkSel
