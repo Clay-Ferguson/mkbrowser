@@ -91,9 +91,13 @@ function buildFrontMatterHideDecorations(state: EditorState): DecorationSet {
   }
   if (!closingLine) return builder.finish();
 
-  // Include the trailing newline so the closing --- doesn't leave a blank line
-  const endPos = closingLine.number < doc.lines ? closingLine.to + 1 : closingLine.to;
-  builder.add(firstLine.from, endPos, Decoration.replace({ block: true }));
+  // End the block at the closing line's END (line.to), NOT at the start of the next line
+  // (closingLine.to + 1). A block-replace must span line-start..line-end; ending it at the
+  // next line's start makes block.to coincide with the first visible line's start, and that
+  // shared boundary is what breaks active-line highlighting and lets the cursor slip into
+  // the hidden region. Ending at closingLine.to keeps block.to strictly before the first
+  // visible line, so CodeMirror's stock cursor/active-line logic resolves correctly.
+  builder.add(firstLine.from, closingLine.to, Decoration.replace({ block: true }));
   return builder.finish();
 }
 
@@ -106,10 +110,10 @@ export const frontMatterHideField = StateField.define<DecorationSet>({
   provide(field) { return EditorView.decorations.from(field); },
 });
 
-// Returns the document position just past the hidden front matter (the start of the
-// first visible line), or -1 if there is no front matter to hide. Mirrors the range
-// computed in buildFrontMatterHideDecorations so the cursor guard can never drift from
-// what is actually hidden.
+// Returns the document position at the start of the first visible line (just past the
+// hidden front matter's trailing newline), or -1 if there is no front matter to hide.
+// This is the cursor floor: one position past the hide block's end (which stops at the
+// closing line's end, closingLine.to), i.e. the start of the first visible line.
 export function frontMatterHiddenEnd(doc: Text): number {
   const firstLine = doc.line(1);
   if (firstLine.text.trim() !== '---') return -1;
