@@ -84,14 +84,15 @@ function sanitizeForTOC(content: string): string {
 }
 
 export async function processTOC(content: string): Promise<string> {
+  // Only treat <!-- TOC --> as a placeholder when it stands alone on its own line.
+  // This prevents inline occurrences (e.g. inside table cells or prose) from being
+  // mistaken for the real placeholder.
+  const STANDALONE_RE = /^<!-- TOC -->$/m;
+
   const sanitized = sanitizeForTOC(content);
+  const standaloneMatches = [...sanitized.matchAll(/^<!-- TOC -->$/gm)];
 
-  if (!sanitized.includes(START_TAG)) {
-    return content;
-  }
-
-  const firstStart = sanitized.indexOf(START_TAG);
-  if (sanitized.indexOf(START_TAG, firstStart + 1) !== -1) {
+  if (standaloneMatches.length === 0 || standaloneMatches.length > 1) {
     return content;
   }
 
@@ -108,7 +109,10 @@ export async function processTOC(content: string): Promise<string> {
       .stringify({ type: 'root', children: [result.map] } as Root)
   ).trimEnd();
 
-  const contentStart = content.indexOf(START_TAG);
+  const contentMatch = STANDALONE_RE.exec(content);
+  if (!contentMatch) return content;
+
+  const contentStart = contentMatch.index;
   const afterStart = contentStart + START_TAG.length;
   const endIdx = content.indexOf(END_TAG, afterStart);
 
