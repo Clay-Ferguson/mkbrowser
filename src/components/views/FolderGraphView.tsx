@@ -19,6 +19,7 @@ import {
   navigateToBrowserPath,
   setHighlightItem,
 } from '../../store';
+import { parseFrontMatter } from '../../utils/fileUtil';
 
 interface SimNode extends SimulationNodeDatum {
   id: string;
@@ -26,6 +27,13 @@ interface SimNode extends SimulationNodeDatum {
   isDirectory: boolean;
   depth: number;
   childCount: number;
+  /** Cached hover preview text (file name + divider + first lines of body). */
+  previewText?: string;
+  /**
+   * The file mtime (ms since epoch) the cached previewText was generated from.
+   * If the file's current mtime is newer, the cache is stale and regenerated.
+   */
+  previewTimestamp?: number;
 }
 
 interface SimLink extends SimulationLinkDatum<SimNode> {
@@ -59,6 +67,35 @@ function nodeRadius(d: SimNode): number {
 
 function truncateLabel(name: string): string {
   return name.length > LABEL_MAX_CHARS ? name.slice(0, LABEL_MAX_CHARS - 1) + '…' : name;
+}
+
+const PREVIEW_MAX_CHARS = 500;
+// U+2500 (box drawings light horizontal) renders as a continuous, gapless rule,
+// so a run of them reads like an underline beneath the file name.
+const PREVIEW_DIVIDER_CHAR = '─';
+
+/**
+ * Builds the hover-tooltip preview for a file: its name on the first line, an
+ * underline matching the name's length, then the first five non-blank lines of
+ * the body (front matter stripped), capped at PREVIEW_MAX_CHARS.
+ */
+async function getFilePreview(filePath: string, name: string): Promise<string> {
+  const raw = await window.electronAPI.readFile(filePath);
+  const { content } = parseFrontMatter(raw);
+  const allLines = content.split(/\r?\n/).filter(l => l.trim().length > 0);
+  const lines = allLines.slice(0, 5);
+  let preview = lines.join('\n');
+
+  if (preview.length > PREVIEW_MAX_CHARS) {
+    preview = preview.slice(0, PREVIEW_MAX_CHARS) + '…';
+  }
+
+  // Indicate, on its own line, that the file has more lines than we're showing.
+  if (allLines.length > lines.length) {
+    preview += '\n…';
+  }
+  const divider = PREVIEW_DIVIDER_CHAR.repeat(name.length);
+  return `${name}\n${divider}\n${preview}`;
 }
 
 function FolderGraphView() {
@@ -171,6 +208,32 @@ function FolderGraphView() {
       }
     });
 
+    // Hover → load a content preview into the tooltip. The native <title>
+    // starts as the full path; once the file is read we swap in a richer
+    // preview (name + first body lines). We mutate the live <title> DOM node
+    // directly so it updates without rebuilding the graph, and cache the
+    // result on the SimNode keyed by file mtime so editing a file and coming
+    // back regenerates the preview, while repeat hovers reuse the cache.
+    nodeSel.on('mouseenter', (event: MouseEvent, d) => {
+      if (d.isDirectory) return; // only files have content to preview
+      const titleSel = select(event.currentTarget as SVGGElement).select<SVGTitleElement>('title');
+      void (async () => {
+        try {
+          const mtime = await window.electronAPI.getFileMtime(d.id);
+          if (d.previewText !== undefined && d.previewTimestamp !== undefined && mtime <= d.previewTimestamp) {
+            titleSel.text(d.previewText);
+            return;
+          }
+          const preview = await getFilePreview(d.id, d.name);
+          d.previewText = preview;
+          d.previewTimestamp = mtime;
+          titleSel.text(preview);
+        } catch {
+          // On any read/stat error, leave the default path tooltip in place.
+        }
+      })();
+    });
+
     const sim: Simulation<SimNode, SimLink> = forceSimulation<SimNode>(simNodes)
       .force('link', forceLink<SimNode, SimLink>(simLinks).id(d => d.id).distance(60).strength(0.7))
       .force('charge', forceManyBody<SimNode>().strength(-220))
@@ -280,7 +343,6 @@ function FolderGraphView() {
     <div className="flex-1 min-h-0 flex flex-col bg-slate-900">
       <header className="flex-shrink-0 px-4 py-2 border-b border-slate-700 flex items-center gap-3">
         <div className="flex-1 text-sm text-slate-300 truncate" title={folderGraph.folderPath}>
-          <span className="text-slate-400">Folder Graph:</span>{' '}
           <span className="font-mono text-slate-200">{folderGraph.folderPath}</span>
           <span className="text-slate-500 ml-3">
             {folderGraph.nodes.length} nodes ({folderCount} folders, {fileCount} files)
