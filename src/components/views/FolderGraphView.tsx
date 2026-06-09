@@ -236,7 +236,13 @@ function FolderGraphView() {
 
     const sim: Simulation<SimNode, SimLink> = forceSimulation<SimNode>(simNodes)
       .force('link', forceLink<SimNode, SimLink>(simLinks).id(d => d.id).distance(60).strength(0.7))
-      .force('charge', forceManyBody<SimNode>().strength(-220))
+      // distanceMax caps the repulsion's range. Without it, every node repels
+      // every other regardless of distance, so the summed push between two
+      // separated subtrees stretches the single link bridging them (most
+      // visibly the root's links) far past its target length. Limiting charge
+      // to a local radius lets links — not long-range repulsion — set the
+      // distance between clusters.
+      .force('charge', forceManyBody<SimNode>().strength(-220).distanceMax(180))
       .force('center', forceCenter(width / 2, height / 2))
       .force('collide', forceCollide<SimNode>().radius(d => nodeRadius(d) + 4));
 
