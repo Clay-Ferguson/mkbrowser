@@ -15,10 +15,10 @@ import fs from 'node:fs';
 import { buildExcludePredicate } from './utils/pathPattern';
 
 /** Hard cap on recursion depth from the root folder (root = 0). */
-export const MAX_DEPTH = 5; // todo-0: need to make this user-configurable.
+export const MAX_DEPTH = 10;
 
 /** Hard cap on the number of nodes (files + folders, including root). */
-export const MAX_NODES = 2000; // todo-0: need to make this user-configurable.
+export const MAX_NODES = 2000;
 
 export interface FolderGraphNodeData {
   /** Stable id (full absolute path) */

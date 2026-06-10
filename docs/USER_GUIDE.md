@@ -1341,8 +1341,6 @@ An example of a "Persona" would be something you could name "Hemmingway" which w
 
 Prompts are managed in **Settings → AI Settings** under the **Personas** section.
 
-todo-0: Put screenshot here.
-
 ### Creating a new prompt
 
 1. Open **Settings → AI Settings** and scroll to the **Prompts** section.

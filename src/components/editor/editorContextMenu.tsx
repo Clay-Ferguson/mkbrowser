@@ -7,8 +7,6 @@ import { buildMarkdownLinks } from '../../utils/linkUtil';
 import { useSelectedLinkItems } from '../../store';
 import type { SpellingSuggestion } from './spellChecker';
 
-// todo-0: rename this file to start with capital letter.
-
 export interface ContextMenuState {
   visible: boolean;
   x: number;
