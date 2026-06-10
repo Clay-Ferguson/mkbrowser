@@ -572,6 +572,11 @@ function FolderGraphView() {
       <header className="flex-shrink-0 px-4 py-2 border-b border-slate-700 flex items-center gap-3">
         <div className="flex-1 text-sm text-slate-300 truncate" title={folderGraph.folderPath}>
           <span className="font-mono text-slate-200">{folderGraph.folderPath}</span>
+          {folderGraph.foldersOnly && (
+            <span className="ml-3 px-2 py-0.5 rounded-full border border-yellow-400 text-yellow-300 font-bold text-xs">
+              Folders Only, too many files
+            </span>
+          )}
           <span className="text-slate-500 ml-3">
             {folderGraph.nodes.length} nodes ({folderCount} folders, {fileCount} files)
             {' · '}

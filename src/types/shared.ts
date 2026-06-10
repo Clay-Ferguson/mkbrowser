@@ -156,6 +156,8 @@ export interface FolderGraphScanResult {
   nodes: Array<{ id: string; name: string; isDirectory: boolean; depth: number }>;
   links: Array<{ source: string; target: string }>;
   truncated: boolean;
+  /** True if the full scan exceeded the node cap and we fell back to folders-only. */
+  foldersOnly: boolean;
 }
 
 export interface ProviderUsage {

@@ -158,6 +158,8 @@ export interface FolderGraphState {
   links: FolderGraphLink[];
   /** True if the scan hit the node-count cap and was truncated */
   truncated: boolean;
+  /** True if the full scan exceeded the node cap and we fell back to folders-only. */
+  foldersOnly: boolean;
 }
 
 /**

@@ -731,6 +731,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           nodes: result.nodes.map(n => ({ ...n })),
           links: result.links.map(l => ({ ...l })),
           truncated: result.truncated,
+          foldersOnly: result.foldersOnly,
         });
         setCurrentView('folder-graph');
       } catch (err) {

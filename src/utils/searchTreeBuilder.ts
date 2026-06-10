@@ -50,6 +50,7 @@ export function buildFolderGraphFromSearchResults(
     nodes: [...nodesById.values()],
     links,
     truncated: false,
+    foldersOnly: false,
   };
 }
 

@@ -463,7 +463,10 @@ function setupIpcHandlers(): void {
       return await scanFolderTree(folderPath, ignoredPaths);
     } catch (error) {
       logger.error('Error scanning folder tree:', error);
-      return { folderPath, nodes: [], links: [], truncated: false };
+      // Propagate so the renderer can surface the reason (e.g. the graph
+      // exceeds the node cap even with files excluded) rather than silently
+      // showing an empty graph.
+      throw error;
     }
   });
 

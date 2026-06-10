@@ -15,10 +15,10 @@ import fs from 'node:fs';
 import { buildExcludePredicate } from './utils/pathPattern';
 
 /** Hard cap on recursion depth from the root folder (root = 0). */
-export const MAX_DEPTH = 5;
+export const MAX_DEPTH = 5; // todo-0: need to make this user-configurable.
 
 /** Hard cap on the number of nodes (files + folders, including root). */
-export const MAX_NODES = 1000;
+export const MAX_NODES = 2000; // todo-0: need to make this user-configurable.
 
 export interface FolderGraphNodeData {
   /** Stable id (full absolute path) */
@@ -47,18 +47,52 @@ export interface FolderGraphResult {
   links: FolderGraphLinkData[];
   /** True if the scan hit MAX_NODES and was cut short */
   truncated: boolean;
+  /**
+   * True if the full (files + folders) scan exceeded MAX_NODES and we fell
+   * back to a folders-only scan. Lets the renderer flag the partial view.
+   */
+  foldersOnly: boolean;
+}
+
+/**
+ * Build a folder graph for the renderer.
+ *
+ * We never want to show a partial graph. So we try the richest graph first
+ * (files + folders); if that would exceed MAX_NODES we throw it away and
+ * retry folders-only; if even that exceeds MAX_NODES we give up and throw,
+ * rather than hand back something incomplete.
+ *
+ * The net effect: the user gets everything if it fits, otherwise a complete
+ * folders-only graph if that fits, otherwise nothing.
+ */
+export async function scanFolderTree(
+  folderPath: string,
+  ignoredPaths: string[] = [],
+): Promise<FolderGraphResult> {
+  const full = await scanFolderTreeInternal(folderPath, ignoredPaths, false);
+  if (!full.truncated) return full;
+
+  const foldersOnly = await scanFolderTreeInternal(folderPath, ignoredPaths, true);
+  if (!foldersOnly.truncated) return foldersOnly;
+
+  throw new Error(
+    `Folder graph for "${folderPath}" exceeds the ${MAX_NODES}-node limit even with files excluded.`,
+  );
 }
 
 /**
  * Recursively scan a folder, producing nodes and parent->child links suitable
  * for a D3 force-directed graph. Stops at MAX_DEPTH and MAX_NODES.
  *
+ * When `foldersOnly` is true, files are skipped entirely (no nodes or links).
+ *
  * Sorting (folders before files, alphabetical) is applied at each level so
  * the truncation point, when reached, is deterministic.
  */
-export async function scanFolderTree(
+async function scanFolderTreeInternal(
   folderPath: string,
-  ignoredPaths: string[] = [],
+  ignoredPaths: string[],
+  foldersOnly: boolean,
 ): Promise<FolderGraphResult> {
   const shouldExclude = buildExcludePredicate(ignoredPaths);
 
@@ -104,6 +138,7 @@ export async function scanFolderTree(
       if (shouldExclude(entry.name, childPath)) continue;
 
       const isDirectory = entry.isDirectory();
+      if (foldersOnly && !isDirectory) continue;
       nodes.push({ id: childPath, name: entry.name, isDirectory, depth: depth + 1 });
       links.push({ source: dirPath, target: childPath });
 
@@ -113,5 +148,5 @@ export async function scanFolderTree(
     }
   }
 
-  return { folderPath, nodes, links, truncated };
+  return { folderPath, nodes, links, truncated, foldersOnly };
 }
