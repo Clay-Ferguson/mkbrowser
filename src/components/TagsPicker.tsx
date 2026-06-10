@@ -24,11 +24,15 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     let cancelled = false;
     setLoadState({ status: 'loading' });
 
-    fetchTags().then((categories: TagCategory[]) => {
-      if (!cancelled) {
-        setLoadState({ status: 'loaded', categories });
-      }
-    });
+    fetchTags()
+      .then((categories: TagCategory[]) => {
+        if (!cancelled) {
+          setLoadState({ status: 'loaded', categories });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoadState({ status: 'loaded', categories: [] });
+      });
 
     return () => { cancelled = true; };
   }, []);

@@ -62,7 +62,7 @@ export function useContentLoader({
       }
     };
 
-    loadContent();
+    void loadContent();
 
     return () => {
       ignore = true;

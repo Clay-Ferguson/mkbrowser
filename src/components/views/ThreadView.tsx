@@ -48,7 +48,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const [personaName, setPersonaName] = useState<string>('[Default Agent]');
 
   useEffect(() => {
-    window.electronAPI.getConfig().then((config: AppConfig) => {
+    void window.electronAPI.getConfig().then((config: AppConfig) => {
       setPersonaName(config.aiRewritePrompt || '[Default Agent]');
     });
   }, []);

@@ -51,7 +51,7 @@ function AISettingsView() {
 
   // Load AI config on mount
   useEffect(() => {
-    window.electronAPI.getConfig().then((config: AppConfig) => {
+    void window.electronAPI.getConfig().then((config: AppConfig) => {
       if (config.aiEnabled !== undefined) setAiEnabled(config.aiEnabled);
       if (config.aiModels) setAiModels(config.aiModels);
       if (config.aiModel) setSelectedAiModel(config.aiModel);
@@ -73,9 +73,9 @@ function AISettingsView() {
       }
     });
     // Load AI usage stats
-    window.electronAPI.getAiUsage().then(setUsageData);
+    void window.electronAPI.getAiUsage().then(setUsageData);
     // Check llama.cpp server status
-    window.electronAPI.checkLlamaHealth().then(setLlamaServerStatus);
+    void window.electronAPI.checkLlamaHealth().then(setLlamaServerStatus);
   }, []);
 
   const saveAiConfigField = useCallback(async (updates: Partial<AppConfig>) => {
@@ -270,7 +270,7 @@ function AISettingsView() {
                     checked={agenticMode}
                     onChange={(checked) => {
                       setAgenticMode(checked);
-                      saveAiConfigField({ agenticMode: checked });
+                      void saveAiConfigField({ agenticMode: checked });
                     }}
                     inputClassName={SETTINGS_CHECKBOX_CLASS}
                     spanClassName="text-slate-200"

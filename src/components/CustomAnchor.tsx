@@ -15,14 +15,14 @@ export default function CustomAnchor({ href, children, entryPath, ...props }: Cu
     // Handle external URLs - open in system browser
     if (href.startsWith('http://') || href.startsWith('https://')) {
       e.preventDefault();
-      window.electronAPI.openExternalUrl(href);
+      void window.electronAPI.openExternalUrl(href);
       return;
     }
 
     // Handle file:// URLs - open with system default app
     if (href.startsWith('file://')) {
       e.preventDefault();
-      window.electronAPI.openExternalUrl(href);
+      void window.electronAPI.openExternalUrl(href);
       return;
     }
 

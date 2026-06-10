@@ -81,7 +81,7 @@ export function EntryActionBar({
 
   const handleOpenExternal = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.electronAPI.openExternal(path);
+    void window.electronAPI.openExternal(path);
   };
 
   return (

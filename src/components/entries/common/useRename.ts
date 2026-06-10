@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { setHighlightItem, setItemRenaming, renameItem, updateBookmarkPath } from '../../../store';
 import type { RenameState } from './types';
 import { getParentPath, joinPath } from '../../../utils/pathUtil';
+import { logger } from '../../../utils/logUtil';
 
 interface UseRenameOptions {
   /** Full path of the entry */
@@ -100,7 +101,7 @@ export function useRename({
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSave();
+      handleSave().catch((err: unknown) => logger.error('Rename failed:', err));
     } else if (e.key === 'Escape') {
       e.preventDefault();
       handleCancel();

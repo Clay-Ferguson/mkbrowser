@@ -22,7 +22,7 @@ export function createBlockClickComponents(handleEditClick: EditClickHandler, li
       // if the user is trying to simply select some text
       if (window.getSelection()?.toString()) return;
       e.stopPropagation();
-      handleEditClick(line + lineOffset);
+      void handleEditClick(line + lineOffset);
     };
   }
 

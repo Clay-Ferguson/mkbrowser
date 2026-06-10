@@ -82,11 +82,12 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
+      .catch((err: unknown) => logger.error('Failed to load dev server URL:', err));
   } else {
     mainWindow.loadFile(
       path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-    );
+    ).catch((err: unknown) => logger.error('Failed to load index.html:', err));
   }
 
   // Open the DevTools in development

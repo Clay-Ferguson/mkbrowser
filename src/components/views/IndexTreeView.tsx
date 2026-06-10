@@ -412,7 +412,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const handleRunScript = useCallback((node: FileNode) => {
     if (runningScript) return;
     setRunningScript(node.path);
-    window.electronAPI.runShellScript(node.path);
+    void window.electronAPI.runShellScript(node.path);
     setTimeout(() => setRunningScript(null), 3000);
   }, [runningScript]);
 
@@ -493,11 +493,16 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           const relPath = computeRelativePath(editorDir, node.path);
           const label = getFileName(node.path).replace(/\.md$/, '');
           if (node.path.endsWith('.md')) {
-            window.electronAPI.readFile(node.path).then((raw) => {
-              const id = extractFrontMatterId(raw);
-              const suffix = id ? `<!-- id:${id} -->` : '';
-              activeEditor.handle.insertAtCursor(`[${label}](${relPath})${suffix}`);
-            });
+            window.electronAPI.readFile(node.path)
+              .then((raw) => {
+                const id = extractFrontMatterId(raw);
+                const suffix = id ? `<!-- id:${id} -->` : '';
+                activeEditor.handle.insertAtCursor(`[${label}](${relPath})${suffix}`);
+              })
+              .catch(() => {
+                // Couldn't read the target file for its id — insert a plain link
+                activeEditor.handle.insertAtCursor(`[${label}](${relPath})`);
+              });
           } else if (isImageFile(node.name)) {
             activeEditor.handle.insertAtCursor(`![${label}](${relPath})`);
           } else {

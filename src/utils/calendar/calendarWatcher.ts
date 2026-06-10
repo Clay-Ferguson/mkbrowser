@@ -3,6 +3,7 @@ import chokidar from 'chokidar';
 import type { CalendarEventResult } from './calendarLoader';
 import { loadCalendarEntryForFile } from './calendarLoader';
 import { escapeRegexExceptWildcard } from '../pathPattern';
+import { logger } from '../logUtil';
 
 export type CalendarFileChangedCallback = (results: CalendarEventResult[], filePath: string) => void;
 export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolean) => void;
@@ -47,13 +48,17 @@ export function startCalendarWatcher(
   currentWatcher.on('change', (filePath: string) => {
     // console.log("************ onChange: "+filePath);
     if (path.extname(filePath).toLowerCase() !== '.md') return;
-    void loadCalendarEntryForFile(filePath).then(results => onChanged(results, filePath));
+    loadCalendarEntryForFile(filePath)
+      .then(results => onChanged(results, filePath))
+      .catch((err: unknown) => logger.error(`Failed to load calendar events for ${filePath}:`, err));
   });
 
   currentWatcher.on('add', (filePath: string) => {
     // console.log("************ onAdd (file added/renamed): "+filePath);
     if (path.extname(filePath).toLowerCase() !== '.md') return;
-    void loadCalendarEntryForFile(filePath).then(results => onChanged(results, filePath));
+    loadCalendarEntryForFile(filePath)
+      .then(results => onChanged(results, filePath))
+      .catch((err: unknown) => logger.error(`Failed to load calendar events for ${filePath}:`, err));
   });
 
   currentWatcher.on('unlink', (filePath: string) => {
@@ -70,7 +75,8 @@ export function startCalendarWatcher(
 
 export function stopCalendarWatcher(): void {
   if (currentWatcher) {
-    void currentWatcher.close();
+    currentWatcher.close()
+      .catch((err: unknown) => logger.error('Failed to close calendar watcher:', err));
     currentWatcher = null;
     currentFolder = null;
   }

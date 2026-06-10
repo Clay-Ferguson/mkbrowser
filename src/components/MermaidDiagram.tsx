@@ -28,13 +28,13 @@ async function processMermaidQueue() {
   isRenderingMermaid = false;
 
   if (mermaidRenderQueue.length > 0) {
-    processMermaidQueue();
+    void processMermaidQueue();
   }
 }
 
 export function queueMermaidRender(task: () => Promise<void>) {
   mermaidRenderQueue.push(task);
-  processMermaidQueue();
+  void processMermaidQueue();
 }
 
 let mermaidIdCounter = 0;

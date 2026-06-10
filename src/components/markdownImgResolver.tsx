@@ -138,8 +138,8 @@ export function createCustomImage(entryPath: string) {
         }
       }
       
-      resolve();
-      
+      void resolve();
+
       return () => {
         isMounted = false;
       };

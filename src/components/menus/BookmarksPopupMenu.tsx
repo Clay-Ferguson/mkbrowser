@@ -104,7 +104,7 @@ export default function BookmarksPopupMenu({
                   <button
                     className={`${MENU_ICON_BTN} hover:text-red-400`}
                     title="Delete bookmark"
-                    onClick={(e) => { e.stopPropagation(); handleDelete(fullPath); }}
+                    onClick={(e) => { e.stopPropagation(); void handleDelete(fullPath); }}
                   >
                     <TrashIcon className="w-3.5 h-3.5" />
                   </button>

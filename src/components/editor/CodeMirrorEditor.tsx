@@ -20,6 +20,7 @@ import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterA
 // import { customRenderPlugin, customRenderTheme } from '../../utils/editorCustomRenderUtil'; // <--- Keep for future reference (no longer needed for now)
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
+import { logger } from '../../utils/logUtil';
 
 const FONT_SIZE_MAP: Record<FontSize, string> = {
   small: '12px',
@@ -397,15 +398,17 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     }
 
     // Load spell checker asynchronously
-    loadSpellChecker().then((typo) => {
-      if (typo && viewRef.current) {
-        typoRef.current = typo;
-        // Add the spell check plugin
-        viewRef.current.dispatch({
-          effects: spellCheckCompartment.current.reconfigure(createSpellCheckPlugin(typoRef)),
-        });
-      }
-    });
+    loadSpellChecker()
+      .then((typo) => {
+        if (typo && viewRef.current) {
+          typoRef.current = typo;
+          // Add the spell check plugin
+          viewRef.current.dispatch({
+            effects: spellCheckCompartment.current.reconfigure(createSpellCheckPlugin(typoRef)),
+          });
+        }
+      })
+      .catch((err: unknown) => logger.error('Failed to load spell checker:', err));
 
     return () => {
       if (onChangeDebounceRef.current) clearTimeout(onChangeDebounceRef.current);

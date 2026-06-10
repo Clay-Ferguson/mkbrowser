@@ -304,12 +304,15 @@ export function runOcr(
     command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'`;
   }
 
-  void (async () => {
-    const result = await window.electronAPI.runInExternalTerminal(command);
-    if (!result.success) {
-      onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
-    }
-  })();
+  window.electronAPI.runInExternalTerminal(command)
+    .then(result => {
+      if (!result.success) {
+        onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
+      }
+    })
+    .catch((err: unknown) => {
+      onSetError('Failed to launch OCR terminal: ' + (err instanceof Error ? err.message : String(err)));
+    });
 }
 
 /**

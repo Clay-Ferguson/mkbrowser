@@ -189,9 +189,13 @@ export async function streamDeepAgent(
     debugLog('streamDeepAgent → eventStream created, entering for-await loop');
 
     let eventCount = 0;
-    const heartbeat = setInterval(async () => {
-      const health = await checkHealth().catch(() => 'error');
-      debugLog(`streamDeepAgent → still waiting… ${eventCount} events received so far | llamacpp health: ${health}`);
+    const heartbeat = setInterval(() => {
+      checkHealth()
+        .catch(() => 'error')
+        .then(health => {
+          debugLog(`streamDeepAgent → still waiting… ${eventCount} events received so far | llamacpp health: ${health}`);
+        })
+        .catch((err: unknown) => debugLog('streamDeepAgent → heartbeat failed:', err));
     }, 5000);
 
     try {

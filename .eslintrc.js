@@ -43,7 +43,8 @@ module.exports = {
     "@typescript-eslint/no-unsafe-return": "off",
 
     // Disallow async functions whose returned Promise is never awaited or handled.
-    // Also requires type-checked linting (parserOptions.project).
+    // Requires type-checked linting, so it is enabled as "error" for src/** in
+    // the overrides block below (root configs and tests/ are outside tsconfig).
     "@typescript-eslint/no-floating-promises": "off",
 
     // Disallow await on non-Promise values. Requires type-checked linting.
@@ -120,4 +121,21 @@ module.exports = {
     // Enforce `import type` for type-only imports (keeps runtime bundle clean).
     "@typescript-eslint/consistent-type-imports": "off",
   },
+
+  overrides: [
+    // Type-checked rules need parserOptions.project, which only covers files in
+    // tsconfig.json's include (src/**). Root-level configs (forge.config.ts,
+    // vite.*.config.ts) and tests/ would fail to parse with it, so the typed
+    // rules are scoped here instead of being enabled globally.
+    {
+      files: ["src/**/*.ts", "src/**/*.tsx"],
+      parserOptions: {
+        project: "./tsconfig.json",
+        tsconfigRootDir: __dirname,
+      },
+      rules: {
+        "@typescript-eslint/no-floating-promises": "error",
+      },
+    },
+  ],
 };

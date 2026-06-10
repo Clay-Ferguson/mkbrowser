@@ -40,6 +40,7 @@ import type { CalendarEventResult, AppConfig } from './types/shared';
 import type { FileNode } from './store';
 import { loadConfig } from './config';
 import { applyGlobalHighlight, globalHighlightText } from './utils/globalHighlight';
+import { logger } from './utils/logUtil';
 
 async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isDirectory || !node.isExpanded) return node;
@@ -144,9 +145,9 @@ function App() {
   // Update window title when rootPath changes
   useEffect(() => {
     if (rootPath) {
-      window.electronAPI.setWindowTitle(`MkBrowser: ${rootPath}`);
+      void window.electronAPI.setWindowTitle(`MkBrowser: ${rootPath}`);
     } else {
-      window.electronAPI.setWindowTitle('MkBrowser');
+      void window.electronAPI.setWindowTitle('MkBrowser');
     }
   }, [rootPath]);
 
@@ -166,7 +167,10 @@ function App() {
         setLoading(false);
       }
     };
-    initConfig();
+    initConfig().catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : 'Failed to load configuration');
+      setLoading(false);
+    });
   }, []);
 
   // Load directory contents
@@ -220,7 +224,7 @@ function App() {
 
   // Load directory when path changes, or when an out-of-band refresh is requested
   useEffect(() => {
-    loadDirectory();
+    void loadDirectory();
   }, [loadDirectory, directoryRefreshNonce]);
 
   // Remove entries that were deleted from the store (e.g. via SearchResultsView)
@@ -259,10 +263,12 @@ function App() {
   }, [currentPath, rootPath]);
 
   const refreshDirectory = useCallback(() => {
-    loadDirectory(false);
+    void loadDirectory(false);
     const root = getIndexTreeRoot();
     if (root) {
-      refreshExpandedNodes(root).then(newRoot => setIndexTreeRoot(newRoot));
+      refreshExpandedNodes(root)
+        .then(newRoot => setIndexTreeRoot(newRoot))
+        .catch((err: unknown) => logger.error('Failed to refresh index tree:', err));
     }
   }, [loadDirectory]);
 
