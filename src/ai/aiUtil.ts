@@ -206,8 +206,10 @@ export async function handleAskAI(
   // detect images and validate vision support before any side effects.
   const processedPrompt = await preprocessPrompt(prompt, parentFolderPath);
 
-  // If the prompt contains images, verify the selected model supports vision
-  if (processedPrompt.images.length > 0) {
+  // If the prompt contains images, verify the selected model supports vision.
+  // Skip this check when a scripted answer is queued (Playwright tests): we
+  // won't actually call the LLM, so the model's vision capability is irrelevant.
+  if (processedPrompt.images.length > 0 && !hasScriptedAnswer()) {
     const config = getConfig();
     const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
     if (activeModel && !activeModel.vision) {
