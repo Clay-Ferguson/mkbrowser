@@ -537,7 +537,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                 >
                   {columns.map((col, i) => (
                     <article
-                      key={i}
+                      key={col.lineOffset}
                       className={`prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2${i > 0 ? ' border-l border-slate-600 pl-6' : ''}`}
                     >
                       <Markdown

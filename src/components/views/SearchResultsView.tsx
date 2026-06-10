@@ -219,14 +219,14 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             </div>
 
             {/* Results list */}
-            {sortedResults.map((result, index) => {
+            {sortedResults.map((result) => {
               const highlighted = isHighlighted(result.path, result.lineNumber);
               const borderClass = highlighted 
                 ? 'border-2 border-purple-500' : 'border border-slate-700 hover:border-slate-600';
               
               return (
               <div
-                key={`${result.path}-${result.lineNumber || 0}-${index}`}
+                key={`${result.path}-${result.lineNumber || 0}`}
                 onClick={() => handleResultClick(result.path, result.lineNumber)}
                 className={`bg-slate-800 rounded-lg ${borderClass} px-2 py-1.5 transition-colors cursor-pointer`}
               >
