@@ -86,7 +86,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
   const tabs = allTabs.filter((tab) => visibleIds.has(tab.id));
 
   return (
-    <nav data-testid="app-tab-buttons" className="flex items-center gap-6 px-4 bg-slate-800 border-b border-slate-600">
+    <nav data-testid="app-tab-buttons" className="flex items-center gap-3 px-4 bg-slate-800 border-b border-slate-600">
       <button
         ref={logoRef}
         type="button"
