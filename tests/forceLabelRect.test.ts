@@ -61,6 +61,31 @@ describe('forceLabelRect', () => {
     expect(b.vy).toBe(0);
   });
 
+  it('resolves more of the overlap with more iterations', () => {
+    const make = (): [RectCollideNode, RectCollideNode] => [
+      box({ index: 0, x: 0, y: 0, vx: 0, vy: 0 }, 10, 10),
+      box({ index: 1, x: 4, y: 1, vx: 0, vy: 0 }, 10, 10),
+    ];
+    // Residual penetration after the force = (1-strength)^iterations of the
+    // original, so total applied push grows with iterations and approaches
+    // (but never exceeds) full separation.
+    const [a1, b1] = make();
+    const once = forceLabelRect<RectCollideNode>().strength(0.7).iterations(1);
+    once.initialize([a1, b1]);
+    once(1);
+
+    const [a3, b3] = make();
+    const thrice = forceLabelRect<RectCollideNode>().strength(0.7).iterations(3);
+    thrice.initialize([a3, b3]);
+    thrice(1);
+
+    expect(Math.abs(a3.vx!)).toBeGreaterThan(Math.abs(a1.vx!));
+    // Boxes overlap by 16 on x; full separation pushes each node 8.
+    expect(Math.abs(a3.vx!)).toBeLessThan(8);
+    // Push still splits symmetrically across passes.
+    expect(a3.vx!).toBeCloseTo(-b3.vx!, 10);
+  });
+
   it('scales the push by strength', () => {
     const make = (): [RectCollideNode, RectCollideNode] => [
       box({ index: 0, x: 0, y: 0, vx: 0, vy: 0 }, 10, 10),

@@ -46,8 +46,9 @@ interface SimNode extends SimulationNodeDatum {
   bx1?: number;
   by1?: number;
   /**
-   * Repulsion-group key (the parent folder path) for file nodes; undefined for
-   * folders so they sit out the cross-folder repulsion. See CrossGroupNode.
+   * Repulsion-group key: the parent folder path for files, the folder's own
+   * path for folders. Same key = exempt from cross-group repulsion, so a file
+   * and its own parent folder never repel. See CrossGroupNode.
    */
   crossRepelGroup?: string;
 }
@@ -68,6 +69,12 @@ const NODE_RADIUS_BASE = 5;
 const USE_LABEL_PHYSICS = true;
 // Breathing room (px) added around each label box before collisions are resolved.
 const LABEL_BOX_PADDING = 2;
+// Label-collision resolution passes per tick. One pass at strength 0.7 leaves
+// 30% of any overlap behind, which the repulsion forces (charge, crossRepel,
+// fileFolderRepel, hubRepel) replenish each tick — visible as slight label
+// overlap in crowded regions. Each extra pass cuts the residual by another
+// 70% ((1-strength)^k overall), buying rigidity at linear cost.
+const LABEL_COLLIDE_ITERATIONS = 3;
 
 // Baseline repulsion between all nodes, and the range past which it's ignored
 // (see the 'charge' force). Named so the cross-folder repulsion can match them.
@@ -83,6 +90,15 @@ const USE_CROSS_FOLDER_REPULSION = true;
 // Magnitude of the *extra* cross-folder repulsion. Equal to |CHARGE_STRENGTH|
 // makes the total exactly double for cross-folder file pairs.
 const CROSS_FOLDER_EXTRA_STRENGTH = 330; // try 220, 330, or 440
+
+// Extra repulsion between a file and any folder that is NOT its parent, so
+// files don't crowd up against neighboring folders' hubs. A file and its own
+// parent share a repulsion-group key, which exempts that pair — the parent
+// link stays the only attraction/spacing between them. Stronger than the
+// file-vs-file extra above because folder hubs anchor whole clumps and need
+// more clearance.
+const USE_FILE_FOLDER_REPULSION = true;
+const FILE_FOLDER_REPEL_STRENGTH = 500;
 
 // Long-range repulsion between folder hubs. The baseline charge is capped at
 // CHARGE_DISTANCE_MAX, so in graphs whose natural diameter exceeds that range
@@ -197,10 +213,11 @@ function FolderGraphView() {
       isDirectory: n.isDirectory,
       depth: n.depth,
       childCount: childCount.get(n.id) ?? 0,
-      // Files are grouped by their parent folder so cross-folder file pairs can
-      // be repelled extra; folders opt out (undefined). Consumed only when
-      // USE_CROSS_FOLDER_REPULSION is on.
-      crossRepelGroup: n.isDirectory ? undefined : getParentPath(n.id),
+      // Files are grouped by their parent folder, folders by their own path —
+      // so cross-folder file pairs and file-vs-non-parent-folder pairs differ
+      // in group (extra repulsion applies), while a file and its own parent
+      // match (exempt). Consumed by the crossRepel/fileFolderRepel forces.
+      crossRepelGroup: n.isDirectory ? n.id : getParentPath(n.id),
     }));
     const simLinks: SimLink[] = rawLinks.map(l => ({ source: l.source, target: l.target }));
 
@@ -360,15 +377,27 @@ function FolderGraphView() {
             .distanceMax(FOLDER_HUB_DISTANCE_MAX)
         : null)
       // Extra repulsion between files in different folders (layered on top of the
-      // baseline charge above), capped at the same range so the doubling stays local.
+      // baseline charge above), capped at the same range so the doubling stays
+      // local. The filter keeps this force to file-file pairs; file-folder pairs
+      // get their own strength below.
       .force('crossRepel', USE_CROSS_FOLDER_REPULSION
         ? forceCrossGroupRepel<SimNode>()
             .strength(CROSS_FOLDER_EXTRA_STRENGTH)
             .distanceMax(CHARGE_DISTANCE_MAX)
+            .filter((a, b) => !a.isDirectory && !b.isDirectory)
+        : null)
+      // Extra repulsion between a file and any non-parent folder (the shared
+      // group key exempts the parent), so files keep their distance from
+      // neighboring folders' hubs instead of crowding against them.
+      .force('fileFolderRepel', USE_FILE_FOLDER_REPULSION
+        ? forceCrossGroupRepel<SimNode>()
+            .strength(FILE_FOLDER_REPEL_STRENGTH)
+            .distanceMax(CHARGE_DISTANCE_MAX)
+            .filter((a, b) => a.isDirectory !== b.isDirectory)
         : null)
       .force('center', forceCenter(width / 2, height / 2))
       .force('collide', USE_LABEL_PHYSICS
-        ? forceLabelRect<SimNode>().strength(0.7)
+        ? forceLabelRect<SimNode>().strength(0.7).iterations(LABEL_COLLIDE_ITERATIONS)
         : forceCollide<SimNode>().radius(d => nodeRadius(d) + 4));
 
     const tick = () => {

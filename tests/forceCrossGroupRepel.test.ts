@@ -53,6 +53,38 @@ describe('forceCrossGroupRepel', () => {
     expect(b.vx).toBe(0);
   });
 
+  it('skips cross-group pairs rejected by the filter', () => {
+    const a = node(0, 0, 'folderA');
+    const b = node(1, 10, 'folderB');
+    const force = forceCrossGroupRepel<CrossGroupNode>().strength(220).filter(() => false);
+    force.initialize([a, b]);
+    force(1);
+    expect(a.vx).toBe(0);
+    expect(b.vx).toBe(0);
+  });
+
+  it('applies only to cross-group pairs accepted by the filter', () => {
+    // Tag nodes via group naming: the filter only lets file-vs-folder pairs
+    // through, mirroring how FolderGraphView separates pair classes.
+    type KindNode = CrossGroupNode & { isDirectory: boolean };
+    const kindNode = (index: number, x: number, group: string, isDirectory: boolean): KindNode =>
+      ({ ...node(index, x, group), isDirectory });
+
+    const fileA = kindNode(0, 0, 'folderA', false);
+    const fileB = kindNode(1, 10, 'folderB', false);
+    const folderC = kindNode(2, 20, 'folderC', true);
+    const force = forceCrossGroupRepel<KindNode>()
+      .strength(220)
+      .filter((a, b) => a.isDirectory !== b.isDirectory);
+    force.initialize([fileA, fileB, folderC]);
+    force(1);
+    // fileA-fileB is filtered out; each file interacts only with folderC,
+    // which is pushed right by both files (it sits right of both).
+    expect(fileA.vx!).toBeLessThan(0);
+    expect(fileB.vx!).toBeLessThan(0);
+    expect(folderC.vx!).toBeGreaterThan(0);
+  });
+
   it('scales the push by alpha', () => {
     const make = (): [CrossGroupNode, CrossGroupNode] => [node(0, 0, 'A'), node(1, 10, 'B')];
 

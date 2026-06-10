@@ -18,6 +18,8 @@ export interface ForceCrossGroupRepel<N extends CrossGroupNode> {
   strength(value: number): ForceCrossGroupRepel<N>;
   distanceMax(): number;
   distanceMax(value: number): ForceCrossGroupRepel<N>;
+  filter(): (a: N, b: N) => boolean;
+  filter(value: (a: N, b: N) => boolean): ForceCrossGroupRepel<N>;
 }
 
 /**
@@ -34,11 +36,16 @@ export interface ForceCrossGroupRepel<N extends CrossGroupNode> {
  * match it to the baseline charge's distanceMax so the doubling stays local and
  * doesn't reintroduce long-range cluster drift. A quadtree prunes the search to
  * that range, so the cost is local rather than O(n²).
+ *
+ * `filter` further restricts which cross-group pairs interact (e.g. only
+ * file-vs-folder pairs), letting several instances of this force coexist with
+ * different strengths without double-applying to the same pair.
  */
 export function forceCrossGroupRepel<N extends CrossGroupNode>(): ForceCrossGroupRepel<N> {
   let nodes: N[] = [];
   let strength = 220;
   let maxDist = Infinity;
+  let filter: (a: N, b: N) => boolean = () => true;
 
   function force(alpha: number): void {
     const maxSq = maxDist * maxDist;
@@ -63,7 +70,8 @@ export function forceCrossGroupRepel<N extends CrossGroupNode>(): ForceCrossGrou
             if (
               otherGroup !== undefined &&
               otherGroup !== group &&
-              (other.index ?? 0) > (node.index ?? 0)
+              (other.index ?? 0) > (node.index ?? 0) &&
+              filter(node, other)
             ) {
               const dx = (other.x ?? 0) - xi;
               const dy = (other.y ?? 0) - yi;
@@ -97,6 +105,12 @@ export function forceCrossGroupRepel<N extends CrossGroupNode>(): ForceCrossGrou
   force.distanceMax = function (value?: number): number | ForceCrossGroupRepel<N> {
     if (value === undefined) return maxDist;
     maxDist = value;
+    return force as ForceCrossGroupRepel<N>;
+  };
+
+  force.filter = function (value?: (a: N, b: N) => boolean): ((a: N, b: N) => boolean) | ForceCrossGroupRepel<N> {
+    if (value === undefined) return filter;
+    filter = value;
     return force as ForceCrossGroupRepel<N>;
   };
 

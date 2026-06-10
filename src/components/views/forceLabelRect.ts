@@ -46,6 +46,8 @@ export interface ForceLabelRect<N extends RectCollideNode> {
   initialize(nodes: N[], random?: () => number): void;
   strength(): number;
   strength(value: number): ForceLabelRect<N>;
+  iterations(): number;
+  iterations(value: number): ForceLabelRect<N>;
 }
 
 /**
@@ -59,10 +61,18 @@ export interface ForceLabelRect<N extends RectCollideNode> {
  * `strength`. Like `forceCollide`, the push is applied to velocities and is not
  * scaled by alpha — a `strength` below 1 plus the simulation's velocity decay
  * lets the system settle.
+ *
+ * `iterations` (default 1, like `forceCollide`) repeats the whole resolution
+ * pass that many times per tick, each pass seeing the velocities the previous
+ * one produced. One pass at strength s leaves (1-s) of a penetration in place,
+ * which other forces can keep replenishing; k passes shrink the residual to
+ * (1-s)^k, so raise this for more rigidity when strong repulsion forces are
+ * squeezing nodes together, at a linear cost per extra pass.
  */
 export function forceLabelRect<N extends RectCollideNode>(): ForceLabelRect<N> {
   let nodes: N[] = [];
   let strength = 0.7;
+  let iterations = 1;
   let maxHalfW = 0;
   let maxHalfH = 0;
 
@@ -98,6 +108,10 @@ export function forceLabelRect<N extends RectCollideNode>(): ForceLabelRect<N> {
   }
 
   function force(): void {
+    for (let k = 0; k < iterations; k++) onePass();
+  }
+
+  function onePass(): void {
     const tree = quadtree(
       nodes,
       d => (d.x ?? 0) + (d.vx ?? 0),
@@ -139,6 +153,12 @@ export function forceLabelRect<N extends RectCollideNode>(): ForceLabelRect<N> {
   force.strength = function (value?: number): number | ForceLabelRect<N> {
     if (value === undefined) return strength;
     strength = value;
+    return force as ForceLabelRect<N>;
+  };
+
+  force.iterations = function (value?: number): number | ForceLabelRect<N> {
+    if (value === undefined) return iterations;
+    iterations = value;
     return force as ForceLabelRect<N>;
   };
 
