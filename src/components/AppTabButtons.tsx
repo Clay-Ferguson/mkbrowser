@@ -11,6 +11,7 @@ import SystemPopupMenu from './menus/SystemPopupMenu';
 interface TabConfig {
   id: AppView;
   label: string;
+  hasCloseButton?: boolean;
 }
 
 interface AppTabButtonsProps {
@@ -23,8 +24,8 @@ interface AppTabButtonsProps {
 
 // Canonical tab order: Browse, Thread, Search, Analysis, Graph, Settings
 const allTabs: TabConfig[] = [
-  { id: 'browser', label: 'Browse' },
-  { id: 'thread', label: 'Chat' },
+  { id: 'browser', label: 'Browse', hasCloseButton: false },
+  { id: 'thread', label: 'Chat', hasCloseButton: false },
   { id: 'search-results', label: 'Search' },
   { id: 'folder-analysis', label: 'Analysis' },
   { id: 'folder-graph', label: 'Graph' },
@@ -59,7 +60,6 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
 
   const makeCloseHandler = (tabId: AppView, close: () => void) => () => {
     close();
-    if (currentView === tabId) setCurrentView('browser');
   };
 
   const closeHandlers: Partial<Record<AppView, () => void>> = {
@@ -127,7 +127,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
         />
       )}
       {tabs.map((tab) => {
-        const onClose = closeHandlers[tab.id];
+        const onClose = tab.hasCloseButton === false ? undefined : closeHandlers[tab.id];
         return (
           <div key={tab.id} className="flex items-center gap-1 border-r border-slate-400 pr-4">
             <button
