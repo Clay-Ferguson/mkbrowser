@@ -138,6 +138,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
 
     const lineNumber = pendingEditLineNumber ?? undefined;
     const filePath = pendingEditFile;
+    let scrollTimer: ReturnType<typeof setTimeout> | undefined;
     const timer = setTimeout(() => {
       setItemExpanded(filePath, true);
       setItemEditing(filePath, true, lineNumber);
@@ -146,14 +147,17 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
       // The editor (CodeMirror) takes up significant vertical space once it
       // mounts.  The earlier scroll-to-bottom fired before the editor existed,
       // so we need a second scroll once the editor has had time to render.
-      setTimeout(() => {
+      scrollTimer = setTimeout(() => {
         const el = mainContainerRef.current;
         if (el) {
           el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
         }
       }, 300);
     }, 100);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (scrollTimer !== undefined) clearTimeout(scrollTimer);
+    };
   }, [loading, pendingEditFile, pendingEditView, pendingEditLineNumber, mainContainerRef]);
 
   // Navigate breadcrumb — switches to browser view at the given path

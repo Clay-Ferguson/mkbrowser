@@ -34,6 +34,7 @@ import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
 import { logger } from '../utils/logUtil';
 import { consumeScriptedAnswer } from './scriptedAnswer';
+import { getReasoningContent } from './messageUtil';
 import { checkHealth } from './llamaServer';
 
 /** 
@@ -126,13 +127,8 @@ export async function invokeDeepAgent(
     const usage = extractUsage(lastMessage);
 
     // Extract thinking content (same logic as invokeAI)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const additionalKwargs = (lastMessage as any).additional_kwargs ?? {};
-    let thinking: string | undefined;
-    const rawThinking = additionalKwargs.reasoning_content;
-    if (typeof rawThinking === 'string' && rawThinking.length > 0) {
-      thinking = rawThinking;
-    } else {
+    let thinking = getReasoningContent(lastMessage);
+    if (!thinking) {
       const thinkMatch = content.match(/^<think>([\s\S]*?)<\/think>\s*/);
       if (thinkMatch) {
         thinking = thinkMatch[1].trim();
@@ -211,10 +207,8 @@ export async function streamDeepAgent(
         if (!chunk) continue;
 
         // Check for thinking content in additional_kwargs (Anthropic, OpenAI o-series)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const additionalKwargs = (chunk as any).additional_kwargs ?? {};
-        const reasoningContent = additionalKwargs.reasoning_content;
-        if (typeof reasoningContent === 'string' && reasoningContent.length > 0) {
+        const reasoningContent = getReasoningContent(chunk);
+        if (reasoningContent) {
           thinkingAccum += reasoningContent;
           callbacks.onThinkingChunk(reasoningContent);
           continue;

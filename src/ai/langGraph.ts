@@ -13,6 +13,7 @@ import type { PreprocessResult } from './promptPreprocess';
 import { createChatModel, getActiveModelConfig } from './aiModel';
 import { logger } from '../utils/logUtil';
 import { consumeScriptedAnswer, queueScriptedAnswer, hasScriptedAnswer } from './scriptedAnswer';
+import { getReasoningContent, getUsageMetadata, hasToolCalls } from './messageUtil';
 export { queueScriptedAnswer, hasScriptedAnswer };
 
 // Set to true to enable verbose debug logging for AI invocations.
@@ -80,16 +81,13 @@ export interface AIInvokeResult {
  * Extract usage metadata from a LangChain AIMessage, if present.
  */
 export function extractUsage(message: BaseMessage): AIUsageInfo | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const meta = (message as any).usage_metadata;
-  if (meta && typeof meta.input_tokens === 'number') {
-    return {
-      input_tokens: meta.input_tokens,
-      output_tokens: meta.output_tokens ?? 0,
-      total_tokens: meta.total_tokens ?? (meta.input_tokens + (meta.output_tokens ?? 0)),
-    };
-  }
-  return undefined;
+  const meta = getUsageMetadata(message);
+  if (!meta) return undefined;
+  return {
+    input_tokens: meta.input_tokens,
+    output_tokens: meta.output_tokens ?? 0,
+    total_tokens: meta.total_tokens ?? (meta.input_tokens + (meta.output_tokens ?? 0)),
+  };
 }
 
 
@@ -163,9 +161,7 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
       .addEdge('__start__', 'chat')
       .addConditionalEdges('chat', (state) => {
         const lastMsg = state.messages[state.messages.length - 1];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const toolCalls = (lastMsg as any).tool_calls;
-        if (toolCalls && toolCalls.length > 0) {
+        if (hasToolCalls(lastMsg)) {
           debugLog('invokeAI [router] → tool calls detected, routing to tools node');
           return 'tools';
         }
@@ -201,13 +197,8 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
     // Extract thinking content. Sources checked in order:
     // 1. additional_kwargs.reasoning_content (Anthropic, OpenAI o-series via LangChain)
     // 2. Inline <think>...</think> tags in content (llama.cpp with --reasoning-format none)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const additionalKwargs = (lastMessage as any).additional_kwargs ?? {};
-    let thinking: string | undefined;
-    const rawThinking = additionalKwargs.reasoning_content;
-    if (typeof rawThinking === 'string' && rawThinking.length > 0) {
-      thinking = rawThinking;
-    } else {
+    let thinking = getReasoningContent(lastMessage);
+    if (!thinking) {
       // Check for <think>...</think> tags in content (llama.cpp thinking models)
       const thinkMatch = content.match(/^<think>([\s\S]*?)<\/think>\s*/);
       if (thinkMatch) {
@@ -265,9 +256,7 @@ export async function streamAI(
       .addEdge('__start__', 'chat')
       .addConditionalEdges('chat', (state) => {
         const lastMsg = state.messages[state.messages.length - 1];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const toolCalls = (lastMsg as any).tool_calls;
-        if (toolCalls && toolCalls.length > 0) {
+        if (hasToolCalls(lastMsg)) {
           debugLog('streamAI [router] → tool calls detected, routing to tools node');
           return 'tools';
         }
@@ -304,10 +293,8 @@ export async function streamAI(
         if (!chunk) continue;
 
         // Check for thinking content in additional_kwargs (Anthropic, OpenAI o-series)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const additionalKwargs = (chunk as any).additional_kwargs ?? {};
-        const reasoningContent = additionalKwargs.reasoning_content;
-        if (typeof reasoningContent === 'string' && reasoningContent.length > 0) {
+        const reasoningContent = getReasoningContent(chunk);
+        if (reasoningContent) {
           thinkingAccum += reasoningContent;
           callbacks.onThinkingChunk(reasoningContent);
           continue;
