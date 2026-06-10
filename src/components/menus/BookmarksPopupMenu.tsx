@@ -5,6 +5,7 @@ import AlertDialog from '../dialogs/AlertDialog';
 import BookmarkDialog from '../dialogs/BookmarkDialog';
 import { toggleBookmark, isBookmarked, getSettings, removeBookmark, updateBookmarkName, type Bookmark } from '../../store';
 import { MENU_ROW, MENU_ICON_BTN } from '../../utils/styles';
+import { ensureTrailingSep, getFileName } from '../../utils/pathUtil';
 
 interface BookmarksPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
@@ -26,7 +27,7 @@ export default function BookmarksPopupMenu({
 
   // Filter to bookmarks under rootPath
   const filtered = rootPath
-    ? bookmarks.filter(b => b.path === rootPath || b.path.startsWith(rootPath + '/'))
+    ? bookmarks.filter(b => b.path === rootPath || b.path.startsWith(ensureTrailingSep(rootPath)))
     : bookmarks;
 
   // Sort alphabetically by bookmark name
@@ -65,7 +66,7 @@ export default function BookmarksPopupMenu({
   };
 
   const isFolder = (path: string) => {
-    const name = path.substring(path.lastIndexOf('/') + 1);
+    const name = getFileName(path);
     return !name.includes('.');
   };
 

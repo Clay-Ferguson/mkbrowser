@@ -21,6 +21,7 @@ import {
   useSearchSortDirection,
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
+import { getFileName, getParentPath } from '../../utils/pathUtil';
 import { buildFolderGraphFromSearchResults } from '../../utils/searchTreeBuilder';
 import { getContentWidthClasses, BUTTON_CLASS_BLUE, BUTTON_CLASS_RED } from '../../utils/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -57,8 +58,8 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   // Sort results based on the selected sort option and direction
   const sortedResults = [...searchResults].sort((a, b) => {
     if (searchSortBy === 'file-name') {
-      const nameA = a.relativePath.split('/').pop() || a.relativePath;
-      const nameB = b.relativePath.split('/').pop() || b.relativePath;
+      const nameA = getFileName(a.relativePath) || a.relativePath;
+      const nameB = getFileName(b.relativePath) || b.relativePath;
       const cmp = nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
       return searchSortDirection === 'asc' ? cmp : -cmp;
     }
@@ -88,12 +89,11 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     setHighlightedSearchResult({ path: resultPath, lineNumber });
     
     // Extract the parent folder from the result path
-    const lastSlashIndex = resultPath.lastIndexOf('/');
-    const folderPath = resultPath.substring(0, lastSlashIndex);
-    
+    const folderPath = getParentPath(resultPath);
+
     // Highlight the item in the browser view with purple border
     setHighlightItem(resultPath);
-    
+
     onNavigateToResult(folderPath, resultPath);
   };
 
@@ -101,7 +101,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const hasSearched = searchQuery.length > 0 || searchResults.length > 0;
 
   // Get the folder name for display
-  const folderName = searchFolder.split('/').pop() || searchFolder;
+  const folderName = getFileName(searchFolder) || searchFolder;
 
   // Helper function to check if a result is highlighted
   const isHighlighted = (path: string, lineNumber?: number): boolean => {
@@ -112,7 +112,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
   const handleDeleteClick = (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
-    const fileName = path.substring(path.lastIndexOf('/') + 1);
+    const fileName = getFileName(path);
     setDeleteTarget({ path, name: fileName });
   };
 
@@ -123,8 +123,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     setHighlightedSearchResult({ path: resultPath, lineNumber });
 
     // Extract the parent folder from the result path
-    const lastSlashIndex = resultPath.lastIndexOf('/');
-    const folderPath = resultPath.substring(0, lastSlashIndex);
+    const folderPath = getParentPath(resultPath);
 
     // Set highlight and navigate to browser view
     setHighlightItem(resultPath);

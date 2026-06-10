@@ -4,6 +4,7 @@
 
 import yaml from 'js-yaml';
 import { parseFrontMatter } from '../fileUtil';
+import { getFileName, getParentPath, joinPath } from '../pathUtil';
 
 /**
  * For a markdown file being appended (not the lead file), strips its front
@@ -70,9 +71,8 @@ export async function splitFile(
     }
     
     // Parse the file path to get directory, base name, and extension
-    const lastSlashIndex = filePath.lastIndexOf('/');
-    const directory = lastSlashIndex >= 0 ? filePath.substring(0, lastSlashIndex) : '';
-    const fileName = lastSlashIndex >= 0 ? filePath.substring(lastSlashIndex + 1) : filePath;
+    const directory = getParentPath(filePath);
+    const fileName = getFileName(filePath);
     
     const lastDotIndex = fileName.lastIndexOf('.');
     const baseName = lastDotIndex >= 0 ? fileName.substring(0, lastDotIndex) : fileName;
@@ -80,7 +80,7 @@ export async function splitFile(
     
     // Build the new path for the original file with "-00" suffix
     const renamedFileName = `${baseName}-00${extension}`;
-    const renamedFilePath = directory ? `${directory}/${renamedFileName}` : renamedFileName;
+    const renamedFilePath = joinPath(directory, renamedFileName);
     
     // Rename the original file to include "-00" suffix
     const renameSuccess = await renameFile(filePath, renamedFilePath);
@@ -107,7 +107,7 @@ export async function splitFile(
       // Format the number with zero-padding (2 digits)
       const paddedNumber = String(i).padStart(2, '0');
       const newFileName = `${baseName}-${paddedNumber}${extension}`;
-      const newFilePath = directory ? `${directory}/${newFileName}` : newFileName;
+      const newFilePath = joinPath(directory, newFileName);
       
       const result = await createFile(newFilePath, parts[i]);
       if (!result.success) {
@@ -165,8 +165,8 @@ export async function joinFiles(
   try {
     // Sort file paths alphabetically by filename
     const sortedPaths = [...filePaths].sort((a, b) => {
-      const nameA = a.substring(a.lastIndexOf('/') + 1);
-      const nameB = b.substring(b.lastIndexOf('/') + 1);
+      const nameA = getFileName(a);
+      const nameB = getFileName(b);
       return nameA.localeCompare(nameB);
     });
     

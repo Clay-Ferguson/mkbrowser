@@ -3,6 +3,7 @@ import type { AppConfig, ElectronAPI, CalendarEventResult } from './types/shared
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
+  pathSep: process.platform === 'win32' ? '\\' : '/',
   quit: () => ipcRenderer.invoke('quit'),
   getConfig: () => ipcRenderer.invoke('get-config'),
   updateConfig: (updates: Partial<AppConfig>) => ipcRenderer.invoke('update-config', updates),

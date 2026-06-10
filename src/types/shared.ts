@@ -174,6 +174,8 @@ export interface AIUsageWithCosts {
 }
 
 export interface ElectronAPI {
+  /** Platform path separator: '\\' on Windows, '/' elsewhere. */
+  pathSep: string;
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
   getConfig: () => Promise<AppConfig>;

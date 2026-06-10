@@ -47,6 +47,7 @@ import {
 import { extractHeadingTree } from '../../utils/tocUtil';
 import { scrollElementIntoView } from '../../utils/entryDom';
 import { getActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
+import { ensureTrailingSep, getFileName, getParentPath, joinPath, splitPathSegments } from '../../utils/pathUtil';
 
 const INDENT_SIZE = 20;
 
@@ -61,8 +62,8 @@ function extractFrontMatterId(rawContent: string): string | null {
 }
 
 function computeRelativePath(fromDir: string, toFile: string): string {
-  const fromParts = fromDir.split('/').filter(Boolean);
-  const toParts = toFile.split('/').filter(Boolean);
+  const fromParts = splitPathSegments(fromDir);
+  const toParts = splitPathSegments(toFile);
   let i = 0;
   while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) i++;
   const ups = fromParts.length - i;
@@ -133,7 +134,7 @@ function flattenVisible(
 }
 
 function isParentOf(candidatePath: string, currentPath: string): boolean {
-  return currentPath.startsWith(candidatePath + '/');
+  return currentPath.startsWith(ensureTrailingSep(candidatePath));
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -194,8 +195,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const expandToPath = useCallback(async (targetPath: string) => {
     if (!rootPath || !targetPath.startsWith(rootPath)) return;
 
-    const relative = targetPath.slice(rootPath.length).replace(/^\//, '');
-    const segments = relative ? relative.split('/') : [];
+    const relative = targetPath.slice(rootPath.length).replace(/^[/\\]/, '');
+    const segments = splitPathSegments(relative);
 
     // Expand each ancestor directory from root down to targetPath
     let ancestorPath = rootPath;
@@ -215,7 +216,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         }
       }
 
-      ancestorPath = ancestorPath + '/' + segment;
+      ancestorPath = joinPath(ancestorPath, segment);
     }
 
     // Scroll to the target node after React has rendered the expanded tree
@@ -298,7 +299,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
     if (!result.success) return;
 
-    const sourceFolder = cutItems[0].path.substring(0, cutItems[0].path.lastIndexOf('/'));
+    const sourceFolder = getParentPath(cutItems[0].path);
     const movedPaths = cutItems.map(item => item.path);
     deleteItems(movedPaths);
     clearAllCutItems();
@@ -320,7 +321,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const handleCreateFolder = useCallback(async (folderName: string) => {
     const parentPath = createFolderParent;
     if (!parentPath) return;
-    const folderPath = `${parentPath}/${folderName}`;
+    const folderPath = joinPath(parentPath, folderName);
     const result = await window.electronAPI.createFolder(folderPath);
     setCreateFolderParent(null);
     if (!result.success) return;
@@ -341,8 +342,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     setRenameTarget(null);
     if (!target) return;
 
-    const parentPath = target.path.substring(0, target.path.lastIndexOf('/'));
-    const newPath = `${parentPath}/${newName}`;
+    const parentPath = getParentPath(target.path);
+    const newPath = joinPath(parentPath, newName);
     const success = await window.electronAPI.renameFile(target.path, newPath);
     if (!success) return;
 
@@ -360,7 +361,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     setDeleteTarget(null);
     if (!target) return;
 
-    const parentPath = target.path.substring(0, target.path.lastIndexOf('/'));
+    const parentPath = getParentPath(target.path);
     const success = await window.electronAPI.deleteFile(target.path);
     if (!success) return;
 
@@ -425,9 +426,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const handleWidenTree = () => saveTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
 
   const handleBookmarkNavigate = (fullPath: string) => {
-    const lastName = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+    const lastName = getFileName(fullPath);
     if (lastName.includes('.')) {
-      const folderPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
+      const folderPath = getParentPath(fullPath);
       setHighlightItem(fullPath);
       navigateToBrowserPath(folderPath, fullPath);
     } else {
@@ -449,7 +450,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       isDirectory: false,
       onBrowse: () => {
         const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
-        const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
+        const folderPath = getParentPath(filePath);
         setHighlightItem(filePath);
         if (document.getElementById(node.slug)) {
           scrollElementIntoView(node.slug, true);
@@ -473,7 +474,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         if (node.isDirectory) {
           navigateToBrowserPath(node.path);
         } else {
-          const folderPath = node.path.substring(0, node.path.lastIndexOf('/'));
+          const folderPath = getParentPath(node.path);
           setHighlightItem(node.path);
           navigateToBrowserPath(folderPath, node.path);
         }
@@ -488,9 +489,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       } : {}),
       ...(activeEditor && !node.isDirectory ? {
         onPasteLink: () => {
-          const editorDir = activeEditor.path.substring(0, activeEditor.path.lastIndexOf('/'));
+          const editorDir = getParentPath(activeEditor.path);
           const relPath = computeRelativePath(editorDir, node.path);
-          const label = node.path.substring(node.path.lastIndexOf('/') + 1).replace(/\.md$/, '');
+          const label = getFileName(node.path).replace(/\.md$/, '');
           if (node.path.endsWith('.md')) {
             window.electronAPI.readFile(node.path).then((raw) => {
               const id = extractFrontMatterId(raw);

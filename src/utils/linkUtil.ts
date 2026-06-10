@@ -1,4 +1,5 @@
 import { isImageFile } from './fileUtil';
+import { getFileName, getParentPath, splitPathSegments } from './pathUtil';
 
 /**
  * Decode a percent-encoded markdown URL back into a filesystem path.
@@ -17,13 +18,14 @@ export function decodeMarkdownUrl(url: string): string {
 
 /**
  * Compute the path of `toPath` relative to the directory containing `fromFilePath`.
- * Both arguments are absolute, forward-slash paths. The result uses `../` segments
- * to climb out of the source directory as needed.
+ * Both arguments are absolute paths using either separator. The result always
+ * uses forward slashes (markdown URL convention) with `../` segments to climb
+ * out of the source directory as needed.
  */
 export function getRelativePath(fromFilePath: string, toPath: string): string {
-  const fromDir = fromFilePath.substring(0, fromFilePath.lastIndexOf('/'));
-  const fromParts = fromDir.split('/').filter(Boolean);
-  const toParts = toPath.split('/').filter(Boolean);
+  const fromDir = getParentPath(fromFilePath);
+  const fromParts = splitPathSegments(fromDir);
+  const toParts = splitPathSegments(toPath);
 
   // Skip the shared leading path segments.
   let i = 0;
@@ -44,7 +46,7 @@ export function getRelativePath(fromFilePath: string, toPath: string): string {
 export function buildMarkdownLinks(currentFilePath: string, linkPaths: string[]): string {
   return linkPaths
     .map((fullPath) => {
-      const name = fullPath.substring(fullPath.lastIndexOf('/') + 1);
+      const name = getFileName(fullPath);
       const relPath = getRelativePath(currentFilePath, fullPath);
       // Percent-encode each path segment so spaces and other special characters
       // don't break the markdown link, while preserving the path separators.

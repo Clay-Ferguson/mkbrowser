@@ -2,6 +2,7 @@ import type React from 'react';
 import type { ItemData, FileNode } from '../types/types';
 import { pasteCutItems } from '../edit';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
+import { ensureTrailingSep, getParentPath } from './pathUtil';
 
 /**
  * Custom drag-and-drop MIME type used to carry a single dragged file/folder between
@@ -67,9 +68,9 @@ export function makeEntryDragStartHandler(payload: DragPayload) {
  */
 export function canDropInto(payload: DragPayload, destFolder: string): boolean {
   if (payload.path === destFolder) return false;
-  const sourceFolder = payload.path.substring(0, payload.path.lastIndexOf('/'));
+  const sourceFolder = getParentPath(payload.path);
   if (sourceFolder === destFolder) return false;
-  if (payload.isDirectory && destFolder.startsWith(payload.path + '/')) return false;
+  if (payload.isDirectory && destFolder.startsWith(ensureTrailingSep(payload.path))) return false;
   return true;
 }
 
@@ -82,7 +83,7 @@ export function canDropInto(payload: DragPayload, destFolder: string): boolean {
  * @param destFolder - Absolute path of the destination folder.
  */
 export async function moveEntryIntoFolder(payload: DragPayload, destFolder: string): Promise<MoveResult> {
-  const sourceFolder = payload.path.substring(0, payload.path.lastIndexOf('/'));
+  const sourceFolder = getParentPath(payload.path);
 
   // pasteCutItems only reads .path and .name; a minimal synthetic item is sufficient.
   const item = { path: payload.path, name: payload.name, isDirectory: payload.isDirectory } as ItemData;

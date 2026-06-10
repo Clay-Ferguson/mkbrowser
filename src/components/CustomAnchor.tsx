@@ -1,6 +1,7 @@
 import React from 'react';
 import { setHighlightItem, navigateToBrowserPath } from '../store';
 import { decodeMarkdownUrl } from '../utils/linkUtil';
+import { getParentPath, isAbsolutePath, pathSep, splitPath } from '../utils/pathUtil';
 
 interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   entryPath: string;
@@ -44,16 +45,17 @@ export default function CustomAnchor({ href, children, entryPath, ...props }: Cu
       const decodedHref = decodeMarkdownUrl(href);
 
       // Get the directory containing this markdown file
-      const currentDir = entryPath.substring(0, entryPath.lastIndexOf('/'));
+      const currentDir = getParentPath(entryPath);
 
       // Resolve the relative path
       let targetPath: string;
-      if (decodedHref.startsWith('/')) {
+      if (isAbsolutePath(decodedHref)) {
         // Absolute path from root - use as-is
         targetPath = decodedHref;
       } else {
-        // Relative path - resolve from current directory
-        const parts = currentDir.split('/');
+        // Relative path - resolve from current directory. Markdown hrefs use
+        // '/' regardless of platform; the base directory uses the native sep.
+        const parts = splitPath(currentDir);
         const hrefParts = decodedHref.split('/');
 
         for (const part of hrefParts) {
@@ -63,12 +65,11 @@ export default function CustomAnchor({ href, children, entryPath, ...props }: Cu
             parts.push(part);
           }
         }
-        targetPath = parts.join('/');
+        targetPath = parts.join(pathSep());
       }
 
       // Extract folder and filename from the resolved path
-      const lastSlash = targetPath.lastIndexOf('/');
-      const folderPath = lastSlash > 0 ? targetPath.substring(0, lastSlash) : targetPath;
+      const folderPath = getParentPath(targetPath) || targetPath;
 
       // Navigate to the folder and scroll to/highlight the file
       setHighlightItem(targetPath);

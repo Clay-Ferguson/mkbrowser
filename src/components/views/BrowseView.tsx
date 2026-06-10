@@ -77,6 +77,7 @@ import { generateTimestampFileName } from '../../utils/timeUtil';
 import { hasHumanMd } from '../../ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtil';
 import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../utils/fileOpsUtil';
+import { getFileName } from '../../utils/pathUtil';
 
 const ATTACH_SUFFIX = '.attach';
 
@@ -306,7 +307,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const generateExportFileName = (currentPath: string | null): string => {
     if (!currentPath) return 'export.md';
-    const folderName = currentPath.substring(currentPath.lastIndexOf('/') + 1);
+    const folderName = getFileName(currentPath);
     return `${folderName}-export.md`;
   };
 
@@ -413,7 +414,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         return null;
       }
       if (hasIndexFile && currentPath) {
-        const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
+        const fileName = getFileName(filePath);
         const attachFolderName = `${fileName}${ATTACH_SUFFIX}`;
         await window.electronAPI.insertIntoIndexYaml(currentPath, attachFolderName, fileName);
       }

@@ -1,12 +1,6 @@
 import type { ItemData } from './types/types';
 import { splitFile as splitFileUtil, joinFiles as joinFilesUtil } from './utils/editor/editUtil';
-
-/**
- * Get the parent path (directory) of a given path
- */
-function getParentPath(path: string): string {
-  return path.substring(0, path.lastIndexOf('/'));
-}
+import { getParentPath, joinPath } from './utils/pathUtil';
 
 /**
  * Find cut items that come from different folders than the first cut item
@@ -31,7 +25,7 @@ export async function findPasteDuplicates(
 ): Promise<string[]> {
   const duplicateNames = await Promise.all(
     cutItems.map(async (item) => {
-      const destPath = `${destinationPath}/${item.name}`;
+      const destPath = joinPath(destinationPath, item.name);
       const exists = await pathExists(destPath);
       return exists ? item.name : null;
     })
@@ -89,7 +83,7 @@ export async function pasteCutItems(
 
   // Move each item
   for (const item of cutItems) {
-    const newPath = `${destinationPath}/${item.name}`;
+    const newPath = joinPath(destinationPath, item.name);
     const success = await renameFile(item.path, newPath);
     if (!success) {
       return { success: false, error: `Failed to move ${item.name}` };

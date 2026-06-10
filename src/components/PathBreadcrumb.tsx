@@ -8,6 +8,7 @@ import {
   moveEntryIntoFolder,
   reloadExpandedTreeFolder,
 } from '../utils/dragAndDrop';
+import { joinPath, splitPathSegments } from '../utils/pathUtil';
 
 export type PathBreadcrumbProps = {
   rootPath: string;
@@ -21,20 +22,17 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
   const settings = useSettings();
   const highlightItem = useHighlightItem();
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
-  const normalizedRoot = rootPath.replace(/\/+$/, '');
-  const normalizedCurrent = currentPath.replace(/\/+$/, '');
+  const normalizedRoot = rootPath.replace(/[/\\]+$/, '');
+  const normalizedCurrent = currentPath.replace(/[/\\]+$/, '');
   const relativePath = normalizedCurrent.startsWith(normalizedRoot)
     ? normalizedCurrent.slice(normalizedRoot.length)
     : normalizedCurrent;
 
-  const parts = relativePath
-    .split('/')
-    .filter(Boolean);
+  const parts = splitPathSegments(relativePath);
 
   const buildPathForIndex = (index: number) => {
     if (index < 0) return normalizedRoot;
-    const segmentPath = parts.slice(0, index + 1).join('/');
-    return `${normalizedRoot}/${segmentPath}`;
+    return joinPath(normalizedRoot, ...parts.slice(0, index + 1));
   };
 
   const atRoot = normalizedCurrent === normalizedRoot;

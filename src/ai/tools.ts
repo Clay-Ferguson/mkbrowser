@@ -55,14 +55,14 @@ export async function validatePath(rawPath: string): Promise<string> {
   const starIdx = rawPath.indexOf('*');
   if (starIdx !== -1) {
     // Wildcards are only allowed in the last path component (the filename).
-    if (rawPath.indexOf('/', starIdx) !== -1) {
+    if (/[/\\]/.test(rawPath.substring(starIdx))) {
       throw new Error(
         `Wildcards are only allowed in the filename portion of the path. "${rawPath}" has a wildcard in a directory component.`
       );
     }
 
-    // Find the directory portion: everything before the last '/' preceding the '*'.
-    const lastSlash = rawPath.lastIndexOf('/', starIdx);
+    // Find the directory portion: everything before the last separator preceding the '*'.
+    const lastSlash = Math.max(rawPath.lastIndexOf('/', starIdx), rawPath.lastIndexOf('\\', starIdx));
     if (lastSlash === -1) {
       throw new Error(
         `Cannot determine directory for wildcard path "${rawPath}". Provide an absolute path.`
@@ -100,7 +100,7 @@ export async function validatePath(rawPath: string): Promise<string> {
 
   // Check that the resolved path is under at least one allowed folder
   const isAllowed = allowedFolders.some((folder) => {
-    const normalizedFolder = folder.endsWith('/') ? folder : folder + '/';
+    const normalizedFolder = folder.endsWith(path.sep) ? folder : folder + path.sep;
     return real === folder || real.startsWith(normalizedFolder);
   });
 

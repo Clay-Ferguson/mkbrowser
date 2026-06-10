@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { logger } from '../utils/logUtil';
 import { decodeMarkdownUrl } from '../utils/linkUtil';
+import { getParentPath, pathSep, splitPathSegments } from '../utils/pathUtil';
 
 // Cache for resolved image paths to avoid repeated file system lookups
 // Key format: `${markdownFilePath}|${imageSrc}` -> resolved absolute path or null if not found
@@ -31,13 +32,18 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<st
   imageSrc = decodeMarkdownUrl(imageSrc);
 
   // Get the directory containing this markdown file
-  const currentDir = entryPath.substring(0, entryPath.lastIndexOf('/'));
-  
-  // Resolve relative path components (../, ./, etc.) to get the "clean" relative path
+  const currentDir = getParentPath(entryPath);
+
+  // The leading root of the base dir ('/' on Linux/macOS, '' for 'C:\…' on
+  // Windows where the drive letter is the first segment).
+  const rootPrefix = currentDir.startsWith('/') || currentDir.startsWith('\\') ? pathSep() : '';
+
+  // Resolve relative path components (../, ./, etc.) to get the "clean" path.
+  // The image src uses '/' (markdown convention); the base dir uses the native sep.
   const resolveRelativePath = (baseDir: string, relativePath: string): string => {
-    const parts = baseDir.split('/').filter(p => p !== '');
+    const parts = splitPathSegments(baseDir);
     const relParts = relativePath.split('/');
-    
+
     for (const part of relParts) {
       if (part === '..') {
         parts.pop();
@@ -45,33 +51,31 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<st
         parts.push(part);
       }
     }
-    return '/' + parts.join('/');
+    return rootPrefix + parts.join(pathSep());
   };
-  
+
   // First, try resolving relative to the markdown file's directory (standard behavior)
   const standardPath = resolveRelativePath(currentDir, imageSrc);
   if (await window.electronAPI.pathExists(standardPath)) {
     imagePathCache.set(cacheKey, standardPath);
     return standardPath;
   }
-  
+
   // If standard resolution failed, walk up directories trying to find the image
   // This handles cases where the image path assumes a different project root
-  const pathParts = currentDir.split('/').filter(p => p !== '');
-  
+  const pathParts = splitPathSegments(currentDir);
+
   for (let depth = 0; depth < MAX_IMAGE_SEARCH_DEPTH && pathParts.length > 0; depth++) {
-    // Try the image path relative to this ancestor directory
-    const ancestorDir = '/' + pathParts.join('/');
-    const candidatePath = ancestorDir + '/' + imageSrc;
-    
-    // Normalize the path (handle any ../ in the imageSrc itself)
-    const normalizedPath = resolveRelativePath('/', candidatePath.substring(1));
-    
+    // Try the image path relative to this ancestor directory (resolveRelativePath
+    // also normalizes any ../ inside the imageSrc itself)
+    const ancestorDir = rootPrefix + pathParts.join(pathSep());
+    const normalizedPath = resolveRelativePath(ancestorDir, imageSrc);
+
     if (await window.electronAPI.pathExists(normalizedPath)) {
       imagePathCache.set(cacheKey, normalizedPath);
       return normalizedPath;
     }
-    
+
     // Move up one directory
     pathParts.pop();
   }

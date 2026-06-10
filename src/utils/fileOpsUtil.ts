@@ -12,6 +12,7 @@ import {
 } from '../store';
 import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from '../edit';
 import { pasteFromClipboard } from './clipboard';
+import { getParentPath, joinPath } from './pathUtil';
 
 /**
  * Moves all cut items in the store into the given folder, then reconciles the index
@@ -45,7 +46,7 @@ export async function pasteIntoFolder(
     return;
   }
 
-  const sourceFolder = cutItems[0].path.substring(0, cutItems[0].path.lastIndexOf('/'));
+  const sourceFolder = getParentPath(cutItems[0].path);
   const movedPaths = cutItems.map((item) => item.path);
   deleteItems(movedPaths);
   clearAllCutItems();
@@ -188,7 +189,7 @@ export async function createFileOp(
   onCloseDialog: () => void
 ): Promise<void> {
   if (!currentPath) return;
-  const filePath = `${currentPath}/${fileName}`;
+  const filePath = joinPath(currentPath, fileName);
   const result = await window.electronAPI.createFile(filePath, '');
 
   if (result.success) {
@@ -238,7 +239,7 @@ export async function createFolderOp(
   onCloseDialog: () => void
 ): Promise<void> {
   if (!currentPath) return;
-  const folderPath = `${currentPath}/${folderName}`;
+  const folderPath = joinPath(currentPath, folderName);
   const result = await window.electronAPI.createFolder(folderPath);
 
   if (result.success) {
@@ -335,7 +336,7 @@ export async function pasteFromClipboardOp(
   );
 
   if (result.success && result.fileName) {
-    const filePath = `${currentPath}/${result.fileName}`;
+    const filePath = joinPath(currentPath, result.fileName);
     setPendingScrollToFile(filePath);
     await window.electronAPI.reconcileIndexedFiles(currentPath, false);
     onRefreshDirectory();

@@ -1,3 +1,5 @@
+import { joinPath } from './pathUtil';
+
 /**
  * Generate a timestamp-based filename
  */
@@ -44,7 +46,7 @@ export async function pasteFromClipboard(
         else if (imageType === 'image/webp') ext = '.webp';
         
         const fileName = generateTimestampFilename(ext);
-        const filePath = `${currentPath}/${fileName}`;
+        const filePath = joinPath(currentPath, fileName);
         
         const success = await writeFileBinary(filePath, base64);
         if (success) {
@@ -60,7 +62,7 @@ export async function pasteFromClipboard(
         const text = await blob.text();
         
         const fileName = generateTimestampFilename('.md');
-        const filePath = `${currentPath}/${fileName}`;
+        const filePath = joinPath(currentPath, fileName);
         
         const result = await writeFile(filePath, text);
         if (result.ok) {
@@ -78,7 +80,7 @@ export async function pasteFromClipboard(
       const text = await navigator.clipboard.readText();
       if (text) {
         const fileName = generateTimestampFilename('.md');
-        const filePath = `${currentPath}/${fileName}`;
+        const filePath = joinPath(currentPath, fileName);
 
         const result = await writeFile(filePath, text);
         if (result.ok) {

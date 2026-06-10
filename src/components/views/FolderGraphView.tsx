@@ -22,6 +22,7 @@ import {
   setHighlightItem,
 } from '../../store';
 import { parseFrontMatter } from '../../utils/fileUtil';
+import { getParentPath } from '../../utils/pathUtil';
 
 interface SimNode extends SimulationNodeDatum {
   id: string;
@@ -178,7 +179,7 @@ function FolderGraphView() {
       // Files are grouped by their parent folder so cross-folder file pairs can
       // be repelled extra; folders opt out (undefined). Consumed only when
       // USE_CROSS_FOLDER_REPULSION is on.
-      crossRepelGroup: n.isDirectory ? undefined : n.id.substring(0, n.id.lastIndexOf('/')),
+      crossRepelGroup: n.isDirectory ? undefined : getParentPath(n.id),
     }));
     const simLinks: SimLink[] = rawLinks.map(l => ({ source: l.source, target: l.target }));
 
@@ -277,7 +278,7 @@ function FolderGraphView() {
       if (d.isDirectory) {
         navigateToBrowserPath(d.id);
       } else {
-        const parent = d.id.substring(0, d.id.lastIndexOf('/'));
+        const parent = getParentPath(d.id);
         navigateToBrowserPath(parent, d.id);
       }
     });

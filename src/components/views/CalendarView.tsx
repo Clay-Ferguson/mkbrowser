@@ -7,6 +7,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useSettings, useActiveCalendarFolder } from '../../store';
 import type { CalendarEvent } from '../../types/types';
 import { logger } from '../../utils/logUtil';
+import { getParentPath, joinPath } from '../../utils/pathUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
 
 function formatDueDate(d: Date): string {
@@ -88,7 +89,7 @@ export default function CalendarView() {
       return;
     }
     const normalizedName = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
-    const filePath = `${folder}/${normalizedName}`;
+    const filePath = joinPath(folder, normalizedName);
     try {
       const result = await window.electronAPI.createFile(filePath, content);
       if (!result.success) {
@@ -110,8 +111,7 @@ export default function CalendarView() {
 
   const handleSelectEvent = (event: CalendarEvent) => {
     if (!event.filePath) return;
-    const lastSlash = event.filePath.lastIndexOf('/');
-    const folderPath = event.filePath.substring(0, lastSlash);
+    const folderPath = getParentPath(event.filePath);
     setHighlightItem(event.filePath);
     navigateToBrowserPath(folderPath, event.filePath);
   };

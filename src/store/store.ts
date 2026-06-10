@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import type { AppState, AppView, AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchSortBy, SearchSortDirection, ScrollPositions, FolderAnalysisState, FolderGraphState, TreeNode, FileNode, MarkdownHeadingNode, CalendarEvent } from '../types/types';
 import { createItemData } from '../types/types';
 import { splitFrontMatter, getTagsFromYaml, getPropsFromYaml } from '../utils/tagUtil';
+import { ensureTrailingSep, getParentPath } from '../utils/pathUtil';
 
 /**
  * Default settings
@@ -581,7 +582,7 @@ export function getExpansionCounts(directoryPath: string): ExpansionCounts {
     if (item.isDirectory) continue;
 
     // Check if this item is a direct child of the directory
-    const parentPath = itemPath.substring(0, itemPath.lastIndexOf('/'));
+    const parentPath = getParentPath(itemPath);
     if (parentPath !== directoryPath) continue;
 
     if (item.isExpanded) {
@@ -1075,7 +1076,7 @@ export function useActiveCalendarFolder(): string | null {
  */
 export function deleteCalendarEventsUnderPath(deletedPath: string): void {
   if (!state.calendarEvents) return;
-  const normalizedDir = deletedPath.endsWith('/') ? deletedPath : `${deletedPath}/`;
+  const normalizedDir = ensureTrailingSep(deletedPath);
   const remaining = state.calendarEvents.filter(
     e => e.filePath !== deletedPath && !(e.filePath?.startsWith(normalizedDir) ?? false),
   );

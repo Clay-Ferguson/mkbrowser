@@ -42,6 +42,7 @@ import CustomCode from '../CustomCode';
 import CustomPre from '../CustomPre';
 import { createBlockClickComponents } from '../blockClickComponents';
 import { logger } from '../../utils/logUtil';
+import { getParentPath } from '../../utils/pathUtil';
 import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
 import {
   useEditableEntry,
@@ -196,7 +197,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     });
 
     try {
-      const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
+      const parentFolder = getParentPath(entry.path);
       const result = await window.electronAPI.askAi(textToSend, parentFolder);
       unsubStart();
       unsubChunk(); // no-ops if already fired; cancels if scripted (no events came)
@@ -286,7 +287,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const handleReply = async () => {
     setIsReplyLoading(true);
     try {
-      const parentFolder = entry.path.substring(0, entry.path.lastIndexOf('/'));
+      const parentFolder = getParentPath(entry.path);
       const result = await window.electronAPI.replyToAi(parentFolder, true);
       if ('error' in result) {
         logger.error('Reply error:', result.error);
@@ -420,7 +421,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       {view === 'thread' && (
         <button
           onClick={() => {
-            const folderPath = entry.path.substring(0, entry.path.lastIndexOf('/'));
+            const folderPath = getParentPath(entry.path);
             setHighlightItem(entry.path);
             navigateToBrowserPath(folderPath, entry.path);
           }}

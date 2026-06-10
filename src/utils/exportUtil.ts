@@ -13,7 +13,7 @@ function rewriteImagePathsToAbsolute(content: string, sourceFilePath: string): s
       rawPath.startsWith('http://') ||
       rawPath.startsWith('https://') ||
       rawPath.startsWith('//') ||
-      rawPath.startsWith('/') ||
+      path.isAbsolute(rawPath) ||
       rawPath.startsWith('data:') ||
       rawPath.startsWith('#')
     );
