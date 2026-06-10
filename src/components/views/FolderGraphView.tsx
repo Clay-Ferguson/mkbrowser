@@ -89,7 +89,7 @@ const CHARGE_DISTANCE_MAX = 180;
 const USE_CROSS_FOLDER_REPULSION = true;
 // Magnitude of the *extra* cross-folder repulsion. Equal to |CHARGE_STRENGTH|
 // makes the total exactly double for cross-folder file pairs.
-const CROSS_FOLDER_EXTRA_STRENGTH = 330; // try 220, 330, or 440
+const CROSS_FOLDER_EXTRA_STRENGTH = 440; // try 220, 330, or 440
 
 // Extra repulsion between a file and any folder that is NOT its parent, so
 // files don't crowd up against neighboring folders' hubs. A file and its own
