@@ -380,13 +380,17 @@ function FolderGraphView() {
       const children = hovered?.isDirectory
         ? childIdsByFolder.get(hovered.id) ?? new Set<string>()
         : null;
-      // Links along the path to root to paint red.
+      // Links along the path to root to paint red, plus the nodes on that path
+      // (the hovered node and each ancestor) whose labels also turn red.
       const redLinks = new Set<string>();
+      const redNodes = new Set<string>();
       if (hovered) {
+        redNodes.add(hovered.id);
         let cur = hovered.id;
         let parent = parentByChild.get(cur);
         while (parent !== undefined) {
           redLinks.add(linkKey(parent, cur));
+          redNodes.add(parent);
           cur = parent;
           parent = parentByChild.get(cur);
         }
@@ -395,8 +399,9 @@ function FolderGraphView() {
       const hl = highlightRef.current;
       circleSel.attr('fill', d => isGreen(d) ? COLOR_CONTAINS : colorForNode(d, hl === d.id));
       labelSel
-        .attr('fill', d => isGreen(d) ? COLOR_CONTAINS : colorForNode(d, hl === d.id))
-        .attr('font-weight', d => (isGreen(d) || hl === d.id) ? 'bold' : 'normal');
+        .attr('fill', d =>
+          redNodes.has(d.id) ? COLOR_PATH : isGreen(d) ? COLOR_CONTAINS : colorForNode(d, hl === d.id))
+        .attr('font-weight', d => (redNodes.has(d.id) || isGreen(d) || hl === d.id) ? 'bold' : 'normal');
       const linkColor = (d: SimLink): string | null => {
         const s = idOf(d.source);
         const t = idOf(d.target);
