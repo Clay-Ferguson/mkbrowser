@@ -84,6 +84,27 @@ const USE_CROSS_FOLDER_REPULSION = true;
 // makes the total exactly double for cross-folder file pairs.
 const CROSS_FOLDER_EXTRA_STRENGTH = 330; // try 220, 330, or 440
 
+// Long-range repulsion between folder hubs. The baseline charge is capped at
+// CHARGE_DISTANCE_MAX, so in graphs whose natural diameter exceeds that range
+// nothing pushes separated subtrees apart and the layout compresses into one
+// dense mat. This force restores cluster-scale separation: only folders emit
+// it (files have zero strength here, keeping their charge local), but every
+// node feels it, which is what carries whole clumps away from each other.
+// Strength scales with direct child count so bigger clusters claim more room.
+const USE_FOLDER_HUB_REPULSION = true;
+const FOLDER_HUB_STRENGTH_BASE = -200;
+const FOLDER_HUB_STRENGTH_PER_CHILD = -40;
+// Most-negative strength a single hub can reach, so huge folders don't blast
+// the rest of the graph off-screen.
+const FOLDER_HUB_STRENGTH_MIN = -2200;
+const FOLDER_HUB_DISTANCE_MAX = 1500;
+
+// Link rest lengths. Folder→file links stay short so files hug their parent
+// (tight clumps); folder→subfolder links are longer so hubs — and therefore
+// the clumps around them — get structural spacing from each other.
+const LINK_DISTANCE_FILE = 60;
+const LINK_DISTANCE_FOLDER = 130;
+
 // Node colors by type, tuned for a dark slate-900 background.
 const COLOR_ROOT = '#ef4444';     // bright red
 const COLOR_FOLDER = '#fb923c';   // orange
@@ -312,14 +333,32 @@ function FolderGraphView() {
     });
 
     const sim: Simulation<SimNode, SimLink> = forceSimulation<SimNode>(simNodes)
-      .force('link', forceLink<SimNode, SimLink>(simLinks).id(d => d.id).distance(60).strength(0.7))
+      .force('link', forceLink<SimNode, SimLink>(simLinks)
+        .id(d => d.id)
+        // Source/target are resolved to nodes before this accessor runs.
+        .distance(l => (l.target as SimNode).isDirectory ? LINK_DISTANCE_FOLDER : LINK_DISTANCE_FILE)
+        .strength(0.7))
       // distanceMax caps the repulsion's range. Without it, every node repels
       // every other regardless of distance, so the summed push between two
       // separated subtrees stretches the single link bridging them (most
       // visibly the root's links) far past its target length. Limiting charge
-      // to a local radius lets links — not long-range repulsion — set the
-      // distance between clusters.
+      // to a local radius keeps the per-node repulsion from inflating the whole
+      // layout; cluster-scale spacing is the hub force's job (below).
       .force('charge', forceManyBody<SimNode>().strength(CHARGE_STRENGTH).distanceMax(CHARGE_DISTANCE_MAX))
+      // Folder hubs repel at long range so separated subtrees become distinct
+      // clumps instead of compressing into one mat once the graph outgrows
+      // CHARGE_DISTANCE_MAX. Only folders emit (few of them, so root links
+      // don't get the runaway stretch that uncapped all-pairs charge caused).
+      .force('hubRepel', USE_FOLDER_HUB_REPULSION
+        ? forceManyBody<SimNode>()
+            .strength(d => d.isDirectory
+              ? Math.max(
+                  FOLDER_HUB_STRENGTH_MIN,
+                  FOLDER_HUB_STRENGTH_BASE + FOLDER_HUB_STRENGTH_PER_CHILD * d.childCount,
+                )
+              : 0)
+            .distanceMax(FOLDER_HUB_DISTANCE_MAX)
+        : null)
       // Extra repulsion between files in different folders (layered on top of the
       // baseline charge above), capped at the same range so the doubling stays local.
       .force('crossRepel', USE_CROSS_FOLDER_REPULSION
