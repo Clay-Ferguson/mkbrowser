@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn, execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { fdir } from 'fdir';
 import { getSortedDirEntries } from './indexUtil';
+import { findTerminalEmulator } from './launcherUtil';
 
 function rewriteImagePathsToAbsolute(content: string, sourceFilePath: string): string {
   const sourceDir = path.dirname(sourceFilePath);
@@ -154,33 +155,9 @@ export async function exportToPdf(
     };
   }
 
-  // Try common Linux terminal emulators in order of preference
-  const terminals = [
-    { cmd: 'x-terminal-emulator', args: ['-e'] },
-    { cmd: 'gnome-terminal', args: ['--'] },
-    { cmd: 'konsole', args: ['-e'] },
-    { cmd: 'xfce4-terminal', args: ['-e'] },
-    { cmd: 'xterm', args: ['-e'] },
-    { cmd: 'kitty', args: ['--'] },
-    { cmd: 'alacritty', args: ['-e'] },
-  ];
-
-  // Find the first available terminal
-  let terminalCmd: string | null = null;
-  let terminalArgs: string[] = [];
-
-  for (const terminal of terminals) {
-    try {
-      execSync(`which ${terminal.cmd}`, { stdio: 'ignore' });
-      terminalCmd = terminal.cmd;
-      terminalArgs = terminal.args;
-      break;
-    } catch {
-      // Terminal not found, try next
-    }
-  }
-
-  if (!terminalCmd) {
+  // Find the first available terminal (probed once and cached in launcherUtil)
+  const terminal = await findTerminalEmulator();
+  if (!terminal) {
     return {
       success: false,
       error: 'No terminal emulator found. Please install gnome-terminal, konsole, xterm, or another terminal emulator.',
@@ -202,9 +179,9 @@ export async function exportToPdf(
 
   // Spawn the terminal with the script (optional glossary path as $3)
   const scriptArgs = glossaryPath
-    ? [...terminalArgs, scriptPath, markdownPath, pdfPath, glossaryPath]
-    : [...terminalArgs, scriptPath, markdownPath, pdfPath];
-  const child = spawn(terminalCmd, scriptArgs, {
+    ? [...terminal.args, scriptPath, markdownPath, pdfPath, glossaryPath]
+    : [...terminal.args, scriptPath, markdownPath, pdfPath];
+  const child = spawn(terminal.cmd, scriptArgs, {
     detached: true,
     stdio: 'ignore',
   });

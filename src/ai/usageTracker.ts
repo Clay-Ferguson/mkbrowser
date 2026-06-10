@@ -8,6 +8,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { app } from 'electron';
+import { logger } from '../utils/logUtil';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -71,31 +72,38 @@ function defaultUsage(): AIUsageData {
 }
 
 /** Read and parse ai-usage.json, returning defaults if it doesn't exist. */
-export function loadUsage(): AIUsageData {
+export async function loadUsage(): Promise<AIUsageData> {
   try {
-    if (fs.existsSync(USAGE_FILE)) {
-      const raw = fs.readFileSync(USAGE_FILE, 'utf-8');
-      const parsed = JSON.parse(raw) as AIUsageData;
-      // Ensure all expected fields exist (forward-compatible with older files)
-      return {
-        totalInputTokens: parsed.totalInputTokens ?? 0,
-        totalOutputTokens: parsed.totalOutputTokens ?? 0,
-        totalRequests: parsed.totalRequests ?? 0,
-        byProvider: parsed.byProvider ?? {},
-      };
-    }
+    const raw = await fs.promises.readFile(USAGE_FILE, 'utf-8');
+    const parsed = JSON.parse(raw) as AIUsageData;
+    // Ensure all expected fields exist (forward-compatible with older files)
+    return {
+      totalInputTokens: parsed.totalInputTokens ?? 0,
+      totalOutputTokens: parsed.totalOutputTokens ?? 0,
+      totalRequests: parsed.totalRequests ?? 0,
+      byProvider: parsed.byProvider ?? {},
+    };
   } catch {
-    // Corrupt file — fall through to defaults
+    // Missing or corrupt file — fall through to defaults
+    return defaultUsage();
   }
-  return defaultUsage();
 }
 
 /** Write usage data to disk. Creates the config dir if needed. */
-function saveUsage(data: AIUsageData): void {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-  fs.writeFileSync(USAGE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+async function saveUsage(data: AIUsageData): Promise<void> {
+  await fs.promises.mkdir(CONFIG_DIR, { recursive: true });
+  await fs.promises.writeFile(USAGE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+// Serializes the read-modify-write cycles below. The old sync implementation
+// was atomic by blocking the event loop; with async I/O, two overlapping
+// recordUsage calls could otherwise lose one of the increments.
+let usageWriteQueue: Promise<void> = Promise.resolve();
+
+function enqueueUsageWrite(task: () => Promise<void>, label: string): Promise<void> {
+  const result = usageWriteQueue.then(task);
+  usageWriteQueue = result.catch((err: unknown) => logger.error(`${label}:`, err));
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -110,26 +118,28 @@ export function recordUsage(
   provider: string,
   inputTokens: number,
   outputTokens: number
-): void {
-  const data = loadUsage();
+): Promise<void> {
+  return enqueueUsageWrite(async () => {
+    const data = await loadUsage();
 
-  data.totalInputTokens += inputTokens;
-  data.totalOutputTokens += outputTokens;
-  data.totalRequests += 1;
+    data.totalInputTokens += inputTokens;
+    data.totalOutputTokens += outputTokens;
+    data.totalRequests += 1;
 
-  if (!data.byProvider[provider]) {
-    data.byProvider[provider] = { inputTokens: 0, outputTokens: 0, requests: 0 };
-  }
-  data.byProvider[provider].inputTokens += inputTokens;
-  data.byProvider[provider].outputTokens += outputTokens;
-  data.byProvider[provider].requests += 1;
+    if (!data.byProvider[provider]) {
+      data.byProvider[provider] = { inputTokens: 0, outputTokens: 0, requests: 0 };
+    }
+    data.byProvider[provider].inputTokens += inputTokens;
+    data.byProvider[provider].outputTokens += outputTokens;
+    data.byProvider[provider].requests += 1;
 
-  saveUsage(data);
+    await saveUsage(data);
+  }, 'Failed to record AI usage');
 }
 
 /** Reset all usage stats to zero. */
-export function resetUsage(): void {
-  saveUsage(defaultUsage());
+export function resetUsage(): Promise<void> {
+  return enqueueUsageWrite(() => saveUsage(defaultUsage()), 'Failed to reset AI usage');
 }
 
 /**
@@ -151,8 +161,8 @@ export function estimateCost(
  * Uses provider default pricing for cost estimation (since we don't
  * track which specific model was used per-request in cumulative mode).
  */
-export function getUsageWithCosts(): AIUsageWithCosts {
-  const data = loadUsage();
+export async function getUsageWithCosts(): Promise<AIUsageWithCosts> {
+  const data = await loadUsage();
   const estimatedCosts: Record<string, number> = {};
   let totalEstimatedCost = 0;
 

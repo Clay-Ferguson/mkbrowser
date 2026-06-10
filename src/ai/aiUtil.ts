@@ -289,7 +289,7 @@ export async function handleAskAI(
   if (usage) {
     const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
     const provider = activeModel?.provider ?? 'ANTHROPIC';
-    recordUsage(provider, usage.input_tokens, usage.output_tokens);
+    await recordUsage(provider, usage.input_tokens, usage.output_tokens);
   }
 
   // Write the response
@@ -434,7 +434,7 @@ export async function handleRewriteContent(
   // Record token usage if available
   if (result.usage) {
     const provider = activeModel?.provider ?? 'ANTHROPIC';
-    recordUsage(provider, result.usage.input_tokens, result.usage.output_tokens);
+    await recordUsage(provider, result.usage.input_tokens, result.usage.output_tokens);
   }
 
   return { rewrittenContent: result.content, usage: result.usage };
@@ -496,7 +496,7 @@ export async function handleRewriteContentSection(
   // Record token usage if available
   if (result.usage) {
     const provider = activeModel?.provider ?? 'ANTHROPIC';
-    recordUsage(provider, result.usage.input_tokens, result.usage.output_tokens);
+    await recordUsage(provider, result.usage.input_tokens, result.usage.output_tokens);
   }
 
   // Splice the rewritten portion back into the original content using offsets

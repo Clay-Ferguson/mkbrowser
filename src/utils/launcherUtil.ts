@@ -1,18 +1,60 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn, execSync } from 'node:child_process';
+import { spawn, exec } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execAsync = promisify(exec);
+
+// Terminal emulators to probe for, in order of preference.
+const TERMINALS = [
+  { cmd: 'x-terminal-emulator', args: ['-e'] },
+  { cmd: 'gnome-terminal', args: ['--'] },
+  { cmd: 'konsole', args: ['-e'] },
+  { cmd: 'xfce4-terminal', args: ['-e'] },
+  { cmd: 'xterm', args: ['-e'] },
+  { cmd: 'kitty', args: ['--'] },
+  { cmd: 'alacritty', args: ['-e'] },
+];
+
+const NO_TERMINAL_ERROR =
+  'No terminal emulator found. Please install gnome-terminal, konsole, xterm, or another terminal emulator.';
+
+// Cached probe result: undefined = not probed yet, null = none installed.
+let cachedTerminal: { cmd: string; args: string[] } | null | undefined;
+
+/**
+ * Find the first available terminal emulator. The probe runs `which` for each
+ * candidate, so the result is cached after the first call.
+ */
+export async function findTerminalEmulator(): Promise<{ cmd: string; args: string[] } | null> {
+  if (cachedTerminal !== undefined) return cachedTerminal;
+
+  for (const terminal of TERMINALS) {
+    try {
+      await execAsync(`which ${terminal.cmd}`);
+      cachedTerminal = terminal;
+      return terminal;
+    } catch {
+      // not found, try next
+    }
+  }
+
+  cachedTerminal = null;
+  return null;
+}
 
 export async function runShellScript(filePath: string): Promise<{ success: boolean; error?: string }> {
   if (!filePath.endsWith('.sh')) {
     return { success: false, error: `Not a shell script: ${filePath}` };
   }
 
-  if (!fs.existsSync(filePath)) {
+  // Read up to the first 10 lines to check for Terminal=false directive
+  let content: string;
+  try {
+    content = await fs.promises.readFile(filePath, 'utf-8');
+  } catch {
     return { success: false, error: `Script not found: ${filePath}` };
   }
-
-  // Read up to the first 10 lines to check for Terminal=false directive
-  const content = fs.readFileSync(filePath, 'utf-8');
   const first10Lines = content.split('\n').slice(0, 10);
   const hideTerminal = first10Lines.some((line) => line.trim() === '# Terminal=false');
 
@@ -29,39 +71,12 @@ export async function runShellScript(filePath: string): Promise<{ success: boole
     return { success: true };
   }
 
-  // Find an available terminal emulator
-  const terminals = [
-    { cmd: 'x-terminal-emulator', args: ['-e'] },
-    { cmd: 'gnome-terminal', args: ['--'] },
-    { cmd: 'konsole', args: ['-e'] },
-    { cmd: 'xfce4-terminal', args: ['-e'] },
-    { cmd: 'xterm', args: ['-e'] },
-    { cmd: 'kitty', args: ['--'] },
-    { cmd: 'alacritty', args: ['-e'] },
-  ];
-
-  let terminalCmd: string | null = null;
-  let terminalArgs: string[] = [];
-
-  for (const terminal of terminals) {
-    try {
-      execSync(`which ${terminal.cmd}`, { stdio: 'ignore' });
-      terminalCmd = terminal.cmd;
-      terminalArgs = terminal.args;
-      break;
-    } catch {
-      // not found, try next
-    }
+  const terminal = await findTerminalEmulator();
+  if (!terminal) {
+    return { success: false, error: NO_TERMINAL_ERROR };
   }
 
-  if (!terminalCmd) {
-    return {
-      success: false,
-      error: 'No terminal emulator found. Please install gnome-terminal, konsole, xterm, or another terminal emulator.',
-    };
-  }
-
-  const child = spawn(terminalCmd, [...terminalArgs, filePath], {
+  const child = spawn(terminal.cmd, [...terminal.args, filePath], {
     cwd: scriptDir,
     detached: true,
     stdio: 'ignore',
@@ -72,35 +87,12 @@ export async function runShellScript(filePath: string): Promise<{ success: boole
 }
 
 export async function runInExternalTerminal(command: string): Promise<{ success: boolean; error?: string }> {
-  const terminals = [
-    { cmd: 'x-terminal-emulator', args: ['-e'] },
-    { cmd: 'gnome-terminal', args: ['--'] },
-    { cmd: 'konsole', args: ['-e'] },
-    { cmd: 'xfce4-terminal', args: ['-e'] },
-    { cmd: 'xterm', args: ['-e'] },
-    { cmd: 'kitty', args: ['--'] },
-    { cmd: 'alacritty', args: ['-e'] },
-  ];
-
-  let terminalCmd: string | null = null;
-  let terminalArgs: string[] = [];
-
-  for (const terminal of terminals) {
-    try {
-      execSync(`which ${terminal.cmd}`, { stdio: 'ignore' });
-      terminalCmd = terminal.cmd;
-      terminalArgs = terminal.args;
-      break;
-    } catch {
-      // not found, try next
-    }
+  const terminal = await findTerminalEmulator();
+  if (!terminal) {
+    return { success: false, error: NO_TERMINAL_ERROR };
   }
 
-  if (!terminalCmd) {
-    return { success: false, error: 'No terminal emulator found. Please install gnome-terminal, konsole, xterm, or another terminal emulator.' };
-  }
-
-  const child = spawn(terminalCmd, [...terminalArgs, 'bash', '-c', `${command}; exec bash`], {
+  const child = spawn(terminal.cmd, [...terminal.args, 'bash', '-c', `${command}; exec bash`], {
     detached: true,
     stdio: 'ignore',
   });

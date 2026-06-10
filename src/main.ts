@@ -704,7 +704,7 @@ function setupIpcHandlers(): void {
 
   // Reset AI usage statistics
   ipcMain.handle('reset-ai-usage', async () => {
-    resetUsage();
+    await resetUsage();
   });
 
   // llama.cpp server lifecycle — health check, start, stop
