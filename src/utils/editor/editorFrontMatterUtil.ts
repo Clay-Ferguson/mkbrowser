@@ -151,7 +151,12 @@ export const frontMatterCursorGuard = EditorState.transactionFilter.of((tr) => {
   });
   if (!changed) return tr;
 
-  return [tr, { selection: EditorSelection.create(ranges, sel.mainIndex) }];
+  // `sequential: true` makes this appended spec resolve its selection against the
+  // document *after* tr's changes (tr.newDoc) rather than the start document. Without
+  // it, a selection position computed from tr.newDoc (e.g. just past freshly-inserted
+  // front matter) is validated against the original — often empty — document and throws
+  // "Position N is out of range for changeset of length 0", which unmounts the editor.
+  return [tr, { selection: EditorSelection.create(ranges, sel.mainIndex), sequential: true }];
 });
 
 export const frontMatterTheme = EditorView.baseTheme({
