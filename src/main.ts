@@ -212,8 +212,8 @@ function setupIpcHandlers(): void {
       if (filePath.toLowerCase().endsWith('.md')) {
         const { yaml: frontMatter, content: body } = parseFrontMatter(finalContent);
         if (frontMatter) {
-          frontMatterFileSaved(filePath, frontMatter, body).catch(() => {
-            // errors already logged inside frontMatterFileSaved
+          frontMatterFileSaved(filePath, frontMatter, body).catch((err: unknown) => {
+            logger.error(`Front-matter post-save processing failed for ${filePath}:`, err);
           });
         }
       }

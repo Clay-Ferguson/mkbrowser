@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { fdir } from 'fdir';
 import yaml from 'js-yaml';
 import { RRule, Weekday } from 'rrule';
+import { logger } from '../logUtil';
 
 export interface CalendarEventResult {
   id: string;
@@ -202,7 +203,10 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
     }
 
     return [{ id: filePath, title, start: startMs, end: endMs, filePath, snippet }];
-  } catch {
+  } catch (err) {
+    // Returning [] keeps a single bad file from breaking the whole calendar,
+    // but the failure must not vanish silently (read errors, malformed YAML).
+    logger.error(`Failed to load calendar entry from ${filePath}:`, err);
     return [];
   }
 }
