@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test — AI Rewrite with a Custom Persona
@@ -24,6 +24,7 @@ test.describe('AI Rewrite Persona Demo', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
+    await resetSettings(mainWindow);
 
     // Remove any leftover file from a previous run so the Create File step is
     // always working with a clean slate.

@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, setCheckbox, insertText, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, setCheckbox, insertText, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Generate PDF Feature
@@ -21,6 +21,7 @@ test.describe('Generate PDF Demo', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
+    await resetSettings(mainWindow);
 
     let step = 1;
 

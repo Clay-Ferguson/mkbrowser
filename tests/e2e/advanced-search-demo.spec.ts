@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Advanced Search Feature
@@ -17,6 +17,7 @@ test.describe('Advanced Search Demo', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
+    await resetSettings(mainWindow);
 
     let step = 1;
 

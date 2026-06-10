@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, resetSettings } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Search Feature
@@ -15,6 +15,7 @@ test.describe('Search Demo', () => {
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
 
     cleanupScreenshots(screenshotDir);
+    await resetSettings(mainWindow);
 
     let step = 1;
 

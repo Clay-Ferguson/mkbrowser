@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test: Calendar View Feature
@@ -21,6 +21,7 @@ test.describe('Calendar View Demo', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
+    await resetSettings(mainWindow);
 
     // Make sure the calendar item this demo creates does not already exist, so the
     // run always starts from a clean state and the New Calendar Item dialog can

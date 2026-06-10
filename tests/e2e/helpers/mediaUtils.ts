@@ -39,6 +39,38 @@ function cleanupTestDataFilesRecursive(dir: string): void {
 }
 
 /**
+ * Resets the two persistent, user-toggled view settings to `false` so every
+ * test starts from a known baseline regardless of what a previous run left in
+ * the on-disk config:
+ *   - `tagsPanelVisible`        (the "show tags" toggle / handleToggleTagsVisible)
+ *   - `settings.showPropsInEditor` (the "show properties" toggle / handleToggleShowProps)
+ *
+ * The Electron app is already running by the time tests call this, so we update
+ * the main-process config (which persists to disk and stays in memory) and then
+ * reload the renderer so it re-reads both values.
+ *
+ * @param mainWindow - The Playwright Page object for the app's main window
+ *
+ * @example
+ * await resetSettings(mainWindow);
+ */
+export async function resetSettings(mainWindow: Page): Promise<void> {
+  await mainWindow.evaluate(async () => {
+    const api = (window as unknown as { electronAPI: {
+      getConfig: () => Promise<{ settings?: Record<string, unknown> }>;
+      updateConfig: (updates: Record<string, unknown>) => Promise<void>;
+    } }).electronAPI;
+    const config = await api.getConfig();
+    await api.updateConfig({
+      tagsPanelVisible: false,
+      settings: { ...(config.settings ?? {}), showPropsInEditor: false },
+    });
+  });
+  await mainWindow.reload();
+  await mainWindow.waitForLoadState('domcontentloaded');
+}
+
+/**
  * Cleans up screenshot files in a directory, preserving any subdirectories.
  * Creates the directory if it does not yet exist.
  *

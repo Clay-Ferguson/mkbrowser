@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, findActionBarByFileName } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, findActionBarByFileName, resetSettings } from './helpers/mediaUtils';
 
 const federalistPath = '/home/clay/ferguson/projects/mkbrowser/mkbrowser-test/federalist-papers';
 const indexYamlPath = `${federalistPath}/.INDEX.yaml`;
@@ -21,6 +21,7 @@ test.describe('Document Mode Demo', () => {
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
 
     cleanupScreenshots(screenshotDir);
+    await resetSettings(mainWindow);
 
     // Delete any existing .INDEX.yaml so the folder starts in non-document mode
     if (fs.existsSync(indexYamlPath)) {

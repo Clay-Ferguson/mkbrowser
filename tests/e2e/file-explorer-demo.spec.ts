@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, demoRightClick, findActionBarByFileName, logScreenshotSummary, cleanupScreenshots } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, demoRightClick, findActionBarByFileName, logScreenshotSummary, cleanupScreenshots, resetSettings } from './helpers/mediaUtils';
 
 // Override testDataPath so the app starts browsing /home/clay/ferguson
 const test = baseTest.extend({
@@ -16,6 +16,7 @@ test.describe('File Explorer Tree Demo', () => {
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
 
     cleanupScreenshots(screenshotDir);
+    await resetSettings(mainWindow);
 
     let step = 1;
 
