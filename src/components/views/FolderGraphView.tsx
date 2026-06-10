@@ -128,6 +128,7 @@ const COLOR_MARKDOWN = '#60a5fa'; // blue
 const COLOR_OTHER = '#cbd5e1';    // light gray
 const COLOR_HIGHLIGHT = '#a855f7'; // purple
 const COLOR_CONTAINS = '#22c55e'; // green — shown on a folder's children while hovering it
+const COLOR_PATH = '#ef4444';     // red — links from a hovered node up to the root
 
 function colorForNode(d: SimNode, highlighted: boolean): string {
   if (highlighted) return COLOR_HIGHLIGHT;
@@ -226,6 +227,9 @@ function FolderGraphView() {
     // id to the set of its direct children (file or folder ids), so hovering can
     // paint those children — and the links reaching them — green.
     const childIdsByFolder = new Map<string, Set<string>>();
+    // And map each child id to its parent id, so a hovered node's path up to the
+    // root can be traced by walking parent links.
+    const parentByChild = new Map<string, string>();
     for (const l of rawLinks) {
       let set = childIdsByFolder.get(l.source);
       if (!set) {
@@ -233,6 +237,7 @@ function FolderGraphView() {
         childIdsByFolder.set(l.source, set);
       }
       set.add(l.target);
+      parentByChild.set(l.target, l.source);
     }
 
     const root = select(svg);
@@ -363,33 +368,49 @@ function FolderGraphView() {
       })();
     });
 
-    // Hover a folder → paint its direct children (and the links reaching them)
-    // green, so the user can confirm at a glance what that folder contains.
-    // Passing null clears the effect and restores the normal highlight colors.
+    // Hover highlighting, driven by the node under the cursor (null clears it):
+    //  • Green: a hovered *folder*'s direct children, and the links reaching them,
+    //    so the user can confirm at a glance what that folder contains.
+    //  • Red: the chain of links from the hovered node (file or folder) up through
+    //    each ancestor folder to the root, tracing its full path.
     const idOf = (end: string | SimNode): string => typeof end === 'string' ? end : end.id;
-    const applyContainsHighlight = (folderId: string | null): void => {
-      const children = folderId ? childIdsByFolder.get(folderId) ?? new Set<string>() : null;
+    const linkKey = (parent: string, child: string): string => `${parent} ${child}`;
+    const applyHoverHighlight = (hovered: SimNode | null): void => {
+      // Children to paint green (only when hovering a folder).
+      const children = hovered?.isDirectory
+        ? childIdsByFolder.get(hovered.id) ?? new Set<string>()
+        : null;
+      // Links along the path to root to paint red.
+      const redLinks = new Set<string>();
+      if (hovered) {
+        let cur = hovered.id;
+        let parent = parentByChild.get(cur);
+        while (parent !== undefined) {
+          redLinks.add(linkKey(parent, cur));
+          cur = parent;
+          parent = parentByChild.get(cur);
+        }
+      }
       const isGreen = (d: SimNode): boolean => children !== null && children.has(d.id);
       const hl = highlightRef.current;
       circleSel.attr('fill', d => isGreen(d) ? COLOR_CONTAINS : colorForNode(d, hl === d.id));
       labelSel
         .attr('fill', d => isGreen(d) ? COLOR_CONTAINS : colorForNode(d, hl === d.id))
         .attr('font-weight', d => (isGreen(d) || hl === d.id) ? 'bold' : 'normal');
+      const linkColor = (d: SimLink): string | null => {
+        const s = idOf(d.source);
+        const t = idOf(d.target);
+        if (redLinks.has(linkKey(s, t))) return COLOR_PATH;
+        if (children !== null && s === hovered!.id && children.has(t)) return COLOR_CONTAINS;
+        return null;
+      };
       linkSel
-        .attr('stroke', d =>
-          folderId !== null && idOf(d.source) === folderId && children!.has(idOf(d.target))
-            ? COLOR_CONTAINS : '#475569')
-        .attr('stroke-opacity', d =>
-          folderId !== null && idOf(d.source) === folderId && children!.has(idOf(d.target))
-            ? 1 : 0.7);
+        .attr('stroke', d => linkColor(d) ?? '#475569')
+        .attr('stroke-opacity', d => linkColor(d) !== null ? 1 : 0.7);
     };
 
-    nodeSel.on('mouseenter.contains', (_event: MouseEvent, d) => {
-      if (d.isDirectory) applyContainsHighlight(d.id);
-    });
-    nodeSel.on('mouseleave.contains', (_event: MouseEvent, d) => {
-      if (d.isDirectory) applyContainsHighlight(null);
-    });
+    nodeSel.on('mouseenter.contains', (_event: MouseEvent, d) => applyHoverHighlight(d));
+    nodeSel.on('mouseleave.contains', () => applyHoverHighlight(null));
 
     const sim: Simulation<SimNode, SimLink> = forceSimulation<SimNode>(simNodes)
       .force('link', forceLink<SimNode, SimLink>(simLinks)
