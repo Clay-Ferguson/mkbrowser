@@ -80,6 +80,27 @@ const createWindow = () => {
     },
   });
 
+  // Electron shows no native right-click menu by default, so provide one for
+  // copying selected text and for cut/paste in editable fields. Without this,
+  // right-clicking a text selection does nothing at all.
+  mainWindow.webContents.on('context-menu', (_event, params) => {
+    const items: Electron.MenuItemConstructorOptions[] = [];
+    if (params.isEditable) {
+      items.push(
+        { role: 'cut', enabled: params.editFlags.canCut },
+        { role: 'copy', enabled: params.editFlags.canCopy },
+        { role: 'paste', enabled: params.editFlags.canPaste },
+        { type: 'separator' },
+        { role: 'selectAll' },
+      );
+    } else if (params.selectionText.trim()) {
+      items.push({ role: 'copy' });
+    }
+    if (items.length > 0) {
+      Menu.buildFromTemplate(items).popup();
+    }
+  });
+
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)

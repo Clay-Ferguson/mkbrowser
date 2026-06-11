@@ -465,7 +465,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       >
         <div
           className={ENTRY_CONTENT_AREA}
-          onMouseUp={!edit.isEditing ? () => { if (!window.getSelection()?.toString()) void edit.handleEditClick(); } : undefined}
+          onMouseUp={!edit.isEditing ? (e) => { if (e.button === 0 && !window.getSelection()?.toString()) void edit.handleEditClick(); } : undefined}
         >
           {loading && !content ? (
             <div className={ENTRY_LOADING}>Loading...</div>

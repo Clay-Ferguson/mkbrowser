@@ -14,6 +14,9 @@ type EditClickHandler = (goToLine?: number) => void | Promise<void>;
 export function createBlockClickComponents(handleEditClick: EditClickHandler, lineOffset = 0): Partial<Components> {
   function makeHandler(line: number) {
     return (e: React.MouseEvent) => {
+      // Only the left button initiates editing; right-click must fall through
+      // so the native context menu (Copy, etc.) can appear.
+      if (e.button !== 0) return;
       if ((e.target as HTMLElement).closest('a, button, input')) return;
 
       // this check for a selection is required to be able to allow the users to click and drag the mouse to
