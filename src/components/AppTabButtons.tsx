@@ -129,13 +129,13 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
       {tabs.map((tab) => {
         const onClose = tab.hasCloseButton === false ? undefined : closeHandlers[tab.id];
         return (
-          <div key={tab.id} className="flex items-center gap-1 border-r border-slate-400 pr-4">
+          <div key={tab.id} className="self-stretch flex items-stretch gap-1 border-r border-slate-400 pr-4">
             <button
               data-testid={`tab-button-${tab.id}`}
               type="button"
               onClick={() => setCurrentView(tab.id)}
               className={`
-                text-base font-medium pb-1 transition-colors cursor-pointer
+                flex items-center text-base font-medium transition-colors cursor-pointer
                 ${currentView === tab.id
                   ? 'text-slate-100 border-b-4 border-blue-500'
                   : 'text-slate-400 hover:text-slate-200 border-b-4 border-transparent'
