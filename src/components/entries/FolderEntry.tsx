@@ -83,14 +83,14 @@ function FolderEntry(props: FolderEntryProps) {
   };
 
   return (
-    <div className={`${indentFolder ? '' : 'bg-slate-800'} group ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`} style={indentFolder ? { paddingLeft: '32px' } : undefined}>
+    <div className={`group ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`} style={indentFolder ? { paddingLeft: '32px' } : undefined}>
       <div
         onClick={() => !isRenaming && onNavigate(entry.path)}
         onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={(e) => void handleDrop(e)}
-        className={`w-full flex items-center gap-3 px-2 py-0 ${isDragOver ? 'bg-blue-600/60 outline outline-1 outline-blue-400' : isHighlighted ? 'bg-blue-800/50' : 'bg-blue-800/50 hover:bg-blue-700/70'} transition-colors text-left cursor-pointer`}
+        className={`w-full flex items-center gap-3 px-2 py-0 ${isDragOver ? 'bg-blue-600/60 outline outline-1 outline-blue-400' : 'bg-transparent hover:bg-blue-700/70'} transition-colors text-left cursor-pointer`}
       >
         {(
           <SelectionCheckbox
