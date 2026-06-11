@@ -515,7 +515,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
   if (!treeRoot?.children) {
     return (
-      <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800 items-center justify-center`}>
+      <div className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-900 items-center justify-center`}>
         <span className="text-slate-500">Loading…</span>
       </div>
     );
@@ -524,7 +524,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const cutPaths = new Set(getCutItems().map(item => item.path));
   const rows = flattenVisible(treeRoot.children, cutPaths, settings.foldersOnTop);
   return (
-    <div data-testid="file-explorer-tree" className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-800`}>
+    <div data-testid="file-explorer-tree" className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-900`}>
       <style>{`@keyframes scriptRunFlash { 0% { background-color: rgba(74,222,128,0.45); } 100% { background-color: transparent; } }`}</style>
       <div className="flex items-center justify-between gap-1 px-2 py-1 border-b border-slate-700 shrink-0">
         <button
@@ -656,18 +656,18 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
           let className = 'flex items-center gap-1 py-0.5 whitespace-nowrap select-none';
           if (node.path === highlightItem) {
-            className += ' text-purple-400 border-l-2 border-transparent hover:bg-slate-700';
+            className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent';
             className += isClickable ? ' cursor-pointer' : ' cursor-default';
           } //
           else if (node.isDirectory && node.path === currentPath) {
-            className += ' text-slate-100 bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-purple-500 cursor-pointer';
+            className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
           } //
           else if (node.isDirectory && isParentOf(node.path, currentPath)) {
-            className += ' text-slate-200 bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-purple-500 cursor-pointer';
+            className += ' text-slate-200 bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
           } //
           else if (node.isDirectory) {
             className += node.isExpanded
-              ? ' text-slate-200 bg-slate-700 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
+              ? ' text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
               : ' text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer';
           } //
           else if (isMd) {
