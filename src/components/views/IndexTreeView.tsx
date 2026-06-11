@@ -677,7 +677,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
             className += ' text-green-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-300/20';
           } //
           else {
-            className += ' text-slate-400 border-l-2 border-transparent cursor-default';
+            className += ' text-slate-400 border-l-2 border-transparent cursor-default hover:bg-slate-700';
           }
 
           const isRunning = runningScript === node.path;
