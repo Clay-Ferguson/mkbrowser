@@ -1,6 +1,6 @@
 # Objective - Playwright Test for Demoing (faking) the following contrived AI Chat
 
-you'll be creating the entire playwright test case, that showcases the following chat sequence between the human and the AI. Notice you have a `SKILL.md` file for playwrite tests.
+you'll be creating the entire playwright test case, that showcases the following chat sequence between the human and the AI. Notice you have a `SKILL.md` file for playwright tests.
 
 ## Chat Sequence (Transcript)
 

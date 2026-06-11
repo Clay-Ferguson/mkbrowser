@@ -1,7 +1,7 @@
 # Objective - Playwright Test for "Document Mode" Feature.
 
 ## Description of Goal
-To understand how we use our Playwrite tests to generate demo videos, read the following file: `docs/technical_notes/tests/playwright.md`
+To understand how we use our Playwright tests to generate demo videos, read the following file: `docs/technical_notes/tests/playwright.md`
 
 Next, review this example of an existing test, to understand our pattern so you can follow a similar pattern: `tests/e2e/advanced-search-demo.spec.ts`
 

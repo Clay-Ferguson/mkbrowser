@@ -1,11 +1,11 @@
 # Objective - Create Playwright Test for Demoing (faking) the following contrived AI Chat, exhibiting how our AI Personas work.
 
 ## Description of Goal
-To understand how we use our Playwrite tests to generate demo videos, read the following files: `docs/technical_notes/tests/playwright.md` and `docs/technical_notes/tests/screen_recording_videos.md`
+To understand how we use our Playwright tests to generate demo videos, read the following files: `docs/technical_notes/tests/playwright.md` and `docs/technical_notes/tests/screen_recording_videos.md`
 
 Next, review this example of an existing test, to understand our pattern so you can follow a similar pattern: `tests/e2e/ai-chat-demo.spec.ts`
 
-When our playwrite tests run, they leaves behind screenshots and narration text files which are later processed by another tool to create a demo video.
+When our playwright tests run, they leaves behind screenshots and narration text files which are later processed by another tool to create a demo video.
 
 Also read the "Document Mode" section of the `USER_GUIDE.md`, to get an end-user perspective on how the Chat View works.
 

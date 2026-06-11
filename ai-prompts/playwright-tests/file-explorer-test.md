@@ -4,7 +4,7 @@
 **IMPORTANT** - You have already done Phase 1 and Phase 2 of this work (see below), and you are now doing Phase 3.
 
 ## Description Goal
-First, to understand how we ultimately use our Playwrite tests to generate demo videos read the following file: `docs/technical_notes/tests/playwright.md`
+First, to understand how we ultimately use our Playwright tests to generate demo videos read the following file: `docs/technical_notes/tests/playwright.md`
 
 Next, review this example of an existing test, to understand our pattern so you can follow a similar pattern: `tests/e2e/advanced-search-demo.spec.ts`
 
@@ -12,7 +12,7 @@ When that test runs, it leaves behind screenshots and narration text files which
 
 So our goal now is to create a new Playwright test (named `file-explorer-demo.spec.ts`), which will be for testing our File Explorer component (the `IndexTree.tsx` component). We will be testing (and demoing) that we can click on sections of the tree to expand several sections and explore to a file and expand the file to demonstrate that our tree can also drill into files based on the markdown heading structure, so that the markdown headings become a part of the tree displayed underneath markdown files.
 
-The top level of the Explorer Tree is identified with `data-testid="file-explorer-tree"` DOM so Playwrite can find it.
+The top level of the Explorer Tree is identified with `data-testid="file-explorer-tree"` DOM so Playwright can find it.
 
 # TEST FLOW
 
