@@ -38,6 +38,52 @@ function cleanupTestDataFilesRecursive(dir: string): void {
   }
 }
 
+// Location of the app's persistent config file (must match CONFIG_FILE in
+// src/configMgr.ts) and the in-memory backup taken by saveSettings().
+// configFileExisted distinguishes "file was absent" from "file was empty".
+const CONFIG_FILE = path.join(
+  process.env.HOME || '',
+  '.config',
+  'mk-browser',
+  'config.yaml'
+);
+let savedConfigYaml: string | null = null;
+let configFileExisted = false;
+let settingsSaved = false;
+
+/**
+ * Backs up the entire on-disk `config.yaml` so `restoreSettings` can recreate
+ * it byte-for-byte after a test. Tests run against the user's real config, so
+ * this guarantees no test can permanently alter any persisted setting.
+ *
+ * Called automatically by the `electronApp` fixture before the app launches.
+ */
+export function saveSettings(): void {
+  configFileExisted = fs.existsSync(CONFIG_FILE);
+  savedConfigYaml = configFileExisted ? fs.readFileSync(CONFIG_FILE, 'utf-8') : null;
+  settingsSaved = true;
+}
+
+/**
+ * Recreates `config.yaml` from the backup taken by `saveSettings`. If the file
+ * did not exist at save time, it is removed instead. Does nothing if
+ * `saveSettings` was never called.
+ *
+ * Called automatically by the `electronApp` fixture after the app has closed,
+ * so the app cannot overwrite the restored file on shutdown.
+ */
+export function restoreSettings(): void {
+  if (!settingsSaved) {
+    return;
+  }
+  if (configFileExisted && savedConfigYaml !== null) {
+    fs.writeFileSync(CONFIG_FILE, savedConfigYaml, 'utf-8');
+  } 
+  savedConfigYaml = null;
+  configFileExisted = false;
+  settingsSaved = false;
+}
+
 /**
  * Resets the two persistent, user-toggled view settings to `false` so every
  * test starts from a known baseline regardless of what a previous run left in

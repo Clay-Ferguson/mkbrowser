@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { test as base, _electron as electron } from '@playwright/test';
 import type { ElectronApplication, Page } from '@playwright/test';
+import { saveSettings, restoreSettings } from '../helpers/mediaUtils';
 
 /**
  * Custom Playwright fixtures for Electron testing.
@@ -28,7 +29,11 @@ export const test = base.extend<{
   electronApp: async ({ testDataPath }, use) => {
     // Use Electron with the Vite dev build (Playwright's recommended approach)
     const mainJsPath = path.join(__dirname, '../../../.vite/build/main.js');
-    
+
+    // Back up the user's real config.yaml; restored in teardown below so no
+    // test can permanently alter persisted settings.
+    saveSettings();
+
     const app = await electron.launch({
       args: [mainJsPath, testDataPath],
       env: {
@@ -44,8 +49,10 @@ export const test = base.extend<{
     // Provide the app to the test
     await use(app);
     
-    // Cleanup: close the app after the test
+    // Cleanup: close the app after the test, then restore config.yaml
+    // (after close, so the app can't overwrite it on shutdown).
     await app.close();
+    restoreSettings();
   },
 
   /**
