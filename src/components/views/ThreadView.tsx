@@ -244,32 +244,33 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
           };
 
           return (
-            <div
-              key={entry.filePath}
-              className={`flex items-start gap-2 border-l-4 pl-2 ${
-                entry.role === 'human'
-                  ? 'border-blue-500'
-                  : 'border-emerald-500'
-              }`}
-            >
+            <div key={entry.filePath} className="flex items-start gap-2">
               <ThreadAvatar role={entry.role} />
-              {/* Purple border marks the turn at the folder the browse view
-                  is currently focused on — earlier turns above it came from
-                  walking up the tree, later ones from drilling down. */}
               <div
-                className={`flex-1 min-w-0 ${
-                  entry.folderPath === currentPath
-                    ? 'border-2 border-purple-500 rounded-sm'
-                    : ''
+                className={`flex-1 min-w-0 border-l-4 pl-2 ${
+                  entry.role === 'human'
+                    ? 'border-blue-500'
+                    : 'border-emerald-500'
                 }`}
               >
-                <MarkdownEntry
-                  entry={fileEntry}
-                  view="thread"
-                  onRename={refreshThread}
-                  onDelete={refreshThread}
-                  onSaveSettings={onSaveSettings}
-                />
+                {/* Purple border marks the turn at the folder the browse view
+                    is currently focused on — earlier turns above it came from
+                    walking up the tree, later ones from drilling down. */}
+                <div
+                  className={
+                    entry.folderPath === currentPath
+                      ? 'border-2 border-purple-500 rounded-sm'
+                      : ''
+                  }
+                >
+                  <MarkdownEntry
+                    entry={fileEntry}
+                    view="thread"
+                    onRename={refreshThread}
+                    onDelete={refreshThread}
+                    onSaveSettings={onSaveSettings}
+                  />
+                </div>
               </div>
             </div>
           );
