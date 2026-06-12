@@ -60,6 +60,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
 
   const makeCloseHandler = (tabId: AppView, close: () => void) => () => {
     close();
+    if (currentView === tabId) setCurrentView('browser');
   };
 
   const closeHandlers: Partial<Record<AppView, () => void>> = {
