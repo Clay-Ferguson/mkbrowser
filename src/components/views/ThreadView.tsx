@@ -20,10 +20,14 @@ import {
   setItemEditing,
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
+import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import MarkdownEntry from '../entries/MarkdownEntry';
 import ThreadAvatar, { ThreadAvatarDefs } from '../ThreadAvatar';
 import { logger } from '../../utils/logUtil';
 import PathBreadcrumb from '../PathBreadcrumb';
+import type { AIRewritePromptDef } from '../../types/shared';
+
+const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
 interface ThreadViewProps {
   onSaveSettings: () => void;
@@ -46,12 +50,20 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const [childFolders, setChildFolders] = useState<ThreadChildFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isThread, setIsThread] = useState(true);
-  const [personaName, setPersonaName] = useState<string>('[Default Agent]');
+  const [personaName, setPersonaName] = useState<string>(DEFAULT_PERSONA_NAME);
+  const [aiRewritePrompts, setAiRewritePrompts] = useState<AIRewritePromptDef[]>([]);
 
   useEffect(() => {
     void window.electronAPI.getConfig().then((config: AppConfig) => {
-      setPersonaName(config.aiRewritePrompt || '[Default Agent]');
+      setPersonaName(config.aiRewritePrompt || DEFAULT_PERSONA_NAME);
+      setAiRewritePrompts(config.aiRewritePrompts ?? []);
     });
+  }, []);
+
+  // Change the active chat persona (the "selected prompt") and persist it.
+  const handlePersonaSelect = useCallback((name: string) => {
+    setPersonaName(name);
+    void window.electronAPI.updateConfig({ aiRewritePrompt: name });
   }, []);
 
   // Scroll persistence
@@ -182,8 +194,23 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
           onNavigate={handleBreadcrumbNavigate}
         />
       </div>
-      <div className="w-full text-sm text-slate-400 mt-0.5 text-center">
-        Chat with Persona: <span className="text-slate-200 font-medium">{personaName}</span>
+      <div className="ml-auto text-sm text-slate-400 flex items-center gap-2">
+        <span className="whitespace-nowrap">Chat with Persona:</span>
+        <EditableCombobox
+          data-testid="thread-persona-combobox"
+          value={personaName}
+          onChange={setPersonaName}
+          onSelect={(option: ComboboxOption) => handlePersonaSelect(option.value)}
+          options={[
+            { value: DEFAULT_PERSONA_NAME, label: DEFAULT_PERSONA_NAME },
+            ...[...aiRewritePrompts]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((p) => ({ value: p.name, label: p.name })),
+          ]}
+          placeholder="Select a chat persona..."
+          maxVisibleItems={10}
+          className="w-64"
+        />
       </div>
     </header>
   );

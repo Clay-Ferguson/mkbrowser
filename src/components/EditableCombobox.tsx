@@ -12,8 +12,13 @@ interface EditableComboboxProps {
   options: ComboboxOption[];
   placeholder?: string;
   className?: string;
+  /** Number of options visible before the dropdown starts scrolling. Defaults to 5. */
+  maxVisibleItems?: number;
   'data-testid'?: string;
 }
+
+// Approximate rendered height of a single option row (px-3 py-2 + text-sm).
+const OPTION_ROW_HEIGHT = 36;
 
 /**
  * An editable combobox that combines a text input with a dropdown list.
@@ -26,6 +31,7 @@ function EditableCombobox({
   options,
   placeholder,
   className = '',
+  maxVisibleItems = 5,
   'data-testid': dataTestId,
 }: EditableComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -172,7 +178,8 @@ function EditableCombobox({
       {isOpen && filteredOptions.length > 0 && (
         <ul
           ref={listRef}
-          className="absolute z-50 w-full mt-1 max-h-48 overflow-auto bg-slate-800 border border-slate-600 rounded shadow-lg"
+          className="absolute z-50 w-full mt-1 overflow-auto bg-slate-800 border border-slate-600 rounded shadow-lg"
+          style={{ maxHeight: maxVisibleItems * OPTION_ROW_HEIGHT }}
           role="listbox"
         >
           {filteredOptions.map((option, index) => (
