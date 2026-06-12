@@ -21,6 +21,7 @@ import {
 } from '../../store';
 import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import MarkdownEntry from '../entries/MarkdownEntry';
+import ThreadAvatar, { ThreadAvatarDefs } from '../ThreadAvatar';
 import { logger } from '../../utils/logUtil';
 import PathBreadcrumb from '../PathBreadcrumb';
 
@@ -231,6 +232,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
       className="flex-1 min-h-0 overflow-y-auto pb-4"
     >
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-2">
+        <ThreadAvatarDefs />
         {threadEntries.map((entry) => {
           const fileEntry: FileEntry = {
             name: entry.fileName,
@@ -244,21 +246,22 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
           return (
             <div
               key={entry.filePath}
-              className={`border-l-4 pl-2 ${
+              className={`flex items-start gap-2 border-l-4 pl-2 ${
                 entry.role === 'human'
                   ? 'border-blue-500'
                   : 'border-emerald-500'
               }`}
             >
+              <ThreadAvatar role={entry.role} />
               {/* Purple border marks the turn at the folder the browse view
                   is currently focused on — earlier turns above it came from
                   walking up the tree, later ones from drilling down. */}
               <div
-                className={
+                className={`flex-1 min-w-0 ${
                   entry.folderPath === currentPath
                     ? 'border-2 border-purple-500 rounded-sm'
                     : ''
-                }
+                }`}
               >
                 <MarkdownEntry
                   entry={fileEntry}
