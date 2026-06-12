@@ -250,20 +250,32 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
                   : 'border-emerald-500'
               }`}
             >
-              <MarkdownEntry
-                entry={fileEntry}
-                view="thread"
-                onRename={refreshThread}
-                onDelete={refreshThread}
-                onSaveSettings={onSaveSettings}
-              />
+              {/* Purple border marks the turn at the folder the browse view
+                  is currently focused on — earlier turns above it came from
+                  walking up the tree, later ones from drilling down. */}
+              <div
+                className={
+                  entry.folderPath === currentPath
+                    ? 'border-2 border-purple-500 rounded-sm'
+                    : ''
+                }
+              >
+                <MarkdownEntry
+                  entry={fileEntry}
+                  view="thread"
+                  onRename={refreshThread}
+                  onDelete={refreshThread}
+                  onSaveSettings={onSaveSettings}
+                />
+              </div>
             </div>
           );
         })}
 
-        {/* Conversation branch folders directly under the current folder.
-            Their presence means we're viewing the thread mid-stream; clicking
-            one drills the thread view deeper into that turn. */}
+        {/* Conversation branch folders where the thread forks (or where a
+            branch folder has no turn file).  Single-child chains are already
+            followed automatically by gatherThreadEntries, so these only
+            appear when the user must choose which branch to drill into. */}
         {childFolders.length > 0 && (
           <div className="pt-2 space-y-1">
             {childFolders.map((folder) => (

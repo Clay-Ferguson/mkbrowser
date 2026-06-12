@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../utils/styles';
-import { toggleBookmark, addBookmark, toggleItemExpanded, useHasIndexFile, useIndexYaml, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
+import { toggleBookmark, addBookmark, toggleItemExpanded, setCurrentView, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 
 interface EntryActionBarProps {
@@ -120,6 +120,7 @@ export function EntryActionBar({
           onClick={(e) => {
             e.stopPropagation();
             setHighlightItem(path);
+            setCurrentView('browser');
             setPendingIndexTreeReveal(path);
           }}
           className={BUTTON_CLASS_BLUE}

@@ -677,6 +677,54 @@ export async function gatherThreadEntries(
     walker = path.dirname(walker);
   }
 
-  const childFolders = await gatherThreadChildFolders(folderPath);
+  // Drill downward from folderPath: as long as there is exactly one
+  // conversation branch folder, follow it and append its turn so the thread
+  // also shows the future of the conversation.  Stop at a fork (multiple
+  // branch folders mean we can't know which path to follow) or at the tail,
+  // returning whatever branch folders remain as clickable choices.
+  let childFolders = await gatherThreadChildFolders(folderPath);
+  while (childFolders.length === 1) {
+    const childPath = childFolders[0].path;
+
+    const childAiFile = path.join(childPath, 'AI.md');
+    const childIsAI = await fs.access(childAiFile).then(() => true).catch(() => false);
+
+    const childHumanFile = path.join(childPath, 'HUMAN.md');
+    const childIsHuman = await fs.access(childHumanFile).then(() => true).catch(() => false);
+
+    let entry: ThreadEntry | null = null;
+    try {
+      if (childIsAI) {
+        const stat = await fs.stat(childAiFile);
+        entry = {
+          role: 'ai',
+          folderPath: childPath,
+          filePath: childAiFile,
+          fileName: 'AI.md',
+          modifiedTime: stat.mtimeMs,
+          createdTime: stat.birthtimeMs,
+        };
+      } else if (childIsHuman) {
+        const stat = await fs.stat(childHumanFile);
+        entry = {
+          role: 'human',
+          folderPath: childPath,
+          filePath: childHumanFile,
+          fileName: 'HUMAN.md',
+          modifiedTime: stat.mtimeMs,
+          createdTime: stat.birthtimeMs,
+        };
+      }
+    } catch {
+      // stat failed — treat as no turn file
+    }
+
+    // Folder has no turn file — leave it as a clickable child instead
+    if (!entry) break;
+
+    entries.push(entry);
+    childFolders = await gatherThreadChildFolders(childPath);
+  }
+
   return { isThread: true, entries, childFolders };
 }
