@@ -14,6 +14,13 @@ import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSum
  * imply that the demo is over.
  */
 test.describe('Calendar View Demo', () => {
+  // Ensure the calendar folder exists before the app launches, since the demo
+  // expects to see (and open) this folder as soon as the GUI appears.
+  test.beforeAll(() => {
+    const calendarFolder = path.resolve(path.join(__dirname, '../../mkbrowser-test/calendar'));
+    fs.mkdirSync(calendarFolder, { recursive: true });
+  });
+
   test('demonstrate the calendar view', async ({ mainWindow }) => {
     // Create subfolder based on test file name
     const testName = path.basename(__filename, '.spec.ts');
