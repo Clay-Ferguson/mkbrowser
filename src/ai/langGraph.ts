@@ -14,6 +14,7 @@ import { createChatModel, getActiveModelConfig } from './aiModel';
 import { logger } from '../utils/logUtil';
 import { consumeScriptedAnswer, queueScriptedAnswer, hasScriptedAnswer } from './scriptedAnswer';
 import { getReasoningContent, getUsageMetadata, hasToolCalls } from './messageUtil';
+import { StreamProcessor } from './streamProcessor';
 export { queueScriptedAnswer, hasScriptedAnswer };
 
 // Set to true to enable verbose debug logging for AI invocations.
@@ -98,6 +99,49 @@ export interface StreamCallbacks {
   onToolCall: (toolName: string, summary: string) => void;
 }
 
+/** State shape for the chat StateGraph (LangChain's MessagesAnnotation). */
+type ChatGraphState = typeof MessagesAnnotation.State;
+
+/** The chat node: invokes the model and returns the messages to append. */
+type ChatNode = (state: ChatGraphState) => Promise<{ messages: BaseMessage[] }>;
+
+/**
+ * Build and compile the chat StateGraph shared by {@link invokeAI} and
+ * {@link streamAI}.
+ *
+ * Both paths use an identical topology — a single `chat` node plus, when tools
+ * are enabled, a `tools` ToolNode that the model loops back through until it
+ * stops requesting tool calls. The only difference is *how* the chat node
+ * invokes the model (timeout race vs abort signal), so that is injected as
+ * `chatNode`.
+ */
+function buildChatGraph(useTools: boolean, chatNode: ChatNode) {
+  const builder = new StateGraph(MessagesAnnotation).addNode('chat', chatNode);
+
+  if (useTools) {
+    const toolNode = new ToolNode(aiTools);
+    builder
+      .addNode('tools', toolNode)
+      .addEdge('__start__', 'chat')
+      .addConditionalEdges('chat', (state) => {
+        const lastMsg = state.messages[state.messages.length - 1];
+        if (hasToolCalls(lastMsg)) {
+          debugLog('[router] → tool calls detected, routing to tools node');
+          return 'tools';
+        }
+        debugLog('[router] → no tool calls, finishing');
+        return '__end__';
+      })
+      .addEdge('tools', 'chat');
+  } else {
+    builder
+      .addEdge('__start__', 'chat')
+      .addEdge('chat', '__end__');
+  }
+
+  return builder.compile();
+}
+
 /**
  * AI invocation with optional tool support.
  * Uses a StateGraph that sends messages to the model and, when tools are
@@ -121,7 +165,7 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
   debugLog('invokeAI → creating model');
   const model = createChatModel();
 
-  const useTools = aiTools.length > 0 && getConfig().agenticMode;
+  const useTools = aiTools.length > 0 && Boolean(getConfig().agenticMode);
   const boundModel = useTools ? model.bindTools(aiTools) : model;
   debugLog('invokeAI → tools bound:', useTools, '(', aiTools.length, 'tools)');
 
@@ -131,51 +175,27 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
   const MODEL_TIMEOUT_MS = 3 * 60 * 1000;
 
   debugLog('invokeAI → building StateGraph (timeout:', MODEL_TIMEOUT_MS / 1000, 's, useTools:', useTools, ')');
-  const builder = new StateGraph(MessagesAnnotation)
-    .addNode('chat', async (state) => {
-      debugLog('invokeAI [graph:chat] → invoking model with', state.messages.length, 'messages');
-      debugLog('invokeAI [graph:chat] → first message role:', state.messages[0]?.constructor?.name ?? '?',
-        '| useTools:', useTools, '| model type:', model.constructor?.name ?? '?');
-      try {
-        const invokePromise = boundModel.invoke(state.messages);
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(
-            () => reject(new Error(`AI model request timed out after ${MODEL_TIMEOUT_MS / 1000}s. The model may still be loading — try again in a moment.`)),
-            MODEL_TIMEOUT_MS
-          )
-        );
-        const response = await Promise.race([invokePromise, timeoutPromise]);
-        debugLog('invokeAI [graph:chat] → model responded, content type:', typeof response.content,
-          'length:', typeof response.content === 'string' ? response.content.length : JSON.stringify(response.content).length);
-        return { messages: [response] };
-      } catch (err) {
-        debugLog('invokeAI [graph:chat] → ERROR during model.invoke:', err instanceof Error ? err.message : err);
-        throw err;
-      }
-    });
-
-  if (useTools) {
-    const toolNode = new ToolNode(aiTools);
-    builder
-      .addNode('tools', toolNode)
-      .addEdge('__start__', 'chat')
-      .addConditionalEdges('chat', (state) => {
-        const lastMsg = state.messages[state.messages.length - 1];
-        if (hasToolCalls(lastMsg)) {
-          debugLog('invokeAI [router] → tool calls detected, routing to tools node');
-          return 'tools';
-        }
-        debugLog('invokeAI [router] → no tool calls, finishing');
-        return '__end__';
-      })
-      .addEdge('tools', 'chat');
-  } else {
-    builder
-      .addEdge('__start__', 'chat')
-      .addEdge('chat', '__end__');
-  }
-
-  const graph = builder.compile();
+  const graph = buildChatGraph(useTools, async (state) => {
+    debugLog('invokeAI [graph:chat] → invoking model with', state.messages.length, 'messages');
+    debugLog('invokeAI [graph:chat] → first message role:', state.messages[0]?.constructor?.name ?? '?',
+      '| useTools:', useTools, '| model type:', model.constructor?.name ?? '?');
+    try {
+      const invokePromise = boundModel.invoke(state.messages);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`AI model request timed out after ${MODEL_TIMEOUT_MS / 1000}s. The model may still be loading — try again in a moment.`)),
+          MODEL_TIMEOUT_MS
+        )
+      );
+      const response = await Promise.race([invokePromise, timeoutPromise]);
+      debugLog('invokeAI [graph:chat] → model responded, content type:', typeof response.content,
+        'length:', typeof response.content === 'string' ? response.content.length : JSON.stringify(response.content).length);
+      return { messages: [response] };
+    } catch (err) {
+      debugLog('invokeAI [graph:chat] → ERROR during model.invoke:', err instanceof Error ? err.message : err);
+      throw err;
+    }
+  });
 
   const humanMsg = buildHumanMessage(prompt);
   const { provider, model: modelName } = getActiveModelConfig();
@@ -238,46 +258,19 @@ export async function streamAI(
   debugLog('streamAI → creating model');
   const model = createChatModel();
 
-  const useTools = aiTools.length > 0 && getConfig().agenticMode;
+  const useTools = aiTools.length > 0 && Boolean(getConfig().agenticMode);
   const boundModel = useTools ? model.bindTools(aiTools) : model;
   debugLog('streamAI → tools bound:', useTools, '(', aiTools.length, 'tools)');
 
-  const builder = new StateGraph(MessagesAnnotation)
-    .addNode('chat', async (state) => {
-      debugLog('streamAI [graph:chat] → invoking model with', state.messages.length, 'messages');
-      const response = await boundModel.invoke(state.messages, { signal });
-      return { messages: [response] };
-    });
+  const graph = buildChatGraph(useTools, async (state) => {
+    debugLog('streamAI [graph:chat] → invoking model with', state.messages.length, 'messages');
+    const response = await boundModel.invoke(state.messages, { signal });
+    return { messages: [response] };
+  });
 
-  if (useTools) {
-    const toolNode = new ToolNode(aiTools);
-    builder
-      .addNode('tools', toolNode)
-      .addEdge('__start__', 'chat')
-      .addConditionalEdges('chat', (state) => {
-        const lastMsg = state.messages[state.messages.length - 1];
-        if (hasToolCalls(lastMsg)) {
-          debugLog('streamAI [router] → tool calls detected, routing to tools node');
-          return 'tools';
-        }
-        return '__end__';
-      })
-      .addEdge('tools', 'chat');
-  } else {
-    builder
-      .addEdge('__start__', 'chat')
-      .addEdge('chat', '__end__');
-  }
-
-  const graph = builder.compile();
   const humanMsg = buildHumanMessage(prompt);
 
-  let contentAccum = '';
-  let thinkingAccum = '';
-  let usage: AIUsageInfo | undefined;
-  // Track whether we're inside a <think> block (llama.cpp inline thinking)
-  let insideLlamacppThink = false;
-  let pendingContent = '';
+  const processor = new StreamProcessor(callbacks);
 
   debugLog('streamAI → starting streamEvents');
   try {
@@ -287,125 +280,19 @@ export async function streamAI(
     );
 
     for await (const event of eventStream) {
-      // Token-level chunks from the chat model
-      if (event.event === 'on_chat_model_stream') {
-        const chunk = event.data?.chunk;
-        if (!chunk) continue;
-
-        // Check for thinking content in additional_kwargs (Anthropic, OpenAI o-series)
-        const reasoningContent = getReasoningContent(chunk);
-        if (reasoningContent) {
-          thinkingAccum += reasoningContent;
-          callbacks.onThinkingChunk(reasoningContent);
-          continue;
-        }
-
-        // Extract text content from chunk
-        let text = '';
-        if (typeof chunk.content === 'string') {
-          text = chunk.content;
-        } else if (Array.isArray(chunk.content)) {
-          for (const part of chunk.content) {
-            if (part.type === 'text' && typeof part.text === 'string') {
-              text += part.text;
-            }
-          }
-        }
-
-        if (text.length === 0) continue;
-
-        // Handle llama.cpp inline <think>...</think> tags in streaming content
-        pendingContent += text;
-
-        // Process pending content for think tags
-        while (pendingContent.length > 0) {
-          if (insideLlamacppThink) {
-            const closeIdx = pendingContent.indexOf('</think>');
-            if (closeIdx !== -1) {
-              // Emit everything before </think> as thinking
-              const thinkText = pendingContent.slice(0, closeIdx);
-              if (thinkText.length > 0) {
-                thinkingAccum += thinkText;
-                callbacks.onThinkingChunk(thinkText);
-              }
-              pendingContent = pendingContent.slice(closeIdx + '</think>'.length);
-              insideLlamacppThink = false;
-              // Skip any leading whitespace after </think>
-              const trimmed = pendingContent.replace(/^\s+/, '');
-              pendingContent = trimmed;
-            } else {
-              // Still inside think block, emit all as thinking
-              thinkingAccum += pendingContent;
-              callbacks.onThinkingChunk(pendingContent);
-              pendingContent = '';
-            }
-          } else {
-            const openIdx = pendingContent.indexOf('<think>');
-            if (openIdx !== -1) {
-              // Emit everything before <think> as content
-              const beforeThink = pendingContent.slice(0, openIdx);
-              if (beforeThink.length > 0) {
-                contentAccum += beforeThink;
-                callbacks.onChunk(beforeThink);
-              }
-              pendingContent = pendingContent.slice(openIdx + '<think>'.length);
-              insideLlamacppThink = true;
-            } else {
-              // No think tags — emit as normal content
-              contentAccum += pendingContent;
-              callbacks.onChunk(pendingContent);
-              pendingContent = '';
-            }
-          }
-        }
-      }
-
-      // Tool call events — show a brief status line
-      if (event.event === 'on_tool_start') {
-        const toolName = event.name ?? 'unknown';
-        // Build a brief summary from the input
-        const input = event.data?.input;
-        let summary = '';
-        if (input && typeof input === 'object') {
-          // Take the first string value as a brief summary
-          const values = Object.values(input);
-          const firstStr = values.find((v): v is string => typeof v === 'string');
-          if (firstStr) {
-            summary = firstStr.length > 60 ? firstStr.slice(0, 57) + '...' : firstStr;
-          }
-        } else if (typeof input === 'string') {
-          summary = input.length > 60 ? input.slice(0, 57) + '...' : input;
-        }
-        debugLog('streamAI → tool call:', toolName, summary);
-        callbacks.onToolCall(toolName, summary);
-      }
-
-      // Extract usage from final message
-      if (event.event === 'on_chat_model_end') {
-        const output = event.data?.output;
-        if (output) {
-          const extracted = extractUsage(output);
-          if (extracted) usage = extracted;
-        }
-      }
+      processor.handleEvent(event);
     }
 
-    debugLog('streamAI → stream completed, content length:', contentAccum.length,
-      'thinking:', thinkingAccum.length > 0 ? thinkingAccum.length + ' chars' : 'none');
-    return {
-      content: contentAccum,
-      thinking: thinkingAccum.length > 0 ? thinkingAccum : undefined,
-      usage,
-    };
+    const result = processor.finish();
+    debugLog('streamAI → stream completed, content length:', result.content.length,
+      'thinking:', result.thinking ? result.thinking.length + ' chars' : 'none');
+    return result;
   } catch (err) {
     // If aborted, return what we have so far
     if (signal?.aborted) {
-      debugLog('streamAI → aborted by user, returning partial content (' + contentAccum.length + ' chars)');
-      return {
-        content: contentAccum,
-        thinking: thinkingAccum.length > 0 ? thinkingAccum : undefined,
-        usage,
-      };
+      const result = processor.finish();
+      debugLog('streamAI → aborted by user, returning partial content (' + result.content.length + ' chars)');
+      return result;
     }
     debugLog('streamAI → ERROR:', err);
     throw err;

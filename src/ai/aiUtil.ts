@@ -390,21 +390,26 @@ async function invokeRewrite(
 }
 
 /**
- * Rewrite content using the configured AI rewrite prompt.
- * Returns the rewritten text and optional usage info.
+ * Shared core of the AI Rewrite handlers: ensures the local server is running,
+ * resolves the persona, assembles the rewrite prompt (instruction + document
+ * context + the content to rewrite), invokes the model, and records usage.
  *
- * When `streamCallbacks` is provided, tokens are streamed to the renderer so
- * the StreamingDialog can show live progress (see {@link invokeRewrite}).
+ * Returns the raw rewritten text from the model — callers handle any splicing
+ * — or a clean error when the user cancels before any content streams.
+ *
+ * @param promptInstruction  The leading instruction (e.g. {@link AI_REWRITE_PROMPT}).
+ * @param innerContent       The text placed inside the `<content>` tags.
  */
-export async function handleRewriteContent(
-  content: string,
+async function runRewrite(
+  promptInstruction: string,
+  innerContent: string,
   filePath: string,
   hasIndexFile: boolean,
-  streamCallbacks: StreamCallbacks | null = null,
+  streamCallbacks: StreamCallbacks | null,
   signal?: AbortSignal,
   onStreamDone?: () => void,
   onStreamError?: (err: unknown) => void,
-): Promise<{ rewrittenContent: string; usage?: AIUsageInfo } | { error: string }> {
+): Promise<{ content: string; usage?: AIUsageInfo } | { error: string }> {
   // If using a LLAMACPP model, ensure the server is running before inference
   const config = getConfig();
   const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
@@ -421,7 +426,7 @@ export async function handleRewriteContent(
   const { aboveContent, belowContent } = await buildDocumentContext(filePath, hasIndexFile);
 
   const prompt = {
-    text: `${AI_REWRITE_PROMPT}\n\n${aboveContent}<content>\n${content}\n</content>${belowContent}`,
+    text: `${promptInstruction}\n\n${aboveContent}<content>\n${innerContent}\n</content>${belowContent}`,
     images: [] as never[],
     fileDirectivesFound: false,
   };
@@ -438,6 +443,37 @@ export async function handleRewriteContent(
     const provider = activeModel?.provider ?? 'ANTHROPIC';
     await recordUsage(provider, result.usage.input_tokens, result.usage.output_tokens);
   }
+
+  return { content: result.content, usage: result.usage };
+}
+
+/**
+ * Rewrite content using the configured AI rewrite prompt.
+ * Returns the rewritten text and optional usage info.
+ *
+ * When `streamCallbacks` is provided, tokens are streamed to the renderer so
+ * the StreamingDialog can show live progress (see {@link invokeRewrite}).
+ */
+export async function handleRewriteContent(
+  content: string,
+  filePath: string,
+  hasIndexFile: boolean,
+  streamCallbacks: StreamCallbacks | null = null,
+  signal?: AbortSignal,
+  onStreamDone?: () => void,
+  onStreamError?: (err: unknown) => void,
+): Promise<{ rewrittenContent: string; usage?: AIUsageInfo } | { error: string }> {
+  const result = await runRewrite(
+    AI_REWRITE_PROMPT,
+    content,
+    filePath,
+    hasIndexFile,
+    streamCallbacks,
+    signal,
+    onStreamDone,
+    onStreamError,
+  );
+  if ('error' in result) return result;
 
   return { rewrittenContent: result.content, usage: result.usage };
 }
@@ -459,19 +495,6 @@ export async function handleRewriteContentSection(
   onStreamDone?: () => void,
   onStreamError?: (err: unknown) => void,
 ): Promise<{ rewrittenContent: string; usage?: AIUsageInfo } | { error: string }> {
-  // If using a LLAMACPP model, ensure the server is running before inference
-  const config = getConfig();
-  const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
-  if (activeModel?.provider === 'LLAMACPP') {
-    await ensureRunning();
-  }
-
-  // Resolve the persona. It's woven into the system prompt by the invocation
-  // layer (see resolveActivePersona/buildSystemPrompt), so it's no longer
-  // prefixed to the prompt text here. Fall back to the default editor persona
-  // when the user hasn't selected one.
-  const persona = resolveActivePersona() ?? DEFAULT_AI_REWRITE_PERSONA;
-
   // Build content with <rewrite_region> tags wrapping the selected portion
   const textWithSelection =
     content.slice(0, selectionFrom) +
@@ -480,26 +503,17 @@ export async function handleRewriteContentSection(
     '</rewrite_region>' +
     content.slice(selectionTo);
 
-  const { aboveContent, belowContent } = await buildDocumentContext(filePath, hasIndexFile);
-
-  const prompt = {
-    text: `${AI_REWRITE_SELECTION_PROMPT}\n\n${aboveContent}<content>\n${textWithSelection}\n</content>${belowContent}`,
-    images: [] as never[],
-    fileDirectivesFound: false,
-  };
-
-  const result = await invokeRewrite(prompt, persona, streamCallbacks, signal, onStreamDone, onStreamError);
-
-  // If the user cancelled before any content streamed, surface a clean error.
-  if (signal?.aborted && result.content.length === 0) {
-    return { error: 'Rewrite cancelled by user' };
-  }
-
-  // Record token usage if available
-  if (result.usage) {
-    const provider = activeModel?.provider ?? 'ANTHROPIC';
-    await recordUsage(provider, result.usage.input_tokens, result.usage.output_tokens);
-  }
+  const result = await runRewrite(
+    AI_REWRITE_SELECTION_PROMPT,
+    textWithSelection,
+    filePath,
+    hasIndexFile,
+    streamCallbacks,
+    signal,
+    onStreamDone,
+    onStreamError,
+  );
+  if ('error' in result) return result;
 
   // Splice the rewritten portion back into the original content using offsets
   const rewrittenContent =

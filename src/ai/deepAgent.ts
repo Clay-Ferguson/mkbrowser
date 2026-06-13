@@ -24,7 +24,6 @@ import {
   buildHumanMessage,
   extractUsage,
   type AIInvokeResult,
-  type AIUsageInfo,
   type StreamCallbacks,
 } from './langGraph';
 import { createChatModel, getActiveModelConfig } from './aiModel';
@@ -35,6 +34,7 @@ import { getConfig } from '../configMgr';
 import { logger } from '../utils/logUtil';
 import { consumeScriptedAnswer } from './scriptedAnswer';
 import { getReasoningContent } from './messageUtil';
+import { StreamProcessor } from './streamProcessor';
 import { checkHealth } from './llamaServer';
 
 /** 
@@ -168,12 +168,7 @@ export async function streamDeepAgent(
   const agent = createMkBrowserDeepAgent(persona);
   const humanMsg = buildHumanMessage(prompt);
 
-  let contentAccum = '';
-  let thinkingAccum = '';
-  let usage: AIUsageInfo | undefined;
-  // Track whether we're inside a <think> block (llama.cpp inline thinking)
-  let insideLlamacppThink = false;
-  let pendingContent = '';
+  const processor = new StreamProcessor(callbacks);
 
   debugLog('streamDeepAgent → starting streamEvents');
   try {
@@ -195,127 +190,27 @@ export async function streamDeepAgent(
     }, 5000);
 
     try {
-    for await (const event of eventStream) {
-      eventCount++;
-      if (eventCount <= 10 || event.event === 'on_chat_model_start' || event.event === 'on_chain_end') {
-        debugLog(`streamDeepAgent → event[${eventCount}]: ${event.event} name=${event.name ?? '(none)'}`);
+      for await (const event of eventStream) {
+        eventCount++;
+        if (eventCount <= 10 || event.event === 'on_chat_model_start' || event.event === 'on_chain_end') {
+          debugLog(`streamDeepAgent → event[${eventCount}]: ${event.event} name=${event.name ?? '(none)'}`);
+        }
+        processor.handleEvent(event);
       }
-
-      // Token-level chunks from the chat model
-      if (event.event === 'on_chat_model_stream') {
-        const chunk = event.data?.chunk;
-        if (!chunk) continue;
-
-        // Check for thinking content in additional_kwargs (Anthropic, OpenAI o-series)
-        const reasoningContent = getReasoningContent(chunk);
-        if (reasoningContent) {
-          thinkingAccum += reasoningContent;
-          callbacks.onThinkingChunk(reasoningContent);
-          continue;
-        }
-
-        // Extract text content from chunk
-        let text = '';
-        if (typeof chunk.content === 'string') {
-          text = chunk.content;
-        } else if (Array.isArray(chunk.content)) {
-          for (const part of chunk.content) {
-            if (part.type === 'text' && typeof part.text === 'string') {
-              text += part.text;
-            }
-          }
-        }
-
-        if (text.length === 0) continue;
-
-        // Handle llama.cpp inline <think>...</think> tags in streaming content
-        pendingContent += text;
-
-        // Process pending content for think tags
-        while (pendingContent.length > 0) {
-          if (insideLlamacppThink) {
-            const closeIdx = pendingContent.indexOf('</think>');
-            if (closeIdx !== -1) {
-              const thinkText = pendingContent.slice(0, closeIdx);
-              if (thinkText.length > 0) {
-                thinkingAccum += thinkText;
-                callbacks.onThinkingChunk(thinkText);
-              }
-              pendingContent = pendingContent.slice(closeIdx + '</think>'.length);
-              insideLlamacppThink = false;
-              const trimmed = pendingContent.replace(/^\s+/, '');
-              pendingContent = trimmed;
-            } else {
-              thinkingAccum += pendingContent;
-              callbacks.onThinkingChunk(pendingContent);
-              pendingContent = '';
-            }
-          } else {
-            const openIdx = pendingContent.indexOf('<think>');
-            if (openIdx !== -1) {
-              const beforeThink = pendingContent.slice(0, openIdx);
-              if (beforeThink.length > 0) {
-                contentAccum += beforeThink;
-                callbacks.onChunk(beforeThink);
-              }
-              pendingContent = pendingContent.slice(openIdx + '<think>'.length);
-              insideLlamacppThink = true;
-            } else {
-              contentAccum += pendingContent;
-              callbacks.onChunk(pendingContent);
-              pendingContent = '';
-            }
-          }
-        }
-      }
-
-      // Tool call events — show a brief status line
-      if (event.event === 'on_tool_start') {
-        const toolName = event.name ?? 'unknown';
-        const input = event.data?.input;
-        let summary = '';
-        if (input && typeof input === 'object') {
-          const values = Object.values(input);
-          const firstStr = values.find((v): v is string => typeof v === 'string');
-          if (firstStr) {
-            summary = firstStr.length > 60 ? firstStr.slice(0, 57) + '...' : firstStr;
-          }
-        } else if (typeof input === 'string') {
-          summary = input.length > 60 ? input.slice(0, 57) + '...' : input;
-        }
-        debugLog('streamDeepAgent → tool call:', toolName, summary);
-        callbacks.onToolCall(toolName, summary);
-      }
-
-      // Extract usage from final message
-      if (event.event === 'on_chat_model_end') {
-        const output = event.data?.output;
-        if (output) {
-          const extracted = extractUsage(output);
-          if (extracted) usage = extracted;
-        }
-      }
-    }
     } finally {
       clearInterval(heartbeat);
     }
 
-    debugLog('streamDeepAgent → stream completed, content length:', contentAccum.length,
-      'thinking:', thinkingAccum.length > 0 ? thinkingAccum.length + ' chars' : 'none');
-    return {
-      content: contentAccum,
-      thinking: thinkingAccum.length > 0 ? thinkingAccum : undefined,
-      usage,
-    };
+    const result = processor.finish();
+    debugLog('streamDeepAgent → stream completed, content length:', result.content.length,
+      'thinking:', result.thinking ? result.thinking.length + ' chars' : 'none');
+    return result;
   } catch (err) {
     // If aborted, return what we have so far
     if (signal?.aborted) {
-      debugLog('streamDeepAgent → aborted by user, returning partial content (' + contentAccum.length + ' chars)');
-      return {
-        content: contentAccum,
-        thinking: thinkingAccum.length > 0 ? thinkingAccum : undefined,
-        usage,
-      };
+      const result = processor.finish();
+      debugLog('streamDeepAgent → aborted by user, returning partial content (' + result.content.length + ' chars)');
+      return result;
     }
     debugLog('streamDeepAgent → ERROR:', err);
     throw err;
