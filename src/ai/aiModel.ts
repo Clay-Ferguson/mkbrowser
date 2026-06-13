@@ -2,7 +2,11 @@ import { ChatOpenAI } from "@langchain/openai";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { getConfig } from '../configMgr';
-import { debugLog } from "./langGraph";
+import type { AIModelConfig } from '../types/shared';
+import { ensureRunning } from './llamaServer';
+import { createDebugLog } from "./aiLog";
+
+const debugLog = createDebugLog('aiModel');
 
 export type AIProvider = 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
 
@@ -162,6 +166,34 @@ export function createChatModel() {
     return new ChatGoogleGenerativeAI({ model, maxRetries: 2 });
   }
   return new ChatAnthropic({ model });
+}
+
+/**
+ * Resolve the user's currently-selected model entry from config, matched by
+ * `config.aiModel` name. Returns undefined when nothing matches (no selection,
+ * or the selected name isn't present in `config.aiModels`).
+ */
+export function getActiveModel(): AIModelConfig | undefined {
+  const config = getConfig();
+  return config.aiModels?.find((m) => m.name === config.aiModel);
+}
+
+/**
+ * Provider of the active model, falling back to 'ANTHROPIC' (the default
+ * provider) when no model is resolved. Used for usage accounting.
+ */
+export function getActiveProvider(): AIProvider {
+  return getActiveModel()?.provider ?? 'ANTHROPIC';
+}
+
+/**
+ * When the active model is served by a local llama.cpp instance, make sure the
+ * server is running before inference. No-op for cloud providers.
+ */
+export async function ensureModelServerRunning(): Promise<void> {
+  if (getActiveModel()?.provider === 'LLAMACPP') {
+    await ensureRunning();
+  }
 }
 
 

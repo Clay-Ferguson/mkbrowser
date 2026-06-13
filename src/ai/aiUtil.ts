@@ -10,7 +10,7 @@ import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
-import { ensureRunning } from './llamaServer';
+import { getActiveModel, getActiveProvider, ensureModelServerRunning } from './aiModel';
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
@@ -109,12 +109,13 @@ export async function findNextNumberedFile(dir: string, baseName: string): Promi
 
 /**
  * Walk up the folder hierarchy from the current HUMAN.md's parent folder to
- * gather all prior conversation turns. Folders are expected
- * to contain HUMAN.md (if they're part of a thread), and the same is true for folders containing AI.md
- * Walking stops at the first folder whose name doesn't match either pattern.
+ * gather all prior conversation turns. Each turn folder is expected to contain
+ * exactly one of AI.md or HUMAN.md; walking stops at the first folder that
+ * contains neither (the conversation root). A folder containing both is an
+ * error.
  *
  * Returns messages in chronological order (oldest first), ready to pass as
- * the `history` parameter to `invokeAI` / `invokeAI`.
+ * the `history` parameter to `invokeAI` / `streamAI`.
  *
  * @param currentHumanFolder  Absolute path of the folder containing the
  *                            current HUMAN.md (the one the user clicked
@@ -163,7 +164,7 @@ export async function gatherConversationHistory(
         break;
       }
     } else {
-      // Folder doesn't match H{N} or A{N} — we've reached the conversation root
+      // Folder has neither AI.md nor HUMAN.md — we've reached the conversation root
       break;
     }
 
@@ -210,8 +211,7 @@ export async function handleAskAI(
   // Skip this check when a scripted answer is queued (Playwright tests): we
   // won't actually call the LLM, so the model's vision capability is irrelevant.
   if (processedPrompt.images.length > 0 && !hasScriptedAnswer()) {
-    const config = getConfig();
-    const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
+    const activeModel = getActiveModel();
     if (activeModel && !activeModel.vision) {
       return {
         error: `The selected model "${activeModel.name}" does not support images. Please select a vision-capable model or remove image files from your prompt.`,
@@ -220,13 +220,7 @@ export async function handleAskAI(
   }
 
   // If using a LLAMACPP model, ensure the server is running before inference
-  {
-    const config = getConfig();
-    const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
-    if (activeModel?.provider === 'LLAMACPP') {
-      await ensureRunning();
-    }
-  }
+  await ensureModelServerRunning();
 
   // Find the next available response folder: A/, A1/, A2/, ...
   const responseFolder = await findNextNumberedFolder(parentFolderPath, 'A');
@@ -289,9 +283,7 @@ export async function handleAskAI(
 
   // Record token usage if available
   if (usage) {
-    const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
-    const provider = activeModel?.provider ?? 'ANTHROPIC';
-    await recordUsage(provider, usage.input_tokens, usage.output_tokens);
+    await recordUsage(getActiveProvider(), usage.input_tokens, usage.output_tokens);
   }
 
   // Write the response
@@ -411,11 +403,7 @@ async function runRewrite(
   onStreamError?: (err: unknown) => void,
 ): Promise<{ content: string; usage?: AIUsageInfo } | { error: string }> {
   // If using a LLAMACPP model, ensure the server is running before inference
-  const config = getConfig();
-  const activeModel = config.aiModels?.find((m) => m.name === config.aiModel);
-  if (activeModel?.provider === 'LLAMACPP') {
-    await ensureRunning();
-  }
+  await ensureModelServerRunning();
 
   // Resolve the persona. It's woven into the system prompt by the invocation
   // layer (see resolveActivePersona/buildSystemPrompt), so it's no longer
@@ -425,10 +413,9 @@ async function runRewrite(
 
   const { aboveContent, belowContent } = await buildDocumentContext(filePath, hasIndexFile);
 
-  const prompt = {
+  const prompt: PreprocessResult = {
     text: `${promptInstruction}\n\n${aboveContent}<content>\n${innerContent}\n</content>${belowContent}`,
-    images: [] as never[],
-    fileDirectivesFound: false,
+    images: [],
   };
 
   const result = await invokeRewrite(prompt, persona, streamCallbacks, signal, onStreamDone, onStreamError);
@@ -440,8 +427,7 @@ async function runRewrite(
 
   // Record token usage if available
   if (result.usage) {
-    const provider = activeModel?.provider ?? 'ANTHROPIC';
-    await recordUsage(provider, result.usage.input_tokens, result.usage.output_tokens);
+    await recordUsage(getActiveProvider(), result.usage.input_tokens, result.usage.output_tokens);
   }
 
   return { content: result.content, usage: result.usage };

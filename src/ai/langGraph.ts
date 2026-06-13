@@ -11,18 +11,13 @@ import { getConfig } from '../configMgr';
 import { buildSystemPrompt } from './aiPrompts';
 import type { PreprocessResult } from './promptPreprocess';
 import { createChatModel, getActiveModelConfig } from './aiModel';
-import { logger } from '../utils/logUtil';
 import { consumeScriptedAnswer, queueScriptedAnswer, hasScriptedAnswer } from './scriptedAnswer';
 import { getReasoningContent, getUsageMetadata, hasToolCalls } from './messageUtil';
 import { StreamProcessor } from './streamProcessor';
+import { createDebugLog } from './aiLog';
 export { queueScriptedAnswer, hasScriptedAnswer };
 
-// Set to true to enable verbose debug logging for AI invocations.
-const DEBUG = true;
-
-export function debugLog(...args: unknown[]) {
-  if (DEBUG) logger.log('[aiUtil DEBUG]', ...args);
-}
+const debugLog = createDebugLog('langGraph');
 
 /**
  * Build a HumanMessage from a PreprocessResult. When the result contains
