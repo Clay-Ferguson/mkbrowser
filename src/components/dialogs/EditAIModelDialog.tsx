@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import type { AIModelConfig } from '../../types/shared';
-import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_FOOTER_CLASS, DLG_INPUT_CLASS_ALT } from '../../utils/styles';
+import Dialog from './common/Dialog';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_FOOTER_CLASS, DLG_INPUT_CLASS_ALT } from '../../utils/styles';
 
 const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
 
@@ -22,13 +22,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
   const [outputPer1MText, setOutputPer1MText] = useState(
     initialModel ? String(initialModel.outputPer1M ?? 0) : '0'
   );
-  const nameRef = useRef<HTMLInputElement>(null);
   const isReadonly = Boolean(initialModel?.readonly);
-
-  // Auto-focus the name field on mount
-  useEffect(() => {
-    nameRef.current?.focus();
-  }, []);
 
   const parseNonNegative = (value: string): number | null => {
     const trimmed = value.trim();
@@ -62,30 +56,17 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
   }, [isValid, isReadonly, name, provider, model, inputPer1M, outputPer1M, onSave]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      onCancel();
-    } else if (e.key === 'Enter' && isValid) {
-      e.stopPropagation();
+    if (e.key === 'Enter' && isValid) {
+      e.preventDefault();
       handleSave();
     }
-  }, [onCancel, isValid, handleSave]);
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
+  }, [isValid, handleSave]);
 
   const title = initialModel ? 'Edit AI Model' : 'Create AI Model';
 
   return (
-    <div
-      className={DLG_OVERLAY_CLASS}
-      onClick={handleBackdropClick}
-      onKeyDown={handleKeyDown}
-    >
-      <div className={`${DLG_CONTAINER} w-full max-w-md mx-4 overflow-hidden`}>
-        <DlgHeader title={title} onClose={onCancel} />
-        <div className="p-6">
+    <Dialog title={title} onClose={onCancel} className="w-full max-w-md">
+      <div className="p-6" onKeyDown={handleKeyDown}>
         {isReadonly && (
           <p className="text-sm text-slate-300 mb-4">
             This is a built-in model and can’t be edited.
@@ -97,7 +78,6 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
           <div>
             <label className="block text-slate-300 text-sm mb-1">Name</label>
             <input
-              ref={nameRef}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -166,12 +146,14 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
         {/* Button bar */}
         <div className={`${DLG_FOOTER_CLASS} mt-6`}>
           <button
+            type="button"
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
             disabled={!isValid || isReadonly}
             className={BUTTON_CLASS_DLG_BLUE}
@@ -179,9 +161,8 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
             Save
           </button>
         </div>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 

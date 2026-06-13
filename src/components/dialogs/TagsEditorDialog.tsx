@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtil';
 import type { TagCategory, HashtagDefinition } from '../../utils/tagUtil';
-import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_INPUT_CLASS_ALT_COMPACT } from '../../utils/styles';
+import Dialog from './common/Dialog';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS_ALT_COMPACT } from '../../utils/styles';
 
 interface EditorTag {
   id: string;
@@ -167,24 +167,14 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     }
   }, [categories, onClose]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      onClose();
-    }
-  }, [onClose]);
-
   const inputCls = DLG_INPUT_CLASS_ALT_COMPACT;
 
   return (
-    <div
-      className={DLG_OVERLAY_CLASS}
-      onKeyDown={handleKeyDown}
+    <Dialog
+      title="Edit Hashtags"
+      onClose={onClose}
+      className="flex flex-col w-full max-w-3xl h-[75vh]"
     >
-      <div className={`${DLG_CONTAINER} flex flex-col w-full max-w-3xl mx-4`} style={{ height: '75vh' }}>
-        {/* Header */}
-        <DlgHeader title="Edit Hashtags" onClose={onClose} />
-
         {/* Body */}
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">Loading…</div>
@@ -222,9 +212,10 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                         onChange={(e) => setRenameValue(e.target.value)}
                         onBlur={commitRename}
                         onKeyDown={(e) => {
-                          e.stopPropagation();
-                          if (e.key === 'Enter') commitRename();
-                          else if (e.key === 'Escape') cancelRename();
+                          // preventDefault stops Escape from also dismissing the
+                          // surrounding <dialog>; this Esc only cancels the rename.
+                          if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+                          else if (e.key === 'Escape') { e.preventDefault(); cancelRename(); }
                         }}
                         className={`${inputCls} flex-1 min-w-0`}
                         onClick={(e) => e.stopPropagation()}
@@ -336,7 +327,6 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }

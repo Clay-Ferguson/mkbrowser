@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
-import DlgHeader from './common/DlgHeader';
+import Dialog from './common/Dialog';
 import CheckboxField from './common/CheckboxField';
 import RadioField from './common/RadioField';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS, DLG_FOOTER_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_FOOTER_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE } from '../../utils/styles';
 
 interface ExportDialogProps {
   defaultFolder: string;
@@ -20,11 +20,6 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
   const [includeDividers, setIncludeDividers] = useState(true);
   const [outputFormat, setOutputFormat] = useState<'markdown' | 'pdf'>('markdown');
   const fileNameInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    fileNameInputRef.current?.focus();
-    fileNameInputRef.current?.select();
-  }, []);
 
   const handleSelectFolder = async () => {
     const folder = await window.electronAPI.selectExportFolder();
@@ -48,9 +43,6 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
     if (e.key === 'Enter') {
       e.preventDefault();
       handleExport();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
     }
   };
 
@@ -58,10 +50,13 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
   const isValid = outputFolder.trim() && fileName.trim() && !fileNameHasExtension;
 
   return (
-    <div className={DLG_OVERLAY_CLASS}>
-      <div className={`${DLG_CONTAINER} w-full max-w-lg mx-4 overflow-hidden`}>
-        <DlgHeader title="Export Folder Contents" onClose={onCancel} />
-        <div className="p-6">
+    <Dialog
+      title="Export Folder Contents"
+      onClose={onCancel}
+      className="w-full max-w-lg"
+      initialFocusRef={fileNameInputRef}
+    >
+      <div className="p-6">
         <p className="text-sm text-slate-400 mb-4">
           Export all markdown and text files from the current folder into a single concatenated markdown file.
         </p>
@@ -80,6 +75,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
               data-testid="export-output-folder"
             />
             <button
+              type="button"
               onClick={handleSelectFolder}
               className="px-3 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors cursor-pointer"
               title="Browse for folder"
@@ -180,6 +176,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
         {/* Action Buttons */}
         <div className={DLG_FOOTER_CLASS}>
           <button
+            type="button"
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
             data-testid="export-cancel-button"
@@ -187,6 +184,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleExport}
             disabled={!isValid}
             className={BUTTON_CLASS_DLG_BLUE}
@@ -195,9 +193,8 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             Export
           </button>
         </div>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_INPUT_CLASS, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
+import { useState } from 'react';
+import Dialog from './common/Dialog';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 interface ReplaceDialogProps {
   onReplace: (searchText: string, replaceText: string) => void;
@@ -10,11 +10,6 @@ interface ReplaceDialogProps {
 function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
   const [searchText, setSearchText] = useState('');
   const [replaceText, setReplaceText] = useState('');
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    searchInputRef.current?.focus();
-  }, []);
 
   const handleReplace = () => {
     if (!searchText.trim()) return;
@@ -25,23 +20,17 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleReplace();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
     }
   };
 
   return (
-    <div className={DLG_OVERLAY_CLASS}>
-      <div className={`${DLG_CONTAINER} w-full max-w-md mx-4 overflow-hidden`}>
-        <DlgHeader title="Replace in Files" onClose={onCancel} />
-        <div className="p-6">
+    <Dialog title="Replace in Files" onClose={onCancel} className="w-full max-w-md">
+      <div className="p-6">
         <div className="mb-4">
           <label className={DLG_LABEL_CLASS}>
             Search for
           </label>
           <input
-            ref={searchInputRef}
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
@@ -71,12 +60,14 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
 
         <div className={DLG_FOOTER_CLASS}>
           <button
+            type="button"
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleReplace}
             disabled={!searchText.trim()}
             className={BUTTON_CLASS_DLG_BLUE}
@@ -84,9 +75,8 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
             Replace
           </button>
         </div>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 

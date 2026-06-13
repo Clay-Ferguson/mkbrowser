@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { logger } from '../../utils/logUtil';
-import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_FOOTER_CLASS } from '../../utils/styles';
+import Dialog from './common/Dialog';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 interface ExifDialogProps {
   data: Record<string, Record<string, string>>;
@@ -39,24 +39,6 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   const [saving, setSaving] = useState(false);
   // For auto-resize textareas
   const textAreaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onClose();
-  };
-
-  const handleContentClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
 
   // Deduplicate: collect all tag names seen so far, skip duplicates across groups
   // Only deduplicate by tag name, not value, so editing doesn't create duplicates
@@ -184,14 +166,13 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
     }
   };
   return (
-    <div className={DLG_OVERLAY_CLASS} onClick={handleBackdropClick}>
-      <div
-        className={`${DLG_CONTAINER} font-mono w-full mx-4 overflow-hidden ${editMode ? 'max-w-6xl' : 'max-w-5xl'}`}
-        style={{ minWidth: 400 }}
-        onClick={handleContentClick}
-      >
-        <DlgHeader title={`EXIF — ${fileName}`} onClose={onClose} />
-        <div className="p-6">
+    <Dialog
+      title={`EXIF — ${fileName}`}
+      onClose={onClose}
+      closeOnBackdrop
+      className={`font-mono w-full min-w-[400px] ${editMode ? 'max-w-6xl' : 'max-w-5xl'}`}
+    >
+      <div className="p-6">
         {isEmpty ? (
           <p className="text-slate-400 mb-6">No EXIF metadata found in this image.</p>
         ) : (
@@ -240,13 +221,15 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
           {!editMode && (
             <>
               <button
+                type="button"
                 onClick={handleEdit}
                 className={BUTTON_CLASS_DLG_GREEN}
               >
                 Edit
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); onClose(); }}
+                type="button"
+                onClick={onClose}
                 className={BUTTON_CLASS_DLG_BLUE}
               >
                 Close
@@ -256,6 +239,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
           {editMode && (
             <>
               <button
+                type="button"
                 onClick={handleAddDescription}
                 className="px-3 py-2 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors mr-auto"
                 title="Add description field for storing text"
@@ -263,6 +247,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
                 Add Description
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 className={BUTTON_CLASS_DLG_BLUE}
                 disabled={saving}
@@ -270,6 +255,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
                 {saving ? 'Saving...' : 'Save'}
               </button>
               <button
+                type="button"
                 onClick={handleCancel}
                 className="px-4 py-2 text-sm text-white bg-slate-600 hover:bg-slate-500 rounded transition-colors"
                 disabled={saving}
@@ -279,9 +265,8 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
             </>
           )}
         </div>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 

@@ -1,5 +1,5 @@
-import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_RED, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_FOOTER_CLASS } from '../../utils/styles';
+import Dialog from './common/Dialog';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_RED, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 interface ConfirmDialogProps {
   message: string;
@@ -8,45 +8,30 @@ interface ConfirmDialogProps {
 }
 
 function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogProps) {
-  const handleConfirm = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onConfirm();
-  };
-
-  const handleCancel = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onCancel();
-  };
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
   return (
-    <div className={DLG_OVERLAY_CLASS} onClick={handleBackdropClick}>
-      <div className={`${DLG_CONTAINER} max-w-md mx-4 overflow-hidden`}>
-        <DlgHeader title="Confirm" onClose={onCancel} />
-        <div className="p-6">
+    <Dialog title="Confirm" onClose={onCancel} className="max-w-md">
+      <div className="p-6">
         <p className="text-slate-200 mb-6">{message}</p>
         <div className={DLG_FOOTER_CLASS}>
           <button
-            onClick={handleCancel}
+            type="button"
+            onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
             data-testid="confirm-dialog-cancel-button"
           >
             No
           </button>
           <button
-            onClick={handleConfirm}
+            type="button"
+            onClick={onConfirm}
             className={BUTTON_CLASS_DLG_RED}
             data-testid="confirm-dialog-confirm-button"
           >
             Yes
           </button>
         </div>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 

@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import ConfirmDialog from './ConfirmDialog';
-import DlgHeader from './common/DlgHeader';
+import Dialog from './common/Dialog';
 import CheckboxField from './common/CheckboxField';
 import RadioGroup from './common/RadioGroup';
 import type { SearchDefinition } from '../../types/types';
 import * as globalHighlight from '../../utils/globalHighlight';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_LABEL_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../utils/styles';
 
 // Search's checkbox/radio inputs use a blue-500 accent (vs the blue-600 default
 // in CheckboxField/RadioField), so override the input class to preserve it.
@@ -78,10 +78,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     setTimeout(adjustTextareaHeight, 0);
   };
 
-  useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
-
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -125,9 +121,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSearch();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
     }
   };
 
@@ -140,9 +133,13 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   }
 
   return (
-    <div className={DLG_OVERLAY_CLASS}>
-      <div className={`${DLG_CONTAINER} w-full max-w-4xl mx-4 flex flex-col`} style={{ maxHeight: '90vh' }}>
-        <DlgHeader title="Search" onClose={onCancel} />
+    <>
+      <Dialog
+        title="Search"
+        onClose={onCancel}
+        className="w-full max-w-4xl flex flex-col max-h-[90vh]"
+        initialFocusRef={textareaRef}
+      >
         <div className="flex min-h-0 flex-1" style={{ minHeight: '480px' }}>
 
           {/* Left panel: saved search definitions */}
@@ -159,6 +156,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               />
               <div className="flex justify-end gap-1 mt-1">
                 <button
+                  type="button"
                   onClick={handleSave}
                   disabled={!searchName.trim()}
                   data-testid="save-search-button"
@@ -168,6 +166,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                   <ArrowDownTrayIcon className="w-4 h-4" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => { if (searchName.trim()) setShowDeleteConfirm(true); }}
                   disabled={!searchName.trim()}
                   data-testid="delete-search-button"
@@ -186,6 +185,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                   {sortedDefinitions.map((def) => (
                     <li key={def.name}>
                       <button
+                        type="button"
                         onClick={() => handleSelectSearchDefinition(def)}
                         className={`w-full text-left px-3 py-1.5 rounded text-sm whitespace-nowrap overflow-hidden text-ellipsis ${
                           searchName === def.name
@@ -315,6 +315,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             <div className="flex justify-end items-center gap-3 mt-6">
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={() => {
                     if (searchType === 'literal') {
                       const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
@@ -329,6 +330,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                   Close
                 </button>
                 <button
+                  type="button"
                   onClick={handleSearch}
                   disabled={!searchQuery.trim() && !mostRecent}
                   data-testid="execute-search-button"
@@ -340,7 +342,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             </div>
           </div>
         </div>
-      </div>
+      </Dialog>
 
       {showDeleteConfirm && (
         <ConfirmDialog
@@ -349,7 +351,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
-    </div>
+    </>
   );
 }
 

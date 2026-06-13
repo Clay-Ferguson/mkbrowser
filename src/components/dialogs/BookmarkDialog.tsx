@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER, DLG_INPUT_CLASS, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
+import { useState } from 'react';
+import Dialog from './common/Dialog';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 interface BookmarkDialogProps {
   path: string;
@@ -21,12 +21,6 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
     : base.includes('.') ? base.slice(0, base.lastIndexOf('.')) : base);
 
   const [name, setName] = useState(defaultName);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, []);
 
   const handleSave = () => {
     const trimmed = name.trim();
@@ -38,17 +32,16 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSave();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
     }
   };
 
   return (
-    <div className={DLG_OVERLAY_CLASS} onClick={(e) => e.stopPropagation()}>
-      <div className={`${DLG_CONTAINER} w-full max-w-md mx-4 overflow-hidden`}>
-        <DlgHeader title={initialName !== undefined ? 'Edit Bookmark' : 'Add Bookmark'} onClose={onCancel} />
-        <div className="p-6">
+    <Dialog
+      title={initialName !== undefined ? 'Edit Bookmark' : 'Add Bookmark'}
+      onClose={onCancel}
+      className="w-full max-w-md"
+    >
+      <div className="p-6">
         <div className="mb-4">
           <label className="block text-sm text-slate-400 mb-1">Path</label>
           <p className="text-sm text-slate-300 bg-slate-900 px-3 py-2 rounded border border-slate-700 break-all">
@@ -59,7 +52,6 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
         <div className="mb-6">
           <label className={DLG_LABEL_CLASS}>Display Name</label>
           <input
-            ref={inputRef}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -71,12 +63,14 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
 
         <div className={DLG_FOOTER_CLASS}>
           <button
+            type="button"
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
             disabled={!name.trim()}
             className={BUTTON_CLASS_DLG_BLUE}
@@ -84,9 +78,8 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
             Save
           </button>
         </div>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 

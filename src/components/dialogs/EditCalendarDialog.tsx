@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import DlgHeader from './common/DlgHeader';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_OVERLAY_CLASS, DLG_CONTAINER } from '../../utils/styles';
+import Dialog from './common/Dialog';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
 import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, RRuleProps } from '../../utils/calendar/calendarUtil';
@@ -85,10 +85,8 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
   };
 
   return (
-    <div className={DLG_OVERLAY_CLASS}>
-      <div className={`${DLG_CONTAINER} overflow-hidden`}>
-        <DlgHeader title={selected ? `Calendar — ${formatDueDate(selected)}` : 'Calendar'} onClose={onCancel} />
-        <div className="p-6">
+    <Dialog title={selected ? `Calendar — ${formatDueDate(selected)}` : 'Calendar'} onClose={onCancel}>
+      <div className="p-6">
         <div className="flex justify-center mb-4 rdp-slate">
           <DayPicker
             mode="single"
@@ -230,12 +228,14 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
 
         <div className="flex justify-end gap-3 pt-4 mt-2 border-t border-slate-600">
           <button
+            type="button"
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
           >
             Cancel
           </button>
           <button
+            type="button"
             data-testid="calendar-info-save"
             onClick={handleSave}
             disabled={!selected}
@@ -244,9 +244,8 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
             Save
           </button>
         </div>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import DlgHeader from './common/DlgHeader';
-import { DLG_OVERLAY_CLASS, DLG_CONTAINER } from '../../utils/styles';
+import Dialog from './common/Dialog';
 
 interface StreamingDialogProps {
   onClose: () => void;
@@ -89,20 +88,22 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
     onClose();
   };
 
-  return (
-    <div className={DLG_OVERLAY_CLASS}>
-      <div className={`${DLG_CONTAINER} flex flex-col mx-4 my-4`}
-           style={{ width: '80vw', height: '75vh', maxWidth: '900px', maxHeight: '85vh' }}>
-        <DlgHeader
-          title={
-            status === 'pending' ? 'Consulting the AI...' :
-            status === 'streaming' ? 'Streaming AI Response...' :
-            status === 'done' ? 'AI Answer' :
-            status === 'error' ? 'Error' : 'Stopping...'
-          }
-          onClose={status === 'done' || status === 'error' || status === 'cancelled' ? onClose : handleStop}
-        />
+  // The header ✕ and Esc dismiss the dialog: once the response is finished they
+  // simply close it; while it's still running they stop the stream first.
+  const isFinished = status === 'done' || status === 'error' || status === 'cancelled';
+  const handleDismiss = isFinished ? onClose : handleStop;
 
+  return (
+    <Dialog
+      title={
+        status === 'pending' ? 'Consulting the AI...' :
+        status === 'streaming' ? 'Streaming AI Response...' :
+        status === 'done' ? 'AI Answer' :
+        status === 'error' ? 'Error' : 'Stopping...'
+      }
+      onClose={handleDismiss}
+      className="flex flex-col w-[80vw] h-[75vh] max-w-[900px] max-h-[85vh]"
+    >
         {/* Content */}
         <div ref={containerRef} className="flex-1 overflow-y-auto p-4">
           {status === 'pending' && (
@@ -126,6 +127,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
         <div className="flex justify-end px-4 py-3 border-t border-slate-700">
           {status === 'streaming' || status === 'pending' ? (
             <button
+              type="button"
               onClick={handleStop}
               className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded cursor-pointer"
             >
@@ -133,6 +135,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
             </button>
           ) : (
             <button
+              type="button"
               onClick={onClose}
               className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm rounded cursor-pointer"
             >
@@ -140,8 +143,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }
 
