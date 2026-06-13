@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { HomeIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
-import { useSettings, useHighlightItem, setPendingIndexTreeReveal, setCurrentView, deleteItems } from '../store';
+import { useSettings, setPendingIndexTreeReveal, setCurrentView, deleteItems } from '../store';
 import {
   ENTRY_DND_MIME,
   parseDragPayload,
@@ -20,7 +20,6 @@ export type PathBreadcrumbProps = {
 
 function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory }: PathBreadcrumbProps) {
   const settings = useSettings();
-  const highlightItem = useHighlightItem();
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const normalizedRoot = rootPath.replace(/[/\\]+$/, '');
   const normalizedCurrent = currentPath.replace(/[/\\]+$/, '');
@@ -122,7 +121,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
           type="button"
           onClick={() => {
             setCurrentView('browser');
-            setPendingIndexTreeReveal(highlightItem ?? currentPath);
+            setPendingIndexTreeReveal(currentPath);
           }}
           className="p-2 text-slate-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer flex-shrink-0 transition-colors"
           aria-label="Reveal in folder tree"
