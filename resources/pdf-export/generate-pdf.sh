@@ -165,5 +165,12 @@ else
 fi
 
 echo ""
-echo "Press Enter to close this terminal..."
-read
+echo "Terminal will close in 10 seconds. Press ENTER to keep open..."
+# Wait up to 5 seconds for the user to press ENTER. If they do, the terminal
+# stays open (so they can inspect output); otherwise it closes automatically,
+# which keeps automated tests from hanging.
+if read -t 10; then
+    echo ""
+    echo "Press Enter to close this terminal..."
+    read
+fi
