@@ -48,7 +48,8 @@ export function friendlyAIError(error: unknown): string {
 
 /**
  * Find the first available folder name of the form `<baseName>`, `<baseName>1`,
- * `<baseName>2`, etc. inside `parentDir`. Uses fdir to scan existing subdirectory names.
+ * `<baseName>2`, etc. inside `parentDir`. Probes successive candidate names with
+ * existsSync until an unused one is found.
  *
  * @param parentDir  Directory to scan for existing numbered subfolders.
  * @param baseName   Base folder name, e.g. "A".
@@ -60,13 +61,12 @@ export async function findNextNumberedFolder(parentDir: string, baseName: string
   if (!existsSync(bare)) {
     return bare;
   }
-  for (let i = 1; i <= 20; i++) {
+  for (let i = 1; ; i++) {
     const candidate = path.join(parentDir, `${baseName}${i}`);
     if (!existsSync(candidate)) {
       return candidate;
     }
   }
-  throw new Error(`No available folder name found for "${baseName}" in "${parentDir}" (tried bare + 1–20)`);
 }
 
 /**
@@ -130,8 +130,7 @@ export async function gatherConversationHistory(
   // Start walking from the parent of the current H-folder
   let walker = path.dirname(currentHumanFolder);
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
+  for (;;) {
 
     const aiFileExists = existsSync(path.join(walker, 'AI.md'));
     const humanFileExists = existsSync(path.join(walker, 'HUMAN.md'));
@@ -628,8 +627,7 @@ export async function gatherThreadEntries(
   let walker = folderPath;
   let lastAddedRole: 'ai' | 'human' | null = null;
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
+  for (;;) {
     const walkerHumanFile = path.join(walker, 'HUMAN.md');
     const walkerIsHuman = await fs.access(walkerHumanFile).then(() => true).catch(() => false);
 

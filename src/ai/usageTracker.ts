@@ -45,8 +45,9 @@ interface PricingEntry {
 }
 
 /**
- * Fallback pricing per provider when the specific model isn't in MODEL_PRICING.
- * Uses the cheapest tier for each provider as a conservative default.
+ * Per-provider pricing used for cost estimation. Cumulative usage isn't tracked
+ * per-model, so each provider's cheapest tier is applied as a conservative
+ * default.
  */
 const PROVIDER_DEFAULT_PRICING: Record<string, PricingEntry> = {
   ANTHROPIC: { inputPer1M: 0.25,  outputPer1M: 1.25 },
@@ -143,10 +144,9 @@ export function resetUsage(): Promise<void> {
 }
 
 /**
- * Estimate the USD cost for a given number of tokens with a specific model/provider.
+ * Estimate the USD cost for a number of tokens at a provider's default pricing.
  */
 export function estimateCost(
-  _model: string,
   provider: string,
   inputTokens: number,
   outputTokens: number
@@ -167,9 +167,7 @@ export async function getUsageWithCosts(): Promise<AIUsageWithCosts> {
   let totalEstimatedCost = 0;
 
   for (const [provider, usage] of Object.entries(data.byProvider)) {
-    const pricing = PROVIDER_DEFAULT_PRICING[provider] ?? PROVIDER_DEFAULT_PRICING.LLAMACPP;
-    const cost = (usage.inputTokens / 1_000_000) * pricing.inputPer1M
-               + (usage.outputTokens / 1_000_000) * pricing.outputPer1M;
+    const cost = estimateCost(provider, usage.inputTokens, usage.outputTokens);
     estimatedCosts[provider] = cost;
     totalEstimatedCost += cost;
   }

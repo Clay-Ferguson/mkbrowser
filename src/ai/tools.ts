@@ -321,35 +321,25 @@ export const createFileTool = tool(
 
     if (DEBUG) logger.log(`[ai/tools] create_file: ${path.basename(resolved)}  (${resolved})`);
 
-    // Ensure the file does NOT already exist.
-    try {
-      await fs.stat(resolved);
-      // If stat succeeds, the file exists — that's an error for this tool.
+    // Ensure the file does NOT already exist. A failed stat means it's absent,
+    // which is exactly what we want.
+    const fileExists = await fs.stat(resolved).then(() => true).catch(() => false);
+    if (fileExists) {
       throw new Error(
         `File already exists: "${filePath}". This tool can only create new files. ` +
         'Use mk_write_file to overwrite an existing file.'
       );
-    } catch (err: unknown) {
-      // Re-throw our own "already exists" error.
-      if (err instanceof Error && err.message.startsWith('File already exists:')) {
-        throw err;
-      }
-      // stat threw because the file doesn't exist — that's what we want.
     }
 
-    // Ensure the parent directory exists.
-    try {
-      const parentStat = await fs.stat(parentDir);
-      if (!parentStat.isDirectory()) {
-        throw new Error(`Parent path "${parentDir}" is not a directory.`);
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.startsWith('Parent path')) {
-        throw err;
-      }
+    // Ensure the parent directory exists and is actually a directory.
+    const parentStat = await fs.stat(parentDir).catch(() => null);
+    if (!parentStat) {
       throw new Error(
         `Parent directory "${parentDir}" does not exist. Cannot create file.`
       );
+    }
+    if (!parentStat.isDirectory()) {
+      throw new Error(`Parent path "${parentDir}" is not a directory.`);
     }
 
     await fs.writeFile(resolved, content, 'utf-8');

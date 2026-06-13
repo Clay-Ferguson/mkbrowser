@@ -120,18 +120,18 @@ export function enforceDefaultAIModels<T extends AIModelConfigLike>(args: {
   }
 
   return { models: enforcedModels, selectedModel, changed };
-}// NOTE: See 'llamacpp' folder for instructions on setting up llama.cpp for local inference.
+}
+
+// NOTE: See 'llamacpp' folder for instructions on setting up llama.cpp for local inference.
 
 /**
  * Resolve the active AI provider and model name from the config.
  * Falls back to Anthropic Claude Haiku if nothing is configured.
  */
 
-export function getActiveModelConfig(): { provider: 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP'; model: string; llamacppBaseUrl: string; } {
+export function getActiveModelConfig(): { provider: AIProvider; model: string; llamacppBaseUrl: string; } {
     const config = getConfig();
     const llamacppBaseUrl = config.llamacppBaseUrl || 'http://localhost:8080/v1';
-
-    const normalizeKey = (name: string) => name.trim().toLowerCase();
 
     if (config.aiModel && config.aiModels) {
         const selectedKey = normalizeKey(config.aiModel);
@@ -154,18 +154,31 @@ export function createChatModel() {
   const { provider, model, llamacppBaseUrl } = getActiveModelConfig();
   debugLog('createChatModel → provider:', provider, 'model:', model);
   if (provider === 'LLAMACPP') {
+    // Local server — no API key required.
     return new ChatOpenAI({ model, configuration: { baseURL: llamacppBaseUrl } });
   }
   if (provider === 'OPENAI') {
+    warnIfApiKeyMissing('OPENAI_API_KEY');
     return new ChatOpenAI({ model });
   }
   if (provider === 'GOOGLE') {
-    const apiKey = process.env.GOOGLE_API_KEY;
-    debugLog('createChatModel → GOOGLE_API_KEY is', apiKey ? `set (${apiKey.length} chars)` : 'NOT SET — this will likely cause a hang or error');
+    warnIfApiKeyMissing('GOOGLE_API_KEY');
     // maxRetries: 2 to fail faster on quota/auth errors instead of silently retrying many times
     return new ChatGoogleGenerativeAI({ model, maxRetries: 2 });
   }
+  warnIfApiKeyMissing('ANTHROPIC_API_KEY');
   return new ChatAnthropic({ model });
+}
+
+/**
+ * Log whether a cloud provider's API-key env var is set. A missing key
+ * typically surfaces later as a hang or auth error, so flagging it up front
+ * makes that failure mode easier to diagnose.
+ */
+function warnIfApiKeyMissing(envVar: string): void {
+  const key = process.env[envVar];
+  debugLog(`createChatModel → ${envVar} is`,
+    key ? `set (${key.length} chars)` : 'NOT SET — this will likely cause a hang or error');
 }
 
 /**
