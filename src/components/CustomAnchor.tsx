@@ -1,4 +1,5 @@
 import React from 'react';
+import { api } from '../services/api';
 import { setHighlightItem, navigateToBrowserPath } from '../store';
 import { decodeMarkdownUrl } from '../utils/linkUtil';
 import { getParentPath, isAbsolutePath, pathSep, splitPath } from '../utils/pathUtil';
@@ -15,14 +16,14 @@ export default function CustomAnchor({ href, children, entryPath, ...props }: Cu
     // Handle external URLs - open in system browser
     if (href.startsWith('http://') || href.startsWith('https://')) {
       e.preventDefault();
-      void window.electronAPI.openExternalUrl(href);
+      void api.openExternalUrl(href);
       return;
     }
 
     // Handle file:// URLs - open with system default app
     if (href.startsWith('file://')) {
       e.preventDefault();
-      void window.electronAPI.openExternalUrl(href);
+      void api.openExternalUrl(href);
       return;
     }
 

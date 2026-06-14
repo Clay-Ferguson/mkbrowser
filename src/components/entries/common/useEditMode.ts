@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { api } from '../../../services/api';
 import { useItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing, upsertItem } from '../../../store';
 import { applyGlobalHighlight, globalHighlightText } from '../../../utils/globalHighlight';
 import { removeTOC } from '../../../utils/tocUtil';
@@ -50,11 +51,11 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
 
   const handleEditClick = async (goToLine?: number) => {
     // Check the file's current mtime on disk to detect external modifications
-    const diskMtime = await window.electronAPI.getFileMtime(path);
+    const diskMtime = await api.getFileMtime(path);
     if (diskMtime > 0 && item && diskMtime > item.modifiedTime) {
       // File was modified externally — re-read from disk before editing
       try {
-        const freshContent = await window.electronAPI.readFile(path);
+        const freshContent = await api.readFile(path);
         // Update the store with the new modifiedTime and content
         upsertItem(path, item.name, item.isDirectory, diskMtime, item.createdTime);
         setItemContent(path, freshContent);
@@ -82,7 +83,7 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
   const handleSave = async () => {
     setSaving(true);
     try {
-      const result = await window.electronAPI.writeFile(path, editContent);
+      const result = await api.writeFile(path, editContent);
       if (result.ok) {
         setItemContent(path, result.content, Date.now());
         setItemEditing(path, false);

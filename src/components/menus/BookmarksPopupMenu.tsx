@@ -1,5 +1,6 @@
 import { useState, type RefObject } from 'react';
 import { FolderIcon, DocumentIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
+import { api } from '../../services/api';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import BookmarkDialog from '../dialogs/BookmarkDialog';
@@ -36,7 +37,7 @@ export default function BookmarksPopupMenu({
   );
 
   const persistBookmarks = async () => {
-    await window.electronAPI.updateConfig({ settings: getSettings() });
+    await api.updateConfig({ settings: getSettings() });
   };
 
   const handleDelete = async (fullPath: string) => {
@@ -52,11 +53,11 @@ export default function BookmarksPopupMenu({
   };
 
   const handleClick = async (fullPath: string) => {
-    const exists = await window.electronAPI.pathExists(fullPath);
+    const exists = await api.pathExists(fullPath);
     if (!exists) {
       if (isBookmarked(fullPath)) {
         toggleBookmark(fullPath);
-        await window.electronAPI.updateConfig({ settings: getSettings() });
+        await api.updateConfig({ settings: getSettings() });
       }
       setMissingPath(fullPath);
       return;

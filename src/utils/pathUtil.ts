@@ -8,16 +8,15 @@
  * preload bridge ('\' on Windows, '/' on Linux/macOS).
  */
 
+import { getApi } from '../services/api';
+
 let cachedSep: string | null = null;
 
 /** The platform path separator: '\' on Windows, '/' elsewhere. */
 export function pathSep(): string {
   if (cachedSep === null) {
     // Falls back to '/' outside the renderer (e.g. unit tests).
-    cachedSep =
-      typeof window !== 'undefined' && window.electronAPI?.pathSep
-        ? window.electronAPI.pathSep
-        : '/';
+    cachedSep = getApi()?.pathSep ?? '/';
   }
   return cachedSep;
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../../../services/api';
 import { useItem, setItemContent, isCacheValid } from '../../../store';
 import { applyGlobalHighlight, globalHighlightText } from '../../../utils/globalHighlight';
 import type { ContentLoaderState } from './types';
@@ -49,7 +50,7 @@ export function useContentLoader({
 
       setLoading(true);
       try {
-        const content = await window.electronAPI.readFile(path);
+        const content = await api.readFile(path);
         if (ignore) return;
         setItemContent(path, content);
         if (globalHighlightText) {

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
+import { api } from '../services/api';
 
 /** A single hashtag definition. `tag` always includes the `#` prefix (e.g. `"#cooking"`). */
 export interface HashtagDefinition {
@@ -21,7 +22,7 @@ export type TagsLoadState =
 
 /** Calls the main-process IPC to load tags from the config folder. */
 export async function fetchTags(): Promise<TagCategory[]> {
-  return window.electronAPI.loadTags();
+  return api.loadTags();
 }
 
 /**

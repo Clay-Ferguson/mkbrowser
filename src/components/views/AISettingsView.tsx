@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
+import { api } from '../../services/api';
 import {
   setAiSettingsScrollPosition,
   getAiSettingsScrollPosition,
@@ -51,7 +52,7 @@ function AISettingsView() {
 
   // Load AI config on mount
   useEffect(() => {
-    void window.electronAPI.getConfig().then((config: AppConfig) => {
+    void api.getConfig().then((config: AppConfig) => {
       if (config.aiEnabled !== undefined) setAiEnabled(config.aiEnabled);
       if (config.aiModels) setAiModels(config.aiModels);
       if (config.aiModel) setSelectedAiModel(config.aiModel);
@@ -73,14 +74,14 @@ function AISettingsView() {
       }
     });
     // Load AI usage stats
-    void window.electronAPI.getAiUsage().then(setUsageData);
+    void api.getAiUsage().then(setUsageData);
     // Check llama.cpp server status
-    void window.electronAPI.checkLlamaHealth().then(setLlamaServerStatus);
+    void api.checkLlamaHealth().then(setLlamaServerStatus);
   }, []);
 
   const saveAiConfigField = useCallback(async (updates: Partial<AppConfig>) => {
     try {
-      await window.electronAPI.updateConfig(updates);
+      await api.updateConfig(updates);
     } catch {
       // Silently fail — config will be stale until next save
     }
@@ -200,8 +201,8 @@ function AISettingsView() {
   }, [aiModels, selectedAiModel, saveAiConfigField, normalizeModelKey]);
 
   const handleResetUsage = useCallback(async () => {
-    await window.electronAPI.resetAiUsage();
-    const fresh = await window.electronAPI.getAiUsage();
+    await api.resetAiUsage();
+    const fresh = await api.getAiUsage();
     setUsageData(fresh);
     setShowResetConfirm(false);
   }, []);
@@ -215,7 +216,7 @@ function AISettingsView() {
   const startLlama = async () => {
     setLlamaServerBusy(true);
     setLlamaServerStatus('loading');
-    const result = await window.electronAPI.startLlamaServer();
+    const result = await api.startLlamaServer();
     if (result.success) {
       setLlamaServerStatus('running');
     } else {
@@ -227,7 +228,7 @@ function AISettingsView() {
 
   const stopLlama = async () => {
     setLlamaServerBusy(true);
-    const result = await window.electronAPI.stopLlamaServer();
+    const result = await api.stopLlamaServer();
     if (result.success) {
       setLlamaServerStatus('stopped');
     } else {
@@ -237,7 +238,7 @@ function AISettingsView() {
   };
 
   const refreshLlama = async () => {
-    const status = await window.electronAPI.checkLlamaHealth();
+    const status = await api.checkLlamaHealth();
     setLlamaServerStatus(status);
   };
 

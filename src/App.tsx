@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
+import { api } from './services/api';
 import type { FileEntry } from './global';
 import AlertDialog from './components/dialogs/AlertDialog';
 import SearchResultsView from './components/views/SearchResultsView';
@@ -45,7 +46,7 @@ import { logger } from './utils/logUtil';
 async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isDirectory || !node.isExpanded) return node;
   try {
-    const entries = await window.electronAPI.readDirectory(node.path);
+    const entries = await api.readDirectory(node.path);
     const oldByPath = new Map((node.children ?? []).map(c => [(c as FileNode).path, c as FileNode]));
     const hasIndexOrder = entries.some(e => e.indexOrder !== undefined);
     const sortedEntries = hasIndexOrder
@@ -96,7 +97,7 @@ function App() {
   // Listen for calendar file changes from the main process (chokidar) — lives here so
   // it's always active regardless of which view is currently displayed.
   useEffect(() => {
-    return window.electronAPI.onCalendarFileChanged((results: CalendarEventResult[], filePath: string) => {
+    return api.onCalendarFileChanged((results: CalendarEventResult[], filePath: string) => {
       // console.log('[App] onCalendarFileChanged fired', { filePath, count: results.length });
       const updated: CalendarEvent[] = results.map(r => ({
         id: r.id, title: r.title, start: new Date(r.start), end: new Date(r.end), filePath: r.filePath, snippet: r.snippet,
@@ -106,7 +107,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    return window.electronAPI.onCalendarFileDeleted((deletedPath: string, isFolder: boolean) => {
+    return api.onCalendarFileDeleted((deletedPath: string, isFolder: boolean) => {
       // console.log('[App] onCalendarFileDeleted fired', { deletedPath, isFolder });
       if (isFolder) {
         deleteCalendarEventsUnderPath(deletedPath);
@@ -145,9 +146,9 @@ function App() {
   // Update window title when rootPath changes
   useEffect(() => {
     if (rootPath) {
-      void window.electronAPI.setWindowTitle(`MkBrowser: ${rootPath}`);
+      void api.setWindowTitle(`MkBrowser: ${rootPath}`);
     } else {
-      void window.electronAPI.setWindowTitle('MkBrowser');
+      void api.setWindowTitle('MkBrowser');
     }
   }, [rootPath]);
 
@@ -182,7 +183,7 @@ function App() {
     }
     setError(null);
     try {
-      const files = await window.electronAPI.readDirectory(currentPath);
+      const files = await api.readDirectory(currentPath);
       setEntries(files);
 
       // Update global store with all items from this directory (including attachment sub-items)
@@ -255,7 +256,7 @@ function App() {
       if (rootPath) {
         updates.curSubFolder = currentPath === rootPath ? undefined : currentPath;
       }
-      window.electronAPI.updateConfig(updates).catch(() => {
+      api.updateConfig(updates).catch(() => {
         // Non-critical — config will be updated on next navigation
       });
       return updatedRecent;
@@ -273,9 +274,9 @@ function App() {
   }, [loadDirectory]);
 
   const handleSelectFolder = useCallback(async () => {
-    const folder = await window.electronAPI.selectFolder();
+    const folder = await api.selectFolder();
     if (folder) {
-      await window.electronAPI.updateConfig({ browseFolder: folder, curSubFolder: undefined });
+      await api.updateConfig({ browseFolder: folder, curSubFolder: undefined });
       setRootPath(folder);
       setCurrentPath(folder);
     }
@@ -286,7 +287,7 @@ function App() {
       setCurrentPath(folder);
       setCurrentView('browser');
     } else {
-      await window.electronAPI.updateConfig({ browseFolder: folder, curSubFolder: undefined });
+      await api.updateConfig({ browseFolder: folder, curSubFolder: undefined });
       setRootPath(folder);
       setCurrentPath(folder);
       setCurrentView('browser');
@@ -294,7 +295,7 @@ function App() {
   }, [rootPath]);
 
   const handleQuit = useCallback(() => {
-    void window.electronAPI.quit();
+    void api.quit();
   }, []);
 
   const handleNavigateToSearchResult = useCallback((folderPath: string, resultPath: string) => {
@@ -306,10 +307,10 @@ function App() {
 
     if (ctrlKey) {
       const advancedQuery = `$("${hashtag}")`;
-      const results = await window.electronAPI.searchFolder(currentPath, advancedQuery, 'advanced', 'content');
+      const results = await api.searchFolder(currentPath, advancedQuery, 'advanced', 'content');
       setSearchResults(results, advancedQuery, currentPath, 'modified-time', 'desc', '');
     } else {
-      const results = await window.electronAPI.searchFolder(currentPath, hashtag, 'literal', 'content');
+      const results = await api.searchFolder(currentPath, hashtag, 'literal', 'content');
       setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc', '');
     }
     setCurrentView('search-results');
@@ -317,7 +318,7 @@ function App() {
 
   const handleSaveSettings = useCallback(async () => {
     try {
-      await window.electronAPI.updateConfig({ settings: getSettings() });
+      await api.updateConfig({ settings: getSettings() });
     } catch {
       setError('Failed to save settings');
     }

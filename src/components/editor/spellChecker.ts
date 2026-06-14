@@ -1,6 +1,7 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
 import Typo from 'typo-js';
+import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
 
 // Singleton for the spell checker
@@ -13,7 +14,7 @@ export async function loadSpellChecker(): Promise<Typo | null> {
 
   typoLoadingPromise = (async () => {
     try {
-      const { affData, dicData } = await window.electronAPI.loadDictionary();
+      const { affData, dicData } = await api.loadDictionary();
       typoInstance = new Typo('en_US', affData, dicData);
       return typoInstance;
     } catch (error) {

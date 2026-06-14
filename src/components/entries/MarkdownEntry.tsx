@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeSlug from 'rehype-slug';
+import { api } from '../../services/api';
 import 'katex/dist/katex.min.css';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../types/types';
@@ -107,7 +108,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   useEffect(() => {
     let cancelled = false;
-    void window.electronAPI.getConfig().then((config) => {
+    void api.getConfig().then((config) => {
       if (cancelled) return;
       setEntryConfig({
         aiEnabled: !!config.aiEnabled,
@@ -124,7 +125,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const handleToggleTagsVisible = async () => {
     const newVisible = !tagsVisible;
     setTagsVisible(newVisible);
-    await window.electronAPI.updateConfig({ tagsPanelVisible: newVisible });
+    await api.updateConfig({ tagsPanelVisible: newVisible });
   };
 
   const handleToggleShowProps = () => {
@@ -186,19 +187,19 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         setShowStreamingDialog(true);
       }
     };
-    const unsubStart = window.electronAPI.onAiStreamStart(() => {
+    const unsubStart = api.onAiStreamStart(() => {
       showDialog();
       unsubStart();
     });
     // Fallback: also show on the first chunk in case the start event is missed.
-    const unsubChunk = window.electronAPI.onAiStreamChunk(() => {
+    const unsubChunk = api.onAiStreamChunk(() => {
       showDialog();
       unsubChunk();
     });
 
     try {
       const parentFolder = getParentPath(entry.path);
-      const result = await window.electronAPI.askAi(textToSend, parentFolder);
+      const result = await api.askAi(textToSend, parentFolder);
       unsubStart();
       unsubChunk(); // no-ops if already fired; cancels if scripted (no events came)
       if ('error' in result) {
@@ -226,7 +227,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   };
 
   const handleCancelStream = () => {
-    window.electronAPI.cancelAiStream();
+    api.cancelAiStream();
   };
 
   const handleAiRewrite = async () => {
@@ -244,20 +245,20 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         setShowStreamingDialog(true);
       }
     };
-    const unsubStart = window.electronAPI.onAiStreamStart(() => {
+    const unsubStart = api.onAiStreamStart(() => {
       showDialog();
       unsubStart();
     });
     // Fallback: also show on the first chunk in case the start event is missed.
-    const unsubChunk = window.electronAPI.onAiStreamChunk(() => {
+    const unsubChunk = api.onAiStreamChunk(() => {
       showDialog();
       unsubChunk();
     });
 
     try {
       const result = selection
-        ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
-        : await window.electronAPI.rewriteContent(edit.editContent, entry.path, hasIndexFile);
+        ? await api.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
+        : await api.rewriteContent(edit.editContent, entry.path, hasIndexFile);
       unsubStart();
       unsubChunk(); // no-ops if already fired; cancels if scripted (no events came)
       if ('error' in result) {
@@ -288,7 +289,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     setIsReplyLoading(true);
     try {
       const parentFolder = getParentPath(entry.path);
-      const result = await window.electronAPI.replyToAi(parentFolder, true);
+      const result = await api.replyToAi(parentFolder, true);
       if ('error' in result) {
         logger.error('Reply error:', result.error);
       } else {

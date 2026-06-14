@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
+import { api } from '../../services/api';
 import Dialog from './common/Dialog';
 import CheckboxField from './common/CheckboxField';
 import RadioField from './common/RadioField';
@@ -35,7 +36,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
   const isValid = outputFolder.trim() && fileName.trim() && !fileNameHasExtension;
 
   const handleSelectFolder = async () => {
-    const folder = await window.electronAPI.selectExportFolder();
+    const folder = await api.selectExportFolder();
     if (folder) {
       setOutputFolder(folder);
     }

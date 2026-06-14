@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { api } from '../../services/api';
 import Dialog from './common/Dialog';
 
 interface StreamingDialogProps {
@@ -52,7 +53,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
   useEffect(() => {
     const cleanups: (() => void)[] = [];
 
-    cleanups.push(window.electronAPI.onAiStreamChunk((text) => {
+    cleanups.push(api.onAiStreamChunk((text) => {
       setStatus((s) => s === 'pending' ? 'streaming' : s);
       if (inThinkingRef.current) {
         // Transition from thinking to content — add a visible gap
@@ -67,7 +68,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
       appendText(text, 'text-green-300');
     }));
 
-    cleanups.push(window.electronAPI.onAiStreamThinking((text) => {
+    cleanups.push(api.onAiStreamThinking((text) => {
       setStatus((s) => s === 'pending' ? 'streaming' : s);
       if (!inThinkingRef.current) {
         // Add thinking header on first thinking chunk
@@ -77,16 +78,16 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
       appendText(text, 'text-slate-200');
     }));
 
-    cleanups.push(window.electronAPI.onAiStreamTool((toolName, summary) => {
+    cleanups.push(api.onAiStreamTool((toolName, summary) => {
       const label = summary ? `🔧 ${toolName}: ${summary}\n` : `🔧 ${toolName}\n`;
       appendText(label, 'text-teal-400');
     }));
 
-    cleanups.push(window.electronAPI.onAiStreamDone(() => {
+    cleanups.push(api.onAiStreamDone(() => {
       setStatus('done');
     }));
 
-    cleanups.push(window.electronAPI.onAiStreamError((message) => {
+    cleanups.push(api.onAiStreamError((message) => {
       setStatus('error');
       setErrorMessage(message);
     }));

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { api } from '../../services/api';
 import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtil';
 import type { TagCategory, HashtagDefinition } from '../../utils/tagUtil';
 import Dialog from './common/Dialog';
@@ -165,7 +166,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     setSaveError(null);
     try {
       const yaml = serializeTagsToYaml(toTagCategories(categories));
-      await window.electronAPI.saveTags(yaml);
+      await api.saveTags(yaml);
       onClose();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save.');

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { api } from '../../../services/api';
 import type { DeleteState } from './types';
 import { deleteItems } from '../../../store';
 
@@ -26,7 +27,7 @@ export function useDelete({ path, onDelete }: UseDeleteOptions): DeleteState {
     setShowDeleteConfirm(false);
     setDeleting(true);
     try {
-      const success = await window.electronAPI.deleteFile(path);
+      const success = await api.deleteFile(path);
       if (success) {
         // Remove the deleted item from the store so it no longer appears
         // as selected or referenced in memory

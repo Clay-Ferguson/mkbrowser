@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { FolderIcon } from '@heroicons/react/24/solid';
+import { api } from '../../services/api';
 import type { FileEntry } from '../../global';
 import type { ThreadEntry, ThreadChildFolder } from '../../store';
-import type { AppConfig } from '../../types/shared';
+import type { AppConfig , AIRewritePromptDef } from '../../types/shared';
 import {
   useCurrentPath,
   useRootPath,
@@ -25,7 +26,6 @@ import MarkdownEntry from '../entries/MarkdownEntry';
 import ThreadAvatar, { ThreadAvatarDefs } from '../ThreadAvatar';
 import { logger } from '../../utils/logUtil';
 import PathBreadcrumb from '../PathBreadcrumb';
-import type { AIRewritePromptDef } from '../../types/shared';
 
 const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
@@ -54,7 +54,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const [aiRewritePrompts, setAiRewritePrompts] = useState<AIRewritePromptDef[]>([]);
 
   useEffect(() => {
-    void window.electronAPI.getConfig().then((config: AppConfig) => {
+    void api.getConfig().then((config: AppConfig) => {
       setPersonaName(config.aiRewritePrompt || DEFAULT_PERSONA_NAME);
       setAiRewritePrompts(config.aiRewritePrompts ?? []);
     });
@@ -63,7 +63,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   // Change the active chat persona (the "selected prompt") and persist it.
   const handlePersonaSelect = useCallback((name: string) => {
     setPersonaName(name);
-    void window.electronAPI.updateConfig({ aiRewritePrompt: name });
+    void api.updateConfig({ aiRewritePrompt: name });
   }, []);
 
   // Scroll persistence
@@ -83,7 +83,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
 
     setLoading(true);
     try {
-      const result = await window.electronAPI.gatherThreadEntries(currentPath);
+      const result = await api.gatherThreadEntries(currentPath);
       setIsThread(result.isThread);
       setThreadEntries(result.entries);
       setChildFolders(result.childFolders);

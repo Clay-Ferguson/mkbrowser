@@ -1,4 +1,5 @@
 import { getSettings, setSettings, type SearchDefinition } from '../store';
+import { api } from '../services/api';
 import { logger } from './logUtil';
 
 // Re-exported for backwards compatibility; the implementation now lives in the
@@ -64,7 +65,7 @@ export async function saveSearchDefinitionToConfig(definition: SearchDefinition)
     updatedSearchDefinitions.push(definition);
     const updatedSettings = { ...currentSettings, searchDefinitions: updatedSearchDefinitions };
     setSettings(updatedSettings);
-    await window.electronAPI.updateConfig({ settings: updatedSettings });
+    await api.updateConfig({ settings: updatedSettings });
   } catch (err) {
     logger.error('Failed to save search definition:', err);
   }
@@ -78,7 +79,7 @@ export async function deleteSearchDefinitionFromConfig(name: string): Promise<vo
     );
     const updatedSettings = { ...currentSettings, searchDefinitions: updatedSearchDefinitions };
     setSettings(updatedSettings);
-    await window.electronAPI.updateConfig({ settings: updatedSettings });
+    await api.updateConfig({ settings: updatedSettings });
   } catch (err) {
     logger.error('Failed to delete search definition:', err);
   }

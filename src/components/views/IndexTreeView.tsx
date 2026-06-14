@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
+import { api } from '../../services/api';
 import { getIconForFileExtension, isImageFile } from '../../utils/fileUtil';
 import type { FileIconType } from '../../utils/fileUtil';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
@@ -176,7 +177,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
     const load = async () => {
       try {
-        const entries = await window.electronAPI.readDirectory(rootPath);
+        const entries = await api.readDirectory(rootPath);
         setIndexTreeRoot({
           path: rootPath,
           name: rootPath,
@@ -209,7 +210,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
       if (!node.isExpanded || node.children === null) {
         try {
-          const entries = await window.electronAPI.readDirectory(ancestorPath);
+          const entries = await api.readDirectory(ancestorPath);
           expandIndexTreeNode(ancestorPath, makeNodes(entries));
         } catch {
           return;
@@ -261,7 +262,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         return;
       }
       try {
-        const content = await window.electronAPI.readFile(node.path);
+        const content = await api.readFile(node.path);
         const headings = extractHeadingTree(node.path, content);
         expandIndexTreeNode(node.path, headings);
       } catch {
@@ -278,7 +279,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     }
 
     try {
-      const entries = await window.electronAPI.readDirectory(node.path);
+      const entries = await api.readDirectory(node.path);
       expandIndexTreeNode(node.path, makeNodes(entries));
     } catch {
       // leave node collapsed on error
@@ -293,8 +294,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     const result = await pasteCutItems(
       cutItems,
       node.path,
-      window.electronAPI.pathExists,
-      window.electronAPI.renameFile
+      api.pathExists,
+      api.renameFile
     );
 
     if (!result.success) return;
@@ -304,8 +305,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     deleteItems(movedPaths);
     clearAllCutItems();
     await Promise.all([
-      window.electronAPI.reconcileIndexedFiles(sourceFolder, false),
-      window.electronAPI.reconcileIndexedFiles(node.path, false),
+      api.reconcileIndexedFiles(sourceFolder, false),
+      api.reconcileIndexedFiles(node.path, false),
     ]);
 
     // If the browse view is currently showing this folder, refresh it
@@ -322,11 +323,11 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     const parentPath = createFolderParent;
     if (!parentPath) return;
     const folderPath = joinPath(parentPath, folderName);
-    const result = await window.electronAPI.createFolder(folderPath);
+    const result = await api.createFolder(folderPath);
     setCreateFolderParent(null);
     if (!result.success) return;
 
-    await window.electronAPI.reconcileIndexedFiles(parentPath, false);
+    await api.reconcileIndexedFiles(parentPath, false);
 
     // If the browse view is currently showing this folder, refresh it.
     if (parentPath === currentPath) {
@@ -344,7 +345,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
     const parentPath = getParentPath(target.path);
     const newPath = joinPath(parentPath, newName);
-    const success = await window.electronAPI.renameFile(target.path, newPath);
+    const success = await api.renameFile(target.path, newPath);
     if (!success) return;
 
     // If the browse view is showing the renamed item or its parent, refresh it.
@@ -362,11 +363,11 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     if (!target) return;
 
     const parentPath = getParentPath(target.path);
-    const success = await window.electronAPI.deleteFile(target.path);
+    const success = await api.deleteFile(target.path);
     if (!success) return;
 
     deleteItems([target.path]);
-    await window.electronAPI.reconcileIndexedFiles(parentPath, false);
+    await api.reconcileIndexedFiles(parentPath, false);
 
     // If the browse view is showing the deleted item or its parent, refresh it.
     if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
@@ -412,7 +413,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const handleRunScript = useCallback((node: FileNode) => {
     if (runningScript) return;
     setRunningScript(node.path);
-    void window.electronAPI.runShellScript(node.path);
+    void api.runShellScript(node.path);
     setTimeout(() => setRunningScript(null), 3000);
   }, [runningScript]);
 
@@ -420,7 +421,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const closeBookmarksMenu = () => setShowBookmarksMenu(false);
   const saveTreeWidth = async (width: typeof settings.indexTreeWidth) => {
     setIndexTreeWidth(width);
-    await window.electronAPI.updateConfig({ settings: getSettings() });
+    await api.updateConfig({ settings: getSettings() });
   };
   const handleNarrowTree = () => saveTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
   const handleWidenTree = () => saveTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
@@ -493,7 +494,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           const relPath = computeRelativePath(editorDir, node.path);
           const label = getFileName(node.path).replace(/\.md$/, '');
           if (node.path.endsWith('.md')) {
-            window.electronAPI.readFile(node.path)
+            api.readFile(node.path)
               .then((raw) => {
                 const id = extractFrontMatterId(raw);
                 const suffix = id ? `<!-- id:${id} -->` : '';

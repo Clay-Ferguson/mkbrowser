@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { PhotoIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon } from '@heroicons/react/24/outline';
+import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import { setHighlightItem, setPendingScrollToFile, deleteItems, useItem, setItemSelected, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
@@ -60,7 +61,7 @@ function ImageEntry(props: ImageEntryProps) {
     });
 
     // Persist the choice independently — it must not gate the animation timing.
-    void window.electronAPI.updateConfig({ imageSize: newSize });
+    void api.updateConfig({ imageSize: newSize });
   };
 
   // Fullscreen state
@@ -137,7 +138,7 @@ function ImageEntry(props: ImageEntryProps) {
     }
 
     try {
-      const success = await window.electronAPI.deleteFile(pathToDelete);
+      const success = await api.deleteFile(pathToDelete);
       if (success) {
         // Remove the deleted item from the store so it no longer appears
         // as selected or referenced in memory
@@ -166,7 +167,7 @@ function ImageEntry(props: ImageEntryProps) {
     setExifLoading(true);
     setExifFileName(imageName);
     try {
-      const data = await window.electronAPI.readExif(imagePath);
+      const data = await api.readExif(imagePath);
       setExifData(data);
       setShowExifDialog(true);
     } catch (error) {

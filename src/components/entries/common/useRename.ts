@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { api } from '../../../services/api';
 import { setHighlightItem, setItemRenaming, renameItem, updateBookmarkPath } from '../../../store';
 import type { RenameState } from './types';
 import { getParentPath, joinPath } from '../../../utils/pathUtil';
@@ -81,7 +82,7 @@ export function useRename({
     try {
       const dirPath = getParentPath(path);
       const newPath = joinPath(dirPath, trimmedName);
-      const success = await window.electronAPI.renameFile(path, newPath);
+      const success = await api.renameFile(path, newPath);
       if (success) {
         // Update bookmark if this item was bookmarked
         if (updateBookmarkPath(path, newPath)) {

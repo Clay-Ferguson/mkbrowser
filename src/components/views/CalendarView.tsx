@@ -3,6 +3,7 @@ import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
+import { api } from '../../services/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useSettings, useActiveCalendarFolder } from '../../store';
 import type { CalendarEvent } from '../../types/types';
@@ -56,7 +57,7 @@ export default function CalendarView() {
   const handleViewChange = (v: View) => {
     const vt = v as 'month' | 'week' | 'work_week' | 'day' | 'agenda';
     setCalendarViewType(vt);
-    void window.electronAPI.updateConfig({ calendarViewType: vt });
+    void api.updateConfig({ calendarViewType: vt });
   };
 
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
@@ -91,7 +92,7 @@ export default function CalendarView() {
     const normalizedName = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
     const filePath = joinPath(folder, normalizedName);
     try {
-      const result = await window.electronAPI.createFile(filePath, content);
+      const result = await api.createFile(filePath, content);
       if (!result.success) {
         logger.error('Failed to create calendar file:', result.error);
         return;

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { DocumentTextIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
+import { api } from '../../services/api';
 import {
   useItem,
   clearItemGoToLine,
@@ -41,7 +42,7 @@ function TextEntry(props: TextEntryProps) {
   const { selectedPromptName, aiRewriteMode } = aiConfig;
   useEffect(() => {
     let cancelled = false;
-    void window.electronAPI.getConfig().then((config) => {
+    void api.getConfig().then((config) => {
       if (cancelled) return;
       setAiConfig({
         selectedPromptName: config.aiRewritePrompt ?? '',
@@ -75,8 +76,8 @@ function TextEntry(props: TextEntryProps) {
     setIsRewriting(true);
     try {
       const result = selection
-        ? await window.electronAPI.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
-        : await window.electronAPI.rewriteContent(edit.editContent, entry.path, hasIndexFile);
+        ? await api.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
+        : await api.rewriteContent(edit.editContent, entry.path, hasIndexFile);
       if ('error' in result) {
         logger.error('Rewrite failed:', result.error);
         setAiErrorMessage(result.error);

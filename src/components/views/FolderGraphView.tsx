@@ -12,6 +12,7 @@ import {
 import { select } from 'd3-selection';
 import { drag as d3drag, type D3DragEvent } from 'd3-drag';
 import { zoom as d3zoom, zoomIdentity, type D3ZoomEvent } from 'd3-zoom';
+import { api } from '../../services/api';
 import 'd3-transition';
 import { forceLabelRect } from './forceLabelRect';
 import { forceCrossGroupRepel } from './forceCrossGroupRepel';
@@ -155,7 +156,7 @@ const PREVIEW_DIVIDER_CHAR = '─';
  * the body (front matter stripped), capped at PREVIEW_MAX_CHARS.
  */
 async function getFilePreview(filePath: string, name: string): Promise<string> {
-  const raw = await window.electronAPI.readFile(filePath);
+  const raw = await api.readFile(filePath);
   const { content } = parseFrontMatter(raw);
   const allLines = content.split(/\r?\n/).filter(l => l.trim().length > 0);
   const lines = allLines.slice(0, 5);
@@ -353,7 +354,7 @@ function FolderGraphView() {
       const titleSel = select(event.currentTarget as SVGGElement).select<SVGTitleElement>('title');
       void (async () => {
         try {
-          const mtime = await window.electronAPI.getFileMtime(d.id);
+          const mtime = await api.getFileMtime(d.id);
           if (d.previewText !== undefined && d.previewTimestamp !== undefined && mtime <= d.previewTimestamp) {
             titleSel.text(d.previewText);
             return;

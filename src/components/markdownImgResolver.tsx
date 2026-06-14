@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../services/api';
 import { logger } from '../utils/logUtil';
 import { decodeMarkdownUrl } from '../utils/linkUtil';
 import { getParentPath, pathSep, splitPathSegments } from '../utils/pathUtil';
@@ -56,7 +57,7 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<st
 
   // First, try resolving relative to the markdown file's directory (standard behavior)
   const standardPath = resolveRelativePath(currentDir, imageSrc);
-  if (await window.electronAPI.pathExists(standardPath)) {
+  if (await api.pathExists(standardPath)) {
     imagePathCache.set(cacheKey, standardPath);
     return standardPath;
   }
@@ -71,7 +72,7 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<st
     const ancestorDir = rootPrefix + pathParts.join(pathSep());
     const normalizedPath = resolveRelativePath(ancestorDir, imageSrc);
 
-    if (await window.electronAPI.pathExists(normalizedPath)) {
+    if (await api.pathExists(normalizedPath)) {
       imagePathCache.set(cacheKey, normalizedPath);
       return normalizedPath;
     }

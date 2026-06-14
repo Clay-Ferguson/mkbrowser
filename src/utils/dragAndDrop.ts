@@ -1,4 +1,5 @@
 import type React from 'react';
+import { api } from '../services/api';
 import type { ItemData, FileNode } from '../types/types';
 import { pasteCutItems } from '../edit';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
@@ -90,8 +91,8 @@ export async function moveEntryIntoFolder(payload: DragPayload, destFolder: stri
   const result = await pasteCutItems(
     [item],
     destFolder,
-    window.electronAPI.pathExists,
-    window.electronAPI.renameFile
+    api.pathExists,
+    api.renameFile
   );
 
   if (!result.success) {
@@ -99,8 +100,8 @@ export async function moveEntryIntoFolder(payload: DragPayload, destFolder: stri
   }
 
   await Promise.all([
-    window.electronAPI.reconcileIndexedFiles(sourceFolder, false),
-    window.electronAPI.reconcileIndexedFiles(destFolder, false),
+    api.reconcileIndexedFiles(sourceFolder, false),
+    api.reconcileIndexedFiles(destFolder, false),
   ]);
 
   return { success: true, sourceFolder };
@@ -149,7 +150,7 @@ export async function reloadExpandedTreeFolder(folderPath: string): Promise<void
   const node = findTreeNodeByPath(root, folderPath);
   if (!node?.isExpanded) return;
   try {
-    const entries = await window.electronAPI.readDirectory(folderPath);
+    const entries = await api.readDirectory(folderPath);
     expandIndexTreeNode(folderPath, makeTreeNodes(entries));
   } catch {
     // leave tree as-is

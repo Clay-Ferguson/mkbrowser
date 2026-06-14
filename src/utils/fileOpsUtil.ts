@@ -1,4 +1,5 @@
 import type { ItemData } from '../types/types';
+import { api } from '../services/api';
 import type { FileEntry } from '../global';
 import { isImageFile } from './fileUtil';
 import {
@@ -37,8 +38,8 @@ export async function pasteIntoFolder(
   const result = await pasteCutItems(
     cutItems,
     folderPath,
-    window.electronAPI.pathExists,
-    window.electronAPI.renameFile
+    api.pathExists,
+    api.renameFile
   );
 
   if (!result.success) {
@@ -51,8 +52,8 @@ export async function pasteIntoFolder(
   deleteItems(movedPaths);
   clearAllCutItems();
   await Promise.all([
-    window.electronAPI.reconcileIndexedFiles(sourceFolder, false),
-    window.electronAPI.reconcileIndexedFiles(folderPath, false),
+    api.reconcileIndexedFiles(sourceFolder, false),
+    api.reconcileIndexedFiles(folderPath, false),
   ]);
   onRefreshDirectory();
 }
@@ -80,7 +81,7 @@ export async function deleteSelected(
 
   onDismissConfirm();
 
-  const result = await deleteSelectedItems(selectedItems, window.electronAPI.deleteFile);
+  const result = await deleteSelectedItems(selectedItems, api.deleteFile);
 
   if (!result.success && result.failedItem) {
     onSetError(`Failed to delete ${result.failedItem}`);
@@ -89,7 +90,7 @@ export async function deleteSelected(
   if (result.deletedPaths.length > 0) {
     deleteItems(result.deletedPaths);
     if (currentPath && hasIndexFile) {
-      await window.electronAPI.reconcileIndexedFiles(currentPath, false);
+      await api.reconcileIndexedFiles(currentPath, false);
     }
     onRefreshDirectory();
   }
@@ -115,10 +116,10 @@ export async function splitSelectedFile(
 ): Promise<void> {
   const result = await performSplitFile(
     selectedItems,
-    window.electronAPI.readFile,
-    window.electronAPI.writeFile,
-    window.electronAPI.createFile,
-    window.electronAPI.renameFile
+    api.readFile,
+    api.writeFile,
+    api.createFile,
+    api.renameFile
   );
 
   if (!result.success) {
@@ -149,10 +150,10 @@ export async function joinSelectedFiles(
 ): Promise<void> {
   const result = await performJoinFiles(
     selectedItems,
-    window.electronAPI.readFile,
-    window.electronAPI.writeFile,
-    window.electronAPI.deleteFile,
-    window.electronAPI.getFileSize
+    api.readFile,
+    api.writeFile,
+    api.deleteFile,
+    api.getFileSize
   );
 
   if (!result.success) {
@@ -190,13 +191,13 @@ export async function createFileOp(
 ): Promise<void> {
   if (!currentPath) return;
   const filePath = joinPath(currentPath, fileName);
-  const result = await window.electronAPI.createFile(filePath, '');
+  const result = await api.createFile(filePath, '');
 
   if (result.success) {
     onCloseDialog();
     if (insertAtIndex !== null) {
       const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1].name : null;
-      await window.electronAPI.insertIntoIndexYaml(currentPath, fileName, insertAfterName);
+      await api.insertIntoIndexYaml(currentPath, fileName, insertAfterName);
     }
     setHighlightItem(filePath);
     setPendingScrollToFile(filePath);
@@ -240,13 +241,13 @@ export async function createFolderOp(
 ): Promise<void> {
   if (!currentPath) return;
   const folderPath = joinPath(currentPath, folderName);
-  const result = await window.electronAPI.createFolder(folderPath);
+  const result = await api.createFolder(folderPath);
 
   if (result.success) {
     onCloseDialog();
     if (insertAtIndex !== null) {
       const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1].name : null;
-      await window.electronAPI.insertIntoIndexYaml(currentPath, folderName, insertAfterName);
+      await api.insertIntoIndexYaml(currentPath, folderName, insertAfterName);
     }
     setHighlightItem(folderPath);
     setPendingScrollToFile(folderPath);
@@ -304,7 +305,7 @@ export function runOcr(
     command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'`;
   }
 
-  window.electronAPI.runInExternalTerminal(command)
+  api.runInExternalTerminal(command)
     .then(result => {
       if (!result.success) {
         onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
@@ -334,14 +335,14 @@ export async function pasteFromClipboardOp(
 
   const result = await pasteFromClipboard(
     currentPath,
-    window.electronAPI.writeFileBinary,
-    window.electronAPI.writeFile
+    api.writeFileBinary,
+    api.writeFile
   );
 
   if (result.success && result.fileName) {
     const filePath = joinPath(currentPath, result.fileName);
     setPendingScrollToFile(filePath);
-    await window.electronAPI.reconcileIndexedFiles(currentPath, false);
+    await api.reconcileIndexedFiles(currentPath, false);
     onRefreshDirectory();
     setTimeout(() => {
       setItemExpanded(filePath, true);

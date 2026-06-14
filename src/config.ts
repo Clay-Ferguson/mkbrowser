@@ -1,4 +1,5 @@
 import { setSettings, setCurrentPath, setCalendarViewType, setImageSizeStore } from './store';
+import { api } from './services/api';
 
 export interface LoadConfigResult {
   rootPath: string | null;
@@ -15,7 +16,7 @@ export interface LoadConfigResult {
  */
 export async function loadConfig(): Promise<LoadConfigResult> {
   try {
-    const config = await window.electronAPI.getConfig();
+    const config = await api.getConfig();
     // Load settings from config into store (only once at startup)
     if (config.settings) {
       setSettings({ indexTreeWidth: 'narrow', showPropsInEditor: true, ...config.settings });
@@ -27,12 +28,12 @@ export async function loadConfig(): Promise<LoadConfigResult> {
       setImageSizeStore(config.imageSize);
     }
     if (config.browseFolder) {
-      const exists = await window.electronAPI.pathExists(config.browseFolder);
+      const exists = await api.pathExists(config.browseFolder);
       if (exists) {
         // If a saved subfolder exists and is valid, start there instead of the root
         let initialPath = config.browseFolder;
         if (config.curSubFolder && config.curSubFolder.startsWith(config.browseFolder)) {
-          const subExists = await window.electronAPI.pathExists(config.curSubFolder);
+          const subExists = await api.pathExists(config.curSubFolder);
           if (subExists) {
             initialPath = config.curSubFolder;
           }

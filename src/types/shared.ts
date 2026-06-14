@@ -180,6 +180,8 @@ export interface AIUsageWithCosts {
   totalEstimatedCost: number;
 }
 
+// todo-0: this interface/wrapper is new and there are no unit tests yet to directly exercise this interface
+//         which is possible now that this interface has decoupled the GUI from the API backend
 export interface ElectronAPI {
   /** Platform path separator: '\\' on Windows, '/' elsewhere. */
   pathSep: string;

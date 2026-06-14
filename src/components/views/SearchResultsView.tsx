@@ -1,5 +1,6 @@
 import { useState } from 'react'; 
 import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, ShareIcon } from '@heroicons/react/24/outline';
+import { api } from '../../services/api';
 import {
   setSearchResults,
   setHighlightItem,
@@ -138,7 +139,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const success = await window.electronAPI.deleteFile(deleteTarget.path);
+      const success = await api.deleteFile(deleteTarget.path);
       if (success) {
         // Remove the deleted item from the store so it no longer appears
         // as selected or referenced in memory

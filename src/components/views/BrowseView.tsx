@@ -4,6 +4,7 @@ import {
   ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
   FolderPlusIcon, DocumentPlusIcon, CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
+import { api } from '../../services/api';
 import IndexInsertBar from '../IndexInsertBar';
 import type { FileEntry } from '../../global';
 import FolderEntry from '../entries/FolderEntry';
@@ -176,7 +177,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     const hasIndex = entries.some((e) => e.indexOrder !== undefined);
     setHasIndexFile(hasIndex);
     if (hasIndex && currentPath) {
-      void window.electronAPI.readIndexYaml(currentPath).then((yaml) => {
+      void api.readIndexYaml(currentPath).then((yaml) => {
         setIndexYaml(yaml);
       });
     } else {
@@ -187,7 +188,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   // Reconcile on folder navigation only (not on every file-operation refresh)
   useEffect(() => {
     if (!currentPath) return;
-    void window.electronAPI.reconcileIndexedFiles(currentPath, false);
+    void api.reconcileIndexedFiles(currentPath, false);
   }, [currentPath]);
   const pendingScrollToFile = usePendingScrollToFile();
   const pendingScrollToHeadingSlug = usePendingScrollToHeadingSlug();
@@ -370,34 +371,34 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const handleRefresh = useCallback(async () => {
     if (currentPath && hasIndexFile) {
-      await window.electronAPI.reconcileIndexedFiles(currentPath, false);
+      await api.reconcileIndexedFiles(currentPath, false);
     }
     onRefreshDirectory();
   }, [currentPath, hasIndexFile, onRefreshDirectory]);
 
   const handleEntryRename = useCallback(async () => {
     if (currentPath && hasIndexFile) {
-      await window.electronAPI.reconcileIndexedFiles(currentPath, false);
+      await api.reconcileIndexedFiles(currentPath, false);
     }
     onRefreshDirectory();
   }, [currentPath, hasIndexFile, onRefreshDirectory]);
 
   const handleEntryDelete = useCallback(async () => {
     if (currentPath && hasIndexFile) {
-      await window.electronAPI.reconcileIndexedFiles(currentPath, false);
+      await api.reconcileIndexedFiles(currentPath, false);
     }
     onRefreshDirectory();
   }, [currentPath, hasIndexFile, onRefreshDirectory]);
 
   const handleMoveEntry = useCallback(async (name: string, direction: 'up' | 'down') => {
     if (!currentPath) return;
-    await window.electronAPI.moveInIndexYaml(currentPath, name, direction);
+    await api.moveInIndexYaml(currentPath, name, direction);
     onRefreshDirectory();
   }, [currentPath, onRefreshDirectory]);
 
   const handleMoveEntryToEdge = useCallback(async (name: string, edge: 'top' | 'bottom') => {
     if (!currentPath) return;
-    await window.electronAPI.moveToEdgeInIndexYaml(currentPath, name, edge);
+    await api.moveToEdgeInIndexYaml(currentPath, name, edge);
     onRefreshDirectory();
   }, [currentPath, onRefreshDirectory]);
 
@@ -407,9 +408,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const ensureAttachFolder = useCallback(async (filePath: string): Promise<string | null> => {
     const attachFolderPath = `${filePath}${ATTACH_SUFFIX}`;
-    const exists = await window.electronAPI.pathExists(attachFolderPath);
+    const exists = await api.pathExists(attachFolderPath);
     if (!exists) {
-      const result = await window.electronAPI.createFolder(attachFolderPath);
+      const result = await api.createFolder(attachFolderPath);
       if (!result.success) {
         onSetError(result.error || 'Failed to create attachment folder');
         return null;
@@ -417,7 +418,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       if (hasIndexFile && currentPath) {
         const fileName = getFileName(filePath);
         const attachFolderName = `${fileName}${ATTACH_SUFFIX}`;
-        await window.electronAPI.insertIntoIndexYaml(currentPath, attachFolderName, fileName);
+        await api.insertIntoIndexYaml(currentPath, attachFolderName, fileName);
       }
     }
     return attachFolderPath;
@@ -471,9 +472,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     onSetError(null);
 
     onSetLastExportFolder(outputFolder);
-    await window.electronAPI.updateConfig({ lastExportFolder: outputFolder });
+    await api.updateConfig({ lastExportFolder: outputFolder });
 
-    const result = await window.electronAPI.exportFolderContents(currentPath, outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers);
+    const result = await api.exportFolderContents(currentPath, outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers);
 
     if (!result.success) {
       onSetError(result.error || 'Failed to export folder contents');
@@ -482,7 +483,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
     if (exportToPdf && result.outputPath) {
       const pdfPath = result.outputPath.replace(/\.md$/i, '.pdf');
-      const pdfResult = await window.electronAPI.exportToPdf(result.outputPath, pdfPath, currentPath);
+      const pdfResult = await api.exportToPdf(result.outputPath, pdfPath, currentPath);
 
       if (!pdfResult.success) {
         onSetError(pdfResult.error || 'Failed to launch PDF export');
@@ -490,7 +491,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       }
     } else {
       if (result.outputPath) {
-        await window.electronAPI.openExternal(result.outputPath);
+        await api.openExternal(result.outputPath);
       }
     }
   }, [currentPath, onSetError, onSetLastExportFolder]);
@@ -589,7 +590,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     // Decode {{nl}} tokens back to spaces for actual search execution
     const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
 
-    const results = await window.electronAPI.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchImageExif, options.mostRecent);
+    const results = await api.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchImageExif, options.mostRecent);
     setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection, options.searchName || '');
     setCurrentView('search-results');
   }, [currentPath]);
@@ -605,7 +606,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setShowReplaceDialog(false);
 
     try {
-      const results = await window.electronAPI.searchAndReplace(currentPath, searchText, replaceText);
+      const results = await api.searchAndReplace(currentPath, searchText, replaceText);
       setReplaceResultMessage(buildReplaceResultMessage(results));
       const totalReplacements = results.filter((r) => r.success).reduce((sum, r) => sum + r.replacementCount, 0);
       if (totalReplacements > 0) {
@@ -667,7 +668,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const handleEnableCustomOrdering = useCallback(async () => {
     if (!currentPath) return;
-    await window.electronAPI.reconcileIndexedFiles(currentPath, true);
+    await api.reconcileIndexedFiles(currentPath, true);
     onRefreshDirectory();
   }, [currentPath, onRefreshDirectory]);
 
@@ -675,7 +676,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     if (!currentPath) return;
     void (async () => {
       const searchQuery = definition.searchText.replace(/\{\{nl\}\}/g, ' ');
-      const results = await window.electronAPI.searchFolder(
+      const results = await api.searchFolder(
         currentPath,
         searchQuery,
         definition.searchMode,
@@ -710,7 +711,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     if (!currentPath) return;
     void (async () => {
       try {
-        const result = await window.electronAPI.analyzeFolderHashtags(currentPath);
+        const result = await api.analyzeFolderHashtags(currentPath);
         setFolderAnalysis({
           hashtags: result.hashtags,
           folderPath: currentPath,
@@ -727,7 +728,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     if (!currentPath) return;
     void (async () => {
       try {
-        const result = await window.electronAPI.scanFolderTree(currentPath);
+        const result = await api.scanFolderTree(currentPath);
         setFolderGraph({
           folderPath: result.folderPath,
           nodes: result.nodes.map(n => ({ ...n })),
@@ -751,7 +752,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setCalendarLoading(true);
     void (async () => {
       try {
-        const results = await window.electronAPI.loadCalendarEvents(currentPath);
+        const results = await api.loadCalendarEvents(currentPath);
         setCalendarEvents(results.map(r => ({
           id: r.id,
           title: r.title,
@@ -775,7 +776,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     }
     void (async () => {
       try {
-        const result = await window.electronAPI.replyToAi(currentPath, false);
+        const result = await api.replyToAi(currentPath, false);
         if ('error' in result) {
           onSetError('Failed to create AI chat: ' + result.error);
         } else {

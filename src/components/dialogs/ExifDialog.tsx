@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
 import { getExifDescriptionTarget } from '../../utils/exifDescriptionTarget';
 import Dialog from './common/Dialog';
@@ -119,14 +120,14 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
 
     setSaving(true);
     try {
-      const ok = await window.electronAPI.writeExif(filePath, editData);
+      const ok = await api.writeExif(filePath, editData);
       if (!ok) {
         setAlertMessage('Failed to save EXIF data.');
         setSaving(false);
         return;
       }
       // Reload the EXIF data from the file to show the updated values
-      const freshData = await window.electronAPI.readExif(filePath);
+      const freshData = await api.readExif(filePath);
       setDisplayData(freshData);
     } catch (err) {
       logger.error('[ExifDialog] Error saving EXIF data:', err);
