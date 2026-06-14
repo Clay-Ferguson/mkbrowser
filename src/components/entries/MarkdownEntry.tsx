@@ -1,7 +1,9 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
 import Markdown from 'react-markdown';
+import type { Components } from 'react-markdown';
+import type { PluggableList } from 'unified';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -67,6 +69,9 @@ interface MarkdownEntryProps extends BaseEntryProps {
 }
 
 const TIMESTAMP_FILENAME_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-(AM|PM)\.md$/;
+
+const REMARK_PLUGINS: PluggableList = [remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]];
+const REHYPE_PLUGINS: PluggableList = [rehypeKatex, rehypeSlug];
 
 function MarkdownEntry(props: MarkdownEntryProps) {
   const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, documentMode = false } = props;
@@ -206,6 +211,16 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
   const columns = splitOnColumnBreaks(processedContent);
   const columnBlockComponents = columns.map(col => createBlockClickComponents(edit.handleEditClick, col.lineOffset));
+
+  // Stable per-path components so react-markdown can memoize across renders. The block-click
+  // components are spread first at the call site (they depend on edit state and column offsets),
+  // then these path-dependent overrides are applied.
+  const markdownComponents = useMemo<Components>(() => ({
+    a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
+    img: createCustomImage(entry.path),
+    code: CustomCode,
+    pre: CustomPre,
+  }), [entry.path]);
 
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
@@ -420,8 +435,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                       className={`prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2${i > 0 ? ' border-l border-slate-600 pl-6' : ''}`}
                     >
                       <Markdown
-                        remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
-                        rehypePlugins={[rehypeKatex, rehypeSlug]}
+                        remarkPlugins={REMARK_PLUGINS}
+                        rehypePlugins={REHYPE_PLUGINS}
                         // react-markdown strips any URL whose scheme isn't in its default
                         // whitelist, so file:// links would be silently dropped. safeUrlTransform
                         // allow-lists the schemes we need (incl. file://) while still blocking
@@ -429,10 +444,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                         urlTransform={safeUrlTransform}
                         components={{
                           ...columnBlockComponents[i],
-                          a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
-                          img: createCustomImage(entry.path),
-                          code: CustomCode,
-                          pre: CustomPre,
+                          ...markdownComponents,
                         }}
                       >
                         {col.text}
@@ -445,8 +457,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                   className="prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2"
                 >
                   <Markdown
-                    remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
-                    rehypePlugins={[rehypeKatex, rehypeSlug]}
+                    remarkPlugins={REMARK_PLUGINS}
+                    rehypePlugins={REHYPE_PLUGINS}
                     // react-markdown strips any URL whose scheme isn't in its default
                     // whitelist, so file:// links would be silently dropped. safeUrlTransform
                     // allow-lists the schemes we need (incl. file://) while still blocking
@@ -454,10 +466,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                     urlTransform={safeUrlTransform}
                     components={{
                       ...blockComponents,
-                      a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
-                      img: createCustomImage(entry.path),
-                      code: CustomCode,
-                      pre: CustomPre,
+                      ...markdownComponents,
                     }}
                   >
                     {columns[0].text}
