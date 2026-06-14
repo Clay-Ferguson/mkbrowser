@@ -2,6 +2,30 @@ export function preprocessMathEscapes(content: string): string {
   return content.replace(/\\\$/g, '&#36;');
 }
 
+/** URL schemes we allow markdown links to use. `file`/`local-file` are needed
+ *  for this app's local-file links, which react-markdown would otherwise strip. */
+const ALLOWED_URL_SCHEMES = new Set(['http', 'https', 'mailto', 'file', 'local-file']);
+
+/**
+ * Sanitizer for react-markdown's `urlTransform`. react-markdown's built-in
+ * sanitizer strips any URL whose scheme isn't in its default whitelist, which
+ * would silently drop the `file://` links this app supports. Rather than
+ * disabling sanitization entirely (which would let `javascript:` and other
+ * dangerous schemes through), this allow-lists only the schemes we need and
+ * returns '' for anything else.
+ *
+ * URLs with no scheme — relative paths, in-page anchors (#section), and
+ * query-only links — are passed through untouched; CustomAnchor resolves them.
+ */
+export function safeUrlTransform(url: string): string {
+  // A leading scheme matches [a-z][a-z0-9+.-]* followed by ':'. The pattern
+  // won't match a relative path that merely contains a colon (e.g. `a/b:c`),
+  // since the disallowed chars before the colon break the match.
+  const match = /^([a-z][a-z0-9+.-]*):/i.exec(url);
+  if (!match) return url;
+  return ALLOWED_URL_SCHEMES.has(match[1].toLowerCase()) ? url : '';
+}
+
 export function stripHtmlComments(content: string): string {
   return content.replace(/<!--[\s\S]*?-->/g, '');
 }

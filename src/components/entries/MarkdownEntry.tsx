@@ -11,7 +11,7 @@ import 'katex/dist/katex.min.css';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../types/types';
 import { removeTOC } from '../../utils/tocUtil';
-import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks } from '../../utils/mkUtil';
+import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks, safeUrlTransform } from '../../utils/mkUtil';
 import {
   useItem,
   useSettings,
@@ -543,11 +543,11 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                       <Markdown
                         remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
                         rehypePlugins={[rehypeKatex, rehypeSlug]}
-                        // react-markdown v10 strips any URL whose protocol isn't in its default
-                        // whitelist (http, https, mailto, etc.), so file:// links would be silently
-                        // replaced with an empty string. An identity function bypasses that
-                        // sanitization and lets our CustomAnchor handler receive the full URL intact.
-                        urlTransform={(url) => url}
+                        // react-markdown strips any URL whose scheme isn't in its default
+                        // whitelist, so file:// links would be silently dropped. safeUrlTransform
+                        // allow-lists the schemes we need (incl. file://) while still blocking
+                        // dangerous ones like javascript:.
+                        urlTransform={safeUrlTransform}
                         components={{
                           ...columnBlockComponents[i],
                           a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
@@ -568,11 +568,11 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                   <Markdown
                     remarkPlugins={[remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
                     rehypePlugins={[rehypeKatex, rehypeSlug]}
-                    // react-markdown v10 strips any URL whose protocol isn't in its default
-                    // whitelist (http, https, mailto, etc.), so file:// links would be silently
-                    // replaced with an empty string. An identity function bypasses that
-                    // sanitization and lets our CustomAnchor handler receive the full URL intact.
-                    urlTransform={(url) => url}
+                    // react-markdown strips any URL whose scheme isn't in its default
+                    // whitelist, so file:// links would be silently dropped. safeUrlTransform
+                    // allow-lists the schemes we need (incl. file://) while still blocking
+                    // dangerous ones like javascript:.
+                    urlTransform={safeUrlTransform}
                     components={{
                       ...blockComponents,
                       a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
