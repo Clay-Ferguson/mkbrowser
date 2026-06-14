@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { logger } from '../../utils/logUtil';
+import { getExifDescriptionTarget } from '../../utils/exifDescriptionTarget';
 import Dialog from './common/Dialog';
 import AlertDialog from './AlertDialog';
 import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../utils/styles';
@@ -36,30 +37,32 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   const [editMode, setEditMode] = useState(false);
   // Local editable copy of EXIF data
   const [editData, setEditData] = useState<Record<string, Record<string, string>> | null>(null);
-  // Track if saving (future use)
+  // True while a save is in flight; disables the Save/Cancel buttons.
   const [saving, setSaving] = useState(false);
   // Message shown in a stacked in-app alert (replaces native alert())
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  // For auto-resize textareas
-  const textAreaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
-  // Deduplicate: collect all tag names seen so far, skip duplicates across groups
-  // Only deduplicate by tag name, not value, so editing doesn't create duplicates
-  const seen = new Set<string>();
-  const deduped: Array<[string, Record<string, string>]> = [];
+  // Deduplicate: keep the first occurrence of each tag name across groups so
+  // editing doesn't create duplicate rows. Recomputed only when the active data
+  // source changes, not on every render.
   const source = editMode && editData ? editData : displayData;
-  for (const [groupName, tags] of Object.entries(source)) {
-    const filtered: Record<string, string> = {};
-    for (const [tagName, value] of Object.entries(tags)) {
-      if (!seen.has(tagName)) {
-        seen.add(tagName);
-        filtered[tagName] = value;
+  const deduped = useMemo<Array<[string, Record<string, string>]>>(() => {
+    const seen = new Set<string>();
+    const result: Array<[string, Record<string, string>]> = [];
+    for (const [groupName, tags] of Object.entries(source)) {
+      const filtered: Record<string, string> = {};
+      for (const [tagName, value] of Object.entries(tags)) {
+        if (!seen.has(tagName)) {
+          seen.add(tagName);
+          filtered[tagName] = value;
+        }
+      }
+      if (Object.keys(filtered).length > 0) {
+        result.push([groupName, filtered]);
       }
     }
-    if (Object.keys(filtered).length > 0) {
-      deduped.push([groupName, filtered]);
-    }
-  }
+    return result;
+  }, [source]);
   const isEmpty = deduped.length === 0;
 
   // Enter edit mode: make a deep copy of displayData
@@ -83,25 +86,15 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   const handleAddDescription = () => {
     if (!editData) return;
 
-    // Determine the appropriate group and tag based on file extension
-    // This matches what the OCR script uses (see merlin_ocr.py EMBED_TAG_MAP)
-    const ext = filePath.toLowerCase().split('.').pop();
-    let group: string;
-    let tag: string;
-
-    if (ext === 'png') {
-      group = 'png';
-      tag = 'Description';
-    } else if (ext === 'jpg' || ext === 'jpeg') {
-      group = 'xmp-dc';  // XMP Dublin Core namespace
-      tag = 'Description';
-    } else {
+    // Where the Description belongs for this file type (shared with the OCR mapping).
+    const target = getExifDescriptionTarget(filePath);
+    if (!target) {
       setAlertMessage('Description field is only supported for PNG and JPEG files.');
       return;
     }
+    const { group, tag } = target;
 
-    // Check if description already exists in any group (check common locations)
-    const existingDesc = editData[group]?.[tag] || editData['png']?.['Description'] || editData['xmp-dc']?.['Description'];
+    const existingDesc = editData[group]?.[tag];
     if (existingDesc !== undefined) {
       setAlertMessage('Description field already exists.');
       return;
@@ -159,15 +152,6 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
     });
   };
 
-  // Auto-resize textarea on input
-  const handleTextareaInput = (group: string, tag: string) => {
-    const key = `${group}\0${tag}`;
-    const ref = textAreaRefs.current[key];
-    if (ref) {
-      ref.style.height = 'auto';
-      ref.style.height = ref.scrollHeight + 'px';
-    }
-  };
   return (
     <>
     <Dialog
@@ -189,20 +173,19 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
                 <table className="w-full text-sm">
                   <tbody>
                     {Object.entries(tags).map(([tagName, value]) => {
-                      const key = `${groupName}\0${tagName}`;
                       return (
                         <tr key={tagName} className="border-b border-slate-700/50">
                           <td className="text-slate-400 py-1 pr-4 whitespace-nowrap align-top w-1/4">{tagName}</td>
                           <td className="text-slate-200 py-1">
                             {editMode ? (
+                              // field-sizing:content lets the textarea grow with its
+                              // text natively (Chromium 123+), replacing the old
+                              // ref + onInput scrollHeight measuring.
                               <textarea
-                                ref={el => { textAreaRefs.current[key] = el; }}
-                                className="w-full bg-slate-900 text-slate-100 rounded p-1 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                className="w-full bg-slate-900 text-slate-100 rounded p-1 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm [field-sizing:content] min-h-[28px] max-h-[300px] overflow-auto"
                                 value={value}
                                 rows={1}
-                                style={{ minHeight: 28, maxHeight: 300, overflow: 'auto' }}
                                 onChange={e => handleFieldChange(groupName, tagName, e.target.value)}
-                                onInput={() => handleTextareaInput(groupName, tagName)}
                                 spellCheck={false}
                               />
                             ) : value.includes('\n') ? (

@@ -21,6 +21,7 @@ import ConfirmDialog from '../dialogs/ConfirmDialog';
 import SearchDialog, { type SearchOptions, type SearchDialogInitialValues } from '../dialogs/SearchDialog';
 import ReplaceDialog from '../dialogs/ReplaceDialog';
 import ExportDialog from '../dialogs/ExportDialog';
+import type { ExportOptions } from '../dialogs/ExportDialog';
 import AlertDialog from '../dialogs/AlertDialog';
 import PathBreadcrumb from '../PathBreadcrumb';
 import {
@@ -463,7 +464,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     }
   }, [visibleEntries, items]);
 
-  const handleExport = useCallback(async (outputFolder: string, fileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean, exportToPdf: boolean) => {
+  const handleExport = useCallback(async ({ outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers, exportToPdf }: ExportOptions) => {
     if (!currentPath) return;
 
     setShowExportDialog(false);
@@ -628,6 +629,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       searchMode: options.searchType,
       sortBy: options.sortBy,
       sortDirection: options.sortDirection,
+      searchImageExif: options.searchImageExif,
       mostRecent: options.mostRecent,
     };
     await saveSearchDefinitionToConfig(definition);

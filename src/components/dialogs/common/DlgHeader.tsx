@@ -1,8 +1,9 @@
 interface DlgHeaderProps {
   title: string;
   onClose: () => void;
-  /** id applied to the title <h3> so a parent dialog can reference it via aria-labelledby. */
-  titleId?: string;
+  /** id applied to the title <h3> so the parent Dialog references it via
+   *  aria-labelledby. Required: the header is always the dialog's accessible name. */
+  titleId: string;
 }
 
 /* this is the header component that we use to display the title bar for all of our dialog boxes, so they all look the same, and function the same way */

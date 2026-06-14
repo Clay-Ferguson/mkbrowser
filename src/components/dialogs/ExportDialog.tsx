@@ -5,10 +5,20 @@ import CheckboxField from './common/CheckboxField';
 import RadioField from './common/RadioField';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_FOOTER_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE } from '../../utils/styles';
 
+export interface ExportOptions {
+  outputFolder: string;
+  /** Always carries a `.md` extension; the caller handles PDF conversion from it. */
+  fileName: string;
+  includeSubfolders: boolean;
+  includeFilenames: boolean;
+  includeDividers: boolean;
+  exportToPdf: boolean;
+}
+
 interface ExportDialogProps {
   defaultFolder: string;
   defaultFileName: string;
-  onExport: (outputFolder: string, fileName: string, includeSubfolders: boolean, includeFilenames: boolean, includeDividers: boolean, exportToPdf: boolean) => void;
+  onExport: (options: ExportOptions) => void;
   onCancel: () => void;
 }
 
@@ -20,6 +30,9 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
   const [includeDividers, setIncludeDividers] = useState(true);
   const [outputFormat, setOutputFormat] = useState<'markdown' | 'pdf'>('markdown');
   const fileNameInputRef = useRef<HTMLInputElement>(null);
+
+  const fileNameHasExtension = /\.[a-zA-Z0-9]+$/.test(fileName.trim());
+  const isValid = outputFolder.trim() && fileName.trim() && !fileNameHasExtension;
 
   const handleSelectFolder = async () => {
     const folder = await window.electronAPI.selectExportFolder();
@@ -33,19 +46,21 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
     const trimmedFileName = fileName.trim();
     if (!trimmedFolder || !trimmedFileName || fileNameHasExtension) return;
 
-    // Always pass a .md filename — the caller handles PDF conversion from it
-    const finalFileName = `${trimmedFileName}.md`;
-
-    onExport(trimmedFolder, finalFileName, includeSubfolders, includeFilenames, includeDividers, outputFormat === 'pdf');
+    onExport({
+      outputFolder: trimmedFolder,
+      // Always pass a .md filename — the caller handles PDF conversion from it
+      fileName: `${trimmedFileName}.md`,
+      includeSubfolders,
+      includeFilenames,
+      includeDividers,
+      exportToPdf: outputFormat === 'pdf',
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleExport();
   };
-
-  const fileNameHasExtension = /\.[a-zA-Z0-9]+$/.test(fileName.trim());
-  const isValid = outputFolder.trim() && fileName.trim() && !fileNameHasExtension;
 
   return (
     <Dialog

@@ -1,5 +1,9 @@
+import clsx from 'clsx';
 import Dialog from './common/Dialog';
 import { BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+
+// todo-0: we've just added 'clsx' to this file and so now we need to 
+// go through all the code and apply this approach wherever it's appropriate 
 
 interface AlertDialogProps {
   message: string;
@@ -24,17 +28,19 @@ function AlertDialog({
     <Dialog
       title={title}
       onClose={onClose}
-      className={`max-w-md${scrollable ? ' max-h-[70vh] flex flex-col' : ''}`}
+      className={clsx('max-w-md', scrollable && 'max-h-[70vh] flex flex-col')}
     >
-      <div className={`p-6${scrollable ? ' flex flex-col flex-1 overflow-hidden' : ''}`}>
+      <div className={clsx('p-6', scrollable && 'flex flex-col flex-1 overflow-hidden')}>
         <p
-          className={`text-slate-200 mb-6${scrollable ? ' overflow-y-auto' : ''}${
-            preserveWhitespace ? ' whitespace-pre-wrap' : ''
-          }`}
+          className={clsx(
+            'text-slate-200 mb-6',
+            scrollable && 'overflow-y-auto',
+            preserveWhitespace && 'whitespace-pre-wrap',
+          )}
         >
           {message}
         </p>
-        <div className={`flex justify-end${scrollable ? ' flex-shrink-0' : ''}`}>
+        <div className={clsx('flex justify-end', scrollable && 'flex-shrink-0')}>
           <button
             type="button"
             onClick={onClose}

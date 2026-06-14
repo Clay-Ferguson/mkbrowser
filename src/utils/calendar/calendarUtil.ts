@@ -136,6 +136,26 @@ export function setDueProperty(content: string, dueValue: string): string {
   return `---\ndue: ${dueValue}\n---\n${content}`;
 }
 
+/** Parse a `M/D/YYYY` (or `M/D/YY`) due string into a local Date, or undefined. */
+export function parseDueStr(dueStr: string): Date | undefined {
+  const parts = dueStr.split('/');
+  if (parts.length !== 3) return undefined;
+  const month = parseInt(parts[0], 10) - 1;
+  const day = parseInt(parts[1], 10);
+  let year = parseInt(parts[2], 10);
+  if (year < 100) year += 2000;
+  const d = new Date(year, month, day);
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
+/** Format a Date as `M/D/YYYY` (the on-disk due string format). */
+export function formatDueDate(date: Date): string {
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+  const y = date.getFullYear();
+  return `${m}/${d}/${y}`;
+}
+
 export interface RRuleProps {
   freq?: string;
   interval?: string;

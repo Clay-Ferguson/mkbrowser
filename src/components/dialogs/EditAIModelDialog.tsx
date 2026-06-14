@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
-import type { AIModelConfig } from '../../types/shared';
+import { AI_PROVIDERS } from '../../types/shared';
+import type { AIModelConfig, AIProvider } from '../../types/shared';
 import Dialog from './common/Dialog';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_FOOTER_CLASS, DLG_INPUT_CLASS_ALT } from '../../utils/styles';
 
-const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
+const isAIProvider = (value: string): value is AIProvider =>
+  (AI_PROVIDERS as readonly string[]).includes(value);
 
 interface EditAIModelDialogProps {
   /** Pre-populated for Edit mode; undefined for Create mode */
@@ -14,7 +16,7 @@ interface EditAIModelDialogProps {
 
 function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialogProps) {
   const [name, setName] = useState(initialModel?.name ?? '');
-  const [provider, setProvider] = useState<AIModelConfig['provider']>(initialModel?.provider ?? 'ANTHROPIC');
+  const [provider, setProvider] = useState<AIProvider>(initialModel?.provider ?? 'ANTHROPIC');
   const [model, setModel] = useState(initialModel?.model ?? '');
   const [inputPer1MText, setInputPer1MText] = useState(
     initialModel ? String(initialModel.inputPer1M ?? 0) : '0'
@@ -42,18 +44,26 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
     outputPer1M !== null;
 
   const handleSave = useCallback(() => {
-    if (!isValid || isReadonly) return;
-    // isValid guarantees these are non-null.
+    if (isReadonly) return;
+    const trimmedName = name.trim();
+    const trimmedModel = model.trim();
+    // Re-parse here so the non-null prices are proven by control flow rather than
+    // asserted; bail if anything is still invalid.
+    const input = parseNonNegative(inputPer1MText);
+    const output = parseNonNegative(outputPer1MText);
+    if (trimmedName.length === 0 || trimmedModel.length === 0 || input === null || output === null) {
+      return;
+    }
     onSave({
-      name: name.trim(),
+      name: trimmedName,
       provider,
-      model: model.trim(),
-      inputPer1M: inputPer1M as number,
-      outputPer1M: outputPer1M as number,
+      model: trimmedModel,
+      inputPer1M: input,
+      outputPer1M: output,
       vision: initialModel?.vision ?? false,
       readonly: false,
     });
-  }, [isValid, isReadonly, name, provider, model, inputPer1M, outputPer1M, onSave]);
+  }, [isReadonly, name, provider, model, inputPer1MText, outputPer1MText, initialModel, onSave]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +100,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
             <label className="block text-slate-300 text-sm mb-1">Provider</label>
             <select
               value={provider}
-              onChange={(e) => setProvider(e.target.value as AIModelConfig['provider'])}
+              onChange={(e) => { if (isAIProvider(e.target.value)) setProvider(e.target.value); }}
               disabled={isReadonly}
               className={`${DLG_INPUT_CLASS_ALT} cursor-pointer`}
             >

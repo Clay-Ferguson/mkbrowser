@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import clsx from 'clsx';
 import Dialog from './common/Dialog';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS_ALT_COMPACT } from '../../utils/styles';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
-import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, RRuleProps } from '../../utils/calendar/calendarUtil';
+import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, parseDueStr, formatDueDate, RRuleProps } from '../../utils/calendar/calendarUtil';
 
 interface EditCalendarDialogProps {
   content: string;
@@ -11,30 +12,22 @@ interface EditCalendarDialogProps {
   onCancel: () => void;
 }
 
-function parseDueStr(dueStr: string): Date | undefined {
-  const parts = dueStr.split('/');
-  if (parts.length !== 3) return undefined;
-  const month = parseInt(parts[0], 10) - 1;
-  const day = parseInt(parts[1], 10);
-  let year = parseInt(parts[2], 10);
-  if (year < 100) year += 2000;
-  const d = new Date(year, month, day);
-  return isNaN(d.getTime()) ? undefined : d;
-}
-
-function formatDueDate(date: Date): string {
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
-  const y = date.getFullYear();
-  return `${m}/${d}/${y}`;
-}
-
 const FREQ_OPTIONS = ['none', 'daily', 'weekly', 'monthly', 'yearly'] as const;
-const FREQ_LABELS: Record<string, string> = { none: 'No repeat', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
-const FREQ_UNITS: Record<string, string> = { daily: 'day(s)', weekly: 'week(s)', monthly: 'month(s)', yearly: 'year(s)' };
+type Freq = typeof FREQ_OPTIONS[number];
+const FREQ_LABELS: Record<Freq, string> = { none: 'No repeat', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
+const FREQ_UNITS: Record<Exclude<Freq, 'none'>, string> = { daily: 'day(s)', weekly: 'week(s)', monthly: 'month(s)', yearly: 'year(s)' };
 const DAY_CODES = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const;
+type DayCode = typeof DAY_CODES[number];
 const END_OPTIONS = ['never', 'until', 'count'] as const;
-const END_LABELS: Record<string, string> = { never: 'Never', until: 'On date', count: 'After N' };
+type EndType = typeof END_OPTIONS[number];
+const END_LABELS: Record<EndType, string> = { never: 'Never', until: 'On date', count: 'After N' };
+
+// Narrow free-form strings parsed from front matter back into their finite domains.
+const asFreq = (value: string | undefined): Freq =>
+  (FREQ_OPTIONS as readonly string[]).includes(value ?? '') ? (value as Freq) : 'none';
+const isDayCode = (value: string): value is DayCode => (DAY_CODES as readonly string[]).includes(value);
+const asEndType = (value: string): EndType =>
+  (END_OPTIONS as readonly string[]).includes(value) ? (value as EndType) : 'never';
 
 function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogProps) {
   const existingDue = getDueProperty(content);
@@ -45,18 +38,18 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
   const [duration, setDuration] = useState<string>(getDurationProperty(content) ?? '');
 
   const existingRRule = getRRuleProperty(content);
-  const [freq, setFreq] = useState<string>(existingRRule?.freq ?? 'none');
-  const [interval, setInterval] = useState<string>(existingRRule?.interval ?? '1');
-  const [byday, setByday] = useState<string[]>(
-    existingRRule?.byday ? existingRRule.byday.split(',').map(d => d.trim()) : []
+  const [freq, setFreq] = useState<Freq>(asFreq(existingRRule?.freq));
+  const [repeatInterval, setRepeatInterval] = useState<string>(existingRRule?.interval ?? '1');
+  const [byday, setByday] = useState<DayCode[]>(
+    existingRRule?.byday ? existingRRule.byday.split(',').map(d => d.trim()).filter(isDayCode) : []
   );
-  const [endType, setEndType] = useState<string>(
+  const [endType, setEndType] = useState<EndType>(
     existingRRule?.until ? 'until' : existingRRule?.count ? 'count' : 'never'
   );
   const [untilStr, setUntilStr] = useState<string>(existingRRule?.until ?? '');
   const [count, setCount] = useState<string>(existingRRule?.count ?? '');
 
-  const toggleDay = (day: string) => {
+  const toggleDay = (day: DayCode) => {
     setByday(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
   };
 
@@ -72,7 +65,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
     }
     if (freq && freq !== 'none') {
       const rrule: RRuleProps = { freq };
-      const iv = interval.trim();
+      const iv = repeatInterval.trim();
       if (iv && iv !== '1') rrule.interval = iv;
       if (freq === 'weekly' && byday.length > 0) rrule.byday = byday.join(',');
       if (endType === 'until' && untilStr.trim()) rrule.until = untilStr.trim();
@@ -118,7 +111,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 placeholder="e.g. 2:00 PM"
-                className="bg-slate-700 text-slate-100 border border-slate-500 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400 w-28"
+                className={clsx(DLG_INPUT_CLASS_ALT_COMPACT, 'w-28')}
               />
             </div>
             <div>
@@ -128,7 +121,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="hrs"
-                className="bg-slate-700 text-slate-100 border border-slate-500 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400 w-16"
+                className={clsx(DLG_INPUT_CLASS_ALT_COMPACT, 'w-16')}
               />
             </div>
             <div>
@@ -136,8 +129,8 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
               <select
                 data-testid="calendar-frequency-type-option"
                 value={freq}
-                onChange={(e) => { setFreq(e.target.value); setByday([]); setEndType('never'); }}
-                className="bg-slate-700 text-slate-100 border border-slate-500 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400"
+                onChange={(e) => { setFreq(asFreq(e.target.value)); setByday([]); setEndType('never'); }}
+                className={DLG_INPUT_CLASS_ALT_COMPACT}
               >
                 {FREQ_OPTIONS.map(f => (
                   <option key={f} value={f}>{FREQ_LABELS[f]}</option>
@@ -152,9 +145,9 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                     data-testid="calendar-frequency-repeat-option"
                     type="text"
                     maxLength={4}
-                    value={interval}
-                    onChange={(e) => setInterval(e.target.value.replace(/\D/g, ''))}
-                    className="bg-slate-700 text-slate-100 border border-slate-500 rounded px-2 py-1 text-sm w-12 focus:outline-none focus:border-blue-400"
+                    value={repeatInterval}
+                    onChange={(e) => setRepeatInterval(e.target.value.replace(/\D/g, ''))}
+                    className={clsx(DLG_INPUT_CLASS_ALT_COMPACT, 'w-12')}
                   />
                   <span className="text-xs text-slate-400">{FREQ_UNITS[freq]}</span>
                 </div>
@@ -189,8 +182,8 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                 <label className="block text-xs text-slate-400 mb-1">Ends</label>
                 <select
                   value={endType}
-                  onChange={(e) => setEndType(e.target.value)}
-                  className="bg-slate-700 text-slate-100 border border-slate-500 rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-400"
+                  onChange={(e) => setEndType(asEndType(e.target.value))}
+                  className={DLG_INPUT_CLASS_ALT_COMPACT}
                 >
                   {END_OPTIONS.map(o => (
                     <option key={o} value={o}>{END_LABELS[o]}</option>
@@ -205,7 +198,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                     value={untilStr}
                     onChange={(e) => setUntilStr(e.target.value)}
                     placeholder="MM/DD/YYYY"
-                    className="bg-slate-700 text-slate-100 border border-slate-500 rounded px-2 py-1 text-sm w-28 focus:outline-none focus:border-blue-400"
+                    className={clsx(DLG_INPUT_CLASS_ALT_COMPACT, 'w-28')}
                   />
                 </div>
               )}
@@ -218,7 +211,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                     value={count}
                     onChange={(e) => setCount(e.target.value.replace(/\D/g, ''))}
                     placeholder="N"
-                    className="bg-slate-700 text-slate-100 border border-slate-500 rounded px-2 py-1 text-sm w-12 focus:outline-none focus:border-blue-400"
+                    className={clsx(DLG_INPUT_CLASS_ALT_COMPACT, 'w-12')}
                   />
                 </div>
               )}

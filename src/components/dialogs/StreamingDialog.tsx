@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import Dialog from './common/Dialog';
 
 interface StreamingDialogProps {
+  /** Dismiss (hide) the dialog. Does not touch the in-flight AI request — used
+   *  once the response has finished, or after onCancel when stopping mid-stream. */
   onClose: () => void;
+  /** Abort the in-flight AI stream on the backend (cancelAiStream). Does NOT
+   *  close the dialog by itself; handleStop pairs it with onClose. */
   onCancel: () => void;
 }
 
@@ -13,7 +17,13 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const inThinkingRef = useRef(false);
 
-  // Helper to append a text node to the output
+  // Append streamed text by mutating the DOM directly rather than accumulating
+  // it in React state. This is a deliberate exception to the declarative model:
+  // AI responses arrive as many small, high-frequency chunks, and re-rendering a
+  // continuously growing <pre> on every token causes noticeable jank. Appending a
+  // text node (coalescing consecutive same-styled chunks into one span) keeps
+  // streaming smooth. The trade-off is that this output lives outside React's
+  // control, so nothing else should try to render into the same <pre>.
   const appendText = (text: string, className?: string) => {
     const output = outputRef.current;
     if (!output) return;
@@ -35,6 +45,10 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
     }
   };
 
+  // Subscribe to the AI stream IPC events exactly once, on mount. The handlers
+  // only touch stable refs and state setters (and appendText, which itself only
+  // reads refs), so there are no reactive dependencies — re-subscribing on every
+  // render would tear down and re-add the IPC listeners and risk dropping chunks.
   useEffect(() => {
     const cleanups: (() => void)[] = [];
 
@@ -80,7 +94,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
     return () => {
       cleanups.forEach((cleanup) => cleanup());
     };
-  }, [onClose]);
+  }, []);
 
   const handleStop = () => {
     setStatus('cancelled');
@@ -108,14 +122,17 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
         <div ref={containerRef} className="flex-1 overflow-y-auto p-4">
           {status === 'pending' && (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-400">
-              <svg className="animate-spin w-10 h-10 text-teal-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg role="img" aria-label="Loading" className="animate-spin w-10 h-10 text-teal-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
               </svg>
               <span className="text-sm">Sending your question to the AI — response will appear here shortly.</span>
             </div>
           )}
+          {/* aria-live so screen readers announce text as it streams in. */}
           <pre ref={outputRef}
+               aria-live="polite"
+               aria-atomic="false"
                className="text-slate-200 text-sm font-mono whitespace-pre-wrap break-words leading-relaxed">
           </pre>
           {errorMessage && (

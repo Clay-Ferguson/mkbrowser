@@ -13,9 +13,13 @@ function RenameDialog({ currentName, isDirectory, onRename, onCancel }: RenameDi
   const [name, setName] = useState(currentName);
   const itemLabel = isDirectory ? 'folder' : 'file';
 
+  // Empty or unchanged means there's nothing to apply — a no-op, not a user cancel.
+  const trimmedName = name.trim();
+  const isNoOp = !trimmedName || trimmedName === currentName;
+
   const handleRename = () => {
-    const trimmedName = name.trim();
-    if (!trimmedName || trimmedName === currentName) {
+    if (isNoOp) {
+      // Nothing to rename; just dismiss the dialog.
       onCancel();
       return;
     }
@@ -47,6 +51,7 @@ function RenameDialog({ currentName, isDirectory, onRename, onCancel }: RenameDi
           </button>
           <button
             type="submit"
+            disabled={isNoOp}
             className={BUTTON_CLASS_DLG_BLUE}
           >
             Rename

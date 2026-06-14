@@ -1,12 +1,12 @@
-import { useRef, useState } from 'react';
-import { ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { useRef, useState, useLayoutEffect } from 'react';
 import ConfirmDialog from './ConfirmDialog';
 import Dialog from './common/Dialog';
+import SearchDefinitionsPanel from './SearchDefinitionsPanel';
 import CheckboxField from './common/CheckboxField';
 import RadioGroup from './common/RadioGroup';
 import type { SearchDefinition } from '../../types/types';
 import * as globalHighlight from '../../utils/globalHighlight';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../utils/styles';
 
 // Search's checkbox/radio inputs use a blue-500 accent (vs the blue-600 default
 // in CheckboxField/RadioField), so override the input class to preserve it.
@@ -60,11 +60,20 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const [sortDirection, setSortDirection] = useState<SearchSortDirection>(initialValues?.sortDirection || 'desc');
   const [searchImageExif, setSearchImageExif] = useState(initialValues?.searchImageExif ?? false);
   const [mostRecent, setMostRecent] = useState(initialValues?.mostRecent ?? false);
-  const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const sortedDefinitions = [...searchDefinitions].sort((a, b) => a.name.localeCompare(b.name));
+  // Resize the textarea to fit its content whenever the query changes (including
+  // when a saved definition is loaded). useLayoutEffect runs after the DOM is
+  // updated but before paint, so scrollHeight is measured against the new value
+  // with no flicker — and no magic setTimeout(0).
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    const minHeight = 20 * 4; // ~4 lines
+    textarea.style.height = `${Math.max(minHeight, textarea.scrollHeight)}px`;
+  }, [searchQuery]);
 
   const handleSelectSearchDefinition = (def: SearchDefinition) => {
     setSearchName(def.name);
@@ -75,25 +84,11 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     setSortDirection(def.sortDirection || 'desc');
     setSearchImageExif(def.searchImageExif ?? false);
     setMostRecent(def.mostRecent ?? false);
-    setTimeout(adjustTextareaHeight, 0);
-  };
-
-  const adjustTextareaHeight = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      const lineHeight = 20;
-      const minHeight = lineHeight * 4;
-      const newHeight = Math.max(minHeight, textarea.scrollHeight);
-      textarea.style.height = `${newHeight}px`;
-    }
   };
 
   const handleSearch = () => {
     const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
     if (!cleanedQuery && !mostRecent) return;
-
-    setError(null);
 
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
 
@@ -104,8 +99,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const handleSave = () => {
     if (!searchName.trim()) return;
 
-    setError(null);
-
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
 
     onSave({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
@@ -113,8 +106,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setSearchQuery(e.target.value);
-    if (error) setError(null);
-    adjustTextareaHeight();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -140,68 +131,17 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
         className="w-full max-w-4xl flex flex-col max-h-[90vh]"
         initialFocusRef={textareaRef}
       >
-        <div className="flex min-h-0 flex-1" style={{ minHeight: '480px' }}>
+        <div className="flex min-h-[480px] flex-1">
 
           {/* Left panel: saved search definitions */}
-          <div className="flex flex-col border-r border-slate-600" style={{ width: '33.333%' }}>
-            <div className="p-6 pb-1">
-              <label className={DLG_LABEL_CLASS}>Search Definition Name</label>
-              <input
-                type="text"
-                value={searchName}
-                onChange={(e) => setSearchName(e.target.value)}
-                placeholder="Enter a name..."
-                data-testid="search-name-input"
-                className={DLG_INPUT_CLASS}
-              />
-              <div className="flex justify-end gap-1 mt-1">
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={!searchName.trim()}
-                  data-testid="save-search-button"
-                  title="Save search definition"
-                  className="p-1 rounded text-green-400 hover:text-green-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ArrowDownTrayIcon className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { if (searchName.trim()) setShowDeleteConfirm(true); }}
-                  disabled={!searchName.trim()}
-                  data-testid="delete-search-button"
-                  title="Delete search definition"
-                  className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 p-2" style={{ overflow: 'auto' }}>
-              {sortedDefinitions.length === 0 ? (
-                <p className="text-xs text-slate-500 p-2">No saved searches yet.</p>
-              ) : (
-                <ul className="space-y-0.5" style={{ minWidth: 'max-content' }}>
-                  {sortedDefinitions.map((def) => (
-                    <li key={def.name}>
-                      <button
-                        type="button"
-                        onClick={() => handleSelectSearchDefinition(def)}
-                        className={`w-full text-left px-3 py-1.5 rounded text-sm whitespace-nowrap overflow-hidden text-ellipsis ${
-                          searchName === def.name
-                            ? 'bg-blue-600 text-white'
-                            : 'text-slate-300 hover:bg-slate-700'
-                        }`}
-                        title={def.name}
-                      >
-                        {def.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
+          <SearchDefinitionsPanel
+            searchName={searchName}
+            onSearchNameChange={setSearchName}
+            definitions={searchDefinitions}
+            onSelect={handleSelectSearchDefinition}
+            onSave={handleSave}
+            onRequestDelete={() => setShowDeleteConfirm(true)}
+          />
 
           {/* Right panel: search options */}
           <div className="flex flex-col flex-1 p-6 overflow-y-auto min-h-0">
@@ -215,10 +155,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               onKeyDown={handleKeyDown}
               data-testid="search-query-input"
               rows={4}
-              className={`w-full ${DLG_INPUT_CLASS_BASE} font-mono resize-none ${error ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
-                }`}
+              className={`w-full ${DLG_INPUT_CLASS_BASE} font-mono resize-none border-slate-600 focus:border-blue-500 min-h-[80px]`}
               placeholder={searchType === 'advanced' ? 'Functions: $, past, future, today' : searchType === 'wildcard' ? 'intro*duction' : 'Enter search text...'}
-              style={{ minHeight: '80px' }}
             />
 
             <div className="flex items-center gap-6 mb-3 mt-3">
@@ -294,23 +232,19 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               </div>
             </div>
 
-            {error ? (
-              <p className="text-xs text-red-400 mt-2">{error}</p>
-            ) : (
-              <p className="text-xs text-slate-500 mt-2">
-                {searchType === 'advanced' ? (
-                  <>Uses <code className="bg-slate-700 px-1 rounded">$("text")</code> function, or past(ts), future(ts), future(ts, days), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
-                ) : searchType === 'wildcard' ? (
-                  <>Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters. Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
-                ) : searchMode === 'filenames' ? (
-                  <>Searches file and folder names recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
-                ) : searchImageExif ? (
-                  <>Searches .md, .txt, and image EXIF metadata recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
-                ) : (
-                  <>Searches .md and .txt files recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
-                )}
-              </p>
-            )}
+            <p className="text-xs text-slate-500 mt-2">
+              {searchType === 'advanced' ? (
+                <>Uses <code className="bg-slate-700 px-1 rounded">$("text")</code> function, or past(ts), future(ts), future(ts, days), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
+              ) : searchType === 'wildcard' ? (
+                <>Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters. Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+              ) : searchMode === 'filenames' ? (
+                <>Searches file and folder names recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+              ) : searchImageExif ? (
+                <>Searches .md, .txt, and image EXIF metadata recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+              ) : (
+                <>Searches .md and .txt files recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+              )}
+            </p>
 
             <div className="flex justify-end items-center gap-3 mt-6">
               <div className="flex gap-3">

@@ -40,9 +40,14 @@ export interface AppSettings {
   showPropsInEditor?: boolean;
 }
 
+/** Supported AI providers. Single source of truth for both the {@link AIProvider}
+ *  union type and any UI that lists providers (e.g. the model editor dropdown). */
+export const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
+export type AIProvider = typeof AI_PROVIDERS[number];
+
 export interface AIModelConfig {
   name: string;
-  provider: 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
+  provider: AIProvider;
   model: string;
   /** USD per 1M input tokens */
   inputPer1M: number;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtil';
 import type { TagCategory, HashtagDefinition } from '../../utils/tagUtil';
 import Dialog from './common/Dialog';
@@ -20,8 +20,10 @@ interface TagsEditorDialogProps {
   onClose: () => void;
 }
 
-let nextId = 1;
-function newId() { return String(nextId++); }
+// Stable per-row keys for the editor's local model. crypto.randomUUID avoids
+// the footgun of a module-level counter that keeps climbing across mounts and
+// isn't test-friendly; these IDs only need to be unique within a session.
+function newId() { return crypto.randomUUID(); }
 
 function fromLoaded(categories: TagCategory[]): EditorCategory[] {
   return categories.map((cat) => ({
@@ -86,6 +88,10 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
   }, [renamingCatId]);
 
   const selectedCat = categories.find((c) => c.id === selectedCatId) ?? null;
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.name.localeCompare(b.name)),
+    [categories]
+  );
 
   // --- Category operations ---
 
@@ -194,15 +200,14 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto px-2">
-                {[...categories].sort((a, b) => a.name.localeCompare(b.name)).map((cat) => (
+                {sortedCategories.map((cat) => (
                   <div
                     key={cat.id}
-                    className={`flex items-center gap-1 px-2 py-1.5 rounded cursor-pointer group ${
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded group ${
                       selectedCatId === cat.id
                         ? 'bg-slate-700 text-slate-100'
                         : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
                     }`}
-                    onClick={() => { if (renamingCatId !== cat.id) setSelectedCatId(cat.id); }}
                   >
                     {renamingCatId === cat.id ? (
                       <input
@@ -218,15 +223,21 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                           else if (e.key === 'Escape') { e.preventDefault(); cancelRename(); }
                         }}
                         className={`${inputCls} flex-1 min-w-0`}
-                        onClick={(e) => e.stopPropagation()}
                       />
                     ) : (
-                      <span className="flex-1 text-sm truncate">{cat.name || <em className="text-slate-500">unnamed</em>}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCatId(cat.id)}
+                        aria-pressed={selectedCatId === cat.id}
+                        className="flex-1 min-w-0 text-left text-sm truncate cursor-pointer"
+                      >
+                        {cat.name || <em className="text-slate-500">unnamed</em>}
+                      </button>
                     )}
                     <button
                       type="button"
                       title="Rename"
-                      onClick={(e) => { e.stopPropagation(); startRename(cat); }}
+                      onClick={() => startRename(cat)}
                       className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-200 text-xl px-2 cursor-pointer flex-shrink-0"
                     >
                       ✎
@@ -234,7 +245,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                     <button
                       type="button"
                       title={cat.tags.length > 0 ? 'Remove all tags first' : 'Delete category'}
-                      onClick={(e) => { e.stopPropagation(); if (cat.tags.length === 0) deleteCategory(cat.id); }}
+                      onClick={() => { if (cat.tags.length === 0) deleteCategory(cat.id); }}
                       disabled={cat.tags.length > 0}
                       className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 text-xl px-2 cursor-pointer flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-slate-400"
                     >
