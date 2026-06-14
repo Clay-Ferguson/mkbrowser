@@ -61,7 +61,9 @@ function ImageEntry(props: ImageEntryProps) {
     });
 
     // Persist the choice independently — it must not gate the animation timing.
-    void api.updateConfig({ imageSize: newSize });
+    api.updateConfig({ imageSize: newSize }).catch((err) => {
+      logger.error('[ImageEntry] Failed to persist image size:', err);
+    });
   };
 
   // Fullscreen state

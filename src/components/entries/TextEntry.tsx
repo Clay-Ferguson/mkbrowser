@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { DocumentTextIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
-import { api } from '../../services/api';
+import { useState, useCallback, useRef } from 'react';
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import {
   useItem,
   clearItemGoToLine,
@@ -16,13 +15,15 @@ import AlertDialog from '../dialogs/AlertDialog';
 import {
   useEditableEntry,
   useToggleExpanded,
+  useAiConfig,
+  useAiRewrite,
   EntryActionBar,
+  EntryEditToolbar,
   EntryShell,
   type BaseEntryProps,
 } from './common';
-import { logger } from '../../utils/logUtil';
 import { getTextFileLanguage } from '../../utils/fileUtil';
-import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_RED, BUTTON_CLASS_SM_PURPLE, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
+import { ENTRY_CONTENT_AREA, ENTRY_LOADING } from '../../utils/styles';
 
 
 type TextEntryProps = BaseEntryProps;
@@ -30,29 +31,11 @@ type TextEntryProps = BaseEntryProps;
 function TextEntry(props: TextEntryProps) {
   const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
   const item = useItem(entry.path);
-  const [isRewriting, setIsRewriting] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
   const fileLanguage = getTextFileLanguage(entry.name);
-  // Consolidated into a single state object so the mount-time config load fires
-  // ONE React update instead of two, and guarded so a resolve after unmount
-  // doesn't setState on a dead component (see MarkdownEntry for the same fix).
-  const [aiConfig, setAiConfig] = useState({ selectedPromptName: '', aiRewriteMode: false });
-  const { selectedPromptName, aiRewriteMode } = aiConfig;
-  useEffect(() => {
-    let cancelled = false;
-    void api.getConfig().then((config) => {
-      if (cancelled) return;
-      setAiConfig({
-        selectedPromptName: config.aiRewritePrompt ?? '',
-        aiRewriteMode: !!config.aiRewriteMode,
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { selectedPromptName, aiRewriteMode } = useAiConfig();
 
   const { core, rename, del, loading, content, edit } = useEditableEntry(props, {
     defaultExpanded: true,
@@ -71,69 +54,29 @@ function TextEntry(props: TextEntryProps) {
 
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
-  const aiRewrite = async () => {
-    const selection = editorRef.current?.getSelection();
-    setIsRewriting(true);
-    try {
-      const result = selection
-        ? await api.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
-        : await api.rewriteContent(edit.editContent, entry.path, hasIndexFile);
-      if ('error' in result) {
-        logger.error('Rewrite failed:', result.error);
-        setAiErrorMessage(result.error);
-      } else {
-        setItemReviewing(entry.path, true, result.rewrittenContent);
-      }
-    } catch (err) {
-      logger.error('Rewrite failed:', err);
-      setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setIsRewriting(false);
-    }
-  };
+  const { isRewriting, aiRewrite } = useAiRewrite({
+    path: entry.path,
+    hasIndexFile,
+    editorRef,
+    editContent: edit.editContent,
+    onError: setAiErrorMessage,
+  });
 
   const headerRight = edit.isEditing ? (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={() => setExpandedEditor(!expandedEditor)}
-        title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
-        className={ENTRY_EDITOR_ICON_BTN}
-      >
-        {expandedEditor
-          ? <ArrowsPointingInIcon className="w-5 h-5" />
-          : <ArrowsPointingOutIcon className="w-5 h-5" />}
-      </button>
-      {!item?.reviewing && aiRewriteMode && (
-        <button
-          onClick={aiRewrite}
-          disabled={edit.saving || isRewriting}
-          title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
-          className={BUTTON_CLASS_SM_PURPLE}
-        >
-          {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
-        </button>
-      )}
-      {!item?.reviewing && (
-        <>
-          <button
-            onClick={edit.handleCancel}
-            disabled={edit.saving}
-            className={BUTTON_CLASS_SM_RED}
-            data-testid="entry-cancel-button"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={edit.handleSave}
-            disabled={edit.saving}
-            className={BUTTON_CLASS_SM_BLUE}
-            data-testid="entry-save-button"
-          >
-            {edit.saving ? 'Saving...' : 'Save'}
-          </button>
-        </>
-      )}
-    </div>
+    <EntryEditToolbar
+      expandedEditor={expandedEditor}
+      onToggleExpandedEditor={() => setExpandedEditor(!expandedEditor)}
+      showRewrite={!item?.reviewing && aiRewriteMode}
+      onAiRewrite={aiRewrite}
+      rewriteDisabled={edit.saving || isRewriting}
+      isRewriting={isRewriting}
+      selectedPromptName={selectedPromptName}
+      hasSelection={hasSelection}
+      showSaveCancel={!item?.reviewing}
+      saving={edit.saving}
+      onCancel={edit.handleCancel}
+      onSave={edit.handleSave}
+    />
   ) : (
     <EntryActionBar
       path={entry.path}

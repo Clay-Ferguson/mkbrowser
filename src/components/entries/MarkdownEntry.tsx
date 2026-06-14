@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
 import Markdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
@@ -24,7 +24,6 @@ import {
   setPendingThreadScrollToBottom,
   setItemReviewing,
   useHasIndexFile,
-  useIndexYaml,
   useExpandedEditor,
   setExpandedEditor,
   setShowPropsInEditor,
@@ -48,11 +47,15 @@ import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '..
 import {
   useEditableEntry,
   useToggleExpanded,
+  useAiConfig,
+  useAiRewrite,
+  useAiStreamingDialog,
   EntryActionBar,
+  EntryEditToolbar,
   EntryShell,
   type BaseEntryProps,
 } from './common';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
 
 
 interface MarkdownEntryProps extends BaseEntryProps {
@@ -91,41 +94,14 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
-  // Consolidated into a single state object so the mount-time config load
-  // fires ONE React update instead of four. Four separate setState calls per
-  // mount multiplied the update pressure that was tripping React's nested
-  // update limit when entries re-mount.
-  const [entryConfig, setEntryConfig] = useState({
-    aiEnabled: false,
-    aiRewriteMode: false,
-    selectedPromptName: '',
-    tagsVisible: false,
-  });
-  const { aiEnabled, aiRewriteMode, selectedPromptName, tagsVisible } = entryConfig;
-  const setTagsVisible = useCallback((visible: boolean) => {
-    setEntryConfig((prev) => ({ ...prev, tagsVisible: visible }));
-  }, []);
+  const { aiEnabled, aiRewriteMode, selectedPromptName, tagsVisible, setTagsVisible } = useAiConfig();
 
-  useEffect(() => {
-    let cancelled = false;
-    void api.getConfig().then((config) => {
-      if (cancelled) return;
-      setEntryConfig({
-        aiEnabled: !!config.aiEnabled,
-        aiRewriteMode: !!config.aiRewriteMode,
-        selectedPromptName: config.aiRewritePrompt ?? '',
-        tagsVisible: config.tagsPanelVisible ?? false,
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const handleToggleTagsVisible = async () => {
+  const handleToggleTagsVisible = () => {
     const newVisible = !tagsVisible;
     setTagsVisible(newVisible);
-    await api.updateConfig({ tagsPanelVisible: newVisible });
+    api.updateConfig({ tagsPanelVisible: newVisible }).catch((err) => {
+      logger.error('Failed to persist tags-panel visibility:', err);
+    });
   };
 
   const handleToggleShowProps = () => {
@@ -142,7 +118,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const isHumanFile = aiEnabled && entry.name === 'HUMAN.md';
   const isAiFile = aiEnabled && entry.name === 'AI.md';
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [isRewriting, setIsRewriting] = useState(false);
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
 
@@ -158,132 +133,48 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   }, [edit.isEditing, entry.path]);
   const [isReplyLoading, setIsReplyLoading] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
-  const [showStreamingDialog, setShowStreamingDialog] = useState(false);
-  const showStreamingDialogRef = useRef(false);
-  const pendingNavigationRef = useRef<(() => void) | null>(null);
 
-  const handleStreamingDialogClose = () => {
-    showStreamingDialogRef.current = false;
-    setShowStreamingDialog(false);
-    if (pendingNavigationRef.current) {
-      pendingNavigationRef.current();
-      pendingNavigationRef.current = null;
-    }
-  };
+  const {
+    showStreamingDialog,
+    handleStreamingDialogClose,
+    handleCancelStream,
+    runWithStreamingDialog,
+  } = useAiStreamingDialog({ onError: setAiErrorMessage });
 
   const handleAskAi = async (promptContent?: string) => {
     const textToSend = promptContent || content;
     if (!textToSend) return;
     setIsAiLoading(true);
-
-    // Show the streaming dialog as soon as the backend commits to the real
-    // streaming path (ai-stream-start), so it appears instantly in its
-    // "pending" state during the (potentially long) model warm-up — well
-    // before the first chunk arrives. Scripted answers (used in tests) resolve
-    // immediately and never emit this event, so the dialog stays hidden there.
-    const showDialog = () => {
-      if (!showStreamingDialogRef.current) {
-        showStreamingDialogRef.current = true;
-        setShowStreamingDialog(true);
-      }
-    };
-    const unsubStart = api.onAiStreamStart(() => {
-      showDialog();
-      unsubStart();
-    });
-    // Fallback: also show on the first chunk in case the start event is missed.
-    const unsubChunk = api.onAiStreamChunk(() => {
-      showDialog();
-      unsubChunk();
-    });
-
     try {
-      const parentFolder = getParentPath(entry.path);
-      const result = await api.askAi(textToSend, parentFolder);
-      unsubStart();
-      unsubChunk(); // no-ops if already fired; cancels if scripted (no events came)
-      if ('error' in result) {
-        setAiErrorMessage(result.error);
-      } else {
-        const navigate = () => {
-          if (view === 'thread') {
-            navigateToBrowserPath(result.responseFolder, undefined, 'thread');
-            setPendingThreadScrollToBottom();
-          } else {
-            navigateToBrowserPath(result.responseFolder);
-          }
-        };
-        // Use ref (not state) for a synchronous check: if streaming started,
-        // defer navigation until the user closes the dialog; otherwise navigate now.
-        if (showStreamingDialogRef.current) {
-          pendingNavigationRef.current = navigate;
+      await runWithStreamingDialog(async (defer) => {
+        const parentFolder = getParentPath(entry.path);
+        const result = await api.askAi(textToSend, parentFolder);
+        if ('error' in result) {
+          setAiErrorMessage(result.error);
         } else {
-          navigate();
+          defer(() => {
+            if (view === 'thread') {
+              navigateToBrowserPath(result.responseFolder, undefined, 'thread');
+              setPendingThreadScrollToBottom();
+            } else {
+              navigateToBrowserPath(result.responseFolder);
+            }
+          });
         }
-      }
+      });
     } finally {
       setIsAiLoading(false);
     }
   };
 
-  const handleCancelStream = () => {
-    api.cancelAiStream();
-  };
-
-  const handleAiRewrite = async () => {
-    const selection = editorRef.current?.getSelection();
-    setIsRewriting(true);
-
-    // Show the streaming dialog as soon as the backend commits to the real
-    // streaming path (ai-stream-start), so it appears instantly in its
-    // "pending" state during model warm-up — well before the first chunk.
-    // Scripted answers (used in tests) never emit this event, so the dialog
-    // stays hidden there. Mirrors the Ask AI flow in handleAskAi.
-    const showDialog = () => {
-      if (!showStreamingDialogRef.current) {
-        showStreamingDialogRef.current = true;
-        setShowStreamingDialog(true);
-      }
-    };
-    const unsubStart = api.onAiStreamStart(() => {
-      showDialog();
-      unsubStart();
-    });
-    // Fallback: also show on the first chunk in case the start event is missed.
-    const unsubChunk = api.onAiStreamChunk(() => {
-      showDialog();
-      unsubChunk();
-    });
-
-    try {
-      const result = selection
-        ? await api.rewriteContentSelection(edit.editContent, selection.from, selection.to, entry.path, hasIndexFile)
-        : await api.rewriteContent(edit.editContent, entry.path, hasIndexFile);
-      unsubStart();
-      unsubChunk(); // no-ops if already fired; cancels if scripted (no events came)
-      if ('error' in result) {
-        logger.error('Rewrite failed:', result.error);
-        setAiErrorMessage(result.error);
-      } else {
-        // Use ref (not state) for a synchronous check: if streaming started,
-        // defer entering review mode until the user closes the dialog;
-        // otherwise enter review immediately.
-        const enterReview = () => setItemReviewing(entry.path, true, result.rewrittenContent);
-        if (showStreamingDialogRef.current) {
-          pendingNavigationRef.current = enterReview;
-        } else {
-          enterReview();
-        }
-      }
-    } catch (err) {
-      unsubStart();
-      unsubChunk();
-      logger.error('Rewrite failed:', err);
-      setAiErrorMessage(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setIsRewriting(false);
-    }
-  };
+  const { isRewriting, aiRewrite: handleAiRewrite } = useAiRewrite({
+    path: entry.path,
+    hasIndexFile,
+    editorRef,
+    editContent: edit.editContent,
+    onError: setAiErrorMessage,
+    runner: runWithStreamingDialog,
+  });
 
   const handleReply = async () => {
     setIsReplyLoading(true);
@@ -312,86 +203,65 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const columnBlockComponents = columns.map(col => createBlockClickComponents(edit.handleEditClick, col.lineOffset));
 
   const headerRight = edit.isEditing ? (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={handleToggleShowProps}
-        title={showPropsInEditor ? 'Hide properties' : 'Show properties'}
-        className={`${ENTRY_EDITOR_ICON_BTN} border ${showPropsInEditor ? 'border-slate-400' : 'border-transparent'}`}
-      >
-        {showPropsInEditor
-          ? <PropsIconSolid className="w-5 h-5" />
-          : <PropsIconOutline className="w-5 h-5" />}
-      </button>
-      <button
-        onClick={handleToggleTagsVisible}
-        title={tagsVisible ? 'Hide tags' : 'Show tags'}
-        className={`${ENTRY_EDITOR_ICON_BTN} border ${tagsVisible ? 'border-slate-400' : 'border-transparent'}`}
-      >
-        {tagsVisible
-          ? <TagIconSolid className="w-5 h-5" />
-          : <TagIconOutline className="w-5 h-5" />}
-      </button>
-      <button
-        data-testid="edit-calendar-info"
-        onClick={() => setShowCalendarDialog(true)}
-        title="Calendar Info"
-        className={`${ENTRY_EDITOR_ICON_BTN} border border-transparent`}
-      >
-        <CalendarIcon className="w-5 h-5" />
-      </button>
-      <button
-        onClick={() => setExpandedEditor(!expandedEditor)}
-        title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
-        className={ENTRY_EDITOR_ICON_BTN}
-      >
-        {expandedEditor
-          ? <ArrowsPointingInIcon className="w-5 h-5" />
-          : <ArrowsPointingOutIcon className="w-5 h-5" />}
-      </button>
-      {!item?.reviewing && aiRewriteMode && (
-        <button
-          onClick={handleAiRewrite}
-          disabled={edit.saving || isRewriting}
-          title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
-          className={BUTTON_CLASS_SM_PURPLE}
-        >
-          {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
-        </button>
-      )}
-      {isHumanFile && !item?.reviewing && (
-        <button
-          data-testid="ask-ai-button"
-          onClick={async () => {
-            await edit.handleSave();
-            await handleAskAi(edit.editContent);
-          }}
-          disabled={edit.saving || isAiLoading}
-          className={`${BUTTON_CLASS_SM_PURPLE} flex-shrink-0`}
-        >
-          {isAiLoading ? 'Streaming...' : 'Ask AI'}
-        </button>
-      )}
-      {!item?.reviewing && (
+    <EntryEditToolbar
+      expandedEditor={expandedEditor}
+      onToggleExpandedEditor={() => setExpandedEditor(!expandedEditor)}
+      showRewrite={!item?.reviewing && aiRewriteMode}
+      onAiRewrite={handleAiRewrite}
+      rewriteDisabled={edit.saving || isRewriting}
+      isRewriting={isRewriting}
+      selectedPromptName={selectedPromptName}
+      hasSelection={hasSelection}
+      showSaveCancel={!item?.reviewing}
+      saving={edit.saving}
+      onCancel={edit.handleCancel}
+      onSave={edit.handleSave}
+      leftExtras={
         <>
           <button
-            onClick={edit.handleCancel}
-            disabled={edit.saving}
-            className="px-3 py-1 text-sm text-white bg-red-700 hover:bg-red-600 rounded transition-colors disabled:opacity-50 cursor-pointer"
-            data-testid="entry-cancel-button"
+            onClick={handleToggleShowProps}
+            title={showPropsInEditor ? 'Hide properties' : 'Show properties'}
+            className={`${ENTRY_EDITOR_ICON_BTN} border ${showPropsInEditor ? 'border-slate-400' : 'border-transparent'}`}
           >
-            Cancel
+            {showPropsInEditor
+              ? <PropsIconSolid className="w-5 h-5" />
+              : <PropsIconOutline className="w-5 h-5" />}
           </button>
           <button
-            onClick={edit.handleSave}
-            disabled={edit.saving}
-            className={BUTTON_CLASS_SM_BLUE}
-            data-testid="entry-save-button"
+            onClick={handleToggleTagsVisible}
+            title={tagsVisible ? 'Hide tags' : 'Show tags'}
+            className={`${ENTRY_EDITOR_ICON_BTN} border ${tagsVisible ? 'border-slate-400' : 'border-transparent'}`}
           >
-            {edit.saving ? 'Saving...' : 'Save'}
+            {tagsVisible
+              ? <TagIconSolid className="w-5 h-5" />
+              : <TagIconOutline className="w-5 h-5" />}
+          </button>
+          <button
+            data-testid="edit-calendar-info"
+            onClick={() => setShowCalendarDialog(true)}
+            title="Calendar Info"
+            className={`${ENTRY_EDITOR_ICON_BTN} border border-transparent`}
+          >
+            <CalendarIcon className="w-5 h-5" />
           </button>
         </>
-      )}
-    </div>
+      }
+      middleExtras={
+        isHumanFile && !item?.reviewing ? (
+          <button
+            data-testid="ask-ai-button"
+            onClick={async () => {
+              await edit.handleSave();
+              await handleAskAi(edit.editContent);
+            }}
+            disabled={edit.saving || isAiLoading}
+            className={`${BUTTON_CLASS_SM_PURPLE} flex-shrink-0`}
+          >
+            {isAiLoading ? 'Streaming...' : 'Ask AI'}
+          </button>
+        ) : undefined
+      }
+    />
   ) : (
     <>
       <EntryActionBar

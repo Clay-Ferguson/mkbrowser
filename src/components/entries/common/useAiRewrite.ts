@@ -1,0 +1,86 @@
+import { useState, type RefObject } from 'react';
+import { api } from '../../../services/api';
+import { logger } from '../../../utils/logUtil';
+import { setItemReviewing } from '../../../store';
+import type { CodeMirrorEditorHandle } from '../../editor/CodeMirrorEditor';
+import type { DeferrableAction, StreamingRunner } from './useAiStreamingDialog';
+
+interface UseAiRewriteOptions {
+  /** Path of the file being rewritten. */
+  path: string;
+  /** Whether an .INDEX file is present (passed through to the rewrite call). */
+  hasIndexFile: boolean;
+  /** Ref to the editor, used to read the current selection. */
+  editorRef: RefObject<CodeMirrorEditorHandle | null>;
+  /** The current editor content to rewrite. */
+  editContent: string;
+  /** Surface an error message (e.g. via an AlertDialog). */
+  onError: (message: string) => void;
+  /**
+   * Optional wrapper (the AI streaming dialog) that owns subscription
+   * lifecycle, error surfacing, and the defer-until-dialog-closed behavior.
+   * When omitted, the rewrite runs inline and the review is entered
+   * immediately.
+   */
+  runner?: StreamingRunner;
+}
+
+export interface AiRewrite {
+  /** Whether a rewrite is currently in flight. */
+  isRewriting: boolean;
+  /** Kick off a rewrite of the selection (if any) or the whole document. */
+  aiRewrite: () => Promise<void>;
+}
+
+/**
+ * Shared selection-vs-whole-document rewrite logic used by both TextEntry and
+ * MarkdownEntry. On success it enters review mode for the file; markdown passes
+ * a streaming `runner` so review entry is deferred until the streaming dialog
+ * closes, while text runs inline and enters review immediately.
+ */
+export function useAiRewrite({
+  path,
+  hasIndexFile,
+  editorRef,
+  editContent,
+  onError,
+  runner,
+}: UseAiRewriteOptions): AiRewrite {
+  const [isRewriting, setIsRewriting] = useState(false);
+
+  // Inline fallback when there's no streaming dialog to wait on: run the
+  // operation now, surfacing thrown errors so error handling matches the
+  // wrapped path. `defer` runs its action immediately.
+  const run: StreamingRunner =
+    runner ??
+    (async (operation) => {
+      try {
+        await operation((action: DeferrableAction) => action());
+      } catch (err) {
+        logger.error('Rewrite failed:', err);
+        onError(err instanceof Error ? err.message : 'Unknown error');
+      }
+    });
+
+  const aiRewrite = async () => {
+    const selection = editorRef.current?.getSelection();
+    setIsRewriting(true);
+    try {
+      await run(async (defer) => {
+        const result = selection
+          ? await api.rewriteContentSelection(editContent, selection.from, selection.to, path, hasIndexFile)
+          : await api.rewriteContent(editContent, path, hasIndexFile);
+        if ('error' in result) {
+          logger.error('Rewrite failed:', result.error);
+          onError(result.error);
+        } else {
+          defer(() => setItemReviewing(path, true, result.rewrittenContent));
+        }
+      });
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
+  return { isRewriting, aiRewrite };
+}
