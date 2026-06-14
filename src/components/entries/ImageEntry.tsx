@@ -82,6 +82,13 @@ function ImageEntry(props: ImageEntryProps) {
   const fullscreenItem = useItem(fullscreenImagePath);
   const isFullscreenSelected = fullscreenItem?.isSelected ?? false;
 
+  // Close the fullscreen overlay and reset its view state back to this entry's image.
+  const closeFullscreen = () => {
+    setIsFullscreen(false);
+    setIsActualSize(false);
+    setFullscreenImagePath(entry.path);
+  };
+
   // Keep the latest fullscreen keydown handler in a ref. This lets the document
   // listener (below) be attached once per fullscreen session — depending only on
   // `isFullscreen` — rather than being torn down and re-added on every selection
@@ -89,9 +96,7 @@ function ImageEntry(props: ImageEntryProps) {
   const handleFullscreenKeyDownRef = useRef<(e: KeyboardEvent) => void>(() => {});
   handleFullscreenKeyDownRef.current = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
-      setIsFullscreen(false);
-      setIsActualSize(false);
-      setFullscreenImagePath(entry.path); // Reset to this entry's image
+      closeFullscreen();
     } else if (e.key === 'ArrowRight') {
       if (allImages.length === 0) return;
       const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
@@ -110,9 +115,7 @@ function ImageEntry(props: ImageEntryProps) {
     } else if (e.key.toLowerCase() === 'j') {
       // Jump to the current fullscreen image - close fullscreen, scroll to it, and highlight it
       const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
-      setIsFullscreen(false);
-      setIsActualSize(false);
-      setFullscreenImagePath(entry.path); // Reset to this entry's image
+      closeFullscreen();
       setHighlightItem(currentImage.path);
       setPendingScrollToFile(currentImage.path);
     }
@@ -264,11 +267,7 @@ function ImageEntry(props: ImageEntryProps) {
       {isFullscreen && (
         <div
           className="fixed inset-0 z-[1000] bg-black/95"
-          onClick={() => {
-            setIsFullscreen(false);
-            setIsActualSize(false);
-            setFullscreenImagePath(entry.path);
-          }}
+          onClick={closeFullscreen}
         >
           {/* Fixed UI controls — always on top regardless of scroll */}
           <span className="fixed top-2 left-2 text-white/60 text-xs z-10">
