@@ -124,12 +124,14 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
 
+  // Register from the editor's onReady callback (rather than reading editorRef in an effect, which
+  // can run before the imperative handle is attached on first mount). The effect below handles
+  // unregistration when editing ends, the path changes, or the component unmounts.
+  const handleEditorReady = useCallback((handle: CodeMirrorEditorHandle) => {
+    registerActiveMarkdownEditor(entry.path, handle);
+  }, [entry.path]);
+
   useEffect(() => {
-    if (edit.isEditing && editorRef.current) {
-      registerActiveMarkdownEditor(entry.path, editorRef.current);
-    } else {
-      unregisterActiveMarkdownEditor(entry.path);
-    }
     return () => {
       unregisterActiveMarkdownEditor(entry.path);
     };
@@ -361,6 +363,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                   {tagsVisible && <TagsPicker filePath={entry.path} />}
                   <CodeMirrorEditor
                     ref={editorRef}
+                    onReady={handleEditorReady}
                     value={edit.editContent}
                     onChange={edit.setEditContent}
                     placeholder="Enter markdown content..."

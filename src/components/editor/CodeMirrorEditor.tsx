@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useImperativeHandle, forwardRef } from 'react';
 import AlertDialog from '../dialogs/AlertDialog';
 import { EditorView, placeholder as placeholderExt, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
@@ -68,6 +68,12 @@ interface CodeMirrorEditorProps {
   onMakeCalendarItem?: () => void;
   /** Called when the user chooses "Make Calendar Item (Repeating)" from the context menu. */
   onMakeRepeatingCalendarItem?: () => void;
+  /**
+   * Called once the editor view (and its imperative handle) is ready. Fired from the mount
+   * effect, so the handle is guaranteed populated — use this instead of reading a ref in an
+   * effect, which can run before the imperative handle is attached.
+   */
+  onReady?: (handle: CodeMirrorEditorHandle) => void;
 }
 
 export interface CodeMirrorEditorHandle {
@@ -79,7 +85,7 @@ export interface CodeMirrorEditorHandle {
   insertAtCursor(text: string): void;
 }
 
-const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem }, ref) {
+const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -91,6 +97,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   const onForceCancelRef = useRef(onForceCancel);
   const onSaveRef = useRef(onSave);
   const onSelectionChangeRef = useRef(onSelectionChange);
+  const onReadyRef = useRef(onReady);
   // Prevents onChange feedback loop when the sync effect dispatches an external value into the editor
   const suppressOnChangeRef = useRef(false);
   // Debounce timer for onChange — collapses rapid keystroke bursts (e.g. speech-to-text) into one store update
@@ -102,9 +109,12 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   onForceCancelRef.current = onForceCancel;
   onSaveRef.current = onSave;
   onSelectionChangeRef.current = onSelectionChange;
+  onReadyRef.current = onReady;
   const settings = useSettings();
 
-  useImperativeHandle(ref, () => ({
+  // Stable handle object — its methods read viewRef lazily, so a single instance works for the
+  // editor's whole lifetime. Shared by both the imperative ref and the onReady callback.
+  const editorHandle = useMemo<CodeMirrorEditorHandle>(() => ({
     getSelection() {
       const view = viewRef.current;
       if (!view) return null;
@@ -128,7 +138,9 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       });
       view.focus();
     },
-  }));
+  }), []);
+
+  useImperativeHandle(ref, () => editorHandle, [editorHandle]);
 
   const {
     contextMenu,
@@ -338,6 +350,10 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     });
 
     viewRef.current = view;
+
+    // The view (and the imperative handle, attached during the preceding layout phase) is now
+    // ready. Notify the parent so it can register this editor without racing a ref read.
+    onReadyRef.current?.(editorHandle);
 
     // Auto-focus and scroll to line after a delay to ensure rendering is complete
     const focusTimer = setTimeout(() => {
