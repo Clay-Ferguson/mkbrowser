@@ -32,6 +32,8 @@ import MarkdownView from './MarkdownView';
 import { logger } from '../../utils/logUtil';
 import { getParentPath } from '../../utils/pathUtil';
 import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
+import { HUMAN_FILENAME, AI_FILENAME } from '../../utils/specialFiles';
+import { TIMESTAMP_FILENAME_RE } from '../../utils/timeUtil';
 import {
   useEditableEntry,
   useToggleExpanded,
@@ -54,7 +56,6 @@ interface MarkdownEntryProps extends BaseEntryProps {
   isAttachment?: boolean;
 }
 
-const TIMESTAMP_FILENAME_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-(AM|PM)\.md$/;
 
 function MarkdownEntry(props: MarkdownEntryProps) {
   const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, documentMode = false } = props;
@@ -104,8 +105,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     onSaveSettings();
   };
 
-  const isHumanFile = aiEnabled && entry.name === 'HUMAN.md';
-  const isAiFile = aiEnabled && entry.name === 'AI.md';
+  const isHumanFile = aiEnabled && entry.name === HUMAN_FILENAME;
+  const isAiFile = aiEnabled && entry.name === AI_FILENAME;
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);

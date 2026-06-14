@@ -80,8 +80,7 @@ import { hasHumanMd } from '../../ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtil';
 import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../utils/fileOpsUtil';
 import { getFileName } from '../../utils/pathUtil';
-
-const ATTACH_SUFFIX = '.attach';
+import { ATTACH_SUFFIX } from '../../utils/specialFiles';
 
 interface AttachFolderContentsProps {
   entries: FileEntry[];

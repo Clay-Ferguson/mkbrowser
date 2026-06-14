@@ -4,6 +4,7 @@ import type { ItemData, FileNode } from '../types/types';
 import { pasteCutItems } from '../edit';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
 import { ensureTrailingSep, getParentPath } from './pathUtil';
+import { ATTACH_SUFFIX } from './specialFiles';
 
 /**
  * Custom drag-and-drop MIME type used to carry a single dragged file/folder between
@@ -114,7 +115,7 @@ export async function moveEntryIntoFolder(payload: DragPayload, destFolder: stri
 export function makeTreeNodes(
   entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>
 ): FileNode[] {
-  return entries.filter(e => !(e.isDirectory && e.name.endsWith('.attach'))).map(e => ({
+  return entries.filter(e => !(e.isDirectory && e.name.endsWith(ATTACH_SUFFIX))).map(e => ({
     path: e.path,
     name: e.name,
     isDirectory: e.isDirectory,

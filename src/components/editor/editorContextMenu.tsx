@@ -4,6 +4,7 @@ import Typo from 'typo-js';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { isMarkdownFile, hasDueProperty, injectCalendarFrontMatter } from '../../utils/calendar/calendarUtil';
 import { buildMarkdownLinks } from '../../utils/linkUtil';
+import { Z_MODAL } from '../../utils/styles';
 import { useSelectedLinkItems } from '../../store';
 import type { SpellingSuggestion } from './spellChecker';
 
@@ -296,7 +297,7 @@ export function EditorContextMenu({
 
   return (
     <div
-      className="fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-1 z-[1000] min-w-[140px]"
+      className={`fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-1 ${Z_MODAL} min-w-[140px]`}
       style={{ left: contextMenu.x, top: contextMenu.y }}
       onClick={(e) => e.stopPropagation()}
     >

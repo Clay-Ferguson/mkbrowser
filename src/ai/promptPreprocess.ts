@@ -9,6 +9,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { logger } from '../utils/logUtil';
 import { wildcardToAnchoredRegex } from '../utils/pathPattern';
+import { HUMAN_FILENAME } from '../utils/specialFiles';
 
 const debug = false;
 
@@ -150,7 +151,7 @@ export async function preprocessPrompt(
     const regex = wildcardToRegex(pattern);
     for (const filePath of allFiles) {
       const fileName = path.basename(filePath);
-      if (fileName === 'HUMAN.md') continue; // Always exclude
+      if (fileName === HUMAN_FILENAME) continue; // Always exclude
       if (regex.test(fileName)) {
         matchedFiles.add(filePath);
       }

@@ -55,12 +55,17 @@ export const BUTTON_CLASS_SM_GREEN  = 'px-3 py-1 text-sm text-white bg-green-600
 // Solid blue icon button (blue background, for primary icon actions)
 export const BUTTON_CLASS_ICON_SOLID_BLUE = 'flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer';
 
+// Stacking level for modal/popup layers (dialogs, popup menus, fullscreen
+// overlays, context menus). Z_MODAL must stay above CodeMirror's internal
+// z-indexes (.cm-panels = 300, .cm-tooltip = 500). Since .cm-editor does not
+// create its own stacking context, those values otherwise compete at the root
+// level and would render the editor's search panel or autocomplete tooltips on
+// top of modal dialogs. Compose it into className strings rather than hard-coding
+// `z-[1000]` so the level lives in one place.
+export const Z_MODAL = 'z-[1000]';
+
 // Dialog structural classes
-// NOTE: z-[1000] must stay above CodeMirror's internal z-indexes (.cm-panels = 300,
-// .cm-tooltip = 500). Since .cm-editor does not create its own stacking context, those
-// values otherwise compete at the root level and would render the editor's search panel
-// or autocomplete tooltips on top of modal dialogs.
-export const DLG_OVERLAY_CLASS = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]';
+export const DLG_OVERLAY_CLASS = `fixed inset-0 bg-black/50 flex items-center justify-center ${Z_MODAL}`;
 export const DLG_CONTAINER = 'bg-slate-800 rounded-lg border-2 border-slate-400 shadow-xl';
 // slate-900 input theme. The border color is applied by the caller so error
 // states can swap in a red border without re-spelling the whole base string.
@@ -89,8 +94,8 @@ export const ENTRY_EDITOR_ICON_BTN = 'p-1 text-slate-200 hover:text-slate-100 ho
 export const RENAME_INPUT_CLASS = 'flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm';
 
 // Popup menu structural classes
-// z-[1000] keeps popup menus above CodeMirror's internal panels/tooltips (see DLG_OVERLAY_CLASS note).
-export const MENU_CONTAINER    = 'fixed z-[1000] bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px]';
+// Z_MODAL keeps popup menus above CodeMirror's internal panels/tooltips (see Z_MODAL note).
+export const MENU_CONTAINER    = `fixed ${Z_MODAL} bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px]`;
 export const MENU_ITEM_BASE    = 'w-full text-left py-2 text-sm transition-colors flex items-center gap-2';
 export const MENU_ITEM_ENABLED = 'text-slate-200 hover:bg-blue-800 cursor-pointer';
 export const MENU_ITEM_DISABLED = 'text-slate-500 cursor-not-allowed';

@@ -3,6 +3,7 @@ import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
 import type { FileEntry } from '../../global';
 import { useHasCutItems, useItem, useHasIndexFile, deleteItems } from '../../store';
 import { buildEntryHeaderId } from '../../utils/entryDom';
+import { ATTACH_SUFFIX } from '../../utils/specialFiles';
 import {
   makeEntryDragStartHandler,
   ENTRY_DND_MIME,
@@ -83,7 +84,7 @@ function FolderEntry(props: FolderEntryProps) {
   };
 
   return (
-    <div className={`group ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`} style={indentFolder ? { paddingLeft: '32px' } : undefined}>
+    <div className={`group ${indentFolder ? 'pl-8' : ''} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
       <div
         onClick={() => !isRenaming && onNavigate(entry.path)}
         onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
@@ -120,7 +121,7 @@ function FolderEntry(props: FolderEntryProps) {
           />
         ) : (
           <>
-            <span id={buildEntryHeaderId(entry.path)} className={`font-medium truncate flex-shrink-0${indentFolder ? ' text-slate-400 italic' : ' text-slate-200'}`}>{indentFolder ? '*.attach' : entry.name}</span>
+            <span id={buildEntryHeaderId(entry.path)} className={`font-medium truncate flex-shrink-0${indentFolder ? ' text-slate-400 italic' : ' text-slate-200'}`}>{indentFolder ? `*${ATTACH_SUFFIX}` : entry.name}</span>
             {aiHint && (
               <span className="text-slate-400 italic text-sm truncate min-w-0" title={aiHint}>{aiHint}</span>
             )}

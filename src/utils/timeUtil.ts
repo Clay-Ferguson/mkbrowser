@@ -214,6 +214,11 @@ export function generateTimestampFileName(): string {
   return `${generateTimestampFolderName()}.md`;
 }
 
+// Matches filenames produced by generateTimestampFileName() (the
+// YYYY-MM-DD--HH-MM-SS-AM/PM.md convention). Kept next to the generator so the
+// two stay in sync.
+export const TIMESTAMP_FILENAME_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-(AM|PM)\.md$/;
+
 // Format current date/time as MM/DD/YY HH:MM AM/PM
 export function formatTimestamp(): string {
   const now = new Date();

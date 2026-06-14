@@ -41,6 +41,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 import type { FileEntry } from './global';
+import { ATTACH_SUFFIX } from './utils/specialFiles';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -315,8 +316,8 @@ function setupIpcHandlers(): void {
       // Update the file's entry in .INDEX.yaml if present
       await renameInIndexYaml(dirPath, oldName, newName);
       // Rename the associated attach folder if it exists, and update its index entry
-      const oldAttachName = `${oldName}.attach`;
-      const newAttachName = `${newName}.attach`;
+      const oldAttachName = `${oldName}${ATTACH_SUFFIX}`;
+      const newAttachName = `${newName}${ATTACH_SUFFIX}`;
       try {
         await fs.promises.access(path.join(dirPath, oldAttachName));
         await fs.promises.rename(path.join(dirPath, oldAttachName), path.join(dirPath, newAttachName));

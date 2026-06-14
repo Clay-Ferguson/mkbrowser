@@ -6,6 +6,7 @@
  * it is also bundled into the renderer (browser) process.
  */
 import type { FileEntry } from '../global';
+import { HUMAN_FILENAME, AI_FILENAME } from '../utils/specialFiles';
 
 /** Matches AI conversation folders: "A", "A1", "A2", etc. (case-sensitive) */
 export const AI_FOLDER_REGEX = /^A\d*$/;
@@ -15,10 +16,10 @@ export const HUMAN_FOLDER_REGEX = /^H\d*$/;
 
 /** Returns true when the loaded entries contain a HUMAN.md or AI.md file. */
 export function isAiThreadByEntries(entries: FileEntry[]): boolean {
-  return entries.some(e => e.name === 'HUMAN.md' || e.name === 'AI.md');
+  return entries.some(e => e.name === HUMAN_FILENAME || e.name === AI_FILENAME);
 }
 
 /** Returns true when the loaded entries contain a HUMAN.md file. */
 export function hasHumanMd(entries: FileEntry[]): boolean {
-  return entries.some(e => e.name === 'HUMAN.md');
+  return entries.some(e => e.name === HUMAN_FILENAME);
 }

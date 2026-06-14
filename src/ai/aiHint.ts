@@ -10,6 +10,7 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './aiPatterns';
+import { HUMAN_FILENAME, AI_FILENAME } from '../utils/specialFiles';
 
 /** Max length of the preview snippet shown next to a conversation folder. */
 export const AI_HINT_MAX_LENGTH = 120;
@@ -28,9 +29,9 @@ export async function readAiHint(
 ): Promise<string | undefined> {
   let hintFile: string | undefined;
   if (HUMAN_FOLDER_REGEX.test(folderName)) {
-    hintFile = 'HUMAN.md';
+    hintFile = HUMAN_FILENAME;
   } else if (AI_FOLDER_REGEX.test(folderName)) {
-    hintFile = 'AI.md';
+    hintFile = AI_FILENAME;
   }
   if (!hintFile) return undefined;
 

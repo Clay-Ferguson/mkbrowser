@@ -15,6 +15,7 @@ import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PRO
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
 import { readIndexYaml } from '../utils/indexUtil';
+import { HUMAN_FILENAME, AI_FILENAME, THINK_FILENAME } from '../utils/specialFiles';
 import { invokeAI, streamAI, resolveActivePersona, hasScriptedAnswer, type AIUsageInfo, type AIInvokeResult, type StreamCallbacks } from './langGraph';
 import { logger } from '../utils/logUtil';
 import { readAiHint } from './aiHint';
@@ -132,8 +133,8 @@ export async function gatherConversationHistory(
 
   for (;;) {
 
-    const aiFileExists = existsSync(path.join(walker, 'AI.md'));
-    const humanFileExists = existsSync(path.join(walker, 'HUMAN.md'));
+    const aiFileExists = existsSync(path.join(walker, AI_FILENAME));
+    const humanFileExists = existsSync(path.join(walker, HUMAN_FILENAME));
 
     if (aiFileExists && humanFileExists) {
       // throw error to user saying there cannot be both files
@@ -142,7 +143,7 @@ export async function gatherConversationHistory(
 
     if (aiFileExists) {
       // Agent folder — look for AI.md
-      const aiFile = path.join(walker, 'AI.md');
+      const aiFile = path.join(walker, AI_FILENAME);
       try {
         const content = await fs.readFile(aiFile, 'utf-8');
         history.unshift(new AIMessage(content));
@@ -152,7 +153,7 @@ export async function gatherConversationHistory(
       }
     } else if (humanFileExists) {
       // Human folder — look for HUMAN.md
-      const humanFile = path.join(walker, 'HUMAN.md');
+      const humanFile = path.join(walker, HUMAN_FILENAME);
       try {
         const rawContent = await fs.readFile(humanFile, 'utf-8');
         // Historical turns: includeImages=false to avoid re-sending costly images
@@ -228,7 +229,7 @@ export async function handleAskAI(
   await fs.mkdir(responseFolder, { recursive: true });
 
   // Response always goes into AI.md inside the numbered folder
-  const outputPath = path.join(responseFolder, 'AI.md');
+  const outputPath = path.join(responseFolder, AI_FILENAME);
 
   // Gather conversation history from the folder hierarchy
   const history = await gatherConversationHistory(parentFolderPath);
@@ -290,7 +291,7 @@ export async function handleAskAI(
 
   // Write thinking content (if any) to THINK.md alongside AI.md
   if (thinking && thinking.length > 0) {
-    const thinkingPath = path.join(responseFolder, 'THINK.md');
+    const thinkingPath = path.join(responseFolder, THINK_FILENAME);
     await fs.writeFile(thinkingPath, thinking, 'utf-8');
   }
 
@@ -526,13 +527,13 @@ export async function handleReplyToAI(
     await fs.mkdir(humanFolder, { recursive: true });
 
     // Create an empty HUMAN.md inside it
-    const filePath = path.join(humanFolder, 'HUMAN.md');
+    const filePath = path.join(humanFolder, HUMAN_FILENAME);
     await fs.writeFile(filePath, '', 'utf-8');
 
     return { folderPath: humanFolder, filePath };
   } else {
     // Create HUMAN.md directly in the parent folder
-    const filePath = path.join(parentFolderPath, 'HUMAN.md');
+    const filePath = path.join(parentFolderPath, HUMAN_FILENAME);
 
     // Check if HUMAN.md already exists
     try {
@@ -613,10 +614,10 @@ export async function gatherThreadEntries(
   folderPath: string,
 ): Promise<{ isThread: boolean; entries: ThreadEntry[]; childFolders: ThreadChildFolder[] }> {
   // Check whether folderPath is part of a thread at all
-  const humanFilePath = path.join(folderPath, 'HUMAN.md');
+  const humanFilePath = path.join(folderPath, HUMAN_FILENAME);
   const isHumanFolder = await fs.access(humanFilePath).then(() => true).catch(() => false);
 
-  const aiFilePath = path.join(folderPath, 'AI.md');
+  const aiFilePath = path.join(folderPath, AI_FILENAME);
   const isAIFolder = await fs.access(aiFilePath).then(() => true).catch(() => false);
 
   if (!isHumanFolder && !isAIFolder) {
@@ -628,10 +629,10 @@ export async function gatherThreadEntries(
   let lastAddedRole: 'ai' | 'human' | null = null;
 
   for (;;) {
-    const walkerHumanFile = path.join(walker, 'HUMAN.md');
+    const walkerHumanFile = path.join(walker, HUMAN_FILENAME);
     const walkerIsHuman = await fs.access(walkerHumanFile).then(() => true).catch(() => false);
 
-    const walkerAiFile = path.join(walker, 'AI.md');
+    const walkerAiFile = path.join(walker, AI_FILENAME);
     const walkerIsAI = await fs.access(walkerAiFile).then(() => true).catch(() => false);
 
     if (walkerIsAI) {
@@ -641,7 +642,7 @@ export async function gatherThreadEntries(
           role: 'ai',
           folderPath: walker,
           filePath: walkerAiFile,
-          fileName: 'AI.md',
+          fileName: AI_FILENAME,
           modifiedTime: stat.mtimeMs,
           createdTime: stat.birthtimeMs,
         });
@@ -660,7 +661,7 @@ export async function gatherThreadEntries(
           role: 'human',
           folderPath: walker,
           filePath: walkerHumanFile,
-          fileName: 'HUMAN.md',
+          fileName: HUMAN_FILENAME,
           modifiedTime: stat.mtimeMs,
           createdTime: stat.birthtimeMs,
         });
@@ -684,10 +685,10 @@ export async function gatherThreadEntries(
   while (childFolders.length === 1) {
     const childPath = childFolders[0].path;
 
-    const childAiFile = path.join(childPath, 'AI.md');
+    const childAiFile = path.join(childPath, AI_FILENAME);
     const childIsAI = await fs.access(childAiFile).then(() => true).catch(() => false);
 
-    const childHumanFile = path.join(childPath, 'HUMAN.md');
+    const childHumanFile = path.join(childPath, HUMAN_FILENAME);
     const childIsHuman = await fs.access(childHumanFile).then(() => true).catch(() => false);
 
     let entry: ThreadEntry | null = null;
@@ -698,7 +699,7 @@ export async function gatherThreadEntries(
           role: 'ai',
           folderPath: childPath,
           filePath: childAiFile,
-          fileName: 'AI.md',
+          fileName: AI_FILENAME,
           modifiedTime: stat.mtimeMs,
           createdTime: stat.birthtimeMs,
         };
@@ -708,7 +709,7 @@ export async function gatherThreadEntries(
           role: 'human',
           folderPath: childPath,
           filePath: childHumanFile,
-          fileName: 'HUMAN.md',
+          fileName: HUMAN_FILENAME,
           modifiedTime: stat.mtimeMs,
           createdTime: stat.birthtimeMs,
         };

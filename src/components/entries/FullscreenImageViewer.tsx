@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
 import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
+import { Z_MODAL } from '../../utils/styles';
 import type { FileEntry as FileEntryType } from '../../global';
 import { setHighlightItem, setPendingScrollToFile, deleteItems, useItem, setItemSelected } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -117,7 +118,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
     <>
       {/* Fullscreen overlay - use keyboard: Left/Right arrows to navigate, Delete to delete, Escape to close */}
       <div
-        className="fixed inset-0 z-[1000] bg-black/95"
+        className={`fixed inset-0 ${Z_MODAL} bg-black/95`}
         onClick={onClose}
       >
         {/* Fixed UI controls — always on top regardless of scroll */}
@@ -150,13 +151,13 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
         {isActualSize ? (
           // Actual-size: overflow-auto on fixed container, image at natural pixel dimensions
           <div
-            style={{ position: 'absolute', inset: 0, overflow: 'auto' }}
+            className="absolute inset-0 overflow-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <img
               src={imageUrl}
               alt={currentImage.name}
-              style={{ display: 'block', width: 'auto', height: 'auto', maxWidth: 'none', maxHeight: 'none', imageRendering: 'pixelated', cursor: 'zoom-out' }}
+              className="block w-auto h-auto max-w-none max-h-none cursor-zoom-out [image-rendering:pixelated]"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsActualSize(false);

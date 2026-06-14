@@ -6,6 +6,7 @@ import type { SortOrder } from "../store";
 import yaml from 'js-yaml';
 import { readAiHint } from '../ai/aiHint';
 import { readIndexYaml } from './indexUtil';
+import { ATTACH_SUFFIX } from './specialFiles';
 
 export interface FrontMatterResult {
   /** Parsed YAML front matter as a plain object, or null if none was found. */
@@ -235,7 +236,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     };
 
     // Pre-load contents of .attach folders so the renderer needs no extra I/O
-    if (isDirectory && entry.name.endsWith('.attach')) {
+    if (isDirectory && entry.name.endsWith(ATTACH_SUFFIX)) {
       try {
         fileEntry.attachments = await readDirectory(fullPath, aiEnabled);
       } catch {
@@ -275,9 +276,9 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
   }
 
   // Mark files that have a sibling .attach folder so the GUI can skip the paperclip button
-  const attachNames = new Set(fileEntries.filter(e => e.isDirectory && e.name.endsWith('.attach')).map(e => e.name));
+  const attachNames = new Set(fileEntries.filter(e => e.isDirectory && e.name.endsWith(ATTACH_SUFFIX)).map(e => e.name));
   for (const entry of fileEntries) {
-    if (!entry.isDirectory && attachNames.has(`${entry.name}.attach`)) {
+    if (!entry.isDirectory && attachNames.has(`${entry.name}${ATTACH_SUFFIX}`)) {
       entry.hasAttachFolder = true;
     }
   }

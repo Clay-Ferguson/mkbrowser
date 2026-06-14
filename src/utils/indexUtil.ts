@@ -3,6 +3,7 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 import { customAlphabet } from 'nanoid';
 import { parseFrontMatter } from './fileUtil';
+import { ATTACH_SUFFIX } from './specialFiles';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
 
@@ -234,7 +235,7 @@ function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
   const nonAttach: IndexEntry[] = [];
 
   for (const entry of files) {
-    if (entry.name.endsWith('.attach')) {
+    if (entry.name.endsWith(ATTACH_SUFFIX)) {
       attMap.set(entry.name, entry);
     } else {
       nonAttach.push(entry);
@@ -244,7 +245,7 @@ function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
   const finalFiles: IndexEntry[] = [];
   for (const entry of nonAttach) {
     finalFiles.push(entry);
-    const attachName = `${entry.name}.attach`;
+    const attachName = `${entry.name}${ATTACH_SUFFIX}`;
     const attachEntry = attMap.get(attachName);
     if (attachEntry) {
       finalFiles.push(attachEntry);
@@ -305,7 +306,7 @@ export async function moveInIndexYaml(
 
     // Skip over any attach folder at the swap target — landing on one would be
     // immediately undone by validateAttachFolderLocation.
-    if (files[swapIdx].name.endsWith('.attach')) {
+    if (files[swapIdx].name.endsWith(ATTACH_SUFFIX)) {
       swapIdx = direction === 'up' ? swapIdx - 1 : swapIdx + 1;
       if (swapIdx < 0 || swapIdx >= files.length) return { success: true };
     }
