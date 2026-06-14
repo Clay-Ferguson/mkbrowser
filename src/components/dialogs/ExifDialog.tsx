@@ -5,9 +5,10 @@ import { getExifDescriptionTarget } from '../../utils/exifDescriptionTarget';
 import Dialog from './common/Dialog';
 import AlertDialog from './AlertDialog';
 import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../utils/styles';
+import type { ExifData, ExifSection } from '../../types/shared';
 
 interface ExifDialogProps {
-  data: Record<string, Record<string, string>>;
+  data: ExifData;
   fileName: string;
   filePath: string;
   onClose: () => void;
@@ -37,7 +38,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   // Edit mode state
   const [editMode, setEditMode] = useState(false);
   // Local editable copy of EXIF data
-  const [editData, setEditData] = useState<Record<string, Record<string, string>> | null>(null);
+  const [editData, setEditData] = useState<ExifData | null>(null);
   // True while a save is in flight; disables the Save/Cancel buttons.
   const [saving, setSaving] = useState(false);
   // Message shown in a stacked in-app alert (replaces native alert())
@@ -47,11 +48,11 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   // editing doesn't create duplicate rows. Recomputed only when the active data
   // source changes, not on every render.
   const source = editMode && editData ? editData : displayData;
-  const deduped = useMemo<Array<[string, Record<string, string>]>>(() => {
+  const deduped = useMemo<Array<[string, ExifSection]>>(() => {
     const seen = new Set<string>();
-    const result: Array<[string, Record<string, string>]> = [];
+    const result: Array<[string, ExifSection]> = [];
     for (const [groupName, tags] of Object.entries(source)) {
-      const filtered: Record<string, string> = {};
+      const filtered: ExifSection = {};
       for (const [tagName, value] of Object.entries(tags)) {
         if (!seen.has(tagName)) {
           seen.add(tagName);
@@ -69,7 +70,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   // Enter edit mode: make a deep copy of displayData
   const handleEdit = () => {
     // Deep copy
-    const copy: Record<string, Record<string, string>> = {};
+    const copy: ExifData = {};
     for (const [group, tags] of Object.entries(displayData)) {
       copy[group] = { ...tags };
     }

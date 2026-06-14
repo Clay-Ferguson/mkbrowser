@@ -11,6 +11,11 @@ export type SearchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
 export type SearchSortDirection = 'asc' | 'desc';
 
+/** A single EXIF group's tags, keyed by tag name. */
+export type ExifSection = Record<string, string>;
+/** EXIF metadata grouped by section (e.g. 'exif', 'gps'), keyed by group name. */
+export type ExifData = Record<string, ExifSection>;
+
 export interface SearchDefinition {
   name: string;
   searchText: string;
@@ -192,8 +197,8 @@ export interface ElectronAPI {
   selectFolder: () => Promise<string | null>;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
-  readExif: (filePath: string) => Promise<Record<string, Record<string, string>>>;
-  writeExif: (filePath: string, data: Record<string, Record<string, string>>) => Promise<boolean>;
+  readExif: (filePath: string) => Promise<ExifData>;
+  writeExif: (filePath: string, data: ExifData) => Promise<boolean>;
   pathExists: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<{ ok: boolean; content: string }>;
   getFileSize: (filePath: string) => Promise<number>;

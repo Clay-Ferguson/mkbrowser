@@ -120,7 +120,6 @@ export function EntryShell({
           <RenameInput
             ref={rename.inputRef}
             path={entry.path}
-            name={entry.name}
             value={rename.newName}
             onChange={rename.setNewName}
             onKeyDown={rename.handleKeyDown}

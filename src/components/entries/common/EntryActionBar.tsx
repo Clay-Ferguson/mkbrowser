@@ -56,7 +56,6 @@ export function EntryActionBar({
   onPasteClipboardAsAttachment,
   isFolder = false,
 }: EntryActionBarProps) {
-  const showEditActions = true;
   const settings = useSettings();
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
 
@@ -97,17 +96,15 @@ export function EntryActionBar({
     )}
     <div data-testid="entry-action-bar" className={`flex items-center gap-1 ${className}`}>
       <div className="opacity-0 pointer-events-none [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:pointer-events-auto group-hover:[transition:opacity_200ms_ease_400ms] flex items-center gap-1">
-      {showEditActions && (
-        <button
-          onClick={onDeleteClick}
-          disabled={deleting}
-          className={BUTTON_CLASS_RED}
-          title="Delete"
-          data-testid="entry-delete-button"
-        >
-          <TrashIcon className="w-5 h-5" />
-        </button>
-      )}
+      <button
+        onClick={onDeleteClick}
+        disabled={deleting}
+        className={BUTTON_CLASS_RED}
+        title="Delete"
+        data-testid="entry-delete-button"
+      >
+        <TrashIcon className="w-5 h-5" />
+      </button>
       <button
         onClick={handleOpenExternal}
         className={BUTTON_CLASS_CYAN}
@@ -153,7 +150,7 @@ export function EntryActionBar({
           <ClipboardDocumentIcon className="w-5 h-5" />
         </button>
       )}
-      {showEditActions && onMoveUp && (
+      {onMoveUp && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -170,7 +167,7 @@ export function EntryActionBar({
           <ArrowUpIcon className="w-5 h-5" />
         </button>
       )}
-      {showEditActions && onMoveDown && (
+      {onMoveDown && (
         <button
           onClick={(e) => {
             e.stopPropagation();

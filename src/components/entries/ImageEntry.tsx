@@ -3,6 +3,7 @@ import { PhotoIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, MagnifyingGl
 import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
+import type { ExifData } from '../../types/shared';
 import { setHighlightItem, setPendingScrollToFile, deleteItems, useItem, setItemSelected, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import ExifDialog from '../dialogs/ExifDialog';
@@ -72,7 +73,7 @@ function ImageEntry(props: ImageEntryProps) {
   const [showFullscreenDeleteConfirm, setShowFullscreenDeleteConfirm] = useState(false);
   const [fullscreenImagePath, setFullscreenImagePath] = useState(entry.path);
   const [showExifDialog, setShowExifDialog] = useState(false);
-  const [exifData, setExifData] = useState<Record<string, Record<string, string>> | null>(null);
+  const [exifData, setExifData] = useState<ExifData | null>(null);
   const [exifLoading, setExifLoading] = useState(false);
   const [exifFileName, setExifFileName] = useState(entry.name);
 
@@ -92,10 +93,12 @@ function ImageEntry(props: ImageEntryProps) {
       setIsActualSize(false);
       setFullscreenImagePath(entry.path); // Reset to this entry's image
     } else if (e.key === 'ArrowRight') {
+      if (allImages.length === 0) return;
       const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
       const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % allImages.length;
       setFullscreenImagePath(allImages[nextIndex].path);
     } else if (e.key === 'ArrowLeft') {
+      if (allImages.length === 0) return;
       const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
       const prevIndex = currentIndex <= 0 ? allImages.length - 1 : currentIndex - 1;
       setFullscreenImagePath(allImages[prevIndex].path);

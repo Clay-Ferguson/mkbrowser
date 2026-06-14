@@ -1,5 +1,6 @@
 import { exiftool } from 'exiftool-vendored';
 import { logger } from './logUtil';
+import type { ExifData } from '../types/shared';
 /**
  * Write EXIF metadata to an image file. Accepts a grouped tag object (same as readExifMetadata output).
  * Only string values are supported. Returns true on success, false on error.
@@ -7,7 +8,7 @@ import { logger } from './logUtil';
 // Read-only groups that cannot be written to
 const READ_ONLY_GROUPS = new Set(['file', 'composite', 'pngFile']);
 
-export async function writeExifMetadata(filePath: string, data: Record<string, Record<string, string>>): Promise<boolean> {
+export async function writeExifMetadata(filePath: string, data: ExifData): Promise<boolean> {
   // Flatten grouped tags with group prefixes: { "EXIF:TagName": value, ... }
   // This preserves which metadata section each tag belongs to
   const tags: Record<string, string> = {};
@@ -36,10 +37,10 @@ import ExifReader from 'exifreader';
 /**
  * Read EXIF metadata from an image file, returning grouped tag descriptions.
  */
-export async function readExifMetadata(filePath: string): Promise<Record<string, Record<string, string>>> {
+export async function readExifMetadata(filePath: string): Promise<ExifData> {
   const tags = await ExifReader.load(filePath, { expanded: true, length: 128 * 1024 });
 
-  const result: Record<string, Record<string, string>> = {};
+  const result: ExifData = {};
   const skipGroups = new Set(['Thumbnail', 'thumbnail']);
 
   for (const [groupName, groupTags] of Object.entries(tags)) {
