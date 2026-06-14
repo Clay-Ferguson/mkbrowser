@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { logger } from '../../utils/logUtil';
 import Dialog from './common/Dialog';
+import AlertDialog from './AlertDialog';
 import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../utils/styles';
 
 interface ExifDialogProps {
@@ -37,6 +38,8 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   const [editData, setEditData] = useState<Record<string, Record<string, string>> | null>(null);
   // Track if saving (future use)
   const [saving, setSaving] = useState(false);
+  // Message shown in a stacked in-app alert (replaces native alert())
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   // For auto-resize textareas
   const textAreaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
@@ -93,14 +96,14 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
       group = 'xmp-dc';  // XMP Dublin Core namespace
       tag = 'Description';
     } else {
-      alert('Description field is only supported for PNG and JPEG files.');
+      setAlertMessage('Description field is only supported for PNG and JPEG files.');
       return;
     }
 
     // Check if description already exists in any group (check common locations)
     const existingDesc = editData[group]?.[tag] || editData['png']?.['Description'] || editData['xmp-dc']?.['Description'];
     if (existingDesc !== undefined) {
-      alert('Description field already exists.');
+      setAlertMessage('Description field already exists.');
       return;
     }
 
@@ -125,7 +128,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
     try {
       const ok = await window.electronAPI.writeExif(filePath, editData);
       if (!ok) {
-        alert('Failed to save EXIF data.');
+        setAlertMessage('Failed to save EXIF data.');
         setSaving(false);
         return;
       }
@@ -134,7 +137,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
       setDisplayData(freshData);
     } catch (err) {
       logger.error('[ExifDialog] Error saving EXIF data:', err);
-      alert('Error saving EXIF data.');
+      setAlertMessage('Error saving EXIF data.');
     }
     setSaving(false);
     setEditMode(false);
@@ -166,6 +169,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
     }
   };
   return (
+    <>
     <Dialog
       title={`EXIF — ${fileName}`}
       onClose={onClose}
@@ -267,6 +271,10 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
         </div>
       </div>
     </Dialog>
+    {alertMessage && (
+      <AlertDialog message={alertMessage} onClose={() => setAlertMessage(null)} />
+    )}
+    </>
   );
 }
 
