@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { PhotoIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon } from '@heroicons/react/24/outline';
 import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import type { ExifData } from '../../types/shared';
-import { setHighlightItem, setPendingScrollToFile, deleteItems, useItem, setItemSelected, useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
-import ConfirmDialog from '../dialogs/ConfirmDialog';
+import { useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
 import ExifDialog from '../dialogs/ExifDialog';
+import FullscreenImageViewer from './FullscreenImageViewer';
 import {
   useEntry,
   useToggleExpanded,
@@ -41,14 +41,14 @@ function ImageEntry(props: ImageEntryProps) {
     // single render, so the larger images are laid out while invisible.
     setImageSizeWithTransition(newSize);
 
-    // This rAF ensures that we can set the size option on our images 
-    // which makes them all render at a different size, and have the page 
-    // render (where all images may have changed size and therefore the 
+    // This rAF ensures that we can set the size option on our images
+    // which makes them all render at a different size, and have the page
+    // render (where all images may have changed size and therefore the
     // scroll position has completely changed) in a way where the user sees
-    // the screen update but the image they were previously looking at is still 
-    // right at the center of the screen, even though the scrolling and positioning 
+    // the screen update but the image they were previously looking at is still
+    // right at the center of the screen, even though the scrolling and positioning
     // of everything will have completely changed.
-    // 
+    //
     // After the new (larger) layout has painted at opacity 0, jump the
     // scroll to center the clicked image while it's still invisible, then drop
     // the transitioning flag to fade the view back in at the correct position.
@@ -67,113 +67,16 @@ function ImageEntry(props: ImageEntryProps) {
     });
   };
 
-  // Fullscreen state
+  // Fullscreen state — the overlay itself (navigation, view state, keyboard handling)
+  // lives in FullscreenImageViewer, mounted only while open.
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isActualSize, setIsActualSize] = useState(false);
-  const [showFullscreenDeleteConfirm, setShowFullscreenDeleteConfirm] = useState(false);
-  const [fullscreenImagePath, setFullscreenImagePath] = useState(entry.path);
+
+  // EXIF state, shared between the expanded image and the fullscreen overlay.
   const [showExifDialog, setShowExifDialog] = useState(false);
   const [exifData, setExifData] = useState<ExifData | null>(null);
   const [exifLoading, setExifLoading] = useState(false);
   const [exifFileName, setExifFileName] = useState(entry.name);
-
-  // logger.log('[ImageEntry] State:', { isRenaming, isExpanded, isSelected });
-
-  const fullscreenItem = useItem(fullscreenImagePath);
-  const isFullscreenSelected = fullscreenItem?.isSelected ?? false;
-
-  // Close the fullscreen overlay and reset its view state back to this entry's image.
-  const closeFullscreen = () => {
-    setIsFullscreen(false);
-    setIsActualSize(false);
-    setFullscreenImagePath(entry.path);
-  };
-
-  // Keep the latest fullscreen keydown handler in a ref. This lets the document
-  // listener (below) be attached once per fullscreen session — depending only on
-  // `isFullscreen` — rather than being torn down and re-added on every selection
-  // toggle or navigation change, while still always seeing the latest state.
-  const handleFullscreenKeyDownRef = useRef<(e: KeyboardEvent) => void>(() => {});
-  handleFullscreenKeyDownRef.current = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      closeFullscreen();
-    } else if (e.key === 'ArrowRight') {
-      if (allImages.length === 0) return;
-      const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % allImages.length;
-      setFullscreenImagePath(allImages[nextIndex].path);
-    } else if (e.key === 'ArrowLeft') {
-      if (allImages.length === 0) return;
-      const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-      const prevIndex = currentIndex <= 0 ? allImages.length - 1 : currentIndex - 1;
-      setFullscreenImagePath(allImages[prevIndex].path);
-    } else if (e.key === 'Delete') {
-      setShowFullscreenDeleteConfirm(true);
-    } else if (e.key === ' ') {
-      e.preventDefault();
-      setItemSelected(fullscreenImagePath, !fullscreenItem?.isSelected);
-    } else if (e.key.toLowerCase() === 'j') {
-      // Jump to the current fullscreen image - close fullscreen, scroll to it, and highlight it
-      const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
-      closeFullscreen();
-      setHighlightItem(currentImage.path);
-      setPendingScrollToFile(currentImage.path);
-    }
-  };
-
-  // Handle Escape key to close fullscreen overlay and arrow keys for navigation.
-  // Attaches a single listener that delegates to the latest handler via the ref.
-  useEffect(() => {
-    if (!isFullscreen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => handleFullscreenKeyDownRef.current(e);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen]);
-
-  // Get the current image being displayed in fullscreen
-  const currentFullscreenImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
-  const fullscreenImageUrl = `local-file://${fullscreenImagePath}`;
-
-  const handleFullscreenDeleteConfirm = async () => {
-    setShowFullscreenDeleteConfirm(false);
-    const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-    const pathToDelete = fullscreenImagePath;
-
-    // Determine which image to show next
-    let nextImagePath: string | null = null;
-    if (allImages.length > 1) {
-      if (currentIndex < allImages.length - 1) {
-        // There's a next image, switch to it
-        nextImagePath = allImages[currentIndex + 1].path;
-      } else if (currentIndex > 0) {
-        // No next image but there's a previous one
-        nextImagePath = allImages[currentIndex - 1].path;
-      }
-    }
-
-    try {
-      const success = await api.deleteFile(pathToDelete);
-      if (success) {
-        // Remove the deleted item from the store so it no longer appears
-        // as selected or referenced in memory
-        deleteItems([pathToDelete]);
-        if (nextImagePath) {
-          setFullscreenImagePath(nextImagePath);
-        } else {
-          // No more images, close fullscreen
-          setIsFullscreen(false);
-        }
-        onDelete();
-      }
-    } catch (error) {
-      logger.error('[ImageEntry] Failed to delete image:', error);
-    }
-  };
-
-  const handleFullscreenDeleteCancel = () => {
-    setShowFullscreenDeleteConfirm(false);
-  };
+  const [exifFilePath, setExifFilePath] = useState(entry.path);
 
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
@@ -181,6 +84,7 @@ function ImageEntry(props: ImageEntryProps) {
     e.stopPropagation();
     setExifLoading(true);
     setExifFileName(imageName);
+    setExifFilePath(imagePath);
     try {
       const data = await api.readExif(imagePath);
       setExifData(data);
@@ -263,80 +167,14 @@ function ImageEntry(props: ImageEntryProps) {
         </div>
       </EntryShell>
 
-      {/* Fullscreen overlay - use keyboard: Left/Right arrows to navigate, Delete to delete, Escape to close */}
       {isFullscreen && (
-        <div
-          className="fixed inset-0 z-[1000] bg-black/95"
-          onClick={closeFullscreen}
-        >
-          {/* Fixed UI controls — always on top regardless of scroll */}
-          <span className="fixed top-2 left-2 text-white/60 text-xs z-10">
-            ESC=Close, J=Jump to Image, Space=Select{isActualSize ? ', Click Image=Fitted' : ', Click Image=Actual Size'}
-          </span>
-          <label
-            className="fixed top-7 left-2 flex items-center gap-2 cursor-pointer z-10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              type="checkbox"
-              checked={isFullscreenSelected}
-              onChange={(e) => setItemSelected(fullscreenImagePath, e.target.checked)}
-              className="h-5 w-5 accent-blue-500 flex-shrink-0"
-              aria-label={`Select ${currentFullscreenImage.name}`}
-            />
-            <span className="text-white/70 text-sm">{currentFullscreenImage.name}</span>
-          </label>
-          <button
-            onClick={(e) => handleExifClick(e, fullscreenImagePath, currentFullscreenImage.name)}
-            disabled={exifLoading}
-            className="fixed top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors z-10"
-            title="View EXIF metadata"
-          >
-            <InformationCircleIcon className="w-6 h-6" />
-          </button>
-
-          {/* Image area */}
-          {isActualSize ? (
-            // Actual-size: overflow-auto on fixed container, image at natural pixel dimensions
-            <div
-              style={{ position: 'absolute', inset: 0, overflow: 'auto' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img
-                src={fullscreenImageUrl}
-                alt={currentFullscreenImage.name}
-                style={{ display: 'block', width: 'auto', height: 'auto', maxWidth: 'none', maxHeight: 'none', imageRendering: 'pixelated', cursor: 'zoom-out' }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsActualSize(false);
-                }}
-                title="Click for fitted view"
-              />
-            </div>
-          ) : (
-            // Fitted: centered, constrained to viewport
-            <div className="w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-              <img
-                src={fullscreenImageUrl}
-                alt={currentFullscreenImage.name}
-                className="max-w-[95vw] max-h-[95vh] object-contain cursor-zoom-in"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsActualSize(true);
-                }}
-                title="Click for actual size"
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Fullscreen delete confirmation */}
-      {showFullscreenDeleteConfirm && (
-        <ConfirmDialog
-          message={`Move "${currentFullscreenImage.name}" to trash?`}
-          onConfirm={handleFullscreenDeleteConfirm}
-          onCancel={handleFullscreenDeleteCancel}
+        <FullscreenImageViewer
+          entry={entry}
+          allImages={allImages}
+          onClose={() => setIsFullscreen(false)}
+          onDelete={onDelete}
+          onExifClick={handleExifClick}
+          exifLoading={exifLoading}
         />
       )}
 
@@ -344,7 +182,7 @@ function ImageEntry(props: ImageEntryProps) {
         <ExifDialog
           data={exifData}
           fileName={exifFileName}
-          filePath={isFullscreen ? fullscreenImagePath : entry.path}
+          filePath={exifFilePath}
           onClose={() => { setShowExifDialog(false); setExifData(null); }}
         />
       )}

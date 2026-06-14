@@ -1,20 +1,10 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
-import Markdown from 'react-markdown';
-import type { Components } from 'react-markdown';
-import type { PluggableList } from 'unified';
-import remarkFrontmatter from 'remark-frontmatter';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import rehypeSlug from 'rehype-slug';
 import { api } from '../../services/api';
-import 'katex/dist/katex.min.css';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../types/types';
 import { removeTOC } from '../../utils/tocUtil';
-import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks, safeUrlTransform } from '../../utils/mkUtil';
 import {
   useItem,
   useSettings,
@@ -38,11 +28,7 @@ import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import DiffReviewEditor from '../editor/DiffReviewEditor';
 import TagsPicker from '../TagsPicker';
 import PropsDisplay from '../PropsDisplay';
-import { createCustomImage } from '../markdownImgResolver';
-import CustomAnchor from '../CustomAnchor';
-import CustomCode from '../CustomCode';
-import CustomPre from '../CustomPre';
-import { createBlockClickComponents } from '../blockClickComponents';
+import MarkdownView from './MarkdownView';
 import { logger } from '../../utils/logUtil';
 import { getParentPath } from '../../utils/pathUtil';
 import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
@@ -70,9 +56,6 @@ interface MarkdownEntryProps extends BaseEntryProps {
 
 const TIMESTAMP_FILENAME_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-(AM|PM)\.md$/;
 
-const REMARK_PLUGINS: PluggableList = [remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]];
-const REHYPE_PLUGINS: PluggableList = [rehypeKatex, rehypeSlug];
-
 function MarkdownEntry(props: MarkdownEntryProps) {
   const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, documentMode = false } = props;
   const item = useItem(entry.path);
@@ -87,8 +70,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const { showToc, showPropsInEditor } = useSettings();
   const hasIndexFile = useHasIndexFile();
   const expandedEditor = useExpandedEditor();
-
-  const blockComponents = createBlockClickComponents(edit.handleEditClick);
 
   const handleEscape = useCallback(() => {
     if (edit.editContent === removeTOC(content)) {
@@ -206,21 +187,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       setIsReplyLoading(false);
     }
   };
-
-  const rawContent = showToc ? (content || '') : removeTOC(content || '');
-  const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
-  const columns = splitOnColumnBreaks(processedContent);
-  const columnBlockComponents = columns.map(col => createBlockClickComponents(edit.handleEditClick, col.lineOffset));
-
-  // Stable per-path components so react-markdown can memoize across renders. The block-click
-  // components are spread first at the call site (they depend on edit state and column offsets),
-  // then these path-dependent overrides are applied.
-  const markdownComponents = useMemo<Components>(() => ({
-    a: (props) => <CustomAnchor entryPath={entry.path} {...props} />,
-    img: createCustomImage(entry.path),
-    code: CustomCode,
-    pre: CustomPre,
-  }), [entry.path]);
 
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
@@ -425,54 +391,12 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                   }}
                 />
               )}
-              {columns.length > 1 ? (
-                <div
-                  style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}
-                >
-                  {columns.map((col, i) => (
-                    <article
-                      key={col.lineOffset}
-                      className={`prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2${i > 0 ? ' border-l border-slate-600 pl-6' : ''}`}
-                    >
-                      <Markdown
-                        remarkPlugins={REMARK_PLUGINS}
-                        rehypePlugins={REHYPE_PLUGINS}
-                        // react-markdown strips any URL whose scheme isn't in its default
-                        // whitelist, so file:// links would be silently dropped. safeUrlTransform
-                        // allow-lists the schemes we need (incl. file://) while still blocking
-                        // dangerous ones like javascript:.
-                        urlTransform={safeUrlTransform}
-                        components={{
-                          ...columnBlockComponents[i],
-                          ...markdownComponents,
-                        }}
-                      >
-                        {col.text}
-                      </Markdown>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <article
-                  className="prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2"
-                >
-                  <Markdown
-                    remarkPlugins={REMARK_PLUGINS}
-                    rehypePlugins={REHYPE_PLUGINS}
-                    // react-markdown strips any URL whose scheme isn't in its default
-                    // whitelist, so file:// links would be silently dropped. safeUrlTransform
-                    // allow-lists the schemes we need (incl. file://) while still blocking
-                    // dangerous ones like javascript:.
-                    urlTransform={safeUrlTransform}
-                    components={{
-                      ...blockComponents,
-                      ...markdownComponents,
-                    }}
-                  >
-                    {columns[0].text}
-                  </Markdown>
-                </article>
-              )}
+              <MarkdownView
+                content={content || ''}
+                showToc={showToc}
+                entryPath={entry.path}
+                onEditClick={edit.handleEditClick}
+              />
             </>
           )}
         </div>
