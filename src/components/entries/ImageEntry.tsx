@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PhotoIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon } from '@heroicons/react/24/outline';
 import { logger } from '../../utils/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
@@ -28,10 +28,12 @@ function ImageEntry(props: ImageEntryProps) {
   // Image size from global store (shared across all ImageEntry instances)
   const imageSize = useImageSize();
 
+  // Ref to this entry's expanded image, used to re-center it after a size toggle.
+  const imgRef = useRef<HTMLImageElement>(null);
+
   const handleToggleImageSize = (e: React.MouseEvent) => {
     e.stopPropagation();
     const newSize = imageSize === 'small' ? 'large' : 'small';
-    const thisImageUrl = imageUrl;
 
     // Phase 1: hide the view instantly (opacity 0) AND apply the new size in a
     // single render, so the larger images are laid out while invisible.
@@ -52,8 +54,7 @@ function ImageEntry(props: ImageEntryProps) {
     // opacity transition actually fires (0 -> 1) instead of snapping.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const imgEl = document.querySelector(`img[src="${thisImageUrl}"]`);
-        imgEl?.scrollIntoView({ behavior: 'instant', block: 'center' });
+        imgRef.current?.scrollIntoView({ behavior: 'instant', block: 'center' });
         setImageSizeTransitioning(false);
       });
     });
@@ -216,6 +217,7 @@ function ImageEntry(props: ImageEntryProps) {
           <div className="bg-slate-900 rounded-lg p-4 flex items-center justify-center">
             <div className="relative inline-block">
               <img
+                ref={imgRef}
                 src={imageUrl}
                 alt={entry.name}
                 className={`max-w-full ${imageSize === 'large' ? 'max-h-[48rem]' : 'max-h-96'} object-contain rounded cursor-pointer hover:opacity-90 transition-opacity`}
