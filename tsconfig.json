@@ -1,14 +1,13 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "commonjs",
+    "module": "ESNext",
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "strict": true,
     "noImplicitAny": true,
-    "sourceMap": true,
-    "outDir": "dist",
+    "noEmit": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "jsx": "react-jsx",
