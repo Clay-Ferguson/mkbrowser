@@ -22,22 +22,19 @@ function RenameDialog({ currentName, isDirectory, onRename, onCancel }: RenameDi
     onRename(trimmedName);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleRename();
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleRename();
   };
 
   return (
     <Dialog title={`Rename ${itemLabel}`} onClose={onCancel} className="w-full max-w-md">
-      <div className="p-6">
+      <form className="p-6" onSubmit={handleSubmit}>
         <label className={DLG_LABEL_CLASS}>{isDirectory ? 'Folder name' : 'File name'}</label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onKeyDown={handleKeyDown}
           className={DLG_INPUT_CLASS}
         />
         <div className="flex justify-end gap-3 mt-6">
@@ -49,14 +46,13 @@ function RenameDialog({ currentName, isDirectory, onRename, onCancel }: RenameDi
             Cancel
           </button>
           <button
-            type="button"
-            onClick={handleRename}
+            type="submit"
             className={BUTTON_CLASS_DLG_BLUE}
           >
             Rename
           </button>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }

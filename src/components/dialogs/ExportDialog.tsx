@@ -39,11 +39,9 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
     onExport(trimmedFolder, finalFileName, includeSubfolders, includeFilenames, includeDividers, outputFormat === 'pdf');
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleExport();
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleExport();
   };
 
   const fileNameHasExtension = /\.[a-zA-Z0-9]+$/.test(fileName.trim());
@@ -56,7 +54,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
       className="w-full max-w-lg"
       initialFocusRef={fileNameInputRef}
     >
-      <div className="p-6">
+      <form className="p-6" onSubmit={handleSubmit}>
         <p className="text-sm text-slate-400 mb-4">
           Export all markdown and text files from the current folder into a single concatenated markdown file.
         </p>
@@ -69,7 +67,6 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
               type="text"
               value={outputFolder}
               onChange={(e) => setOutputFolder(e.target.value)}
-              onKeyDown={handleKeyDown}
               className={`${DLG_INPUT_CLASS} flex-1`}
               placeholder="/path/to/output/folder"
               data-testid="export-output-folder"
@@ -93,7 +90,6 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             type="text"
             value={fileName}
             onChange={(e) => setFileName(e.target.value)}
-            onKeyDown={handleKeyDown}
             className={`w-full ${DLG_INPUT_CLASS_BASE} ${
               fileNameHasExtension
                 ? 'border-red-500 focus:border-red-400'
@@ -184,8 +180,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             Cancel
           </button>
           <button
-            type="button"
-            onClick={handleExport}
+            type="submit"
             disabled={!isValid}
             className={BUTTON_CLASS_DLG_BLUE}
             data-testid="export-submit-button"
@@ -193,7 +188,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             Export
           </button>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }

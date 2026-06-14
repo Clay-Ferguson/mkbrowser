@@ -28,11 +28,9 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
     onSave(trimmed);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSave();
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSave();
   };
 
   return (
@@ -41,7 +39,7 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
       onClose={onCancel}
       className="w-full max-w-md"
     >
-      <div className="p-6">
+      <form className="p-6" onSubmit={handleSubmit}>
         <div className="mb-4">
           <label className="block text-sm text-slate-400 mb-1">Path</label>
           <p className="text-sm text-slate-300 bg-slate-900 px-3 py-2 rounded border border-slate-700 break-all">
@@ -55,7 +53,6 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            onKeyDown={handleKeyDown}
             className={DLG_INPUT_CLASS}
             placeholder="Bookmark name..."
           />
@@ -70,15 +67,14 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
             Cancel
           </button>
           <button
-            type="button"
-            onClick={handleSave}
+            type="submit"
             disabled={!name.trim()}
             className={BUTTON_CLASS_DLG_BLUE}
           >
             Save
           </button>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }

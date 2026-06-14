@@ -16,16 +16,14 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
     onReplace(searchText, replaceText);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleReplace();
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleReplace();
   };
 
   return (
     <Dialog title="Replace in Files" onClose={onCancel} className="w-full max-w-md">
-      <div className="p-6">
+      <form className="p-6" onSubmit={handleSubmit}>
         <div className="mb-4">
           <label className={DLG_LABEL_CLASS}>
             Search for
@@ -34,7 +32,6 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            onKeyDown={handleKeyDown}
             className={DLG_INPUT_CLASS}
             placeholder="Text to find..."
           />
@@ -48,7 +45,6 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
             type="text"
             value={replaceText}
             onChange={(e) => setReplaceText(e.target.value)}
-            onKeyDown={handleKeyDown}
             className={DLG_INPUT_CLASS}
             placeholder="Replacement text..."
           />
@@ -67,15 +63,14 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
             Cancel
           </button>
           <button
-            type="button"
-            onClick={handleReplace}
+            type="submit"
             disabled={!searchText.trim()}
             className={BUTTON_CLASS_DLG_BLUE}
           >
             Replace
           </button>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }

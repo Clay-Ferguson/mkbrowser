@@ -18,22 +18,19 @@ function CreateFolderDialog({ defaultName = '', onCreate, onCancel }: CreateFold
     onCreate(finalName);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleCreate();
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleCreate();
   };
 
   return (
     <Dialog title="Create new folder" onClose={onCancel} className="w-full max-w-md">
-      <div className="p-6">
+      <form className="p-6" onSubmit={handleSubmit}>
         <label className={DLG_LABEL_CLASS}>Folder name</label>
         <input
           type="text"
           value={folderName}
           onChange={(e) => setFolderName(e.target.value)}
-          onKeyDown={handleKeyDown}
           className={DLG_INPUT_CLASS}
           placeholder="Leave blank for YYYY-MM-DD--HH-MM-SS"
         />
@@ -46,14 +43,13 @@ function CreateFolderDialog({ defaultName = '', onCreate, onCancel }: CreateFold
             Cancel
           </button>
           <button
-            type="button"
-            onClick={handleCreate}
+            type="submit"
             className={BUTTON_CLASS_DLG_BLUE}
           >
             Create
           </button>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }

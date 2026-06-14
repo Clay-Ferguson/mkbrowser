@@ -55,18 +55,16 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
     });
   }, [isValid, isReadonly, name, provider, model, inputPer1M, outputPer1M, onSave]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && isValid) {
-      e.preventDefault();
-      handleSave();
-    }
-  }, [isValid, handleSave]);
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    handleSave();
+  }, [handleSave]);
 
   const title = initialModel ? 'Edit AI Model' : 'Create AI Model';
 
   return (
     <Dialog title={title} onClose={onCancel} className="w-full max-w-md">
-      <div className="p-6" onKeyDown={handleKeyDown}>
+      <form className="p-6" onSubmit={handleSubmit}>
         {isReadonly && (
           <p className="text-sm text-slate-300 mb-4">
             This is a built-in model and can’t be edited.
@@ -153,15 +151,14 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
             Cancel
           </button>
           <button
-            type="button"
-            onClick={handleSave}
+            type="submit"
             disabled={!isValid || isReadonly}
             className={BUTTON_CLASS_DLG_BLUE}
           >
             Save
           </button>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }

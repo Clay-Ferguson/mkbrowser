@@ -17,11 +17,9 @@ function NewCalendarFileDialog({ initialFileName, onCreate, onCancel }: NewCalen
     onCreate(trimmed);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleCreate();
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleCreate();
   };
 
   return (
@@ -31,14 +29,13 @@ function NewCalendarFileDialog({ initialFileName, onCreate, onCancel }: NewCalen
       className="w-full max-w-md"
       testId="new-calendar-item-dlg"
     >
-      <div className="p-6">
+      <form className="p-6" onSubmit={handleSubmit}>
         <div className="mb-6">
           <label className={DLG_LABEL_CLASS}>File Name</label>
           <input
             type="text"
             value={fileName}
             onChange={(e) => setFileName(e.target.value)}
-            onKeyDown={handleKeyDown}
             className={DLG_INPUT_CLASS}
             placeholder="File name..."
             data-testid="new-calendar-item-dlg-filename"
@@ -49,11 +46,11 @@ function NewCalendarFileDialog({ initialFileName, onCreate, onCancel }: NewCalen
           <button type="button" onClick={onCancel} className={BUTTON_CLASS_DLG_CANCEL}>
             Cancel
           </button>
-          <button type="button" data-testid="new-calendar-item-dlg-create" onClick={handleCreate} disabled={!fileName.trim()} className={BUTTON_CLASS_DLG_BLUE}>
+          <button type="submit" data-testid="new-calendar-item-dlg-create" disabled={!fileName.trim()} className={BUTTON_CLASS_DLG_BLUE}>
             Create File
           </button>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }

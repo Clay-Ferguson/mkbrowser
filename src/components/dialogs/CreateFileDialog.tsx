@@ -19,22 +19,19 @@ function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDi
     onCreate(normalizedName);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleCreate();
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleCreate();
   };
 
   return (
     <Dialog title="Create new file" onClose={onCancel} className="w-full max-w-md">
-      <div className="p-6">
+      <form className="p-6" onSubmit={handleSubmit}>
         <label className={DLG_LABEL_CLASS}>File name</label>
         <input
           type="text"
           value={fileName}
           onChange={(e) => setFileName(e.target.value)}
-          onKeyDown={handleKeyDown}
           className={DLG_INPUT_CLASS}
           placeholder="Leave blank for YYYY-MM-DD--HH-MM-SS.md"
           data-testid="create-file-dialog-input"
@@ -48,15 +45,14 @@ function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDi
             Cancel
           </button>
           <button
-            type="button"
-            onClick={handleCreate}
+            type="submit"
             className={BUTTON_CLASS_DLG_BLUE}
             data-testid="create-file-dialog-create-button"
           >
             Create
           </button>
         </div>
-      </div>
+      </form>
     </Dialog>
   );
 }
