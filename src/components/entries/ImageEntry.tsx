@@ -81,42 +81,49 @@ function ImageEntry(props: ImageEntryProps) {
   const fullscreenItem = useItem(fullscreenImagePath);
   const isFullscreenSelected = fullscreenItem?.isSelected ?? false;
 
-  // Handle Escape key to close fullscreen overlay and arrow keys for navigation
+  // Keep the latest fullscreen keydown handler in a ref. This lets the document
+  // listener (below) be attached once per fullscreen session — depending only on
+  // `isFullscreen` — rather than being torn down and re-added on every selection
+  // toggle or navigation change, while still always seeing the latest state.
+  const handleFullscreenKeyDownRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  handleFullscreenKeyDownRef.current = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setIsFullscreen(false);
+      setIsActualSize(false);
+      setFullscreenImagePath(entry.path); // Reset to this entry's image
+    } else if (e.key === 'ArrowRight') {
+      const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
+      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % allImages.length;
+      setFullscreenImagePath(allImages[nextIndex].path);
+    } else if (e.key === 'ArrowLeft') {
+      const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
+      const prevIndex = currentIndex <= 0 ? allImages.length - 1 : currentIndex - 1;
+      setFullscreenImagePath(allImages[prevIndex].path);
+    } else if (e.key === 'Delete') {
+      setShowFullscreenDeleteConfirm(true);
+    } else if (e.key === ' ') {
+      e.preventDefault();
+      setItemSelected(fullscreenImagePath, !fullscreenItem?.isSelected);
+    } else if (e.key.toLowerCase() === 'j') {
+      // Jump to the current fullscreen image - close fullscreen, scroll to it, and highlight it
+      const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
+      setIsFullscreen(false);
+      setIsActualSize(false);
+      setFullscreenImagePath(entry.path); // Reset to this entry's image
+      setHighlightItem(currentImage.path);
+      setPendingScrollToFile(currentImage.path);
+    }
+  };
+
+  // Handle Escape key to close fullscreen overlay and arrow keys for navigation.
+  // Attaches a single listener that delegates to the latest handler via the ref.
   useEffect(() => {
     if (!isFullscreen) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsFullscreen(false);
-        setIsActualSize(false);
-        setFullscreenImagePath(entry.path); // Reset to this entry's image
-      } else if (e.key === 'ArrowRight') {
-        const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-        const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % allImages.length;
-        setFullscreenImagePath(allImages[nextIndex].path);
-      } else if (e.key === 'ArrowLeft') {
-        const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-        const prevIndex = currentIndex <= 0 ? allImages.length - 1 : currentIndex - 1;
-        setFullscreenImagePath(allImages[prevIndex].path);
-      } else if (e.key === 'Delete') {
-        setShowFullscreenDeleteConfirm(true);
-      } else if (e.key === ' ') {
-        e.preventDefault();
-        setItemSelected(fullscreenImagePath, !fullscreenItem?.isSelected);
-      } else if (e.key.toLowerCase() === 'j') {
-        // Jump to the current fullscreen image - close fullscreen, scroll to it, and highlight it
-        const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
-        setIsFullscreen(false);
-        setIsActualSize(false);
-        setFullscreenImagePath(entry.path); // Reset to this entry's image
-        setHighlightItem(currentImage.path);
-        setPendingScrollToFile(currentImage.path);
-      }
-    };
-
+    const handleKeyDown = (e: KeyboardEvent) => handleFullscreenKeyDownRef.current(e);
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen, entry.path, fullscreenImagePath, allImages, entry.name, fullscreenItem]);
+  }, [isFullscreen]);
 
   // Get the current image being displayed in fullscreen
   const currentFullscreenImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
