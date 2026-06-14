@@ -94,6 +94,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
+  // Pending cursor offset to apply once the editor reflects a content change (see handleToggleShowProps)
+  const [pendingCursorPos, setPendingCursorPos] = useState<number | null>(null);
   const { aiEnabled, aiRewriteMode, selectedPromptName, tagsVisible, setTagsVisible } = useAiConfig();
 
   const handleToggleTagsVisible = () => {
@@ -108,8 +110,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     const turningOn = !showPropsInEditor;
     if (turningOn && !edit.editContent.startsWith('---')) {
       edit.setEditContent('---\n\n---\n' + edit.editContent);
-      // Position cursor on the blank line between the two '---' delimiters (offset 4)
-      setTimeout(() => editorRef.current?.focusAtPosition(4), 50);
+      // Position cursor on the blank line between the two '---' delimiters (offset 4). Applied via
+      // goToPosition so it runs deterministically after the editor syncs the new content.
+      setPendingCursorPos(4);
     }
     setShowPropsInEditor(turningOn);
     onSaveSettings();
@@ -365,6 +368,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                     autoFocus
                     goToLine={item?.goToLine}
                     onGoToLineComplete={() => clearItemGoToLine(entry.path)}
+                    goToPosition={pendingCursorPos}
+                    onGoToPositionComplete={() => setPendingCursorPos(null)}
                     onEscape={handleEscape}
                     onForceCancel={edit.handleCancel}
                     onSave={edit.handleSave}

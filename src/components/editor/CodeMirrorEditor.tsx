@@ -40,6 +40,14 @@ interface CodeMirrorEditorProps {
   goToLine?: number;
   /** Callback when goToLine has been processed (so parent can clear it) */
   onGoToLineComplete?: () => void;
+  /**
+   * Character offset to focus and place the cursor at, applied after the current `value` has
+   * been synced into the editor. Use this (instead of a setTimeout) to position the cursor in
+   * response to a content change — it runs deterministically once the editor reflects the new value.
+   */
+  goToPosition?: number | null;
+  /** Callback when goToPosition has been processed (so parent can clear it) */
+  onGoToPositionComplete?: () => void;
   /** Called when Escape is pressed (parent should cancel editing if content is unmodified) */
   onEscape?: () => void;
   /** Called when Ctrl-Q is pressed — force-cancel editing without saving */
@@ -71,7 +79,7 @@ export interface CodeMirrorEditorHandle {
   insertAtCursor(text: string): void;
 }
 
-const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem }, ref) {
+const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -435,6 +443,18 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       suppressOnChangeRef.current = false;
     }
   }, [value]);
+
+  // Apply a requested cursor position. Declared after the value-sync effect so that, when a
+  // content change and a position request land in the same commit, the doc is already updated
+  // by the time the cursor is placed — no setTimeout/race needed.
+  useEffect(() => {
+    const view = viewRef.current;
+    if (view == null || goToPosition == null) return;
+    const pos = Math.max(0, Math.min(goToPosition, view.state.doc.length));
+    view.dispatch({ selection: { anchor: pos, head: pos }, scrollIntoView: true });
+    view.focus();
+    onGoToPositionComplete?.();
+  }, [goToPosition]);
 
   // Update font size when settings change
   useEffect(() => {
