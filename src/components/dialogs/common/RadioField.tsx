@@ -1,4 +1,3 @@
-import React from 'react';
 import { RADIO_FIELD_CLASS } from '../../../utils/styles';
 
 interface RadioFieldProps {
@@ -13,7 +12,7 @@ interface RadioFieldProps {
 }
 
 /** A single dialog radio button: a label wrapping the <input> and its text. */
-const RadioField: React.FC<RadioFieldProps> = ({
+const RadioField = ({
   name,
   value,
   checked,
@@ -21,7 +20,7 @@ const RadioField: React.FC<RadioFieldProps> = ({
   label,
   testId,
   inputClassName = RADIO_FIELD_CLASS,
-}) => (
+}: RadioFieldProps) => (
   <label className="flex items-center gap-2 cursor-pointer">
     <input
       type="radio"

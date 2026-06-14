@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface DlgHeaderProps {
   title: string;
   onClose: () => void;
@@ -8,7 +6,7 @@ interface DlgHeaderProps {
 }
 
 /* this is the header component that we use to display the title bar for all of our dialog boxes, so they all look the same, and function the same way */
-const DlgHeader: React.FC<DlgHeaderProps> = ({ title, onClose, titleId }) => (
+const DlgHeader = ({ title, onClose, titleId }: DlgHeaderProps) => (
   <div className="flex items-center justify-between pl-3 pr-1 py-1 border-b border-slate-600 flex-shrink-0 bg-slate-700 rounded-t-lg">
     <h3 id={titleId} className="text-lg font-semibold text-slate-100">{title}</h3>
     <button

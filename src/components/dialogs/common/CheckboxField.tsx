@@ -1,4 +1,4 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { CHECKBOX_FIELD_CLASS } from '../../../utils/styles';
 
 interface CheckboxFieldProps {
@@ -7,7 +7,7 @@ interface CheckboxFieldProps {
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   /** Optional helper text rendered as a <p> below the label. */
-  description?: React.ReactNode;
+  description?: ReactNode;
   testId?: string;
   /** Override the <input> class string (e.g. a different accent color). */
   inputClassName?: string;
@@ -24,7 +24,7 @@ interface CheckboxFieldProps {
  * optional helper description. When disabled the label dims (opacity-50) and
  * loses its pointer cursor, matching the inline markup these replaced.
  */
-const CheckboxField: React.FC<CheckboxFieldProps> = ({
+const CheckboxField = ({
   label,
   checked,
   onChange,
@@ -35,7 +35,7 @@ const CheckboxField: React.FC<CheckboxFieldProps> = ({
   spanClassName = 'text-sm text-slate-300',
   className = '',
   descriptionClassName = 'text-xs text-slate-500 mt-1 ml-6',
-}) => (
+}: CheckboxFieldProps) => (
   <>
     <label className={`flex items-center gap-2 ${disabled ? 'opacity-50' : 'cursor-pointer'} ${className}`}>
       <input
