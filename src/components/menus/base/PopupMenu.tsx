@@ -1,6 +1,11 @@
-import { useRef, useLayoutEffect, useEffect, useState, type ReactNode, type RefObject, type ComponentType } from 'react';
+import { useRef, useLayoutEffect, useEffect, useState, useCallback, type ReactNode, type RefObject, type ComponentType } from 'react';
 import { CheckIcon } from '@heroicons/react/24/solid';
 import { MENU_CONTAINER, MENU_ITEM_BASE, MENU_ITEM_ENABLED, MENU_ITEM_DISABLED, MENU_DIVIDER } from '../../../utils/styles';
+
+/** Gap in px between the anchor element and the menu. */
+const ANCHOR_GAP = 4;
+/** Minimum px kept between the menu and each viewport edge. */
+const VIEWPORT_MARGIN = 8;
 
 export interface PopupMenuProps {
   /** Ref to the button/element that triggered the menu */
@@ -32,7 +37,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   onCloseRef.current = onClose;
 
   // Calculate position relative to anchor or mouse position, adjusting for viewport edges
-  useLayoutEffect(() => {
+  const updatePosition = useCallback(() => {
     const menu = menuRef.current;
     if (!menu) return;
 
@@ -50,37 +55,51 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
       const anchor = anchorRef?.current;
       if (!anchor) return;
       const anchorRect = anchor.getBoundingClientRect();
-      top = anchorRect.bottom + 4;
+      top = anchorRect.bottom + ANCHOR_GAP;
       left = anchorRect.left;
 
       // If menu overflows right edge, align menu's right edge with anchor's right edge
-      if (left + menuRect.width > viewportWidth - 8) {
+      if (left + menuRect.width > viewportWidth - VIEWPORT_MARGIN) {
         left = anchorRect.right - menuRect.width;
       }
     }
 
     // Clamp right edge
-    if (left + menuRect.width > viewportWidth - 8) {
-      left = viewportWidth - menuRect.width - 8;
+    if (left + menuRect.width > viewportWidth - VIEWPORT_MARGIN) {
+      left = viewportWidth - menuRect.width - VIEWPORT_MARGIN;
     }
 
     // If still overflowing left, clamp to left edge
-    if (left < 8) {
-      left = 8;
+    if (left < VIEWPORT_MARGIN) {
+      left = VIEWPORT_MARGIN;
     }
 
     // If menu overflows bottom, flip above the cursor/anchor
-    if (top + menuRect.height > viewportHeight - 8) {
-      top = (mousePosition ? mousePosition.y : (anchorRef?.current?.getBoundingClientRect().top ?? top)) - menuRect.height - 4;
+    if (top + menuRect.height > viewportHeight - VIEWPORT_MARGIN) {
+      const flipFrom = mousePosition ? mousePosition.y : (anchorRef?.current?.getBoundingClientRect().top ?? top);
+      top = flipFrom - menuRect.height - ANCHOR_GAP;
     }
 
     // If flipped above and still overflowing top, clamp to top edge
-    if (top < 8) {
-      top = 8;
+    if (top < VIEWPORT_MARGIN) {
+      top = VIEWPORT_MARGIN;
     }
 
     setPosition({ top, left });
   }, [anchorRef, mousePosition]);
+
+  // Position on mount and reposition while open if the viewport resizes or scrolls,
+  // so the menu stays anchored instead of detaching/overflowing. Scroll uses capture
+  // to also catch scrolling inside nested scrollable containers.
+  useLayoutEffect(() => {
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [updatePosition]);
 
   // Click-outside and Escape dismiss
   useEffect(() => {
