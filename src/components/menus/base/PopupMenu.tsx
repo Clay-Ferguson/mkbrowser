@@ -12,13 +12,15 @@ export interface PopupMenuProps {
   children: ReactNode;
   /** Optional extra inline styles merged onto the menu container */
   style?: React.CSSProperties;
+  /** Optional test hook rendered on the menu container */
+  'data-testid'?: string;
 }
 
 /**
  * Reusable popup menu that positions itself below an anchor element or at mouse coordinates.
  * Handles click-outside dismiss, Escape key, and viewport edge-clipping.
  */
-export default function PopupMenu({ anchorRef, mousePosition, onClose, children, style: extraStyle }: PopupMenuProps) {
+export default function PopupMenu({ anchorRef, mousePosition, onClose, children, style: extraStyle, 'data-testid': dataTestId }: PopupMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
@@ -100,6 +102,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, children,
   return (
     <div
       ref={menuRef}
+      data-testid={dataTestId}
       className={MENU_CONTAINER}
       style={{
         top: position?.top ?? -9999,
