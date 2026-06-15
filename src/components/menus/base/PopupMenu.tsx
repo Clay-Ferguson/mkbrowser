@@ -130,8 +130,8 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
       data-testid={dataTestId}
       className={MENU_CONTAINER}
       style={{
-        top: position?.top ?? -9999,
-        left: position?.left ?? -9999,
+        top: position?.top,
+        left: position?.left,
         // Keep invisible until position is calculated to avoid flicker
         visibility: position ? 'visible' : 'hidden',
         ...extraStyle,

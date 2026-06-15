@@ -25,13 +25,11 @@ export default function ToolsPopupMenu({
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
       {aiEnabled && (
-        <>
-          <PopupMenuItem
-            label="New AI Chat"
-            data-testid="menu-new-ai-chat"
-            onClick={() => { onNewAiChat(); onClose(); }}
-          />
-        </>
+        <PopupMenuItem
+          label="New AI Chat"
+          data-testid="menu-new-ai-chat"
+          onClick={() => { onNewAiChat(); onClose(); }}
+        />
       )}
       <PopupMenuItem
         label="Folder Analysis"
