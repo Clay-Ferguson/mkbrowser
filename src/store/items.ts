@@ -603,9 +603,14 @@ export function useItems(): Map<string, ItemData> {
 /**
  * Hook to get a specific item by path.
  * Returns undefined if the item doesn't exist.
+ *
+ * Selects the item itself (not the whole Map) as the snapshot so the component
+ * only re-renders when *this* item's reference changes. The store preserves
+ * referential identity for unchanged items, so `useSyncExternalStore`'s built-in
+ * `Object.is` comparison bails out of re-renders triggered by other items.
  */
 export function useItem(path: string): ItemData | undefined {
-  return useStoreValue(s => s.items).get(path);
+  return useSyncExternalStore(subscribe, () => getState().items.get(path));
 }
 
 /**

@@ -174,13 +174,6 @@ export function setSelectedLinkItems(paths: string[]): void {
 // ============================================================================
 
 /**
- * Hook to subscribe to the entire app state
- */
-export function useAppState(): AppState {
-  return useStoreValue(s => s);
-}
-
-/**
  * Hook to subscribe to the current view
  */
 export function useCurrentView(): AppView {
