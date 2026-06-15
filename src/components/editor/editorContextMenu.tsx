@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { EditorView } from '@codemirror/view';
 import Typo from 'typo-js';
+import { logger } from '../../utils/logUtil';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { isMarkdownFile, hasDueProperty, injectCalendarFrontMatter } from '../../utils/calendar/calendarUtil';
 import { buildMarkdownLinks } from '../../utils/linkUtil';
@@ -94,10 +95,14 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     const { from, to } = view.state.selection.main;
     if (from !== to) {
       const selectedText = view.state.sliceDoc(from, to);
-      await navigator.clipboard.writeText(selectedText);
-      view.dispatch({
-        changes: { from, to, insert: '' },
-      });
+      try {
+        await navigator.clipboard.writeText(selectedText);
+        view.dispatch({
+          changes: { from, to, insert: '' },
+        });
+      } catch (err) {
+        logger.error('Failed to cut to clipboard:', err);
+      }
     }
     closeContextMenu();
     view.focus();
@@ -110,7 +115,11 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     const { from, to } = view.state.selection.main;
     if (from !== to) {
       const selectedText = view.state.sliceDoc(from, to);
-      await navigator.clipboard.writeText(selectedText);
+      try {
+        await navigator.clipboard.writeText(selectedText);
+      } catch (err) {
+        logger.error('Failed to copy to clipboard:', err);
+      }
     }
     closeContextMenu();
     view.focus();
@@ -120,7 +129,16 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     const view = viewRef.current;
     if (!view) return;
 
-    const text = await navigator.clipboard.readText();
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch (err) {
+      logger.error('Failed to read from clipboard:', err);
+      closeContextMenu();
+      view.focus();
+      return;
+    }
+
     const { from, to } = view.state.selection.main;
     view.dispatch({
       changes: { from, to, insert: text },
@@ -230,15 +248,23 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
 
     const handleClick = () => closeContextMenu();
     const handleScroll = () => closeContextMenu();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeContextMenu();
+        viewRef.current?.focus();
+      }
+    };
 
     document.addEventListener('click', handleClick);
     document.addEventListener('scroll', handleScroll, true);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.removeEventListener('click', handleClick);
       document.removeEventListener('scroll', handleScroll, true);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [contextMenu.visible, closeContextMenu]);
+  }, [contextMenu.visible, closeContextMenu, viewRef]);
 
   const isMarkdown = !!fileName && isMarkdownFile(fileName);
 
@@ -293,11 +319,45 @@ export function EditorContextMenu({
   onMakeRepeatingCalendarItem,
   isMarkdown,
 }: EditorContextMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Focus the menu container (not an item) when it opens, so it is keyboard-
+  // operable without visually highlighting the first item for mouse users.
+  useEffect(() => {
+    if (contextMenu.visible) {
+      menuRef.current?.focus();
+    }
+  }, [contextMenu.visible]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? []
+    );
+    if (items.length === 0) return;
+
+    const current = items.indexOf(document.activeElement as HTMLElement);
+    let next: number;
+    if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = items.length - 1;
+    else if (e.key === 'ArrowDown') next = current < items.length - 1 ? current + 1 : 0;
+    else next = current > 0 ? current - 1 : items.length - 1;
+
+    items[next].focus();
+  };
+
   if (!contextMenu.visible) return null;
 
   return (
     <div
-      className={`fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-1 ${Z_MODAL} min-w-[140px]`}
+      ref={menuRef}
+      role="menu"
+      aria-label="Editor context menu"
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+      className={`fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-1 ${Z_MODAL} min-w-[140px] focus:outline-none [&_button:focus]:outline-none [&_button:focus-visible]:bg-slate-700`}
       style={{ left: contextMenu.x, top: contextMenu.y }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -307,9 +367,11 @@ export function EditorContextMenu({
             Misspelled: "{contextMenu.spelling.word}"
           </div>
           {contextMenu.spelling.suggestions.length > 0 ? (
-            contextMenu.spelling.suggestions.map((suggestion, index) => (
+            contextMenu.spelling.suggestions.map((suggestion) => (
               <button
-                key={index}
+                key={suggestion}
+                role="menuitem"
+                tabIndex={-1}
                 onClick={() => onSpellingSuggestion(suggestion)}
                 className="w-full px-4 py-2 text-left text-sm text-blue-300 hover:bg-slate-700"
               >
@@ -325,6 +387,8 @@ export function EditorContextMenu({
         </>
       )}
       <button
+        role="menuitem"
+        tabIndex={-1}
         onClick={onCut}
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
@@ -332,6 +396,8 @@ export function EditorContextMenu({
         <span className="text-slate-500 text-xs ml-4">Ctrl+X</span>
       </button>
       <button
+        role="menuitem"
+        tabIndex={-1}
         onClick={onCopy}
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
@@ -339,6 +405,8 @@ export function EditorContextMenu({
         <span className="text-slate-500 text-xs ml-4">Ctrl+C</span>
       </button>
       <button
+        role="menuitem"
+        tabIndex={-1}
         onClick={onPaste}
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
@@ -347,6 +415,8 @@ export function EditorContextMenu({
       </button>
       {isMarkdown && (
         <button
+          role="menuitem"
+          tabIndex={-1}
           onClick={onPasteLink}
           disabled={!canPasteLink}
           className={`w-full px-4 py-2 text-left text-sm flex items-center justify-between ${canPasteLink ? 'text-slate-200 hover:bg-slate-700' : 'text-slate-500 cursor-not-allowed'}`}
@@ -357,6 +427,8 @@ export function EditorContextMenu({
       )}
       <div className="border-t border-slate-600 my-1" />
       <button
+        role="menuitem"
+        tabIndex={-1}
         onClick={onSelectAll}
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
@@ -365,6 +437,8 @@ export function EditorContextMenu({
       </button>
       <div className="border-t border-slate-600 my-1" />
       <button
+        role="menuitem"
+        tabIndex={-1}
         onClick={onInsertTimestamp}
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
@@ -372,6 +446,8 @@ export function EditorContextMenu({
         <span className="text-slate-500 text-xs ml-4">Ctrl+T</span>
       </button>
       <button
+        role="menuitem"
+        tabIndex={-1}
         onClick={onInsertDate}
         className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
       >
@@ -382,12 +458,16 @@ export function EditorContextMenu({
         <>
           <div className="border-t border-slate-600 my-1" />
           <button
+            role="menuitem"
+            tabIndex={-1}
             onClick={onMakeRepeatingCalendarItem}
             className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
           >
             Calendar Item (Reps)
           </button>
           <button
+            role="menuitem"
+            tabIndex={-1}
             onClick={onMakeCalendarItem}
             className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
           >
