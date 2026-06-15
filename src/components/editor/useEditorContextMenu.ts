@@ -64,7 +64,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
       y: e.clientY,
       spelling,
     });
-  }, [viewRef, typoRef]);
+  }, []);
 
   const handleCut = useCallback(async () => {
     const view = viewRef.current;
@@ -84,7 +84,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     }
     closeContextMenu();
     view.focus();
-  }, [viewRef, closeContextMenu]);
+  }, [closeContextMenu]);
 
   const handleCopy = useCallback(async () => {
     const view = viewRef.current;
@@ -101,7 +101,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     }
     closeContextMenu();
     view.focus();
-  }, [viewRef, closeContextMenu]);
+  }, [closeContextMenu]);
 
   const handlePaste = useCallback(async () => {
     const view = viewRef.current;
@@ -124,7 +124,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [viewRef, closeContextMenu]);
+  }, [closeContextMenu]);
 
   const handlePasteLink = useCallback(() => {
     const view = viewRef.current;
@@ -138,7 +138,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [viewRef, filePath, selectedLinkItems, closeContextMenu]);
+  }, [filePath, selectedLinkItems, closeContextMenu]);
 
   const handleSelectAll = useCallback(() => {
     const view = viewRef.current;
@@ -149,7 +149,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [viewRef, closeContextMenu]);
+  }, [closeContextMenu]);
 
   const handleSpellingSuggestion = useCallback((suggestion: string) => {
     const view = viewRef.current;
@@ -162,7 +162,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [viewRef, closeContextMenu, contextMenu.spelling]);
+  }, [closeContextMenu, contextMenu.spelling]);
 
   const handleInsertTimestamp = useCallback(() => {
     const view = viewRef.current;
@@ -176,7 +176,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [viewRef, closeContextMenu]);
+  }, [closeContextMenu]);
 
   const handleInsertDate = useCallback(() => {
     const view = viewRef.current;
@@ -190,7 +190,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [viewRef, closeContextMenu]);
+  }, [closeContextMenu]);
 
   const makeCalendarItem = useCallback((repeating: boolean, callback?: () => void) => {
     const view = viewRef.current;
@@ -210,7 +210,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     closeContextMenu();
     view.focus();
     callback?.();
-  }, [viewRef, closeContextMenu]);
+  }, [closeContextMenu]);
 
   const handleMakeCalendarItem = useCallback(() => {
     makeCalendarItem(false, onMakeCalendarItem);
@@ -242,7 +242,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
       document.removeEventListener('scroll', handleScroll, true);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [contextMenu.visible, closeContextMenu, viewRef]);
+  }, [contextMenu.visible, closeContextMenu]);
 
   const isMarkdown = !!fileName && isMarkdownFile(fileName);
 
