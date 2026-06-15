@@ -316,27 +316,22 @@ export function getExpansionCounts(directoryPath: string): ExpansionCounts {
 }
 
 /**
- * Cached expansion counts to avoid creating new objects on every snapshot call
+ * Memoized expansion counts. The full O(n) scan is keyed on the inputs it
+ * depends on: the `items` Map (replaced on every mutation) and `currentPath`.
+ * Because `useSyncExternalStore` calls the snapshot on every render and every
+ * change, this ensures the scan only runs when those inputs actually change
+ * while still returning a stable reference otherwise.
  */
 let cachedExpansionCounts: ExpansionCounts = { expandedCount: 0, collapsedCount: 0, totalCount: 0 };
-let cachedExpansionCountsPath = '';
+let cachedExpansionCountsItems: Map<string, ItemData> | null = null;
+let cachedExpansionCountsPath: string | null = null;
 
-/**
- * Get snapshot of expansion counts for the current path.
- * Returns a cached object to maintain referential equality when values haven't changed.
- */
 function getExpansionCountsSnapshot(): ExpansionCounts {
-  const currentPath = getState().currentPath;
-  const counts = getExpansionCounts(currentPath);
+  const { items, currentPath } = getState();
 
-  // Only return a new object if values actually changed
-  if (
-    cachedExpansionCountsPath !== currentPath ||
-    cachedExpansionCounts.expandedCount !== counts.expandedCount ||
-    cachedExpansionCounts.collapsedCount !== counts.collapsedCount ||
-    cachedExpansionCounts.totalCount !== counts.totalCount
-  ) {
-    cachedExpansionCounts = counts;
+  if (items !== cachedExpansionCountsItems || currentPath !== cachedExpansionCountsPath) {
+    cachedExpansionCounts = getExpansionCounts(currentPath);
+    cachedExpansionCountsItems = items;
     cachedExpansionCountsPath = currentPath;
   }
 
