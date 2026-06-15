@@ -166,11 +166,7 @@ export function PopupMenuItem({
   return (
     <button
       className={`${MENU_ITEM_BASE} ${hasCheckboxArea ? 'px-3' : 'px-4'} ${disabled ? MENU_ITEM_DISABLED : MENU_ITEM_ENABLED}`}
-      onClick={() => {
-        if (!disabled) {
-          onClick();
-        }
-      }}
+      onClick={onClick}
       disabled={disabled}
       data-testid={dataTestId}
     >

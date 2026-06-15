@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react';
+import { useMemo, useState, type RefObject } from 'react';
 import { FolderIcon, DocumentIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
@@ -26,15 +26,15 @@ export default function BookmarksPopupMenu({
   const [missingPath, setMissingPath] = useState<string | null>(null);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
 
-  // Filter to bookmarks under rootPath
-  const filtered = rootPath
-    ? bookmarks.filter(b => b.path === rootPath || b.path.startsWith(ensureTrailingSep(rootPath)))
-    : bookmarks;
-
-  // Sort alphabetically by bookmark name
-  const sorted = [...filtered].sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-  );
+  // Filter to bookmarks under rootPath, then sort alphabetically by name
+  const sorted = useMemo(() => {
+    const filtered = rootPath
+      ? bookmarks.filter(b => b.path === rootPath || b.path.startsWith(ensureTrailingSep(rootPath)))
+      : bookmarks;
+    return [...filtered].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+  }, [bookmarks, rootPath]);
 
   const persistBookmarks = async () => {
     await api.updateConfig({ settings: getSettings() });
@@ -89,7 +89,7 @@ export default function BookmarksPopupMenu({
               >
                 <button
                   className="flex items-center gap-2 flex-1 text-left text-sm text-slate-200 cursor-pointer min-w-0"
-                  onClick={() => handleClick(fullPath)}
+                  onClick={() => void handleClick(fullPath)}
                 >
                   <Icon className={`w-4 h-4 flex-shrink-0 ${iconColorClass}`} />
                   <span className="truncate">{name}</span>
