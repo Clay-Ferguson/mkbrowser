@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
@@ -7,45 +7,23 @@ import { markdown } from '@codemirror/lang-markdown';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { unifiedMergeView, acceptChunk, rejectChunk, getChunks } from '@codemirror/merge';
-import { useSettings, type FontSize } from '../../store';
+import { useSettings } from '../../store';
+import { createFontSizeTheme } from './editorTheme';
 import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN } from '../../utils/styles';
-
-const FONT_SIZE_MAP: Record<FontSize, string> = {
-  small: '12px',
-  medium: '14px',
-  large: '16px',
-  xlarge: '18px',
-};
 
 interface DiffReviewEditorProps {
   originalText: string;
   modifiedText: string;
   language?: 'markdown' | 'text' | 'javascript' | 'typescript' | 'python';
-  onAcceptAll: (finalText: string) => void;
+  /** Reports the final document after the user resolves every chunk (accepting or rejecting all). */
+  onComplete: (finalText: string) => void;
   onCancel: () => void;
 }
 
-function DiffReviewEditor({ originalText, modifiedText, language = 'text', onAcceptAll, onCancel }: DiffReviewEditorProps) {
+function DiffReviewEditor({ originalText, modifiedText, language = 'text', onComplete, onCancel }: DiffReviewEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const settings = useSettings();
-
-  const createFontSizeTheme = useCallback((fontSize: FontSize) => {
-    return EditorView.theme({
-      '&': {
-        fontSize: FONT_SIZE_MAP[fontSize],
-      },
-      '.cm-scroller': {
-        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-      },
-      '.cm-content, .cm-gutter': {
-        minHeight: '75px',
-      },
-      '&.cm-focused': {
-        outline: 'none',
-      },
-    });
-  }, []);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -96,7 +74,10 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onAcc
     const view = viewRef.current;
     if (!view) return;
 
-    // Resolve chunks from last to first to avoid position shifts
+    // Repeatedly resolve the last remaining chunk until none are left. We re-fetch the chunks
+    // each pass (rather than iterating a fixed list) because resolving a chunk shifts the
+    // positions of the others. `resolved` guards against a stuck loop if a chunk ever fails to
+    // resolve and the count therefore stops shrinking.
     const resolveChunk = action === 'accept' ? acceptChunk : rejectChunk;
     let resolved = true;
     while (resolved) {
@@ -106,7 +87,7 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onAcc
       resolved = resolveChunk(view, lastChunk.fromB);
     }
 
-    onAcceptAll(view.state.doc.toString());
+    onComplete(view.state.doc.toString());
   };
 
   return (

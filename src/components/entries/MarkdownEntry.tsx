@@ -334,7 +334,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                   originalText={edit.editContent}
                   modifiedText={item.rewrittenContent}
                   language="markdown"
-                  onAcceptAll={(finalText) => {
+                  onComplete={(finalText) => {
                     edit.setEditContent(finalText);
                     setItemReviewing(entry.path, false);
                   }}

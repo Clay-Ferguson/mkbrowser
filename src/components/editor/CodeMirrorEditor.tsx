@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useRef, useMemo, useImperativeHandle, forwardRef } from 'react';
 import AlertDialog from '../dialogs/AlertDialog';
 import { EditorView, placeholder as placeholderExt, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
@@ -12,7 +12,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import Typo from 'typo-js';
-import { useSettings, type FontSize } from '../../store';
+import { useSettings } from '../../store';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../utils/editor/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editor/editorDateUtil';
@@ -20,6 +20,7 @@ import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterA
 // import { customRenderPlugin, customRenderTheme } from '../../utils/editorCustomRenderUtil'; // <--- Keep for future reference (no longer needed for now)
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
+import { createFontSizeTheme } from './editorTheme';
 import { logger } from '../../utils/logUtil';
 
 // Delay before auto-focusing / scrolling to a line after mount. Lets CodeMirror finish its
@@ -29,13 +30,6 @@ const FOCUS_DELAY_MS = 100;
 // Debounce window for the onChange callback. Collapses rapid keystroke bursts (e.g. speech-to-text
 // or held keys) into a single store update without a perceptible lag.
 const ONCHANGE_DEBOUNCE_MS = 50;
-
-const FONT_SIZE_MAP: Record<FontSize, string> = {
-  small: '12px',
-  medium: '14px',
-  large: '16px',
-  xlarge: '18px',
-};
 
 const searchMatchTheme = EditorView.theme({
   '.cm-searchMatch': { backgroundColor: 'yellow', color: 'black' },
@@ -189,26 +183,6 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     calendarAlreadyExists,
     setCalendarAlreadyExists,
   } = useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem });
-
-  const createFontSizeTheme = useCallback((fontSize: FontSize) => {
-    return EditorView.theme({
-      '&': {
-        fontSize: FONT_SIZE_MAP[fontSize],
-      },
-      '.cm-scroller': {
-        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
-      },
-      '.cm-content, .cm-gutter': {
-        minHeight: '75px',
-      },
-      '.cm-content': {
-        caretColor: 'white',
-      },
-      '&.cm-focused': {
-        outline: 'none',
-      },
-    });
-  }, []);
 
   // Build the EditorView exactly once, on mount. The empty dependency array is intentional:
   // `placeholder`, `language`, `goToLine`, `autoFocus`, and `readOnly` are mount-time
@@ -488,7 +462,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     view.dispatch({
       effects: fontSizeCompartment.current.reconfigure(createFontSizeTheme(settings.fontSize)),
     });
-  }, [settings.fontSize, createFontSizeTheme]);
+  }, [settings.fontSize]);
 
   // Toggle front matter visibility when showPropsInEditor changes
   useEffect(() => {

@@ -123,7 +123,7 @@ function TextEntry(props: TextEntryProps) {
                 originalText={edit.editContent}
                 modifiedText={item.rewrittenContent}
                 language={fileLanguage}
-                onAcceptAll={(finalText) => {
+                onComplete={(finalText) => {
                   edit.setEditContent(finalText);
                   setItemReviewing(entry.path, false);
                 }}
