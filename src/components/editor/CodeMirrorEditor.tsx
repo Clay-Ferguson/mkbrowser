@@ -29,6 +29,27 @@ const FONT_SIZE_MAP: Record<FontSize, string> = {
   xlarge: '18px',
 };
 
+const searchMatchTheme = EditorView.theme({
+  '.cm-searchMatch': { backgroundColor: 'yellow', color: 'black' },
+  '.cm-searchMatch-selected': { backgroundColor: '#e6b800', color: 'black' },
+});
+
+const cursorOverrideTheme = EditorView.theme({
+  '& .cm-cursor, & .cm-dropCursor': {
+    borderLeftColor: 'white !important',
+    borderLeftWidth: '3px !important',
+  },
+  '& .cm-activeLine': {
+    backgroundColor: 'rgba(255, 255, 255, 0.15) !important',
+  },
+  '& .cm-activeLineGutter': {
+    backgroundColor: 'rgba(255, 255, 255, 0.15) !important',
+  },
+  '& .cm-selectionBackground, &.cm-focused .cm-selectionBackground, & .cm-content ::selection': {
+    backgroundColor: '#1d4ed8 !important',
+  },
+});
+
 interface CodeMirrorEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -161,27 +182,6 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     setCalendarAlreadyExists,
   } = useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem });
 
-  const searchMatchTheme = EditorView.theme({
-    '.cm-searchMatch': { backgroundColor: 'yellow', color: 'black' },
-    '.cm-searchMatch-selected': { backgroundColor: '#e6b800', color: 'black' },
-  });
-
-  const cursorOverrideTheme = EditorView.theme({
-    '& .cm-cursor, & .cm-dropCursor': {
-      borderLeftColor: 'white !important',
-      borderLeftWidth: '3px !important',
-    },
-    '& .cm-activeLine': {
-      backgroundColor: 'rgba(255, 255, 255, 0.15) !important',
-    },
-    '& .cm-activeLineGutter': {
-      backgroundColor: 'rgba(255, 255, 255, 0.15) !important',
-    },
-    '& .cm-selectionBackground, &.cm-focused .cm-selectionBackground, & .cm-content ::selection': {
-      backgroundColor: '#1d4ed8 !important',
-    },
-  });
-
   const createFontSizeTheme = useCallback((fontSize: FontSize) => {
     return EditorView.theme({
       '&': {
@@ -202,6 +202,14 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     });
   }, []);
 
+  // Build the EditorView exactly once, on mount. The empty dependency array is intentional:
+  // `placeholder`, `language`, `goToLine`, `autoFocus`, and `readOnly` are mount-time
+  // configuration — a given editor instance is created fresh per file/mode rather than having
+  // these mutated on a live instance, so capturing them once is correct (not a stale-closure bug).
+  // The props that DO change during a session are re-synced by their own effects below:
+  // `value` (value-sync), `settings.fontSize` (font-size), and `showPropsInEditor` (front matter).
+  // Rebuilding the whole view on a prop change would needlessly discard undo history, cursor,
+  // scroll position, and the async-loaded spell checker.
   useEffect(() => {
     if (!editorRef.current) return;
 
