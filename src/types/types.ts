@@ -274,25 +274,6 @@ export interface AppSettings {
 }
 
 /**
- * Scroll position storage for each view
- * Browser view uses a Map to track per-path scroll positions
- */
-export interface ScrollPositions {
-  /** Browser view scroll positions, keyed by path */
-  browser: Map<string, number>;
-  /** Search results view scroll position */
-  'search-results': number;
-  /** Settings view scroll position */
-  settings: number;
-  /** Folder analysis view scroll position */
-  'folder-analysis': number;
-  /** AI settings view scroll position */
-  'ai-settings': number;
-  /** Thread view scroll position */
-  thread: number;
-}
-
-/**
  * Base node in the IndexTree hierarchy. Holds expansion/loading state and children.
  * Concrete node types (e.g. FileNode) extend this with their own identity fields.
  */
@@ -431,12 +412,6 @@ export interface AppState {
    * Set alongside pendingEditFile so only the correct view acts on it.
    */
   pendingEditView: AppView | null;
-
-  /**
-   * Scroll positions for each view.
-   * Browser view stores per-path positions, other views store a single position.
-   */
-  scrollPositions: ScrollPositions;
 
   /**
    * Path and line number of the highlighted search result.

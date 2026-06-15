@@ -37,21 +37,6 @@ it in one place.
 
 
 
-## 10. "Silent" scroll-position setters mutate `state` without `emitChange`
-
-**What:** `setBrowserScrollPosition` and the other scroll setters replace the global `state`
-object but deliberately skip `emitChange()` to avoid re-renders.
-
-**Why it matters:** This is fragile with `useSyncExternalStore`. Mutating the snapshot without
-notifying listeners means a later unrelated `emitChange()` will expose this state, and any reader
-calling `getSnapshot` in between sees a changed reference that React was never told about — a
-classic tearing risk. It works today only because nothing reactively reads scroll positions.
-
-**Suggestion:** Keep scroll positions in a separate non-reactive store (a plain `Map`/ref) rather
-than in the reactive `state` object, so "update without notifying" is explicit and safe rather
-than an implicit exception to the store's contract.
-
-
 ## 11. Inconsistent JSDoc and naming conventions
 
 **What:**

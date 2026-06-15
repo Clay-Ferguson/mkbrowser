@@ -40,14 +40,6 @@ const initialState: AppState = {
   pendingEditLineNumber: null,
   pendingEditView: null,
   directoryRefreshNonce: 0,
-  scrollPositions: {
-    browser: new Map(),
-    'search-results': 0,
-    settings: 0,
-    'folder-analysis': 0,
-    'ai-settings': 0,
-    thread: 0,
-  },
   highlightedSearchResult: null,
   folderAnalysis: null,
   folderGraph: null,
@@ -117,15 +109,6 @@ export function getState(): AppState {
 export function setState(patch: Partial<AppState>): void {
   state = { ...state, ...patch };
   emitChange();
-}
-
-/**
- * Merge a partial state WITHOUT notifying subscribers.
- * Used for values (e.g. scroll positions) that are written eagerly but only
- * read on mount, where a re-render would be wasteful.
- */
-export function setStateSilent(patch: Partial<AppState>): void {
-  state = { ...state, ...patch };
 }
 
 /**

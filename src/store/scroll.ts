@@ -1,104 +1,111 @@
-import type { ScrollPositions } from '../types/types';
-import { getState, setStateSilent, useStoreValue } from './core';
-
 // ============================================================================
 // Scroll positions
 //
-// These are written eagerly as the user scrolls but only read on mount, so the
-// setters use `setStateSilent` to update the snapshot without forcing a
-// re-render of every subscriber.
+// These are written eagerly as the user scrolls but only read imperatively on
+// mount, so they live in a plain module-level store rather than the reactive
+// app state. Keeping them out of `useSyncExternalStore` makes "update without
+// re-rendering" explicit and avoids the tearing risk of mutating the store
+// snapshot without notifying listeners.
 // ============================================================================
+
+/** Browser view scroll positions, keyed by path */
+const browserPositions = new Map<string, number>();
+
+/** Single-instance view scroll positions */
+const viewPositions = {
+  'search-results': 0,
+  settings: 0,
+  'folder-analysis': 0,
+  'ai-settings': 0,
+  thread: 0,
+};
+
+type ViewScrollKey = keyof typeof viewPositions;
 
 /**
  * Set scroll position for the browser view at a specific path
  */
 export function setBrowserScrollPosition(path: string, position: number): void {
-  const scrollPositions = getState().scrollPositions;
-  const newBrowserPositions = new Map(scrollPositions.browser);
-  newBrowserPositions.set(path, position);
-  setStateSilent({ scrollPositions: { ...scrollPositions, browser: newBrowserPositions } });
+  browserPositions.set(path, position);
 }
 
 /**
  * Get scroll position for the browser view at a specific path
  */
 export function getBrowserScrollPosition(path: string): number {
-  return getState().scrollPositions.browser.get(path) ?? 0;
+  return browserPositions.get(path) ?? 0;
 }
 
 /**
  * Set scroll position for the search-results view
  */
 export function setSearchResultsScrollPosition(position: number): void {
-  setStateSilent({ scrollPositions: { ...getState().scrollPositions, 'search-results': position } });
+  setViewScrollPosition('search-results', position);
 }
 
 /**
  * Get scroll position for the search-results view
  */
 export function getSearchResultsScrollPosition(): number {
-  return getState().scrollPositions['search-results'];
+  return viewPositions['search-results'];
 }
 
 /**
  * Set scroll position for the settings view
  */
 export function setSettingsScrollPosition(position: number): void {
-  setStateSilent({ scrollPositions: { ...getState().scrollPositions, settings: position } });
+  setViewScrollPosition('settings', position);
 }
 
 /**
  * Get scroll position for the settings view
  */
 export function getSettingsScrollPosition(): number {
-  return getState().scrollPositions.settings;
+  return viewPositions.settings;
 }
 
 /**
  * Set scroll position for the folder analysis view
  */
 export function setFolderAnalysisScrollPosition(position: number): void {
-  setStateSilent({ scrollPositions: { ...getState().scrollPositions, 'folder-analysis': position } });
+  setViewScrollPosition('folder-analysis', position);
 }
 
 /**
  * Get scroll position for the folder analysis view
  */
 export function getFolderAnalysisScrollPosition(): number {
-  return getState().scrollPositions['folder-analysis'];
+  return viewPositions['folder-analysis'];
 }
 
 /**
  * Set scroll position for the AI settings view
  */
 export function setAiSettingsScrollPosition(position: number): void {
-  setStateSilent({ scrollPositions: { ...getState().scrollPositions, 'ai-settings': position } });
+  setViewScrollPosition('ai-settings', position);
 }
 
 /**
  * Get scroll position for the AI settings view
  */
 export function getAiSettingsScrollPosition(): number {
-  return getState().scrollPositions['ai-settings'];
+  return viewPositions['ai-settings'];
 }
 
 /**
  * Set scroll position for the thread view
  */
 export function setThreadScrollPosition(position: number): void {
-  setStateSilent({ scrollPositions: { ...getState().scrollPositions, thread: position } });
+  setViewScrollPosition('thread', position);
 }
 
 /**
  * Get scroll position for the thread view
  */
 export function getThreadScrollPosition(): number {
-  return getState().scrollPositions.thread;
+  return viewPositions.thread;
 }
 
-/**
- * Hook to subscribe to scroll positions
- */
-export function useScrollPositions(): ScrollPositions {
-  return useStoreValue(s => s.scrollPositions);
+function setViewScrollPosition(key: ViewScrollKey, position: number): void {
+  viewPositions[key] = position;
 }
