@@ -64,19 +64,26 @@ export function createSpellCheckDecorations(view: EditorView, typo: Typo | null)
     }
   }
 
-  for (let i = 1; i <= doc.lines; i++) {
-    if (i <= frontMatterEnd) continue;
-    const line = doc.line(i);
-    const words = extractWords(line.text);
+  // Only decorate the visible viewport, not the whole document. Spell-check
+  // underlines are only ever seen within the viewport, so scanning the entire
+  // doc on every keystroke/scroll is wasted work on large files.
+  for (const { from, to } of view.visibleRanges) {
+    for (let pos = from; pos <= to; ) {
+      const line = doc.lineAt(pos);
+      pos = line.to + 1;
 
-    for (const { word, from, to } of words) {
-      // Skip very short words and words that are all caps (likely acronyms)
-      if (word.length < 2 || (word.length > 1 && word === word.toUpperCase())) {
-        continue;
-      }
+      if (line.number <= frontMatterEnd) continue;
 
-      if (!typo.check(word)) {
-        builder.add(line.from + from, line.from + to, misspelledMark);
+      const words = extractWords(line.text);
+      for (const { word, from: wordFrom, to: wordTo } of words) {
+        // Skip very short words and words that are all caps (likely acronyms)
+        if (word.length < 2 || word === word.toUpperCase()) {
+          continue;
+        }
+
+        if (!typo.check(word)) {
+          builder.add(line.from + wordFrom, line.from + wordTo, misspelledMark);
+        }
       }
     }
   }
