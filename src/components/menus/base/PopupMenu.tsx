@@ -26,6 +26,11 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
+  // Keep the latest onClose in a ref so the dismiss listeners don't re-subscribe
+  // every render when callers pass an inline arrow function.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   // Calculate position relative to anchor or mouse position, adjusting for viewport edges
   useLayoutEffect(() => {
     const menu = menuRef.current;
@@ -77,31 +82,28 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
     setPosition({ top, left });
   }, [anchorRef, mousePosition]);
 
-  // Click-outside dismiss
+  // Click-outside and Escape dismiss
   useEffect(() => {
     if (disableClose) return;
     const handleMouseDown = (e: MouseEvent) => {
       const target = e.target as Node;
       const anchorContains = anchorRef?.current?.contains(target) ?? false;
       if (menuRef.current && !menuRef.current.contains(target) && !anchorContains) {
-        onClose();
+        onCloseRef.current();
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCloseRef.current();
       }
     };
     document.addEventListener('mousedown', handleMouseDown);
-    return () => document.removeEventListener('mousedown', handleMouseDown);
-  }, [anchorRef, onClose, disableClose]);
-
-  // Escape key dismiss
-  useEffect(() => {
-    if (disableClose) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, disableClose]);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [anchorRef, disableClose]);
 
   return (
     <div
