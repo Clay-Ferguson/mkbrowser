@@ -22,6 +22,14 @@ import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spe
 import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
 import { logger } from '../../utils/logUtil';
 
+// Delay before auto-focusing / scrolling to a line after mount. Lets CodeMirror finish its
+// initial layout so focus and scrollIntoView land on correctly measured content.
+const FOCUS_DELAY_MS = 100;
+
+// Debounce window for the onChange callback. Collapses rapid keystroke bursts (e.g. speech-to-text
+// or held keys) into a single store update without a perceptible lag.
+const ONCHANGE_DEBOUNCE_MS = 50;
+
 const FONT_SIZE_MAP: Record<FontSize, string> = {
   small: '12px',
   medium: '14px',
@@ -262,7 +270,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       keymap.of([
         {
           key: 'Escape',
-          run: (view) => {
+          run: () => {
             if (onEscapeRef.current) {
               onEscapeRef.current();
               return true;
@@ -324,7 +332,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
               onChangeRef.current(pendingDocRef.current);
               pendingDocRef.current = null;
             }
-          }, 50);
+          }, ONCHANGE_DEBOUNCE_MS);
         }
         if (update.selectionSet && onSelectionChangeRef.current) {
           const { from, to } = update.state.selection.main;
@@ -384,7 +392,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
               onGoToLineComplete();
             }
           } catch (err) {
-            // logger.error('Failed to scroll to line:', err);
+            logger.error('Failed to scroll to line:', err);
           }
         } else if (!showPropsInEditor) {
           // Transaction filters don't run on the initial state, so the cursor would
@@ -409,7 +417,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
           viewRef.current.focus();
         }
       }
-    }, 100);
+    }, FOCUS_DELAY_MS);
 
     // Single cleanup for every return path: clear pending timers and tear down the view.
     const cleanup = () => {
