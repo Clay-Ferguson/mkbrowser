@@ -45,6 +45,16 @@ export function extractWords(text: string): { word: string; from: number; to: nu
   return words;
 }
 
+// Find the word at a position within a single line of text, using the same
+// word definition as extractWords so the spell-check underlines and the
+// context-menu lookup can never drift apart.
+export function wordAt(text: string, pos: number): { word: string; from: number; to: number } | null {
+  for (const w of extractWords(text)) {
+    if (pos >= w.from && pos <= w.to) return w;
+  }
+  return null;
+}
+
 // Create spell check decorations for a view
 export function createSpellCheckDecorations(view: EditorView, typo: Typo | null): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();

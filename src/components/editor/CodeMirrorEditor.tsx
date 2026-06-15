@@ -19,7 +19,8 @@ import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editor/
 import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../utils/editor/editorFrontMatterUtil';
 // import { customRenderPlugin, customRenderTheme } from '../../utils/editorCustomRenderUtil'; // <--- Keep for future reference (no longer needed for now)
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
-import { useEditorContextMenu, EditorContextMenu } from './editorContextMenu';
+import { useEditorContextMenu } from './useEditorContextMenu';
+import { EditorContextMenu } from './EditorContextMenu';
 import { createFontSizeTheme } from './editorTheme';
 import { logger } from '../../utils/logUtil';
 
