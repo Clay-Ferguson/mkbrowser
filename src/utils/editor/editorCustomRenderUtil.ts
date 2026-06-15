@@ -6,10 +6,14 @@ const hrLineDeco = Decoration.line({ class: 'cm-hr-line' });
 function buildHrDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
-  for (let i = 1; i <= doc.lines; i++) {
-    const line = doc.line(i);
-    if (line.text === '---') {
-      builder.add(line.from, line.from, hrLineDeco);
+  // Only decorate the visible viewport; the plugin re-runs on viewportChanged.
+  for (const { from, to } of view.visibleRanges) {
+    for (let pos = from; pos <= to; ) {
+      const line = doc.lineAt(pos);
+      pos = line.to + 1;
+      if (line.text === '---') {
+        builder.add(line.from, line.from, hrLineDeco);
+      }
     }
   }
   return builder.finish();

@@ -13,21 +13,24 @@ export function createFrontMatterDecorations(view: EditorView): DecorationSet {
   const firstLine = doc.line(1);
   const hasFrontMatter = firstLine.text.trim() === '---';
 
+  if (!hasFrontMatter) return builder.finish();
+
   let closingLineNumber = -1;
-  if (hasFrontMatter) {
-    for (let i = 2; i <= doc.lines; i++) {
-      if (doc.line(i).text.trim() === '---') { closingLineNumber = i; break; }
-    }
+  for (let i = 2; i <= doc.lines; i++) {
+    if (doc.line(i).text.trim() === '---') { closingLineNumber = i; break; }
   }
 
-  // Apply decorations in document order (required by RangeSetBuilder)
-  for (let i = 1; i <= doc.lines; i++) {
+  // Front matter is always top-anchored, so only scan the front-matter region
+  // rather than the whole document. Without a closing delimiter only the opening
+  // line 1 is decorated. Apply in document order (required by RangeSetBuilder).
+  const lastLine = closingLineNumber > 0 ? closingLineNumber : 1;
+  for (let i = 1; i <= lastLine; i++) {
     const line = doc.line(i);
     if (line.text.trim() === '---') {
-      if (hasFrontMatter && (i === 1 || i === closingLineNumber)) {
+      if (i === 1 || i === closingLineNumber) {
         builder.add(line.from, line.to, frontMatterDelimMark);
       }
-    } else if (hasFrontMatter && closingLineNumber > 0 && i > 1 && i < closingLineNumber) {
+    } else if (closingLineNumber > 0 && i > 1 && i < closingLineNumber) {
       // Decorate front matter content lines
       const mark = /^\s*id:\s/.test(line.text) ? frontMatterIdMark : frontMatterMark;
       builder.add(line.from, line.to, mark);
@@ -40,9 +43,16 @@ export function createFrontMatterDecorations(view: EditorView): DecorationSet {
 function buildHrLineDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
-  for (let i = 2; i <= doc.lines; i++) {
-    const line = doc.line(i);
-    if (line.text.trim() === '---') builder.add(line.from, line.from, hrLineDeco);
+  // Only decorate the visible viewport; the plugin re-runs on viewportChanged.
+  // Line 1 is skipped so the opening front-matter delimiter is not drawn as an <hr>.
+  for (const { from, to } of view.visibleRanges) {
+    for (let pos = from; pos <= to; ) {
+      const line = doc.lineAt(pos);
+      pos = line.to + 1;
+      if (line.number > 1 && line.text.trim() === '---') {
+        builder.add(line.from, line.from, hrLineDeco);
+      }
+    }
   }
   return builder.finish();
 }

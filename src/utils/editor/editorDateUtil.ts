@@ -28,12 +28,16 @@ export function createDateDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
 
-  for (let i = 1; i <= doc.lines; i++) {
-    const line = doc.line(i);
-    const dates = extractDates(line.text);
+  // Only decorate the visible viewport; the plugin re-runs on viewportChanged.
+  for (const { from: rangeFrom, to: rangeTo } of view.visibleRanges) {
+    for (let pos = rangeFrom; pos <= rangeTo; ) {
+      const line = doc.lineAt(pos);
+      pos = line.to + 1;
 
-    for (const { from, to } of dates) {
-      builder.add(line.from + from, line.from + to, dateMark);
+      const dates = extractDates(line.text);
+      for (const { from, to } of dates) {
+        builder.add(line.from + from, line.from + to, dateMark);
+      }
     }
   }
 
