@@ -92,34 +92,18 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onAcc
     };
   }, []);
 
-  const handleAcceptAll = () => {
+  const resolveAllChunks = (action: 'accept' | 'reject') => {
     const view = viewRef.current;
     if (!view) return;
 
-    // Accept all chunks from last to first to avoid position shifts
-    let accepted = true;
-    while (accepted) {
-      const result = getChunks(view.state);
-      if (!result || result.chunks.length === 0) break;
-      // Accept the last chunk first
-      const lastChunk = result.chunks[result.chunks.length - 1];
-      accepted = acceptChunk(view, lastChunk.fromB);
-    }
-
-    onAcceptAll(view.state.doc.toString());
-  };
-
-  const handleDone = () => {
-    const view = viewRef.current;
-    if (!view) return;
-
-    // Reject all remaining chunks from last to first to avoid position shifts
-    let rejected = true;
-    while (rejected) {
+    // Resolve chunks from last to first to avoid position shifts
+    const resolveChunk = action === 'accept' ? acceptChunk : rejectChunk;
+    let resolved = true;
+    while (resolved) {
       const result = getChunks(view.state);
       if (!result || result.chunks.length === 0) break;
       const lastChunk = result.chunks[result.chunks.length - 1];
-      rejected = rejectChunk(view, lastChunk.fromB);
+      resolved = resolveChunk(view, lastChunk.fromB);
     }
 
     onAcceptAll(view.state.doc.toString());
@@ -133,14 +117,14 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onAcc
       />
       <div className="flex items-center gap-2">
         <button
-          onClick={handleAcceptAll}
+          onClick={() => resolveAllChunks('accept')}
           className={BUTTON_CLASS_SM_GREEN}
           data-testid="diff-accept-all-button"
         >
           Accept All
         </button>
         <button
-          onClick={handleDone}
+          onClick={() => resolveAllChunks('reject')}
           className={BUTTON_CLASS_SM_BLUE}
           data-testid="diff-done-button"
         >
