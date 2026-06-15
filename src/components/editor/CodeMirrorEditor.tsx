@@ -403,22 +403,18 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       }
     }, 100);
 
-    // Clean up timer if component unmounts
-    view.destroy = (() => {
-      const originalDestroy = view.destroy.bind(view);
-      return () => {
-        clearTimeout(focusTimer);
-        originalDestroy();
-      };
-    })();
+    // Single cleanup for every return path: clear pending timers and tear down the view.
+    const cleanup = () => {
+      clearTimeout(focusTimer);
+      if (onChangeDebounceRef.current) clearTimeout(onChangeDebounceRef.current);
+      view.destroy();
+      viewRef.current = null;
+    };
 
     // Skip spell checking for code languages or read-only views
     const isCodeLanguage = language === 'javascript' || language === 'typescript' || language === 'python';
     if (isCodeLanguage || readOnly) {
-      return () => {
-        view.destroy();
-        viewRef.current = null;
-      };
+      return cleanup;
     }
 
     // Load spell checker asynchronously
@@ -434,11 +430,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       })
       .catch((err: unknown) => logger.error('Failed to load spell checker:', err));
 
-    return () => {
-      if (onChangeDebounceRef.current) clearTimeout(onChangeDebounceRef.current);
-      view.destroy();
-      viewRef.current = null;
-    };
+    return cleanup;
   }, []);
 
   // Sync external value changes to editor (but not when editor itself changed)
