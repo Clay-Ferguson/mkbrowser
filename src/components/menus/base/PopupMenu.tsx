@@ -142,15 +142,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   );
 }
 
-/** A clickable menu item inside a PopupMenu. */
-export function PopupMenuItem({
-  label,
-  onClick,
-  disabled = false,
-  selected,
-  icon: Icon,
-  'data-testid': dataTestId,
-}: {
+export interface PopupMenuItemProps {
   label: string;
   onClick: () => void;
   disabled?: boolean;
@@ -159,7 +151,17 @@ export function PopupMenuItem({
   /** Optional icon component to display to the left of the label. */
   icon?: ComponentType<{ className?: string }>;
   'data-testid'?: string;
-}) {
+}
+
+/** A clickable menu item inside a PopupMenu. */
+export function PopupMenuItem({
+  label,
+  onClick,
+  disabled = false,
+  selected,
+  icon: Icon,
+  'data-testid': dataTestId,
+}: PopupMenuItemProps) {
   // When selected is defined (true or false), we reserve space for the checkbox
   const hasCheckboxArea = selected !== undefined;
 
