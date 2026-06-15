@@ -1,8 +1,10 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
+import { RefObject } from 'react';
 import Typo from 'typo-js';
 import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
+import { frontMatterEndLine } from '../../utils/editor/editorFrontMatterUtil';
 
 // Singleton for the spell checker
 let typoInstance: Typo | null = null;
@@ -63,16 +65,9 @@ export function createSpellCheckDecorations(view: EditorView, typo: Typo | null)
 
   const doc = view.state.doc;
 
-  // Determine front matter line range to skip
-  let frontMatterEnd = 0;
-  if (doc.lines >= 1 && doc.line(1).text.trim() === '---') {
-    for (let j = 2; j <= doc.lines; j++) {
-      if (doc.line(j).text.trim() === '---') {
-        frontMatterEnd = j;
-        break;
-      }
-    }
-  }
+  // Determine front matter line range to skip (shared definition of where front
+  // matter ends, so spell-check stays consistent with the editor's other utilities).
+  const frontMatterEnd = frontMatterEndLine(doc);
 
   // Only decorate the visible viewport, not the whole document. Spell-check
   // underlines are only ever seen within the viewport, so scanning the entire
@@ -102,7 +97,7 @@ export function createSpellCheckDecorations(view: EditorView, typo: Typo | null)
 }
 
 // ViewPlugin for spell checking
-export function createSpellCheckPlugin(typoRef: { current: Typo | null }) {
+export function createSpellCheckPlugin(typoRef: RefObject<Typo | null>) {
   return ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;

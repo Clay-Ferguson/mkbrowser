@@ -120,6 +120,17 @@ export const frontMatterHideField = StateField.define<DecorationSet>({
   provide(field) { return EditorView.decorations.from(field); },
 });
 
+// Line number (1-based) of the closing `---` front-matter delimiter, or 0 when the
+// document has no front matter (no opening delimiter, or no matching closing one).
+// Lines 1..N inclusive make up the front-matter region.
+export function frontMatterEndLine(doc: Text): number {
+  if (doc.line(1).text.trim() !== '---') return 0;
+  for (let i = 2; i <= doc.lines; i++) {
+    if (doc.line(i).text.trim() === '---') return i;
+  }
+  return 0;
+}
+
 // Returns the document position at the start of the first visible line (just past the
 // hidden front matter's trailing newline), or -1 if there is no front matter to hide.
 // This is the cursor floor: one position past the hide block's end (which stops at the
