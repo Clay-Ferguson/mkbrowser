@@ -27,8 +27,7 @@ export default function SortPopupMenu({
 }: SortPopupMenuProps) {
 
   return (
-    // maxWidth hack: this menu renders inexplicably wide without it; root cause unknown
-    <PopupMenu anchorRef={anchorRef} onClose={onClose} style={{ maxWidth: '20rem' }}>
+    <PopupMenu anchorRef={anchorRef} onClose={onClose}>
       {sortOptions.map((option) => {
         const isActive = option.value === currentSortOrder;
         return (

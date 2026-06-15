@@ -176,7 +176,7 @@ export function PopupMenuItem({
         </div>
       )}
       {Icon && <Icon className="w-4 h-4 flex-shrink-0" />}
-      <span>{label}</span>
+      <span className="min-w-0 break-words">{label}</span>
     </button>
   );
 }
