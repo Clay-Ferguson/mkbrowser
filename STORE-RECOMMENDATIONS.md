@@ -35,16 +35,6 @@ settings really can omit it — normalize it once at load time / make the field 
 it in one place.
 
 
-## 9. `upsertItem` and `upsertItems` duplicate logic and have diverged
-
-**What:** Both contain the same "exists? merge & maybe invalidate cache : create" logic.
-`upsertItems` also copies `aiHint`, while the single-item `upsertItem` does not.
-
-**Why it matters:** DRY violation, and the divergence is a latent bug — updating one item via
-`upsertItem` silently drops `aiHint` handling that the batch path has.
-
-**Suggestion:** Implement `upsertItem` by delegating to `upsertItems([...])`, or extract a shared
-pure helper `mergeItem(existing, incoming)` used by both, so the merge rules live in one place.
 
 
 ## 10. "Silent" scroll-position setters mutate `state` without `emitChange`

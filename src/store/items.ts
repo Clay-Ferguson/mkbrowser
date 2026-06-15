@@ -9,6 +9,47 @@ import { getState, setState, subscribe, useStoreValue } from './core';
 // Items - actions and hooks for the items Map
 // ============================================================================
 
+interface IncomingItem {
+  path: string;
+  name: string;
+  isDirectory: boolean;
+  modifiedTime: number;
+  createdTime?: number;
+  aiHint?: string;
+}
+
+/**
+ * Merge an incoming item with its existing store entry (if any), returning the
+ * item to store. Shared merge rules for both upsertItem and upsertItems:
+ * - Existing item: refresh metadata, invalidate cached content if the file has
+ *   changed since it was cached, and replace aiHint only when one is supplied.
+ * - No existing item: create a fresh entry.
+ */
+function mergeItem(existing: ItemData | undefined, item: IncomingItem): ItemData {
+  const createdTime = item.createdTime ?? item.modifiedTime;
+
+  if (!existing) {
+    return createItemData(item.path, item.name, item.isDirectory, item.modifiedTime, createdTime, item.aiHint);
+  }
+
+  const updatedItem: ItemData = {
+    ...existing,
+    name: item.name,
+    isDirectory: item.isDirectory,
+    modifiedTime: item.modifiedTime,
+    createdTime,
+    aiHint: item.aiHint ?? existing.aiHint,
+  };
+
+  // If the file has been modified since we cached content, invalidate cache
+  if (existing.contentCachedAt && item.modifiedTime > existing.contentCachedAt) {
+    updatedItem.content = undefined;
+    updatedItem.contentCachedAt = undefined;
+  }
+
+  return updatedItem;
+}
+
 /**
  * Add or update an item in the store.
  * If the item already exists and its modifiedTime hasn't changed,
@@ -21,68 +62,18 @@ export function upsertItem(
   modifiedTime: number,
   createdTime: number = modifiedTime
 ): void {
-  const state = getState();
-  const existing = state.items.get(path);
-
-  // Create new Map to ensure React detects the change
-  const newItems = new Map(state.items);
-
-  if (existing) {
-    // Item exists - update it, preserving content if modifiedTime unchanged
-    const updatedItem: ItemData = {
-      ...existing,
-      name,
-      isDirectory,
-      modifiedTime,
-      createdTime,
-    };
-
-    // If the file has been modified since we cached content, invalidate cache
-    if (existing.contentCachedAt && modifiedTime > existing.contentCachedAt) {
-      updatedItem.content = undefined;
-      updatedItem.contentCachedAt = undefined;
-    }
-
-    newItems.set(path, updatedItem);
-  } else {
-    // New item
-    newItems.set(path, createItemData(path, name, isDirectory, modifiedTime, createdTime));
-  }
-
-  setState({ items: newItems });
+  upsertItems([{ path, name, isDirectory, modifiedTime, createdTime }]);
 }
 
 /**
  * Batch upsert multiple items at once (more efficient for directory loads)
  */
-export function upsertItems(
-  items: Array<{ path: string; name: string; isDirectory: boolean; modifiedTime: number; createdTime?: number; aiHint?: string }>
-): void {
+export function upsertItems(items: IncomingItem[]): void {
+  // Create new Map to ensure React detects the change
   const newItems = new Map(getState().items);
 
   for (const item of items) {
-    const existing = newItems.get(item.path);
-    const createdTime = item.createdTime ?? item.modifiedTime;
-
-    if (existing) {
-      const updatedItem: ItemData = {
-        ...existing,
-        name: item.name,
-        isDirectory: item.isDirectory,
-        modifiedTime: item.modifiedTime,
-        createdTime,
-        aiHint: item.aiHint,
-      };
-
-      if (existing.contentCachedAt && item.modifiedTime > existing.contentCachedAt) {
-        updatedItem.content = undefined;
-        updatedItem.contentCachedAt = undefined;
-      }
-
-      newItems.set(item.path, updatedItem);
-    } else {
-      newItems.set(item.path, createItemData(item.path, item.name, item.isDirectory, item.modifiedTime, createdTime, item.aiHint));
-    }
+    newItems.set(item.path, mergeItem(newItems.get(item.path), item));
   }
 
   setState({ items: newItems });
