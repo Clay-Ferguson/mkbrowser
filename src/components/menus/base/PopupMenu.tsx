@@ -9,6 +9,8 @@ export interface PopupMenuProps {
   mousePosition?: { x: number; y: number };
   /** Called when the menu should close (click outside, Escape, item click) */
   onClose: () => void;
+  /** When true, click-outside and Escape dismissal are suppressed (e.g. while a sub-dialog is open) */
+  disableClose?: boolean;
   children: ReactNode;
   /** Optional extra inline styles merged onto the menu container */
   style?: React.CSSProperties;
@@ -20,7 +22,7 @@ export interface PopupMenuProps {
  * Reusable popup menu that positions itself below an anchor element or at mouse coordinates.
  * Handles click-outside dismiss, Escape key, and viewport edge-clipping.
  */
-export default function PopupMenu({ anchorRef, mousePosition, onClose, children, style: extraStyle, 'data-testid': dataTestId }: PopupMenuProps) {
+export default function PopupMenu({ anchorRef, mousePosition, onClose, disableClose = false, children, style: extraStyle, 'data-testid': dataTestId }: PopupMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
@@ -77,6 +79,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, children,
 
   // Click-outside dismiss
   useEffect(() => {
+    if (disableClose) return;
     const handleMouseDown = (e: MouseEvent) => {
       const target = e.target as Node;
       const anchorContains = anchorRef?.current?.contains(target) ?? false;
@@ -86,10 +89,11 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, children,
     };
     document.addEventListener('mousedown', handleMouseDown);
     return () => document.removeEventListener('mousedown', handleMouseDown);
-  }, [anchorRef, onClose]);
+  }, [anchorRef, onClose, disableClose]);
 
   // Escape key dismiss
   useEffect(() => {
+    if (disableClose) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -97,7 +101,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, children,
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, disableClose]);
 
   return (
     <div

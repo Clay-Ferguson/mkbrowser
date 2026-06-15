@@ -73,7 +73,7 @@ export default function BookmarksPopupMenu({
 
   return (
     <>
-      <PopupMenu anchorRef={anchorRef} onClose={editingBookmark ? () => {} : onClose}>
+      <PopupMenu anchorRef={anchorRef} onClose={onClose} disableClose={!!editingBookmark}>
         {sorted.length === 0 ? (
           <PopupMenuItem label="No bookmarks" disabled onClick={onClose} />
         ) : (
