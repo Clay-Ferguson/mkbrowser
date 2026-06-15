@@ -5,7 +5,16 @@ import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import BookmarkDialog from '../dialogs/BookmarkDialog';
 import { toggleBookmark, isBookmarked, getSettings, removeBookmark, updateBookmarkName, type Bookmark } from '../../store';
-import { MENU_ROW, MENU_ICON_BTN } from '../../utils/styles';
+import {
+  MENU_ROW,
+  MENU_ICON_BTN,
+  MENU_ROW_LABEL,
+  MENU_ROW_ACTIONS,
+  MENU_ROW_ICON,
+  MENU_ACTION_ICON,
+  MENU_FOLDER_ICON,
+  MENU_FILE_ICON,
+} from '../../utils/styles';
 import { ensureTrailingSep, getFileName } from '../../utils/pathUtil';
 
 interface BookmarksPopupMenuProps {
@@ -81,33 +90,33 @@ export default function BookmarksPopupMenu({
             const { path: fullPath, name } = bookmark;
             const folder = isFolder(fullPath);
             const Icon = folder ? FolderIcon : DocumentIcon;
-            const iconColorClass = folder ? 'text-amber-400' : 'text-blue-400';
+            const iconColorClass = folder ? MENU_FOLDER_ICON : MENU_FILE_ICON;
             return (
               <div
                 key={fullPath}
                 className={MENU_ROW}
               >
                 <button
-                  className="flex items-center gap-2 flex-1 text-left text-sm text-slate-200 cursor-pointer min-w-0"
+                  className={MENU_ROW_LABEL}
                   onClick={() => void handleClick(fullPath)}
                 >
-                  <Icon className={`w-4 h-4 flex-shrink-0 ${iconColorClass}`} />
+                  <Icon className={`${MENU_ROW_ICON} ${iconColorClass}`} />
                   <span className="truncate">{name}</span>
                 </button>
-                <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity pl-2">
+                <div className={MENU_ROW_ACTIONS}>
                   <button
                     className={`${MENU_ICON_BTN} hover:text-slate-100`}
                     title="Edit bookmark"
                     onClick={(e) => { e.stopPropagation(); setEditingBookmark(bookmark); }}
                   >
-                    <PencilIcon className="w-3.5 h-3.5" />
+                    <PencilIcon className={MENU_ACTION_ICON} />
                   </button>
                   <button
                     className={`${MENU_ICON_BTN} hover:text-red-400`}
                     title="Delete bookmark"
                     onClick={(e) => { e.stopPropagation(); void handleDelete(fullPath); }}
                   >
-                    <TrashIcon className="w-3.5 h-3.5" />
+                    <TrashIcon className={MENU_ACTION_ICON} />
                   </button>
                 </div>
               </div>

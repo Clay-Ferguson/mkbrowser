@@ -103,3 +103,13 @@ export const MENU_DIVIDER      = 'border-t border-slate-500 my-1';
 // Row with inline action buttons revealed on hover (e.g. bookmark rows)
 export const MENU_ROW          = 'flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-800 group';
 export const MENU_ICON_BTN     = 'p-1 rounded text-slate-400 hover:bg-blue-700 cursor-pointer';
+// Primary clickable label within a MENU_ROW (icon + truncated text)
+export const MENU_ROW_LABEL    = 'flex items-center gap-2 flex-1 text-left text-sm text-slate-200 cursor-pointer min-w-0';
+// Action button cluster revealed on row hover (sits beside MENU_ROW_LABEL)
+export const MENU_ROW_ACTIONS  = 'flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity pl-2';
+// Icon sizing inside menu rows
+export const MENU_ROW_ICON     = 'w-4 h-4 flex-shrink-0';
+export const MENU_ACTION_ICON  = 'w-3.5 h-3.5';
+// Folder vs. file icon colors used in menu rows
+export const MENU_FOLDER_ICON  = 'text-amber-400';
+export const MENU_FILE_ICON    = 'text-blue-400';
