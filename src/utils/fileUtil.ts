@@ -30,9 +30,12 @@ export function parseFrontMatter(rawContent: string): FrontMatterResult {
     return { yaml: null, content: rawContent };
   }
 
-  // Find the closing delimiter (--- or ...) on its own line
+  // Find the closing delimiter (--- or ...) on its own line.
+  // Allow only spaces/tabs (not newlines) after the delimiter so a blank line
+  // following the front matter is preserved as part of the body rather than
+  // being silently swallowed — Markdown is whitespace-sensitive.
   const afterOpen = rawContent.slice(3);
-  const closingMatch = afterOpen.match(/\n(---|\.\.\.)\s*(\n|$)/);
+  const closingMatch = afterOpen.match(/\n(---|\.\.\.)[^\S\n]*(\n|$)/);
   if (!closingMatch || closingMatch.index === undefined) {
     return { yaml: null, content: rawContent };
   }
