@@ -111,7 +111,7 @@ test.describe('AI Chat Demo', () => {
 
     // ── 5. Queue scripted answer, then click "Ask AI" ─────────────────
     await mainWindow.evaluate(
-      (answer) => (window as any).electronAPI.queueScriptedAnswer(answer),
+      (answer) => (window as unknown as { electronAPI: { queueScriptedAnswer: (a: string) => void } }).electronAPI.queueScriptedAnswer(answer),
       aiAnswer1
     );
 
@@ -177,7 +177,7 @@ test.describe('AI Chat Demo', () => {
 
     // ── 9. Queue second scripted answer, then click "Ask AI" ──────────
     await mainWindow.evaluate(
-      (answer) => (window as any).electronAPI.queueScriptedAnswer(answer),
+      (answer) => (window as unknown as { electronAPI: { queueScriptedAnswer: (a: string) => void } }).electronAPI.queueScriptedAnswer(answer),
       aiAnswer2
     );
 

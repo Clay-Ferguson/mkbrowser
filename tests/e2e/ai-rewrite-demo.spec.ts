@@ -268,7 +268,7 @@ A sudden, cold electricity surged through him. The hairs on the nape of his neck
 
 With a deliberate, agonizing slowness, he rose from the chair. His movements were heavy, as if he were moving through deep water, and his heart beat a steady, hollow rhythm against his ribs. He reached out, his fingers trembling slightly, searching for his...`;
     await mainWindow.evaluate(
-      (answer) => (window as any).electronAPI.queueScriptedAnswer(answer),
+      (answer) => (window as unknown as { electronAPI: { queueScriptedAnswer: (a: string) => void } }).electronAPI.queueScriptedAnswer(answer),
       rewrittenText
     );
 

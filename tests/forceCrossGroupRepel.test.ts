@@ -18,9 +18,9 @@ describe('forceCrossGroupRepel', () => {
     force.initialize([a, b]);
     force(1);
     // a is left of b → a shoved further left, b further right.
-    expect(a.vx!).toBeLessThan(0);
-    expect(b.vx!).toBeGreaterThan(0);
-    expect(a.vx!).toBeCloseTo(-b.vx!, 10); // symmetric
+    expect(a.vx as number).toBeLessThan(0);
+    expect(b.vx as number).toBeGreaterThan(0);
+    expect(a.vx as number).toBeCloseTo(-(b.vx as number), 10); // symmetric
   });
 
   it('does nothing for two nodes in the same group', () => {
@@ -80,9 +80,9 @@ describe('forceCrossGroupRepel', () => {
     force(1);
     // fileA-fileB is filtered out; each file interacts only with folderC,
     // which is pushed right by both files (it sits right of both).
-    expect(fileA.vx!).toBeLessThan(0);
-    expect(fileB.vx!).toBeLessThan(0);
-    expect(folderC.vx!).toBeGreaterThan(0);
+    expect(fileA.vx as number).toBeLessThan(0);
+    expect(fileB.vx as number).toBeLessThan(0);
+    expect(folderC.vx as number).toBeGreaterThan(0);
   });
 
   it('scales the push by alpha', () => {
@@ -98,6 +98,6 @@ describe('forceCrossGroupRepel', () => {
     f2.initialize([a2, b2]);
     f2(0.5);
 
-    expect(Math.abs(a2.vx!)).toBeCloseTo(Math.abs(a1.vx!) / 2, 10);
+    expect(Math.abs(a2.vx as number)).toBeCloseTo(Math.abs(a1.vx as number) / 2, 10);
   });
 });

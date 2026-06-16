@@ -260,8 +260,8 @@ export async function insertText(
       editorElement.style.setProperty('outline-offset', styles.outlineOffset, 'important');
 
       setTimeout(() => {
-        editorElement!.style.boxShadow = originalBoxShadow;
-        editorElement!.style.outline = originalOutline;
+        (editorElement as HTMLElement).style.boxShadow = originalBoxShadow;
+        (editorElement as HTMLElement).style.outline = originalOutline;
       }, dur);
     }, { dur: highlightDuration, styles: HIGHLIGHT });
 

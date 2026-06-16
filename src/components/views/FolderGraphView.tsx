@@ -407,7 +407,7 @@ function FolderGraphView() {
         const s = idOf(d.source);
         const t = idOf(d.target);
         if (redLinks.has(linkKey(s, t))) return COLOR_PATH;
-        if (children !== null && s === hovered!.id && children.has(t)) return COLOR_CONTAINS;
+        if (children !== null && s === (hovered as SimNode).id && children.has(t)) return COLOR_CONTAINS;
         return null;
       };
       linkSel

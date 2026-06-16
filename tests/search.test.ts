@@ -43,7 +43,7 @@ describe('literal content search', () => {
     const results = await searchFolder(TEST_DATA_DIR, 'apple', 'literal');
     const repeated = results.find(r => r.relativePath === rel('multi-match', 'repeated.md'));
     expect(repeated).toBeDefined();
-    expect(repeated!.matchCount).toBe(7);
+    expect(repeated?.matchCount).toBe(7);
   });
 
   it('returns results sorted by matchCount descending', async () => {
@@ -118,7 +118,7 @@ describe('wildcard content search', () => {
     const results = await searchFolder(TEST_DATA_DIR, 'hel*world', 'wildcard');
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
-    expect(hw!.matchCount).toBe(3);
+    expect(hw?.matchCount).toBe(3);
   });
 
   it('matches wildcard at start of pattern', async () => {
@@ -126,7 +126,7 @@ describe('wildcard content search', () => {
     const results = await searchFolder(TEST_DATA_DIR, '*world', 'wildcard');
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
-    expect(hw!.matchCount).toBeGreaterThanOrEqual(3);
+    expect(hw?.matchCount).toBeGreaterThanOrEqual(3);
   });
 
   it('matches wildcard at end of pattern', async () => {
@@ -134,7 +134,7 @@ describe('wildcard content search', () => {
     const results = await searchFolder(TEST_DATA_DIR, 'hello*', 'wildcard');
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
-    expect(hw!.matchCount).toBeGreaterThanOrEqual(1);
+    expect(hw?.matchCount).toBeGreaterThanOrEqual(1);
   });
 
   it('matches multiple wildcards in pattern', async () => {
@@ -142,7 +142,7 @@ describe('wildcard content search', () => {
     const results = await searchFolder(TEST_DATA_DIR, 'c*t*mat', 'wildcard');
     const mw = results.find(r => r.relativePath === rel('wildcard-testing', 'multi-wildcard.md'));
     expect(mw).toBeDefined();
-    expect(mw!.matchCount).toBeGreaterThanOrEqual(1);
+    expect(mw?.matchCount).toBeGreaterThanOrEqual(1);
   });
 
   it('enforces 25-char limit per wildcard segment', async () => {
@@ -162,7 +162,7 @@ describe('wildcard content search', () => {
     const results = await searchFolder(TEST_DATA_DIR, 'HEL*WORLD', 'wildcard');
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
-    expect(hw!.matchCount).toBe(3);
+    expect(hw?.matchCount).toBe(3);
   });
 
   it('counts multiple wildcard matches in a single file', async () => {
@@ -171,7 +171,7 @@ describe('wildcard content search', () => {
     const results = await searchFolder(TEST_DATA_DIR, 'hel*world', 'wildcard');
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
-    expect(hw!.matchCount).toBe(3);
+    expect(hw?.matchCount).toBe(3);
   });
 
   it('returns empty array when no files match', async () => {
@@ -184,7 +184,7 @@ describe('wildcard content search', () => {
     const results = await searchFolder(TEST_DATA_DIR, '$19*', 'wildcard');
     const sc = results.find(r => r.relativePath === rel('special-chars.md'));
     expect(sc).toBeDefined();
-    expect(sc!.matchCount).toBeGreaterThanOrEqual(1);
+    expect(sc?.matchCount).toBeGreaterThanOrEqual(1);
   });
 
   it('only searches .md and .txt files', async () => {
@@ -258,7 +258,7 @@ describe('advanced content search', () => {
       const webapp = results.find(r => r.relativePath === rel('projects', 'webapp.md'));
       expect(webapp).toBeDefined();
       // React = 1 occurrence + Node.js = 1 occurrence → matchCount >= 2
-      expect(webapp!.matchCount).toBeGreaterThanOrEqual(2);
+      expect(webapp?.matchCount).toBeGreaterThanOrEqual(2);
     });
 
     it('returns matchCount 0 for non-matching content', async () => {
@@ -362,7 +362,7 @@ describe('filename search', () => {
       // Files like topics/math/calculus.md should NOT be matched
       // because the basename "calculus.md" doesn't contain "topics"
       for (const r of results) {
-        const basename = r.relativePath.split(/[\\/]/).pop()!;
+        const basename = r.relativePath.split(/[\\/]/).pop() as string;
         expect(basename.toLowerCase()).toContain('topics');
       }
     });
@@ -390,7 +390,7 @@ describe('filename search', () => {
       // So only the 9 files starting with "entry-" should match
       expect(results).toHaveLength(9);
       for (const r of results) {
-        const basename = r.relativePath.split(/[\\/]/).pop()!;
+        const basename = r.relativePath.split(/[\\/]/).pop() as string;
         expect(basename.toLowerCase()).toMatch(/entry-/);
       }
     });
@@ -427,7 +427,7 @@ describe('filename search', () => {
       // 10 files in journal/ have "entry" in their basename
       expect(results).toHaveLength(10);
       for (const r of results) {
-        const basename = r.relativePath.split(/[\\/]/).pop()!;
+        const basename = r.relativePath.split(/[\\/]/).pop() as string;
         expect(basename.toLowerCase()).toContain('entry');
       }
     });
@@ -527,7 +527,7 @@ describe('ignored paths', () => {
     );
     const visible = results.find(r => r.relativePath === rel('ignored-test', 'visible-file.md'));
     expect(visible).toBeDefined();
-    expect(visible!.matchCount).toBe(1);
+    expect(visible?.matchCount).toBe(1);
   });
 
   it('empty ignoredPaths array means nothing is excluded', async () => {
@@ -619,14 +619,14 @@ describe('edge cases', () => {
     const results = await searchFolder(TEST_DATA_DIR, 'café', 'literal');
     const unicodeFile = results.find(r => r.relativePath === 'unicode.md');
     expect(unicodeFile).toBeDefined();
-    expect(unicodeFile!.matchCount).toBeGreaterThanOrEqual(1);
+    expect(unicodeFile?.matchCount).toBeGreaterThanOrEqual(1);
   });
 
   it('unicode content: literal search for "日本語" finds unicode.md', async () => {
     const results = await searchFolder(TEST_DATA_DIR, '日本語', 'literal');
     const unicodeFile = results.find(r => r.relativePath === 'unicode.md');
     expect(unicodeFile).toBeDefined();
-    expect(unicodeFile!.matchCount).toBeGreaterThanOrEqual(1);
+    expect(unicodeFile?.matchCount).toBeGreaterThanOrEqual(1);
   });
 
   it('special regex characters in literal query don\'t break (e.g., searching for "(H2O)")', async () => {
@@ -634,7 +634,7 @@ describe('edge cases', () => {
     const results = await searchFolder(TEST_DATA_DIR, '(H2O)', 'literal');
     const chemFile = results.find(r => r.relativePath === rel('topics', 'science', 'chemistry.md'));
     expect(chemFile).toBeDefined();
-    expect(chemFile!.matchCount).toBe(1);
+    expect(chemFile?.matchCount).toBe(1);
   });
 
   it('very long query string (100+ chars) doesn\'t crash', async () => {
@@ -670,7 +670,7 @@ describe('edge cases', () => {
     const results = await searchFolder(TEST_DATA_DIR, 'recursive search', 'literal');
     const deepFile = results.find(r => r.relativePath === rel('nested', 'deep', 'structure', 'deep-file.md'));
     expect(deepFile).toBeDefined();
-    expect(deepFile!.matchCount).toBeGreaterThanOrEqual(1);
+    expect(deepFile?.matchCount).toBeGreaterThanOrEqual(1);
   });
 });
 

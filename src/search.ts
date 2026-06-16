@@ -8,7 +8,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
 import ExifReader from 'exifreader';
-import yaml from 'js-yaml';
+import { load } from 'js-yaml';
 import { parseDateString, past, future, today } from './utils/timeUtil';
 import { createContentSearcher } from './utils/searchUtil';
 import { splitFrontMatter } from './utils/tagUtil';
@@ -23,13 +23,13 @@ let yamlCache: Map<string, Record<string, unknown> | null> = new Map();
  */
 function getYaml(content: string, filePath?: string): Record<string, unknown> | null {
   if (filePath !== undefined && yamlCache.has(filePath)) {
-    return yamlCache.get(filePath)!;
+    return yamlCache.get(filePath) as Record<string, unknown> | null;
   }
   const parts = splitFrontMatter(content);
   let parsed: Record<string, unknown> | null = null;
   if (parts) {
     try {
-      parsed = yaml.load(parts.yamlStr) as Record<string, unknown> | null ?? null;
+      parsed = load(parts.yamlStr) as Record<string, unknown> | null ?? null;
     } catch {
       parsed = null;
     }

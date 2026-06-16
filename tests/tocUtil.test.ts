@@ -102,7 +102,7 @@ describe('extractHeadingTree', () => {
     expect(tree).toHaveLength(1);
     expect(tree[0].heading).toBe('Section');
     expect(tree[0].children).toHaveLength(1);
-    expect(tree[0].children![0].heading).toBe('Sub');
+    expect(tree[0].children?.[0].heading).toBe('Sub');
   });
 
   it('assigns correct depth values', () => {
@@ -110,7 +110,7 @@ describe('extractHeadingTree', () => {
     const content = '# Title\n\n## H2\n\n### H3\n';
     const tree = extractHeadingTree('f.md', content);
     expect(tree[0].depth).toBe(2);
-    expect(tree[0].children![0].depth).toBe(3);
+    expect(tree[0].children?.[0].depth).toBe(3);
   });
 
   it('generates slugs for headings', () => {

@@ -206,7 +206,7 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
 | **Watchin' the Horizon** | Keepin' a weather eye open for any merchant ships`;
 
     await mainWindow.evaluate(
-      (answer) => (window as any).electronAPI.queueScriptedAnswer(answer),
+      (answer) => (window as unknown as { electronAPI: { queueScriptedAnswer: (a: string) => void } }).electronAPI.queueScriptedAnswer(answer),
       pirateAnswer1
     );
 
@@ -276,7 +276,7 @@ Aye, I've caught wind o' these modern marvels — them "GPS" boxes that whisper 
 So keep yer glowin' boxes, matey. I'll take me sextant and a sky full o' stars any night o' the week!`;
 
     await mainWindow.evaluate(
-      (answer) => (window as any).electronAPI.queueScriptedAnswer(answer),
+      (answer) => (window as unknown as { electronAPI: { queueScriptedAnswer: (a: string) => void } }).electronAPI.queueScriptedAnswer(answer),
       pirateAnswer2
     );
 

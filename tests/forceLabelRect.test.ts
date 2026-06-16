@@ -41,12 +41,12 @@ describe('forceLabelRect', () => {
     force.initialize([a, b]);
     force(1);
     // Separation resolved on x (shallower): a shoved left (negative), b right.
-    expect(a.vx!).toBeLessThan(0);
-    expect(b.vx!).toBeGreaterThan(0);
+    expect(a.vx as number).toBeLessThan(0);
+    expect(b.vx as number).toBeGreaterThan(0);
     expect(a.vy).toBe(0);
     expect(b.vy).toBe(0);
     // Split is symmetric.
-    expect(a.vx!).toBeCloseTo(-b.vx!, 10);
+    expect(a.vx as number).toBeCloseTo(-(b.vx as number), 10);
   });
 
   it('leaves non-overlapping nodes untouched', () => {
@@ -79,11 +79,11 @@ describe('forceLabelRect', () => {
     thrice.initialize([a3, b3]);
     thrice(1);
 
-    expect(Math.abs(a3.vx!)).toBeGreaterThan(Math.abs(a1.vx!));
+    expect(Math.abs(a3.vx as number)).toBeGreaterThan(Math.abs(a1.vx as number));
     // Boxes overlap by 16 on x; full separation pushes each node 8.
-    expect(Math.abs(a3.vx!)).toBeLessThan(8);
+    expect(Math.abs(a3.vx as number)).toBeLessThan(8);
     // Push still splits symmetrically across passes.
-    expect(a3.vx!).toBeCloseTo(-b3.vx!, 10);
+    expect(a3.vx as number).toBeCloseTo(-(b3.vx as number), 10);
   });
 
   it('scales the push by strength', () => {
@@ -101,6 +101,6 @@ describe('forceLabelRect', () => {
     half.initialize([a2, b2]);
     half(1);
 
-    expect(Math.abs(a2.vx!)).toBeCloseTo(Math.abs(a1.vx!) / 2, 10);
+    expect(Math.abs(a2.vx as number)).toBeCloseTo(Math.abs(a1.vx as number) / 2, 10);
   });
 });

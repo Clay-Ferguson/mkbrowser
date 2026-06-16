@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import yaml from 'js-yaml';
+import { load, dump } from 'js-yaml';
 import { customAlphabet } from 'nanoid';
 import { parseFrontMatter } from './fileUtil';
 import { ATTACH_SUFFIX } from './specialFiles';
@@ -38,7 +38,7 @@ export async function readIndexYaml(dirPath: string): Promise<IndexYaml | null> 
   const indexFilePath = path.join(dirPath, '.INDEX.yaml');
   try {
     const content = await fs.promises.readFile(indexFilePath, 'utf8');
-    const parsed = yaml.load(content) as IndexYaml;
+    const parsed = load(content) as IndexYaml;
     if (parsed && typeof parsed === 'object') return parsed;
     return null;
   } catch {
@@ -114,7 +114,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
             newContent = `---\nid: ${fileId}\n---\n${body}`;
           } else {
             const updated = { id: fileId, ...fm };
-            newContent = `---\n${yaml.dump(updated)}---\n${body}`;
+            newContent = `---\n${dump(updated)}---\n${body}`;
           }
           await writeFileAtomic(filePath, newContent);
         }
@@ -131,7 +131,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   let existingOptions: IndexOptions = {};
   if (existingIndexContent !== null) {
     try {
-      const parsed = yaml.load(existingIndexContent) as IndexYaml;
+      const parsed = load(existingIndexContent) as IndexYaml;
       if (parsed && Array.isArray(parsed.files)) files = parsed.files;
       if (parsed?.options && typeof parsed.options === 'object') existingOptions = parsed.options;
     } catch {
@@ -196,7 +196,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
     }
   }
 
-  const newContent = yaml.dump({ files, options: existingOptions }, { indent: 2 });
+  const newContent = dump({ files, options: existingOptions }, { indent: 2 });
   if (newContent !== existingIndexContent) {
     await writeFileAtomic(indexFilePath, newContent);
   }
@@ -213,7 +213,7 @@ export async function writeIndexOptions(
   try {
     const existing = (await readIndexYaml(dirPath)) ?? {};
     const updated: IndexYaml = { ...existing, options: { ...existing.options, ...options } };
-    await writeFileAtomic(indexFilePath, yaml.dump(updated, { indent: 2 }));
+    await writeFileAtomic(indexFilePath, dump(updated, { indent: 2 }));
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };
@@ -277,7 +277,7 @@ export async function validateAttachFolderLocation(dirPath: string): Promise<voi
 
     await writeFileAtomic(
       indexFilePath,
-      yaml.dump({ ...indexYaml, files: reordered }, { indent: 2 }),
+      dump({ ...indexYaml, files: reordered }, { indent: 2 }),
     );
   } catch {
     // Best-effort
@@ -313,7 +313,7 @@ export async function moveInIndexYaml(
 
     [files[idx], files[swapIdx]] = [files[swapIdx], files[idx]];
 
-    const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
+    const newContent = dump({ ...indexYaml, files }, { indent: 2 });
     await writeFileAtomic(indexFilePath, newContent);
     await validateAttachFolderLocation(dirPath);
     return { success: true };
@@ -346,7 +346,7 @@ export async function moveToEdgeInIndexYaml(
       files.push(entry);
     }
 
-    const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
+    const newContent = dump({ ...indexYaml, files }, { indent: 2 });
     await writeFileAtomic(indexFilePath, newContent);
     await validateAttachFolderLocation(dirPath);
     return { success: true };
@@ -430,7 +430,7 @@ export async function ensureFrontMatterIdIfIndexed(
   let indexYaml: IndexYaml | null = null;
   try {
     const raw = await fs.promises.readFile(indexFilePath, 'utf8');
-    const parsed = yaml.load(raw) as IndexYaml;
+    const parsed = load(raw) as IndexYaml;
     if (parsed && typeof parsed === 'object') indexYaml = parsed;
   } catch {
     return content; // no .INDEX.yaml — nothing to do
@@ -448,7 +448,7 @@ export async function ensureFrontMatterIdIfIndexed(
     newContent = `---\nid: ${fileId}\n---\n${body}`;
   } else {
     const updated = { id: fileId, ...fm };
-    newContent = `---\n${yaml.dump(updated)}---\n${body}`;
+    newContent = `---\n${dump(updated)}---\n${body}`;
   }
 
   // Update the .INDEX.yaml entry for this file to record the id
@@ -456,7 +456,7 @@ export async function ensureFrontMatterIdIfIndexed(
   const entry = files.find((f) => f.name === fileName);
   if (entry) {
     entry.id = fileId;
-    const newIndexContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
+    const newIndexContent = dump({ ...indexYaml, files }, { indent: 2 });
     await writeFileAtomic(indexFilePath, newIndexContent);
   }
 
@@ -479,7 +479,7 @@ export async function renameInIndexYaml(
     const entry = indexYaml.files.find((f) => f.name === oldName);
     if (!entry) return;
     entry.name = newName;
-    await writeFileAtomic(indexFilePath, yaml.dump(indexYaml, { indent: 2 }));
+    await writeFileAtomic(indexFilePath, dump(indexYaml, { indent: 2 }));
   } catch {
     // Best-effort; don't throw
   }
@@ -512,7 +512,7 @@ export async function insertIntoIndexYaml(
       }
     }
 
-    const newContent = yaml.dump({ ...indexYaml, files }, { indent: 2 });
+    const newContent = dump({ ...indexYaml, files }, { indent: 2 });
     await writeFileAtomic(indexFilePath, newContent);
     return { success: true };
   } catch (err) {

@@ -133,8 +133,8 @@ export async function demonstrateTyping(
 
         setTimeout(() => {
           // editorElement!.style.border = originalBorder;
-          editorElement!.style.boxShadow = originalBoxShadow;
-          editorElement!.style.outline = originalOutline;
+          (editorElement as HTMLElement).style.boxShadow = originalBoxShadow;
+          (editorElement as HTMLElement).style.outline = originalOutline;
         }, dur);
       }, { dur: highlightDuration, styles: HIGHLIGHT });
     }

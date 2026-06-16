@@ -137,7 +137,7 @@ test.describe('AI Vision Demo', () => {
 
     // ── 9. Queue the scripted AI answer ───────────────────────────────
     await mainWindow.evaluate(
-      (answer) => (window as any).electronAPI.queueScriptedAnswer(answer),
+      (answer) => (window as unknown as { electronAPI: { queueScriptedAnswer: (a: string) => void } }).electronAPI.queueScriptedAnswer(answer),
       aiAnswer
     );
 

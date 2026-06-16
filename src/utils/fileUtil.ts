@@ -1,6 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs';
-import yaml from 'js-yaml';
+import { load } from 'js-yaml';
 import type { FileEntry } from "../global";
 import { logger } from './logUtil';
 import { readAiHint } from '../ai/aiHint';
@@ -48,7 +48,7 @@ export function parseFrontMatter(rawContent: string): FrontMatterResult {
   const body = rawContent.slice(bodyStart);
 
   try {
-    const parsed = yaml.load(yamlSource);
+    const parsed = load(yamlSource);
     if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
       return { yaml: parsed as Record<string, unknown>, content: body };
     }

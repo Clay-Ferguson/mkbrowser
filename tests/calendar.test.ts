@@ -427,10 +427,10 @@ describe('getRRuleProperty', () => {
   it('returns parsed rrule fields', () => {
     const r = getRRuleProperty(WITH_RRULE);
     expect(r).not.toBeNull();
-    expect(r!.freq).toBe('weekly');
-    expect(r!.interval).toBe('2');
-    expect(r!.byday).toBe('MO,WE');
-    expect(r!.until).toBe('12/31/28');
+    expect(r?.freq).toBe('weekly');
+    expect(r?.interval).toBe('2');
+    expect(r?.byday).toBe('MO,WE');
+    expect(r?.until).toBe('12/31/28');
   });
 
   it('returns null when no rrule block', () => {
@@ -446,16 +446,16 @@ describe('setRRuleProperty', () => {
   it('adds an rrule block when none exists', () => {
     const result = setRRuleProperty(WITH_DUE, { freq: 'daily', count: '5' });
     const r = getRRuleProperty(result);
-    expect(r!.freq).toBe('daily');
-    expect(r!.count).toBe('5');
+    expect(r?.freq).toBe('daily');
+    expect(r?.count).toBe('5');
   });
 
   it('replaces an existing rrule block', () => {
     const result = setRRuleProperty(WITH_RRULE, { freq: 'monthly', count: '3' });
     const r = getRRuleProperty(result);
-    expect(r!.freq).toBe('monthly');
-    expect(r!.count).toBe('3');
-    expect(r!.byday).toBeUndefined();
+    expect(r?.freq).toBe('monthly');
+    expect(r?.count).toBe('3');
+    expect(r?.byday).toBeUndefined();
   });
 
   it('removes the rrule block when passed null', () => {

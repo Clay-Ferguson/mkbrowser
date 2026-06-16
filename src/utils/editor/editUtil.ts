@@ -2,7 +2,7 @@
  * Utility functions for edit operations (Split, etc.)
  */
 
-import yaml from 'js-yaml';
+import { dump } from 'js-yaml';
 import { parseFrontMatter } from '../fileUtil';
 import { getFileName, getParentPath, joinPath } from '../pathUtil';
 
@@ -20,7 +20,7 @@ function prepareMarkdownForAppend(filePath: string, rawContent: string): string 
 
   // Remove the id property — it's no longer valid after the file is deleted
   const { id: _id, ...rest } = frontMatter as Record<string, unknown>;
-  const yamlStr = yaml.dump(rest, { lineWidth: -1 }).trimEnd();
+  const yamlStr = dump(rest, { lineWidth: -1 }).trimEnd();
   const fencedBlock = '```yaml\n' + yamlStr + '\n```\n';
   return fencedBlock + content;
 }

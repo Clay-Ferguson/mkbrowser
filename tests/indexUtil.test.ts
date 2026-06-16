@@ -14,6 +14,9 @@ import {
   getSortedDirEntries,
   validateAttachFolderLocation,
 } from '../src/utils/indexUtil';
+import type { IndexEntry, IndexOptions } from '../src/utils/indexUtil';
+
+type IndexData = { files: IndexEntry[]; options: IndexOptions };
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -29,8 +32,8 @@ function writeIndex(data: object) {
   fs.writeFileSync(indexPath(), yaml.dump(data, { indent: 2 }), 'utf8');
 }
 
-function readIndex(): any {
-  return yaml.load(fs.readFileSync(indexPath(), 'utf8'));
+function readIndex(): IndexData {
+  return yaml.load(fs.readFileSync(indexPath(), 'utf8')) as IndexData;
 }
 
 function touchFile(name: string, content = '') {
@@ -100,19 +103,19 @@ describe('insertIntoIndexYaml', () => {
   it('inserts at position 0 when insertAfterName is null', async () => {
     writeIndex({ files: [{ name: 'b.md' }, { name: 'c.md' }] });
     await insertIntoIndexYaml(tmpDir, 'a.md', null);
-    expect(readIndex().files.map((f: any) => f.name)).toEqual(['a.md', 'b.md', 'c.md']);
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['a.md', 'b.md', 'c.md']);
   });
 
   it('inserts after the named entry', async () => {
     writeIndex({ files: [{ name: 'a.md' }, { name: 'c.md' }] });
     await insertIntoIndexYaml(tmpDir, 'b.md', 'a.md');
-    expect(readIndex().files.map((f: any) => f.name)).toEqual(['a.md', 'b.md', 'c.md']);
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['a.md', 'b.md', 'c.md']);
   });
 
   it('appends at end when insertAfterName is not found', async () => {
     writeIndex({ files: [{ name: 'a.md' }] });
     await insertIntoIndexYaml(tmpDir, 'z.md', 'missing.md');
-    expect(readIndex().files.map((f: any) => f.name)).toEqual(['a.md', 'z.md']);
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['a.md', 'z.md']);
   });
 
   it('creates .INDEX.yaml when none exists', async () => {
@@ -129,7 +132,7 @@ describe('renameInIndexYaml', () => {
   it('renames matching entry', async () => {
     writeIndex({ files: [{ name: 'old.md', id: 'ABC' }, { name: 'other.md' }] });
     await renameInIndexYaml(tmpDir, 'old.md', 'new.md');
-    const names = readIndex().files.map((f: any) => f.name);
+    const names = readIndex().files.map((f: IndexEntry) => f.name);
     expect(names).toContain('new.md');
     expect(names).not.toContain('old.md');
   });
@@ -159,27 +162,27 @@ describe('moveInIndexYaml', () => {
   it('moves an entry up one position', async () => {
     writeIndex({ files: [{ name: 'a.md' }, { name: 'b.md' }, { name: 'c.md' }] });
     await moveInIndexYaml(tmpDir, 'b.md', 'up');
-    expect(readIndex().files.map((f: any) => f.name)).toEqual(['b.md', 'a.md', 'c.md']);
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['b.md', 'a.md', 'c.md']);
   });
 
   it('moves an entry down one position', async () => {
     writeIndex({ files: [{ name: 'a.md' }, { name: 'b.md' }, { name: 'c.md' }] });
     await moveInIndexYaml(tmpDir, 'b.md', 'down');
-    expect(readIndex().files.map((f: any) => f.name)).toEqual(['a.md', 'c.md', 'b.md']);
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['a.md', 'c.md', 'b.md']);
   });
 
   it('returns success without change when already at top and moving up', async () => {
     writeIndex({ files: [{ name: 'a.md' }, { name: 'b.md' }] });
     const result = await moveInIndexYaml(tmpDir, 'a.md', 'up');
     expect(result.success).toBe(true);
-    expect(readIndex().files.map((f: any) => f.name)).toEqual(['a.md', 'b.md']);
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['a.md', 'b.md']);
   });
 
   it('returns success without change when already at bottom and moving down', async () => {
     writeIndex({ files: [{ name: 'a.md' }, { name: 'b.md' }] });
     const result = await moveInIndexYaml(tmpDir, 'b.md', 'down');
     expect(result.success).toBe(true);
-    expect(readIndex().files.map((f: any) => f.name)).toEqual(['a.md', 'b.md']);
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['a.md', 'b.md']);
   });
 
   it('returns error when entry is not found', async () => {
@@ -195,7 +198,7 @@ describe('moveInIndexYaml', () => {
     });
     await moveInIndexYaml(tmpDir, 'b.md', 'up');
     // b.md should skip past a.md.attach and land before a.md
-    const names = readIndex().files.map((f: any) => f.name);
+    const names = readIndex().files.map((f: IndexEntry) => f.name);
     expect(names[0]).toBe('b.md');
   });
 });
@@ -214,7 +217,7 @@ describe('moveToEdgeInIndexYaml', () => {
   it('moves entry to bottom', async () => {
     writeIndex({ files: [{ name: 'a.md' }, { name: 'b.md' }, { name: 'c.md' }] });
     await moveToEdgeInIndexYaml(tmpDir, 'a.md', 'bottom');
-    const names = readIndex().files.map((f: any) => f.name);
+    const names = readIndex().files.map((f: IndexEntry) => f.name);
     expect(names[names.length - 1]).toBe('a.md');
   });
 
@@ -235,7 +238,7 @@ describe('validateAttachFolderLocation', () => {
       files: [{ name: 'a.md.attach' }, { name: 'a.md' }, { name: 'b.md' }],
     });
     await validateAttachFolderLocation(tmpDir);
-    const names = readIndex().files.map((f: any) => f.name);
+    const names = readIndex().files.map((f: IndexEntry) => f.name);
     const aIdx = names.indexOf('a.md');
     const attachIdx = names.indexOf('a.md.attach');
     expect(attachIdx).toBe(aIdx + 1);
@@ -318,14 +321,14 @@ describe('reconcileIndexedFiles', () => {
     await reconcileIndexedFiles(tmpDir, true);
     expect(fs.existsSync(indexPath())).toBe(true);
     const data = readIndex();
-    expect(data.files.some((f: any) => f.name === 'a.md')).toBe(true);
+    expect(data.files.some((f: IndexEntry) => f.name === 'a.md')).toBe(true);
   });
 
   it('removes deleted entries from existing index', async () => {
     touchFile('a.md', '---\nid: ABC000001\n---\n# A');
     writeIndex({ files: [{ name: 'a.md', id: 'ABC000001' }, { name: 'gone.md', id: 'XYZ000002' }] });
     await reconcileIndexedFiles(tmpDir);
-    const names = readIndex().files.map((f: any) => f.name);
+    const names = readIndex().files.map((f: IndexEntry) => f.name);
     expect(names).toContain('a.md');
     expect(names).not.toContain('gone.md');
   });
@@ -335,7 +338,7 @@ describe('reconcileIndexedFiles', () => {
     touchFile('b.md', '# B');
     writeIndex({ files: [{ name: 'a.md', id: 'ABC000001' }] });
     await reconcileIndexedFiles(tmpDir);
-    const names = readIndex().files.map((f: any) => f.name);
+    const names = readIndex().files.map((f: IndexEntry) => f.name);
     expect(names).toContain('b.md');
   });
 

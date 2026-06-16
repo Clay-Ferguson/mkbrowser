@@ -97,19 +97,19 @@ describe('FILE_DIRECTIVE_REGEX', () => {
   it('matches #file:* on its own line', () => {
     const m = FILE_DIRECTIVE_REGEX.exec('#file:*');
     expect(m).not.toBeNull();
-    expect(m![1]).toBe('*');
+    expect(m?.[1]).toBe('*');
   });
 
   it('matches with leading/trailing whitespace', () => {
     const m = FILE_DIRECTIVE_REGEX.exec('  #file:*.md  ');
     expect(m).not.toBeNull();
-    expect(m![1]).toBe('*.md');
+    expect(m?.[1]).toBe('*.md');
   });
 
   it('captures the full pattern after the colon', () => {
     const m = FILE_DIRECTIVE_REGEX.exec('#file:notes.txt');
     expect(m).not.toBeNull();
-    expect(m![1]).toBe('notes.txt');
+    expect(m?.[1]).toBe('notes.txt');
   });
 
   it('does not match when embedded in other text', () => {

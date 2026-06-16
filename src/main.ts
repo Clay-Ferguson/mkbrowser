@@ -295,13 +295,14 @@ function setupIpcHandlers(): void {
       }
       await fs.promises.writeFile(filePath, content, 'utf-8');
       return { success: true };
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Error creating file:', error);
+      const err = error as NodeJS.ErrnoException;
       let errorMessage = 'Failed to create file';
-      if (error.code === 'EACCES' || error.code === 'EPERM') {
+      if (err.code === 'EACCES' || err.code === 'EPERM') {
         errorMessage = 'Permission denied';
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (err.message) {
+        errorMessage = err.message;
       }
       return { success: false, error: errorMessage };
     }
@@ -349,15 +350,16 @@ function setupIpcHandlers(): void {
     try {
       await fs.promises.mkdir(folderPath);
       return { success: true };
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Error creating folder:', error);
+      const err = error as NodeJS.ErrnoException;
       let errorMessage = 'Failed to create folder';
-      if (error.code === 'EEXIST') {
+      if (err.code === 'EEXIST') {
         errorMessage = 'A file/folder with this name already exists';
-      } else if (error.code === 'EACCES' || error.code === 'EPERM') {
+      } else if (err.code === 'EACCES' || err.code === 'EPERM') {
         errorMessage = 'Permission denied';
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (err.message) {
+        errorMessage = err.message;
       }
       return { success: false, error: errorMessage };
     }

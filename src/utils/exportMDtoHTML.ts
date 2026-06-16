@@ -11,7 +11,7 @@ import rehypeStringify from 'rehype-stringify';
 // Rehype plugin: add target="_blank" to all <a> tags
 // ---------------------------------------------------------------------------
 
-import type { Root, Element } from 'hast';
+import type { Root, Element, Nodes } from 'hast';
 
 function rehypeTargetBlank() {
   return (tree: Root) => {
@@ -31,9 +31,9 @@ function rehypeTargetBlank() {
   };
 }
 
-function visitLinks(tree: any, cb: (node: Element) => void) {
+function visitLinks(tree: Nodes, cb: (node: Element) => void) {
   if (!tree || typeof tree !== 'object') return;
-  if (Array.isArray(tree.children)) {
+  if ('children' in tree && Array.isArray(tree.children)) {
     for (const child of tree.children) {
       visitLinks(child, cb);
     }

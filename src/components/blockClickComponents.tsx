@@ -1,4 +1,4 @@
-import type { Components } from 'react-markdown';
+import type { Components, ExtraProps } from 'react-markdown';
 
 type EditClickHandler = (goToLine?: number) => void | Promise<void>;
 
@@ -30,9 +30,10 @@ export function createBlockClickComponents(handleEditClick: EditClickHandler, li
   }
 
   function block<Tag extends keyof React.JSX.IntrinsicElements>(Tag: Tag) {
-    return ({ node, children, ...props }: any) => {
+    const Component = Tag as React.ElementType;
+    return ({ node, children, ...props }: React.JSX.IntrinsicElements[Tag] & ExtraProps) => {
       const line: number = node?.position?.start?.line ?? 0;
-      return <Tag {...props} onMouseUp={makeHandler(line)}>{children}</Tag>;
+      return <Component {...props} onMouseUp={makeHandler(line)}>{children}</Component>;
     };
   }
 

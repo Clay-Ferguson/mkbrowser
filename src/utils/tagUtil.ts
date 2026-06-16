@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import yaml from 'js-yaml';
+import { load, dump } from 'js-yaml';
 import { api } from '../services/api';
 
 /** A single hashtag definition. `tag` always includes the `#` prefix (e.g. `"#cooking"`). */
@@ -52,7 +52,7 @@ export function splitFrontMatter(text: string): { yamlStr: string; body: string 
 
 export function getTagsFromYaml(yamlStr: string): string[] {
   try {
-    const parsed = yaml.load(yamlStr) as Record<string, unknown> | null;
+    const parsed = load(yamlStr) as Record<string, unknown> | null;
     if (!parsed || !Array.isArray(parsed.tags)) return [];
     return parsed.tags.filter((t): t is string => typeof t === 'string');
   } catch {
@@ -63,7 +63,7 @@ export function getTagsFromYaml(yamlStr: string): string[] {
 /** Returns all front matter properties except 'tags', preserving their parsed types. */
 export function getPropsFromYaml(yamlStr: string): Record<string, unknown> {
   try {
-    const parsed = yaml.load(yamlStr) as Record<string, unknown> | null;
+    const parsed = load(yamlStr) as Record<string, unknown> | null;
     if (!parsed) return {};
     const { tags: _tags, ...rest } = parsed;
     return rest;
@@ -75,7 +75,7 @@ export function getPropsFromYaml(yamlStr: string): Record<string, unknown> {
 export function setTagsInYaml(yamlStr: string, tags: string[]): string {
   let parsed: Record<string, unknown>;
   try {
-    parsed = (yaml.load(yamlStr) as Record<string, unknown> | null) ?? {};
+    parsed = (load(yamlStr) as Record<string, unknown> | null) ?? {};
   } catch {
     parsed = {};
   }
@@ -84,7 +84,7 @@ export function setTagsInYaml(yamlStr: string, tags: string[]): string {
   } else {
     delete parsed.tags;
   }
-  return Object.keys(parsed).length > 0 ? yaml.dump(parsed) : '';
+  return Object.keys(parsed).length > 0 ? dump(parsed) : '';
 }
 
 export function assembleFrontMatter(yamlContent: string, body: string): string {
@@ -121,7 +121,7 @@ export function serializeTagsToYaml(categories: TagCategory[]): string {
       hashtags[cat.name][name] = { description: desc ? desc + '\n' : '\n' };
     }
   }
-  return yaml.dump({ hashtags }, { lineWidth: -1 });
+  return dump({ hashtags }, { lineWidth: -1 });
 }
 
 export async function loadTags(configDir: string): Promise<TagCategory[]> {
@@ -135,7 +135,7 @@ export async function loadTags(configDir: string): Promise<TagCategory[]> {
 
   type RawTags = Record<string, { description?: string } | null>;
   type RawFile = { hashtags?: Record<string, RawTags | null> };
-  const parsed = yaml.load(content) as RawFile | null;
+  const parsed = load(content) as RawFile | null;
   const hashtags = parsed?.hashtags;
   if (!hashtags || typeof hashtags !== 'object') return [];
 
