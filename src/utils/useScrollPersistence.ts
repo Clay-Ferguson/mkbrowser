@@ -30,6 +30,13 @@ export function useScrollPersistence(
   
   // Debounce timer for scroll position saving
   const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Latest scrollTop observed from scroll events. Tracked here (rather than read
+  // from the DOM in the unmount cleanup) because by the time this passive effect
+  // cleanup runs on unmount, React has already detached the container ref and
+  // removed the node, so containerRef.current.scrollTop is unavailable/0. null
+  // means "never scrolled", so we don't clobber a restored position with 0.
+  const latestScrollTopRef = useRef<number | null>(null);
   
   // Restore scroll position on mount
   useEffect(() => {
@@ -50,9 +57,8 @@ export function useScrollPersistence(
       if (scrollSaveTimerRef.current) {
         clearTimeout(scrollSaveTimerRef.current);
       }
-      if (containerRef.current) {
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): copy ref to a local var inside the effect before using it in cleanup
-        setPosition(containerRef.current.scrollTop);
+      if (latestScrollTopRef.current !== null) {
+        setPosition(latestScrollTopRef.current);
       }
     };
   }, [setPosition]);
@@ -65,6 +71,7 @@ export function useScrollPersistence(
     }
     // Debounce: save scroll position after 150ms of no scrolling
     const scrollTop = e.currentTarget.scrollTop;
+    latestScrollTopRef.current = scrollTop;
     scrollSaveTimerRef.current = setTimeout(() => {
       setPosition(scrollTop);
     }, 150);
