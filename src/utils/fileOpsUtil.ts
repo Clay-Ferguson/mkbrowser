@@ -8,8 +8,8 @@ import {
   clearAllCutItems,
   setHighlightItem,
   setPendingScrollToFile,
+  setPendingEditFile,
   setItemExpanded,
-  setItemEditing,
 } from '../store';
 import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from '../edit';
 import { pasteFromClipboard } from './clipboard';
@@ -89,8 +89,8 @@ export async function deleteSelected(
 
   const result = await deleteSelectedItems(selectedItems, api.deleteFile);
 
-  if (!result.success && result.failedItem) {
-    onSetError(`Failed to delete ${result.failedItem}`);
+  if (!result.success) {
+    onSetError(result.failedItem ? `Failed to delete ${result.failedItem}` : 'Failed to delete items');
   }
 
   if (result.deletedPaths.length > 0) {
@@ -202,7 +202,7 @@ export async function createFileOp(
   if (result.success) {
     onCloseDialog();
     if (insertAtIndex !== null) {
-      const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1].name : null;
+      const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1]?.name ?? null : null;
       await api.insertIntoIndexYaml(currentPath, fileName, insertAfterName);
     }
     setHighlightItem(filePath);
@@ -211,10 +211,9 @@ export async function createFileOp(
     const isMarkdown = fileName.toLowerCase().endsWith('.md');
     const isText = fileName.toLowerCase().endsWith('.txt');
     if (isMarkdown || isText) {
-      setTimeout(() => {
-        setItemExpanded(filePath, true);
-        setItemEditing(filePath, true);
-      }, 200);
+      // Drive expand+edit off the refresh-completion effect in BrowseView (which acts
+      // once the new item is actually rendered) rather than a fixed timing assumption.
+      setPendingEditFile(filePath);
     }
   } else {
     onCloseDialog();
@@ -252,7 +251,7 @@ export async function createFolderOp(
   if (result.success) {
     onCloseDialog();
     if (insertAtIndex !== null) {
-      const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1].name : null;
+      const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1]?.name ?? null : null;
       await api.insertIntoIndexYaml(currentPath, folderName, insertAfterName);
     }
     setHighlightItem(folderPath);
