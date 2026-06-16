@@ -2,7 +2,7 @@ import type { ItemData } from '../types/types';
 import type { OcrTarget } from '../types/shared';
 import { api } from '../services/api';
 import type { FileEntry } from '../global';
-import { isImageFile, isTextFile, isMarkdownFile } from './fileUtil';
+import { isImageFile, isTextFile, isMarkdownFile } from './fileTypes';
 import {
   deleteItems,
   clearAllSelections,

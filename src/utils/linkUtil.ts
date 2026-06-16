@@ -1,4 +1,4 @@
-import { isImageFile } from './fileUtil';
+import { isImageFile } from './fileTypes';
 import { getFileName, getParentPath, splitPathSegments } from './pathUtil';
 
 /**

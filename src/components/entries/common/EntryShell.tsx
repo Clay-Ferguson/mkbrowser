@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { FileEntry } from '../../../global';
 import { buildEntryHeaderId } from '../../../utils/entryDom';
-import { formatFlyoverInfo } from '../../../utils/fileUtil';
+import { formatFlyoverInfo } from '../../../utils/fileTypes';
 import { makeEntryDragStartHandler } from '../../../utils/dragAndDrop';
 import ConfirmDialog from '../../dialogs/ConfirmDialog';
 import { RenameInput } from './RenameInput';

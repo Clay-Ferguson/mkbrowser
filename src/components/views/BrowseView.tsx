@@ -73,7 +73,7 @@ import {
   type SearchDefinition,
 } from '../../store';
 import { scrollItemIntoView, scrollElementIntoView } from '../../utils/entryDom';
-import { isImageFile, isTextFile, sortEntries } from '../../utils/fileUtil';
+import { isImageFile, isTextFile, sortEntries } from '../../utils/fileTypes';
 import { getContentWidthClasses } from '../../utils/styles';
 import { generateTimestampFileName } from '../../utils/timeUtil';
 import { hasHumanMd } from '../../ai/aiPatterns';

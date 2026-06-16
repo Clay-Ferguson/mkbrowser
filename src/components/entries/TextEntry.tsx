@@ -22,7 +22,7 @@ import {
   EntryShell,
   type BaseEntryProps,
 } from './common';
-import { getTextFileLanguage } from '../../utils/fileUtil';
+import { getTextFileLanguage } from '../../utils/fileTypes';
 import { ENTRY_CONTENT_AREA, ENTRY_LOADING } from '../../utils/styles';
 
 
