@@ -13,7 +13,7 @@ import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
 import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
-import { loadCalendarEvents, loadCalendarEntryForFile, type CalendarEventResult } from './utils/calendar/calendarLoader';
+import { loadCalendarEvents, type CalendarEventResult } from './utils/calendar/calendarLoader';
 import { startCalendarWatcher, stopCalendarWatcher, getCalendarWatcherFolder } from './utils/calendar/calendarWatcher';
 import { scanFolderTree, type FolderGraphResult } from './folderGraph';
 import { loadTags, type TagCategory } from './utils/tagUtil';

@@ -49,13 +49,6 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     setSearchResultsScrollPosition
   );
 
-  // Helper function to get the color class for days
-  const getDaysColorClass = (days: number): string => {
-    if (days === 0) return 'text-white';
-    if (days < 0) return 'text-orange-400';
-    return 'text-green-400';
-  };
-
   // Sort results based on the selected sort option and direction
   const sortedResults = [...searchResults].sort((a, b) => {
     if (searchSortBy === 'file-name') {

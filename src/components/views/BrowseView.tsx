@@ -66,7 +66,6 @@ import {
   useExpansionCounts,
   useHasIndexFile,
   setIndexYaml,
-  useIndexYaml,
   setSelectedLinkItems,
   useExpandedEditor,
   useImageSizeTransitioning,
@@ -163,7 +162,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const [showCutOrphanAttachConfirm, setShowCutOrphanAttachConfirm] = useState<boolean>(false);
 
   const hasIndexFile = useHasIndexFile();
-  const indexYaml = useIndexYaml();
   const expandedEditor = useExpandedEditor();
   const imageSizeTransitioning = useImageSizeTransitioning();
 

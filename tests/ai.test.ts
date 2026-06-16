@@ -1,10 +1,7 @@
 /**
  * AI connectivity test — verifies LangGraph + Anthropic integration
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import { ChatAnthropic } from '@langchain/anthropic';
-import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
-import { HumanMessage } from '@langchain/core/messages';
+import { describe, it, beforeAll } from 'vitest';
 
 beforeAll(() => {
   // NOTE: We have curently removed this KEY from ENV and so this test needs to be updated to silently do nothing

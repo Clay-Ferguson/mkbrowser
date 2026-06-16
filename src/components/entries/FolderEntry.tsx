@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
-import type { FileEntry } from '../../global';
 import { useHasCutItems, useItem, useHasIndexFile, deleteItems } from '../../store';
 import { buildEntryHeaderId } from '../../utils/entryDom';
 import { ATTACH_SUFFIX } from '../../utils/specialFiles';

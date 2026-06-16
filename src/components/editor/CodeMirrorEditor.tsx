@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useImperativeHandle, forwardRef } from 'react';
-import { EditorView, placeholder as placeholderExt, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
+import { EditorView, placeholder as placeholderExt, keymap, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
 import { highlightSelectionMatches, search, searchKeymap, openSearchPanel, setSearchQuery, SearchQuery } from '@codemirror/search';
@@ -449,7 +449,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   // by the time the cursor is placed — no setTimeout/race needed.
   useEffect(() => {
     const view = viewRef.current;
-    if (view == null || goToPosition == null) return;
+    if (view === null || goToPosition === null || goToPosition === undefined) return;
     const pos = Math.max(0, Math.min(goToPosition, view.state.doc.length));
     view.dispatch({ selection: { anchor: pos, head: pos }, scrollIntoView: true });
     view.focus();

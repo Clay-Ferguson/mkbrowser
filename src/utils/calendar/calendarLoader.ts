@@ -22,7 +22,8 @@ function parseDueDate(dateStr: string): Date | null {
   // Expects M/D/YYYY or MM/DD/YYYY or MM/DD/YY
   const parts = dateStr.trim().split('/');
   if (parts.length !== 3) return null;
-  let [month, day, year] = parts.map(Number);
+  const [month, day] = parts.map(Number);
+  let year = Number(parts[2]);
   if (isNaN(month) || isNaN(day) || isNaN(year)) return null;
   if (year < 100) year += 2000;
   const d = new Date(year, month - 1, day);

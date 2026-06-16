@@ -66,8 +66,6 @@ export function applyGlobalHighlight(searchText: string | null): void {
       range.setStart(node, idx);
       range.setEnd(node, idx + searchText.length);
       ranges.push(range);
-      const snippet = text.substring(Math.max(0, idx - 15), idx + searchText.length + 15);
-      // logger.log('[globalHighlight] match in <' + node.parentElement?.tagName + '>:', JSON.stringify(snippet));
       idx += searchText.length;
     }
   }

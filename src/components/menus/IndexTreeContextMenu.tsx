@@ -12,7 +12,7 @@ interface IndexTreeContextMenuProps {
   onPasteLink?: () => void;
 }
 
-export default function IndexTreeContextMenu({ mousePosition, isDirectory, onClose, onBrowse, onNewFolder, onRename, onDelete, onPaste, onPasteLink }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onNewFolder, onRename, onDelete, onPaste, onPasteLink }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       <PopupMenuItem
