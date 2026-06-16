@@ -83,7 +83,7 @@ export function setIndexTreeWidth(indexTreeWidth: IndexTreeWidth): void {
  */
 export function toggleBookmark(filePath: string): boolean {
   const settings = getState().settings;
-  const currentBookmarks = settings.bookmarks || [];
+  const currentBookmarks = settings.bookmarks;
   const isCurrentlyBookmarked = currentBookmarks.some(b => b.path === filePath);
 
   const newBookmarks = isCurrentlyBookmarked
@@ -100,7 +100,7 @@ export function toggleBookmark(filePath: string): boolean {
  */
 export function addBookmark(filePath: string, name: string): void {
   const settings = getState().settings;
-  const currentBookmarks = settings.bookmarks || [];
+  const currentBookmarks = settings.bookmarks;
   if (currentBookmarks.some(b => b.path === filePath)) return;
   setState({ settings: { ...settings, bookmarks: [...currentBookmarks, { path: filePath, name }] } });
 }
@@ -109,7 +109,7 @@ export function addBookmark(filePath: string, name: string): void {
  * Check if a file path is bookmarked
  */
 export function isBookmarked(filePath: string): boolean {
-  return (getState().settings.bookmarks || []).some(b => b.path === filePath);
+  return getState().settings.bookmarks.some(b => b.path === filePath);
 }
 
 /**
@@ -119,7 +119,7 @@ export function isBookmarked(filePath: string): boolean {
  */
 export function updateBookmarkPath(oldPath: string, newPath: string): boolean {
   const settings = getState().settings;
-  const currentBookmarks = settings.bookmarks || [];
+  const currentBookmarks = settings.bookmarks;
   const index = currentBookmarks.findIndex(b => b.path === oldPath);
 
   if (index === -1) {
@@ -136,7 +136,7 @@ export function updateBookmarkPath(oldPath: string, newPath: string): boolean {
 
 export function updateBookmarkName(filePath: string, name: string): void {
   const settings = getState().settings;
-  const currentBookmarks = settings.bookmarks || [];
+  const currentBookmarks = settings.bookmarks;
   const index = currentBookmarks.findIndex(b => b.path === filePath);
   if (index === -1) return;
 
@@ -148,7 +148,7 @@ export function updateBookmarkName(filePath: string, name: string): void {
 
 export function removeBookmark(filePath: string): void {
   const settings = getState().settings;
-  const currentBookmarks = settings.bookmarks || [];
+  const currentBookmarks = settings.bookmarks;
   setState({ settings: { ...settings, bookmarks: currentBookmarks.filter(b => b.path !== filePath) } });
 }
 
