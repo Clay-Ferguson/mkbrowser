@@ -121,9 +121,12 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
   // Auto-fix any filenames with leading whitespace by renaming them on disk
   await trimLeadingWhitespaceFromNames(dirPath, entries, path.join, fs.promises);
 
-  for (const entry of entries) {
+  // Build each entry independently and resolve in parallel; the per-entry I/O
+  // (stat, recursive reads, AI hints) is independent, so serial awaits here
+  // would add up to N filesystem round-trips on large or slow directories.
+  const built = await Promise.all(entries.map(async (entry): Promise<FileEntry | null> => {
     // Skip hidden files/folders (starting with .)
-    if (entry.name.startsWith('.')) continue;
+    if (entry.name.startsWith('.')) return null;
 
     const fullPath = path.join(dirPath, entry.name);
 
@@ -141,7 +144,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
       }
     } catch {
       // Broken symlink — skip it silently.
-      if (entry.isSymbolicLink()) continue;
+      if (entry.isSymbolicLink()) return null;
       modifiedTime = Date.now();
       createdTime = Date.now();
     }
@@ -171,7 +174,11 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
       fileEntry.aiHint = await readAiHint(fullPath, entry.name);
     }
 
-    fileEntries.push(fileEntry);
+    return fileEntry;
+  }));
+
+  for (const fileEntry of built) {
+    if (fileEntry) fileEntries.push(fileEntry);
   }
 
   // Sort: directories first, then files, alphabetically within each group
