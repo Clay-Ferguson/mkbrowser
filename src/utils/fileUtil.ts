@@ -99,9 +99,17 @@ export async function trimLeadingWhitespaceFromNames(
 // Common image file extensions
 export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);
 
+/**
+ * Return the lowercased extension (including the leading dot) of a file name,
+ * or an empty string if the name has no extension.
+ */
+function getExtension(fileName: string): string {
+  const i = fileName.lastIndexOf('.');
+  return i < 0 ? '' : fileName.slice(i).toLowerCase();
+}
+
 export function isImageFile(fileName: string): boolean {
-  const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
-  return IMAGE_EXTENSIONS.has(ext);
+  return IMAGE_EXTENSIONS.has(getExtension(fileName));
 }
 export type TextFileLanguage = 'javascript' | 'typescript' | 'python' | 'text';
 
@@ -113,9 +121,7 @@ const TEXT_FILE_LANGUAGES: Record<string, TextFileLanguage> = {
 };
 
 export function isTextFile(fileName: string): boolean {
-  const lower = fileName.toLowerCase();
-  const ext = lower.slice(lower.lastIndexOf('.'));
-  return ext in TEXT_FILE_LANGUAGES;
+  return getExtension(fileName) in TEXT_FILE_LANGUAGES;
 }
 
 export function isMarkdownFile(fileName: string): boolean {
@@ -123,16 +129,13 @@ export function isMarkdownFile(fileName: string): boolean {
 }
 
 export function getTextFileLanguage(fileName: string): TextFileLanguage {
-  const lower = fileName.toLowerCase();
-  const ext = lower.slice(lower.lastIndexOf('.'));
-  return TEXT_FILE_LANGUAGES[ext] ?? 'text';
+  return TEXT_FILE_LANGUAGES[getExtension(fileName)] ?? 'text';
 }
 
 export type FileIconType = 'markdown' | 'text' | 'image' | 'generic';
 
 export function getIconForFileExtension(fileName: string): FileIconType {
-  const lower = fileName.toLowerCase();
-  const ext = lower.slice(lower.lastIndexOf('.'));
+  const ext = getExtension(fileName);
   if (ext === '.md') return 'markdown';
   if (ext in TEXT_FILE_LANGUAGES) return 'text';
   if (IMAGE_EXTENSIONS.has(ext)) return 'image';
