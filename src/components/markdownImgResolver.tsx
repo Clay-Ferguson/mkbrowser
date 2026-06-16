@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { ExtraProps } from 'react-markdown';
 import { api } from '../services/api';
 import { logger } from '../utils/logUtil';
 import { decodeMarkdownUrl } from '../utils/linkUtil';
@@ -92,7 +93,9 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<st
  * with fallback to walking up the directory tree.
  */
 export function createCustomImage(entryPath: string) {
-  return function CustomImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+  // `node` is react-markdown's internal hast node; destructure it out so it isn't
+  // spread onto the DOM <img> element (React warns on unknown DOM props).
+  return function CustomImage({ src, alt, node, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & ExtraProps) {
     const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);

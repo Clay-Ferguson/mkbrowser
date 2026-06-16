@@ -1,14 +1,17 @@
 import React from 'react';
+import type { ExtraProps } from 'react-markdown';
 import { api } from '../services/api';
 import { setHighlightItem, navigateToBrowserPath } from '../store';
 import { decodeMarkdownUrl } from '../utils/linkUtil';
 import { getParentPath, isAbsolutePath, pathSep, splitPath } from '../utils/pathUtil';
 
-interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement>, ExtraProps {
   entryPath: string;
 }
 
-export default function CustomAnchor({ href, children, entryPath, ...props }: CustomAnchorProps) {
+// `node` is react-markdown's internal hast node; destructure it out so it isn't
+// spread onto the DOM <a> element (React warns on unknown DOM props).
+export default function CustomAnchor({ href, children, entryPath, node, ...props }: CustomAnchorProps) {
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.stopPropagation();
     if (!href) return;

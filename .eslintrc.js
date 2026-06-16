@@ -60,9 +60,11 @@ module.exports = {
     "no-debugger": "error",
 
     // Disallow declared but unused variables. Variables/args prefixed with _ are exempt.
+    // ignoreRestSiblings allows the common "destructure to omit" pattern, e.g.
+    // `const { node, ...props } = x` to strip `node` before spreading the rest.
     "@typescript-eslint/no-unused-vars": [
       "error",
-      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" },
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_", "ignoreRestSiblings": true },
     ],
 
     // Disallow `var`; require `const` or `let` instead.

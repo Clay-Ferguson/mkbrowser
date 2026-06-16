@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import type { ExtraProps } from 'react-markdown';
 import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
 import { logger } from '../utils/logUtil';
 
-export default function CustomPre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) {
+// `node` is react-markdown's internal hast node; destructure it out so it isn't
+// spread onto the DOM <pre> element (React warns on unknown DOM props).
+export default function CustomPre({ children, node, ...props }: React.HTMLAttributes<HTMLPreElement> & ExtraProps) {
   const [copied, setCopied] = useState(false);
 
   const codeElement = children as React.ReactElement;
