@@ -5,12 +5,42 @@ import { logger } from '../utils/logUtil';
 import { decodeMarkdownUrl } from '../utils/linkUtil';
 import { getParentPath, pathSep, splitPathSegments } from '../utils/pathUtil';
 
-// Cache for resolved image paths to avoid repeated file system lookups
-// Key format: `${markdownFilePath}|${imageSrc}` -> resolved absolute path or null if not found
-const imagePathCache = new Map<string, string | null>();
+// Cache for resolved image paths to avoid repeated file system lookups.
+// Key format: `${markdownFilePath}|${imageSrc}` -> resolved absolute path.
+//
+// Only successful resolutions are cached. Negative (not-found) results are
+// deliberately NOT stored, so an image created after a failed lookup renders
+// without restarting the app. The cache is bounded with simple LRU eviction so
+// it cannot grow without bound during a long-lived session.
+const imagePathCache = new Map<string, string>();
+
+// Cap on cached resolutions; once exceeded, the least-recently-used entry is evicted.
+const MAX_IMAGE_PATH_CACHE_ENTRIES = 500;
 
 // Maximum number of parent directories to search when looking for images
 const MAX_IMAGE_SEARCH_DEPTH = 10;
+
+// Read a cached resolution, refreshing its recency (Map preserves insertion
+// order, so re-inserting moves the key to the most-recently-used position).
+function getCachedImagePath(cacheKey: string): string | undefined {
+  const cached = imagePathCache.get(cacheKey);
+  if (cached !== undefined) {
+    imagePathCache.delete(cacheKey);
+    imagePathCache.set(cacheKey, cached);
+  }
+  return cached;
+}
+
+// Store a successful resolution, evicting the oldest entry if we exceed the cap.
+function setCachedImagePath(cacheKey: string, resolvedPath: string): void {
+  imagePathCache.set(cacheKey, resolvedPath);
+  if (imagePathCache.size > MAX_IMAGE_PATH_CACHE_ENTRIES) {
+    const oldestKey = imagePathCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      imagePathCache.delete(oldestKey);
+    }
+  }
+}
 
 /**
  * Resolve a relative image path by walking up the directory tree.
@@ -24,9 +54,10 @@ const MAX_IMAGE_SEARCH_DEPTH = 10;
 async function resolveImagePath(entryPath: string, imageSrc: string): Promise<string | null> {
   const cacheKey = `${entryPath}|${imageSrc}`;
 
-  // Check cache first
-  if (imagePathCache.has(cacheKey)) {
-    return imagePathCache.get(cacheKey) ?? null;
+  // Check cache first (only successful resolutions are ever cached)
+  const cached = getCachedImagePath(cacheKey);
+  if (cached !== undefined) {
+    return cached;
   }
 
   // Markdown URLs are percent-encoded (e.g. spaces become %20); decode back to
@@ -59,7 +90,7 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<st
   // First, try resolving relative to the markdown file's directory (standard behavior)
   const standardPath = resolveRelativePath(currentDir, imageSrc);
   if (await api.pathExists(standardPath)) {
-    imagePathCache.set(cacheKey, standardPath);
+    setCachedImagePath(cacheKey, standardPath);
     return standardPath;
   }
 
@@ -74,7 +105,7 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<st
     const normalizedPath = resolveRelativePath(ancestorDir, imageSrc);
 
     if (await api.pathExists(normalizedPath)) {
-      imagePathCache.set(cacheKey, normalizedPath);
+      setCachedImagePath(cacheKey, normalizedPath);
       return normalizedPath;
     }
 
@@ -82,8 +113,8 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<st
     pathParts.pop();
   }
   
-  // Image not found anywhere
-  imagePathCache.set(cacheKey, null);
+  // Image not found anywhere. Deliberately not cached, so it will be re-checked
+  // on the next render and recover if the file is later created.
   return null;
 }
 
@@ -147,7 +178,7 @@ export function createCustomImage(entryPath: string) {
       return () => {
         isMounted = false;
       };
-    }, [src]);
+    }, [src, entryPath]);
     
     if (isLoading) {
       return (
