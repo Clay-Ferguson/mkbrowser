@@ -9,6 +9,7 @@ module.exports = {
     ecmaVersion: "latest",
     sourceType: "module",
   },
+  plugins: ["react-hooks"],
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
@@ -137,6 +138,14 @@ module.exports = {
       },
       rules: {
         "@typescript-eslint/no-floating-promises": "error",
+
+        // React Hooks rules are scoped to src/** so they don't misfire on
+        // Playwright fixture callbacks (the `use` param) in e2e/ and fixtures/.
+        // rules-of-hooks: hooks must be called unconditionally, at the top level.
+        "react-hooks/rules-of-hooks": "error",
+        // exhaustive-deps: effect/callback/memo dependency arrays must list every
+        // reactive value referenced in the hook body. Catches stale-closure bugs.
+        "react-hooks/exhaustive-deps": "error",
       },
     },
   ],

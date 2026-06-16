@@ -4,9 +4,9 @@
  * This module is intentionally free of Electron and LangChain imports so that
  * it can be unit-tested in a plain Node environment.
  */
-import { fdir } from 'fdir';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fdir } from 'fdir';
 import { logger } from '../utils/logUtil';
 import { wildcardToAnchoredRegex } from '../utils/pathPattern';
 import { HUMAN_FILENAME } from '../utils/specialFiles';

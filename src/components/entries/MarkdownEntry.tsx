@@ -76,6 +76,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     if (edit.editContent === removeTOC(content)) {
       edit.handleCancel();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'edit' - review before adding (may alter behavior)
   }, [edit.editContent, content, edit.handleCancel]);
 
   const handleToggleExpanded = useToggleExpanded(entry.path);

@@ -64,6 +64,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
       y: e.clientY,
       spelling,
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'typoRef' and 'viewRef' - review before adding (may alter behavior)
   }, []);
 
   const handleCut = useCallback(async () => {
@@ -84,6 +85,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     }
     closeContextMenu();
     view.focus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'viewRef' - review before adding (may alter behavior)
   }, [closeContextMenu]);
 
   const handleCopy = useCallback(async () => {
@@ -101,6 +103,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     }
     closeContextMenu();
     view.focus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'viewRef' - review before adding (may alter behavior)
   }, [closeContextMenu]);
 
   const handlePaste = useCallback(async () => {
@@ -124,6 +127,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'viewRef' - review before adding (may alter behavior)
   }, [closeContextMenu]);
 
   const handlePasteLink = useCallback(() => {
@@ -138,6 +142,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'viewRef' - review before adding (may alter behavior)
   }, [filePath, selectedLinkItems, closeContextMenu]);
 
   const handleSelectAll = useCallback(() => {
@@ -149,6 +154,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'viewRef' - review before adding (may alter behavior)
   }, [closeContextMenu]);
 
   const handleSpellingSuggestion = useCallback((suggestion: string) => {
@@ -162,6 +168,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'viewRef' - review before adding (may alter behavior)
   }, [closeContextMenu, contextMenu.spelling]);
 
   const handleInsertTimestamp = useCallback(() => {
@@ -176,6 +183,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'viewRef' - review before adding (may alter behavior)
   }, [closeContextMenu]);
 
   const handleInsertDate = useCallback(() => {
@@ -190,6 +198,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'viewRef' - review before adding (may alter behavior)
   }, [closeContextMenu]);
 
   const makeCalendarItem = useCallback((repeating: boolean, callback?: () => void) => {
@@ -210,6 +219,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     closeContextMenu();
     view.focus();
     callback?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'viewRef' - review before adding (may alter behavior)
   }, [closeContextMenu]);
 
   const handleMakeCalendarItem = useCallback(() => {
@@ -242,6 +252,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
       document.removeEventListener('scroll', handleScroll, true);
       document.removeEventListener('keydown', handleKeyDown);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'viewRef' - review before adding (may alter behavior)
   }, [contextMenu.visible, closeContextMenu]);
 
   const isMarkdown = !!fileName && isMarkdownFile(fileName);

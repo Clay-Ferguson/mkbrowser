@@ -1,10 +1,8 @@
 import { useEffect, useRef, useMemo, useImperativeHandle, forwardRef } from 'react';
-import AlertDialog from '../dialogs/AlertDialog';
 import { EditorView, placeholder as placeholderExt, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
 import { highlightSelectionMatches, search, searchKeymap, openSearchPanel, setSearchQuery, SearchQuery } from '@codemirror/search';
-import { globalHighlightText } from '../../utils/globalHighlight';
 import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching } from '@codemirror/language';
 import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -12,6 +10,8 @@ import { markdown } from '@codemirror/lang-markdown';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import Typo from 'typo-js';
+import { globalHighlightText } from '../../utils/globalHighlight';
+import AlertDialog from '../dialogs/AlertDialog';
 import { useSettings } from '../../store';
 import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../utils/editor/editorHashtagUtil';
@@ -422,6 +422,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       .catch((err: unknown) => logger.error('Failed to load spell checker:', err));
 
     return cleanup;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'autoFocus', 'editorHandle', 'goToLine', 'language', 'onGoToLineComplete', 'placeholder', 'readOnly', 'settings.fontSize', 'showPropsInEditor', and 'value' - review before adding (may alter behavior)
   }, []);
 
   // Sync external value changes to editor (but not when editor itself changed)
@@ -453,6 +454,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     view.dispatch({ selection: { anchor: pos, head: pos }, scrollIntoView: true });
     view.focus();
     onGoToPositionComplete?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'onGoToPositionComplete' - review before adding (may alter behavior)
   }, [goToPosition]);
 
   // Update font size when settings change

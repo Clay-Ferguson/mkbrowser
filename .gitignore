@@ -58,6 +58,11 @@ typings/
 # Yarn Integrity file
 .yarn-integrity
 
+# Yarn Berry artifacts — this project uses Yarn Classic (1.x); ignore Berry's
+# config/cache so a stray `yarn set version` doesn't re-introduce them.
+.yarn/
+.yarnrc.yml
+
 # dotenv environment variables file
 .env
 .env.test

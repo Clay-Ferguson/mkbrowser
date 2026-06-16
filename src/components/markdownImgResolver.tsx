@@ -178,7 +178,7 @@ export function createCustomImage(entryPath: string) {
       return () => {
         isMounted = false;
       };
-    }, [src, entryPath]);
+    }, [src]);
     
     if (isLoading) {
       return (

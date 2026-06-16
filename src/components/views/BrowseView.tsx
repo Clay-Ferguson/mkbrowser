@@ -309,6 +309,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         }
       }, 100);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'pendingEditLineNumber' - review before adding (may alter behavior)
   }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, currentPath, currentView]);
 
   const generateExportFileName = (currentPath: string | null): string => {
@@ -373,6 +374,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         clearTimeout(scrollSaveTimerRef.current);
       }
       if (previousPathRef.current && mainContainerRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): copy ref to a local var inside the effect before using it in cleanup
         setBrowserScrollPosition(previousPathRef.current, mainContainerRef.current.scrollTop);
       }
     };
@@ -449,16 +451,19 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const performDelete = useCallback(async () => {
     await deleteSelected(getSelectedItems(), currentPath, hasIndexFile, onSetError, onRefreshDirectory, () => setShowDeleteConfirm(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'getSelectedItems' - review before adding (may alter behavior)
   }, [currentPath, hasIndexFile, items, onRefreshDirectory, onSetError]);
 
   const handleSplitFile = useCallback(async () => {
     if (!currentPath) return;
     await splitSelectedFile(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'getSelectedItems' - review before adding (may alter behavior)
   }, [currentPath, items, onRefreshDirectory, onSetError]);
 
   const handleJoinFiles = useCallback(async () => {
     if (!currentPath) return;
     await joinSelectedFiles(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'getSelectedItems' - review before adding (may alter behavior)
   }, [currentPath, items, onRefreshDirectory, onSetError]);
 
   const handleCutClick = useCallback(() => {

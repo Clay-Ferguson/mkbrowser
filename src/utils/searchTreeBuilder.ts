@@ -82,7 +82,7 @@ function longestCommonPrefix(lists: string[][]): string[] {
   if (lists.length === 0) return [];
   // For files, the common ancestor must be a directory — so cap the prefix
   // at parentSegments.length - 1 of each path (exclude the file basename).
-  let max = Math.min(...lists.map(l => Math.max(0, l.length - 1)));
+  const max = Math.min(...lists.map(l => Math.max(0, l.length - 1)));
   const prefix: string[] = [];
   for (let i = 0; i < max; i++) {
     const seg = lists[0][i];

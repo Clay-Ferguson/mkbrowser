@@ -51,6 +51,7 @@ export function useScrollPersistence(
         clearTimeout(scrollSaveTimerRef.current);
       }
       if (containerRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): copy ref to a local var inside the effect before using it in cleanup
         setPosition(containerRef.current.scrollTop);
       }
     };

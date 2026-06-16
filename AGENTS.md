@@ -57,6 +57,11 @@ Native menu actions (cut, paste, delete, etc.) flow as:
 - **Editor**: CodeMirror 6 (`src/components/CodeMirrorEditor.tsx`)
 - **Testing**: Vitest (node environment), tests in `tests/`, fixtures in `tests/fixtures/`
 
+## Building and Package Management
+
+We use **Yarn Classic (Yarn 1.x)** to manage packages — the `yarn.lock` is in the `# yarn lockfile v1` format. Use Yarn commands (`yarn add`, `yarn install`, etc.) rather than direct npm commands, and do **not** upgrade to Yarn Berry (Yarn 2+): it uses an incompatible lockfile format and config layout, and a partial migration once left stray `.yarnrc.yml` / `.yarn/` artifacts in this repo (since removed).
+
+
 
 
 

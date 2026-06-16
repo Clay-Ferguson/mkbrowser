@@ -1,8 +1,8 @@
 import path from 'node:path';
 import fs from 'node:fs';
+import yaml from 'js-yaml';
 import type { FileEntry } from "../global";
 import { logger } from './logUtil';
-import yaml from 'js-yaml';
 import { readAiHint } from '../ai/aiHint';
 import { readIndexYaml } from './indexUtil';
 import { ATTACH_SUFFIX } from './specialFiles';
