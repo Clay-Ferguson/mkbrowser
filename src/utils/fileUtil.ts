@@ -187,14 +187,15 @@ export function sortEntries(entries: FileEntry[], sortOrder: SortOrder, foldersO
  * Pure file-system logic — no Electron APIs.
  */
 export async function readDirectory(dirPath: string, aiEnabled: boolean): Promise<FileEntry[]> {
-  // First check if directory exists
+  // First check if directory exists and is accessible
+  let dirStat: fs.Stats;
   try {
-    const dirStat = await fs.promises.stat(dirPath);
-    if (!dirStat.isDirectory()) {
-      throw new Error(`Path is not a directory: ${dirPath}`);
-    }
-  } catch {
-    throw new Error(`Directory does not exist: ${dirPath}`);
+    dirStat = await fs.promises.stat(dirPath);
+  } catch (err) {
+    throw new Error(`Cannot access directory: ${dirPath}`, { cause: err });
+  }
+  if (!dirStat.isDirectory()) {
+    throw new Error(`Path is not a directory: ${dirPath}`);
   }
 
   const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
