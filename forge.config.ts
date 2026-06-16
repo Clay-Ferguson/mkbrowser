@@ -51,6 +51,7 @@ const config: ForgeConfig = {
       buildPkg.dependencies = { ...(buildPkg.dependencies as Record<string, string> ?? {}), ...externalDeps };
       fs.writeFileSync(buildPkgPath, JSON.stringify(buildPkg, null, 2));
 
+      // eslint-disable-next-line no-console
       console.log('[forge hook] Installing external dependencies in build path:', Object.keys(externalDeps).join(', '));
       execSync('npm install --omit=dev', { cwd: buildPath, stdio: 'inherit' });
     },

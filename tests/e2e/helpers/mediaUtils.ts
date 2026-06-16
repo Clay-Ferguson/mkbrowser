@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Page, Locator } from '@playwright/test';
 import { screenshotWithHighlight, highlightElement, HIGHLIGHT } from './visual-indicators';
+import { logger } from '../../../src/utils/logUtil';
 
 /**
  * Media utilities for E2E tests - screenshot and video helpers.
@@ -14,12 +15,12 @@ export function logScreenshotSummary(screenshotDir: string): void {
   const files = fs.readdirSync(screenshotDir);
   const pngCount = files.filter(f => f.endsWith('.png')).length;
   const txtCount = files.filter(f => f.endsWith('.txt')).length;
-  console.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
+  logger.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
 }
 
 export function cleanupTestDataFiles(): void {
   const testDataDir = path.resolve(path.join(__dirname, '../../../mkbrowser-test'));
-  console.log('testDataDir:', testDataDir);
+  logger.log('testDataDir:', testDataDir);
   cleanupTestDataFilesRecursive(testDataDir);
 }
 
@@ -248,6 +249,8 @@ export async function insertText(
       }
 
       if (!editorElement) {
+        // Runs inside page.evaluate (browser context); logUtil logger isn't available here.
+        // eslint-disable-next-line no-console
         console.warn('No editor element found for highlighting');
         return;
       }

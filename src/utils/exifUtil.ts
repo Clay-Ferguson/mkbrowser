@@ -1,4 +1,5 @@
 import { exiftool } from 'exiftool-vendored';
+import * as ExifReader from 'exifreader';
 import { logger } from './logUtil';
 import type { ExifData } from '../types/shared';
 /**
@@ -32,7 +33,6 @@ export async function writeExifMetadata(filePath: string, data: ExifData): Promi
     return false;
   }
 }
-import ExifReader from 'exifreader';
 
 /**
  * Read EXIF metadata from an image file, returning grouped tag descriptions.

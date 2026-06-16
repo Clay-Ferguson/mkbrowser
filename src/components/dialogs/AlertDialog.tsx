@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { clsx } from 'clsx';
 import Dialog from './common/Dialog';
 import { BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
 

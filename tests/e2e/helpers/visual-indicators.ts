@@ -118,6 +118,8 @@ export async function demonstrateTyping(
         }
 
         if (!editorElement) {
+          // Runs inside page.evaluate (browser context); logUtil logger isn't available here.
+          // eslint-disable-next-line no-console
           console.warn('No editor element found for highlighting');
           return;
         }

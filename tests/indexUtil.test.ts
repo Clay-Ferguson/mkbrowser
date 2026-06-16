@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import {
   readIndexYaml,
   reconcileIndexedFiles,

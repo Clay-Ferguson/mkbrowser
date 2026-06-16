@@ -72,7 +72,7 @@ module.exports = {
     "no-var": "error",
 
     // Disallow empty function bodies. "off" to permit no-op callbacks freely.
-    "@typescript-eslint/no-empty-function": "warn",
+    "@typescript-eslint/no-empty-function": "off",
 
     // Disallow empty interface declarations (e.g. `interface Foo {}`).
     "@typescript-eslint/no-empty-interface": "warn",

@@ -1,6 +1,7 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from '../../src/utils/logUtil';
 
 /**
  * Copy the resources folder into .vite/build/ so that when Playwright launches
@@ -15,7 +16,7 @@ function copyResourcesToBuild() {
   const resourcesDest = path.join(projectRoot, '.vite/build/resources');
   if (fs.existsSync(resourcesSrc)) {
     fs.cpSync(resourcesSrc, resourcesDest, { recursive: true });
-    console.log('Copied resources/ into .vite/build/resources/');
+    logger.log('Copied resources/ into .vite/build/resources/');
   }
 }
 
@@ -24,29 +25,29 @@ function copyResourcesToBuild() {
  * Ensures the Vite dev build exists before running tests.
  */
 export default async function globalSetup() {
-  console.log('Checking Electron app build...');
+  logger.log('Checking Electron app build...');
   
   const mainJsPath = path.join(__dirname, '../../.vite/build/main.js');
   const rendererPath = path.join(__dirname, '../../.vite/renderer/main_window/index.html');
   
   // Check if Vite build exists
   if (fs.existsSync(mainJsPath) && fs.existsSync(rendererPath)) {
-    console.log('Vite build found.');
+    logger.log('Vite build found.');
     copyResourcesToBuild();
     return;
   }
   
   // Build using Electron Forge package (which builds Vite outputs)
-  console.log('Building app with Electron Forge...');
+  logger.log('Building app with Electron Forge...');
   try {
     execSync('npm run package', { 
       stdio: 'inherit',
       cwd: path.join(__dirname, '../../')
     });
-    console.log('Build complete!');
+    logger.log('Build complete!');
     copyResourcesToBuild();
   } catch (error) {
-    console.error('Build failed:', error);
+    logger.error('Build failed:', error);
     throw error;
   }
 }

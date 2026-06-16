@@ -1,4 +1,4 @@
-// import { logger } from '../utils/logUtil';
+import { logger } from '../utils/logUtil';
 
 export let globalHighlightText: string| null = null;
 
@@ -70,7 +70,7 @@ export function applyGlobalHighlight(searchText: string | null): void {
     }
   }
 
-  console.debug('[globalHighlight] scanned', nodeCount, 'text nodes, found', ranges.length, 'matches');
+  logger.debug('[globalHighlight] scanned', nodeCount, 'text nodes, found', ranges.length, 'matches');
 
   if (ranges.length > 0) {
     CSS.highlights.set('global-search', new Highlight(...ranges));

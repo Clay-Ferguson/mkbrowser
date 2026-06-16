@@ -1,5 +1,5 @@
 import path from 'node:path';
-import chokidar from 'chokidar';
+import * as chokidar from 'chokidar';
 import type { CalendarEventResult } from './calendarLoader';
 import { loadCalendarEntryForFile } from './calendarLoader';
 import { escapeRegexExceptWildcard } from '../pathPattern';

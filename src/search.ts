@@ -7,7 +7,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
-import ExifReader from 'exifreader';
+import * as ExifReader from 'exifreader';
 import { load } from 'js-yaml';
 import { parseDateString, past, future, today } from './utils/timeUtil';
 import { createContentSearcher } from './utils/searchUtil';
