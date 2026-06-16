@@ -158,6 +158,9 @@ export function hideTab(tab: AppView): void {
   setState({ visibleTabs: next });
 }
 
+/**
+ * Toggle the editor between its normal and expanded (full-width) layout.
+ */
 export function setExpandedEditor(expandedEditor: boolean): void {
   setState({ expandedEditor });
 }
@@ -226,6 +229,9 @@ export function usePendingThreadScrollToBottom(): boolean {
   return useStoreValue(s => s.pendingThreadScrollToBottom);
 }
 
+/**
+ * Hook to subscribe to whether the editor is in its expanded layout.
+ */
 export function useExpandedEditor(): boolean {
   return useStoreValue(s => s.expandedEditor);
 }

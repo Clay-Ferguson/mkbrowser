@@ -1,4 +1,4 @@
-import { setSettings, setCurrentPath, setCalendarViewType, setImageSizeStore } from './store';
+import { setSettings, setCurrentPath, setCalendarViewType, setImageSize } from './store';
 import { api } from './services/api';
 
 export interface LoadConfigResult {
@@ -25,7 +25,7 @@ export async function loadConfig(): Promise<LoadConfigResult> {
       setCalendarViewType(config.calendarViewType);
     }
     if (config.imageSize) {
-      setImageSizeStore(config.imageSize);
+      setImageSize(config.imageSize);
     }
     if (config.browseFolder) {
       const exists = await api.pathExists(config.browseFolder);
