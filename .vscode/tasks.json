@@ -4,7 +4,7 @@
     {
       "label": "Start MkBrowser",
       "type": "shell",
-      "command": "npm run start:linux",
+      "command": "npm run lint && npm run start:linux",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -18,7 +18,7 @@
     {
       "label": "Start MkBrowser (with demo-data)",
       "type": "shell",
-      "command": "npm run start:linux -- ${workspaceFolder}/demo-data",
+      "command": "npm run lint && npm run start:linux -- ${workspaceFolder}/demo-data",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",

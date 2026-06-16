@@ -20,6 +20,20 @@ echo ""
 echo "✅ All tests passed!"
 echo ""
 
+# Run the linter and abort if it fails
+echo "🔍 Running linter..."
+echo ""
+yarn lint
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Lint failed! Build aborted."
+  echo "   Fix the lint errors and try again."
+  exit 1
+fi
+echo ""
+echo "✅ Lint passed!"
+echo ""
+
 # Run the electron-forge make command to create distributables
 # This will create .deb and .rpm packages in the 'out' directory
 yarn make
