@@ -257,6 +257,10 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         return;
       }
 
+      // First time this (re)mounted instance has run the effect. BrowseView
+      // unmounts when the user switches to another view, so on remount we must
+      // restore the saved scroll position even though the folder hasn't changed.
+      const isInitialMount = previousPathRef.current === null;
       const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
 
       // Save scroll position for the previous folder before switching
@@ -284,8 +288,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               clearPendingScrollToHeadingSlug();
             }, 750);
           }
-        } else if (isNewFolder) {
-          // Restore saved scroll position for this folder, or scroll to top
+        } else if (isNewFolder || isInitialMount) {
+          // Restore saved scroll position for this folder (on folder change or
+          // when remounting after a view switch), or scroll to top.
           const savedPosition = getBrowserScrollPosition(currentPath);
           const mainContainer = mainContainerRef.current;
           if (mainContainer) {
@@ -359,11 +364,16 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     }, 150);
   }, [currentPath]);
 
-  // Cleanup scroll save timer on unmount
+  // On unmount (e.g. switching to another view), flush the latest scroll
+  // position so a scroll within the debounce window isn't lost, then clear the
+  // pending save timer.
   useEffect(() => {
     return () => {
       if (scrollSaveTimerRef.current) {
         clearTimeout(scrollSaveTimerRef.current);
+      }
+      if (previousPathRef.current && mainContainerRef.current) {
+        setBrowserScrollPosition(previousPathRef.current, mainContainerRef.current.scrollTop);
       }
     };
   }, []);

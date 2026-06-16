@@ -42,14 +42,19 @@ export function useScrollPersistence(
     }
   }, [getPosition]);
   
-  // Cleanup scroll save timer on unmount
+  // On unmount (e.g. switching to another view), flush the latest scroll
+  // position so a scroll within the debounce window isn't lost, then clear the
+  // pending save timer.
   useEffect(() => {
     return () => {
       if (scrollSaveTimerRef.current) {
         clearTimeout(scrollSaveTimerRef.current);
       }
+      if (containerRef.current) {
+        setPosition(containerRef.current.scrollTop);
+      }
     };
-  }, []);
+  }, [setPosition]);
   
   // Handle scroll events on the container (debounced save)
   const handleScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
