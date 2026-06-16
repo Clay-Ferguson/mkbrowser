@@ -274,10 +274,13 @@ export interface AppSettings {
 }
 
 /**
- * Base node in the IndexTree hierarchy. Holds expansion/loading state and children.
- * Concrete node types (e.g. FileNode) extend this with their own identity fields.
+ * Base node in the IndexTree hierarchy. Holds the path key (used by the store's
+ * path-based updater), expansion/loading state, and children. Concrete node types
+ * (e.g. FileNode) extend this with their own identity fields.
  */
 export interface TreeNode {
+  /** Unique key for store lookup: a file/dir path, or `filePath#index` for headings. */
+  path: string;
   isExpanded: boolean;
   isLoading: boolean;
   /** null = never loaded; populated array = loaded (may be empty) */

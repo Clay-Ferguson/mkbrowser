@@ -1,32 +1,32 @@
-import type { AppState, TreeNode, FileNode, MarkdownHeadingNode } from '../types/types';
+import type { AppState, TreeNode, FileNode } from '../types/types';
 import { getState, setState, useStoreValue } from './core';
 
 // ============================================================================
 // IndexTree - the hierarchical .INDEX.yaml navigation tree
 // ============================================================================
 
-// Internal union covering every node type that carries a path for store lookup.
-type PathNode = FileNode | MarkdownHeadingNode;
-
 /**
- * Recursively find and update a single node by path/key, returning a new tree root.
- * Works across mixed trees (FileNode children may include MarkdownHeadingNode).
+ * Recursively find and update a single node by its `path` key, returning a new
+ * tree. Works across mixed trees (FileNode children may include
+ * MarkdownHeadingNode) since every TreeNode carries a `path`. The generic return
+ * type preserves the concrete root type for callers; `updater` is typed against the
+ * base TreeNode (the only fields these updaters touch), and its result is asserted
+ * back to T because it spreads the matched node and so keeps all of T's fields.
  */
-function updateNodeByPath(
-  node: PathNode,
+function updateNodeByPath<T extends TreeNode>(
+  node: T,
   targetPath: string,
-  updater: (n: PathNode) => PathNode
-): PathNode {
-  if (node.path === targetPath) return updater(node);
+  updater: (n: TreeNode) => TreeNode
+): T {
+  if (node.path === targetPath) return updater(node) as T;
   if (!node.children) return node;
   let changed = false;
   const newChildren = node.children.map(child => {
-    if (!('path' in child)) return child;
-    const updated = updateNodeByPath(child as PathNode, targetPath, updater);
+    const updated = updateNodeByPath(child, targetPath, updater);
     if (updated !== child) changed = true;
     return updated;
-  }) as TreeNode[];
-  return changed ? { ...node, children: newChildren } as PathNode : node;
+  });
+  return changed ? { ...node, children: newChildren } : node;
 }
 
 /**
@@ -42,7 +42,7 @@ export function setIndexTreeRoot(root: FileNode | null): void {
 export function setIndexTreeNodeLoading(path: string, loading: boolean): void {
   const root = getState().indexTreeRoot;
   if (!root) return;
-  const newRoot = updateNodeByPath(root, path, n => ({ ...n, isLoading: loading })) as FileNode;
+  const newRoot = updateNodeByPath(root, path, n => ({ ...n, isLoading: loading }));
   if (newRoot === root) return;
   setState({ indexTreeRoot: newRoot });
 }
@@ -60,7 +60,7 @@ export function expandIndexTreeNode(path: string, children: TreeNode[]): void {
     isExpanded: true,
     isLoading: false,
     children,
-  } as PathNode)) as FileNode;
+  }));
   if (newRoot === root) return;
   setState({ indexTreeRoot: newRoot });
 }
@@ -94,7 +94,7 @@ export function collapseIndexTreeNode(path: string): void {
   const newRoot = updateNodeByPath(root, path, n => ({
     ...n,
     isExpanded: false,
-  })) as FileNode;
+  }));
   if (newRoot === root) return;
   setState({ indexTreeRoot: newRoot });
 }
