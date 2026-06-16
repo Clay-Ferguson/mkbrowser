@@ -35,6 +35,13 @@ export async function pasteIntoFolder(
 
   onSetError(null);
 
+  const sourceFolders = new Set(cutItems.map((item) => getParentPath(item.path)));
+  if (sourceFolders.size > 1) {
+    onSetError('Cannot paste: the cut items come from more than one source folder.');
+    return;
+  }
+  const [sourceFolder] = sourceFolders;
+
   const result = await pasteCutItems(
     cutItems,
     folderPath,
@@ -47,7 +54,6 @@ export async function pasteIntoFolder(
     return;
   }
 
-  const sourceFolder = getParentPath(cutItems[0].path);
   const movedPaths = cutItems.map((item) => item.path);
   deleteItems(movedPaths);
   clearAllCutItems();
