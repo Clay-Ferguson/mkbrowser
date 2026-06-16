@@ -88,8 +88,12 @@ export async function trimLeadingWhitespaceFromNames(
           logger.warn(`Cannot auto-trim "${entry.name}": "${trimmedName}" already exists`);
         } catch {
           // Target doesn't exist, safe to rename
-          await fsOps.rename(oldPath, newPath);
-          entry.name = trimmedName;
+          try {
+            await fsOps.rename(oldPath, newPath);
+            entry.name = trimmedName;
+          } catch (renameErr) {
+            logger.warn(`Failed to auto-trim "${entry.name}": ${renameErr}`);
+          }
         }
       }
     }
