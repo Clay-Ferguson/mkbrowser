@@ -4,6 +4,16 @@ import type { SortOrder } from "../store";
 // Common image file extensions
 export const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico', '.tiff', '.tif', '.avif']);
 
+// Shared collator for name comparisons. `numeric: true` gives natural ordering
+// (file2 before file10), and a single reused instance is significantly faster
+// than repeated String.localeCompare calls on large directory listings.
+const nameCollator = new Intl.Collator(undefined, { numeric: true });
+
+/** Compare two file names using natural (numeric-aware) ordering. */
+export function compareNames(a: string, b: string): number {
+  return nameCollator.compare(a, b);
+}
+
 /**
  * Return the lowercased extension (including the leading dot) of a file name,
  * or an empty string if the name has no extension.
@@ -53,7 +63,7 @@ export function getIconForFileExtension(fileName: string): FileIconType {
 export function compareByOrder(a: FileEntry, b: FileEntry, sortOrder: SortOrder): number {
   switch (sortOrder) {
     case 'alphabetical':
-      return a.name.localeCompare(b.name);
+      return compareNames(a.name, b.name);
     case 'created-chron':
       // Older files first (ascending)
       return a.createdTime - b.createdTime;
@@ -66,8 +76,12 @@ export function compareByOrder(a: FileEntry, b: FileEntry, sortOrder: SortOrder)
     case 'modified-reverse':
       // More recently modified first (descending)
       return b.modifiedTime - a.modifiedTime;
-    default:
-      return a.name.localeCompare(b.name);
+    default: {
+      // Exhaustiveness check: adding a new SortOrder without handling it here
+      // becomes a compile error rather than silently falling through.
+      const _exhaustive: never = sortOrder;
+      return compareNames(a.name, b.name);
+    }
   }
 }
 /**

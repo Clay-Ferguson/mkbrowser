@@ -6,6 +6,7 @@ import yaml from 'js-yaml';
 import { readAiHint } from '../ai/aiHint';
 import { readIndexYaml } from './indexUtil';
 import { ATTACH_SUFFIX } from './specialFiles';
+import { compareNames } from './fileTypes';
 
 export interface FrontMatterResult {
   /** Parsed YAML front matter as a plain object, or null if none was found. */
@@ -23,6 +24,9 @@ export interface FrontMatterResult {
  *
  * Returns `yaml: null` when no valid front matter block is detected.
  */
+/** Length of the opening front-matter delimiter (`---`). */
+const OPEN_DELIM_LEN = 3;
+
 export function parseFrontMatter(rawContent: string): FrontMatterResult {
   // Front matter must start at the very beginning of the file
   if (!rawContent.startsWith('---')) {
@@ -33,14 +37,14 @@ export function parseFrontMatter(rawContent: string): FrontMatterResult {
   // Allow only spaces/tabs (not newlines) after the delimiter so a blank line
   // following the front matter is preserved as part of the body rather than
   // being silently swallowed — Markdown is whitespace-sensitive.
-  const afterOpen = rawContent.slice(3);
+  const afterOpen = rawContent.slice(OPEN_DELIM_LEN);
   const closingMatch = afterOpen.match(/\n(---|\.\.\.)[^\S\n]*(\n|$)/);
   if (!closingMatch || closingMatch.index === undefined) {
     return { yaml: null, content: rawContent };
   }
 
   const yamlSource = afterOpen.slice(0, closingMatch.index);
-  const bodyStart = closingMatch.index + closingMatch[0].length + 3; // +3 for the opening '---'
+  const bodyStart = closingMatch.index + closingMatch[0].length + OPEN_DELIM_LEN;
   const body = rawContent.slice(bodyStart);
 
   try {
@@ -48,8 +52,9 @@ export function parseFrontMatter(rawContent: string): FrontMatterResult {
     if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
       return { yaml: parsed as Record<string, unknown>, content: body };
     }
-  } catch {
+  } catch (err) {
     // Malformed YAML — treat as no front matter
+    logger.debug(`parseFrontMatter: ignoring malformed YAML front matter: ${err}`);
   }
 
   return { yaml: null, content: rawContent };
@@ -142,9 +147,13 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
       if (entry.isSymbolicLink()) {
         isDirectory = stat.isDirectory();
       }
-    } catch {
-      // Broken symlink — skip it silently.
-      if (entry.isSymbolicLink()) return null;
+    } catch (err) {
+      // Broken symlink — skip it.
+      if (entry.isSymbolicLink()) {
+        logger.debug(`readDirectory: skipping broken symlink "${fullPath}": ${err}`);
+        return null;
+      }
+      logger.debug(`readDirectory: stat failed for "${fullPath}", using current time: ${err}`);
       modifiedTime = Date.now();
       createdTime = Date.now();
     }
@@ -164,8 +173,9 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     if (isDirectory && entry.name.endsWith(ATTACH_SUFFIX)) {
       try {
         fileEntry.attachments = await readDirectory(fullPath, aiEnabled);
-      } catch {
+      } catch (err) {
         // Unreadable attach folder — leave attachments undefined
+        logger.debug(`readDirectory: cannot read attach folder "${fullPath}": ${err}`);
       }
     }
 
@@ -181,13 +191,9 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     if (fileEntry) fileEntries.push(fileEntry);
   }
 
-  // Sort: directories first, then files, alphabetically within each group
-  fileEntries.sort((a, b) => {
-    if (a.isDirectory && !b.isDirectory) return -1;
-    if (!a.isDirectory && b.isDirectory) return 1;
-    return a.name.localeCompare(b.name);
-  });
-
+  // Sort once, choosing the comparator based on whether an .INDEX is present.
+  // An index defines an explicit order (with name as the tiebreaker); otherwise
+  // we fall back to directories-first, then natural name order within each group.
   const indexYaml = await readIndexYaml(dirPath);
   const indexFiles = indexYaml?.files;
   if (indexFiles) {
@@ -200,7 +206,13 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
       const aOrder = a.indexOrder ?? Infinity;
       const bOrder = b.indexOrder ?? Infinity;
       if (aOrder !== bOrder) return aOrder - bOrder;
-      return a.name.localeCompare(b.name);
+      return compareNames(a.name, b.name);
+    });
+  } else {
+    fileEntries.sort((a, b) => {
+      if (a.isDirectory && !b.isDirectory) return -1;
+      if (!a.isDirectory && b.isDirectory) return 1;
+      return compareNames(a.name, b.name);
     });
   }
 
