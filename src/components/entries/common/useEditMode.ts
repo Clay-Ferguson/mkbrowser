@@ -49,7 +49,7 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     }
   }, [isEditing, item?.content, path]);
 
-  const handleEditClick = async (goToLine?: number) => {
+  const handleEditClick = useCallback(async (goToLine?: number) => {
     // Check the file's current mtime on disk to detect external modifications
     const diskMtime = await api.getFileMtime(path);
     if (diskMtime > 0 && item && diskMtime > item.modifiedTime) {
@@ -70,17 +70,17 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     editInitialized.current = true;
     setItemExpanded(path, true);
     setItemEditing(path, true, goToLine);
-  };
+  }, [path, item, content]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setItemReviewing(path, false);
     setItemEditing(path, false);
     if (globalHighlightText) {
       requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
     }
-  };
+  }, [path]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setSaving(true);
     try {
       const result = await api.writeFile(path, editContent);
@@ -94,7 +94,7 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     } finally {
       setSaving(false);
     }
-  };
+  }, [path, editContent]);
 
   return {
     isEditing,

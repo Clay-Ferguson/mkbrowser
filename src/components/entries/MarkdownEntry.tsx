@@ -72,12 +72,12 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const hasIndexFile = useHasIndexFile();
   const expandedEditor = useExpandedEditor();
 
+  const { editContent: editEditContent, handleCancel: editHandleCancel } = edit;
   const handleEscape = useCallback(() => {
-    if (edit.editContent === removeTOC(content)) {
-      edit.handleCancel();
+    if (editEditContent === removeTOC(content)) {
+      editHandleCancel();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'edit' - review before adding (may alter behavior)
-  }, [edit.editContent, content, edit.handleCancel]);
+  }, [editEditContent, content, editHandleCancel]);
 
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
