@@ -115,6 +115,10 @@ export function isTextFile(fileName: string): boolean {
   return ext in TEXT_FILE_LANGUAGES;
 }
 
+export function isMarkdownFile(fileName: string): boolean {
+  return fileName.toLowerCase().endsWith('.md');
+}
+
 export function getTextFileLanguage(fileName: string): TextFileLanguage {
   const lower = fileName.toLowerCase();
   const ext = lower.slice(lower.lastIndexOf('.'));

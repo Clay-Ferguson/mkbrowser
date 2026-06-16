@@ -2,7 +2,7 @@ import type { ItemData } from '../types/types';
 import type { OcrTarget } from '../types/shared';
 import { api } from '../services/api';
 import type { FileEntry } from '../global';
-import { isImageFile } from './fileUtil';
+import { isImageFile, isTextFile, isMarkdownFile } from './fileUtil';
 import {
   deleteItems,
   clearAllSelections,
@@ -17,6 +17,20 @@ import { pasteFromClipboard } from './clipboard';
 import { getParentPath, joinPath } from './pathUtil';
 
 /**
+ * Error-callback signature shared by every file operation in this module.
+ * Called with a message on failure, or null to clear a previously shown error.
+ */
+type SetError = (e: string | null) => void;
+
+/** Delay before expanding a freshly pasted item, giving the refresh time to render it. */
+const EXPAND_AFTER_PASTE_DELAY_MS = 200;
+
+/** Normalizes a thrown value into a human-readable error message. */
+function toErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
  * Moves all cut items in the store into the given folder, then reconciles the index
  * for both the source and destination folders.
  *
@@ -28,7 +42,7 @@ import { getParentPath, joinPath } from './pathUtil';
 export async function pasteIntoFolder(
   folderPath: string,
   items: ReadonlyMap<string, ItemData>,
-  onSetError: (e: string | null) => void,
+  onSetError: SetError,
   onRefreshDirectory: () => void
 ): Promise<void> {
   const cutItems = Array.from(items.values()).filter((item) => item.isCut);
@@ -58,10 +72,15 @@ export async function pasteIntoFolder(
   const movedPaths = cutItems.map((item) => item.path);
   deleteItems(movedPaths);
   clearAllCutItems();
-  await Promise.all([
-    api.reconcileIndexedFiles(sourceFolder, false),
-    api.reconcileIndexedFiles(folderPath, false),
-  ]);
+  try {
+    await Promise.all([
+      api.reconcileIndexedFiles(sourceFolder, false),
+      api.reconcileIndexedFiles(folderPath, false),
+    ]);
+  } catch (err: unknown) {
+    onSetError('Failed to update index after paste: ' + toErrorMessage(err));
+    return;
+  }
   onRefreshDirectory();
 }
 
@@ -80,7 +99,7 @@ export async function deleteSelected(
   selectedItems: ItemData[],
   currentPath: string | null,
   hasIndexFile: boolean,
-  onSetError: (e: string) => void,
+  onSetError: SetError,
   onRefreshDirectory: () => void,
   onDismissConfirm: () => void
 ): Promise<void> {
@@ -97,7 +116,11 @@ export async function deleteSelected(
   if (result.deletedPaths.length > 0) {
     deleteItems(result.deletedPaths);
     if (currentPath && hasIndexFile) {
-      await api.reconcileIndexedFiles(currentPath, false);
+      try {
+        await api.reconcileIndexedFiles(currentPath, false);
+      } catch (err: unknown) {
+        onSetError('Failed to update index after delete: ' + toErrorMessage(err));
+      }
     }
     onRefreshDirectory();
   }
@@ -118,7 +141,7 @@ export async function deleteSelected(
 export async function splitSelectedFile(
   currentPath: string,
   selectedItems: ItemData[],
-  onSetError: (e: string) => void,
+  onSetError: SetError,
   onRefreshDirectory: () => void
 ): Promise<void> {
   const result = await performSplitFile(
@@ -152,7 +175,7 @@ export async function splitSelectedFile(
 export async function joinSelectedFiles(
   currentPath: string,
   selectedItems: ItemData[],
-  onSetError: (e: string) => void,
+  onSetError: SetError,
   onRefreshDirectory: () => void
 ): Promise<void> {
   const result = await performJoinFiles(
@@ -187,39 +210,88 @@ export async function joinSelectedFiles(
  * @param onSetError - Callback invoked with an error message if the creation fails.
  * @param onCloseDialog - Callback invoked to close the "new file" dialog.
  */
+/**
+ * Shared implementation behind {@link createFileOp} and {@link createFolderOp}: creates the
+ * item on disk, closes the dialog, optionally inserts it into the folder's .INDEX.yaml at a
+ * specific position, highlights and scrolls to it, then refreshes the directory.
+ *
+ * @param itemName - Name of the file or folder to create.
+ * @param currentPath - Absolute path of the parent folder.
+ * @param insertAtIndex - Zero-based index at which to insert the item in the index, or null to append.
+ * @param sortedEntries - Current sorted entries, used to resolve the "insert after" sibling name.
+ * @param create - The create call to perform (e.g. api.createFile / api.createFolder).
+ * @param failureMessage - Fallback error message if the create call reports failure.
+ * @param onRefreshDirectory - Triggers a directory refresh after creation.
+ * @param onSetError - Surfaces an error message on failure.
+ * @param onCloseDialog - Closes the originating dialog; always called exactly once.
+ * @param onCreated - Optional post-create hook, invoked with the new item's absolute path.
+ */
+async function createItemOp(
+  itemName: string,
+  currentPath: string,
+  insertAtIndex: number | null,
+  sortedEntries: FileEntry[],
+  create: (itemPath: string) => Promise<{ success: boolean; error?: string }>,
+  failureMessage: string,
+  onRefreshDirectory: () => void,
+  onSetError: SetError,
+  onCloseDialog: () => void,
+  onCreated?: (itemPath: string) => void
+): Promise<void> {
+  const itemPath = joinPath(currentPath, itemName);
+  const result = await create(itemPath);
+
+  onCloseDialog();
+
+  if (!result.success) {
+    onSetError(result.error || failureMessage);
+    return;
+  }
+
+  try {
+    if (insertAtIndex !== null) {
+      const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1]?.name ?? null : null;
+      await api.insertIntoIndexYaml(currentPath, itemName, insertAfterName);
+    }
+  } catch (err: unknown) {
+    onSetError('Failed to insert item into index: ' + toErrorMessage(err));
+    return;
+  }
+
+  setHighlightItem(itemPath);
+  setPendingScrollToFile(itemPath);
+  onRefreshDirectory();
+  onCreated?.(itemPath);
+}
+
 export async function createFileOp(
   fileName: string,
   currentPath: string | null,
   insertAtIndex: number | null,
   sortedEntries: FileEntry[],
   onRefreshDirectory: () => void,
-  onSetError: (e: string) => void,
+  onSetError: SetError,
   onCloseDialog: () => void
 ): Promise<void> {
   if (!currentPath) return;
-  const filePath = joinPath(currentPath, fileName);
-  const result = await api.createFile(filePath, '');
-
-  if (result.success) {
-    onCloseDialog();
-    if (insertAtIndex !== null) {
-      const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1]?.name ?? null : null;
-      await api.insertIntoIndexYaml(currentPath, fileName, insertAfterName);
+  await createItemOp(
+    fileName,
+    currentPath,
+    insertAtIndex,
+    sortedEntries,
+    (filePath) => api.createFile(filePath, ''),
+    'Failed to create file',
+    onRefreshDirectory,
+    onSetError,
+    onCloseDialog,
+    (filePath) => {
+      if (isMarkdownFile(fileName) || isTextFile(fileName)) {
+        // Drive expand+edit off the refresh-completion effect in BrowseView (which acts
+        // once the new item is actually rendered) rather than a fixed timing assumption.
+        setPendingEditFile(filePath);
+      }
     }
-    setHighlightItem(filePath);
-    setPendingScrollToFile(filePath);
-    onRefreshDirectory();
-    const isMarkdown = fileName.toLowerCase().endsWith('.md');
-    const isText = fileName.toLowerCase().endsWith('.txt');
-    if (isMarkdown || isText) {
-      // Drive expand+edit off the refresh-completion effect in BrowseView (which acts
-      // once the new item is actually rendered) rather than a fixed timing assumption.
-      setPendingEditFile(filePath);
-    }
-  } else {
-    onCloseDialog();
-    onSetError(result.error || 'Failed to create file');
-  }
+  );
 }
 
 /**
@@ -242,26 +314,21 @@ export async function createFolderOp(
   insertAtIndex: number | null,
   sortedEntries: FileEntry[],
   onRefreshDirectory: () => void,
-  onSetError: (e: string) => void,
+  onSetError: SetError,
   onCloseDialog: () => void
 ): Promise<void> {
   if (!currentPath) return;
-  const folderPath = joinPath(currentPath, folderName);
-  const result = await api.createFolder(folderPath);
-
-  if (result.success) {
-    onCloseDialog();
-    if (insertAtIndex !== null) {
-      const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1]?.name ?? null : null;
-      await api.insertIntoIndexYaml(currentPath, folderName, insertAfterName);
-    }
-    setHighlightItem(folderPath);
-    setPendingScrollToFile(folderPath);
-    onRefreshDirectory();
-  } else {
-    onCloseDialog();
-    onSetError(result.error || 'Failed to create folder');
-  }
+  await createItemOp(
+    folderName,
+    currentPath,
+    insertAtIndex,
+    sortedEntries,
+    api.createFolder,
+    'Failed to create folder',
+    onRefreshDirectory,
+    onSetError,
+    onCloseDialog
+  );
 }
 
 /**
@@ -282,7 +349,7 @@ export async function runOcr(
   currentPath: string,
   ocrToolsFolder: string | undefined,
   items: ReadonlyMap<string, ItemData>,
-  onSetError: (e: string) => void
+  onSetError: SetError
 ): Promise<void> {
   if (!ocrToolsFolder) {
     onSetError('OCR tools folder is not configured. Set it in Settings → OCR.');
@@ -333,7 +400,7 @@ export async function runOcr(
 export async function pasteFromClipboardOp(
   currentPath: string | null,
   onRefreshDirectory: () => void,
-  onSetError: (e: string) => void
+  onSetError: SetError
 ): Promise<void> {
   if (!currentPath) return;
 
@@ -346,11 +413,16 @@ export async function pasteFromClipboardOp(
   if (result.success && result.fileName) {
     const filePath = joinPath(currentPath, result.fileName);
     setPendingScrollToFile(filePath);
-    await api.reconcileIndexedFiles(currentPath, false);
+    try {
+      await api.reconcileIndexedFiles(currentPath, false);
+    } catch (err: unknown) {
+      onSetError('Failed to update index after paste: ' + toErrorMessage(err));
+      return;
+    }
     onRefreshDirectory();
     setTimeout(() => {
       setItemExpanded(filePath, true);
-    }, 200);
+    }, EXPAND_AFTER_PASTE_DELAY_MS);
   } else if (result.error) {
     onSetError(result.error);
   }
