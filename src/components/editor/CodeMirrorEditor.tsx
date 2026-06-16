@@ -122,6 +122,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   const onSaveRef = useRef(onSave);
   const onSelectionChangeRef = useRef(onSelectionChange);
   const onReadyRef = useRef(onReady);
+  const onGoToLineCompleteRef = useRef(onGoToLineComplete);
+  const onGoToPositionCompleteRef = useRef(onGoToPositionComplete);
   // Prevents onChange feedback loop when the sync effect dispatches an external value into the editor
   const suppressOnChangeRef = useRef(false);
   // Debounce timer for onChange — collapses rapid keystroke bursts (e.g. speech-to-text) into one store update
@@ -134,6 +136,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   onSaveRef.current = onSave;
   onSelectionChangeRef.current = onSelectionChange;
   onReadyRef.current = onReady;
+  onGoToLineCompleteRef.current = onGoToLineComplete;
+  onGoToPositionCompleteRef.current = onGoToPositionComplete;
   const settings = useSettings();
 
   // Stable handle object — its methods read viewRef lazily, so a single instance works for the
@@ -363,9 +367,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
             });
 
             // Notify parent that goToLine has been processed
-            if (onGoToLineComplete) {
-              onGoToLineComplete();
-            }
+            onGoToLineCompleteRef.current?.();
           } catch (err) {
             logger.error('Failed to scroll to line:', err);
           }
@@ -422,7 +424,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       .catch((err: unknown) => logger.error('Failed to load spell checker:', err));
 
     return cleanup;
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'autoFocus', 'editorHandle', 'goToLine', 'language', 'onGoToLineComplete', 'placeholder', 'readOnly', 'settings.fontSize', 'showPropsInEditor', and 'value' - review before adding (may alter behavior)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync external value changes to editor (but not when editor itself changed)
@@ -453,8 +455,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     const pos = Math.max(0, Math.min(goToPosition, view.state.doc.length));
     view.dispatch({ selection: { anchor: pos, head: pos }, scrollIntoView: true });
     view.focus();
-    onGoToPositionComplete?.();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'onGoToPositionComplete' - review before adding (may alter behavior)
+    onGoToPositionCompleteRef.current?.();
   }, [goToPosition]);
 
   // Update font size when settings change
