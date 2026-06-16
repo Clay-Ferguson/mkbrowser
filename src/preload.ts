@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppConfig, ElectronAPI, CalendarEventResult } from './types/shared';
+import type { AppConfig, ElectronAPI, CalendarEventResult, OcrTarget } from './types/shared';
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -103,7 +103,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => { ipcRenderer.removeListener('calendar-file-deleted', listener); };
   },
 
-  runInExternalTerminal: (command: string) => ipcRenderer.invoke('run-in-external-terminal', command),
+  runOcrInTerminal: (ocrToolsFolder: string, targets: OcrTarget[]) => ipcRenderer.invoke('run-ocr-in-terminal', ocrToolsFolder, targets),
   insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) =>
     ipcRenderer.invoke('insert-into-index-yaml', dirPath, newName, insertAfterName),
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') =>

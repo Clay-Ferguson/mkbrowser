@@ -25,7 +25,7 @@ import { checkHealth, ensureRunning, stopServer } from './ai/llamaServer';
 import { readExifMetadata, writeExifMetadata } from './utils/exifUtil';
 import { logger } from './utils/logUtil';
 import { exportFolderContents, exportToPdf } from './utils/exportUtil';
-import { runShellScript, runInExternalTerminal } from './utils/launcherUtil';
+import { runShellScript, runOcrInTerminal } from './utils/launcherUtil';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
 const ENABLE_STREAM_RESPONSE = true;
@@ -41,6 +41,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 import type { FileEntry } from './global';
+import type { OcrTarget } from './types/shared';
 import { ATTACH_SUFFIX } from './utils/specialFiles';
 
 let mainWindow: BrowserWindow | null = null;
@@ -770,9 +771,9 @@ function setupIpcHandlers(): void {
     return gatherThreadEntries(folderPath);
   });
 
-  ipcMain.handle('run-in-external-terminal', async (_event, command: string): Promise<{ success: boolean; error?: string }> => {
+  ipcMain.handle('run-ocr-in-terminal', async (_event, ocrToolsFolder: string, targets: OcrTarget[]): Promise<{ success: boolean; error?: string }> => {
     try {
-      return await runInExternalTerminal(command);
+      return await runOcrInTerminal(ocrToolsFolder, targets);
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }

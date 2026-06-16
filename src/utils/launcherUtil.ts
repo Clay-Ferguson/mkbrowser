@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import type { OcrTarget } from '../types/shared';
 
 const execAsync = promisify(exec);
 
@@ -86,13 +87,42 @@ export async function runShellScript(filePath: string): Promise<{ success: boole
   return { success: true };
 }
 
-export async function runInExternalTerminal(command: string): Promise<{ success: boolean; error?: string }> {
+/**
+ * Wrap an arbitrary string as a single POSIX shell token. Anything inside single
+ * quotes is taken literally by the shell, so the only character needing special
+ * handling is `'` itself, which is closed, escaped, and reopened (`'\''`). The
+ * returned value is safe to splice into a `bash -c` command string.
+ */
+export function shellQuote(arg: string): string {
+  return `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
+ * Run ocr.sh in a new external terminal window. The OCR tools folder is used as the
+ * working directory (so ocr.sh is found and run from there) rather than being spliced
+ * into the command, and every target path/label is passed through shellQuote, so
+ * user-controlled paths can never escape into executable shell.
+ */
+export async function runOcrInTerminal(
+  ocrToolsFolder: string,
+  targets: OcrTarget[]
+): Promise<{ success: boolean; error?: string }> {
   const terminal = await findTerminalEmulator();
   if (!terminal) {
     return { success: false, error: NO_TERMINAL_ERROR };
   }
+  if (targets.length === 0) {
+    return { success: false, error: 'No OCR targets provided.' };
+  }
+
+  const calls = targets.map((target) => {
+    const ocrCall = `./ocr.sh ${shellQuote(target.path)}`;
+    return target.label ? `echo ${shellQuote(target.label)} && ${ocrCall}` : ocrCall;
+  });
+  const command = calls.join(' && ');
 
   const child = spawn(terminal.cmd, [...terminal.args, 'bash', '-c', `${command}; exec bash`], {
+    cwd: ocrToolsFolder,
     detached: true,
     stdio: 'ignore',
   });

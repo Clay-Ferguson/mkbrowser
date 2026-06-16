@@ -11,6 +11,16 @@ export type SearchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
 export type SearchSortDirection = 'asc' | 'desc';
 
+/**
+ * A single OCR job to run in the external terminal. `path` is passed to ocr.sh
+ * as its argument; the optional `label` is echoed as a progress header before it.
+ * Both are treated as data and shell-quoted in the main process, never interpolated.
+ */
+export interface OcrTarget {
+  path: string;
+  label?: string;
+}
+
 /** A single EXIF group's tags, keyed by tag name. */
 export type ExifSection = Record<string, string>;
 /** EXIF metadata grouped by section (e.g. 'exif', 'gps'), keyed by group name. */
@@ -249,7 +259,7 @@ export interface ElectronAPI {
   onCalendarFileChanged: (callback: (results: CalendarEventResult[], filePath: string) => void) => () => void;
   onCalendarFileDeleted: (callback: (deletedPath: string, isFolder: boolean) => void) => () => void;
 
-  runInExternalTerminal: (command: string) => Promise<{ success: boolean; error?: string }>;
+  runOcrInTerminal: (ocrToolsFolder: string, targets: OcrTarget[]) => Promise<{ success: boolean; error?: string }>;
   insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;
   moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') => Promise<{ success: boolean; error?: string }>;

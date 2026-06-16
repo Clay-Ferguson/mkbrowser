@@ -1,4 +1,5 @@
 import type { ItemData } from '../types/types';
+import type { OcrTarget } from '../types/shared';
 import { api } from '../services/api';
 import type { FileEntry } from '../global';
 import { isImageFile } from './fileUtil';
@@ -287,30 +288,29 @@ export function runOcr(
     onSetError('OCR tools folder is not configured. Set it in Settings → OCR.');
     return;
   }
-  const escapedOcrFolder = ocrToolsFolder.replace(/'/g, "'\\''");
 
   const selectedImages = Array.from(items.values()).filter(
     (item) => item.isSelected && !item.isDirectory && isImageFile(item.name)
   );
   const hasAnySelection = Array.from(items.values()).some((item) => item.isSelected);
 
-  let command: string;
+  // Pass paths/labels as structured data; the main process shell-quotes them so a
+  // path or filename can never be interpreted as shell syntax.
+  let targets: OcrTarget[];
   if (hasAnySelection) {
     if (selectedImages.length === 0) {
       onSetError('No image files in the current selection. Select one or more image files to run OCR.');
       return;
     }
-    const ocrCalls = selectedImages.map((img, i) => {
-      const escapedImg = img.path.replace(/'/g, "'\\''");
-      return `echo "--- OCR [${i + 1}/${selectedImages.length}]: ${img.name} ---" && ./ocr.sh '${escapedImg}'`;
-    });
-    command = `cd '${escapedOcrFolder}' && ${ocrCalls.join(' && ')}`;
+    targets = selectedImages.map((img, i) => ({
+      path: img.path,
+      label: `--- OCR [${i + 1}/${selectedImages.length}]: ${img.name} ---`,
+    }));
   } else {
-    const escapedPath = currentPath.replace(/'/g, "'\\''");
-    command = `cd '${escapedOcrFolder}' && ./ocr.sh '${escapedPath}'`;
+    targets = [{ path: currentPath }];
   }
 
-  api.runInExternalTerminal(command)
+  api.runOcrInTerminal(ocrToolsFolder, targets)
     .then(result => {
       if (!result.success) {
         onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
