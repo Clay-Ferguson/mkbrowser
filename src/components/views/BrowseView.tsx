@@ -307,7 +307,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         }
       }, 100);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'pendingEditLineNumber' - review before adding (may alter behavior)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: pendingEditLineNumber is always set in tandem with pendingEditFile (already a dep), so the effect already re-fires when it meaningfully changes
   }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, currentPath, currentView]);
 
   const generateExportFileName = (currentPath: string | null): string => {
@@ -372,7 +372,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         clearTimeout(scrollSaveTimerRef.current);
       }
       if (previousPathRef.current && mainContainerRef.current) {
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): copy ref to a local var inside the effect before using it in cleanup
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: read the latest ref.current values at unmount to flush the final scroll position. Copying to a local at mount would capture stale mount-time values and is wrong here.
         setBrowserScrollPosition(previousPathRef.current, mainContainerRef.current.scrollTop);
       }
     };
@@ -449,19 +449,19 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const performDelete = useCallback(async () => {
     await deleteSelected(getSelectedItems(), currentPath, hasIndexFile, onSetError, onRefreshDirectory, () => setShowDeleteConfirm(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'getSelectedItems' - review before adding (may alter behavior)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- false positive: getSelectedItems only reads items, which is already a dep. Listing the unmemoized helper would defeat this callback's memoization.
   }, [currentPath, hasIndexFile, items, onRefreshDirectory, onSetError]);
 
   const handleSplitFile = useCallback(async () => {
     if (!currentPath) return;
     await splitSelectedFile(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'getSelectedItems' - review before adding (may alter behavior)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- false positive: getSelectedItems only reads items, which is already a dep. Listing the unmemoized helper would defeat this callback's memoization.
   }, [currentPath, items, onRefreshDirectory, onSetError]);
 
   const handleJoinFiles = useCallback(async () => {
     if (!currentPath) return;
     await joinSelectedFiles(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'getSelectedItems' - review before adding (may alter behavior)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- false positive: getSelectedItems only reads items, which is already a dep. Listing the unmemoized helper would defeat this callback's memoization.
   }, [currentPath, items, onRefreshDirectory, onSetError]);
 
   const handleCutClick = useCallback(() => {

@@ -68,7 +68,7 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
       view.destroy();
       viewRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- TODO(hooks): missing dep(s) 'language', 'modifiedText', 'originalText', and 'settings.fontSize' - review before adding (may alter behavior)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resolveAllChunks = (action: 'accept' | 'reject') => {
