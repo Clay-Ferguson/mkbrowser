@@ -1,4 +1,4 @@
-import type { CalendarEvent } from '../types/types';
+import type { CalendarEvent, CalendarViewType } from '../types/types';
 import { ensureTrailingSep } from '../utils/pathUtil';
 import { getState, setState, useStoreValue } from './core';
 
@@ -63,11 +63,11 @@ export function useCalendarLoading(): boolean {
   return useStoreValue(s => s.calendarLoading);
 }
 
-export function useCalendarViewType(): 'month' | 'week' | 'work_week' | 'day' | 'agenda' {
+export function useCalendarViewType(): CalendarViewType {
   return useStoreValue(s => s.calendarViewType);
 }
 
-export function setCalendarViewType(viewType: 'month' | 'week' | 'work_week' | 'day' | 'agenda'): void {
+export function setCalendarViewType(viewType: CalendarViewType): void {
   setState({ calendarViewType: viewType });
 }
 

@@ -6,7 +6,7 @@ import { enUS } from 'date-fns/locale/en-US';
 import { api } from '../../services/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useSettings, useActiveCalendarFolder } from '../../store';
-import type { CalendarEvent } from '../../types/types';
+import type { CalendarEvent, CalendarViewType } from '../../types/types';
 import { logger } from '../../utils/logUtil';
 import { getParentPath, joinPath } from '../../utils/pathUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
@@ -55,7 +55,7 @@ export default function CalendarView() {
   const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
 
   const handleViewChange = (v: View) => {
-    const vt = v as 'month' | 'week' | 'work_week' | 'day' | 'agenda';
+    const vt = v as CalendarViewType;
     setCalendarViewType(vt);
     void api.updateConfig({ calendarViewType: vt });
   };

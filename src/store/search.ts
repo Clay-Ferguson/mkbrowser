@@ -1,4 +1,4 @@
-import type { SearchResultItem, SearchSortBy, SearchSortDirection } from '../types/types';
+import type { HighlightedSearchResult, SearchResultItem, SearchSortBy, SearchSortDirection } from '../types/types';
 import { setState, useStoreValue } from './core';
 
 // ============================================================================
@@ -8,7 +8,7 @@ import { setState, useStoreValue } from './core';
 /**
  * Set the highlighted search result (for persistent highlighting)
  */
-export function setHighlightedSearchResult(result: { path: string; lineNumber?: number } | null): void {
+export function setHighlightedSearchResult(result: HighlightedSearchResult | null): void {
   setState({ highlightedSearchResult: result });
 }
 
@@ -92,6 +92,6 @@ export function useSearchSortDirection(): SearchSortDirection {
 /**
  * Hook to subscribe to highlighted search result
  */
-export function useHighlightedSearchResult(): { path: string; lineNumber?: number } | null {
+export function useHighlightedSearchResult(): HighlightedSearchResult | null {
   return useStoreValue(s => s.highlightedSearchResult);
 }

@@ -217,6 +217,16 @@ export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
 export type SearchSortDirection = 'asc' | 'desc';
 
 /**
+ * A search result marked for persistent highlighting (path + optional line).
+ */
+export type HighlightedSearchResult = { path: string; lineNumber?: number };
+
+/**
+ * The selectable calendar views (month/week/work-week/day/agenda).
+ */
+export type CalendarViewType = 'month' | 'week' | 'work_week' | 'day' | 'agenda';
+
+/**
  * Saved search definition
  */
 export interface SearchDefinition {
@@ -420,7 +430,7 @@ export interface AppState {
    * Path and line number of the highlighted search result.
    * Used to highlight the result when returning to search results view.
    */
-  highlightedSearchResult: { path: string; lineNumber?: number } | null;
+  highlightedSearchResult: HighlightedSearchResult | null;
 
   /**
    * Folder analysis results (null until an analysis is run)
@@ -518,7 +528,7 @@ export interface AppState {
    * The currently selected calendar view (month/week/day/agenda).
    * Persisted to AppConfig so it survives app restarts.
    */
-  calendarViewType: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
+  calendarViewType: CalendarViewType;
 
   /**
    * The date currently displayed in the calendar (the navigated-to date).
