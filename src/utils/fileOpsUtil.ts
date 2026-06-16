@@ -278,12 +278,12 @@ export async function createFolderOp(
  * @param items - The current item map from the store, used to find selected image files.
  * @param onSetError - Callback invoked with an error message on any failure.
  */
-export function runOcr(
+export async function runOcr(
   currentPath: string,
   ocrToolsFolder: string | undefined,
   items: ReadonlyMap<string, ItemData>,
   onSetError: (e: string) => void
-): void {
+): Promise<void> {
   if (!ocrToolsFolder) {
     onSetError('OCR tools folder is not configured. Set it in Settings → OCR.');
     return;
@@ -310,15 +310,14 @@ export function runOcr(
     targets = [{ path: currentPath }];
   }
 
-  api.runOcrInTerminal(ocrToolsFolder, targets)
-    .then(result => {
-      if (!result.success) {
-        onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
-      }
-    })
-    .catch((err: unknown) => {
-      onSetError('Failed to launch OCR terminal: ' + (err instanceof Error ? err.message : String(err)));
-    });
+  try {
+    const result = await api.runOcrInTerminal(ocrToolsFolder, targets);
+    if (!result.success) {
+      onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
+    }
+  } catch (err: unknown) {
+    onSetError('Failed to launch OCR terminal: ' + (err instanceof Error ? err.message : String(err)));
+  }
 }
 
 /**

@@ -659,7 +659,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const handleRunOcr = useCallback(() => {
     if (!currentPath) return;
-    runOcr(currentPath, settings.ocrToolsFolder, items, onSetError);
+    void runOcr(currentPath, settings.ocrToolsFolder, items, onSetError);
   }, [currentPath, settings.ocrToolsFolder, items, onSetError]);
 
   const handleCopyLink = useCallback(() => {
