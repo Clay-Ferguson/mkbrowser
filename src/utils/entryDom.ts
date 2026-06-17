@@ -23,8 +23,11 @@ export const scrollItemIntoView = (filePath: string, highlight = false) => {
   const element = document.getElementById(targetId);
   if (!element) return;
 
-  // Find the scrollable main container (the element with overflow-y-auto)
-  const scrollContainer = document.querySelector('main');
+  // Find the scrollable main container that actually contains this element.
+  // Using element.closest('main') (rather than a global document.querySelector)
+  // is important because inactive views stay mounted (display:none) and also
+  // render their own <main>; a global query could grab a hidden one.
+  const scrollContainer = element.closest('main');
   if (!scrollContainer) {
     if (highlight) temporaryHighlightItem(element);
     // Fallback to scrollIntoView if container not found
@@ -68,7 +71,9 @@ export const scrollElementIntoView = (elementId: string, highlight: boolean) => 
   const element = document.getElementById(elementId);
   if (!element) return;
 
-  const scrollContainer = document.querySelector('main');
+  // See scrollItemIntoView: resolve the container from the target element so we
+  // don't accidentally pick a hidden, still-mounted view's <main>.
+  const scrollContainer = element.closest('main');
   if (!scrollContainer) {
     if (highlight) temporaryHighlightItem(element);
     element.scrollIntoView({ block: 'center' });
