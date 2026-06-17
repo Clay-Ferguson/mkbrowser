@@ -2,10 +2,17 @@ import { useEffect, useState, useRef } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import mermaid from 'mermaid';
 
+// securityLevel: 'strict' is deliberate. This app renders untrusted markdown
+// (downloaded notes, shared vaults, AI-generated content), and the rendered SVG
+// is injected via dangerouslySetInnerHTML below. 'loose' would let a malicious
+// mermaid block embed inline event handlers / javascript: links that execute in
+// the renderer, where window.electronAPI exposes filesystem IPC. 'strict' makes
+// Mermaid HTML-encode label text and disable click handlers. We use no Mermaid
+// interactivity features, so nothing here depends on 'loose'.
 mermaid.initialize({
   startOnLoad: false,
   theme: 'dark',
-  securityLevel: 'loose',
+  securityLevel: 'strict',
 });
 
 const mermaidRenderQueue: Array<() => Promise<void>> = [];
