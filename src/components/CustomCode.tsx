@@ -3,13 +3,14 @@ import type { ExtraProps } from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { MermaidDiagram } from './MermaidDiagram';
+import { nodeToString } from '../utils/reactUtil';
 
 // `node` is react-markdown's internal hast node; destructure it out so it isn't
 // spread onto the DOM <code> element (React warns on unknown DOM props).
 function CustomCode({ className, children, node, ...props }: React.HTMLAttributes<HTMLElement> & ExtraProps) {
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
-  const codeString = String(children).replace(/\n$/, '');
+  const codeString = nodeToString(children).replace(/\n$/, '');
 
   if (language === 'mermaid') {
     return <MermaidDiagram code={codeString} />;
