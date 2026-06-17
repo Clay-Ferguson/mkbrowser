@@ -16,15 +16,9 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
     e.stopPropagation();
     if (!href) return;
 
-    // Handle external URLs - open in system browser
-    if (href.startsWith('http://') || href.startsWith('https://')) {
-      e.preventDefault();
-      void api.openExternalUrl(href);
-      return;
-    }
-
-    // Handle file:// URLs - open with system default app
-    if (href.startsWith('file://')) {
+    // Handle external (http/https) and file:// URLs — both open via the system
+    // default handler (browser or associated app), so they share one branch.
+    if (/^(https?:|file:)\/\//.test(href)) {
       e.preventDefault();
       void api.openExternalUrl(href);
       return;
@@ -72,7 +66,9 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
         targetPath = parts.join(pathSep());
       }
 
-      // Extract folder and filename from the resolved path
+      // Extract folder and filename from the resolved path. `targetPath` is
+      // derived from `entryPath` (always rooted) or an absolute href, so it
+      // always has a parent; the `|| targetPath` fallback is defensive only.
       const folderPath = getParentPath(targetPath) || targetPath;
 
       // Navigate to the folder and scroll to/highlight the file
@@ -87,10 +83,10 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
   // prevent edit mode — we must also stop the mouseup from bubbling to the container.
   return (
     <a
+      {...props}
       href={href}
       onClick={handleClick}
       onMouseUp={(e) => e.stopPropagation()}
-      {...props}
     >
       {children}
     </a>
