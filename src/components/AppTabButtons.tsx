@@ -2,7 +2,7 @@ import { useRef, useState, useCallback } from 'react';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { showTab, hideTab, useCurrentView, setCurrentView, useFolderAnalysis, useFolderGraph, useSearchResults, useVisibleTabs, useCurrentPath, useRootPath, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, setSearchResults, type AppView } from '../store';
 import { isAiThreadByEntries } from '../ai/aiPatterns';
-import { getParentPath } from '../utils/pathUtil';
+import { getParentPath, isPathInside } from '../utils/pathUtil';
 import type { FileEntry } from '../global';
 import appLogo from '../../public/icon-256.png';
 import FilePopupMenu from './menus/FilePopupMenu';
@@ -49,7 +49,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
   const navigateUp = useCallback(() => {
     if (!currentPath || currentPath === rootPath) return;
     const parent = getParentPath(currentPath);
-    if (parent.length >= rootPath.length) {
+    if (isPathInside(rootPath, parent)) {
       setCurrentPath(parent);
       setHighlightItem(currentPath);
       setPendingScrollToFile(currentPath);
