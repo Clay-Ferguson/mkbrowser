@@ -20,7 +20,7 @@ function IndexInsertBar({ onInsertFile, onInsertFolder }: IndexInsertBarProps) {
           className="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
           title="Insert file here"
         >
-          <DocumentPlusIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
+          <DocumentPlusIcon className="w-5 h-5" />
         </button>
         <button
           type="button"
@@ -29,7 +29,7 @@ function IndexInsertBar({ onInsertFile, onInsertFolder }: IndexInsertBarProps) {
           className="p-1.5 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
           title="Insert folder here"
         >
-          <FolderPlusIcon className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
+          <FolderPlusIcon className="w-5 h-5" />
         </button>
       </div>
     </div>
