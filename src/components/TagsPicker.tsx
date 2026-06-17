@@ -7,8 +7,6 @@ import {
   removeTagFromText, insertTagIntoText,
 } from '../utils/tagUtil';
 
-export { removeTagFromText, insertTagIntoText };
-
 interface TagsPickerProps {
   /** Full path of the file being edited */
   filePath: string;
