@@ -1,5 +1,6 @@
 import { EditorView } from '@codemirror/view';
 import { type FontSize } from '../../store';
+import { MONO_FONT_STACK } from '../../utils/styles';
 
 export const FONT_SIZE_MAP: Record<FontSize, string> = {
   small: '12px',
@@ -17,7 +18,7 @@ export function createFontSizeTheme(fontSize: FontSize) {
       fontSize: FONT_SIZE_MAP[fontSize],
     },
     '.cm-scroller': {
-      fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+      fontFamily: MONO_FONT_STACK,
     },
     '.cm-content, .cm-gutter': {
       minHeight: '75px',

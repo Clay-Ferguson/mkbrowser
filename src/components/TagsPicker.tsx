@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useItem, getItemEditContent, setItemEditContent } from '../store';
-import { CHECKBOX_CLASS } from '../utils/styles';
+import { CHECKBOX_CLASS, MONO_FONT_STACK } from '../utils/styles';
 import {
   fetchTags, type TagsLoadState, type TagCategory, type HashtagDefinition,
   tagName, splitFrontMatter, getTagsFromYaml,
@@ -64,8 +64,6 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     setItemEditContent(filePath, currentContent);
   };
 
-  const MONO_FONT = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
-
   const renderTag = (category: TagCategory, def: HashtagDefinition) => {
     const checked = activeTags.includes(tagName(def.tag));
     return (
@@ -90,7 +88,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   };
 
   return (
-    <div className="pb-3" style={{ fontFamily: MONO_FONT }}>
+    <div className="pb-3" style={{ fontFamily: MONO_FONT_STACK }}>
       <div className="flex flex-col gap-y-2">
         {[...loadState.categories].sort((a, b) => a.name.localeCompare(b.name)).map((category) => (
           <div key={category.name} className="flex items-start gap-2">

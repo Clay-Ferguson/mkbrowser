@@ -24,6 +24,10 @@ export function getContentWidthClasses(contentWidth: ContentWidth): string {
 
 export const CHECKBOX_CLASS = 'h-5 w-5 accent-blue-500 flex-shrink-0 cursor-pointer';
 
+// Shared monospace font stack. Used for inline `fontFamily` styles in UI components
+// (PropsDisplay, TagsPicker) and CodeMirror editor themes (editorTheme, editorDateUtil).
+export const MONO_FONT_STACK = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
+
 // Checkbox/radio <input> styling for dialog form fields. DLG_CHECK_RADIO_BASE is
 // the shared sizing/border/focus styling; compose it with a `text-blue-*` accent
 // (and `rounded` for checkboxes). CHECKBOX_FIELD_CLASS / RADIO_FIELD_CLASS are the

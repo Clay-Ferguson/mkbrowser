@@ -1,6 +1,5 @@
 import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../utils/timeUtil';
-
-const MONO_FONT = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
+import { MONO_FONT_STACK } from '../utils/styles';
 
 function getDateTooltip(value: unknown): string | undefined {
   const str = String(value);
@@ -43,7 +42,7 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
         key={key}
         onClick={() => onPropClick?.(key)}
         className={`inline-flex items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden${onPropClick ? ' cursor-pointer hover:brightness-125' : ''}`}
-        style={{ fontFamily: MONO_FONT }}
+        style={{ fontFamily: MONO_FONT_STACK }}
         title={dateTooltip}
       >
         <span className="px-2 py-0.5 bg-amber-700/50 text-amber-200">{key}</span>
@@ -58,7 +57,7 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
       key={tag}
       onClick={onTagClick}
       className={`px-2 py-0.5 rounded-md text-sm bg-blue-600/50 text-blue-100 border border-slate-400/60 select-none whitespace-nowrap${onTagClick ? ' cursor-pointer hover:brightness-125' : ''}`}
-      style={{ fontFamily: MONO_FONT }}
+      style={{ fontFamily: MONO_FONT_STACK }}
     >
       {tag.startsWith('#') ? tag : `#${tag}`}
     </span>

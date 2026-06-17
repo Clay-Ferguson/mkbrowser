@@ -1,6 +1,7 @@
 import { Decoration, DecorationSet, ViewPlugin, ViewUpdate, EditorView, hoverTooltip } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
 import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../timeUtil';
+import { MONO_FONT_STACK } from '../styles';
 
 // Decoration for date patterns
 export const dateMark = Decoration.mark({ class: 'cm-date' });
@@ -111,6 +112,6 @@ export const dateTheme = EditorView.baseTheme({
     padding: '6px 8px',
     marginBottom: '4px',
     fontSize: '16px',
-    fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+    fontFamily: MONO_FONT_STACK,
   },
 });
