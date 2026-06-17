@@ -9,6 +9,7 @@ import {
   endsWithSep,
   ensureTrailingSep,
   isAbsolutePath,
+  isPathInside,
 } from '../src/utils/pathUtil';
 
 // Outside the renderer there is no window.electronAPI, so pathSep() falls
@@ -134,5 +135,35 @@ describe('isAbsolutePath', () => {
     expect(isAbsolutePath('file.md')).toBe(false);
     expect(isAbsolutePath('./file.md')).toBe(false);
     expect(isAbsolutePath('../file.md')).toBe(false);
+  });
+});
+
+describe('isPathInside', () => {
+  it('treats a path as inside itself', () => {
+    expect(isPathInside('/home/user/notes', '/home/user/notes')).toBe(true);
+  });
+
+  it('recognizes nested descendants', () => {
+    expect(isPathInside('/home/user/notes', '/home/user/notes/2024')).toBe(true);
+    expect(isPathInside('/home/user/notes', '/home/user/notes/a/b/c')).toBe(true);
+  });
+
+  it('does NOT treat a prefix-sharing sibling as inside', () => {
+    expect(isPathInside('/home/user/notes', '/home/user/notes-archive/2024')).toBe(false);
+    expect(isPathInside('/home/user/notes', '/home/user/notesxyz')).toBe(false);
+  });
+
+  it('ignores trailing separators on either argument', () => {
+    expect(isPathInside('/home/user/notes/', '/home/user/notes')).toBe(true);
+    expect(isPathInside('/home/user/notes', '/home/user/notes/')).toBe(true);
+  });
+
+  it('accepts windows-style separators', () => {
+    expect(isPathInside('C:\\Users\\notes', 'C:\\Users\\notes\\2024')).toBe(true);
+    expect(isPathInside('C:\\Users\\notes', 'C:\\Users\\notes-archive')).toBe(false);
+  });
+
+  it('rejects unrelated paths', () => {
+    expect(isPathInside('/home/user/notes', '/var/log')).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 import { useRootPath } from '../../store';
+import { isPathInside } from '../../utils/pathUtil';
 
 interface FilePopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
@@ -22,8 +23,8 @@ export default function FilePopupMenu({
   const rootPath = useRootPath();
 
   const folderLabel = (folder: string) => {
-    if (rootPath && folder.startsWith(rootPath)) {
-      const rel = folder.slice(rootPath.length).replace(/^\//, '');
+    if (rootPath && isPathInside(rootPath, folder)) {
+      const rel = folder.slice(rootPath.length).replace(/^[/\\]/, '');
       return rel || '/';
     }
     return folder;

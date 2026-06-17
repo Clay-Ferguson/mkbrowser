@@ -84,3 +84,17 @@ export function isAbsolutePath(path: string): boolean {
 export function ensureTrailingSep(path: string): string {
   return endsWithSep(path) ? path : `${path}${pathSep()}`;
 }
+
+/**
+ * True if `child` is `root` itself or nested inside it, comparing on path-segment
+ * boundaries so a sibling like '.../notes-archive' is NOT considered inside
+ * '.../notes'. Trailing separators are ignored and either separator is accepted.
+ */
+export function isPathInside(root: string, child: string): boolean {
+  const r = root.replace(/[/\\]+$/, '');
+  const c = child.replace(/[/\\]+$/, '');
+  if (c === r) return true;
+  // Boundary must be a separator so '.../notes-archive' is not "inside" '.../notes'.
+  // Accept either separator (paths may mix '/' and '\' regardless of platform).
+  return c.startsWith(r) && /[/\\]/.test(c.charAt(r.length));
+}
