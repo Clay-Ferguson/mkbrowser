@@ -41,6 +41,7 @@ import type { CalendarEvent, AppView } from './types/types';
 import type { CalendarEventResult, AppConfig } from './types/shared';
 import type { FileNode } from './store';
 import { loadConfig } from './config';
+import { isPathInside } from './utils/pathUtil';
 import { applyGlobalHighlight, globalHighlightText } from './utils/globalHighlight';
 import { logger } from './utils/logUtil';
 
@@ -298,7 +299,7 @@ function App() {
   }, []);
 
   const handleOpenRecentFolder = useCallback(async (folder: string) => {
-    if (rootPath && folder.startsWith(rootPath)) {
+    if (rootPath && isPathInside(rootPath, folder)) {
       setCurrentPath(folder);
       setCurrentView('browser');
     } else {
@@ -352,6 +353,7 @@ function App() {
             Select a folder to start browsing your Markdown files.
           </p>
           <button
+            type="button"
             onClick={handleSelectFolder}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
             data-testid="select-folder-button"

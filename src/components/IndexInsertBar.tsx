@@ -14,6 +14,7 @@ function IndexInsertBar({ onInsertFile, onInsertFolder }: IndexInsertBarProps) {
     <div className="relative h-0">
       <div className="absolute top-0 right-0 translate-x-full flex flex-row gap-1">
         <button
+          type="button"
           data-testid="insert-file-here"
           onClick={onInsertFile}
           className="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
@@ -22,6 +23,7 @@ function IndexInsertBar({ onInsertFile, onInsertFolder }: IndexInsertBarProps) {
           <DocumentPlusIcon className="w-5 h-5 text-blue-400 group-hover:text-blue-300" />
         </button>
         <button
+          type="button"
           data-testid="insert-folder-here"
           onClick={onInsertFolder}
           className="p-1.5 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"

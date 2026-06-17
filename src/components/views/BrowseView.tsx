@@ -823,6 +823,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           {/* Cut button - shown when items are selected and no items are cut */}
           {hasSelectedItems && !hasCutItems && (
             <button
+              type="button"
               onClick={handleCutClick}
               className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
               title="Cut selected items"
@@ -835,6 +836,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           {/* Delete button - shown when items are selected and no items are cut */}
           {hasSelectedItems && !hasCutItems && (
             <button
+              type="button"
               onClick={() => setShowDeleteConfirm(true)}
               className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
               title="Delete selected items"
@@ -848,6 +850,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           {!hasIndexFile && (
             <>
               <button
+                type="button"
                 onClick={handleOpenCreateDialog}
                 className="p-1 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                 title="Create file"
@@ -856,6 +859,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 <DocumentPlusIcon className="w-6 h-6 text-blue-400" />
               </button>
               <button
+                type="button"
                 onClick={handleOpenCreateFolderDialog}
                 className="p-1 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
                 title="Create folder"
@@ -868,6 +872,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
           {/* Edit menu button */}
           <button
+            type="button"
             ref={editButtonRef}
             onClick={() => setShowEditMenu(prev => !prev)}
             className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
@@ -879,6 +884,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
           {/* Tools menu button */}
           <button
+            type="button"
             ref={toolsButtonRef}
             onClick={() => setShowToolsMenu(prev => !prev)}
             className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
@@ -890,6 +896,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
           {/* Calendar button */}
           <button
+            type="button"
             onClick={handleShowCalendar}
             className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             title="Show Calendar"
@@ -900,6 +907,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
           {/* Sort order menu button */}
           {!hasIndexFile && (<button
+            type="button"
             ref={sortButtonRef}
             onClick={() => setShowSortMenu(prev => !prev)}
             className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
@@ -911,6 +919,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
           {/* Paste from clipboard button */}
           <button
+            type="button"
             onClick={handlePasteFromClipboard}
             className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             title="Paste from clipboard"
@@ -921,6 +930,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
           {/* Search button */}
           <button
+            type="button"
             ref={searchButtonRef}
             onClick={() => setShowSearchMenu(prev => !prev)}
             className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
@@ -933,6 +943,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           {/* Expand all button */}
           {showExpandAll && (
             <button
+              type="button"
               onClick={expandAllItems}
               className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
               title="Expand all"
@@ -945,6 +956,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           {/* Collapse all button */}
           {showCollapseAll && (
             <button
+              type="button"
               onClick={collapseAllItems}
               className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
               title="Collapse all"
@@ -956,6 +968,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
           {/* Refresh button */}
           <button
+            type="button"
             onClick={() => void handleRefresh()}
             className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
             title="Refresh"

@@ -99,6 +99,7 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
       />
       <div className="flex items-center gap-2">
         <button
+          type="button"
           onClick={() => resolveAllChunks('accept')}
           className={BUTTON_CLASS_SM_GREEN}
           data-testid="diff-accept-all-button"
@@ -106,6 +107,7 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
           Accept All
         </button>
         <button
+          type="button"
           onClick={() => resolveAllChunks('reject')}
           className={BUTTON_CLASS_SM_BLUE}
           data-testid="diff-done-button"
@@ -113,6 +115,7 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
           Done
         </button>
         <button
+          type="button"
           onClick={onCancel}
           className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
           data-testid="diff-cancel-button"

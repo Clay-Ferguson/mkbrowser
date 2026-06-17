@@ -59,6 +59,7 @@ export function EntryEditToolbar({
     <div className="flex items-center gap-2">
       {leftExtras}
       <button
+        type="button"
         onClick={onToggleExpandedEditor}
         title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
         className={ENTRY_EDITOR_ICON_BTN}
@@ -69,6 +70,7 @@ export function EntryEditToolbar({
       </button>
       {showRewrite && (
         <button
+          type="button"
           onClick={onAiRewrite}
           disabled={rewriteDisabled}
           title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
@@ -81,6 +83,7 @@ export function EntryEditToolbar({
       {showSaveCancel && (
         <>
           <button
+            type="button"
             onClick={onCancel}
             disabled={saving}
             className={BUTTON_CLASS_SM_RED}
@@ -89,6 +92,7 @@ export function EntryEditToolbar({
             Cancel
           </button>
           <button
+            type="button"
             onClick={onSave}
             disabled={saving}
             className={BUTTON_CLASS_SM_BLUE}

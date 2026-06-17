@@ -97,6 +97,7 @@ export default function BookmarksPopupMenu({
                 className={MENU_ROW}
               >
                 <button
+                  type="button"
                   className={MENU_ROW_LABEL}
                   onClick={() => void handleClick(fullPath)}
                 >
@@ -105,6 +106,7 @@ export default function BookmarksPopupMenu({
                 </button>
                 <div className={MENU_ROW_ACTIONS}>
                   <button
+                    type="button"
                     className={`${MENU_ICON_BTN} hover:text-slate-100`}
                     title="Edit bookmark"
                     onClick={(e) => { e.stopPropagation(); setEditingBookmark(bookmark); }}
@@ -112,6 +114,7 @@ export default function BookmarksPopupMenu({
                     <PencilIcon className={MENU_ACTION_ICON} />
                   </button>
                   <button
+                    type="button"
                     className={`${MENU_ICON_BTN} hover:text-red-400`}
                     title="Delete bookmark"
                     onClick={(e) => { e.stopPropagation(); void handleDelete(fullPath); }}

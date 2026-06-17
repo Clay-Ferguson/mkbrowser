@@ -97,6 +97,7 @@ export function EntryActionBar({
     <div data-testid="entry-action-bar" className={`flex items-center gap-1 ${className}`}>
       <div className="opacity-0 pointer-events-none [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:pointer-events-auto group-hover:[transition:opacity_200ms_ease_400ms] flex items-center gap-1">
       <button
+        type="button"
         onClick={onDeleteClick}
         disabled={deleting}
         className={BUTTON_CLASS_RED}
@@ -106,6 +107,7 @@ export function EntryActionBar({
         <TrashIcon className="w-5 h-5" />
       </button>
       <button
+        type="button"
         onClick={handleOpenExternal}
         className={BUTTON_CLASS_CYAN}
         title="Open with OS App"
@@ -115,6 +117,7 @@ export function EntryActionBar({
       </button>
       {!isAttachment && settings.indexTreeWidth !== 'hidden' && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             setHighlightItem(path);
@@ -129,6 +132,7 @@ export function EntryActionBar({
         </button>
       )}
       <button
+        type="button"
         onClick={handleBookmarkClick}
         className={BUTTON_CLASS_BLUE}
         title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
@@ -142,6 +146,7 @@ export function EntryActionBar({
       </button>
       {onPasteClipboardAsAttachment && (
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onPasteClipboardAsAttachment(); }}
           className={BUTTON_CLASS_BLUE}
           title="Paste Clipboard as Attachment under this file"
@@ -152,6 +157,7 @@ export function EntryActionBar({
       )}
       {onMoveUp && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             if (e.ctrlKey && onMoveToTop) {
@@ -169,6 +175,7 @@ export function EntryActionBar({
       )}
       {onMoveDown && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             if (e.ctrlKey && onMoveToBottom) {

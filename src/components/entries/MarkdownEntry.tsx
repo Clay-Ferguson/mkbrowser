@@ -207,6 +207,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       leftExtras={
         <>
           <button
+            type="button"
             onClick={handleToggleShowProps}
             title={showPropsInEditor ? 'Hide properties' : 'Show properties'}
             className={`${ENTRY_EDITOR_ICON_BTN} border ${showPropsInEditor ? 'border-slate-400' : 'border-transparent'}`}
@@ -216,6 +217,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
               : <PropsIconOutline className="w-5 h-5" />}
           </button>
           <button
+            type="button"
             onClick={handleToggleTagsVisible}
             title={tagsVisible ? 'Hide tags' : 'Show tags'}
             className={`${ENTRY_EDITOR_ICON_BTN} border ${tagsVisible ? 'border-slate-400' : 'border-transparent'}`}
@@ -225,6 +227,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
               : <TagIconOutline className="w-5 h-5" />}
           </button>
           <button
+            type="button"
             data-testid="edit-calendar-info"
             onClick={() => setShowCalendarDialog(true)}
             title="Calendar Info"
@@ -237,6 +240,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       middleExtras={
         isHumanFile && !item?.reviewing ? (
           <button
+            type="button"
             data-testid="ask-ai-button"
             onClick={async () => {
               await edit.handleSave();
@@ -269,6 +273,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       />
       {hasCutItems && onPasteAsAttachment && !entry.hasAttachFolder && (
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onPasteAsAttachment(entry.path); }}
           className={BUTTON_CLASS_ICON_SOLID_BLUE}
           title="Paste cut items as attachments to this file"
@@ -279,6 +284,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       )}
       {view === 'thread' && (
         <button
+          type="button"
           onClick={() => {
             const folderPath = getParentPath(entry.path);
             setHighlightItem(entry.path);
@@ -293,6 +299,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       )}
       {isAiFile && (
         <button
+          type="button"
           data-testid="ai-reply-button"
           onClick={handleReply}
           disabled={isReplyLoading}

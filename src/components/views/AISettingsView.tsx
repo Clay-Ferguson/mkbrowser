@@ -271,6 +271,7 @@ function AISettingsView() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold text-slate-100">AI Usage Statistics</h2>
                   <button
+                    type="button"
                     onClick={() => setShowResetConfirm(true)}
                     className="text-sm text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
                   >
@@ -367,6 +368,7 @@ function AISettingsView() {
                       {/* Action buttons */}
                       <div className="flex items-center justify-end gap-1">
                         <button
+                          type="button"
                           onClick={handleCreateModel}
                           title="Create new model"
                           className="p-1.5 text-slate-400 hover:text-green-400 hover:bg-slate-700 rounded transition-colors"
@@ -374,6 +376,7 @@ function AISettingsView() {
                           <PlusIcon className="w-5 h-5" />
                         </button>
                         <button
+                          type="button"
                           onClick={handleEditModel}
                           title="Edit selected model"
                           disabled={aiModels.length === 0}
@@ -382,6 +385,7 @@ function AISettingsView() {
                           <PencilIcon className="w-5 h-5" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => {
                             if (!selectedModelIsReadonly) setShowDeleteConfirm(true);
                           }}
@@ -454,6 +458,7 @@ function AISettingsView() {
                               'Stopped'}
                         </span>
                         <button
+                          type="button"
                           disabled={llamaServerBusy || llamaServerStatus === 'running' || llamaServerStatus === 'loading'}
                           onClick={startLlama}
                           className="px-3 py-1 text-xs bg-green-700 hover:bg-green-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
@@ -461,6 +466,7 @@ function AISettingsView() {
                           Start
                         </button>
                         <button
+                          type="button"
                           disabled={llamaServerBusy || llamaServerStatus === 'stopped'}
                           onClick={stopLlama}
                           className="px-3 py-1 text-xs bg-red-700 hover:bg-red-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
@@ -468,6 +474,7 @@ function AISettingsView() {
                           Stop
                         </button>
                         <button
+                          type="button"
                           disabled={llamaServerBusy}
                           onClick={refreshLlama}
                           className="px-3 py-1 text-xs bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:text-slate-500 text-slate-200 rounded transition-colors"

@@ -156,6 +156,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
               Searched for <span className="text-slate-200 font-medium">"{searchQuery}"</span> in {folderName}
             </div>
             <button
+              type="button"
               onClick={() => {
                 if (searchResults.length === 0) return;
                 const graph = buildFolderGraphFromSearchResults(searchResults);
@@ -252,6 +253,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
                   {/* Edit button */}
                   <button
+                    type="button"
                     onClick={(e) => handleEditClick(e, result.path, result.lineNumber)}
                     className={BUTTON_CLASS_BLUE}
                     title="Edit file"
@@ -261,6 +263,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
                   {/* Delete button */}
                   <button
+                    type="button"
                     onClick={(e) => handleDeleteClick(e, result.path)}
                     disabled={deleting}
                     className={BUTTON_CLASS_RED}

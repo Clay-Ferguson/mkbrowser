@@ -174,6 +174,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
         </button>
         {currentView === 'browser' && currentPath !== rootPath && (
           <button
+            type="button"
             onClick={navigateUp}
             className="px-3 py-1 mb-1 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 border border-gray-400 rounded-lg transition-colors cursor-pointer"
             title="Go up one level"

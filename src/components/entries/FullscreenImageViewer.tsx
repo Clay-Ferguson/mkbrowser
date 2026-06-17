@@ -139,6 +139,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
           <span className="text-white/70 text-sm">{currentImage.name}</span>
         </label>
         <button
+          type="button"
           onClick={(e) => onExifClick(e, fullscreenImagePath, currentImage.name)}
           disabled={exifLoading}
           className="fixed top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors z-10"

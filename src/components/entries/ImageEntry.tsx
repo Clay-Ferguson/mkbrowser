@@ -148,6 +148,7 @@ function ImageEntry(props: ImageEntryProps) {
                 onError={(e) => logger.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
               />
               <button
+                type="button"
                 onClick={handleToggleImageSize}
                 className="absolute top-2 right-9 p-1 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors"
                 title={imageSize === 'small' ? 'Switch to large image size' : 'Switch to small image size'}
@@ -155,6 +156,7 @@ function ImageEntry(props: ImageEntryProps) {
                 {imageSize === 'small' ? <MagnifyingGlassPlusIcon className="w-5 h-5" /> : <MagnifyingGlassMinusIcon className="w-5 h-5" />}
               </button>
               <button
+                type="button"
                 onClick={(e) => handleExifClick(e, entry.path, entry.name)}
                 disabled={exifLoading}
                 className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors"

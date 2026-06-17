@@ -100,6 +100,7 @@ export function EditorContextMenu({
           {contextMenu.spelling.suggestions.length > 0 ? (
             contextMenu.spelling.suggestions.map((suggestion) => (
               <button
+                type="button"
                 key={suggestion}
                 role="menuitem"
                 tabIndex={-1}
@@ -118,6 +119,7 @@ export function EditorContextMenu({
         </>
       )}
       <button
+        type="button"
         role="menuitem"
         tabIndex={-1}
         onClick={onCut}
@@ -127,6 +129,7 @@ export function EditorContextMenu({
         <span className="text-slate-500 text-xs ml-4">Ctrl+X</span>
       </button>
       <button
+        type="button"
         role="menuitem"
         tabIndex={-1}
         onClick={onCopy}
@@ -136,6 +139,7 @@ export function EditorContextMenu({
         <span className="text-slate-500 text-xs ml-4">Ctrl+C</span>
       </button>
       <button
+        type="button"
         role="menuitem"
         tabIndex={-1}
         onClick={onPaste}
@@ -146,6 +150,7 @@ export function EditorContextMenu({
       </button>
       {isMarkdown && (
         <button
+          type="button"
           role="menuitem"
           tabIndex={-1}
           onClick={onPasteLink}
@@ -158,6 +163,7 @@ export function EditorContextMenu({
       )}
       <div className="border-t border-slate-600 my-1" />
       <button
+        type="button"
         role="menuitem"
         tabIndex={-1}
         onClick={onSelectAll}
@@ -168,6 +174,7 @@ export function EditorContextMenu({
       </button>
       <div className="border-t border-slate-600 my-1" />
       <button
+        type="button"
         role="menuitem"
         tabIndex={-1}
         onClick={onInsertTimestamp}
@@ -177,6 +184,7 @@ export function EditorContextMenu({
         <span className="text-slate-500 text-xs ml-4">Ctrl+T</span>
       </button>
       <button
+        type="button"
         role="menuitem"
         tabIndex={-1}
         onClick={onInsertDate}
@@ -189,6 +197,7 @@ export function EditorContextMenu({
         <>
           <div className="border-t border-slate-600 my-1" />
           <button
+            type="button"
             role="menuitem"
             tabIndex={-1}
             onClick={onMakeRepeatingCalendarItem}
@@ -197,6 +206,7 @@ export function EditorContextMenu({
             Calendar Item (Reps)
           </button>
           <button
+            type="button"
             role="menuitem"
             tabIndex={-1}
             onClick={onMakeCalendarItem}

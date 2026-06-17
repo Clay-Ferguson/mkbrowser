@@ -147,6 +147,7 @@ function FolderEntry(props: FolderEntryProps) {
             />
             {hasCutItems && onPasteIntoFolder && (
               <button
+                type="button"
                 onClick={(e) => { e.stopPropagation(); onPasteIntoFolder(entry.path); }}
                 className={BUTTON_CLASS_ICON_SOLID_BLUE}
                 title="Paste cut items into this folder"
