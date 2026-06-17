@@ -61,6 +61,18 @@ Native menu actions (cut, paste, delete, etc.) flow as:
 
 We use **Yarn Classic (Yarn 1.x)** to manage packages — the `yarn.lock` is in the `# yarn lockfile v1` format. Use Yarn commands (`yarn add`, `yarn install`, etc.) rather than direct npm commands, and do **not** upgrade to Yarn Berry (Yarn 2+): it uses an incompatible lockfile format and config layout, and a partial migration once left stray `.yarnrc.yml` / `.yarn/` artifacts in this repo (since removed).
 
+## End-to-End (Playwright) Tests
+
+The Playwright e2e tests (`tests/e2e/`) launch the **packaged** Electron build from `.vite/build/` — they do **not** run against source directly.
+
+⚠️ **The tests do not force a recompile.** `tests/e2e/global-setup.ts` only builds when the bundle is *missing*; it does not detect stale output. So after editing any app source (`src/`, the `vite.*.config` files, `index.html`, etc.), you must rebuild before running the e2e tests or they will silently run against the **old** code:
+
+```
+yarn package    # rebuilds .vite/build/ + .vite/renderer/
+```
+
+Forgetting this produces baffling failures where a fix (or a test selector that depends on a renderer change) appears not to work even though the source is correct. Test-only changes under `tests/` do **not** need a rebuild.
+
 
 
 

@@ -382,55 +382,68 @@ function App() {
     display: currentView === view ? 'flex' : 'none',
   });
 
+  // Because every visited view stays mounted in the DOM (only toggled via
+  // `display`), a bare getByTestId() can match the same element in several
+  // tabs at once. Each view wrapper carries a stable `view-<id>` test id plus a
+  // `data-active-view` marker on whichever tab is currently shown, so tests can
+  // scope lookups to a specific (or the active) tab instead of guessing with
+  // .last()/visibility filters. See the `activeView` test helper.
+  const viewProps = (view: AppView) => ({
+    className: 'flex-1 flex flex-col min-h-0 bg-slate-900',
+    style: viewStyle(view),
+    'data-testid': `view-${view}`,
+    ...(currentView === view ? { 'data-active-view': 'true' } : {}),
+  });
+
   return (
     <>
       <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
 
       <div className="flex-1 flex flex-col min-h-0">
         {folderGraph && (
-          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('folder-graph')}>
+          <div {...viewProps('folder-graph')}>
             <FolderGraphView />
           </div>
         )}
 
         {visitedViews.has('search-results') && (
-          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('search-results')}>
+          <div {...viewProps('search-results')}>
             <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
           </div>
         )}
 
         {visitedViews.has('settings') && (
-          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('settings')}>
+          <div {...viewProps('settings')}>
             <SettingsView onSaveSettings={handleSaveSettings} />
           </div>
         )}
 
         {visitedViews.has('ai-settings') && (
-          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('ai-settings')}>
+          <div {...viewProps('ai-settings')}>
             <AISettingsView />
           </div>
         )}
 
         {visitedViews.has('calendar') && (
-          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('calendar')}>
+          <div {...viewProps('calendar')}>
             <CalendarView />
           </div>
         )}
 
         {visitedViews.has('folder-analysis') && (
-          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('folder-analysis')}>
+          <div {...viewProps('folder-analysis')}>
             <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
           </div>
         )}
 
         {visitedViews.has('thread') && (
-          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('thread')}>
+          <div {...viewProps('thread')}>
             <ThreadView onSaveSettings={handleSaveSettings} />
           </div>
         )}
 
         {visitedViews.has('browser') && (
-          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('browser')}>
+          <div {...viewProps('browser')}>
             <div className="flex-1 flex flex-row min-h-0">
               {settings.indexTreeWidth !== 'hidden' && <IndexTreeView onRefreshDirectory={refreshDirectory} />}
               <div className="flex-1 flex flex-col min-h-0 min-w-0">

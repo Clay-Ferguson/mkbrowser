@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings, activeView } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test — AI Chat Feature
@@ -115,7 +115,7 @@ test.describe('AI Chat Demo', () => {
       aiAnswer1
     );
 
-    const askAiButton = mainWindow.getByTestId('ask-ai-button').last();
+    const askAiButton = activeView(mainWindow).getByTestId('ask-ai-button');
     await takeScreenshot(mainWindow, askAiButton, screenshotDir, step++, 'highlight-ask-ai');
     writeNarration(
       screenshotDir,
@@ -140,7 +140,7 @@ test.describe('AI Chat Demo', () => {
     );
 
     // ── 7. Click the "Reply" button ───────────────────────────────────
-    const replyButton = mainWindow.getByTestId('ai-reply-button');
+    const replyButton = activeView(mainWindow).getByTestId('ai-reply-button');
     await expect(replyButton).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, replyButton, screenshotDir, step++, 'highlight-reply');
     writeNarration(
@@ -181,7 +181,7 @@ test.describe('AI Chat Demo', () => {
       aiAnswer2
     );
 
-    const askAiButton2 = mainWindow.getByTestId('ask-ai-button').last();
+    const askAiButton2 = activeView(mainWindow).getByTestId('ask-ai-button');
     await takeScreenshot(mainWindow, askAiButton2, screenshotDir, step++, 'highlight-ask-ai-2');
     writeNarration(
       screenshotDir,
@@ -211,7 +211,7 @@ test.describe('AI Chat Demo', () => {
       `This entire conversation was conducted in the Chat tab, but under the hood MkBrowser stores each exchange in real file system folders. That means you can browse, edit, or add files to any part of the conversation. Let's click one of the "Show in Browse View" icons to jump into the underlying folders.`
     );
 
-    const showInBrowserButton = mainWindow.getByTestId('show-in-browser-button').last();
+    const showInBrowserButton = activeView(mainWindow).getByTestId('show-in-browser-button').last();
     await expect(showInBrowserButton).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, showInBrowserButton, screenshotDir, step++, 'highlight-show-in-browser');
     writeNarration(

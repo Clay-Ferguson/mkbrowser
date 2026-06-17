@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings, activeView } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test — AI Chat with a Custom Persona
@@ -210,7 +210,7 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
       pirateAnswer1
     );
 
-    const askAiButton = mainWindow.getByTestId('ask-ai-button').last();
+    const askAiButton = activeView(mainWindow).getByTestId('ask-ai-button');
     await takeScreenshot(mainWindow, askAiButton, screenshotDir, step++, 'highlight-ask-ai');
     writeNarration(
       screenshotDir,
@@ -233,7 +233,7 @@ When the sun dips below the horizon and the moon rises like a silver doubloon ov
     );
 
     // ── 12. Click the "Reply" button to continue the conversation ─────
-    const replyButton = mainWindow.getByTestId('ai-reply-button');
+    const replyButton = activeView(mainWindow).getByTestId('ai-reply-button');
     await expect(replyButton).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, replyButton, screenshotDir, step++, 'highlight-reply');
     writeNarration(
@@ -280,7 +280,7 @@ So keep yer glowin' boxes, matey. I'll take me sextant and a sky full o' stars a
       pirateAnswer2
     );
 
-    const askAiButton2 = mainWindow.getByTestId('ask-ai-button').last();
+    const askAiButton2 = activeView(mainWindow).getByTestId('ask-ai-button');
     await takeScreenshot(mainWindow, askAiButton2, screenshotDir, step++, 'highlight-ask-ai-2');
     writeNarration(
       screenshotDir,

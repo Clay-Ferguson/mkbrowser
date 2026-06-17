@@ -306,6 +306,26 @@ export function findActionBarByFileName(scope: Page | Locator, fileName: string)
 }
 
 /**
+ * Returns a Locator scoped to the currently-active tab/view.
+ *
+ * Every visited view stays mounted in the DOM (App.tsx toggles visibility with
+ * `display`), so a bare `getByTestId(...)` can match the same control in more
+ * than one tab and trip Playwright's strict mode. Each view wrapper carries a
+ * `data-active-view` attribute only while it is the visible tab, so chaining a
+ * lookup off `activeView(page)` keeps it scoped to whatever tab is currently
+ * shown — and automatically follows along when the test switches tabs.
+ *
+ * @param mainWindow - The Playwright Page object for the app's main window
+ * @returns A Locator for the active view container
+ *
+ * @example
+ * await activeView(mainWindow).getByTestId('ai-reply-button').click();
+ */
+export function activeView(mainWindow: Page): Locator {
+  return mainWindow.locator('[data-active-view="true"]');
+}
+
+/**
  * Demonstrates a click with standard demo timing for video recording.
  * Adds pauses before and after the click for visual clarity in demos.
  *

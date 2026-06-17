@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
-import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
+import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, cleanupTestDataFiles, resetSettings, activeView } from './helpers/mediaUtils';
 
 /**
  * E2E Demo Test — AI Vision Query
@@ -142,7 +142,7 @@ test.describe('AI Vision Demo', () => {
     );
 
     // ── 10. Click "Ask AI" ────────────────────────────────────────────
-    const askAiButton = mainWindow.getByTestId('ask-ai-button').last();
+    const askAiButton = activeView(mainWindow).getByTestId('ask-ai-button');
     await expect(askAiButton).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, askAiButton, screenshotDir, step++, 'highlight-ask-ai');
     writeNarration(

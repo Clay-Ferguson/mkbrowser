@@ -224,7 +224,9 @@ That is the power of the advanced search feature in MkBrowser.`
     );
 
     // Verify the saved search is present in the menu
-    await expect(mainWindow.getByText('Political Free People Search')).toBeVisible({ timeout: 5000 });
+    await expect(
+      mainWindow.getByRole('button', { name: 'Political Free People Search' })
+    ).toBeVisible({ timeout: 5000 });
 
     logScreenshotSummary(screenshotDir);
   });
