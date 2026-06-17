@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { api } from './services/api';
 import type { FileEntry } from './global';
@@ -36,7 +37,7 @@ import {
   updateCalendarEvent,
   deleteCalendarEventsUnderPath,
 } from './store';
-import type { CalendarEvent } from './types/types';
+import type { CalendarEvent, AppView } from './types/types';
 import type { CalendarEventResult, AppConfig } from './types/shared';
 import type { FileNode } from './store';
 import { loadConfig } from './config';
@@ -87,12 +88,26 @@ function App() {
   const [aiEnabled, setAiEnabled] = useState<boolean>(false);
   const [lastExportFolder, setLastExportFolder] = useState<string>('');
   const [recentFolders, setRecentFolders] = useState<string[]>([]);
+  // Views are mounted on first visit and then kept in the DOM (visibility
+  // toggled via CSS), so each view's scroll position is preserved natively.
+  // This set tracks which views have been activated at least once.
+  const [visitedViews, setVisitedViews] = useState<Set<AppView>>(() => new Set<AppView>(['browser']));
   const items = useItems();
   const currentView = useCurrentView();
   const currentPath = useCurrentPath();
   const directoryRefreshNonce = useDirectoryRefreshNonce();
   const folderGraph = useFolderGraph();
   const settings = useSettings();
+
+  // Mark the active view as visited so it stays mounted from now on.
+  useEffect(() => {
+    setVisitedViews((prev) => {
+      if (prev.has(currentView)) return prev;
+      const next = new Set(prev);
+      next.add(currentView);
+      return next;
+    });
+  }, [currentView]);
 
   // Listen for calendar file changes from the main process (chokidar) — lives here so
   // it's always active regardless of which view is currently displayed.
@@ -357,93 +372,85 @@ function App() {
     );
   }
 
-  // The FolderGraphView wrapper stays mounted whenever a graph has been
-  // generated, even when the user switches tabs — visibility is toggled via
-  // CSS so the SVG, d3 simulation state, and zoom transform all persist.
-  // The other view branches mount/unmount, and are not rendered in the DOM 
-  // unless the tab is active.
+  // Every view is mounted on first visit and then kept in the DOM, with its
+  // visibility toggled via CSS (`display`). This preserves each view's own
+  // scroll container (and other DOM state, like FolderGraphView's d3/zoom
+  // state) across tab switches without any scroll-position save/restore logic.
+  // The single shared header (AppTabButtons) and error dialog live outside the
+  // per-view wrappers.
+  const viewStyle = (view: AppView): CSSProperties => ({
+    display: currentView === view ? 'flex' : 'none',
+  });
+
   return (
     <>
-      {folderGraph && (
-        <div
-          className="flex-1 flex flex-col min-h-0 bg-slate-900"
-          style={{ display: currentView === 'folder-graph' ? 'flex' : 'none' }}
-        >
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
-          <FolderGraphView />
-          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
-        </div>
-      )}
+      <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
 
-      {currentView === 'search-results' && (
-        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
-          <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
-          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
-        </div>
-      )}
+      <div className="flex-1 flex flex-col min-h-0">
+        {folderGraph && (
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('folder-graph')}>
+            <FolderGraphView />
+          </div>
+        )}
 
-      {currentView === 'settings' && (
-        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
-          <SettingsView onSaveSettings={handleSaveSettings} />
-          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
-        </div>
-      )}
+        {visitedViews.has('search-results') && (
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('search-results')}>
+            <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
+          </div>
+        )}
 
-      {currentView === 'ai-settings' && (
-        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
-          <AISettingsView />
-          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
-        </div>
-      )}
+        {visitedViews.has('settings') && (
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('settings')}>
+            <SettingsView onSaveSettings={handleSaveSettings} />
+          </div>
+        )}
 
-      {currentView === 'calendar' && (
-        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
-          <CalendarView />
-          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
-        </div>
-      )}
+        {visitedViews.has('ai-settings') && (
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('ai-settings')}>
+            <AISettingsView />
+          </div>
+        )}
 
-      {currentView === 'folder-analysis' && (
-        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
-          <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
-          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
-        </div>
-      )}
+        {visitedViews.has('calendar') && (
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('calendar')}>
+            <CalendarView />
+          </div>
+        )}
 
-      {currentView === 'thread' && (
-        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
-          <ThreadView onSaveSettings={handleSaveSettings} />
-          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
-        </div>
-      )}
+        {visitedViews.has('folder-analysis') && (
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('folder-analysis')}>
+            <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
+          </div>
+        )}
 
-      {currentView === 'browser' && (
-        <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-          <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
-          <div className="flex-1 flex flex-row min-h-0">
-            {settings.indexTreeWidth !== 'hidden' && <IndexTreeView onRefreshDirectory={refreshDirectory} />}
-            <div className="flex-1 flex flex-col min-h-0 min-w-0">
-              <BrowseView
-                entries={entries}
-                loading={loading}
-                aiEnabled={aiEnabled}
-                lastExportFolder={lastExportFolder}
-                onSetLastExportFolder={setLastExportFolder}
-                onRefreshDirectory={refreshDirectory}
-                onSetError={setError}
-                onSaveSettings={handleSaveSettings}
-              />
+        {visitedViews.has('thread') && (
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('thread')}>
+            <ThreadView onSaveSettings={handleSaveSettings} />
+          </div>
+        )}
+
+        {visitedViews.has('browser') && (
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-900" style={viewStyle('browser')}>
+            <div className="flex-1 flex flex-row min-h-0">
+              {settings.indexTreeWidth !== 'hidden' && <IndexTreeView onRefreshDirectory={refreshDirectory} />}
+              <div className="flex-1 flex flex-col min-h-0 min-w-0">
+                <BrowseView
+                  entries={entries}
+                  loading={loading}
+                  aiEnabled={aiEnabled}
+                  lastExportFolder={lastExportFolder}
+                  onSetLastExportFolder={setLastExportFolder}
+                  onRefreshDirectory={refreshDirectory}
+                  onSetError={setError}
+                  onSaveSettings={handleSaveSettings}
+                />
+              </div>
             </div>
           </div>
-          {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
-        </div>
-      )}
+        )}
+      </div>
+
+      {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
     </>
   );
 }

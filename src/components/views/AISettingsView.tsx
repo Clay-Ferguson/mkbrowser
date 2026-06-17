@@ -1,13 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
-import {
-  setAiSettingsScrollPosition,
-  getAiSettingsScrollPosition,
-} from '../../store';
 import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../types/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
-import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../ai/aiPrompts';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -207,12 +202,6 @@ function AISettingsView() {
     setShowResetConfirm(false);
   }, []);
 
-  // Scroll position persistence
-  const { containerRef: mainContainerRef, handleScroll: handleMainScroll } = useScrollPersistence(
-    getAiSettingsScrollPosition,
-    setAiSettingsScrollPosition
-  );
-
   const startLlama = async () => {
     setLlamaServerBusy(true);
     setLlamaServerStatus('loading');
@@ -246,11 +235,7 @@ function AISettingsView() {
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
 
       {/* Main content */}
-      <main
-        ref={mainContainerRef}
-        onScroll={handleMainScroll}
-        className="flex-1 min-h-0 overflow-y-auto"
-      >
+      <main className="flex-1 min-h-0 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="space-y-6">
 

@@ -11,14 +11,11 @@ import {
   setOcrToolsFolder,
   setCalendarItemsFolder,
   setIndexTreeWidth,
-  setSettingsScrollPosition,
-  getSettingsScrollPosition,
   useSettings,
   type FontSize,
   type ContentWidth,
   type IndexTreeWidth,
 } from '../../store';
-import { useScrollPersistence } from '../../utils/useScrollPersistence';
 
 interface FontSizeOption {
   value: FontSize;
@@ -62,12 +59,6 @@ interface SettingsViewProps {
 function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const settings = useSettings();
   const [showTagsEditor, setShowTagsEditor] = useState(false);
-
-  // Scroll position persistence
-  const { containerRef: mainContainerRef, handleScroll: handleMainScroll } = useScrollPersistence(
-    getSettingsScrollPosition,
-    setSettingsScrollPosition
-  );
 
   // Font size is now applied globally via data-font-size attribute on html element
 
@@ -120,11 +111,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
 
       {/* Main content */}
-      <main 
-        ref={mainContainerRef}
-        onScroll={handleMainScroll}
-        className="flex-1 min-h-0 overflow-y-auto"
-      >
+      <main className="flex-1 min-h-0 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="space-y-6">
           {/* Appearance Setting */}

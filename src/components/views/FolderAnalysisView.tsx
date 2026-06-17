@@ -1,10 +1,7 @@
 import { HashtagIcon } from '@heroicons/react/24/outline';
 import {
-  setFolderAnalysisScrollPosition,
-  getFolderAnalysisScrollPosition,
   useFolderAnalysis,
 } from '../../store';
-import { useScrollPersistence } from '../../utils/useScrollPersistence';
 
 interface FolderAnalysisViewProps {
   onSearchHashtag: (hashtag: string, ctrlKey: boolean) => void;
@@ -12,12 +9,6 @@ interface FolderAnalysisViewProps {
 
 function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
   const folderAnalysis = useFolderAnalysis();
-
-  // Scroll position persistence
-  const { containerRef: mainContainerRef, handleScroll: handleMainScroll } = useScrollPersistence(
-    getFolderAnalysisScrollPosition,
-    setFolderAnalysisScrollPosition
-  );
 
   if (!folderAnalysis) {
     return (
@@ -30,11 +21,7 @@ function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
   const { hashtags, folderPath, totalFiles } = folderAnalysis;
 
   return (
-    <main
-      ref={mainContainerRef}
-      onScroll={handleMainScroll}
-      className="flex-1 min-h-0 overflow-y-auto pb-4"
-    >
+    <main className="flex-1 min-h-0 overflow-y-auto pb-4">
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">

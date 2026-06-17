@@ -9,8 +9,6 @@ import {
   useRootPath,
   navigateToBrowserPath,
   upsertItems,
-  setThreadScrollPosition,
-  getThreadScrollPosition,
   usePendingThreadScrollToBottom,
   clearPendingThreadScrollToBottom,
   usePendingEditFile,
@@ -20,7 +18,6 @@ import {
   setItemExpanded,
   setItemEditing,
 } from '../../store';
-import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import MarkdownEntry from '../entries/MarkdownEntry';
 import ThreadAvatar, { ThreadAvatarDefs } from '../ThreadAvatar';
@@ -66,11 +63,8 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
     void api.updateConfig({ aiRewritePrompt: name });
   }, []);
 
-  // Scroll persistence
-  const { containerRef: mainContainerRef, handleScroll: handleMainScroll } = useScrollPersistence(
-    getThreadScrollPosition,
-    setThreadScrollPosition,
-  );
+  // Ref to the scrollable container (used for auto-scrolling to bottom / to an item)
+  const mainContainerRef = useRef<HTMLElement | null>(null);
 
   // Fetch thread entries when the current path changes
   const loadThread = useCallback(async () => {
@@ -255,7 +249,6 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
       {breadcrumbHeader}
       <main
       ref={mainContainerRef}
-      onScroll={handleMainScroll}
       className="flex-1 min-h-0 overflow-y-auto pb-4"
     >
       <div className="max-w-4xl mx-auto px-4 py-4 space-y-2">

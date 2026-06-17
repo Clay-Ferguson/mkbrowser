@@ -255,10 +255,10 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         return;
       }
 
-      // First time this (re)mounted instance has run the effect. BrowseView
-      // unmounts when the user switches to another view, so on remount we must
-      // restore the saved scroll position even though the folder hasn't changed.
-      const isInitialMount = previousPathRef.current === null;
+      // Detect folder navigation within the browser tab. BrowseView stays
+      // mounted across tab switches (visibility is toggled via CSS), so its
+      // scroll position is preserved natively when switching tabs — we only
+      // need to save/restore per folder when navigating between folders.
       const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
 
       // Save scroll position for the previous folder before switching
@@ -286,9 +286,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               clearPendingScrollToHeadingSlug();
             }, 750);
           }
-        } else if (isNewFolder || isInitialMount) {
-          // Restore saved scroll position for this folder (on folder change or
-          // when remounting after a view switch), or scroll to top.
+        } else if (isNewFolder) {
+          // Restore the saved scroll position for the folder we navigated to.
           const savedPosition = getBrowserScrollPosition(currentPath);
           const mainContainer = mainContainerRef.current;
           if (mainContainer) {
@@ -363,17 +362,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     }, 150);
   }, [currentPath]);
 
-  // On unmount (e.g. switching to another view), flush the latest scroll
-  // position so a scroll within the debounce window isn't lost, then clear the
-  // pending save timer.
+  // Clear any pending debounced save on unmount (full app teardown / closing
+  // the folder). BrowseView no longer unmounts on tab switches, so there is no
+  // view-switch scroll position to flush here.
   useEffect(() => {
     return () => {
       if (scrollSaveTimerRef.current) {
         clearTimeout(scrollSaveTimerRef.current);
-      }
-      if (previousPathRef.current && mainContainerRef.current) {
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: read the latest ref.current values at unmount to flush the final scroll position. Copying to a local at mount would capture stale mount-time values and is wrong here.
-        setBrowserScrollPosition(previousPathRef.current, mainContainerRef.current.scrollTop);
       }
     };
   }, []);

@@ -7,8 +7,6 @@ import {
   setHighlightedSearchResult,
   navigateToBrowserPath,
   setPendingEditFile,
-  setSearchResultsScrollPosition,
-  getSearchResultsScrollPosition,
   deleteItems,
   setFolderGraph,
   setCurrentView,
@@ -21,7 +19,6 @@ import {
   useSearchSortBy,
   useSearchSortDirection,
 } from '../../store';
-import { useScrollPersistence } from '../../utils/useScrollPersistence';
 import { getFileName, getParentPath } from '../../utils/pathUtil';
 import { buildFolderGraphFromSearchResults } from '../../utils/searchTreeBuilder';
 import { getContentWidthClasses, BUTTON_CLASS_BLUE, BUTTON_CLASS_RED } from '../../utils/styles';
@@ -42,12 +39,6 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const searchSortDirection = useSearchSortDirection();
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
-  
-  // Scroll position persistence
-  const { containerRef: mainContainerRef, handleScroll: handleMainScroll } = useScrollPersistence(
-    getSearchResultsScrollPosition,
-    setSearchResultsScrollPosition
-  );
 
   // Sort results based on the selected sort option and direction
   const sortedResults = [...searchResults].sort((a, b) => {
@@ -183,11 +174,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
       )}
 
       {/* Main content */}
-      <main 
-        ref={mainContainerRef}
-        onScroll={handleMainScroll}
-        className="flex-1 min-h-0 overflow-y-auto"
-      >
+      <main className="flex-1 min-h-0 overflow-y-auto">
         <div className={`${getContentWidthClasses(settings.contentWidth)} pt-2 pb-6`}>
         {!hasSearched ? (
           <div className="text-center py-12">
