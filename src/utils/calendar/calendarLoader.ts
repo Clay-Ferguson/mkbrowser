@@ -4,6 +4,7 @@ import { fdir } from 'fdir';
 import { load } from 'js-yaml';
 import { RRule, Weekday } from 'rrule';
 import { logger } from '../logUtil';
+import { buildExcludePredicate } from '../pathPattern';
 
 export interface CalendarEventResult {
   id: string;
@@ -44,17 +45,6 @@ function parseStartTime(timeStr: string): { hours: number; minutes: number } | n
     if (hours !== 12) hours += 12;
   }
   return { hours, minutes };
-}
-
-function buildExcludePredicate(ignoredPaths: string[]): (name: string, fullPath: string) => boolean {
-  const patterns = ignoredPaths.map(pattern => {
-    const escaped = pattern.replace(/[.+?^${}()|[\]\\/]/g, '\\$&');
-    return new RegExp(`^${escaped.replace(/\*/g, '.*')}$`, 'i');
-  });
-  return (name: string, fullPath: string): boolean => {
-    if (name.startsWith('.')) return true;
-    return patterns.some(p => p.test(name) || p.test(fullPath));
-  };
 }
 
 const BYDAY_MAP: Record<string, Weekday> = {
