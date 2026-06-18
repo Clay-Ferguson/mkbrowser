@@ -4,6 +4,7 @@
 
 import { dump } from 'js-yaml';
 import { parseFrontMatter } from '../fileUtil';
+import { isMarkdownFile } from '../fileTypes';
 import { getFileName, getParentPath, joinPath } from '../pathUtil';
 
 /**
@@ -12,8 +13,7 @@ import { getFileName, getParentPath, joinPath } from '../pathUtil';
  * property). Returns the content ready to append.
  */
 function prepareMarkdownForAppend(filePath: string, rawContent: string): string {
-  const isMarkdown = filePath.endsWith('.md') || filePath.endsWith('.markdown');
-  if (!isMarkdown) return rawContent;
+  if (!isMarkdownFile(getFileName(filePath))) return rawContent;
 
   const { yaml: frontMatter, content } = parseFrontMatter(rawContent);
   if (!frontMatter) return rawContent;

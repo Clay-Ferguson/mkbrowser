@@ -24,10 +24,6 @@ export function splitFrontMatter(content: string): FrontMatterSplit | null {
   return { yaml: m[1], body: content.slice(m[0].length) };
 }
 
-export function isMarkdownFile(fileName: string): boolean {
-  return fileName.toLowerCase().endsWith('.md') || fileName.toLowerCase().endsWith('.markdown');
-}
-
 function getCurrentDateStr(): string {
   const now = new Date();
   const month = now.getMonth() + 1;

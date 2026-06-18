@@ -4,7 +4,6 @@ import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { loadCalendarEntryForFile, loadCalendarEvents } from '../src/utils/calendar/calendarLoader';
 import {
-  isMarkdownFile,
   hasDueProperty,
   getDueProperty,
   getStartProperty,
@@ -338,31 +337,6 @@ describe('parseDueStr', () => {
 
   it('trims surrounding whitespace', () => {
     expect(parseDueStr('  6/18/2026  ')?.getTime()).toBe(new Date(2026, 5, 18).getTime());
-  });
-});
-
-// ---------------------------------------------------------------------------
-// isMarkdownFile
-// ---------------------------------------------------------------------------
-
-describe('isMarkdownFile', () => {
-  it('returns true for .md files', () => {
-    expect(isMarkdownFile('note.md')).toBe(true);
-  });
-
-  it('returns true for .markdown files', () => {
-    expect(isMarkdownFile('note.markdown')).toBe(true);
-  });
-
-  it('is case-insensitive', () => {
-    expect(isMarkdownFile('NOTE.MD')).toBe(true);
-    expect(isMarkdownFile('NOTE.Markdown')).toBe(true);
-  });
-
-  it('returns false for other extensions', () => {
-    expect(isMarkdownFile('note.txt')).toBe(false);
-    expect(isMarkdownFile('note.html')).toBe(false);
-    expect(isMarkdownFile('note')).toBe(false);
   });
 });
 
