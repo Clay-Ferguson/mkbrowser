@@ -11,9 +11,10 @@ import { parseDueStr, splitFrontMatter } from './calendarUtil';
 export interface CalendarEventResult {
   id: string;
   title: string;
-  /** Milliseconds since epoch for the due date (start of day) */
+  /** Milliseconds since epoch for the event start. All-day items use local start-of-day. */
   start: number;
-  /** Same as start — all calendar items are all-day events */
+  /** Milliseconds since epoch for the event end. Equals `start` for all-day items;
+   *  otherwise `start + duration`. */
   end: number;
   /** Full path to the source markdown file */
   filePath: string;
