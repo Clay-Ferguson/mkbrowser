@@ -231,6 +231,53 @@ describe('loadCalendarEntryForFile — byday recurring (MO/WE/FR, count: 6)', ()
 });
 
 // ---------------------------------------------------------------------------
+// loadCalendarEntryForFile — malformed rrule fields (untyped YAML coercion)
+// ---------------------------------------------------------------------------
+
+describe('loadCalendarEntryForFile — malformed rrule fields', () => {
+  it('treats a quoted-string interval the same as a numeric one', async () => {
+    write('rrule-string-interval.md', `---\ndue: 6/1/2026\nrrule:\n  freq: weekly\n  interval: "2"\n  count: 3\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('rrule-string-interval.md'));
+    expect(results).toHaveLength(3);
+    const twoWeeks = 14 * 24 * 60 * 60 * 1000;
+    expect(results[1].start - results[0].start).toBe(twoWeeks);
+    expect(results[2].start - results[1].start).toBe(twoWeeks);
+  });
+
+  it('treats a quoted-string count the same as a numeric one', async () => {
+    write('rrule-string-count.md', `---\ndue: 6/1/2026\nrrule:\n  freq: weekly\n  count: "3"\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('rrule-string-count.md'));
+    expect(results).toHaveLength(3);
+  });
+
+  it('ignores a non-numeric count rather than dropping the event', async () => {
+    write('rrule-garbage-count.md', `---\ndue: 6/1/2026\nrrule:\n  freq: weekly\n  count: abc\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('rrule-garbage-count.md'));
+    // "abc" is not a valid count, so the rule falls back to the horizon/MAX
+    // bound — the event must still expand, not vanish.
+    expect(results.length).toBeGreaterThan(3);
+  });
+
+  it('returns no occurrences (without throwing) for a non-string freq', async () => {
+    write('rrule-nonstring-freq.md', `---\ndue: 6/1/2026\nrrule:\n  freq: 1\n  count: 3\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('rrule-nonstring-freq.md'));
+    expect(results).toEqual([]);
+  });
+
+  it('ignores a non-string byday rather than throwing', async () => {
+    write('rrule-nonstring-byday.md', `---\ndue: 6/1/2026\nrrule:\n  freq: weekly\n  byday: 5\n  count: 2\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('rrule-nonstring-byday.md'));
+    expect(results).toHaveLength(2);
+  });
+
+  it('ignores a non-string until rather than throwing', async () => {
+    write('rrule-nonstring-until.md', `---\ndue: 6/1/2026\nrrule:\n  freq: weekly\n  until: 2026\n  count: 2\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('rrule-nonstring-until.md'));
+    expect(results).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // loadCalendarEvents — directory scan
 // ---------------------------------------------------------------------------
 

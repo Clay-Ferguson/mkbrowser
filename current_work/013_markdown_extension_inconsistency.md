@@ -23,15 +23,9 @@ but never appear on the calendar and never trigger watch updates.
 Inconsistent extension policy leads to "why isn't my file showing up?" bugs that are very hard
 to track down because the answer depends on which code path touched the file.
 
-## Proposed solution
-Pick one policy and apply it everywhere:
-- **Option A (simplest):** Decide the calendar is `.md`-only and make `isMarkdownFile` reflect
-  that (or stop using it for calendar decisions).
-- **Option B:** Support `.markdown` everywhere — update the loader filter and the watcher
-  (`buildIgnoredFn` and handler guards) to accept both, ideally by reusing `isMarkdownFile` as
-  the single source of truth.
+## Solution to Implement
+We should only consider ".md" files to be markdown. Any file with ".markdown" extension is considered an unknown file type, and handled like all other unknown file types.
 
-Recommend funneling all three call sites through one shared predicate so they can never drift.
 
 ## Verification
 - A `.markdown` file is treated identically by `isMarkdownFile`, the loader, and the watcher.

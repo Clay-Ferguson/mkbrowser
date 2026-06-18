@@ -77,6 +77,31 @@ interface RRuleYaml {
   count?: number;
 }
 
+/**
+ * Coerce an untyped `rrule:` YAML block into a validated {@link RRuleYaml}.
+ *
+ * `js-yaml` types its output as `unknown`, so the raw block may contain values
+ * of any type (e.g. `interval: "2"` stays a string, `count: abc` is a string,
+ * `freq: 1` is a number). Feeding those straight into `new RRule(...)` — or into
+ * the string operations in `expandRRule` (`.toLowerCase()`, `.split()`,
+ * `parseDueStr().trim()`) — produces wrong recurrences or a throw that the outer
+ * try/catch swallows, silently dropping the whole event. Normalize defensively
+ * here so every field has a known type before it reaches the rule engine.
+ */
+function normalizeRRule(raw: Record<string, unknown>): RRuleYaml {
+  const toPositiveInt = (value: unknown): number | undefined => {
+    const n = Number(value);
+    return Number.isInteger(n) && n > 0 ? n : undefined;
+  };
+  return {
+    freq: typeof raw.freq === 'string' ? raw.freq : undefined,
+    interval: toPositiveInt(raw.interval) ?? 1,
+    byday: typeof raw.byday === 'string' ? raw.byday : undefined,
+    until: typeof raw.until === 'string' ? raw.until : undefined,
+    count: toPositiveInt(raw.count),
+  };
+}
+
 function expandRRule(
   rruleYaml: RRuleYaml,
   dueDate: Date,
@@ -174,7 +199,7 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
 
     if (parsed.rrule && typeof parsed.rrule === 'object' && !Array.isArray(parsed.rrule)) {
       return expandRRule(
-        parsed.rrule as RRuleYaml,
+        normalizeRRule(parsed.rrule as Record<string, unknown>),
         dueDate, startMs, endMs, durationMs,
         filePath, title, snippet,
       );
