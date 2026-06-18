@@ -539,3 +539,61 @@ describe('injectCalendarFrontMatter', () => {
     expect(result).not.toContain('rrule:');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Unified front-matter parsing (issues 005 / 006): CRLF, fence anchoring,
+// and read/write round-trip agreement between the util and the loader.
+// ---------------------------------------------------------------------------
+
+describe('front-matter parsing — CRLF line endings', () => {
+  const CRLF = `---\r\ndue: 6/15/2026\r\nstart: "2:00 PM"\r\n---\r\nBody line.\r\n`;
+
+  it('reads properties from a CRLF file (no stray carriage returns)', () => {
+    expect(getDueProperty(CRLF)).toBe('6/15/2026');
+    expect(getStartProperty(CRLF)).toBe('2:00 PM');
+    expect(hasDueProperty(CRLF)).toBe(true);
+  });
+
+  it('the loader detects the same CRLF front matter as one event', async () => {
+    write('crlf-event.md', CRLF);
+    const results = await loadCalendarEntryForFile(f('crlf-event.md'));
+    expect(results).toHaveLength(1);
+    expect(results[0].start).toBe(new Date(2026, 5, 15, 14, 0, 0, 0).getTime());
+  });
+});
+
+describe('front-matter parsing — fence anchoring', () => {
+  it('does not treat a body --- thematic break as front matter', () => {
+    const content = `Intro paragraph.\n\n---\n\nSection after a horizontal rule.\n`;
+    expect(hasDueProperty(content)).toBe(false);
+    expect(getDueProperty(content)).toBeNull();
+  });
+
+  it('the loader returns [] for a doc whose only --- is a body thematic break', async () => {
+    write('hr-body.md', `Intro paragraph.\n\n---\n\nMore body text.\n`);
+    const results = await loadCalendarEntryForFile(f('hr-body.md'));
+    expect(results).toHaveLength(0);
+  });
+
+  it('does not treat a leading ---- thematic break as an opening fence', () => {
+    const content = `----\ndue: 6/15/2026\n----\nBody.`;
+    expect(hasDueProperty(content)).toBe(false);
+  });
+});
+
+describe('front-matter parsing — write/read round-trip agreement', () => {
+  it('a value written by the util reads back identically via the util and the loader', async () => {
+    let content = setDueProperty(NO_FM, '6/15/2026');
+    content = setStartProperty(content, '2:00 PM');
+    content = setDurationProperty(content, '2');
+
+    expect(getDueProperty(content)).toBe('6/15/2026');
+    expect(getStartProperty(content)).toBe('2:00 PM');
+    expect(getDurationProperty(content)).toBe('2');
+
+    write('round-trip.md', content);
+    const [ev] = await loadCalendarEntryForFile(f('round-trip.md'));
+    expect(ev.start).toBe(new Date(2026, 5, 15, 14, 0, 0, 0).getTime());
+    expect(ev.end).toBe(ev.start + 2 * 60 * 60 * 1000);
+  });
+});

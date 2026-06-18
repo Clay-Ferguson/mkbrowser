@@ -2,6 +2,28 @@
  * Utilities for turning a markdown file into a calendar item via front matter injection.
  */
 
+/**
+ * Single source of truth for front-matter fence detection, shared by both readers and
+ * writers (and by calendarLoader). Opening `---` (with optional trailing whitespace) on its
+ * own line; lazy body; closing `---` (optional trailing whitespace) anchored to its own line
+ * or end-of-file. CRLF-tolerant so reads and writes never disagree on line endings.
+ */
+const FRONT_MATTER_RE = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+
+export interface FrontMatterSplit {
+  /** Inner YAML text between the fences — no fences, no surrounding newlines, no stray `\r`. */
+  yaml: string;
+  /** Document body after the closing fence and its trailing newline. */
+  body: string;
+}
+
+/** Split markdown into its front-matter YAML and body, or null if there is no closed fence. */
+export function splitFrontMatter(content: string): FrontMatterSplit | null {
+  const m = FRONT_MATTER_RE.exec(content);
+  if (!m) return null;
+  return { yaml: m[1], body: content.slice(m[0].length) };
+}
+
 export function isMarkdownFile(fileName: string): boolean {
   return fileName.toLowerCase().endsWith('.md') || fileName.toLowerCase().endsWith('.markdown');
 }
@@ -32,11 +54,8 @@ function getUntilDateStr(): string {
  * Checks whether the given markdown content already has a 'due' property in front matter.
  */
 export function hasDueProperty(content: string): boolean {
-  if (!content.startsWith('---')) return false;
-  const end = content.indexOf('\n---', 3);
-  if (end === -1) return false;
-  const frontMatter = content.slice(0, end + 4);
-  return /^due\s*:/m.test(frontMatter);
+  const parsed = splitFrontMatter(content);
+  return !!parsed && /^due\s*:/m.test(parsed.yaml);
 }
 
 function buildCalendarBlock(repeating: boolean): string {
@@ -54,39 +73,30 @@ function buildCalendarBlock(repeating: boolean): string {
 }
 
 /**
- * Extracts the 'due' property value from front matter, or null if not present.
+ * Extracts a simple scalar property value from front matter, or null if not present.
+ * When stripQuotes is true, surrounding double quotes are removed (used for 'start').
  */
+function getScalarProperty(content: string, key: string, stripQuotes = false): string | null {
+  const parsed = splitFrontMatter(content);
+  if (!parsed) return null;
+  const pattern = stripQuotes ? `^${key}\\s*:\\s*"?(.+?)"?\\s*$` : `^${key}\\s*:\\s*(.+)$`;
+  const match = parsed.yaml.match(new RegExp(pattern, 'm'));
+  return match ? match[1].trim() : null;
+}
+
+/** Extracts the 'due' property value from front matter, or null if not present. */
 export function getDueProperty(content: string): string | null {
-  if (!content.startsWith('---')) return null;
-  const end = content.indexOf('\n---', 3);
-  if (end === -1) return null;
-  const frontMatter = content.slice(3, end);
-  const match = frontMatter.match(/^due\s*:\s*(.+)$/m);
-  return match ? match[1].trim() : null;
+  return getScalarProperty(content, 'due');
 }
 
-/**
- * Extracts the 'start' property value from front matter, or null if not present.
- */
+/** Extracts the 'start' property value from front matter, or null if not present. */
 export function getStartProperty(content: string): string | null {
-  if (!content.startsWith('---')) return null;
-  const end = content.indexOf('\n---', 3);
-  if (end === -1) return null;
-  const frontMatter = content.slice(3, end);
-  const match = frontMatter.match(/^start\s*:\s*"?(.+?)"?\s*$/m);
-  return match ? match[1].trim() : null;
+  return getScalarProperty(content, 'start', true);
 }
 
-/**
- * Extracts the 'duration' property value from front matter, or null if not present.
- */
+/** Extracts the 'duration' property value from front matter, or null if not present. */
 export function getDurationProperty(content: string): string | null {
-  if (!content.startsWith('---')) return null;
-  const end = content.indexOf('\n---', 3);
-  if (end === -1) return null;
-  const frontMatter = content.slice(3, end);
-  const match = frontMatter.match(/^duration\s*:\s*(.+)$/m);
-  return match ? match[1].trim() : null;
+  return getScalarProperty(content, 'duration');
 }
 
 /**
@@ -94,17 +104,13 @@ export function getDurationProperty(content: string): string | null {
  * If the property exists it is replaced; if not, it is inserted after the opening ---.
  */
 function setFrontMatterProperty(content: string, key: string, value: string): string {
-  if (content.startsWith('---')) {
-    const end = content.indexOf('\n---', 3);
-    if (end !== -1) {
-      const frontMatter = content.slice(3, end);
-      const re = new RegExp(`^${key}\\s*:.*$`, 'm');
-      if (re.test(frontMatter)) {
-        const updated = frontMatter.replace(re, `${key}: ${value}`);
-        return `---${updated}${content.slice(end)}`;
-      }
-      return `---\n${key}: ${value}${frontMatter}\n---${content.slice(end + 4)}`;
-    }
+  const parsed = splitFrontMatter(content);
+  if (parsed) {
+    const re = new RegExp(`^${key}\\s*:.*$`, 'm');
+    const yaml = re.test(parsed.yaml)
+      ? parsed.yaml.replace(re, `${key}: ${value}`)
+      : `${key}: ${value}\n${parsed.yaml}`;
+    return `---\n${yaml}\n---\n${parsed.body}`;
   }
   return `---\n${key}: ${value}\n---\n${content}`;
 }
@@ -122,18 +128,7 @@ export function setDurationProperty(content: string, durationValue: string): str
  * If no front matter exists, one is created. If 'due' already exists, it is replaced.
  */
 export function setDueProperty(content: string, dueValue: string): string {
-  if (content.startsWith('---')) {
-    const end = content.indexOf('\n---', 3);
-    if (end !== -1) {
-      const frontMatter = content.slice(3, end);
-      if (/^due\s*:/m.test(frontMatter)) {
-        const updated = frontMatter.replace(/^due\s*:.*$/m, `due: ${dueValue}`);
-        return `---${updated}${content.slice(end)}`;
-      }
-      return `---\ndue: ${dueValue}${frontMatter}\n---${content.slice(end + 4)}`;
-    }
-  }
-  return `---\ndue: ${dueValue}\n---\n${content}`;
+  return setFrontMatterProperty(content, 'due', dueValue);
 }
 
 /** Parse a `M/D/YYYY` (or `M/D/YY`) due string into a local Date, or null if invalid. */
@@ -171,17 +166,10 @@ export interface RRuleProps {
   count?: string;
 }
 
-function getFrontMatterParts(content: string): { fm: string; after: string } | null {
-  if (!content.startsWith('---')) return null;
-  const end = content.indexOf('\n---', 3);
-  if (end === -1) return null;
-  return { fm: content.slice(3, end), after: content.slice(end) };
-}
-
 export function getRRuleProperty(content: string): RRuleProps | null {
-  const parsed = getFrontMatterParts(content);
+  const parsed = splitFrontMatter(content);
   if (!parsed) return null;
-  const match = parsed.fm.match(/^rrule:\n((?:[ \t]+.+\n?)*)/m);
+  const match = parsed.yaml.match(/^rrule:\n((?:[ \t]+.+\n?)*)/m);
   if (!match) return null;
   const block = match[1];
   const extract = (key: string) => {
@@ -208,17 +196,19 @@ function buildRRuleBlock(rrule: RRuleProps): string {
 }
 
 export function setRRuleProperty(content: string, rrule: RRuleProps | null): string {
-  const parsed = getFrontMatterParts(content);
+  const parsed = splitFrontMatter(content);
   if (!parsed) {
     if (!rrule?.freq) return content;
     return `---\n${buildRRuleBlock(rrule)}\n---\n${content}`;
   }
-  const { fm, after } = parsed;
-  const cleaned = fm.replace(/\nrrule:\n((?:[ \t]+.+\n?)*)/, '');
+  // Strip any existing rrule block (the `rrule:` line plus its indented children), then
+  // drop trailing blank lines it left behind.
+  const yaml = parsed.yaml.replace(/^rrule:\n(?:[ \t]+.+\n?)*/m, '').replace(/\n+$/, '');
   if (!rrule?.freq) {
-    return `---${cleaned}${after}`;
+    return `---\n${yaml}\n---\n${parsed.body}`;
   }
-  return `---${cleaned}\n${buildRRuleBlock(rrule)}${after}`;
+  const merged = yaml ? `${yaml}\n${buildRRuleBlock(rrule)}` : buildRRuleBlock(rrule);
+  return `---\n${merged}\n---\n${parsed.body}`;
 }
 
 /**
@@ -230,10 +220,10 @@ export function setRRuleProperty(content: string, rrule: RRuleProps | null): str
  */
 export function injectCalendarFrontMatter(content: string, repeating: boolean): string {
   const calendarBlock = buildCalendarBlock(repeating);
+  const parsed = splitFrontMatter(content);
 
-  if (content.startsWith('---')) {
-    const afterOpen = content.slice(3); // skip first '---'
-    return `---\n${calendarBlock}\n${afterOpen.startsWith('\n') ? afterOpen.slice(1) : afterOpen}`;
+  if (parsed) {
+    return `---\n${calendarBlock}\n${parsed.yaml}\n---\n${parsed.body}`;
   }
 
   return `---\n${calendarBlock}\n---\n${content}`;

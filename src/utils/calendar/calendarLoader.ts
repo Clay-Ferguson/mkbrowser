@@ -6,7 +6,7 @@ import { RRule, Weekday } from 'rrule';
 import { logger } from '../logUtil';
 import { buildExcludePredicate } from '../pathPattern';
 import { mapWithConcurrency } from '../asyncUtil';
-import { parseDueStr } from './calendarUtil';
+import { parseDueStr, splitFrontMatter } from './calendarUtil';
 
 export interface CalendarEventResult {
   id: string;
@@ -130,14 +130,7 @@ function expandRRule(
   });
 }
 
-function extractFrontMatterYaml(content: string): string | null {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/.exec(content);
-  return match ? match[1] : null;
-}
-
-function extractSnippet(content: string): string {
-  const fmMatch = /^---\r?\n[\s\S]*?\r?\n---[ \t]*\r?\n?/.exec(content);
-  const body = fmMatch ? content.slice(fmMatch[0].length) : content;
+function extractSnippet(body: string): string {
   const lines = body.split(/\r?\n/).filter(l => l.trim().length > 0).slice(0, 5);
   const joined = lines.join('\n');
   if (joined.length <= 400) return joined;
@@ -148,17 +141,17 @@ function extractSnippet(content: string): string {
 export async function loadCalendarEntryForFile(filePath: string): Promise<CalendarEventResult[]> {
   try {
     const content = await fs.promises.readFile(filePath, 'utf-8');
-    const yamlStr = extractFrontMatterYaml(content);
-    if (!yamlStr) return [];
+    const fm = splitFrontMatter(content);
+    if (!fm) return [];
 
-    const parsed = load(yamlStr) as Record<string, unknown> | null;
+    const parsed = load(fm.yaml) as Record<string, unknown> | null;
     if (!parsed || typeof parsed.due !== 'string') return [];
 
     const dueDate = parseDueStr(parsed.due);
     if (!dueDate) return [];
 
     const title = path.basename(filePath, '.md');
-    const snippet = extractSnippet(content);
+    const snippet = extractSnippet(fm.body);
 
     let startMs = dueDate.getTime();
     let endMs = dueDate.getTime();
