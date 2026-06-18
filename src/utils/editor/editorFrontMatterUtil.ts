@@ -7,19 +7,33 @@ const frontMatterDelimMark = Decoration.mark({ class: 'cm-front-matter-delim' })
 const frontMatterIdMark = Decoration.mark({ class: 'cm-front-matter-id' });
 const hrLineDeco = Decoration.line({ class: 'cm-hr-line' });
 
+export interface FrontMatterRange {
+  /** 1-based line number of the opening `---` (always 1 when present). */
+  openLine: number;
+  /** 1-based line number of the closing `---`, or 0 if there is no closing delimiter. */
+  closeLine: number;
+}
+
+// Single source of truth for "does this document start with `---`, and where is the
+// matching closing `---`?". Front matter is always top-anchored, so the scan starts at
+// line 2. Returns null when line 1 is not `---`; returns closeLine 0 when there is an
+// opening delimiter but no closing one (common while the user is typing front matter).
+export function findFrontMatterRange(doc: Text): FrontMatterRange | null {
+  if (doc.line(1).text.trim() !== '---') return null;
+  for (let i = 2; i <= doc.lines; i++) {
+    if (doc.line(i).text.trim() === '---') return { openLine: 1, closeLine: i };
+  }
+  return { openLine: 1, closeLine: 0 };
+}
+
 export function createFrontMatterDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
 
-  const firstLine = doc.line(1);
-  const hasFrontMatter = firstLine.text.trim() === '---';
+  const range = findFrontMatterRange(doc);
+  if (!range) return builder.finish();
 
-  if (!hasFrontMatter) return builder.finish();
-
-  let closingLineNumber = -1;
-  for (let i = 2; i <= doc.lines; i++) {
-    if (doc.line(i).text.trim() === '---') { closingLineNumber = i; break; }
-  }
+  const closingLineNumber = range.closeLine;
 
   // Front matter is always top-anchored, so only scan the front-matter region
   // rather than the whole document. Without a closing delimiter only the opening
@@ -88,14 +102,11 @@ export const frontMatterPlugin = Prec.highest(ViewPlugin.fromClass(
 function buildFrontMatterHideDecorations(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = state.doc;
-  const firstLine = doc.line(1);
-  if (firstLine.text.trim() !== '---') return builder.finish();
+  const range = findFrontMatterRange(doc);
+  if (!range || range.closeLine === 0) return builder.finish();
 
-  let closingLine: ReturnType<typeof doc.line> | null = null;
-  for (let i = 2; i <= doc.lines; i++) {
-    if (doc.line(i).text.trim() === '---') { closingLine = doc.line(i); break; }
-  }
-  if (!closingLine) return builder.finish();
+  const firstLine = doc.line(range.openLine);
+  const closingLine = doc.line(range.closeLine);
 
   // End the block at the closing line's END (line.to), NOT at the start of the next line
   // (closingLine.to + 1). A block-replace must span line-start..line-end; ending it at the
@@ -120,11 +131,7 @@ export const frontMatterHideField = StateField.define<DecorationSet>({
 // document has no front matter (no opening delimiter, or no matching closing one).
 // Lines 1..N inclusive make up the front-matter region.
 export function frontMatterEndLine(doc: Text): number {
-  if (doc.line(1).text.trim() !== '---') return 0;
-  for (let i = 2; i <= doc.lines; i++) {
-    if (doc.line(i).text.trim() === '---') return i;
-  }
-  return 0;
+  return findFrontMatterRange(doc)?.closeLine ?? 0;
 }
 
 // Returns the document position at the start of the first visible line (just past the
@@ -132,15 +139,10 @@ export function frontMatterEndLine(doc: Text): number {
 // This is the cursor floor: one position past the hide block's end (which stops at the
 // closing line's end, closingLine.to), i.e. the start of the first visible line.
 export function frontMatterHiddenEnd(doc: Text): number {
-  const firstLine = doc.line(1);
-  if (firstLine.text.trim() !== '---') return -1;
-  for (let i = 2; i <= doc.lines; i++) {
-    const line = doc.line(i);
-    if (line.text.trim() === '---') {
-      return line.number < doc.lines ? line.to + 1 : line.to;
-    }
-  }
-  return -1;
+  const range = findFrontMatterRange(doc);
+  if (!range || range.closeLine === 0) return -1;
+  const line = doc.line(range.closeLine);
+  return line.number < doc.lines ? line.to + 1 : line.to;
 }
 
 // Treat the hidden front-matter region as a single atomic unit so arrow-key motion,
