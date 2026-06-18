@@ -8,6 +8,11 @@ import { logger } from '../logUtil';
 export type CalendarFileChangedCallback = (results: CalendarEventResult[], filePath: string) => void;
 export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolean) => void;
 
+// Single module-level watcher state. This is a deliberate design choice, not an
+// oversight: the app watches exactly one active vault folder at a time, tied to
+// the single mainWindow (see the 'load-calendar-events' IPC handler in main.ts).
+// If multi-vault or split-view watching is ever needed, promote this state into a
+// CalendarWatcher class so each view can own an independent instance.
 let currentWatcher: ReturnType<typeof chokidar.watch> | null = null;
 let currentFolder: string | null = null;
 
