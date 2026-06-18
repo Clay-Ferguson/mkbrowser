@@ -5,6 +5,7 @@ import { load } from 'js-yaml';
 import { RRule, Weekday } from 'rrule';
 import { logger } from '../logUtil';
 import { buildExcludePredicate } from '../pathPattern';
+import { mapWithConcurrency } from '../asyncUtil';
 
 export interface CalendarEventResult {
   id: string;
@@ -74,6 +75,9 @@ const MAX_OCCURRENCES = 400;
  * repeats (e.g. daily).
  */
 const MAX_FUTURE_YEARS = 2;
+
+/** Cap simultaneous file reads to avoid EMFILE on large vaults. */
+const CALENDAR_READ_CONCURRENCY = 50;
 
 interface RRuleYaml {
   freq?: string;
@@ -219,6 +223,6 @@ export async function loadCalendarEvents(
     .crawl(folderPath);
 
   const files = await api.withPromise();
-  const results = await Promise.all(files.map(loadCalendarEntryForFile));
+  const results = await mapWithConcurrency(files, CALENDAR_READ_CONCURRENCY, loadCalendarEntryForFile);
   return results.flat();
 }
