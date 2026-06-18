@@ -24,8 +24,6 @@ Attach an error handler that logs via the existing `logger`:
 currentWatcher.on('error', (err: unknown) =>
   logger.error('Calendar watcher error:', err));
 ```
-Optionally surface a user-visible notice for fatal cases (e.g. `ENOSPC`). Use the same `logger`
-the module already imports.
 
 ## Verification
 - Triggering a watcher error (e.g. deleting the watched root, or simulating `ENOSPC`) produces a

@@ -45,6 +45,9 @@ export function startCalendarWatcher(
     ignorePermissionErrors: true,
   });
 
+  currentWatcher.on('error', (err: unknown) =>
+    logger.error('Calendar watcher error:', err));
+
   currentWatcher.on('change', (filePath: string) => {
     // console.log("************ onChange: "+filePath);
     if (path.extname(filePath).toLowerCase() !== '.md') return;
