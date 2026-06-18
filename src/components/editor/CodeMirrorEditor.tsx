@@ -17,7 +17,6 @@ import { formatDate, formatTimestamp } from '../../utils/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../utils/editor/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editor/editorDateUtil';
 import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../utils/editor/editorFrontMatterUtil';
-// import { customRenderPlugin, customRenderTheme } from '../../utils/editorCustomRenderUtil'; // <--- Keep for future reference (no longer needed for now)
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
