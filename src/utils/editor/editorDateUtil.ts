@@ -2,6 +2,7 @@ import { Decoration, DecorationSet, ViewPlugin, ViewUpdate, EditorView, hoverToo
 import { RangeSetBuilder } from '@codemirror/state';
 import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../timeUtil';
 import { MONO_FONT_STACK } from '../styles';
+import { eachVisibleLine } from './editorViewportUtil';
 
 // Decoration for date patterns
 export const dateMark = Decoration.mark({ class: 'cm-date' });
@@ -27,20 +28,14 @@ export function extractDates(text: string): { from: number; to: number }[] {
 // Create date decorations for a view
 export function createDateDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
-  const doc = view.state.doc;
 
   // Only decorate the visible viewport; the plugin re-runs on viewportChanged.
-  for (const { from: rangeFrom, to: rangeTo } of view.visibleRanges) {
-    for (let pos = rangeFrom; pos <= rangeTo; ) {
-      const line = doc.lineAt(pos);
-      pos = line.to + 1;
-
-      const dates = extractDates(line.text);
-      for (const { from, to } of dates) {
-        builder.add(line.from + from, line.from + to, dateMark);
-      }
+  eachVisibleLine(view, (line) => {
+    const dates = extractDates(line.text);
+    for (const { from, to } of dates) {
+      builder.add(line.from + from, line.from + to, dateMark);
     }
-  }
+  });
 
   return builder.finish();
 }

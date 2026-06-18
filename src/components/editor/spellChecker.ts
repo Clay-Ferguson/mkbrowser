@@ -5,6 +5,7 @@ import Typo from 'typo-js';
 import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
 import { frontMatterEndLine } from '../../utils/editor/editorFrontMatterUtil';
+import { eachVisibleLine } from '../../utils/editor/editorViewportUtil';
 
 // Singleton for the spell checker
 let typoInstance: Typo | null = null;
@@ -72,26 +73,21 @@ export function createSpellCheckDecorations(view: EditorView, typo: Typo | null)
   // Only decorate the visible viewport, not the whole document. Spell-check
   // underlines are only ever seen within the viewport, so scanning the entire
   // doc on every keystroke/scroll is wasted work on large files.
-  for (const { from, to } of view.visibleRanges) {
-    for (let pos = from; pos <= to; ) {
-      const line = doc.lineAt(pos);
-      pos = line.to + 1;
+  eachVisibleLine(view, (line) => {
+    if (line.number <= frontMatterEnd) return;
 
-      if (line.number <= frontMatterEnd) continue;
+    const words = extractWords(line.text);
+    for (const { word, from: wordFrom, to: wordTo } of words) {
+      // Skip very short words and words that are all caps (likely acronyms)
+      if (word.length < 2 || word === word.toUpperCase()) {
+        continue;
+      }
 
-      const words = extractWords(line.text);
-      for (const { word, from: wordFrom, to: wordTo } of words) {
-        // Skip very short words and words that are all caps (likely acronyms)
-        if (word.length < 2 || word === word.toUpperCase()) {
-          continue;
-        }
-
-        if (!typo.check(word)) {
-          builder.add(line.from + wordFrom, line.from + wordTo, misspelledMark);
-        }
+      if (!typo.check(word)) {
+        builder.add(line.from + wordFrom, line.from + wordTo, misspelledMark);
       }
     }
-  }
+  });
 
   return builder.finish();
 }

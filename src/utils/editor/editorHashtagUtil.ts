@@ -1,6 +1,7 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
 import { HASHTAG_REGEX } from '../hashtagRegex';
+import { eachVisibleLine } from './editorViewportUtil';
 
 // Decorations for hashtags
 const hashtagP1Mark = Decoration.mark({ class: 'cm-hashtag-p1' });
@@ -25,31 +26,25 @@ export function extractHashtags(text: string): { tag: string; from: number; to: 
 // Create hashtag decorations for a view
 export function createHashtagDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
-  const doc = view.state.doc;
 
   // Only decorate the visible viewport; the plugin re-runs on viewportChanged.
-  for (const { from: rangeFrom, to: rangeTo } of view.visibleRanges) {
-    for (let pos = rangeFrom; pos <= rangeTo; ) {
-      const line = doc.lineAt(pos);
-      pos = line.to + 1;
+  eachVisibleLine(view, (line) => {
+    const hashtags = extractHashtags(line.text);
+    for (const { tag, from, to } of hashtags) {
+      const lowerTag = tag.toLowerCase();
+      let mark: Decoration;
 
-      const hashtags = extractHashtags(line.text);
-      for (const { tag, from, to } of hashtags) {
-        const lowerTag = tag.toLowerCase();
-        let mark: Decoration;
-
-        if (lowerTag === '#p1') {
-          mark = hashtagP1Mark;
-        } else if (lowerTag === '#p2') {
-          mark = hashtagP2Mark;
-        } else {
-          mark = hashtagRegularMark;
-        }
-
-        builder.add(line.from + from, line.from + to, mark);
+      if (lowerTag === '#p1') {
+        mark = hashtagP1Mark;
+      } else if (lowerTag === '#p2') {
+        mark = hashtagP2Mark;
+      } else {
+        mark = hashtagRegularMark;
       }
+
+      builder.add(line.from + from, line.from + to, mark);
     }
-  }
+  });
 
   return builder.finish();
 }

@@ -1,5 +1,6 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder, RangeSet, Prec, StateField, EditorState, EditorSelection, Text } from '@codemirror/state';
+import { eachVisibleLine } from './editorViewportUtil';
 
 const frontMatterMark = Decoration.mark({ class: 'cm-front-matter' });
 const frontMatterDelimMark = Decoration.mark({ class: 'cm-front-matter-delim' });
@@ -42,18 +43,13 @@ export function createFrontMatterDecorations(view: EditorView): DecorationSet {
 
 function buildHrLineDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
-  const doc = view.state.doc;
   // Only decorate the visible viewport; the plugin re-runs on viewportChanged.
   // Line 1 is skipped so the opening front-matter delimiter is not drawn as an <hr>.
-  for (const { from, to } of view.visibleRanges) {
-    for (let pos = from; pos <= to; ) {
-      const line = doc.lineAt(pos);
-      pos = line.to + 1;
-      if (line.number > 1 && line.text.trim() === '---') {
-        builder.add(line.from, line.from, hrLineDeco);
-      }
+  eachVisibleLine(view, (line) => {
+    if (line.number > 1 && line.text.trim() === '---') {
+      builder.add(line.from, line.from, hrLineDeco);
     }
-  }
+  });
   return builder.finish();
 }
 
