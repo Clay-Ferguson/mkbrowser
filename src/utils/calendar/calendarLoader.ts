@@ -119,9 +119,26 @@ function expandRRule(
     ? rruleYaml.byday.split(',').map(s => BYDAY_MAP[s.trim().toUpperCase()]).filter(Boolean)
     : undefined;
 
-  const until = rruleYaml.until ? parseDueStr(rruleYaml.until) ?? undefined : undefined;
-
   const isAllDay = startMs === dueDate.getTime() && endMs === dueDate.getTime();
+
+  // RRule must be driven entirely in UTC, otherwise it produces wrong results for
+  // non-UTC machines. Internally rrule does its date/weekday arithmetic on the UTC
+  // components of `dtstart` and returns occurrences carrying those values in their UTC
+  // components. If we feed a local-time Date (whose UTC components differ from the
+  // wall-clock by the tz offset), a `byday: MO` rule lands on the wrong weekday east/west
+  // of UTC, and a timed event drifts an hour across DST. We therefore encode the intended
+  // wall-clock into UTC via Date.UTC(...) when building the rule, and decode each
+  // occurrence's UTC components back into a *local* timestamp for the calendar to render.
+  // The dtstart wall-clock is read from the local Date the loader already built.
+  const wall = new Date(isAllDay ? dueDate.getTime() : startMs);
+  const dtstart = isAllDay
+    ? new Date(Date.UTC(wall.getFullYear(), wall.getMonth(), wall.getDate()))
+    : new Date(Date.UTC(wall.getFullYear(), wall.getMonth(), wall.getDate(), wall.getHours(), wall.getMinutes()));
+
+  const untilDate = rruleYaml.until ? parseDueStr(rruleYaml.until) : null;
+  const until = untilDate
+    ? new Date(Date.UTC(untilDate.getFullYear(), untilDate.getMonth(), untilDate.getDate()))
+    : undefined;
 
   const rule = new RRule({
     freq,
@@ -129,12 +146,12 @@ function expandRRule(
     byweekday: byweekday && byweekday.length > 0 ? byweekday : undefined,
     until: until ?? undefined,
     count: rruleYaml.count,
-    dtstart: isAllDay ? dueDate : new Date(startMs),
+    dtstart,
   });
 
-  // we have the max occurrences and this time horizon in place so that we can 
-  // be sure that calendar items that are configured to repeat forever, won't 
-  // overflow memory or overload the calendar component 
+  // we have the max occurrences and this time horizon in place so that we can
+  // be sure that calendar items that are configured to repeat forever, won't
+  // overflow memory or overload the calendar component
   const horizon = new Date();
   horizon.setFullYear(horizon.getFullYear() + MAX_FUTURE_YEARS);
   const horizonMs = horizon.getTime();
@@ -142,14 +159,15 @@ function expandRRule(
   return rule
     .all((date, len) => date.getTime() <= horizonMs && len < MAX_OCCURRENCES)
     .map((occurrenceDate, i) => {
+    // Decode the UTC components rrule produced back into a local wall-clock timestamp.
     let occStart: number;
     let occEnd: number;
     if (isAllDay) {
-      occStart = new Date(occurrenceDate.getFullYear(), occurrenceDate.getMonth(), occurrenceDate.getDate()).getTime();
+      occStart = new Date(occurrenceDate.getUTCFullYear(), occurrenceDate.getUTCMonth(), occurrenceDate.getUTCDate()).getTime();
       occEnd = occStart;
     } else {
-      occStart = new Date(occurrenceDate.getFullYear(), occurrenceDate.getMonth(), occurrenceDate.getDate(),
-        occurrenceDate.getHours(), occurrenceDate.getMinutes(), 0, 0).getTime();
+      occStart = new Date(occurrenceDate.getUTCFullYear(), occurrenceDate.getUTCMonth(), occurrenceDate.getUTCDate(),
+        occurrenceDate.getUTCHours(), occurrenceDate.getUTCMinutes(), 0, 0).getTime();
       occEnd = occStart + durationMs;
     }
     return { id: `${filePath}::${i}`, title, start: occStart, end: occEnd, filePath, snippet };

@@ -230,6 +230,74 @@ describe('loadCalendarEntryForFile — byday recurring (MO/WE/FR, count: 6)', ()
 });
 
 // ---------------------------------------------------------------------------
+// loadCalendarEntryForFile — timezone / DST behavior
+//
+// rrule is local-in/local-out: occurrences carry the intended wall-clock values in
+// their LOCAL components. These tests pin that contract so the "off-by-one-day" and
+// DST-hour-drift footguns can't regress. They assert on local calendar Y/M/D and
+// wall-clock H:M (the same basis the loader builds with), so they hold in any TZ.
+// ---------------------------------------------------------------------------
+
+describe('loadCalendarEntryForFile — timezone / DST', () => {
+  it('all-day weekly occurrences land on the correct calendar day (no off-by-one)', async () => {
+    write('tz-allday-weekly.md', `---\ndue: 6/1/2026\nrrule:\n  freq: weekly\n  count: 3\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('tz-allday-weekly.md'));
+    expect(results.map(r => r.start)).toEqual([
+      new Date(2026, 5, 1).getTime(),
+      new Date(2026, 5, 8).getTime(),
+      new Date(2026, 5, 15).getTime(),
+    ]);
+    for (const ev of results) expect(ev.end).toBe(ev.start);
+  });
+
+  it('all-day byday (MO/WE/FR) lands on Mon/Wed/Fri in every timezone', async () => {
+    // The classic rrule footgun: byday arithmetic happens in rrule's UTC frame, so a
+    // local-time dtstart shifts the weekday east/west of UTC (e.g. MO/WE/FR -> TU/TH/SA
+    // under Asia/Tokyo) before the UTC-normalization fix.
+    write('tz-allday-byday.md', `---\ndue: 6/1/2026\nrrule:\n  freq: weekly\n  byday: MO,WE,FR\n  count: 6\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('tz-allday-byday.md'));
+    expect(results).toHaveLength(6);
+    const mwf = new Set([1, 3, 5]); // Mon, Wed, Fri
+    for (const ev of results) {
+      expect(mwf.has(new Date(ev.start).getDay())).toBe(true);
+    }
+    expect(results.map(r => new Date(r.start).getDate())).toEqual([1, 3, 5, 8, 10, 12]);
+  });
+
+  it('all-day weekly with `until` includes the boundary occurrence', async () => {
+    write('tz-allday-until.md', `---\ndue: 6/1/2026\nrrule:\n  freq: weekly\n  until: 6/15/2026\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('tz-allday-until.md'));
+    expect(results.map(r => r.start)).toEqual([
+      new Date(2026, 5, 1).getTime(),
+      new Date(2026, 5, 8).getTime(),
+      new Date(2026, 5, 15).getTime(),
+    ]);
+  });
+
+  it('timed weekly occurrences keep the specified wall-clock time', async () => {
+    write('tz-timed-weekly.md', `---\ndue: 6/1/2026\nstart: "9:00 AM"\nrrule:\n  freq: weekly\n  count: 3\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('tz-timed-weekly.md'));
+    expect(results).toHaveLength(3);
+    for (const ev of results) {
+      const d = new Date(ev.start);
+      expect(d.getHours()).toBe(9);
+      expect(d.getMinutes()).toBe(0);
+    }
+  });
+
+  it('timed weekly does not drift an hour across a DST transition', async () => {
+    // US spring-forward 2026 is Sun Mar 8. A 9:00 AM weekly event starting Mar 2 must
+    // stay at 9:00 AM for every occurrence — before the fix the post-DST occurrences
+    // read back as 10:00 AM in DST timezones.
+    write('tz-timed-dst.md', `---\ndue: 3/2/2026\nstart: "9:00 AM"\nrrule:\n  freq: weekly\n  count: 3\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('tz-timed-dst.md'));
+    expect(results).toHaveLength(3);
+    expect(results.map(r => new Date(r.start).getHours())).toEqual([9, 9, 9]);
+    expect(results.map(r => new Date(r.start).getDate())).toEqual([2, 9, 16]);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // loadCalendarEntryForFile — malformed rrule fields (untyped YAML coercion)
 // ---------------------------------------------------------------------------
 
