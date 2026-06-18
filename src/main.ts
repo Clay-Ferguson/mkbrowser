@@ -461,7 +461,7 @@ function setupIpcHandlers(): void {
 
       // Start (or keep) the file watcher for this folder
       if (getCalendarWatcherFolder() !== folderPath) {
-        startCalendarWatcher(folderPath, (results, filePath) => {
+        await startCalendarWatcher(folderPath, (results, filePath) => {
           logger.info(`[main] calendar-file-changed: sending to renderer filePath=${filePath} count=${results.length}`);
           if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('calendar-file-changed', results, filePath);
@@ -838,8 +838,8 @@ app.on('ready', async () => {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
-  stopCalendarWatcher();
+app.on('window-all-closed', async () => {
+  await stopCalendarWatcher();
   if (process.platform !== 'darwin') {
     app.quit();
   }

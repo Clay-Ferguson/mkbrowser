@@ -31,16 +31,19 @@ function buildIgnoredFn(extraPatterns: string[]): (filePath: string) => boolean 
   };
 }
 
-export function startCalendarWatcher(
+export async function startCalendarWatcher(
   folderPath: string,
   onChanged: CalendarFileChangedCallback,
   onDeleted: CalendarFileDeletedCallback,
   ignoredPaths: string[] = [],
-): void {
+): Promise<void> {
   // Don't restart if already watching the same folder
   if (currentFolder === folderPath && currentWatcher !== null) return;
 
-  stopCalendarWatcher();
+  // Await the close so the previous watcher is fully torn down before the new
+  // one is created — otherwise the two briefly coexist and can emit duplicate
+  // events / leak file handles during a folder switch.
+  await stopCalendarWatcher();
 
   currentFolder = folderPath;
   currentWatcher = chokidar.watch(folderPath, {
@@ -79,12 +82,17 @@ export function startCalendarWatcher(
   });
 }
 
-export function stopCalendarWatcher(): void {
-  if (currentWatcher) {
-    currentWatcher.close()
-      .catch((err: unknown) => logger.error('Failed to close calendar watcher:', err));
-    currentWatcher = null;
-    currentFolder = null;
+export async function stopCalendarWatcher(): Promise<void> {
+  if (!currentWatcher) return;
+  // Capture and clear the module state synchronously so the "already watching"
+  // guard immediately sees a cleared slot, then await the close on the local.
+  const watcher = currentWatcher;
+  currentWatcher = null;
+  currentFolder = null;
+  try {
+    await watcher.close();
+  } catch (err) {
+    logger.error('Failed to close calendar watcher:', err);
   }
 }
 
