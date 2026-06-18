@@ -7,8 +7,9 @@ src/components/editor
 src/components/entries
 src/components/menus
 src/components/views
-src/components <------------------- todo-0: haven't yet done root of 'components' stuff
+src/components 
 src/utils/fileOpsUtil.ts
 src/utils/fileUtil.ts
+src/utils/calendar/*.ts <---- current
 src/store
 ```
