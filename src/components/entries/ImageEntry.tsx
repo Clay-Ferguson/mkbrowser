@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { clsx } from 'clsx';
 import { PhotoIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon } from '@heroicons/react/24/outline';
 import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
@@ -140,7 +141,10 @@ function ImageEntry(props: ImageEntryProps) {
                 ref={imgRef}
                 src={imageUrl}
                 alt={entry.name}
-                className={`max-w-full ${imageSize === 'large' ? 'max-h-[48rem]' : 'max-h-96'} object-contain rounded cursor-pointer hover:opacity-90 transition-opacity`}
+                className={clsx(
+                  'max-w-full object-contain rounded cursor-pointer hover:opacity-90 transition-opacity',
+                  imageSize === 'large' ? 'max-h-[48rem]' : 'max-h-96',
+                )}
                 loading="lazy"
                 onClick={() => setIsFullscreen(true)}
                 title="Click to view fullscreen"

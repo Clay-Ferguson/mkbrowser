@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
+import { clsx } from 'clsx';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { showTab, hideTab, useCurrentView, setCurrentView, useFolderAnalysis, useFolderGraph, useSearchResults, useVisibleTabs, useCurrentPath, useRootPath, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, setSearchResults, type AppView } from '../store';
 import { isAiThreadByEntries } from '../ai/aiPatterns';
@@ -135,13 +136,12 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
               data-testid={`tab-button-${tab.id}`}
               type="button"
               onClick={() => setCurrentView(tab.id)}
-              className={`
-                flex items-center text-base font-medium transition-colors cursor-pointer
-                ${currentView === tab.id
+              className={clsx(
+                'flex items-center text-base font-medium transition-colors cursor-pointer',
+                currentView === tab.id
                   ? 'text-slate-100 border-b-4 border-blue-500'
-                  : 'text-slate-400 hover:text-slate-200 border-b-4 border-transparent'
-                }
-              `}
+                  : 'text-slate-400 hover:text-slate-200 border-b-4 border-transparent',
+              )}
             >
               {tab.label}
             </button>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { clsx } from 'clsx';
 import { HomeIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import { useSettings, setPendingIndexTreeReveal, setCurrentView, deleteItems } from '../store';
 import {
@@ -77,7 +78,12 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
         onClick={() => !atRoot && onNavigate(normalizedRoot)}
         disabled={atRoot}
         {...dropProps(normalizedRoot)}
-        className={`p-2 text-slate-400 hover:bg-slate-700 border rounded cursor-pointer flex-shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-transparent ${dragOverPath === normalizedRoot ? 'bg-blue-600/60 border-blue-400' : 'border-transparent hover:border-slate-500'}`}
+        className={clsx(
+          'p-2 text-slate-400 hover:bg-slate-700 border rounded cursor-pointer flex-shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-transparent',
+          dragOverPath === normalizedRoot
+            ? 'bg-blue-600/60 border-blue-400'
+            : 'border-transparent hover:border-slate-500',
+        )}
         aria-label="Go to root folder"
         title="Go to root folder"
       >
@@ -98,7 +104,10 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
             {isLast ? (
               <span
                 {...dropProps(segmentPath)}
-                className={`px-2 py-1 text-purple-400 font-bold break-all rounded border ${isDragOver ? 'bg-blue-600/60 border-blue-400' : 'border-transparent'}`}
+                className={clsx(
+                  'px-2 py-1 text-purple-400 font-bold break-all rounded border',
+                  isDragOver ? 'bg-blue-600/60 border-blue-400' : 'border-transparent',
+                )}
               >
                 {part}
               </span>
@@ -107,7 +116,12 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
                 type="button"
                 onClick={() => onNavigate(segmentPath)}
                 {...dropProps(segmentPath)}
-                className={`px-2 py-1 text-slate-200 hover:bg-slate-700 border rounded cursor-pointer no-underline break-all transition-colors ${isDragOver ? 'bg-blue-600/60 border-blue-400' : 'border-transparent hover:border-slate-500'}`}
+                className={clsx(
+                  'px-2 py-1 text-slate-200 hover:bg-slate-700 border rounded cursor-pointer no-underline break-all transition-colors',
+                  isDragOver
+                    ? 'bg-blue-600/60 border-blue-400'
+                    : 'border-transparent hover:border-slate-500',
+                )}
               >
                 {part}
               </button>

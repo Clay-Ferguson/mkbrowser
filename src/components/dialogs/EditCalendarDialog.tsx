@@ -167,11 +167,12 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                         key={day}
                         type="button"
                         onClick={() => toggleDay(day)}
-                        className={`w-8 h-7 text-xs rounded transition-colors ${
+                        className={clsx(
+                          'w-8 h-7 text-xs rounded transition-colors',
                           byday.includes(day)
                             ? 'bg-blue-600 text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                        }`}
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600',
+                        )}
                       >
                         {day}
                       </button>

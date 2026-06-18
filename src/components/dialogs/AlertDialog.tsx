@@ -2,9 +2,6 @@ import { clsx } from 'clsx';
 import Dialog from './common/Dialog';
 import { BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
 
-// todo-0: we've just added 'clsx' to this file and so now we need to 
-// go through all the code and apply this approach wherever it's appropriate 
-
 interface AlertDialogProps {
   message: string;
   onClose: () => void;

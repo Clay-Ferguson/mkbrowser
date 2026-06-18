@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { clsx } from 'clsx';
 import { useItem, getItemEditContent, setItemEditContent } from '../store';
 import { CHECKBOX_CLASS, MONO_FONT_STACK } from '../utils/styles';
 import {
@@ -68,17 +69,18 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
       <label
         key={def.tag}
         title={def.description}
-        className={`flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer select-none text-sm transition-colors ${
+        className={clsx(
+          'flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer select-none text-sm transition-colors',
           checked
             ? 'bg-blue-600/50 text-blue-100 border border-slate-400/60'
-            : 'text-slate-300 hover:text-slate-100 border border-transparent'
-        }`}
+            : 'text-slate-300 hover:text-slate-100 border border-transparent',
+        )}
       >
         <input
           type="checkbox"
           checked={checked}
           onChange={() => handleToggle(category, def)}
-          className={`${CHECKBOX_CLASS}`}
+          className={CHECKBOX_CLASS}
         />
         <span className="whitespace-nowrap">{def.tag}</span>
       </label>

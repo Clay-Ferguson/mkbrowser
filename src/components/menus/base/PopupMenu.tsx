@@ -1,4 +1,5 @@
 import { useRef, useLayoutEffect, useEffect, useState, useCallback, type ReactNode, type RefObject, type ComponentType } from 'react';
+import { clsx } from 'clsx';
 import { CheckIcon } from '@heroicons/react/24/solid';
 import { MENU_CONTAINER, MENU_ITEM_BASE, MENU_ITEM_ENABLED, MENU_ITEM_DISABLED, MENU_DIVIDER } from '../../../utils/styles';
 
@@ -168,7 +169,11 @@ export function PopupMenuItem({
   return (
     <button
       type="button"
-      className={`${MENU_ITEM_BASE} ${hasCheckboxArea ? 'px-3' : 'px-4'} ${disabled ? MENU_ITEM_DISABLED : MENU_ITEM_ENABLED}`}
+      className={clsx(
+        MENU_ITEM_BASE,
+        hasCheckboxArea ? 'px-3' : 'px-4',
+        disabled ? MENU_ITEM_DISABLED : MENU_ITEM_ENABLED,
+      )}
       onClick={onClick}
       disabled={disabled}
       data-testid={dataTestId}

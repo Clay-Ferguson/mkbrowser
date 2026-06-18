@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
+import { clsx } from 'clsx';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
@@ -694,7 +695,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
             <div
               key={node.path}
               data-tree-path={node.path}
-              className={`${className}${isDragOver ? ' bg-blue-600/40 outline outline-1 outline-blue-400' : ''}`}
+              className={clsx(className, isDragOver && 'bg-blue-600/40 outline outline-1 outline-blue-400')}
               style={rowStyle}
               onClick={e => {
                 if (isSh && e.ctrlKey) { handleRunScript(node); return; }

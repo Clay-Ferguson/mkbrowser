@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { clsx } from 'clsx';
 
 export interface ComboboxOption {
   value: string;
@@ -165,7 +166,7 @@ function EditableCombobox({
           aria-label="Toggle dropdown"
         >
           <svg
-            className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            className={clsx('w-4 h-4 text-slate-400 transition-transform', isOpen && 'rotate-180')}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -187,11 +188,12 @@ function EditableCombobox({
               key={option.value}
               onClick={() => handleOptionClick(option)}
               onMouseEnter={() => setHighlightedIndex(index)}
-              className={`px-3 py-2 text-sm cursor-pointer ${
+              className={clsx(
+                'px-3 py-2 text-sm cursor-pointer',
                 index === highlightedIndex
                   ? 'bg-blue-600 text-white'
-                  : 'text-slate-200 hover:bg-slate-700'
-              }`}
+                  : 'text-slate-200 hover:bg-slate-700',
+              )}
               role="option"
               aria-selected={index === highlightedIndex}
             >

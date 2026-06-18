@@ -1,4 +1,5 @@
-import { useState } from 'react'; 
+import { useState } from 'react';
+import { clsx } from 'clsx';
 import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { api } from '../../services/api';
 import {
@@ -227,12 +228,13 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                     {/* Show matching line text if available */}
                     {result.lineText && (
                       <div
-                        className={`text-sm truncate mt-0.5 font-mono ${
+                        className={clsx(
+                          'text-sm truncate mt-0.5 font-mono',
                           /#p1\b/i.test(result.lineText) ? 'text-orange-400' :
                           /#p2\b/i.test(result.lineText) ? 'text-yellow-400' :
                           /#p3\b/i.test(result.lineText) ? 'text-blue-400' :
-                          'text-slate-400'
-                        }`}
+                          'text-slate-400',
+                        )}
                         title={result.lineText}
                       >
                         {result.lineText}

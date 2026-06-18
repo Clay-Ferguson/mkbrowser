@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { clsx } from 'clsx';
 import { ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import type { SearchDefinition } from '../../types/types';
 import { DLG_LABEL_CLASS, DLG_INPUT_CLASS } from '../../utils/styles';
@@ -74,11 +75,12 @@ function SearchDefinitionsPanel({
                 <button
                   type="button"
                   onClick={() => onSelect(def)}
-                  className={`w-full text-left px-3 py-1.5 rounded text-sm whitespace-nowrap overflow-hidden text-ellipsis ${
+                  className={clsx(
+                    'w-full text-left px-3 py-1.5 rounded text-sm whitespace-nowrap overflow-hidden text-ellipsis',
                     searchName === def.name
                       ? 'bg-blue-600 text-white'
-                      : 'text-slate-300 hover:bg-slate-700'
-                  }`}
+                      : 'text-slate-300 hover:bg-slate-700',
+                  )}
                   title={def.name}
                 >
                   {def.name}

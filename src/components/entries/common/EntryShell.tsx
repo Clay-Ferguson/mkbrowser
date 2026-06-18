@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { clsx } from 'clsx';
 import type { FileEntry } from '../../../global';
 import { buildEntryHeaderId } from '../../../utils/entryDom';
 import { formatFlyoverInfo } from '../../../utils/fileTypes';
@@ -95,10 +96,10 @@ export function EntryShell({
   return (
     <div
       data-testid={dataTestId}
-      className={`${ENTRY_OUTER} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}${className ? ` ${className}` : ''}`}
+      className={clsx(ENTRY_OUTER, isHighlighted && ENTRY_HIGHLIGHTED, className)}
     >
       <div
-        className={`${ENTRY_HEADER_ROW} ${expandedAffectsHeader && isExpanded ? ENTRY_HEADER_EXPANDED : ''}`}
+        className={clsx(ENTRY_HEADER_ROW, expandedAffectsHeader && isExpanded && ENTRY_HEADER_EXPANDED)}
         onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
       >
         {!isAttachment && (

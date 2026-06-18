@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { clsx } from 'clsx';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { api } from '../../services/api';
 import Dialog from './common/Dialog';
@@ -106,11 +107,13 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             type="text"
             value={fileName}
             onChange={(e) => setFileName(e.target.value)}
-            className={`w-full ${DLG_INPUT_CLASS_BASE} ${
+            className={clsx(
+              'w-full',
+              DLG_INPUT_CLASS_BASE,
               fileNameHasExtension
                 ? 'border-red-500 focus:border-red-400'
-                : 'border-slate-600 focus:border-blue-500'
-            }`}
+                : 'border-slate-600 focus:border-blue-500',
+            )}
             placeholder="export"
             data-testid="export-file-name"
           />

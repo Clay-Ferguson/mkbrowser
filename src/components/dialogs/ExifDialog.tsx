@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { clsx } from 'clsx';
 import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
 import { getExifDescriptionTarget } from '../../utils/exifDescriptionTarget';
@@ -160,13 +161,13 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
       title={`EXIF — ${fileName}`}
       onClose={onClose}
       closeOnBackdrop
-      className={`font-mono w-full min-w-[400px] ${editMode ? 'max-w-6xl' : 'max-w-5xl'}`}
+      className={clsx('font-mono w-full min-w-[400px]', editMode ? 'max-w-6xl' : 'max-w-5xl')}
     >
       <div className="p-6">
         {isEmpty ? (
           <p className="text-slate-400 mb-6">No EXIF metadata found in this image.</p>
         ) : (
-          <div className={`overflow-y-auto pr-2 space-y-4 mb-6 ${editMode ? 'max-h-[80vh]' : 'max-h-[70vh]'}`}>
+          <div className={clsx('overflow-y-auto pr-2 space-y-4 mb-6', editMode ? 'max-h-[80vh]' : 'max-h-[70vh]')}>
             {deduped.map(([groupName, tags]) => (
               <div key={groupName}>
                 <h3 className="text-slate-300 text-sm font-semibold uppercase tracking-wider border-b border-slate-600 pb-1 mb-2">

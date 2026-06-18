@@ -1,3 +1,4 @@
+import { clsx } from 'clsx';
 import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../utils/timeUtil';
 import { MONO_FONT_STACK } from '../utils/styles';
 
@@ -41,7 +42,10 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
       <span
         key={key}
         onClick={() => onPropClick?.(key)}
-        className={`inline-flex items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden${onPropClick ? ' cursor-pointer hover:brightness-125' : ''}`}
+        className={clsx(
+          'inline-flex items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden',
+          onPropClick && 'cursor-pointer hover:brightness-125',
+        )}
         style={{ fontFamily: MONO_FONT_STACK }}
         title={dateTooltip}
       >
@@ -56,7 +60,10 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
     <span
       key={tag}
       onClick={onTagClick}
-      className={`px-2 py-0.5 rounded-md text-sm bg-blue-600/50 text-blue-100 border border-slate-400/60 select-none whitespace-nowrap${onTagClick ? ' cursor-pointer hover:brightness-125' : ''}`}
+      className={clsx(
+        'px-2 py-0.5 rounded-md text-sm bg-blue-600/50 text-blue-100 border border-slate-400/60 select-none whitespace-nowrap',
+        onTagClick && 'cursor-pointer hover:brightness-125',
+      )}
       style={{ fontFamily: MONO_FONT_STACK }}
     >
       {tag.startsWith('#') ? tag : `#${tag}`}

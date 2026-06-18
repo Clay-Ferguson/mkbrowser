@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { clsx } from 'clsx';
 import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
@@ -210,7 +211,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             type="button"
             onClick={handleToggleShowProps}
             title={showPropsInEditor ? 'Hide properties' : 'Show properties'}
-            className={`${ENTRY_EDITOR_ICON_BTN} border ${showPropsInEditor ? 'border-slate-400' : 'border-transparent'}`}
+            className={clsx(ENTRY_EDITOR_ICON_BTN, 'border', showPropsInEditor ? 'border-slate-400' : 'border-transparent')}
           >
             {showPropsInEditor
               ? <PropsIconSolid className="w-5 h-5" />
@@ -220,7 +221,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             type="button"
             onClick={handleToggleTagsVisible}
             title={tagsVisible ? 'Hide tags' : 'Show tags'}
-            className={`${ENTRY_EDITOR_ICON_BTN} border ${tagsVisible ? 'border-slate-400' : 'border-transparent'}`}
+            className={clsx(ENTRY_EDITOR_ICON_BTN, 'border', tagsVisible ? 'border-slate-400' : 'border-transparent')}
           >
             {tagsVisible
               ? <TagIconSolid className="w-5 h-5" />

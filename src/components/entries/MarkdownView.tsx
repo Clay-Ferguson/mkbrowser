@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { clsx } from 'clsx';
 import Markdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import type { PluggableList } from 'unified';
@@ -74,7 +75,7 @@ function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownView
         {columns.map((col, i) => (
           <article
             key={col.lineOffset}
-            className={`${ARTICLE_CLASS}${i > 0 ? ' border-l border-slate-600 pl-6' : ''}`}
+            className={clsx(ARTICLE_CLASS, i > 0 && 'border-l border-slate-600 pl-6')}
           >
             {renderColumn(col.text, col.lineOffset)}
           </article>

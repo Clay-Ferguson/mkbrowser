@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { clsx } from 'clsx';
 import { api } from '../../services/api';
 import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtil';
 import type { TagCategory, HashtagDefinition } from '../../utils/tagUtil';
@@ -204,11 +205,12 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                 {sortedCategories.map((cat) => (
                   <div
                     key={cat.id}
-                    className={`flex items-center gap-1 px-2 py-1.5 rounded group ${
+                    className={clsx(
+                      'flex items-center gap-1 px-2 py-1.5 rounded group',
                       selectedCatId === cat.id
                         ? 'bg-slate-700 text-slate-100'
-                        : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
-                    }`}
+                        : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200',
+                    )}
                   >
                     {renamingCatId === cat.id ? (
                       <input

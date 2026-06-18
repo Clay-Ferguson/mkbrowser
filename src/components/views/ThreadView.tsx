@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { clsx } from 'clsx';
 import { FolderIcon } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
 import type { FileEntry } from '../../global';
@@ -267,21 +268,16 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
             <div key={entry.filePath} className="flex items-start gap-2">
               <ThreadAvatar role={entry.role} />
               <div
-                className={`flex-1 min-w-0 border-l-4 pl-2 ${
-                  entry.role === 'human'
-                    ? 'border-blue-500'
-                    : 'border-emerald-500'
-                }`}
+                className={clsx(
+                  'flex-1 min-w-0 border-l-4 pl-2',
+                  entry.role === 'human' ? 'border-blue-500' : 'border-emerald-500',
+                )}
               >
                 {/* Purple border marks the turn at the folder the browse view
                     is currently focused on — earlier turns above it came from
                     walking up the tree, later ones from drilling down. */}
                 <div
-                  className={
-                    entry.folderPath === currentPath
-                      ? 'border-2 border-purple-500 rounded-sm'
-                      : ''
-                  }
+                  className={clsx(entry.folderPath === currentPath && 'border-2 border-purple-500 rounded-sm')}
                 >
                   <MarkdownEntry
                     entry={fileEntry}
@@ -305,9 +301,10 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
             {childFolders.map((folder) => (
               <div
                 key={folder.path}
-                className={`border-l-4 pl-2 ${
-                  folder.role === 'human' ? 'border-blue-500' : 'border-emerald-500'
-                }`}
+                className={clsx(
+                  'border-l-4 pl-2',
+                  folder.role === 'human' ? 'border-blue-500' : 'border-emerald-500',
+                )}
               >
                 <div
                   onClick={() => handleChildFolderClick(folder.path)}

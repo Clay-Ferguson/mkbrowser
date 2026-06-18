@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { clsx } from 'clsx';
 import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
 import { useHasCutItems, useItem, useHasIndexFile, deleteItems } from '../../store';
 import { buildEntryHeaderId } from '../../utils/entryDom';
@@ -83,14 +84,19 @@ function FolderEntry(props: FolderEntryProps) {
   };
 
   return (
-    <div className={`group ${indentFolder ? 'pl-8' : ''} ${isHighlighted ? ENTRY_HIGHLIGHTED : ''}`}>
+    <div className={clsx('group', indentFolder && 'pl-8', isHighlighted && ENTRY_HIGHLIGHTED)}>
       <div
         onClick={() => !isRenaming && onNavigate(entry.path)}
         onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={(e) => void handleDrop(e)}
-        className={`w-full flex items-center gap-3 px-2 py-0 ${isDragOver ? 'bg-blue-600/60 outline outline-1 outline-blue-400' : 'bg-transparent hover:bg-blue-700/70'} transition-colors text-left cursor-pointer`}
+        className={clsx(
+          'w-full flex items-center gap-3 px-2 py-0 transition-colors text-left cursor-pointer',
+          isDragOver
+            ? 'bg-blue-600/60 outline outline-1 outline-blue-400'
+            : 'bg-transparent hover:bg-blue-700/70',
+        )}
       >
         <SelectionCheckbox
           path={entry.path}
@@ -120,7 +126,7 @@ function FolderEntry(props: FolderEntryProps) {
           />
         ) : (
           <>
-            <span id={buildEntryHeaderId(entry.path)} className={`font-medium truncate flex-shrink-0${indentFolder ? ' text-slate-400 italic' : ' text-slate-200'}`}>{indentFolder ? `*${ATTACH_SUFFIX}` : entry.name}</span>
+            <span id={buildEntryHeaderId(entry.path)} className={clsx('font-medium truncate flex-shrink-0', indentFolder ? 'text-slate-400 italic' : 'text-slate-200')}>{indentFolder ? `*${ATTACH_SUFFIX}` : entry.name}</span>
             {aiHint && (
               <span className="text-slate-400 italic text-sm truncate min-w-0" title={aiHint}>{aiHint}</span>
             )}

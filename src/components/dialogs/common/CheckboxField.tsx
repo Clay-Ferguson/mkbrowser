@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import type { ReactNode } from 'react';
+import { clsx } from 'clsx';
 import { CHECKBOX_FIELD_CLASS } from '../../../utils/styles';
 
 interface CheckboxFieldProps {
@@ -38,7 +39,7 @@ const CheckboxField = ({
   const descriptionId = useId();
   return (
     <>
-      <label className={`flex items-center gap-2 ${disabled ? 'opacity-50' : 'cursor-pointer'}`}>
+      <label className={clsx('flex items-center gap-2', disabled ? 'opacity-50' : 'cursor-pointer')}>
         <input
           type="checkbox"
           checked={checked}

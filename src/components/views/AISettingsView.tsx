@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { clsx } from 'clsx';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
 import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../types/shared';
@@ -357,7 +358,7 @@ function AISettingsView() {
                       className="flex items-center gap-2 text-slate-300 text-sm font-medium hover:text-slate-100 transition-colors"
                     >
                       <ChevronRightIcon
-                        className={`w-4 h-4 transition-transform ${modelTableExpanded ? 'rotate-90' : ''}`}
+                        className={clsx('w-4 h-4 transition-transform', modelTableExpanded && 'rotate-90')}
                       />
                       <span>{modelTableExpanded ? 'Hide models' : 'Change model'}</span>
                     </button>
@@ -417,7 +418,7 @@ function AISettingsView() {
                               <tr
                                 key={m.name}
                                 onClick={() => handleAiModelChange(m.name)}
-                                className={`text-slate-200 border-t border-slate-700 cursor-pointer transition-colors hover:bg-slate-700/30 ${isSelected ? 'bg-slate-700/50' : ''}`}
+                                className={clsx('text-slate-200 border-t border-slate-700 cursor-pointer transition-colors hover:bg-slate-700/30', isSelected && 'bg-slate-700/50')}
                               >
                                 <td className="py-2 text-center">
                                   <input
@@ -449,10 +450,12 @@ function AISettingsView() {
                       {/* Server status + controls */}
                       <div className="flex items-center gap-3">
                         <span className="text-slate-400 text-sm">Status:</span>
-                        <span className={`text-sm font-medium ${llamaServerStatus === 'running' ? 'text-green-400' :
-                          llamaServerStatus === 'loading' ? 'text-yellow-400' :
-                            'text-slate-500'
-                          }`}>
+                        <span className={clsx(
+                          'text-sm font-medium',
+                          llamaServerStatus === 'running' ? 'text-green-400' :
+                            llamaServerStatus === 'loading' ? 'text-yellow-400' :
+                              'text-slate-500',
+                        )}>
                           {llamaServerStatus === 'running' ? 'Running' :
                             llamaServerStatus === 'loading' ? 'Loading model…' :
                               'Stopped'}
