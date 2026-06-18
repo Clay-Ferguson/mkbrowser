@@ -28,7 +28,7 @@ function getCurrentDateStr(): string {
   const now = new Date();
   const month = now.getMonth() + 1;
   const day = now.getDate();
-  const year = String(now.getFullYear()).slice(-2);
+  const year = now.getFullYear();
   return `${month}/${day}/${year}`;
 }
 
@@ -43,7 +43,7 @@ function getCurrentTimeStr(): string {
 
 function getUntilDateStr(): string {
   const year = new Date().getFullYear() + 2;
-  return `12/31/${String(year).slice(-2)}`;
+  return `12/31/${year}`;
 }
 
 /**

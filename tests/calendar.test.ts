@@ -627,6 +627,16 @@ describe('injectCalendarFrontMatter', () => {
     const result = injectCalendarFrontMatter('Body.', false);
     expect(result).not.toContain('rrule:');
   });
+
+  it('writes the due date with a 4-digit year (issue 015)', () => {
+    const result = injectCalendarFrontMatter('Body.', false);
+    expect(result).toMatch(/^due: \d{1,2}\/\d{1,2}\/\d{4}$/m);
+  });
+
+  it('writes the rrule until date with a 4-digit year (issue 015)', () => {
+    const result = injectCalendarFrontMatter('Body.', true);
+    expect(result).toMatch(/^ {2}until: 12\/31\/\d{4}$/m);
+  });
 });
 
 // ---------------------------------------------------------------------------
