@@ -48,21 +48,19 @@ export function startCalendarWatcher(
   currentWatcher.on('error', (err: unknown) =>
     logger.error('Calendar watcher error:', err));
 
-  currentWatcher.on('change', (filePath: string) => {
-    // console.log("************ onChange: "+filePath);
+  // Shared handler for file creation and modification: both load the file's
+  // calendar entries and notify via onChanged.
+  const handleUpsert = (filePath: string) => {
+    // buildIgnoredFn() lets extensionless paths through so directories stay
+    // watchable; this guard filters extensionless files (e.g. README) that
+    // aren't .md.
     if (path.extname(filePath).toLowerCase() !== '.md') return;
     loadCalendarEntryForFile(filePath)
       .then(results => onChanged(results, filePath))
       .catch((err: unknown) => logger.error(`Failed to load calendar events for ${filePath}:`, err));
-  });
-
-  currentWatcher.on('add', (filePath: string) => {
-    // console.log("************ onAdd (file added/renamed): "+filePath);
-    if (path.extname(filePath).toLowerCase() !== '.md') return;
-    loadCalendarEntryForFile(filePath)
-      .then(results => onChanged(results, filePath))
-      .catch((err: unknown) => logger.error(`Failed to load calendar events for ${filePath}:`, err));
-  });
+  };
+  currentWatcher.on('change', handleUpsert);
+  currentWatcher.on('add', handleUpsert);
 
   currentWatcher.on('unlink', (filePath: string) => {
     // console.log("************ onUnlink (file deleted): "+filePath);
