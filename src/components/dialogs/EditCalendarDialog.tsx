@@ -33,7 +33,7 @@ const asEndType = (value: string): EndType =>
 function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogProps) {
   const existingDue = getDueProperty(content);
   const [selected, setSelected] = useState<Date | undefined>(
-    existingDue ? parseDueStr(existingDue) : new Date()
+    existingDue ? parseDueStr(existingDue) ?? undefined : new Date()
   );
   const [startTime, setStartTime] = useState<string>(getStartProperty(content) ?? '');
   const [duration, setDuration] = useState<string>(getDurationProperty(content) ?? '');

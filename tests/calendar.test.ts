@@ -15,6 +15,7 @@ import {
   getRRuleProperty,
   setRRuleProperty,
   injectCalendarFrontMatter,
+  parseDueStr,
 } from '../src/utils/calendar/calendarUtil';
 
 let tmpDir: string;
@@ -258,6 +259,38 @@ describe('loadCalendarEvents — directory scan', () => {
     const results = await loadCalendarEvents(tmpDir);
     const filePaths = results.map(ev => ev.filePath);
     expect(filePaths.some(p => p.includes('ignored'))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseDueStr
+// ---------------------------------------------------------------------------
+
+describe('parseDueStr', () => {
+  it('rejects out-of-range dates the Date constructor would roll over', () => {
+    expect(parseDueStr('2/30/2024')).toBeNull();
+    expect(parseDueStr('13/1/2024')).toBeNull();
+    expect(parseDueStr('0/5/2025')).toBeNull();
+    expect(parseDueStr('1/0/2025')).toBeNull();
+    expect(parseDueStr('2/31/2025')).toBeNull();
+  });
+
+  it('rejects empty and non-numeric parts', () => {
+    expect(parseDueStr('/5/2025')).toBeNull();
+    expect(parseDueStr('12abc/1/2025')).toBeNull();
+    expect(parseDueStr('5/2025')).toBeNull();
+  });
+
+  it('parses valid dates', () => {
+    expect(parseDueStr('6/18/2026')?.getTime()).toBe(new Date(2026, 5, 18).getTime());
+  });
+
+  it('treats a 2-digit year as 2000+YY', () => {
+    expect(parseDueStr('12/31/26')?.getTime()).toBe(new Date(2026, 11, 31).getTime());
+  });
+
+  it('trims surrounding whitespace', () => {
+    expect(parseDueStr('  6/18/2026  ')?.getTime()).toBe(new Date(2026, 5, 18).getTime());
   });
 });
 

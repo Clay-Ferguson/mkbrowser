@@ -136,16 +136,23 @@ export function setDueProperty(content: string, dueValue: string): string {
   return `---\ndue: ${dueValue}\n---\n${content}`;
 }
 
-/** Parse a `M/D/YYYY` (or `M/D/YY`) due string into a local Date, or undefined. */
-export function parseDueStr(dueStr: string): Date | undefined {
-  const parts = dueStr.split('/');
-  if (parts.length !== 3) return undefined;
-  const month = parseInt(parts[0], 10) - 1;
-  const day = parseInt(parts[1], 10);
-  let year = parseInt(parts[2], 10);
+/** Parse a `M/D/YYYY` (or `M/D/YY`) due string into a local Date, or null if invalid. */
+export function parseDueStr(dueStr: string): Date | null {
+  const parts = dueStr.trim().split('/');
+  if (parts.length !== 3) return null;
+  // Strict digits-only per part — also rejects empty parts like "/5/2025".
+  if (!parts.every(p => /^\d+$/.test(p))) return null;
+  const month = Number(parts[0]);
+  const day = Number(parts[1]);
+  let year = Number(parts[2]);
   if (year < 100) year += 2000;
-  const d = new Date(year, month, day);
-  return isNaN(d.getTime()) ? undefined : d;
+  const d = new Date(year, month - 1, day);
+  // Reject anything the Date constructor would have silently rolled over
+  // (e.g. "2/30/2024" -> Mar 1, "13/1/2024" -> next Jan).
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
+    return null;
+  }
+  return d;
 }
 
 /** Format a Date as `M/D/YYYY` (the on-disk due string format). */

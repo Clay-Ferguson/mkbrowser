@@ -6,6 +6,7 @@ import { RRule, Weekday } from 'rrule';
 import { logger } from '../logUtil';
 import { buildExcludePredicate } from '../pathPattern';
 import { mapWithConcurrency } from '../asyncUtil';
+import { parseDueStr } from './calendarUtil';
 
 export interface CalendarEventResult {
   id: string;
@@ -18,18 +19,6 @@ export interface CalendarEventResult {
   filePath: string;
   /** First 5 lines (up to 400 chars) of body content after front matter */
   snippet: string;
-}
-
-function parseDueDate(dateStr: string): Date | null {
-  // Expects M/D/YYYY or MM/DD/YYYY or MM/DD/YY
-  const parts = dateStr.trim().split('/');
-  if (parts.length !== 3) return null;
-  const [month, day] = parts.map(Number);
-  let year = Number(parts[2]);
-  if (isNaN(month) || isNaN(day) || isNaN(year)) return null;
-  if (year < 100) year += 2000;
-  const d = new Date(year, month - 1, day);
-  return isNaN(d.getTime()) ? null : d;
 }
 
 /** Parse a 12-hour time string like "1:30 PM" into { hours, minutes } in 24-hr. Returns null on failure. */
@@ -104,7 +93,7 @@ function expandRRule(
     ? rruleYaml.byday.split(',').map(s => BYDAY_MAP[s.trim().toUpperCase()]).filter(Boolean)
     : undefined;
 
-  const until = rruleYaml.until ? parseDueDate(rruleYaml.until) : undefined;
+  const until = rruleYaml.until ? parseDueStr(rruleYaml.until) ?? undefined : undefined;
 
   const isAllDay = startMs === dueDate.getTime() && endMs === dueDate.getTime();
 
@@ -165,7 +154,7 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
     const parsed = load(yamlStr) as Record<string, unknown> | null;
     if (!parsed || typeof parsed.due !== 'string') return [];
 
-    const dueDate = parseDueDate(parsed.due);
+    const dueDate = parseDueStr(parsed.due);
     if (!dueDate) return [];
 
     const title = path.basename(filePath, '.md');
