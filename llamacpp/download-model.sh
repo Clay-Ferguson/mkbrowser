@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# download-model.sh — Download a Gemma 4 GGUF model for llama.cpp
+# download-model.sh — Download a GGUF model for llama.cpp
 #
-# Downloads a quantized Gemma 4 model from HuggingFace into
+# Downloads a quantized GGUF model from HuggingFace into
 # ~/.local/share/llama.cpp/models/
 #
 set -euo pipefail
@@ -40,16 +40,26 @@ mkdir -p "$MODELS_DIR"
 # A Mixture-of-Experts model: holds all 25.2B params in memory (~13.4 GB) but
 # only activates ~3.8B per token, so generation stays fast while quality is
 # high. A strong fit for unified-memory machines with plenty of RAM.
-MODEL_REPO="unsloth/gemma-4-26B-A4B-it-GGUF"
-MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
-MODEL_SIZE_HINT="~13.4 GB"
+#MODEL_REPO="unsloth/gemma-4-26B-A4B-it-GGUF"
+#MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
+#MODEL_SIZE_HINT="~13.4 GB"
+
+# Qwen3.6-35B-A3B (MoE): ~3B active params (35B total)
+# A Mixture-of-Experts model: all 35B params live in memory (~17.7 GB) but only
+# ~3B activate per token, so generation stays fast on bandwidth-limited unified
+# memory while quality rivals a flagship coder. IQ4_XS is preferred on the Arc
+# 140V iGPU to avoid the known k-quant crash (see model-research/Qwen).
+# IMPORTANT: This model scores *much* better on benchmarks than any of the above models.
+MODEL_REPO="unsloth/Qwen3.6-35B-A3B-GGUF"
+MODEL_FILE="Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
+MODEL_SIZE_HINT="~17.7 GB"
 # ─────────────────────────────────────────────────────────────────────────
 
 MODEL_URL="https://huggingface.co/${MODEL_REPO}/resolve/main/${MODEL_FILE}"
 
 DEST="$MODELS_DIR/$MODEL_FILE"
 
-echo "=== Gemma 4 Model Download ==="
+echo "=== Model Download ==="
 echo ""
 echo "  Repository: $MODEL_REPO"
 echo "  File:       $MODEL_FILE"

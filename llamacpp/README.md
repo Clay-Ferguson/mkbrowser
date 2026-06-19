@@ -9,7 +9,7 @@ MkBrowser connects to via the `LLAMACPP` provider.
 # 1. Install llama.cpp (downloads prebuilt binaries)
 ./setup.sh
 
-# 2. Download the Gemma 4 model (see model selection in script)
+# 2. Download the model (see model selection in script; default: Qwen3.6-35B-A3B)
 ./download-model.sh
 
 # 3. Start the server
@@ -17,7 +17,7 @@ MkBrowser connects to via the `LLAMACPP` provider.
 ```
 
 Then in MkBrowser **Settings → AI**:
-- Select **Gemma 4 (llama.cpp)** as your model
+- Select the **llama.cpp** model
 - Verify the **llama.cpp Base URL** is `http://localhost:8080/v1`
 
 ## Prerequisites
@@ -32,7 +32,7 @@ Then in MkBrowser **Settings → AI**:
 |--------|---------|
 | `setup.sh` | Download and install the **CPU-only** llama.cpp binaries to `~/.local/bin/` |
 | `setup-with-vulkan.sh` | Download and install a **Vulkan (GPU)** llama.cpp build side-by-side (see [Vulkan Driver](#vulkan-driver)) |
-| `download-model.sh` | Download a quantized Gemma 4 GGUF model to `~/.local/share/llama.cpp/models/` |
+| `download-model.sh` | Download a quantized GGUF model to `~/.local/share/llama.cpp/models/` |
 | `start-server.sh` | Launch the server on `localhost:8080`; selects CPU or GPU via the `BACKEND` env var |
 
 ## Verifying the Server
@@ -47,7 +47,7 @@ curl http://localhost:8080/v1/models
 curl http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gemma-4",
+    "model": "qwen",
     "messages": [{"role": "user", "content": "Hello!"}],
     "max_tokens": 100
   }'
@@ -55,46 +55,46 @@ curl http://localhost:8080/v1/chat/completions \
 
 ## Switching Models
 
-Five Gemma 4 model variants are supported:
+Several model variants are supported:
 
 | Variant | Params | Quant | File Size | Context | Notes |
 |---------|--------|-------|-----------|---------|-------|
-| **26B-A4B** | 3.8B active / 25.2B total (MoE) | UD-IQ4_XS | ~13.4 GB | 8192 | Highest quality; MoE keeps generation fast despite the large size. **Current default** |
-| **12B QAT** | 12B (dense) | UD-Q4_K_XL | ~6.7 GB | 16384 | Quantization-Aware Training; lower memory (~7 GB total), potentially faster, accuracy close to BF16 |
-| **12B** | 12B (dense) | Q4_K_M | ~7.1 GB | 16384 | Strong quality |
-| **E4B** | 4.5B effective (8B total) | Q4_K_M | ~5.0 GB | 16384 | Good balance |
-| **E2B** | 2.3B effective (5.1B total) | Q4_K_M | ~3.1 GB | 16384 | Lightest, fastest |
+| **Qwen3.6-35B-A3B** | ~3B active / 35B total (MoE) | UD-IQ4_XS | ~17.7 GB | 16384 | Near-flagship coder; MoE keeps generation fast on unified memory. Uses flash-attn off + `-b 256` on the Arc 140V iGPU. **Current default** |
+| **Gemma 4 26B-A4B** | 3.8B active / 25.2B total (MoE) | UD-IQ4_XS | ~13.4 GB | 8192 | High quality; MoE keeps generation fast despite the large size |
+| **Gemma 4 12B QAT** | 12B (dense) | UD-Q4_K_XL | ~6.7 GB | 16384 | Quantization-Aware Training; lower memory (~7 GB total), potentially faster, accuracy close to BF16 |
+| **Gemma 4 12B** | 12B (dense) | Q4_K_M | ~7.1 GB | 16384 | Strong quality |
+| **Gemma 4 E4B** | 4.5B effective (8B total) | Q4_K_M | ~5.0 GB | 16384 | Good balance |
+| **Gemma 4 E2B** | 2.3B effective (5.1B total) | Q4_K_M | ~3.1 GB | 16384 | Lightest, fastest |
 
 To switch variants, edit the model selection block near the top of **both**
 `download-model.sh` and `start-server.sh`. Comment out the active group and
-uncomment the other:
+uncomment the other. In `start-server.sh` a block may also set `FA`
+(flash-attention on/off) and `BATCH` (prefill batch size); blocks that omit them
+fall back to the defaults near the top of the selection section (`FA="on"`,
+`BATCH=""`).
 
 ```bash
 # Uncomment ONE group of settings below.
 
-# Gemma 4 E4B: 4.5B effective params (~5.0 GB)
-#MODEL_FILE="gemma-4-E4B-it-Q4_K_M.gguf"         # ← inactive
-#CTX_SIZE="16384"                                  # ← inactive
-
-# Gemma 4 12B (dense): 12B params (~7.1 GB)
-#MODEL_FILE="gemma-4-12b-it-Q4_K_M.gguf"         # ← inactive
-#CTX_SIZE="16384"                                  # ← inactive
-
-# Gemma 4 12B QAT (dense): 12B params (~6.7 GB)
-MODEL_FILE="gemma-4-12B-it-qat-UD-Q4_K_XL.gguf"  # ← active
-CTX_SIZE="16384"                                  # ← active
-
 # Gemma 4 26B-A4B (MoE): 3.8B active params (~13.4 GB)
 #MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"  # ← inactive
 #CTX_SIZE="8192"                                   # ← inactive
+
+# Qwen3.6-35B-A3B (MoE): ~3B active params (~17.7 GB)
+MODEL_FILE="Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"      # ← active
+CTX_SIZE="16384"                                  # ← active
+FA="off"                                          # ← active (Arc 140V workaround)
+BATCH="256"                                        # ← active (better A3B prefill)
 ```
 
 All model files can coexist on disk (they have different filenames), so you
 only need to run `./download-model.sh` once per variant. After switching, just
 restart `./start-server.sh`.
 
-> **Note:** The 26B-A4B model uses a reduced context size (8192) to fit
-> comfortably in 32 GB RAM alongside OS and KV cache overhead.
+> **Note:** Qwen3.6-35B-A3B uses `IQ4_XS` and flash-attn off because the Arc
+> 140V iGPU has a known crash with k-quants and with flash-attention enabled.
+> Context is kept at 16384 to fit comfortably in 32 GB RAM alongside the ~17.7 GB
+> weights, the OS, and KV-cache overhead.
 
 ## Vulkan Driver
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# start-server.sh — Launch llama-server with Gemma 4
+# start-server.sh — Launch llama-server with a local GGUF model
 #
 # Starts the llama.cpp HTTP server on localhost:8080 with an
 # OpenAI-compatible API. MkBrowser connects to this endpoint
@@ -64,6 +64,14 @@ esac
 
 # ── Model Selection ──────────────────────────────────────────────────────
 # Uncomment ONE group of settings below.
+#
+# Defaults below apply to any block that does not set them. Per-model blocks may
+# override FA (flash-attention on/off) and BATCH (prefill batch size, -b):
+#   FA    — "on" works well for the Gemma builds; the Arc 140V iGPU needs "off"
+#           for Qwen (flash-attn + this iGPU is unstable; see model-research).
+#   BATCH — empty uses the llama.cpp default; "256" improves A3B prefill on Vulkan.
+FA="on"
+BATCH=""
 
 # Gemma 4 E2B: 2.3B effective params (~3.1 GB)
 #MODEL_FILE="gemma-4-E2B-it-Q4_K_M.gguf"
@@ -90,8 +98,19 @@ esac
 # per token, so generation stays fast while quality is higher than the 12B.
 # Context kept at 8192 to leave memory headroom alongside the larger weights,
 # although there is reason to believe 16384 will alwo work on my hardware.
-MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
-CTX_SIZE="8192"
+#MODEL_FILE="gemma-4-26B-A4B-it-UD-IQ4_XS.gguf"
+#CTX_SIZE="8192"
+
+# Qwen3.6-35B-A3B (MoE): ~3B active params (~17.7 GB)
+# Mixture-of-Experts: all 35B params live in memory but only ~3B activate per
+# token, so generation stays fast on bandwidth-limited unified memory while
+# quality rivals a flagship coder. IQ4_XS avoids the known k-quant crash on the
+# Arc 140V iGPU; flash-attn off + a small prefill batch are the recommended Arc
+# workarounds (see model-research/Qwen).
+MODEL_FILE="Qwen3.6-35B-A3B-UD-IQ4_XS.gguf"
+CTX_SIZE="16384"
+FA="off"
+BATCH="256"
 # ─────────────────────────────────────────────────────────────────────────
 
 # ── Server Configuration ─────────────────────────────────────────────────
@@ -134,6 +153,8 @@ else
 fi
 echo "  Model:        $MODEL_FILE"
 echo "  Context size: $CTX_SIZE"
+echo "  Flash-attn:   $FA"
+echo "  Prefill batch: ${BATCH:-default}"
 echo "  Endpoint:     http://${HOST}:${PORT}"
 echo "  API (OpenAI): http://${HOST}:${PORT}/v1"
 echo ""
@@ -157,12 +178,18 @@ echo $$ > "$PID_FILE"
 #                      hurts laptop responsiveness, so we pin generation to 4.
 #   --threads-batch 8  Prompt ingestion (prefill) is compute-bound rather than
 #                      bandwidth-bound, so it benefits from all 8 cores.
+#
+# Optional prefill batch size (-b); empty BATCH leaves the llama.cpp default.
+BATCH_ARGS=()
+[[ -n "$BATCH" ]] && BATCH_ARGS=(-b "$BATCH")
+
 exec "$SERVER_BIN" \
   --model "$MODEL_PATH" \
   --host "$HOST" \
   --port "$PORT" \
   --ctx-size "$CTX_SIZE" \
-  -fa on \
+  -fa "$FA" \
+  "${BATCH_ARGS[@]}" \
   --threads 4 \
   --threads-batch 8 \
   "${GPU_ARGS[@]}" \
