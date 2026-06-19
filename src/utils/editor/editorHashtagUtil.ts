@@ -1,6 +1,7 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
 import { HASHTAG_REGEX } from '../hashtagRegex';
+import { EDITOR_COLORS } from './editorColors';
 import { eachVisibleLine } from './editorViewportUtil';
 
 // Decorations for hashtags
@@ -72,23 +73,23 @@ export const hashtagPlugin = ViewPlugin.fromClass(
 // Theme for hashtags
 export const hashtagTheme = EditorView.baseTheme({
   '.cm-hashtag-p1': {
-    color: '#fb923c', // orange-400
+    color: EDITOR_COLORS.orange400,
     fontWeight: '600',
-    border: '1px solid #fb923c',
+    border: `1px solid ${EDITOR_COLORS.orange400}`,
     borderRadius: '3px',
     padding: '1px 3px',
   },
   '.cm-hashtag-p2': {
-    color: '#facc15', // yellow-400
+    color: EDITOR_COLORS.yellow400,
     fontWeight: '600',
-    border: '1px solid #facc15',
+    border: `1px solid ${EDITOR_COLORS.yellow400}`,
     borderRadius: '3px',
     padding: '1px 3px',
   },
   '.cm-hashtag-regular': {
-    color: '#38bdf8', // sky-400 (cyan-blue)
+    color: EDITOR_COLORS.sky400,
     fontWeight: '500',
-    border: '1px solid #38bdf8',
+    border: `1px solid ${EDITOR_COLORS.sky400}`,
     borderRadius: '3px',
     padding: '1px 3px',
   },

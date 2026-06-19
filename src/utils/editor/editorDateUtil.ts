@@ -3,6 +3,7 @@ import { RangeSetBuilder } from '@codemirror/state';
 import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../timeUtil';
 import { DATE_REGEX } from '../dateRegex';
 import { MONO_FONT_STACK } from '../styles';
+import { EDITOR_COLORS } from './editorColors';
 import { eachVisibleLine } from './editorViewportUtil';
 
 // Decoration for date patterns
@@ -93,16 +94,16 @@ export const dateTooltipExtension = hoverTooltip((view, pos) => {
 // Theme for dates
 export const dateTheme = EditorView.baseTheme({
   '.cm-date': {
-    color: '#4ade80', // green-400
+    color: EDITOR_COLORS.green400,
     fontWeight: '500',
-    border: '1px solid #4ade80',
+    border: `1px solid ${EDITOR_COLORS.green400}`,
     borderRadius: '3px',
     padding: '1px 3px',
   },
   '.cm-tooltip.cm-tooltip-hover .cm-date-tooltip': {
-    backgroundColor: '#166534',
-    color: '#f0fdf4',
-    border: '1px solid #22c55e',
+    backgroundColor: EDITOR_COLORS.tooltipBg,
+    color: EDITOR_COLORS.tooltipFg,
+    border: `1px solid ${EDITOR_COLORS.tooltipBorder}`,
     borderRadius: '4px',
     padding: '6px 8px',
     marginBottom: '4px',

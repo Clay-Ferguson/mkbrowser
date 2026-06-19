@@ -1,5 +1,6 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder, RangeSet, Prec, StateField, EditorState, EditorSelection, Text } from '@codemirror/state';
+import { EDITOR_COLORS } from './editorColors';
 import { eachVisibleLine } from './editorViewportUtil';
 
 const frontMatterMark = Decoration.mark({ class: 'cm-front-matter' });
@@ -180,14 +181,14 @@ export const frontMatterCursorGuard = EditorState.transactionFilter.of((tr) => {
 
 export const frontMatterTheme = EditorView.baseTheme({
   '.cm-front-matter': {
-    color: '#4ade80', // green-400
+    color: EDITOR_COLORS.green400,
   },
   '.cm-front-matter-delim': {
-    color: '#9ca3af', // gray-400
+    color: EDITOR_COLORS.gray400,
     fontWeight: 'normal !important',
   },
   '.cm-front-matter-id': {
-    color: '#9ca3af', // gray-400
+    color: EDITOR_COLORS.gray400,
   },
   '.cm-hr-line': {
     borderBottom: '1px solid currentColor',
