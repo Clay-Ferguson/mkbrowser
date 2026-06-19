@@ -1,5 +1,6 @@
 import type { ItemData } from './types/types';
-import { splitFile as splitFileUtil, joinFiles as joinFilesUtil } from './utils/editor/editUtil';
+import { joinFiles as joinFilesUtil } from './utils/editor/editUtil';
+import { splitFile as splitFileUtil } from './utils/editor/splitUtil';
 import { getParentPath, joinPath } from './utils/pathUtil';
 
 /**
@@ -151,7 +152,9 @@ export async function performSplitFile(
   readFile: (path: string) => Promise<string>,
   writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
   createFile: (path: string, content: string) => Promise<{ success: boolean; error?: string }>,
-  renameFile: (oldPath: string, newPath: string) => Promise<boolean>
+  renameFile: (oldPath: string, newPath: string) => Promise<boolean>,
+  pathExists: (path: string) => Promise<boolean>,
+  deleteFile: (path: string) => Promise<boolean>
 ): Promise<SplitFileValidationResult> {
   // Check that exactly one item is selected
   if (selectedItems.length === 0) {
@@ -180,7 +183,9 @@ export async function performSplitFile(
     readFile,
     writeFile,
     createFile,
-    renameFile
+    renameFile,
+    pathExists,
+    deleteFile
   );
 
   if (!result.success) {

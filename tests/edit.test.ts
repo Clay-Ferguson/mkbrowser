@@ -192,30 +192,32 @@ describe('performSplitFile (validation)', () => {
   const noopWrite = async (_p: string, _c: string) => ({ ok: true, content: '' });
   const noopCreate = async (_p: string, _c: string) => ({ success: true });
   const noopRename = async (_o: string, _n: string) => true;
+  const noopExists = async (_p: string) => false;
+  const noopDelete = async (_p: string) => true;
 
   it('returns error when no items are selected', async () => {
-    const result = await performSplitFile([], noopRead, noopWrite, noopCreate, noopRename);
+    const result = await performSplitFile([], noopRead, noopWrite, noopCreate, noopRename, noopExists, noopDelete);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/select a file/i);
   });
 
   it('returns error when more than one item is selected', async () => {
     const items = [makeItem('/docs/a.md', 'a.md'), makeItem('/docs/b.md', 'b.md')];
-    const result = await performSplitFile(items, noopRead, noopWrite, noopCreate, noopRename);
+    const result = await performSplitFile(items, noopRead, noopWrite, noopCreate, noopRename, noopExists, noopDelete);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/one file/i);
   });
 
   it('returns error when selected item is a directory', async () => {
     const items = [makeItem('/docs/folder', 'folder', true)];
-    const result = await performSplitFile(items, noopRead, noopWrite, noopCreate, noopRename);
+    const result = await performSplitFile(items, noopRead, noopWrite, noopCreate, noopRename, noopExists, noopDelete);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/folder/i);
   });
 
   it('returns error when selected file is not .md or .txt', async () => {
     const items = [makeItem('/docs/image.png', 'image.png')];
-    const result = await performSplitFile(items, noopRead, noopWrite, noopCreate, noopRename);
+    const result = await performSplitFile(items, noopRead, noopWrite, noopCreate, noopRename, noopExists, noopDelete);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/text|markdown/i);
   });

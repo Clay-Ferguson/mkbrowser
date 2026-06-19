@@ -149,7 +149,9 @@ export async function splitSelectedFile(
     api.readFile,
     api.writeFile,
     api.createFile,
-    api.renameFile
+    api.renameFile,
+    api.pathExists,
+    api.deleteFile
   );
 
   if (!result.success) {

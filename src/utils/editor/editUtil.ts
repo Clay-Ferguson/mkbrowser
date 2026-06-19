@@ -5,7 +5,7 @@
 import { dump } from 'js-yaml';
 import { parseFrontMatter } from '../fileUtil';
 import { isMarkdownFile } from '../fileTypes';
-import { getFileName, getParentPath, joinPath } from '../pathUtil';
+import { getFileName } from '../pathUtil';
 
 /**
  * For a markdown file being appended (not the lead file), strips its front
@@ -23,114 +23,6 @@ function prepareMarkdownForAppend(filePath: string, rawContent: string): string 
   const yamlStr = dump(rest, { lineWidth: -1 }).trimEnd();
   const fencedBlock = '```yaml\n' + yamlStr + '\n```\n';
   return fencedBlock + content;
-}
-
-export interface SplitFileResult {
-  success: boolean;
-  error?: string;
-  /** Number of files created (including the original, which keeps the first part) */
-  fileCount?: number;
-  /** Paths of all files (original file first, then new files) */
-  filePaths?: string[];
-}
-
-/**
- * Split a file into multiple files based on double-blank-line delimiter.
- * The delimiter is "\n\n\n" (or with optional \r after each \n).
- * The original file is renamed to include "-00" suffix, and subsequent parts
- * are written to new files with numbered suffixes (e.g., my-file-00.md, my-file-01.md, my-file-02.md).
- * 
- * @param filePath - Full path to the file to split
- * @param readFile - Function to read file content
- * @param writeFile - Function to write file content
- * @param createFile - Function to create a new file
- * @param renameFile - Function to rename a file
- * @returns Result object with success status and file info
- */
-export async function splitFile(
-  filePath: string,
-  readFile: (path: string) => Promise<string>,
-  writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
-  createFile: (path: string, content: string) => Promise<{ success: boolean; error?: string }>,
-  renameFile: (oldPath: string, newPath: string) => Promise<boolean>
-): Promise<SplitFileResult> {
-  try {
-    // Read the file content
-    const content = await readFile(filePath);
-    
-    // Split using double-blank-line as delimiter
-    // The regex matches \n\n\n with optional \r after each \n
-    const parts = content.split(/\n\r?\n\r?\n\r?/);
-    
-    // If there's only one part, nothing to split
-    if (parts.length <= 1) {
-      return {
-        success: false,
-        error: 'File does not contain any split points (double blank lines).',
-      };
-    }
-    
-    // Parse the file path to get directory, base name, and extension
-    const directory = getParentPath(filePath);
-    const fileName = getFileName(filePath);
-    
-    const lastDotIndex = fileName.lastIndexOf('.');
-    const baseName = lastDotIndex >= 0 ? fileName.substring(0, lastDotIndex) : fileName;
-    const extension = lastDotIndex >= 0 ? fileName.substring(lastDotIndex) : '';
-    
-    // Build the new path for the original file with "-00" suffix
-    const renamedFileName = `${baseName}-00${extension}`;
-    const renamedFilePath = joinPath(directory, renamedFileName);
-    
-    // Rename the original file to include "-00" suffix
-    const renameSuccess = await renameFile(filePath, renamedFilePath);
-    if (!renameSuccess) {
-      return {
-        success: false,
-        error: 'Failed to rename the original file with -00 suffix.',
-      };
-    }
-    
-    // Write the first part to the renamed file
-    const writeSuccess = await writeFile(renamedFilePath, parts[0]);
-    if (!writeSuccess.ok) {
-      return {
-        success: false,
-        error: 'Failed to write the first part to the renamed file.',
-      };
-    }
-    
-    const filePaths: string[] = [renamedFilePath];
-    
-    // Create new files for the remaining parts (starting at -01)
-    for (let i = 1; i < parts.length; i++) {
-      // Format the number with zero-padding (2 digits)
-      const paddedNumber = String(i).padStart(2, '0');
-      const newFileName = `${baseName}-${paddedNumber}${extension}`;
-      const newFilePath = joinPath(directory, newFileName);
-      
-      const result = await createFile(newFilePath, parts[i]);
-      if (!result.success) {
-        return {
-          success: false,
-          error: result.error || `Failed to create file: ${newFileName}`,
-        };
-      }
-      
-      filePaths.push(newFilePath);
-    }
-    
-    return {
-      success: true,
-      fileCount: parts.length,
-      filePaths,
-    };
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : 'Unknown error occurred while splitting file.',
-    };
-  }
 }
 
 export interface JoinFilesResult {
