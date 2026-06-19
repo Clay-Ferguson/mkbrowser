@@ -144,15 +144,7 @@ export async function splitSelectedFile(
   onSetError: SetError,
   onRefreshDirectory: () => void
 ): Promise<void> {
-  const result = await performSplitFile(
-    selectedItems,
-    api.readFile,
-    api.writeFile,
-    api.createFile,
-    api.renameFile,
-    api.pathExists,
-    api.deleteFile
-  );
+  const result = await performSplitFile(selectedItems, api);
 
   if (!result.success) {
     onSetError(result.error || 'Failed to split file.');
@@ -180,12 +172,7 @@ export async function joinSelectedFiles(
   onSetError: SetError,
   onRefreshDirectory: () => void
 ): Promise<void> {
-  const result = await performJoinFiles(
-    selectedItems,
-    api.readFile,
-    api.writeFile,
-    api.deleteFile
-  );
+  const result = await performJoinFiles(selectedItems, api);
 
   if (!result.success) {
     onSetError(result.error || 'Failed to join files.');

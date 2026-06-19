@@ -9,6 +9,7 @@
  */
 
 import { getFileName, getParentPath, joinPath } from '../pathUtil';
+import type { FileOps } from './fileOps';
 
 /**
  * Delimiter between parts: a run of 3 or more line breaks (each optionally
@@ -40,23 +41,17 @@ export interface SplitFileResult {
  * restores the original filename.
  *
  * @param filePath - Full path to the file to split
- * @param readFile - Function to read file content
- * @param writeFile - Function to write file content
- * @param createFile - Function to create a new file
- * @param renameFile - Function to rename a file
- * @param pathExists - Function to test whether a path already exists (collision check)
- * @param deleteFile - Function to delete a file (used for rollback)
+ * @param ops - Injected file operations: `readFile`/`writeFile`/`createFile`/
+ *   `renameFile` to mutate, `pathExists` for the collision check, and
+ *   `deleteFile` for rollback.
  * @returns Result object with success status and file info
  */
 export async function splitFile(
   filePath: string,
-  readFile: (path: string) => Promise<string>,
-  writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
-  createFile: (path: string, content: string) => Promise<{ success: boolean; error?: string }>,
-  renameFile: (oldPath: string, newPath: string) => Promise<boolean>,
-  pathExists: (path: string) => Promise<boolean>,
-  deleteFile: (path: string) => Promise<boolean>
+  ops: FileOps
 ): Promise<SplitFileResult> {
+  const { readFile, writeFile, createFile, renameFile, pathExists, deleteFile } = ops;
+
   // ---- Phase 1: validate and compute everything before mutating anything ----
 
   let parts: string[];

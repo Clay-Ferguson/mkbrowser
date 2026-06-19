@@ -73,15 +73,7 @@ function makeFs(
 }
 
 function run(filePath: string, m: ReturnType<typeof makeFs>) {
-  return splitFile(
-    filePath,
-    m.readFile,
-    m.writeFile,
-    m.createFile,
-    m.renameFile,
-    m.pathExists,
-    m.deleteFile
-  );
+  return splitFile(filePath, m);
 }
 
 describe('splitFile — happy path', () => {

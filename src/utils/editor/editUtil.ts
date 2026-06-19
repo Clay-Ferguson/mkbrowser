@@ -6,6 +6,7 @@ import { dump } from 'js-yaml';
 import { parseFrontMatter } from '../fileUtil';
 import { isMarkdownFile } from '../fileTypes';
 import { getFileName } from '../pathUtil';
+import type { FileOps } from './fileOps';
 
 /**
  * For a markdown file being appended (not the lead file), strips its front
@@ -41,17 +42,15 @@ export interface JoinFilesResult {
  * Other files are deleted only after verifying the write succeeded.
  *
  * @param filePaths - Array of file paths to join
- * @param readFile - Function to read file content
- * @param writeFile - Function to write file content
- * @param deleteFile - Function to delete a file
+ * @param ops - Injected file operations: `readFile`, `writeFile`, and
+ *   `deleteFile`.
  * @returns Result object with success status and info
  */
 export async function joinFiles(
   filePaths: string[],
-  readFile: (path: string) => Promise<string>,
-  writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
-  deleteFile: (path: string) => Promise<boolean>
+  ops: Pick<FileOps, 'readFile' | 'writeFile' | 'deleteFile'>
 ): Promise<JoinFilesResult> {
+  const { readFile, writeFile, deleteFile } = ops;
   try {
     // Sort file paths alphabetically by filename
     const sortedPaths = [...filePaths].sort((a, b) => {

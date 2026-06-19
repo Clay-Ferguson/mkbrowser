@@ -1,6 +1,7 @@
 import type { ItemData } from './types/types';
 import { joinFiles as joinFilesUtil } from './utils/editor/editUtil';
 import { splitFile as splitFileUtil } from './utils/editor/splitUtil';
+import type { FileOps } from './utils/editor/fileOps';
 import { getParentPath, joinPath } from './utils/pathUtil';
 
 /**
@@ -149,12 +150,7 @@ export interface SplitFileValidationResult {
  */
 export async function performSplitFile(
   selectedItems: ItemData[],
-  readFile: (path: string) => Promise<string>,
-  writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
-  createFile: (path: string, content: string) => Promise<{ success: boolean; error?: string }>,
-  renameFile: (oldPath: string, newPath: string) => Promise<boolean>,
-  pathExists: (path: string) => Promise<boolean>,
-  deleteFile: (path: string) => Promise<boolean>
+  ops: FileOps
 ): Promise<SplitFileValidationResult> {
   // Check that exactly one item is selected
   if (selectedItems.length === 0) {
@@ -178,15 +174,7 @@ export async function performSplitFile(
   }
 
   // Perform the split operation
-  const result = await splitFileUtil(
-    selectedItem.path,
-    readFile,
-    writeFile,
-    createFile,
-    renameFile,
-    pathExists,
-    deleteFile
-  );
+  const result = await splitFileUtil(selectedItem.path, ops);
 
   if (!result.success) {
     return { success: false, error: result.error || 'Failed to split file.' };
@@ -209,9 +197,7 @@ export interface JoinFilesValidationResult {
  */
 export async function performJoinFiles(
   selectedItems: ItemData[],
-  readFile: (path: string) => Promise<string>,
-  writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
-  deleteFile: (path: string) => Promise<boolean>
+  ops: Pick<FileOps, 'readFile' | 'writeFile' | 'deleteFile'>
 ): Promise<JoinFilesValidationResult> {
   // Check that multiple items are selected
   if (selectedItems.length < 2) {
@@ -233,12 +219,7 @@ export async function performJoinFiles(
   const filePaths = selectedItems.map(item => item.path);
 
   // Perform the join operation
-  const result = await joinFilesUtil(
-    filePaths,
-    readFile,
-    writeFile,
-    deleteFile
-  );
+  const result = await joinFilesUtil(filePaths, ops);
 
   if (!result.success) {
     return { success: false, error: result.error || 'Failed to join files.' };

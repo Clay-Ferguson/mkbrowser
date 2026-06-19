@@ -189,36 +189,38 @@ describe('deleteSelectedItems', () => {
 // ---------------------------------------------------------------------------
 
 describe('performSplitFile (validation)', () => {
-  const noopRead = async (_p: string) => '';
-  const noopWrite = async (_p: string, _c: string) => ({ ok: true, content: '' });
-  const noopCreate = async (_p: string, _c: string) => ({ success: true });
-  const noopRename = async (_o: string, _n: string) => true;
-  const noopExists = async (_p: string) => false;
-  const noopDelete = async (_p: string) => true;
+  const noopOps = {
+    readFile: async (_p: string) => '',
+    writeFile: async (_p: string, _c: string) => ({ ok: true, content: '' }),
+    createFile: async (_p: string, _c: string) => ({ success: true }),
+    renameFile: async (_o: string, _n: string) => true,
+    pathExists: async (_p: string) => false,
+    deleteFile: async (_p: string) => true,
+  };
 
   it('returns error when no items are selected', async () => {
-    const result = await performSplitFile([], noopRead, noopWrite, noopCreate, noopRename, noopExists, noopDelete);
+    const result = await performSplitFile([], noopOps);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/select a file/i);
   });
 
   it('returns error when more than one item is selected', async () => {
     const items = [makeItem('/docs/a.md', 'a.md'), makeItem('/docs/b.md', 'b.md')];
-    const result = await performSplitFile(items, noopRead, noopWrite, noopCreate, noopRename, noopExists, noopDelete);
+    const result = await performSplitFile(items, noopOps);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/one file/i);
   });
 
   it('returns error when selected item is a directory', async () => {
     const items = [makeItem('/docs/folder', 'folder', true)];
-    const result = await performSplitFile(items, noopRead, noopWrite, noopCreate, noopRename, noopExists, noopDelete);
+    const result = await performSplitFile(items, noopOps);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/folder/i);
   });
 
   it('returns error when selected file is not .md or .txt', async () => {
     const items = [makeItem('/docs/image.png', 'image.png')];
-    const result = await performSplitFile(items, noopRead, noopWrite, noopCreate, noopRename, noopExists, noopDelete);
+    const result = await performSplitFile(items, noopOps);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/text|markdown/i);
   });
@@ -229,15 +231,14 @@ describe('performSplitFile (validation)', () => {
 // ---------------------------------------------------------------------------
 
 describe('performJoinFiles (validation)', () => {
-  const noopRead = async (_p: string) => '';
-  const noopWrite = async (_p: string, _c: string) => ({ ok: true, content: '' });
-  const noopDelete = async (_p: string) => true;
+  const noopOps = {
+    readFile: async (_p: string) => '',
+    writeFile: async (_p: string, _c: string) => ({ ok: true, content: '' }),
+    deleteFile: async (_p: string) => true,
+  };
 
   it('returns error when fewer than two items are selected', async () => {
-    const result = await performJoinFiles(
-      [makeItem('/docs/a.md', 'a.md')],
-      noopRead, noopWrite, noopDelete
-    );
+    const result = await performJoinFiles([makeItem('/docs/a.md', 'a.md')], noopOps);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/at least two/i);
   });
@@ -247,7 +248,7 @@ describe('performJoinFiles (validation)', () => {
       makeItem('/docs/a.md', 'a.md'),
       makeItem('/docs/folder', 'folder', true),
     ];
-    const result = await performJoinFiles(items, noopRead, noopWrite, noopDelete);
+    const result = await performJoinFiles(items, noopOps);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/folder/i);
   });
@@ -257,7 +258,7 @@ describe('performJoinFiles (validation)', () => {
       makeItem('/docs/a.md', 'a.md'),
       makeItem('/docs/b.csv', 'b.csv'),
     ];
-    const result = await performJoinFiles(items, noopRead, noopWrite, noopDelete);
+    const result = await performJoinFiles(items, noopOps);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/not supported/i);
   });
@@ -291,10 +292,7 @@ describe('joinFiles (write verification)', () => {
 
   it('joins files and deletes the non-lead sources after verification', async () => {
     const fs = makeFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
-    const result = await joinFiles(
-      ['/docs/b.txt', '/docs/a.txt'],
-      fs.readFile, fs.writeFile, fs.deleteFile
-    );
+    const result = await joinFiles(['/docs/b.txt', '/docs/a.txt'], fs);
     expect(result.success).toBe(true);
     expect(result.resultPath).toBe('/docs/a.txt');
     expect(result.filesJoined).toBe(2);
@@ -312,10 +310,7 @@ describe('joinFiles (write verification)', () => {
       fs.store[p] = transformed;
       return { ok: true, content: transformed };
     };
-    const result = await joinFiles(
-      ['/docs/a.md', '/docs/b.md'],
-      fs.readFile, writeFile, fs.deleteFile
-    );
+    const result = await joinFiles(['/docs/a.md', '/docs/b.md'], { ...fs, writeFile });
     expect(result.success).toBe(true);
     expect(fs.deleted).toEqual(['/docs/b.md']);
   });
@@ -323,10 +318,7 @@ describe('joinFiles (write verification)', () => {
   it('does not delete sources when the write reports ok: false', async () => {
     const fs = makeFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
     const writeFile = async (_p: string, c: string) => ({ ok: false, content: c });
-    const result = await joinFiles(
-      ['/docs/a.txt', '/docs/b.txt'],
-      fs.readFile, writeFile, fs.deleteFile
-    );
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt'], { ...fs, writeFile });
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/failed to write/i);
     expect(fs.deleted).toEqual([]);
@@ -341,10 +333,7 @@ describe('joinFiles (write verification)', () => {
       fs.store[p] = c + ' CORRUPTED';
       return { ok: true, content: c };
     };
-    const result = await joinFiles(
-      ['/docs/a.txt', '/docs/b.txt'],
-      fs.readFile, writeFile, fs.deleteFile
-    );
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt'], { ...fs, writeFile });
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/verification failed/i);
     expect(result.error).toMatch(/NOT deleted/i);
