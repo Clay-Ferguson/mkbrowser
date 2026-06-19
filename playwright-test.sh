@@ -34,6 +34,38 @@ select_specific_test() {
     fi
 }
 
+# Remove previously generated screenshots/wavs for a single test
+cleanup_test_artifacts() {
+    local test_name="$1"
+    echo "Cleaning up screenshots for $test_name..."
+    rm -f screenshots/$test_name/*.png
+    rm -f screenshots/$test_name/*.txt
+    rm -rf screenshots/$test_name/generated-wav
+}
+
+# Generate the video (kocreator) for a single test from its screenshots/wavs
+generate_video_for_test() {
+    local test_name="$1"
+    echo ""
+    echo "Generating video for $test_name..."
+    local current_folder="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local kocreator_dir="$current_folder/../kocreator"
+    source "$kocreator_dir/.venv/bin/activate"
+    python "$kocreator_dir/create-video.py" "$current_folder" "$test_name"
+    deactivate
+    echo ""
+    echo "CPU Cooldown 90s..."
+    sleep 90
+}
+
+# Open the generated test-videos folder in the file manager (Linux only)
+open_videos_folder() {
+    local current_folder="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        xdg-open "$current_folder/test-videos"
+    fi
+}
+
 # Optionally build the app so the Playwright fixture loads the latest code
 read -p "Build app before running tests? [Y/n]: " do_build
 if [[ ! "$do_build" =~ ^[Nn]$ ]]; then
@@ -59,9 +91,23 @@ echo ""
 read -p "Enter choice [1-3]: " choice
 
 SPECIFIC_TEST=""
+GENERATE_VIDEO=""
+
+# For "run all" and "run specific", ask up front whether to also generate
+# video(s) so the user can start the run and walk away.
+if [ "$choice" = "1" ] || [ "$choice" = "2" ]; then
+    echo ""
+    read -p "Generate video(s) after running the test(s)? [y/N]: " gen_choice
+    if [[ "$gen_choice" =~ ^[Yy]$ ]]; then
+        GENERATE_VIDEO="yes"
+    fi
+fi
 
 case $choice in
     1)
+        for file in tests/e2e/*.spec.ts; do
+            cleanup_test_artifacts "$(basename "$file" .spec.ts)"
+        done
         echo "Running all Playwright E2E tests..."
         npm run test:e2e
         ;;
@@ -71,10 +117,7 @@ case $choice in
             echo "Invalid test selection. Exiting."
             exit 1
         fi
-        echo "Cleaning up screenshots for $SPECIFIC_TEST..."
-        rm -f screenshots/$SPECIFIC_TEST/*.png
-        rm -f screenshots/$SPECIFIC_TEST/*.txt
-        rm -rf screenshots/$SPECIFIC_TEST/generated-wav
+        cleanup_test_artifacts "$SPECIFIC_TEST"
         echo "Running specific test: $SPECIFIC_TEST.spec.ts..."
         npx playwright test tests/e2e/$SPECIFIC_TEST.spec.ts
         ;;
@@ -107,23 +150,24 @@ fi
 
 echo ""
 
-# Offer to generate video if a specific test was run
-if [ -n "$SPECIFIC_TEST" ]; then
+# Generate video(s) based on the choice and the up-front prompt
+if [ "$choice" = "1" ] && [ -n "$GENERATE_VIDEO" ]; then
+    # Generate a video for every E2E test that just ran
+    for file in tests/e2e/*.spec.ts; do
+        test_name=$(basename "$file" .spec.ts)
+        generate_video_for_test "$test_name"
+    done
+    open_videos_folder
+elif [ "$choice" = "2" ] && [ -n "$GENERATE_VIDEO" ] && [ -n "$SPECIFIC_TEST" ]; then
+    generate_video_for_test "$SPECIFIC_TEST"
+    open_videos_folder
+elif [ "$choice" = "3" ] && [ -n "$SPECIFIC_TEST" ]; then
+    # Option 3 exists specifically to build a video from existing images/wavs
     echo ""
     read -p "Generate video from screenshots? [y/N]: " generate_video
     if [[ "$generate_video" =~ ^[Yy]$ ]]; then
-        echo ""
-        echo "Generating video for $SPECIFIC_TEST..."
-        CURRENT_FOLDER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-        KOCREATOR_DIR="$CURRENT_FOLDER/../kocreator"
-        source "$KOCREATOR_DIR/.venv/bin/activate"
-        python "$KOCREATOR_DIR/create-video.py" "$CURRENT_FOLDER" "$SPECIFIC_TEST"
-        deactivate
-        echo ""
-        # open nautilus at the test-videos
-        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-            xdg-open "$CURRENT_FOLDER/test-videos"
-        fi
+        generate_video_for_test "$SPECIFIC_TEST"
+        open_videos_folder
     fi
 fi
 
