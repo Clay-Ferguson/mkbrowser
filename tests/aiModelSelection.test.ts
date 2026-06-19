@@ -38,7 +38,7 @@ function model(name: string, provider: AIModelConfig['provider']): AIModelConfig
 const MODELS: AIModelConfig[] = [
   model('Claude Haiku', 'ANTHROPIC'),
   model('GPT-4o', 'OPENAI'),
-  model('Local Gemma', 'LLAMACPP'),
+  model('Local LLAMA.CPP', 'LLAMACPP'),
 ];
 
 /** Point getConfig at the given selection over the standard MODELS list. */
@@ -82,7 +82,7 @@ describe('getActiveModel', () => {
 
 describe('getActiveProvider', () => {
   it('returns the provider of the active model', () => {
-    selectModel('Local Gemma');
+    selectModel('Local LLAMA.CPP');
     expect(getActiveProvider()).toBe('LLAMACPP');
   });
 
@@ -103,7 +103,7 @@ describe('getActiveProvider', () => {
 
 describe('ensureModelServerRunning', () => {
   it('starts the llama.cpp server when the active model is LLAMACPP', async () => {
-    selectModel('Local Gemma');
+    selectModel('Local LLAA.CPP');
     await ensureModelServerRunning();
     expect(mockEnsureRunning).toHaveBeenCalledTimes(1);
   });

@@ -112,7 +112,7 @@ const DEFAULT_AI_MODELS: AIModelConfig[] = [
   { name: 'Gemini 2.0 Flash', provider: 'GOOGLE', model: 'gemini-2.0-flash', inputPer1M: 0.10, outputPer1M: 0.40, vision: true, readonly: true },
   { name: 'Gemini Flash Lite', provider: 'GOOGLE', model: 'gemini-2.0-flash-lite', inputPer1M: 0.075, outputPer1M: 0.30, vision: true, readonly: true },
   // llama.cpp (local)
-  { name: 'Gemma 4 (llama.cpp)', provider: 'LLAMACPP', model: 'gemma-4', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
+  { name: 'Local LLAMA.CPP', provider: 'LLAMACPP', model: 'local', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
 ];
 
 const DEFAULT_AI_MODEL = 'Claude Haiku';
