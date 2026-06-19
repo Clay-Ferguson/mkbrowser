@@ -68,7 +68,7 @@ export const dateTooltipExtension = hoverTooltip((view, pos) => {
   const dates = extractDates(line.text);
 
   for (const { from, to } of dates) {
-    if (lineOffset >= from && lineOffset <= to) {
+    if (lineOffset >= from && lineOffset < to) {
       const dateText = line.text.slice(from, to);
       const timestamp = extractTimestamp(dateText);
       if (!Number.isNaN(timestamp)) {
