@@ -7,67 +7,92 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const DATE_REGEX_ANCHORED = new RegExp(`^\\s*${DATE_REGEX.source}\\s*$`);
 
 /**
+ * Sentinel returned by the date parsers when no valid date is found. NaN cannot
+ * collide with any real `Date.getTime()` result (including 0 = 1970-01-01 UTC
+ * and the negative values of pre-1970 dates), so callers must test for "found"
+ * with `Number.isNaN(...)` rather than a `> 0` / `=== 0` comparison.
+ */
+export const NO_TIMESTAMP = Number.NaN;
+
+/**
+ * Converts a DATE_REGEX match into a timestamp, validating that the calendar
+ * date actually exists.
+ *
+ * The regex caps day at 01–31 but is not month-aware, so impossible dates like
+ * `02/31/2025` match. `new Date(...)` silently rolls those over (Feb 31 → Mar 3),
+ * which would produce a confident but wrong result. After constructing the Date
+ * we verify the month and day survived round-trip; if not, the date is impossible
+ * and we return NO_TIMESTAMP.
+ *
+ * Capture groups (see dateRegex.ts): 1=month, 2=day, 3=year, 4=hour, 5=minute,
+ * 6=seconds, 7=AM/PM. Two-digit years are interpreted as 2000+YY.
+ */
+function timestampFromMatch(match: RegExpMatchArray): number {
+  const month = parseInt(match[1], 10);
+  const day = parseInt(match[2], 10);
+  let year = parseInt(match[3], 10);
+
+  // Convert 2-digit year to 4-digit (assumes 2000s)
+  if (year < 100) {
+    year += 2000;
+  }
+
+  let hours = 0;
+  let minutes = 0;
+  let seconds = 0;
+
+  if (match[4]) {
+    // Time part exists
+    hours = parseInt(match[4], 10);
+    minutes = parseInt(match[5], 10);
+    seconds = match[6] ? parseInt(match[6], 10) : 0; // Default to 0 if seconds not provided
+    const ampm = match[7]?.toUpperCase();
+
+    // Convert to 24-hour format
+    if (ampm === 'PM' && hours !== 12) {
+      hours += 12;
+    } else if (ampm === 'AM' && hours === 12) {
+      hours = 0;
+    }
+  }
+
+  // Create Date object (month is 0-indexed in JavaScript)
+  const date = new Date(year, month - 1, day, hours, minutes, seconds);
+
+  // Reject impossible calendar dates that JavaScript silently rolled over.
+  if (date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return NO_TIMESTAMP;
+  }
+
+  return date.getTime();
+}
+
+/**
  * Detects timestamps in MM/DD/YYYY, MM/DD/YY, or with HH:MM:SS AM/PM or HH:MM AM/PM format
  * Two-digit years are interpreted as 2000+YY (e.g., "26" becomes "2026")
- * Returns the timestamp in milliseconds, or 0 if not found
- * 
+ * Returns the timestamp in milliseconds, or NO_TIMESTAMP (NaN) if not found
+ *
  * @param content - The text content to search for timestamps
- * @returns Timestamp in milliseconds since epoch, or 0 if not found
+ * @returns Timestamp in milliseconds since epoch, or NO_TIMESTAMP if not found
  */
 export function extractTimestamp(content: string): number {
   // Find the first date in the content using the shared pattern (see dateRegex.ts).
   // DATE_REGEX is non-global, so .match() returns the first match with groups.
   const match = content.match(DATE_REGEX);
-
-  if (match) {
-    const month = parseInt(match[1], 10);
-    const day = parseInt(match[2], 10);
-    let year = parseInt(match[3], 10);
-    
-    // Convert 2-digit year to 4-digit (assumes 2000s)
-    if (year < 100) {
-      year += 2000;
-    }
-    
-    let hours = 0;
-    let minutes = 0;
-    let seconds = 0;
-    
-    if (match[4]) {
-      // Time part exists
-      hours = parseInt(match[4], 10);
-      minutes = parseInt(match[5], 10);
-      seconds = match[6] ? parseInt(match[6], 10) : 0; // Default to 0 if seconds not provided
-      const ampm = match[7]?.toUpperCase();
-      
-      // Convert to 24-hour format
-      if (ampm === 'PM' && hours !== 12) {
-        hours += 12;
-      } else if (ampm === 'AM' && hours === 12) {
-        hours = 0;
-      }
-    }
-    
-    // Create Date object (month is 0-indexed in JavaScript)
-    const date = new Date(year, month - 1, day, hours, minutes, seconds);
-    const timestamp = date.getTime();
-    
-    return timestamp;
-  }
-  
-  return 0;
+  if (!match) return NO_TIMESTAMP;
+  return timestampFromMatch(match);
 }
 
 /**
  * Checks if a timestamp (in milliseconds) represents a time in the past
  * 
- * @param timestamp - The timestamp in milliseconds since epoch (0 is treated as invalid)
+ * @param timestamp - The timestamp in milliseconds since epoch (NO_TIMESTAMP/NaN is treated as invalid)
  * @param lookbackDays - Optional number of days to look back from now
  * @returns True if the timestamp is in the past (and within lookbackDays, if provided), false otherwise
  */
 export function past(timestamp: number, lookbackDays?: number): boolean {
-  // Treat 0 as invalid timestamp (not found)
-  if (timestamp === 0) {
+  // NaN means "no date found" (see NO_TIMESTAMP)
+  if (Number.isNaN(timestamp)) {
     return false;
   }
   
@@ -84,13 +109,13 @@ export function past(timestamp: number, lookbackDays?: number): boolean {
 /**
  * Checks if a timestamp (in milliseconds) represents a time in the future
  * 
- * @param timestamp - The timestamp in milliseconds since epoch (0 is treated as invalid)
+ * @param timestamp - The timestamp in milliseconds since epoch (NO_TIMESTAMP/NaN is treated as invalid)
  * @param lookaheadDays - Optional number of days to look ahead from now
  * @returns True if the timestamp is in the future (and within lookaheadDays, if provided), false otherwise
  */
 export function future(timestamp: number, lookaheadDays?: number): boolean {
-  // Treat 0 as invalid timestamp (not found)
-  if (timestamp === 0) {
+  // NaN means "no date found" (see NO_TIMESTAMP)
+  if (Number.isNaN(timestamp)) {
     return false;
   }
   
@@ -107,12 +132,12 @@ export function future(timestamp: number, lookaheadDays?: number): boolean {
 /**
  * Checks if a timestamp (in milliseconds) represents today's date
  * 
- * @param timestamp - The timestamp in milliseconds since epoch (0 is treated as invalid)
+ * @param timestamp - The timestamp in milliseconds since epoch (NO_TIMESTAMP/NaN is treated as invalid)
  * @returns True if the timestamp's date matches today's date, false otherwise
  */
 export function today(timestamp: number): boolean {
-  // Treat 0 as invalid timestamp (not found)
-  if (timestamp === 0) {
+  // NaN means "no date found" (see NO_TIMESTAMP)
+  if (Number.isNaN(timestamp)) {
     return false;
   }
   
@@ -129,28 +154,13 @@ export function today(timestamp: number): boolean {
 /**
  * Parses a string that is entirely a date or date-time value.
  * Accepts MM/DD/YYYY, MM/DD/YY, with optional HH:MM[:SS] AM/PM.
- * Returns milliseconds since epoch, or 0 if the string cannot be parsed.
+ * Returns milliseconds since epoch, or NO_TIMESTAMP (NaN) if the string cannot
+ * be parsed or names an impossible calendar date.
  */
 export function parseDateString(value: string): number {
   const match = value.match(DATE_REGEX_ANCHORED);
-  if (!match) return 0;
-
-  const month = parseInt(match[1], 10);
-  const day = parseInt(match[2], 10);
-  let year = parseInt(match[3], 10);
-  if (year < 100) year += 2000;
-
-  let hours = 0, minutes = 0, seconds = 0;
-  if (match[4]) {
-    hours = parseInt(match[4], 10);
-    minutes = parseInt(match[5], 10);
-    seconds = match[6] ? parseInt(match[6], 10) : 0;
-    const ampm = match[7]?.toUpperCase();
-    if (ampm === 'PM' && hours !== 12) hours += 12;
-    else if (ampm === 'AM' && hours === 12) hours = 0;
-  }
-
-  return new Date(year, month - 1, day, hours, minutes, seconds).getTime();
+  if (!match) return NO_TIMESTAMP;
+  return timestampFromMatch(match);
 }
 
 export function formatDate(): string {

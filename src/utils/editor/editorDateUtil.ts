@@ -70,7 +70,7 @@ export const dateTooltipExtension = hoverTooltip((view, pos) => {
     if (lineOffset >= from && lineOffset <= to) {
       const dateText = line.text.slice(from, to);
       const timestamp = extractTimestamp(dateText);
-      if (timestamp > 0) {
+      if (!Number.isNaN(timestamp)) {
         const days = getDaysFromToday(timestamp);
         const display = formatDaysDisplay(days);
         return {

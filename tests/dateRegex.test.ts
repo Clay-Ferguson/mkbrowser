@@ -44,7 +44,7 @@ describe('DATE_REGEX (single source of truth)', () => {
     expect(DATE_REGEX.test(s)).toBe(false);
     // ...but extractTimestamp scans within text, so it must not find a valid
     // date hiding inside these specific strings either.
-    expect(extractTimestamp(s)).toBe(0);
+    expect(extractTimestamp(s)).toBeNaN();
   });
 
   it('finds a valid date embedded in surrounding text', () => {

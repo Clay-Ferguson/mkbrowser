@@ -5,7 +5,7 @@ import { MONO_FONT_STACK } from '../utils/styles';
 function getDateTooltip(value: unknown): string | undefined {
   const str = String(value);
   const timestamp = extractTimestamp(str);
-  if (timestamp <= 0) return undefined;
+  if (Number.isNaN(timestamp)) return undefined;
   const days = getDaysFromToday(timestamp);
   return "Date:\n\n"+formatDaysDisplay(days);
 }

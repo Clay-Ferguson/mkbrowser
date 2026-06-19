@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { searchFolder, createMatchPredicate } from '../src/search';
 import { createContentSearcher } from '../src/utils/searchUtil';
-import { extractTimestamp, past, future, today } from '../src/utils/timeUtil';
+import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/utils/timeUtil';
 import { setupTestData, TEST_DATA_DIR, rel } from './fixtures/setup';
 
 // Build all fixture files once before the entire suite
@@ -831,10 +831,21 @@ describe('extractTimestamp', () => {
     expect(new Date(onePM).getHours()).toBe(13);
   });
 
-  it('returns 0 for content with no date', () => {
-    expect(extractTimestamp('No date here at all')).toBe(0);
-    expect(extractTimestamp('')).toBe(0);
-    expect(extractTimestamp('Just some random text 12345')).toBe(0);
+  it('returns NO_TIMESTAMP (NaN) for content with no date', () => {
+    expect(extractTimestamp('No date here at all')).toBeNaN();
+    expect(extractTimestamp('')).toBeNaN();
+    expect(extractTimestamp('Just some random text 12345')).toBeNaN();
+  });
+
+  it('returns NO_TIMESTAMP (NaN) for impossible calendar dates', () => {
+    expect(extractTimestamp('Due: 02/31/2025')).toBeNaN();
+    expect(extractTimestamp('Due: 04/31/2025')).toBeNaN();
+  });
+
+  it('parses a valid pre-1970 date instead of dropping it', () => {
+    const ts = extractTimestamp('Born 12/31/1969');
+    expect(ts).not.toBeNaN();
+    expect(ts).toBe(new Date(1969, 11, 31, 0, 0, 0).getTime());
   });
 
   it('finds first date in multi-line content', () => {
@@ -860,8 +871,12 @@ describe('past', () => {
     expect(past(tomorrow)).toBe(false);
   });
 
-  it('returns false for timestamp=0', () => {
-    expect(past(0)).toBe(false);
+  it('returns false for the not-found sentinel (NaN)', () => {
+    expect(past(NO_TIMESTAMP)).toBe(false);
+  });
+
+  it('treats 0 (1970-01-01) as a real past timestamp, not "not found"', () => {
+    expect(past(0)).toBe(true);
   });
 
   it('with lookbackDays: returns true within window, false outside', () => {
@@ -887,8 +902,8 @@ describe('future', () => {
     expect(future(yesterday)).toBe(false);
   });
 
-  it('returns false for timestamp=0', () => {
-    expect(future(0)).toBe(false);
+  it('returns false for the not-found sentinel (NaN)', () => {
+    expect(future(NO_TIMESTAMP)).toBe(false);
   });
 
   it('with lookaheadDays: returns true within window, false outside', () => {
@@ -926,7 +941,7 @@ describe('today', () => {
     expect(today(tomorrow)).toBe(false);
   });
 
-  it('returns false for timestamp=0', () => {
-    expect(today(0)).toBe(false);
+  it('returns false for the not-found sentinel (NaN)', () => {
+    expect(today(NO_TIMESTAMP)).toBe(false);
   });
 });

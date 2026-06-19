@@ -2,18 +2,34 @@ import { describe, it, expect } from 'vitest';
 import { parseDateString } from '../src/utils/timeUtil';
 
 describe('parseDateString', () => {
-  it('returns 0 for empty string', () => {
-    expect(parseDateString('')).toBe(0);
+  it('returns NaN for empty string', () => {
+    expect(parseDateString('')).toBeNaN();
   });
 
-  it('returns 0 for non-date strings', () => {
-    expect(parseDateString('hello world')).toBe(0);
-    expect(parseDateString('not a date')).toBe(0);
+  it('returns NaN for non-date strings', () => {
+    expect(parseDateString('hello world')).toBeNaN();
+    expect(parseDateString('not a date')).toBeNaN();
   });
 
-  it('returns 0 for partial/invalid date formats', () => {
-    expect(parseDateString('05/26')).toBe(0);
-    expect(parseDateString('2026-05-26')).toBe(0);
+  it('returns NaN for partial/invalid date formats', () => {
+    expect(parseDateString('05/26')).toBeNaN();
+    expect(parseDateString('2026-05-26')).toBeNaN();
+  });
+
+  it('returns NaN for impossible calendar dates (rollover rejected)', () => {
+    expect(parseDateString('02/31/2025')).toBeNaN();
+    expect(parseDateString('04/31/2025')).toBeNaN();
+    expect(parseDateString('02/30/2024')).toBeNaN(); // 2024 is a leap year, but Feb 30 still invalid
+  });
+
+  it('accepts Feb 29 in a leap year', () => {
+    expect(parseDateString('02/29/2024')).toBe(new Date(2024, 1, 29, 0, 0, 0).getTime());
+  });
+
+  it('parses a valid pre-1970 date to its (negative) timestamp, not NaN', () => {
+    const result = parseDateString('12/31/1969');
+    expect(result).toBe(new Date(1969, 11, 31, 0, 0, 0).getTime());
+    expect(result).not.toBeNaN();
   });
 
   it('parses MM/DD/YYYY format', () => {
@@ -57,7 +73,7 @@ describe('parseDateString', () => {
     expect(result).toBe(new Date(2026, 4, 26, 0, 0, 0).getTime());
   });
 
-  it('returns 0 for strings with extra content beyond the date', () => {
-    expect(parseDateString('05/26/2026 some extra text')).toBe(0);
+  it('returns NaN for strings with extra content beyond the date', () => {
+    expect(parseDateString('05/26/2026 some extra text')).toBeNaN();
   });
 });
