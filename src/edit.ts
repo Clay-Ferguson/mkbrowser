@@ -1,7 +1,7 @@
 import type { ItemData } from './types/types';
-import { joinFiles as joinFilesUtil } from './utils/editor/editUtil';
-import { splitFile as splitFileUtil } from './utils/editor/splitUtil';
-import type { FileOps } from './utils/editor/fileOps';
+import { joinFiles as joinFilesUtil } from './utils/fileSplitJoin/joinUtil';
+import { splitFile as splitFileUtil } from './utils/fileSplitJoin/splitUtil';
+import type { FileOps } from './utils/fileSplitJoin/fileOps';
 import { getParentPath, joinPath } from './utils/pathUtil';
 
 /**

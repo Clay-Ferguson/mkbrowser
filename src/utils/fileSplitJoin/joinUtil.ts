@@ -1,5 +1,9 @@
 /**
- * Utility functions for edit operations (Split, etc.)
+ * Transactional file-joining utility.
+ *
+ * `joinFiles` concatenates multiple files (sorted alphabetically) into the
+ * alphabetically-first file, deleting the rest only after the write is verified.
+ * The inverse of `splitFile` in `splitUtil.ts`.
  */
 
 import { dump } from 'js-yaml';

@@ -11,7 +11,7 @@ import {
   performSplitFile,
   performJoinFiles,
 } from '../src/edit';
-import { joinFiles } from '../src/utils/editor/editUtil';
+import { joinFiles } from '../src/utils/fileSplitJoin/joinUtil';
 import type { ItemData } from '../src/types/types';
 
 // ---------------------------------------------------------------------------

@@ -1,12 +1,12 @@
 /**
- * Unit tests for src/utils/editor/splitUtil.ts — transactional splitFile.
+ * Unit tests for src/utils/fileSplitJoin/splitUtil.ts — transactional splitFile.
  *
  * Exercises the happy path, the delimiter/empty-part semantics, and the
  * fail-safe rollback behavior, all against an in-memory mock filesystem.
  */
 
 import { describe, it, expect } from 'vitest';
-import { splitFile } from '../src/utils/editor/splitUtil';
+import { splitFile } from '../src/utils/fileSplitJoin/splitUtil';
 
 /**
  * Build an in-memory mock filesystem and the injectable file ops splitFile
