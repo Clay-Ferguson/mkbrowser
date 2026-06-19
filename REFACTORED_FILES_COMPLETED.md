@@ -10,6 +10,7 @@ src/components/views
 src/components 
 src/utils/fileOpsUtil.ts
 src/utils/fileUtil.ts
-src/utils/calendar/*.ts <---- current
+src/utils/calendar/*.ts
+src/utils/editor/*.ts 
 src/store
 ```
