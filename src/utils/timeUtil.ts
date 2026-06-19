@@ -1,4 +1,10 @@
+import { DATE_REGEX } from './dateRegex';
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Whole-string variant of the shared date pattern, for parsing a string that is
+// entirely a date/date-time value. Built once from the single source of truth.
+const DATE_REGEX_ANCHORED = new RegExp(`^\\s*${DATE_REGEX.source}\\s*$`);
 
 /**
  * Detects timestamps in MM/DD/YYYY, MM/DD/YY, or with HH:MM:SS AM/PM or HH:MM AM/PM format
@@ -9,10 +15,10 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * @returns Timestamp in milliseconds since epoch, or 0 if not found
  */
 export function extractTimestamp(content: string): number {
-  // Regex for MM/DD/YYYY or MM/DD/YY with optional time (HH:MM:SS AM/PM or HH:MM AM/PM)
-  const dateTimeRegex = /(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM))?/i;
-  const match = content.match(dateTimeRegex);
-  
+  // Find the first date in the content using the shared pattern (see dateRegex.ts).
+  // DATE_REGEX is non-global, so .match() returns the first match with groups.
+  const match = content.match(DATE_REGEX);
+
   if (match) {
     const month = parseInt(match[1], 10);
     const day = parseInt(match[2], 10);
@@ -126,8 +132,7 @@ export function today(timestamp: number): boolean {
  * Returns milliseconds since epoch, or 0 if the string cannot be parsed.
  */
 export function parseDateString(value: string): number {
-  const dateTimeRegex = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM))?\s*$/i;
-  const match = value.match(dateTimeRegex);
+  const match = value.match(DATE_REGEX_ANCHORED);
   if (!match) return 0;
 
   const month = parseInt(match[1], 10);

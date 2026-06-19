@@ -1,6 +1,7 @@
 import { Decoration, DecorationSet, ViewPlugin, ViewUpdate, EditorView, hoverTooltip } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
 import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../timeUtil';
+import { DATE_REGEX } from '../dateRegex';
 import { MONO_FONT_STACK } from '../styles';
 import { eachVisibleLine } from './editorViewportUtil';
 
@@ -11,10 +12,9 @@ export const dateMark = Decoration.mark({ class: 'cm-date' });
 // Matches: MM/DD/YYYY, MM/DD/YY, and optionally with HH:MM AM/PM or HH:MM:SS AM/PM
 export function extractDates(text: string): { from: number; to: number }[] {
   const dates: { from: number; to: number }[] = [];
-  // Regex matches:
-  // - MM/DD/YYYY or MM/DD/YY (required)
-  // - Optionally followed by space and HH:MM AM/PM or HH:MM:SS AM/PM (seconds optional)
-  const regex = /\b(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])\/(\d{4}|\d{2})(\s+(0?[1-9]|1[0-2]):[0-5]\d(:[0-5]\d)?\s*[AaPp][Mm])?\b/g;
+  // Build a fresh global instance from the shared source so scanning gets its
+  // own stateful lastIndex (see dateRegex.ts for the accepted date shape).
+  const regex = new RegExp(DATE_REGEX.source, 'g');
   let match;
   while ((match = regex.exec(text)) !== null) {
     dates.push({
