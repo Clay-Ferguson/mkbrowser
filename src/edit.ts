@@ -211,8 +211,7 @@ export async function performJoinFiles(
   selectedItems: ItemData[],
   readFile: (path: string) => Promise<string>,
   writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
-  deleteFile: (path: string) => Promise<boolean>,
-  getFileSize: (path: string) => Promise<number>
+  deleteFile: (path: string) => Promise<boolean>
 ): Promise<JoinFilesValidationResult> {
   // Check that multiple items are selected
   if (selectedItems.length < 2) {
@@ -238,8 +237,7 @@ export async function performJoinFiles(
     filePaths,
     readFile,
     writeFile,
-    deleteFile,
-    getFileSize
+    deleteFile
   );
 
   if (!result.success) {

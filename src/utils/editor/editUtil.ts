@@ -39,20 +39,18 @@ export interface JoinFilesResult {
  * Files are sorted alphabetically, concatenated with '\n\n\n' between parts,
  * and the result is written to the alphabetically first file.
  * Other files are deleted only after verifying the write succeeded.
- * 
+ *
  * @param filePaths - Array of file paths to join
  * @param readFile - Function to read file content
  * @param writeFile - Function to write file content
  * @param deleteFile - Function to delete a file
- * @param getFileSize - Function to get file size in bytes
  * @returns Result object with success status and info
  */
 export async function joinFiles(
   filePaths: string[],
   readFile: (path: string) => Promise<string>,
   writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>,
-  deleteFile: (path: string) => Promise<boolean>,
-  getFileSize: (path: string) => Promise<number>
+  deleteFile: (path: string) => Promise<boolean>
 ): Promise<JoinFilesResult> {
   try {
     // Sort file paths alphabetically by filename
@@ -73,11 +71,12 @@ export async function joinFiles(
     
     // Concatenate with double blank line separator
     const joinedContent = contents.join('\n\n\n');
-    
-    // Calculate expected byte size (UTF-8)
-    const expectedByteSize = new TextEncoder().encode(joinedContent).length;
-    
-    // Write to the first file (alphabetically)
+
+    // Write to the first file (alphabetically). Note that writeFile may
+    // legitimately normalize/transform the content (e.g. markdown TOC expansion
+    // or front-matter id injection), so it returns the exact bytes it wrote
+    // back in `content`. We verify against that authoritative result, not
+    // against joinedContent.
     const targetPath = sortedPaths[0];
     const writeSuccess = await writeFile(targetPath, joinedContent);
     if (!writeSuccess.ok) {
@@ -86,16 +85,18 @@ export async function joinFiles(
         error: 'Failed to write the joined content to the target file.',
       };
     }
-    
-    // Verify the file was written correctly by checking its size
-    const actualByteSize = await getFileSize(targetPath);
-    if (actualByteSize !== expectedByteSize) {
+
+    // Verify the write landed by reading the file back and comparing it to the
+    // content the writer reported writing. (readFile returns '' on error, which
+    // safely fails this comparison and preserves the source files.)
+    const readBack = await readFile(targetPath);
+    if (readBack !== writeSuccess.content) {
       return {
         success: false,
-        error: `File verification failed: expected ${expectedByteSize} bytes but file has ${actualByteSize} bytes. Files were NOT deleted to preserve data.`,
+        error: 'File verification failed: the written file does not match the expected content. Files were NOT deleted to preserve data.',
       };
     }
-    
+
     // Delete the other files (all except the first one)
     for (let i = 1; i < sortedPaths.length; i++) {
       const deleteSuccess = await deleteFile(sortedPaths[i]);

@@ -11,6 +11,7 @@ import {
   performSplitFile,
   performJoinFiles,
 } from '../src/edit';
+import { joinFiles } from '../src/utils/editor/editUtil';
 import type { ItemData } from '../src/types/types';
 
 // ---------------------------------------------------------------------------
@@ -231,12 +232,11 @@ describe('performJoinFiles (validation)', () => {
   const noopRead = async (_p: string) => '';
   const noopWrite = async (_p: string, _c: string) => ({ ok: true, content: '' });
   const noopDelete = async (_p: string) => true;
-  const noopSize = async (_p: string) => 0;
 
   it('returns error when fewer than two items are selected', async () => {
     const result = await performJoinFiles(
       [makeItem('/docs/a.md', 'a.md')],
-      noopRead, noopWrite, noopDelete, noopSize
+      noopRead, noopWrite, noopDelete
     );
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/at least two/i);
@@ -247,7 +247,7 @@ describe('performJoinFiles (validation)', () => {
       makeItem('/docs/a.md', 'a.md'),
       makeItem('/docs/folder', 'folder', true),
     ];
-    const result = await performJoinFiles(items, noopRead, noopWrite, noopDelete, noopSize);
+    const result = await performJoinFiles(items, noopRead, noopWrite, noopDelete);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/folder/i);
   });
@@ -257,8 +257,98 @@ describe('performJoinFiles (validation)', () => {
       makeItem('/docs/a.md', 'a.md'),
       makeItem('/docs/b.csv', 'b.csv'),
     ];
-    const result = await performJoinFiles(items, noopRead, noopWrite, noopDelete, noopSize);
+    const result = await performJoinFiles(items, noopRead, noopWrite, noopDelete);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/not supported/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// joinFiles — write verification + destructive delete gating
+// ---------------------------------------------------------------------------
+
+describe('joinFiles (write verification)', () => {
+  // A simple in-memory filesystem keyed by path. writeFile records the bytes
+  // it "wrote" and returns them as `content`, mirroring the real IPC contract.
+  function makeFs(initial: Record<string, string>) {
+    const store: Record<string, string> = { ...initial };
+    const deleted: string[] = [];
+    return {
+      store,
+      deleted,
+      readFile: async (p: string) => store[p] ?? '',
+      writeFile: async (p: string, c: string) => {
+        store[p] = c;
+        return { ok: true, content: c };
+      },
+      deleteFile: async (p: string) => {
+        delete store[p];
+        deleted.push(p);
+        return true;
+      },
+    };
+  }
+
+  it('joins files and deletes the non-lead sources after verification', async () => {
+    const fs = makeFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
+    const result = await joinFiles(
+      ['/docs/b.txt', '/docs/a.txt'],
+      fs.readFile, fs.writeFile, fs.deleteFile
+    );
+    expect(result.success).toBe(true);
+    expect(result.resultPath).toBe('/docs/a.txt');
+    expect(result.filesJoined).toBe(2);
+    expect(fs.store['/docs/a.txt']).toBe('alpha\n\n\nbeta');
+    expect(fs.deleted).toEqual(['/docs/b.txt']);
+    expect(fs.store['/docs/b.txt']).toBeUndefined();
+  });
+
+  it('succeeds when the writer normalizes content, as long as the read-back matches what was written', async () => {
+    // Simulates markdown transformation (e.g. front-matter id injection): the
+    // bytes on disk differ from joinedContent, but match writeSuccess.content.
+    const fs = makeFs({ '/docs/a.md': 'alpha', '/docs/b.md': 'beta' });
+    const writeFile = async (p: string, c: string) => {
+      const transformed = c + '\n<!-- injected -->';
+      fs.store[p] = transformed;
+      return { ok: true, content: transformed };
+    };
+    const result = await joinFiles(
+      ['/docs/a.md', '/docs/b.md'],
+      fs.readFile, writeFile, fs.deleteFile
+    );
+    expect(result.success).toBe(true);
+    expect(fs.deleted).toEqual(['/docs/b.md']);
+  });
+
+  it('does not delete sources when the write reports ok: false', async () => {
+    const fs = makeFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
+    const writeFile = async (_p: string, c: string) => ({ ok: false, content: c });
+    const result = await joinFiles(
+      ['/docs/a.txt', '/docs/b.txt'],
+      fs.readFile, writeFile, fs.deleteFile
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/failed to write/i);
+    expect(fs.deleted).toEqual([]);
+    expect(fs.store['/docs/b.txt']).toBe('beta');
+  });
+
+  it('does not delete sources when the read-back does not match the written content', async () => {
+    const fs = makeFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
+    // Writer claims to have written one thing, but the file on disk says another
+    // (e.g. partial/corrupt write) — verification must fail and preserve files.
+    const writeFile = async (p: string, c: string) => {
+      fs.store[p] = c + ' CORRUPTED';
+      return { ok: true, content: c };
+    };
+    const result = await joinFiles(
+      ['/docs/a.txt', '/docs/b.txt'],
+      fs.readFile, writeFile, fs.deleteFile
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/verification failed/i);
+    expect(result.error).toMatch(/NOT deleted/i);
+    expect(fs.deleted).toEqual([]);
+    expect(fs.store['/docs/b.txt']).toBe('beta');
   });
 });

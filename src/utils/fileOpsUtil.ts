@@ -184,8 +184,7 @@ export async function joinSelectedFiles(
     selectedItems,
     api.readFile,
     api.writeFile,
-    api.deleteFile,
-    api.getFileSize
+    api.deleteFile
   );
 
   if (!result.success) {
