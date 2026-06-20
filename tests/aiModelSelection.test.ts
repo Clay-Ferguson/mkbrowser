@@ -103,7 +103,7 @@ describe('getActiveProvider', () => {
 
 describe('ensureModelServerRunning', () => {
   it('starts the llama.cpp server when the active model is LLAMACPP', async () => {
-    selectModel('Local LLAA.CPP');
+    selectModel('Local LLAMA.CPP');
     await ensureModelServerRunning();
     expect(mockEnsureRunning).toHaveBeenCalledTimes(1);
   });
