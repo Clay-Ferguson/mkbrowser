@@ -20,6 +20,38 @@ Then in MkBrowser **Settings → AI**:
 - Select the **llama.cpp** model
 - Verify the **llama.cpp Base URL** is `http://localhost:8080/v1`
 
+## Web UI (Browser Chat)
+
+You don't need MkBrowser — or any extra app — just to confirm the model is up.
+`llama-server` ships with a **built-in chat web app**, served from the same
+host and port as the API. Once `./start-server.sh` is running, open:
+
+```
+http://localhost:8080
+```
+
+in any browser and you get a full chat interface with conversation history and
+adjustable sampling settings (temperature, top-p, etc.). Nothing else to
+install — it's part of the `llama-server` binary itself, so it's the quickest
+way to prove the model is installed and answering (a friendlier alternative to
+the `curl` checks in [Verifying the Server](#verifying-the-server)).
+
+### Using a different port
+
+The Web UI is served on the **same port as the API** (default **8080**), so
+changing the port moves both. If something else on your machine is already using
+8080, start the server on another port:
+
+```bash
+./start-server.sh --port 9090
+```
+
+Then open **http://localhost:9090** for the UI. (This is just the `--port N`
+override described under [Customization](#server-parameters).)
+
+If you change the port, update MkBrowser to match in **Settings → AI** by
+setting the **llama.cpp Base URL** to `http://localhost:9090/v1`.
+
 ## Prerequisites
 
 - **Linux x86_64** (Ubuntu or similar)
