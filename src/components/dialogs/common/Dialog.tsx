@@ -91,6 +91,13 @@ function Dialog({
   };
 
   const handleClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    // The dialog is rendered inline in the React tree of whatever opened it,
+    // which is often a clickable row (e.g. a FolderEntry header that navigates
+    // on click). Synthetic events bubble through the React tree regardless of
+    // the native <dialog>'s top-layer placement, so stop clicks here to keep
+    // them from leaking out to those ancestors (which would, e.g., navigate
+    // away mid-save or re-open a just-deleted folder).
+    e.stopPropagation();
     if (!closeOnBackdrop) return;
     // The backdrop is part of the <dialog> element, so a click whose target is
     // the element itself (not an inner child) landed outside the content box.
