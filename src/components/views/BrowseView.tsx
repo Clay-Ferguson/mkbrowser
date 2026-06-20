@@ -797,6 +797,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           const view = 'thread';
           navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
           setPendingEditFile(result.filePath, undefined, view);
+          // The new HUMAN.md is created directly in the current folder, so
+          // currentPath doesn't change and BrowseView's load effect won't
+          // re-fire on its own. Refresh explicitly so the file appears when
+          // the user switches back to the browse view.
+          onRefreshDirectory();
         }
       } catch (err) {
         onSetError('Failed to create AI chat: ' + (err instanceof Error ? err.message : String(err)));
