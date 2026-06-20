@@ -1,7 +1,35 @@
-import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig } from './store';
+import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig, defaultAiConfig } from './store';
 import { api } from './services/api';
 import type { AppConfig } from './types/shared';
 import type { AiConfigState } from './store';
+
+/**
+ * Project the AI-related keys present in a (partial) AppConfig onto the store's
+ * mirror shape. Only keys actually present in `updates` are copied, so a partial
+ * save (e.g. `{ aiModel }`) doesn't disturb the rest of the mirror. A key whose
+ * value is `undefined` (a deletion, e.g. clearing the active persona) maps to
+ * the field's default, so the mirror never holds `undefined`.
+ *
+ * Both seeding (`loadConfig`) and persisting (`saveAiConfig`) go through this one
+ * function, so the AI mirror has a single projection point. Adding a new AI field
+ * means adding a line here and to `AiConfigState`.
+ */
+function pickAiConfig(updates: Partial<AppConfig>): Partial<AiConfigState> {
+  const mirror: Partial<AiConfigState> = {};
+  if ('aiEnabled' in updates) mirror.aiEnabled = updates.aiEnabled ?? defaultAiConfig.aiEnabled;
+  if ('aiRewriteMode' in updates) mirror.aiRewriteMode = updates.aiRewriteMode ?? defaultAiConfig.aiRewriteMode;
+  if ('aiRewritePrompt' in updates) mirror.aiRewritePrompt = updates.aiRewritePrompt ?? defaultAiConfig.aiRewritePrompt;
+  if ('aiRewritePrompts' in updates) mirror.aiRewritePrompts = updates.aiRewritePrompts ?? defaultAiConfig.aiRewritePrompts;
+  if ('tagsPanelVisible' in updates) mirror.tagsPanelVisible = updates.tagsPanelVisible ?? defaultAiConfig.tagsPanelVisible;
+  if ('fullDocContext' in updates) mirror.fullDocContext = updates.fullDocContext ?? defaultAiConfig.fullDocContext;
+  if ('aiModels' in updates) mirror.aiModels = updates.aiModels ?? defaultAiConfig.aiModels;
+  if ('aiModel' in updates) mirror.aiModel = updates.aiModel ?? defaultAiConfig.aiModel;
+  if ('llamacppBaseUrl' in updates) mirror.llamacppBaseUrl = updates.llamacppBaseUrl ?? defaultAiConfig.llamacppBaseUrl;
+  if ('llamacppFolder' in updates) mirror.llamacppFolder = updates.llamacppFolder ?? defaultAiConfig.llamacppFolder;
+  if ('agenticMode' in updates) mirror.agenticMode = updates.agenticMode ?? defaultAiConfig.agenticMode;
+  if ('agenticAllowedFolders' in updates) mirror.agenticAllowedFolders = updates.agenticAllowedFolders ?? defaultAiConfig.agenticAllowedFolders;
+  return mirror;
+}
 
 export interface LoadConfigResult {
   rootPath: string | null;
@@ -30,12 +58,7 @@ export async function loadConfig(): Promise<LoadConfigResult> {
       setImageSize(config.imageSize);
     }
     // Seed the renderer-reactive AI config mirror (see store/aiConfig.ts).
-    setAiConfig({
-      aiEnabled: !!config.aiEnabled,
-      aiRewriteMode: !!config.aiRewriteMode,
-      aiRewritePrompt: config.aiRewritePrompt ?? '',
-      tagsPanelVisible: config.tagsPanelVisible ?? false,
-    });
+    setAiConfig({ ...defaultAiConfig, ...pickAiConfig(config) });
     if (config.browseFolder) {
       const exists = await api.pathExists(config.browseFolder);
       if (exists) {
@@ -61,20 +84,14 @@ export async function loadConfig(): Promise<LoadConfigResult> {
 }
 
 /**
- * Persist AI config changes AND mirror the renderer-reactive subset into the
- * store, so all live consumers (e.g. the editor's AI Rewrite button) update
- * immediately without remounting. This is the single sync point: any code that
- * changes an AI config field the renderer reacts to should call this instead of
- * `api.updateConfig` directly.
+ * Persist AI config changes AND mirror them into the reactive store, so all live
+ * consumers (the editor's AI Rewrite button, ThreadView's persona dropdown, the
+ * settings form) update immediately without remounting. This is the single sync
+ * point: any code that changes an AI config field should call this instead of
+ * `api.updateConfig` directly. Non-AI keys in `updates` are simply persisted.
  */
 export async function saveAiConfig(updates: Partial<AppConfig>): Promise<void> {
-  const mirror: Partial<AiConfigState> = {};
-  if (updates.aiEnabled !== undefined) mirror.aiEnabled = updates.aiEnabled;
-  if (updates.aiRewriteMode !== undefined) mirror.aiRewriteMode = updates.aiRewriteMode;
-  // `aiRewritePrompt` uses key-presence (not !== undefined) because clearing the
-  // persona persists `aiRewritePrompt: undefined` (a deletion) — mirror that as ''.
-  if ('aiRewritePrompt' in updates) mirror.aiRewritePrompt = updates.aiRewritePrompt ?? '';
-  if (updates.tagsPanelVisible !== undefined) mirror.tagsPanelVisible = updates.tagsPanelVisible;
+  const mirror = pickAiConfig(updates);
   if (Object.keys(mirror).length > 0) setAiConfig(mirror);
   await api.updateConfig(updates);
 }

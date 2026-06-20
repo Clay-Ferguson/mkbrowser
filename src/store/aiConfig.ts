@@ -1,5 +1,7 @@
 import type { AiConfigState } from '../types/types';
-import { getState, setState, useStoreValue } from './core';
+import { getState, setState, useStoreValue, defaultAiConfig } from './core';
+
+export { defaultAiConfig };
 
 // ============================================================================
 // AI Config - renderer-reactive mirror of the AI slice of AppConfig
@@ -7,11 +9,11 @@ import { getState, setState, useStoreValue } from './core';
 //
 // The main process config (configMgr) is the source of truth, but it is only
 // fetched on demand via `api.getConfig()`. Consumers that mount once and live
-// for the whole session (e.g. MarkdownEntry's AI Rewrite button) would never
-// see a persona change made later in AISettingsView / ThreadView. Mirroring the
-// reactive subset into the store lets those consumers subscribe and update
-// live. `loadConfig` seeds this at startup; `saveAiConfig` (config.ts) keeps it
-// in sync on every persist.
+// for the whole session (e.g. MarkdownEntry's AI Rewrite button, ThreadView's
+// persona dropdown) would never see a change made later in AISettingsView /
+// ThreadView. Mirroring the full AI config into the store lets those consumers
+// subscribe and update live. `loadConfig` seeds this at startup; `saveAiConfig`
+// (config.ts) keeps it in sync on every persist.
 
 /**
  * Merge partial updates into the in-memory AI config mirror and notify

@@ -561,15 +561,24 @@ export interface AppState {
 }
 
 /**
- * The subset of AppConfig the renderer needs to react to live (see
+ * The renderer-reactive mirror of every AI field on AppConfig (see
  * `AppState.aiConfig`). `aiRewritePrompt` is the active persona name, or '' when
- * none is selected.
+ * none is selected. To add a new AI field, add it here AND a line to
+ * `pickAiConfig` in `src/config.ts` (the one place the mirror is projected).
  */
 export interface AiConfigState {
   aiEnabled: boolean;
   aiRewriteMode: boolean;
   aiRewritePrompt: string;
+  aiRewritePrompts: import('../types/shared').AIRewritePromptDef[];
   tagsPanelVisible: boolean;
+  fullDocContext: boolean;
+  aiModels: import('../types/shared').AIModelConfig[];
+  aiModel: string;
+  llamacppBaseUrl: string;
+  llamacppFolder: string;
+  agenticMode: boolean;
+  agenticAllowedFolders: string;
 }
 
 /**

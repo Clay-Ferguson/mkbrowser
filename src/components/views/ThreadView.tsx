@@ -4,7 +4,6 @@ import { FolderIcon } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
 import type { FileEntry } from '../../global';
 import type { ThreadEntry, ThreadChildFolder } from '../../store';
-import type { AppConfig , AIRewritePromptDef } from '../../types/shared';
 import {
   useCurrentPath,
   useRootPath,
@@ -50,18 +49,13 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const [childFolders, setChildFolders] = useState<ThreadChildFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isThread, setIsThread] = useState(true);
-  const [aiRewritePrompts, setAiRewritePrompts] = useState<AIRewritePromptDef[]>([]);
 
-  useEffect(() => {
-    void api.getConfig().then((config: AppConfig) => {
-      setAiRewritePrompts(config.aiRewritePrompts ?? []);
-    });
-  }, []);
-
-  // The displayed persona is derived from the store mirror, so a change made in
-  // AISettingsView (or here) is reflected without a remount. `typingDraft` holds
-  // any in-progress edit in the combobox until it's committed via onSelect.
-  const storedPersona = useAiConfigState().aiRewritePrompt || DEFAULT_PERSONA_NAME;
+  // The persona name and the list of personas both come from the store mirror,
+  // so a persona created/renamed/selected in AISettingsView is reflected here
+  // without a remount. `typingDraft` holds any in-progress combobox edit until
+  // it's committed via onSelect.
+  const { aiRewritePrompt, aiRewritePrompts } = useAiConfigState();
+  const storedPersona = aiRewritePrompt || DEFAULT_PERSONA_NAME;
   const [typingDraft, setTypingDraft] = useState<string | null>(null);
   const personaName = typingDraft ?? storedPersona;
 

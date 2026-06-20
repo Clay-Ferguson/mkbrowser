@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppSettings } from '../types/types';
+import type { AppState, AppSettings, AiConfigState } from '../types/types';
 
 /**
  * Default settings
@@ -17,6 +17,26 @@ const defaultSettings: AppSettings = {
   calendarItemsFolder: '',
   indexTreeWidth: 'narrow',
   showPropsInEditor: true,
+};
+
+/**
+ * Default AI config mirror. Kept here (next to `defaultSettings`) so the store
+ * core owns its own defaults without importing a slice. `llamacppBaseUrl`
+ * defaults to the local llama.cpp server URL the settings form has always shown.
+ */
+export const defaultAiConfig: AiConfigState = {
+  aiEnabled: false,
+  aiRewriteMode: false,
+  aiRewritePrompt: '',
+  aiRewritePrompts: [],
+  tagsPanelVisible: false,
+  fullDocContext: false,
+  aiModels: [],
+  aiModel: '',
+  llamacppBaseUrl: 'http://localhost:8080/v1',
+  llamacppFolder: '',
+  agenticMode: false,
+  agenticAllowedFolders: '',
 };
 
 /**
@@ -60,12 +80,7 @@ const initialState: AppState = {
   calendarViewTime: new Date(),
   imageSize: 'small',
   imageSizeTransitioning: false,
-  aiConfig: {
-    aiEnabled: false,
-    aiRewriteMode: false,
-    aiRewritePrompt: '',
-    tagsPanelVisible: false,
-  },
+  aiConfig: defaultAiConfig,
 };
 
 /**

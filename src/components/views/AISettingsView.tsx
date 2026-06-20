@@ -3,7 +3,8 @@ import { clsx } from 'clsx';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
 import { saveAiConfig } from '../../config';
-import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../types/shared';
+import { useAiConfigState, getAiConfig } from '../../store';
+import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../types/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../ai/aiPrompts';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
@@ -15,22 +16,38 @@ import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_GREEN, BUTTON_CLA
 const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
 function AISettingsView() {
-  // AI config state (lives on AppConfig, not AppSettings)
-  const [aiEnabled, setAiEnabled] = useState<boolean>(false);
-  const [aiModels, setAiModels] = useState<AIModelConfig[]>([]);
-  const [selectedAiModel, setSelectedAiModel] = useState<string>('');
-  const [llamacppBaseUrl, setLlamacppBaseUrl] = useState<string>('http://localhost:8080/v1');
-  const [agenticMode, setAgenticMode] = useState<boolean>(false);
-  const [agenticAllowedFolders, setAgenticAllowedFolders] = useState<string>('');
-  const [llamacppFolder, setLlamacppFolder] = useState<string>('');
+  // AI config (lives top-level on AppConfig, not AppSettings) is mirrored into
+  // the store so this form, the editor, and ThreadView all stay in sync. Read
+  // the reactive values here; writes go through saveAiConfigField below.
+  const {
+    aiEnabled,
+    aiModels,
+    aiModel: selectedAiModel,
+    agenticMode,
+    fullDocContext,
+    aiRewriteMode,
+    aiRewritePrompts,
+  } = useAiConfigState();
+
+  // Text fields keep a local buffer for keystroke responsiveness, seeded lazily
+  // from the store (nothing else writes them) and persisted on blur.
+  const [llamacppBaseUrl, setLlamacppBaseUrl] = useState<string>(() => getAiConfig().llamacppBaseUrl);
+  const [agenticAllowedFolders, setAgenticAllowedFolders] = useState<string>(() => getAiConfig().agenticAllowedFolders);
+  const [llamacppFolder, setLlamacppFolder] = useState<string>(() => getAiConfig().llamacppFolder);
   const [llamaServerStatus, setLlamaServerStatus] = useState<string>('stopped');
   const [llamaServerBusy, setLlamaServerBusy] = useState(false);
-  const [selectedPromptName, setSelectedPromptName] = useState<string>('');
-  const [aiRewritePrompts, setAiRewritePrompts] = useState<AIRewritePromptDef[]>([]);
-  const [promptEditorContent, setPromptEditorContent] = useState<string>('');
+
+  // Persona editor working state: which persona is being edited + the textarea
+  // buffer. Seeded lazily from the store's active persona.
+  const [selectedPromptName, setSelectedPromptName] = useState<string>(() => getAiConfig().aiRewritePrompt || DEFAULT_PERSONA_NAME);
+  const [promptEditorContent, setPromptEditorContent] = useState<string>(() => {
+    const cfg = getAiConfig();
+    const name = cfg.aiRewritePrompt || DEFAULT_PERSONA_NAME;
+    return name === DEFAULT_PERSONA_NAME
+      ? DEFAULT_AI_REWRITE_PERSONA
+      : cfg.aiRewritePrompts.find((p) => p.name === name)?.prompt ?? '';
+  });
   const [showPromptDeleteConfirm, setShowPromptDeleteConfirm] = useState(false);
-  const [fullDocContext, setFullDocContext] = useState<boolean>(false);
-  const [aiRewriteMode, setAiRewriteMode] = useState<boolean>(false);
 
   // AI model CRUD dialog state
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -47,32 +64,10 @@ function AISettingsView() {
   // Model table expand/collapse
   const [modelTableExpanded, setModelTableExpanded] = useState(false);
 
-  // Load AI config on mount
+  // AI config is read reactively from the store (seeded at startup by
+  // loadConfig); only the non-config stats/health need fetching on mount.
   useEffect(() => {
-    void api.getConfig().then((config: AppConfig) => {
-      if (config.aiEnabled !== undefined) setAiEnabled(config.aiEnabled);
-      if (config.aiModels) setAiModels(config.aiModels);
-      if (config.aiModel) setSelectedAiModel(config.aiModel);
-      if (config.llamacppBaseUrl) setLlamacppBaseUrl(config.llamacppBaseUrl);
-      if (config.llamacppFolder) setLlamacppFolder(config.llamacppFolder);
-      if (config.agenticMode !== undefined) setAgenticMode(config.agenticMode);
-      if (config.agenticAllowedFolders !== undefined) setAgenticAllowedFolders(config.agenticAllowedFolders);
-      if (config.fullDocContext !== undefined) setFullDocContext(config.fullDocContext);
-      if (config.aiRewriteMode !== undefined) setAiRewriteMode(config.aiRewriteMode);
-      const savedName = config.aiRewritePrompt || DEFAULT_PERSONA_NAME;
-      const savedPrompts = config.aiRewritePrompts ?? [];
-      setSelectedPromptName(savedName);
-      setAiRewritePrompts(savedPrompts);
-      if (savedName === DEFAULT_PERSONA_NAME) {
-        setPromptEditorContent(DEFAULT_AI_REWRITE_PERSONA);
-      } else {
-        const matched = savedPrompts.find((p) => p.name === savedName);
-        setPromptEditorContent(matched?.prompt ?? '');
-      }
-    });
-    // Load AI usage stats
     void api.getAiUsage().then(setUsageData);
-    // Check llama.cpp server status
     void api.checkLlamaHealth().then(setLlamaServerStatus);
   }, []);
 
@@ -87,12 +82,10 @@ function AISettingsView() {
   }, []);
 
   const handleAiEnabledChange = useCallback((enabled: boolean) => {
-    setAiEnabled(enabled);
     void saveAiConfigField({ aiEnabled: enabled });
   }, [saveAiConfigField]);
 
   const handleAiModelChange = useCallback((modelName: string) => {
-    setSelectedAiModel(modelName);
     void saveAiConfigField({ aiModel: modelName });
   }, [saveAiConfigField]);
 
@@ -125,19 +118,15 @@ function AISettingsView() {
   }, [aiModels, selectedAiModel, normalizeModelKey]);
 
   const applyModelSave = useCallback((model: AIModelConfig) => {
-    setAiModels((prev) => {
-      const modelKey = normalizeModelKey(model.name);
-      const idx = prev.findIndex((m) => normalizeModelKey(m.name) === modelKey);
-      const updated = idx >= 0
-        ? prev.map((m, i) => (i === idx ? model : m))
-        : [...prev, model];
-      void saveAiConfigField({ aiModels: updated, aiModel: model.name });
-      return updated;
-    });
-    setSelectedAiModel(model.name);
+    const modelKey = normalizeModelKey(model.name);
+    const idx = aiModels.findIndex((m) => normalizeModelKey(m.name) === modelKey);
+    const updated = idx >= 0
+      ? aiModels.map((m, i) => (i === idx ? model : m))
+      : [...aiModels, model];
+    void saveAiConfigField({ aiModels: updated, aiModel: model.name });
     setShowEditDialog(false);
     setPendingSaveModel(null);
-  }, [saveAiConfigField, normalizeModelKey]);
+  }, [aiModels, saveAiConfigField, normalizeModelKey]);
 
   const handleDialogSave = useCallback((model: AIModelConfig) => {
     // Check for name collision (only matters if it's a different entry than what we're editing)
@@ -192,9 +181,7 @@ function AISettingsView() {
       return;
     }
     const updated = aiModels.filter((m) => m.name !== selectedAiModel);
-    setAiModels(updated);
     const newSelected = updated.length > 0 ? updated[0].name : '';
-    setSelectedAiModel(newSelected);
     void saveAiConfigField({ aiModels: updated, aiModel: newSelected });
     setShowDeleteConfirm(false);
   }, [aiModels, selectedAiModel, saveAiConfigField, normalizeModelKey]);
@@ -259,7 +246,6 @@ function AISettingsView() {
                     label="Agentic Mode"
                     checked={agenticMode}
                     onChange={(checked) => {
-                      setAgenticMode(checked);
                       void saveAiConfigField({ agenticMode: checked });
                     }}
                     inputClassName={SETTINGS_CHECKBOX_CLASS}
@@ -565,7 +551,6 @@ function AISettingsView() {
                         if (!name) return;
                         const updated = aiRewritePrompts.filter((p) => p.name !== name);
                         updated.push({ name, prompt: promptEditorContent });
-                        setAiRewritePrompts(updated);
                         void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: name });
                       }}
                       className={BUTTON_CLASS_DLG_GREEN}
@@ -603,7 +588,6 @@ function AISettingsView() {
                     label="Enable AI Rewrite"
                     checked={aiRewriteMode}
                     onChange={(checked) => {
-                      setAiRewriteMode(checked);
                       void saveAiConfigField({ aiRewriteMode: checked });
                     }}
                     inputClassName={SETTINGS_CHECKBOX_CLASS}
@@ -615,7 +599,6 @@ function AISettingsView() {
                       label="Rewrite using Full Doc Context"
                       checked={fullDocContext}
                       onChange={(checked) => {
-                        setFullDocContext(checked);
                         void saveAiConfigField({ fullDocContext: checked });
                       }}
                       inputClassName={SETTINGS_CHECKBOX_CLASS}
@@ -682,7 +665,6 @@ function AISettingsView() {
           message={`Delete prompt "${selectedPromptName}"?`}
           onConfirm={() => {
             const updated = aiRewritePrompts.filter((p) => p.name !== selectedPromptName);
-            setAiRewritePrompts(updated);
             setSelectedPromptName('');
             setPromptEditorContent('');
             setShowPromptDeleteConfirm(false);
