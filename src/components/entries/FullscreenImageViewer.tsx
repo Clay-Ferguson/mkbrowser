@@ -42,32 +42,34 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
   // attached once for the lifetime of the overlay rather than re-added on every
   // selection toggle or navigation change, while still seeing the latest state.
   const handleKeyDownRef = useRef<(e: KeyboardEvent) => void>(() => {});
-  handleKeyDownRef.current = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    } else if (e.key === 'ArrowRight') {
-      if (allImages.length === 0) return;
-      const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % allImages.length;
-      setFullscreenImagePath(allImages[nextIndex].path);
-    } else if (e.key === 'ArrowLeft') {
-      if (allImages.length === 0) return;
-      const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
-      const prevIndex = currentIndex <= 0 ? allImages.length - 1 : currentIndex - 1;
-      setFullscreenImagePath(allImages[prevIndex].path);
-    } else if (e.key === 'Delete') {
-      setShowDeleteConfirm(true);
-    } else if (e.key === ' ') {
-      e.preventDefault();
-      setItemSelected(fullscreenImagePath, !fullscreenItem?.isSelected);
-    } else if (e.key.toLowerCase() === 'j') {
-      // Jump to the current fullscreen image - close fullscreen, scroll to it, and highlight it
-      const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
-      onClose();
-      setHighlightItem(currentImage.path);
-      setPendingScrollToFile(currentImage.path);
-    }
-  };
+  useEffect(() => {
+    handleKeyDownRef.current = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'ArrowRight') {
+        if (allImages.length === 0) return;
+        const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
+        const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % allImages.length;
+        setFullscreenImagePath(allImages[nextIndex].path);
+      } else if (e.key === 'ArrowLeft') {
+        if (allImages.length === 0) return;
+        const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
+        const prevIndex = currentIndex <= 0 ? allImages.length - 1 : currentIndex - 1;
+        setFullscreenImagePath(allImages[prevIndex].path);
+      } else if (e.key === 'Delete') {
+        setShowDeleteConfirm(true);
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        setItemSelected(fullscreenImagePath, !fullscreenItem?.isSelected);
+      } else if (e.key.toLowerCase() === 'j') {
+        // Jump to the current fullscreen image - close fullscreen, scroll to it, and highlight it
+        const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
+        onClose();
+        setHighlightItem(currentImage.path);
+        setPendingScrollToFile(currentImage.path);
+      }
+    };
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => handleKeyDownRef.current(e);
