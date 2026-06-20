@@ -461,7 +461,10 @@ export function getCutItems(): ItemData[] {
  */
 export function isCacheValid(path: string): boolean {
   const item = getState().items.get(path);
-  if (!item || !item.content || !item.contentCachedAt) {
+  // Check content for undefined (never loaded) rather than falsiness, so an
+  // empty file ('') still counts as cached once read — otherwise empty markdown
+  // files would be re-read on every content-loader pass.
+  if (!item || item.content === undefined || !item.contentCachedAt) {
     return false;
   }
   // Cache is valid if the file hasn't been modified since we cached it
