@@ -35,6 +35,7 @@ function FolderEntry(props: FolderEntryProps) {
   // Folders select the full name on rename; they don't use isExpanded.
   const { core, rename, del } = useEntry(props, { selectFullName: true });
   const { isRenaming, isSelected, isHighlighted, isBookmarked } = core;
+  const { inputRef: renameInputRef, newName, setNewName, saving: renameSaving, handleKeyDown, handleSave, handleRenameClick } = rename;
 
   const hasCutItems = useHasCutItems();
   const item = useItem(entry.path);
@@ -114,14 +115,14 @@ function FolderEntry(props: FolderEntryProps) {
         </span>
         {isRenaming ? (
           <RenameInput
-            ref={rename.inputRef}
+            ref={renameInputRef}
             path={entry.path}
-            value={rename.newName}
-            onChange={rename.setNewName}
-            onKeyDown={rename.handleKeyDown}
-            onBlur={rename.handleSave}
+            value={newName}
+            onChange={setNewName}
+            onKeyDown={handleKeyDown}
+            onBlur={handleSave}
             onClick={handleInputClick}
-            disabled={rename.saving}
+            disabled={renameSaving}
             className="font-medium"
           />
         ) : (
@@ -142,7 +143,7 @@ function FolderEntry(props: FolderEntryProps) {
               isBookmarked={isBookmarked}
               isFolder={true}
               deleting={del.deleting}
-              onRenameClick={rename.handleRenameClick}
+              onRenameClick={handleRenameClick}
               onDeleteClick={del.handleDeleteClick}
               onSaveSettings={onSaveSettings}
               onMoveUp={isAttachFolder && hasIndexFile ? undefined : onMoveUp}

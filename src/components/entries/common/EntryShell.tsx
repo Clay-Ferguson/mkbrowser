@@ -93,6 +93,7 @@ export function EntryShell({
   expandedAffectsHeader = true,
   'data-testid': dataTestId,
 }: EntryShellProps) {
+  const { inputRef: renameInputRef, newName, setNewName, saving: renameSaving, handleKeyDown, handleSave } = rename;
   return (
     <div
       data-testid={dataTestId}
@@ -119,13 +120,13 @@ export function EntryShell({
         </span>
         {isRenaming ? (
           <RenameInput
-            ref={rename.inputRef}
+            ref={renameInputRef}
             path={entry.path}
-            value={rename.newName}
-            onChange={rename.setNewName}
-            onKeyDown={rename.handleKeyDown}
-            onBlur={rename.handleSave}
-            disabled={rename.saving}
+            value={newName}
+            onChange={setNewName}
+            onKeyDown={handleKeyDown}
+            onBlur={handleSave}
+            disabled={renameSaving}
             className={renameClassName}
           />
         ) : (
