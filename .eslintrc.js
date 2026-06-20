@@ -37,7 +37,7 @@ module.exports = {
     // ─── Type Safety ──────────────────────────────────────────────────────────
 
     // Disallow the `any` type. "warn" allows it with a warning; "error" prohibits it; "off" permits freely.
-    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-explicit-any": "error",
 
     // Require explicit return type annotations on all functions and methods.
     "@typescript-eslint/explicit-function-return-type": "off",
@@ -46,7 +46,7 @@ module.exports = {
     "@typescript-eslint/explicit-module-boundary-types": "off",
 
     // Disallow the non-null assertion operator (!). "error" to ban it outright.
-    "@typescript-eslint/no-non-null-assertion": "warn",
+    "@typescript-eslint/no-non-null-assertion": "error",
 
     // The four rules below require type-checked linting. To enable them, add
     // parserOptions.project = "./tsconfig.json" above, then set to "error" or "warn".
@@ -67,7 +67,7 @@ module.exports = {
 
     // Warn/error on console.log/warn/error calls. Common to set "warn" during development,
     // "error" before shipping, or "off" for Electron apps that rely on console output.
-    "no-console": "warn",
+    "no-console": "error",
 
     // Disallow debugger statements left in code.
     "no-debugger": "error",
@@ -87,14 +87,14 @@ module.exports = {
     "@typescript-eslint/no-empty-function": "off",
 
     // Disallow empty interface declarations (e.g. `interface Foo {}`).
-    "@typescript-eslint/no-empty-interface": "warn",
+    "@typescript-eslint/no-empty-interface": "error",
 
     // ─── Import Rules ─────────────────────────────────────────────────────────
 
     // Enforce a consistent import ordering: built-ins → external → internal → relative.
     // Set to "off" to disable ordering enforcement entirely.
     "import/order": [
-      "warn",
+      "error",
       {
         "groups": [
           "builtin",
