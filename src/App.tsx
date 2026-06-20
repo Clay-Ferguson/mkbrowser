@@ -100,15 +100,14 @@ function App() {
   const folderGraph = useFolderGraph();
   const settings = useSettings();
 
-  // Mark the active view as visited so it stays mounted from now on.
-  useEffect(() => {
-    setVisitedViews((prev) => {
-      if (prev.has(currentView)) return prev;
-      const next = new Set(prev);
-      next.add(currentView);
-      return next;
-    });
-  }, [currentView]);
+  // Mark the active view as visited so it stays mounted from now on. Adjusting
+  // state during render (rather than in an effect) avoids a cascading re-render
+  // and keeps the newly visited view mounted in the same render pass.
+  if (!visitedViews.has(currentView)) {
+    const next = new Set(visitedViews);
+    next.add(currentView);
+    setVisitedViews(next);
+  }
 
   // Listen for calendar file changes from the main process (chokidar) — lives here so
   // it's always active regardless of which view is currently displayed.
