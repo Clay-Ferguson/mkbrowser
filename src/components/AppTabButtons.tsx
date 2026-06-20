@@ -172,7 +172,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
         >
           <Bars3Icon className="w-5 h-5" />
         </button>
-        {currentView === 'browser' && currentPath !== rootPath && (
+        {(currentView === 'browser' || currentView === 'thread') && currentPath !== rootPath && (
           <button
             type="button"
             onClick={navigateUp}
