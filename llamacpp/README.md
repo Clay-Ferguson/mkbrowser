@@ -1,7 +1,12 @@
 # llama.cpp — Local LLM Backend
 
 Run local LLM models using [llama.cpp](https://github.com/ggml-org/llama.cpp). llama.cpp provides an OpenAI-compatible HTTP API, which
-MkBrowser connects to via the `LLAMACPP` provider.
+MkBrowser connects to via the `LLAMACPP` provider. The scripts in this project can be used to run any `LLAMA.CPP` model locally on your own hardware 
+the actual models that are listed (inactive ones commented out) are the ones selected because they run on the machine the developer of this project
+uses which is a **Dell XPS laptop with an Intel Core Ultra 9 288V (Lunar Lake)**, which pairs 8 CPU cores with an **Intel Arc 140V integrated GPU** and 
+**32 GB of on-package "unified" LPDDR5X memory**. So as long as you have a hardware equal to or better than this you can easily run all
+the models listed in this project. Also the Vulkan script in this project is specific to my hardware Intel Chipset, and so it may not be applicable
+to your specific hardware.
 
 ## Quick Start
 
@@ -55,7 +60,7 @@ setting the **llama.cpp Base URL** to `http://localhost:9090/v1`.
 ## Prerequisites
 
 - **Linux x86_64** (Ubuntu or similar)
-- **32 GB RAM** recommended (model sizes range from ~3.1 GB to ~13.4 GB)
+- **32 GB RAM** recommended (model sizes range from ~3.1 GB to ~24 GB)
 - `curl`, `unzip`, `bc` (standard on most Ubuntu installs)
 
 ## Files
