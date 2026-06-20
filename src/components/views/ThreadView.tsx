@@ -105,8 +105,15 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
     }
   }, [currentPath]);
 
+  // Load the thread when the path changes.
+  //
+  // This is React's documented pattern for running async work in an effect:
+  // the async call is moved inside an inline async function (await as its first
+  // statement) rather than being invoked directly in the effect body.
   useEffect(() => {
-    void loadThread();
+    void (async () => {
+      await loadThread();
+    })();
   }, [loadThread]);
 
   // Callback for entry rename / delete — reload the thread

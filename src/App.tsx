@@ -239,17 +239,23 @@ function App() {
   }, [currentPath]);
 
   // Load directory when path changes, or when an out-of-band refresh is requested
+  //
+  // This is React's documented pattern for running async work in an effect: 
+  // the async call is moved inside an inline async function (await as its first 
+  // statement) rather than being invoked directly in the effect body.
   useEffect(() => {
-    void loadDirectory();
+    void (async () => {
+      await loadDirectory();
+    })();
   }, [loadDirectory, directoryRefreshNonce]);
 
-  // Remove entries that were deleted from the store (e.g. via SearchResultsView)
-  useEffect(() => {
-    setEntries(prev => {
-      const filtered = prev.filter(entry => items.has(entry.path));
-      return filtered.length === prev.length ? prev : filtered;
-    });
-  }, [items]);
+  // Remove entries that were deleted from the store (e.g. via SearchResultsView).
+  // Pruning during render (rather than in an effect) avoids a cascading re-render;
+  // the length guard keeps this from looping when nothing was removed.
+  const prunedEntries = entries.filter(entry => items.has(entry.path));
+  if (prunedEntries.length !== entries.length) {
+    setEntries(prunedEntries);
+  }
 
   // Clear selection whenever navigating to a different folder
   useEffect(() => {
@@ -258,25 +264,28 @@ function App() {
     }
   }, [currentPath]);
 
+  // Keep the most-recently-visited folder at the head of the recents list.
+  // Adjusting this during render (rather than in an effect) avoids a cascading
+  // re-render; the head check keeps it from looping once it's already current.
+  if (currentPath && recentFolders[0] !== currentPath) {
+    setRecentFolders([currentPath, ...recentFolders.filter(f => f !== currentPath)].slice(0, 10));
+  }
+
   // Persist current subfolder AND recent folders whenever navigation changes.
   // Each is its own config key, sent via updateConfig so the main process
   // merges them in without touching anything else — no whole-config rewrite,
   // no clobbering of other settings written concurrently.
   useEffect(() => {
     if (!currentPath) return;
-    setRecentFolders(prevRecent => {
-      const updatedRecent = [currentPath, ...prevRecent.filter(f => f !== currentPath)].slice(0, 10);
-      const updates: Partial<AppConfig> = { recentFolders: updatedRecent };
-      // Current subfolder (only meaningful once we have a root to compare against)
-      if (rootPath) {
-        updates.curSubFolder = currentPath === rootPath ? undefined : currentPath;
-      }
-      api.updateConfig(updates).catch(() => {
-        // Non-critical — config will be updated on next navigation
-      });
-      return updatedRecent;
+    const updates: Partial<AppConfig> = { recentFolders };
+    // Current subfolder (only meaningful once we have a root to compare against)
+    if (rootPath) {
+      updates.curSubFolder = currentPath === rootPath ? undefined : currentPath;
+    }
+    api.updateConfig(updates).catch(() => {
+      // Non-critical — config will be updated on next navigation
     });
-  }, [currentPath, rootPath]);
+  }, [currentPath, rootPath, recentFolders]);
 
   const refreshDirectory = useCallback(() => {
     void loadDirectory(false);

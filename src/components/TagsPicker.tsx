@@ -21,7 +21,9 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoadState({ status: 'loading' });
+    // No setLoadState({ status: 'loading' }) here: the initial state is already
+    // 'loading' and this effect only runs once (empty deps), so resetting it would
+    // be a redundant synchronous state update inside the effect.
 
     fetchTags()
       .then((categories: TagCategory[]) => {

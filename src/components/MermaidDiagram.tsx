@@ -50,19 +50,26 @@ export function MermaidDiagram({ code }: { code: string }) {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [renderedCode, setRenderedCode] = useState(code);
   const idRef = useRef<number | null>(null);
 
   if (idRef.current === null) {
     idRef.current = ++mermaidIdCounter;
   }
 
-  useEffect(() => {
-    let isMounted = true;
-    const diagramId = idRef.current;
-
+  // Reset to the loading state when the diagram source changes. Doing this during
+  // render (rather than synchronously inside the effect below) avoids a cascading
+  // re-render; the guard against the previous code keeps it from looping.
+  if (renderedCode !== code) {
+    setRenderedCode(code);
     setLoading(true);
     setSvg('');
     setError('');
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+    const diagramId = idRef.current;
 
     queueMermaidRender(async () => {
       try {
