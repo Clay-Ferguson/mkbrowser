@@ -272,19 +272,26 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       setTimeout(() => {
         // logger.log('[BrowseView] scroll effect fired — pendingScrollToFile:', pendingScrollToFile, 'pendingScrollToHeadingSlug:', pendingScrollToHeadingSlug);
         if (pendingScrollToFile) {
-          // Scroll to specific file (e.g., from search results or index tree heading)
-          scrollItemIntoView(pendingScrollToFile, false);
-          clearPendingScrollToFile();
-          if (pendingScrollToHeadingSlug) {
-            const slug = pendingScrollToHeadingSlug;
-            // logger.log('[BrowseView] scheduling heading scroll for slug:', slug);
-            // Wait for markdown content to finish rendering before scrolling to heading
-            setTimeout(() => {
-              // const el = document.getElementById(slug);
-              // logger.log('[BrowseView] heading scroll firing — slug:', slug, 'element found:', !!el, el);
-              scrollElementIntoView(slug, true);
-              clearPendingScrollToHeadingSlug();
-            }, 750);
+          // Scroll to specific file (e.g., from search results or index tree heading).
+          // The target element only exists once the destination folder's entries
+          // have rendered. When navigating to a *different* folder this effect
+          // fires once prematurely (before the load starts), so only consume the
+          // pending request once the element is actually found and scrolled —
+          // otherwise the real attempt (after the load) never runs.
+          const scrolled = scrollItemIntoView(pendingScrollToFile, false);
+          if (scrolled) {
+            clearPendingScrollToFile();
+            if (pendingScrollToHeadingSlug) {
+              const slug = pendingScrollToHeadingSlug;
+              // logger.log('[BrowseView] scheduling heading scroll for slug:', slug);
+              // Wait for markdown content to finish rendering before scrolling to heading
+              setTimeout(() => {
+                // const el = document.getElementById(slug);
+                // logger.log('[BrowseView] heading scroll firing — slug:', slug, 'element found:', !!el, el);
+                scrollElementIntoView(slug, true);
+                clearPendingScrollToHeadingSlug();
+              }, 750);
+            }
           }
         } else if (isNewFolder) {
           // Restore the saved scroll position for the folder we navigated to.

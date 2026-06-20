@@ -17,11 +17,15 @@ export const buildEntryHeaderId = (filePath: string) => `entry-${encodeURICompon
  * Scrolls an item into view within the main content area.
  * Uses manual scroll calculation to avoid scrollIntoView's side effect
  * of scrolling all ancestors (which can break the layout in Electron).
+ *
+ * Returns `true` if the target element was found (and scrolled), `false`
+ * otherwise. Callers use this to avoid consuming a pending-scroll request
+ * before the target folder's entries have actually rendered.
  */
-export const scrollItemIntoView = (filePath: string, highlight = false) => {
+export const scrollItemIntoView = (filePath: string, highlight = false): boolean => {
   const targetId = buildEntryHeaderId(filePath);
   const element = document.getElementById(targetId);
-  if (!element) return;
+  if (!element) return false;
 
   // Find the scrollable main container that actually contains this element.
   // Using element.closest('main') (rather than a global document.querySelector)
@@ -32,7 +36,7 @@ export const scrollItemIntoView = (filePath: string, highlight = false) => {
     if (highlight) temporaryHighlightItem(element);
     // Fallback to scrollIntoView if container not found
     element.scrollIntoView({ block: 'center' });
-    return;
+    return true;
   }
 
   // Calculate the scroll position to center the element
@@ -60,6 +64,7 @@ export const scrollItemIntoView = (filePath: string, highlight = false) => {
     top: clampedScrollTop,
     behavior: 'instant'
   });
+  return true;
 };
 
 /**
