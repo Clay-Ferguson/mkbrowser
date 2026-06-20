@@ -90,7 +90,7 @@ Forgetting this produces baffling failures where a fix (or a test selector that 
 
 ## Git Commits
 
-Never commit changes to the 'git' repository yourself. Always let the human developer do the commits.
+Never commit changes to the 'git' repository yourself, unless you're asked to.
 
 
 

@@ -180,7 +180,9 @@ function FolderGraphView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const highlightRef = useRef<string | null>(highlightItem);
-  highlightRef.current = highlightItem;
+  useEffect(() => {
+    highlightRef.current = highlightItem;
+  });
   const [ready, setReady] = useState(false);
 
   // Wait for container to be measured before building the simulation.

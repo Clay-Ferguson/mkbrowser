@@ -29,7 +29,7 @@ describe('DATE_REGEX (single source of truth)', () => {
   it('exposes the canonical capture-group order (month, day, year, hour, minute, seconds, ampm)', () => {
     const m = '05/26/2026 02:30:45 PM'.match(DATE_REGEX);
     expect(m).not.toBeNull();
-    expect(m!.slice(1, 8)).toEqual(['05', '26', '2026', '02', '30', '45', 'PM']);
+    expect(m?.slice(1, 8)).toEqual(['05', '26', '2026', '02', '30', '45', 'PM']);
   });
 
   // The invariant Issue 004 asks us to guard: anything the decorator pattern

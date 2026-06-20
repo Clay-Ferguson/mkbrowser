@@ -35,7 +35,9 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   // Keep the latest onClose in a ref so the dismiss listeners don't re-subscribe
   // every render when callers pass an inline arrow function.
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   // Calculate position relative to anchor or mouse position, adjusting for viewport edges
   const updatePosition = useCallback(() => {

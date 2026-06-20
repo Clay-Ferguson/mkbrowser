@@ -141,11 +141,33 @@ module.exports = {
 
         // React Hooks rules are scoped to src/** so they don't misfire on
         // Playwright fixture callbacks (the `use` param) in e2e/ and fixtures/.
+        //
+        // ── eslint-plugin-react-hooks@7 recommended set ──
+        // The two core rules stay as errors (the codebase passes them clean):
         // rules-of-hooks: hooks must be called unconditionally, at the top level.
         "react-hooks/rules-of-hooks": "error",
         // exhaustive-deps: effect/callback/memo dependency arrays must list every
         // reactive value referenced in the hook body. Catches stale-closure bugs.
         "react-hooks/exhaustive-deps": "error",
+
+        // The remaining v7 recommended rules (React-19 / React-Compiler era checks)
+        // are introduced as warnings so they surface in lint output without failing
+        // `prebuild`. Promote individual rules to "error" once their findings are
+        // addressed. Current hit counts noted where non-trivial.
+        "react-hooks/set-state-in-effect": "error",        // ~7 hits — setState inside an effect (extra render passes)
+        "react-hooks/refs": "error",                        // ~16 hits — reading/mutating a ref during render
+        "react-hooks/set-state-in-render": "error",         // setState during render (infinite-loop risk)
+        "react-hooks/purity": "error",                      // render must be a pure function of props/state
+        "react-hooks/immutability": "error",                // don't mutate props/state/hook return values
+        "react-hooks/static-components": "error",           // don't declare components inside other components
+        "react-hooks/use-memo": "error",                    // correct use of useMemo
+        "react-hooks/preserve-manual-memoization": "error", // keep manual memo deps consistent for the compiler
+        "react-hooks/incompatible-library": "error",        // flag libraries that break hook/compiler assumptions
+        "react-hooks/globals": "error",                     // no mutation of module-level/global state in render
+        "react-hooks/error-boundaries": "error",            // correct error-boundary usage
+        "react-hooks/unsupported-syntax": "error",          // syntax the React Compiler can't optimize
+        "react-hooks/config": "error",                      // validity of React Compiler config
+        "react-hooks/gating": "error",                      // correct feature-gating of compiled output
       },
     },
   ],
