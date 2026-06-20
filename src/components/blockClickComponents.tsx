@@ -31,10 +31,12 @@ export function createBlockClickComponents(handleEditClick: EditClickHandler, li
 
   function block<Tag extends keyof React.JSX.IntrinsicElements>(Tag: Tag) {
     const Component = Tag as React.ElementType;
-    return ({ node, children, ...props }: React.JSX.IntrinsicElements[Tag] & ExtraProps) => {
+    const BlockComponent = ({ node, children, ...props }: React.JSX.IntrinsicElements[Tag] & ExtraProps) => {
       const line: number = node?.position?.start?.line ?? 0;
       return <Component {...props} onMouseUp={makeHandler(line)}>{children}</Component>;
     };
+    BlockComponent.displayName = `Block(${String(Tag)})`;
+    return BlockComponent;
   }
 
   return {

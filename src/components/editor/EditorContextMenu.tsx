@@ -96,7 +96,7 @@ export function EditorContextMenu({
       {contextMenu.spelling && (
         <>
           <div className="px-4 py-1 text-xs text-red-400 font-medium">
-            Misspelled: "{contextMenu.spelling.word}"
+            Misspelled: &quot;{contextMenu.spelling.word}&quot;
           </div>
           {contextMenu.spelling.suggestions.length > 0 ? (
             contextMenu.spelling.suggestions.map((suggestion) => (

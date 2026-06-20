@@ -9,7 +9,7 @@ module.exports = {
     ecmaVersion: "latest",
     sourceType: "module",
   },
-  plugins: ["react-hooks"],
+  plugins: ["react-hooks", "react"],
   extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
@@ -17,7 +17,19 @@ module.exports = {
     "plugin:import/recommended",
     "plugin:import/electron",
     "plugin:import/typescript",
+    // eslint-plugin-react recommended rule set.
+    "plugin:react/recommended",
+    // Disables react-in-jsx-scope / jsx-uses-react, which are obsolete under the
+    // automatic JSX runtime used by React 17+ (this app is on React 19), so JSX
+    // files don't need to `import React`.
+    "plugin:react/jsx-runtime",
   ],
+  // Detect the installed React version for version-dependent rules.
+  settings: {
+    react: {
+      version: "detect",
+    },
+  },
   // Directories to skip entirely during linting.
   ignorePatterns: [".vite/", "out/", "dist/", "node_modules/"],
 

@@ -154,7 +154,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
               {searchName && (
                 <span className="text-purple-300 font-semibold mr-2">{searchName}:</span>
               )}
-              Searched for <span className="text-slate-200 font-medium">"{searchQuery}"</span> in {folderName}
+              Searched for <span className="text-slate-200 font-medium">&quot;{searchQuery}&quot;</span> in {folderName}
             </div>
             <button
               type="button"
@@ -189,7 +189,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
         ) : searchResults.length === 0 ? (
           <div className="text-center py-12">
             <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-            <p className="text-slate-400">No results found for "{searchQuery}"</p>
+            <p className="text-slate-400">No results found for &quot;{searchQuery}&quot;</p>
           </div>
         ) : (
           <div className="space-y-2">
