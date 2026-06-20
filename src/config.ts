@@ -1,5 +1,7 @@
-import { setSettings, setCurrentPath, setCalendarViewType, setImageSize } from './store';
+import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig } from './store';
 import { api } from './services/api';
+import type { AppConfig } from './types/shared';
+import type { AiConfigState } from './store';
 
 export interface LoadConfigResult {
   rootPath: string | null;
@@ -27,6 +29,13 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     if (config.imageSize) {
       setImageSize(config.imageSize);
     }
+    // Seed the renderer-reactive AI config mirror (see store/aiConfig.ts).
+    setAiConfig({
+      aiEnabled: !!config.aiEnabled,
+      aiRewriteMode: !!config.aiRewriteMode,
+      aiRewritePrompt: config.aiRewritePrompt ?? '',
+      tagsPanelVisible: config.tagsPanelVisible ?? false,
+    });
     if (config.browseFolder) {
       const exists = await api.pathExists(config.browseFolder);
       if (exists) {
@@ -49,4 +58,23 @@ export async function loadConfig(): Promise<LoadConfigResult> {
   } catch {
     return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '', aiEnabled: false, recentFolders: [] };
   }
+}
+
+/**
+ * Persist AI config changes AND mirror the renderer-reactive subset into the
+ * store, so all live consumers (e.g. the editor's AI Rewrite button) update
+ * immediately without remounting. This is the single sync point: any code that
+ * changes an AI config field the renderer reacts to should call this instead of
+ * `api.updateConfig` directly.
+ */
+export async function saveAiConfig(updates: Partial<AppConfig>): Promise<void> {
+  const mirror: Partial<AiConfigState> = {};
+  if (updates.aiEnabled !== undefined) mirror.aiEnabled = updates.aiEnabled;
+  if (updates.aiRewriteMode !== undefined) mirror.aiRewriteMode = updates.aiRewriteMode;
+  // `aiRewritePrompt` uses key-presence (not !== undefined) because clearing the
+  // persona persists `aiRewritePrompt: undefined` (a deletion) — mirror that as ''.
+  if ('aiRewritePrompt' in updates) mirror.aiRewritePrompt = updates.aiRewritePrompt ?? '';
+  if (updates.tagsPanelVisible !== undefined) mirror.tagsPanelVisible = updates.tagsPanelVisible;
+  if (Object.keys(mirror).length > 0) setAiConfig(mirror);
+  await api.updateConfig(updates);
 }

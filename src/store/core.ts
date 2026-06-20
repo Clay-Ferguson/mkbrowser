@@ -60,6 +60,12 @@ const initialState: AppState = {
   calendarViewTime: new Date(),
   imageSize: 'small',
   imageSizeTransitioning: false,
+  aiConfig: {
+    aiEnabled: false,
+    aiRewriteMode: false,
+    aiRewritePrompt: '',
+    tagsPanelVisible: false,
+  },
 };
 
 /**

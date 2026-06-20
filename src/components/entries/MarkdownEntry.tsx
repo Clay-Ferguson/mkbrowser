@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
+import { saveAiConfig } from '../../config';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../types/types';
 import { removeTOC } from '../../utils/tocUtil';
@@ -88,9 +89,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const { aiEnabled, aiRewriteMode, selectedPromptName, tagsVisible, setTagsVisible } = useAiConfig();
 
   const handleToggleTagsVisible = () => {
-    const newVisible = !tagsVisible;
-    setTagsVisible(newVisible);
-    api.updateConfig({ tagsPanelVisible: newVisible }).catch((err) => {
+    // saveAiConfig both persists and mirrors into the store (which the editor
+    // subscribes to), so this updates the panel and survives a restart.
+    saveAiConfig({ tagsPanelVisible: !tagsVisible }).catch((err) => {
       logger.error('Failed to persist tags-panel visibility:', err);
     });
   };

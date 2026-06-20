@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { api } from '../../../services/api';
+import { useCallback } from 'react';
+import { setAiConfig, useAiConfigState } from '../../../store';
 
 export interface AiConfigState {
   /** Whether AI features are enabled at all. */
@@ -18,43 +18,31 @@ export interface UseAiConfigResult extends AiConfigState {
 }
 
 /**
- * Loads the AI-related slice of the app config once on mount and exposes it as
- * a single state object. Consolidating into one state means the mount-time load
- * fires ONE React update instead of several — multiple separate setState calls
- * per mount multiplied the update pressure that was tripping React's nested
- * update limit when entries re-mount. The `cancelled` guard prevents a resolve
- * after unmount from calling setState on a dead component.
+ * Exposes the AI-related slice of the app config as a single reactive object.
+ *
+ * The values come from the store's AI config mirror (`store/aiConfig.ts`), which
+ * is seeded once at startup and kept in sync by `saveAiConfig` whenever these
+ * fields are persisted. Subscribing to the store — rather than fetching config
+ * once on mount — is what lets long-lived consumers (entries never unmount once
+ * their view is visited) react to persona / rewrite-mode changes made later in
+ * AISettingsView or ThreadView.
  *
  * `tagsVisible` only applies to the markdown editor; text entries can simply
- * ignore it.
+ * ignore it. `setTagsVisible` updates the mirror only; callers that want the
+ * change to survive a restart must also persist it (see `saveAiConfig`).
  */
 export function useAiConfig(): UseAiConfigResult {
-  const [config, setConfig] = useState<AiConfigState>({
-    aiEnabled: false,
-    aiRewriteMode: false,
-    selectedPromptName: '',
-    tagsVisible: false,
-  });
-
-  useEffect(() => {
-    let cancelled = false;
-    void api.getConfig().then((c) => {
-      if (cancelled) return;
-      setConfig({
-        aiEnabled: !!c.aiEnabled,
-        aiRewriteMode: !!c.aiRewriteMode,
-        selectedPromptName: c.aiRewritePrompt ?? '',
-        tagsVisible: c.tagsPanelVisible ?? false,
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { aiEnabled, aiRewriteMode, aiRewritePrompt, tagsPanelVisible } = useAiConfigState();
 
   const setTagsVisible = useCallback((visible: boolean) => {
-    setConfig((prev) => ({ ...prev, tagsVisible: visible }));
+    setAiConfig({ tagsPanelVisible: visible });
   }, []);
 
-  return { ...config, setTagsVisible };
+  return {
+    aiEnabled,
+    aiRewriteMode,
+    selectedPromptName: aiRewritePrompt,
+    tagsVisible: tagsPanelVisible,
+    setTagsVisible,
+  };
 }

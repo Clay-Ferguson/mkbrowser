@@ -88,6 +88,8 @@ yarn package    # rebuilds .vite/build/ + .vite/renderer/
 
 Forgetting this produces baffling failures where a fix (or a test selector that depends on a renderer change) appears not to work even though the source is correct. Test-only changes under `tests/` do **not** need a rebuild.
 
+Never run m Playwright tests yourself. If you need me to run a Playwright test to check something, stop what you're doing, and ask me to run it for you. You're free to run any other unit tests however, just not the Playright ones.
+
 ## Git Commits
 
 Never commit changes to the 'git' repository yourself, unless you're asked to.

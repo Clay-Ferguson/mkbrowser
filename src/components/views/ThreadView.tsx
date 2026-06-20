@@ -18,7 +18,9 @@ import {
   clearPendingEditFile,
   setItemExpanded,
   setItemEditing,
+  useAiConfigState,
 } from '../../store';
+import { saveAiConfig } from '../../config';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import MarkdownEntry from '../entries/MarkdownEntry';
 import ThreadAvatar, { ThreadAvatarDefs } from '../ThreadAvatar';
@@ -48,20 +50,27 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const [childFolders, setChildFolders] = useState<ThreadChildFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [isThread, setIsThread] = useState(true);
-  const [personaName, setPersonaName] = useState<string>(DEFAULT_PERSONA_NAME);
   const [aiRewritePrompts, setAiRewritePrompts] = useState<AIRewritePromptDef[]>([]);
 
   useEffect(() => {
     void api.getConfig().then((config: AppConfig) => {
-      setPersonaName(config.aiRewritePrompt || DEFAULT_PERSONA_NAME);
       setAiRewritePrompts(config.aiRewritePrompts ?? []);
     });
   }, []);
 
+  // The displayed persona is derived from the store mirror, so a change made in
+  // AISettingsView (or here) is reflected without a remount. `typingDraft` holds
+  // any in-progress edit in the combobox until it's committed via onSelect.
+  const storedPersona = useAiConfigState().aiRewritePrompt || DEFAULT_PERSONA_NAME;
+  const [typingDraft, setTypingDraft] = useState<string | null>(null);
+  const personaName = typingDraft ?? storedPersona;
+
   // Change the active chat persona (the "selected prompt") and persist it.
+  // saveAiConfig persists AND mirrors into the store (which the editor's AI
+  // Rewrite button subscribes to).
   const handlePersonaSelect = useCallback((name: string) => {
-    setPersonaName(name);
-    void api.updateConfig({ aiRewritePrompt: name });
+    setTypingDraft(null);
+    void saveAiConfig({ aiRewritePrompt: name });
   }, []);
 
   // Ref to the scrollable container (used for auto-scrolling to bottom / to an item)
@@ -201,7 +210,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
         <EditableCombobox
           data-testid="thread-persona-combobox"
           value={personaName}
-          onChange={setPersonaName}
+          onChange={setTypingDraft}
           onSelect={(option: ComboboxOption) => handlePersonaSelect(option.value)}
           options={[
             { value: DEFAULT_PERSONA_NAME, label: DEFAULT_PERSONA_NAME },

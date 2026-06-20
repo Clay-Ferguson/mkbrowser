@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { clsx } from 'clsx';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
+import { saveAiConfig } from '../../config';
 import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../types/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../ai/aiPrompts';
@@ -77,7 +78,9 @@ function AISettingsView() {
 
   const saveAiConfigField = useCallback(async (updates: Partial<AppConfig>) => {
     try {
-      await api.updateConfig(updates);
+      // saveAiConfig persists AND mirrors the reactive subset into the store, so
+      // live consumers (e.g. the editor's AI Rewrite button) update immediately.
+      await saveAiConfig(updates);
     } catch {
       // Silently fail — config will be stale until next save
     }

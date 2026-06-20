@@ -1,4 +1,4 @@
-export type { AppState, AppView, AppSettings, Bookmark, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, FolderAnalysisState, FolderGraphState, FolderGraphNode, FolderGraphLink, HashtagEntry, ThreadEntry, ThreadChildFolder, TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode, CalendarEvent } from '../types/types';
+export type { AppState, AppView, AppSettings, AiConfigState, Bookmark, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, FolderAnalysisState, FolderGraphState, FolderGraphNode, FolderGraphLink, HashtagEntry, ThreadEntry, ThreadChildFolder, TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode, CalendarEvent } from '../types/types';
 export { createItemData } from '../types/types';
 
 // Store is split into cohesive slices that all share the core
@@ -7,6 +7,7 @@ export { createItemData } from '../types/types';
 export * from './items';
 export * from './search';
 export * from './settings';
+export * from './aiConfig';
 export * from './calendar';
 export * from './indexTree';
 export * from './scroll';

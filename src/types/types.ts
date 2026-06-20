@@ -549,6 +549,27 @@ export interface AppState {
    */
   imageSizeTransitioning: boolean;
 
+  /**
+   * Renderer-reactive mirror of the AI-related slice of AppConfig. The source of
+   * truth is the main process config, but consumers (e.g. the editor's AI Rewrite
+   * button) must react to changes made in AISettingsView / ThreadView WITHOUT
+   * remounting. Seeded once at startup by `loadConfig` and kept in sync by
+   * `saveAiConfig` whenever these fields are persisted.
+   */
+  aiConfig: AiConfigState;
+
+}
+
+/**
+ * The subset of AppConfig the renderer needs to react to live (see
+ * `AppState.aiConfig`). `aiRewritePrompt` is the active persona name, or '' when
+ * none is selected.
+ */
+export interface AiConfigState {
+  aiEnabled: boolean;
+  aiRewriteMode: boolean;
+  aiRewritePrompt: string;
+  tagsPanelVisible: boolean;
 }
 
 /**
