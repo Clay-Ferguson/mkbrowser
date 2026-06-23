@@ -13,6 +13,11 @@ import { parseDateString, past, future, today } from './utils/timeUtil';
 import { createContentSearcher } from './utils/searchUtil';
 import { splitFrontMatter } from './utils/tagUtil';
 import { escapeRegexExceptWildcard, buildExcludePredicate } from './utils/pathPattern';
+import { mapWithConcurrency } from './utils/asyncUtil';
+
+/** Max number of files read/stat'd concurrently during a search. Bounded so huge
+ * trees don't exhaust file descriptors (EMFILE) while still overlapping I/O. */
+const SEARCH_FILE_CONCURRENCY = 32;
 
 /** YAML parse cache: keyed by file path. Created per `searchFolder` invocation so
  * concurrent searches never share (and corrupt) each other's cached parses. */
@@ -213,6 +218,26 @@ async function filterMostRecent(filePaths: string[]): Promise<string[]> {
 }
 
 /**
+ * Stat an entry and assemble its SearchResult. Stat failures are swallowed so an
+ * entry that can't be stat'd still appears (without time metadata) — matching the
+ * prior behavior. Factored out of the four near-identical build-and-push blocks.
+ */
+async function buildResult(
+  folderPath: string,
+  entryPath: string,
+  matchCount: number,
+): Promise<SearchResult> {
+  const relativePath = path.relative(folderPath, entryPath);
+  const result: SearchResult = { path: entryPath, relativePath, matchCount };
+  try {
+    const stat = await fs.promises.stat(entryPath);
+    result.modifiedTime = stat.mtimeMs;
+    result.createdTime = stat.birthtimeMs;
+  } catch { /* ignore stat errors */ }
+  return result;
+}
+
+/**
  * Search a folder for files matching the given query.
  *
  * @param folderPath   - Root folder to search
@@ -265,46 +290,24 @@ export async function searchFolder(
       allEntries = await filterMostRecent(allEntries);
     }
 
-    for (const entryPath of allEntries) {
-      const entryName = path.basename(entryPath);
-
-      if (matchPredicate) {
-        const { matches, matchCount } = matchPredicate(entryName);
-        if (!matches) continue;
-
-        const relativePath = path.relative(folderPath, entryPath);
-        let modifiedTime: number | undefined;
-        let createdTime: number | undefined;
-        try {
-          const stat = await fs.promises.stat(entryPath);
-          modifiedTime = stat.mtimeMs;
-          createdTime = stat.birthtimeMs;
-        } catch { /* ignore stat errors */ }
-        results.push({
-          path: entryPath,
-          relativePath,
-          matchCount,
-          ...(modifiedTime !== undefined && { modifiedTime }),
-          ...(createdTime !== undefined && { createdTime }),
-        });
-      } else {
+    // Stat entries with bounded concurrency. mapWithConcurrency preserves input
+    // order, so the pre-sort order matches the old sequential loop exactly.
+    const entryResults = await mapWithConcurrency(
+      allEntries,
+      SEARCH_FILE_CONCURRENCY,
+      async (entryPath): Promise<SearchResult | null> => {
+        const entryName = path.basename(entryPath);
+        if (matchPredicate) {
+          const { matches, matchCount } = matchPredicate(entryName);
+          if (!matches) return null;
+          return buildResult(folderPath, entryPath, matchCount);
+        }
         // No query — return all entries (mostRecent mode with empty query)
-        const relativePath = path.relative(folderPath, entryPath);
-        let modifiedTime: number | undefined;
-        let createdTime: number | undefined;
-        try {
-          const stat = await fs.promises.stat(entryPath);
-          modifiedTime = stat.mtimeMs;
-          createdTime = stat.birthtimeMs;
-        } catch { /* ignore stat errors */ }
-        results.push({
-          path: entryPath,
-          relativePath,
-          matchCount: 1,
-          ...(modifiedTime !== undefined && { modifiedTime }),
-          ...(createdTime !== undefined && { createdTime }),
-        });
-      }
+        return buildResult(folderPath, entryPath, 1);
+      },
+    );
+    for (const r of entryResults) {
+      if (r) results.push(r);
     }
   } else {
     // Search file contents - .md and .txt files, plus images when searchImageExif is enabled
@@ -326,58 +329,38 @@ export async function searchFolder(
     // When mostRecent is enabled, limit to the 500 most recently modified files
     const filesToSearch = mostRecent ? await filterMostRecent(files) : files;
 
-    for (const filePath of filesToSearch) {
-      try {
-        const ext = path.extname(filePath).toLowerCase();
-        const isImage = EXIF_IMAGE_EXTENSIONS.has(ext);
+    // Read + stat files with bounded concurrency. mapWithConcurrency preserves
+    // input order, so the pre-sort order matches the old sequential loop exactly.
+    const fileResults = await mapWithConcurrency(
+      filesToSearch,
+      SEARCH_FILE_CONCURRENCY,
+      async (filePath): Promise<SearchResult | null> => {
+        try {
+          const ext = path.extname(filePath).toLowerCase();
+          const isImage = EXIF_IMAGE_EXTENSIONS.has(ext);
 
-        if (matchPredicate) {
-          const content = isImage
-            ? await extractExifText(filePath)
-            : await fs.promises.readFile(filePath, 'utf-8');
+          if (matchPredicate) {
+            const content = isImage
+              ? await extractExifText(filePath)
+              : await fs.promises.readFile(filePath, 'utf-8');
 
-          if (isImage && !content) continue;
+            if (isImage && !content) return null;
 
-          const { matches, matchCount } = matchPredicate(content, filePath);
+            const { matches, matchCount } = matchPredicate(content, filePath);
+            if (!matches) return null;
 
-          if (matches) {
-            const relativePath = path.relative(folderPath, filePath);
-            let modifiedTime: number | undefined;
-            let createdTime: number | undefined;
-            try {
-              const fileStat = await fs.promises.stat(filePath);
-              modifiedTime = fileStat.mtimeMs;
-              createdTime = fileStat.birthtimeMs;
-            } catch { /* ignore stat errors */ }
-            results.push({
-              path: filePath,
-              relativePath,
-              matchCount,
-              ...(modifiedTime !== undefined && { modifiedTime }),
-              ...(createdTime !== undefined && { createdTime }),
-            });
+            return await buildResult(folderPath, filePath, matchCount);
           }
-        } else {
           // No query — return all files (mostRecent mode with empty query)
-          const relativePath = path.relative(folderPath, filePath);
-          let modifiedTime: number | undefined;
-          let createdTime: number | undefined;
-          try {
-            const stat = await fs.promises.stat(filePath);
-            modifiedTime = stat.mtimeMs;
-            createdTime = stat.birthtimeMs;
-          } catch { /* ignore stat errors */ }
-          results.push({
-            path: filePath,
-            relativePath,
-            matchCount: 1,
-            ...(modifiedTime !== undefined && { modifiedTime }),
-            ...(createdTime !== undefined && { createdTime }),
-          });
+          return await buildResult(folderPath, filePath, 1);
+        } catch {
+          // Skip files that can't be read
+          return null;
         }
-      } catch {
-        // Skip files that can't be read
-      }
+      },
+    );
+    for (const r of fileResults) {
+      if (r) results.push(r);
     }
   }
 
