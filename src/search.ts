@@ -29,8 +29,12 @@ type YamlCache = Map<string, Record<string, unknown> | null>;
  * Falls back to parsing `content` if `filePath` is not provided or not yet cached.
  */
 function getYaml(cache: YamlCache, content: string, filePath?: string): Record<string, unknown> | null {
-  if (filePath !== undefined && cache.has(filePath)) {
-    return cache.get(filePath) as Record<string, unknown> | null;
+  if (filePath !== undefined) {
+    const cached = cache.get(filePath);
+    // A cached `null` means "parsed, no front-matter" — that's a real hit and must
+    // not re-parse. Only `undefined` (key absent) falls through. Keep this `!== undefined`
+    // explicit; a falsy check would wrongly treat the cached `null` as a miss.
+    if (cached !== undefined) return cached;
   }
   const parts = splitFrontMatter(content);
   let parsed: Record<string, unknown> | null = null;

@@ -832,6 +832,59 @@ describe('createMatchPredicate (direct function testing)', () => {
   });
 });
 
+// ── Section 9b: YAML front-matter cache (prop() + shared cache) ──────────────
+// The `prop()` function reads parsed front-matter through a per-search YAML
+// cache. The cache value type is `Record<string, unknown> | null` (never
+// `undefined`): a cached `null` means "parsed, no front-matter" and is a real
+// hit that must NOT trigger a re-parse — only an absent key re-parses. These
+// tests pin that distinction (regression guard for issue 011).
+describe('YAML front-matter cache via prop()', () => {
+  it('a cached null counts as a hit and is not re-parsed', () => {
+    // Seed the cache as if this path was already parsed and had no front-matter.
+    const cache = new Map<string, Record<string, unknown> | null>();
+    cache.set('/seeded.md', null);
+
+    // Pass content that DOES have front-matter. If the cached `null` is honored
+    // as a hit, prop() never re-parses and 'title' is undefined → match. If the
+    // read regressed to a falsy check, the null would fall through, the content
+    // would be parsed, and prop('title') would be 'FromContent' → no match.
+    const predicate = createMatchPredicate("prop('title') === undefined", 'advanced', cache);
+    const result = predicate('---\ntitle: FromContent\n---\nbody', '/seeded.md');
+    expect(result.matches).toBe(true);
+  });
+
+  it('a cached object is returned as a hit instead of re-parsing the content', () => {
+    const cache = new Map<string, Record<string, unknown> | null>();
+    cache.set('/seeded.md', { title: 'Cached' });
+
+    // Content's front-matter differs from the cache; the cache must win.
+    const predicate = createMatchPredicate("prop('title') === 'Cached'", 'advanced', cache);
+    const result = predicate('---\ntitle: Different\n---\nbody', '/seeded.md');
+    expect(result.matches).toBe(true);
+  });
+
+  it('an absent key re-parses the content and populates the cache', () => {
+    const cache = new Map<string, Record<string, unknown> | null>();
+
+    const predicate = createMatchPredicate("prop('title') === 'Real'", 'advanced', cache);
+    const result = predicate('---\ntitle: Real\n---\nbody', '/fresh.md');
+    expect(result.matches).toBe(true);
+    // The freshly parsed front-matter should now be cached under that path.
+    expect(cache.get('/fresh.md')).toEqual({ title: 'Real' });
+  });
+
+  it('caches null for a file with no front-matter (so a later hit skips re-parse)', () => {
+    const cache = new Map<string, Record<string, unknown> | null>();
+
+    const predicate = createMatchPredicate("prop('title') === undefined", 'advanced', cache);
+    const result = predicate('no front-matter here', '/plain.md');
+    expect(result.matches).toBe(true);
+    // A "parsed, but empty" result is stored as null — a real entry, not absence.
+    expect(cache.has('/plain.md')).toBe(true);
+    expect(cache.get('/plain.md')).toBeNull();
+  });
+});
+
 // ─── Section 10: createContentSearcher Unit Tests ───────────────────────────
 
 describe('createContentSearcher', () => {
@@ -1123,8 +1176,9 @@ describe('mostRecent filter', () => {
     for (const r of recent) {
       const reference = fullByPath.get(r.path);
       expect(reference).toBeDefined();
-      expect(r.modifiedTime).toBe(reference!.modifiedTime);
-      expect(r.createdTime).toBe(reference!.createdTime);
+      if (!reference) continue;
+      expect(r.modifiedTime).toBe(reference.modifiedTime);
+      expect(r.createdTime).toBe(reference.createdTime);
     }
   });
 });
