@@ -1,7 +1,7 @@
 import type React from 'react';
 import { api } from '../services/api';
 import type { ItemData, FileNode } from '../types/types';
-import { pasteCutItems } from '../edit';
+import { pasteCutItems } from './edit';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
 import { ensureTrailingSep, getParentPath } from './pathUtil';
 import { ATTACH_SUFFIX } from './specialFiles';
@@ -96,14 +96,18 @@ export async function moveEntryIntoFolder(payload: DragPayload, destFolder: stri
     api.renameFile
   );
 
+  // Only reconcile when the item actually moved on disk (movedPaths is empty on
+  // a failed rename), keeping the indexes in step with the filesystem.
+  if (result.movedPaths.length > 0) {
+    await Promise.all([
+      api.reconcileIndexedFiles(sourceFolder, false),
+      api.reconcileIndexedFiles(destFolder, false),
+    ]);
+  }
+
   if (!result.success) {
     return { success: false, error: result.error, sourceFolder };
   }
-
-  await Promise.all([
-    api.reconcileIndexedFiles(sourceFolder, false),
-    api.reconcileIndexedFiles(destFolder, false),
-  ]);
 
   return { success: true, sourceFolder };
 }

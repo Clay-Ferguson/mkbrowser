@@ -1,8 +1,8 @@
-import type { ItemData } from './types/types';
-import { joinFiles as joinFilesUtil } from './utils/fileSplitJoin/joinUtil';
-import { splitFile as splitFileUtil } from './utils/fileSplitJoin/splitUtil';
-import type { FileOps } from './utils/fileSplitJoin/fileOps';
-import { getParentPath, joinPath } from './utils/pathUtil';
+import type { ItemData } from '../types/types';
+import { joinFiles as joinFilesUtil } from './fileSplitJoin/joinUtil';
+import { splitFile as splitFileUtil } from './fileSplitJoin/splitUtil';
+import type { FileOps } from './fileSplitJoin/fileOps';
+import { getParentPath, joinPath } from './pathUtil';
 
 /**
  * Find cut items that come from different folders than the first cut item
@@ -44,6 +44,12 @@ export interface PasteResult {
   error?: string;
   /** Name of the single pasted item (for scroll-to functionality) */
   pastedItemName?: string;
+  /**
+   * Old paths of items that were actually renamed on disk. Populated even on
+   * partial failure so callers can reconcile the store and .INDEX.yaml with
+   * what truly moved, rather than desyncing on the first failed item.
+   */
+  movedPaths: string[];
 }
 
 /**
@@ -56,13 +62,13 @@ export async function pasteCutItems(
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>
 ): Promise<PasteResult> {
   if (cutItems.length === 0) {
-    return { success: true };
+    return { success: true, movedPaths: [] };
   }
 
   // Check if pasting to the same folder
   const sourceFolder = getParentPath(cutItems[0].path);
   if (sourceFolder === destinationPath) {
-    return { success: false, error: 'Cannot paste. Cut items are already in this folder.' };
+    return { success: false, error: 'Cannot paste. Cut items are already in this folder.', movedPaths: [] };
   }
 
   // Check for items from different folders
@@ -71,6 +77,7 @@ export async function pasteCutItems(
     return {
       success: false,
       error: `Cannot paste. Cut items must come from the same folder: ${crossFolderItems.join(', ')}`,
+      movedPaths: [],
     };
   }
 
@@ -80,21 +87,27 @@ export async function pasteCutItems(
     return {
       success: false,
       error: `Cannot paste. These items already exist: ${duplicates.join(', ')}`,
+      movedPaths: [],
     };
   }
 
-  // Move each item
+  // Move each item sequentially. This is not atomic: on a mid-loop failure the
+  // items already moved stay moved, so we report them via movedPaths and let the
+  // caller reconcile rather than leaving the store/index out of sync with disk.
+  const movedPaths: string[] = [];
   for (const item of cutItems) {
     const newPath = joinPath(destinationPath, item.name);
     const success = await renameFile(item.path, newPath);
     if (!success) {
-      return { success: false, error: `Failed to move ${item.name}` };
+      return { success: false, error: `Failed to move ${item.name}`, movedPaths };
     }
+    movedPaths.push(item.path);
   }
 
   return {
     success: true,
     pastedItemName: cutItems.length === 1 ? cutItems[0].name : undefined,
+    movedPaths,
   };
 }
 

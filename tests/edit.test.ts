@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/edit.ts — paste, delete, split/join validation logic.
+ * Unit tests for src/utils/edit.ts — paste, delete, split/join validation logic.
  * All async dependencies are injected via callbacks so no filesystem is needed.
  */
 import { describe, it, expect } from 'vitest';
@@ -10,7 +10,7 @@ import {
   deleteSelectedItems,
   performSplitFile,
   performJoinFiles,
-} from '../src/edit';
+} from '../src/utils/edit';
 import { joinFiles } from '../src/utils/fileSplitJoin/joinUtil';
 import type { ItemData } from '../src/types/types';
 
@@ -124,6 +124,8 @@ describe('pasteCutItems', () => {
     const renameFile = async (_old: string, _new: string) => true;
     const result = await pasteCutItems(items, '/dest', pathExists, renameFile);
     expect(result.success).toBe(true);
+    // movedPaths reports every item that was renamed, in order.
+    expect(result.movedPaths).toEqual(['/docs/a.md', '/docs/b.md']);
   });
 
   it('returns the pasted item name when exactly one item is pasted', async () => {
@@ -146,6 +148,49 @@ describe('pasteCutItems', () => {
     const result = await pasteCutItems(items, '/dest', async () => false, renameFile);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/failed to move/i);
+    // The single item never moved, so nothing is reported as moved.
+    expect(result.movedPaths).toEqual([]);
+  });
+
+  it('reports already-moved items in movedPaths when a later move fails', async () => {
+    const items = [
+      makeItem('/docs/a.md', 'a.md'),
+      makeItem('/docs/b.md', 'b.md'),
+      makeItem('/docs/c.md', 'c.md'),
+    ];
+    // First two renames succeed; the third (c.md) fails mid-loop.
+    const renameFile = async (oldPath: string, _new: string) => oldPath !== '/docs/c.md';
+    const result = await pasteCutItems(items, '/dest', async () => false, renameFile);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/failed to move c\.md/i);
+    // a.md and b.md physically moved before the failure and must be reported so
+    // the caller can keep the store/index in sync; c.md and beyond did not.
+    expect(result.movedPaths).toEqual(['/docs/a.md', '/docs/b.md']);
+  });
+
+  it('stops at the first failure and does not move subsequent items', async () => {
+    const items = [
+      makeItem('/docs/a.md', 'a.md'),
+      makeItem('/docs/b.md', 'b.md'),
+      makeItem('/docs/c.md', 'c.md'),
+    ];
+    const attempted: string[] = [];
+    // The very first rename fails.
+    const renameFile = async (oldPath: string, _new: string) => {
+      attempted.push(oldPath);
+      return false;
+    };
+    const result = await pasteCutItems(items, '/dest', async () => false, renameFile);
+    expect(result.success).toBe(false);
+    expect(result.movedPaths).toEqual([]);
+    // Loop short-circuits after the first failed rename.
+    expect(attempted).toEqual(['/docs/a.md']);
+  });
+
+  it('reports an empty movedPaths on success with no items', async () => {
+    const result = await pasteCutItems([], '/dest', async () => false, async () => true);
+    expect(result.success).toBe(true);
+    expect(result.movedPaths).toEqual([]);
   });
 });
 

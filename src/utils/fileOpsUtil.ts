@@ -12,7 +12,7 @@ import {
   setPendingEditFile,
   setItemExpanded,
 } from '../store';
-import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from '../edit';
+import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
 import { pasteFromClipboard } from './clipboard';
 import { getParentPath, joinPath } from './pathUtil';
 
@@ -64,23 +64,33 @@ export async function pasteIntoFolder(
     api.renameFile
   );
 
+  // The move is not atomic: some items may have moved even when the overall
+  // result is a failure. Reconcile the store and indexes with whatever actually
+  // moved on disk so the UI never desyncs, regardless of success.
+  const moved = result.movedPaths.length > 0;
+  if (moved) {
+    deleteItems(result.movedPaths);
+    try {
+      await Promise.all([
+        api.reconcileIndexedFiles(sourceFolder, false),
+        api.reconcileIndexedFiles(folderPath, false),
+      ]);
+    } catch (err: unknown) {
+      onSetError('Failed to update index after paste: ' + toErrorMessage(err));
+      onRefreshDirectory();
+      return;
+    }
+  }
+
   if (!result.success) {
     onSetError(result.error || 'Failed to paste items');
+    // Items that failed to move remain cut at their source; leave their cut
+    // state intact and only refresh if something actually changed on disk.
+    if (moved) onRefreshDirectory();
     return;
   }
 
-  const movedPaths = cutItems.map((item) => item.path);
-  deleteItems(movedPaths);
   clearAllCutItems();
-  try {
-    await Promise.all([
-      api.reconcileIndexedFiles(sourceFolder, false),
-      api.reconcileIndexedFiles(folderPath, false),
-    ]);
-  } catch (err: unknown) {
-    onSetError('Failed to update index after paste: ' + toErrorMessage(err));
-    return;
-  }
   onRefreshDirectory();
 }
 

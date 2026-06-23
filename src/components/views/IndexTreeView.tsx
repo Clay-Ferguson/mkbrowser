@@ -35,7 +35,7 @@ import {
   setPendingScrollToHeadingSlug,
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
-import { pasteCutItems } from '../../edit';
+import { pasteCutItems } from '../../utils/edit';
 import {
   ENTRY_DND_MIME,
   parseDragPayload,
@@ -299,25 +299,30 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       api.renameFile
     );
 
-    if (!result.success) return;
-
+    // The move is not atomic: reconcile the store/index with whatever actually
+    // moved on disk (movedPaths), even on partial failure, so the UI never
+    // desyncs. Items that failed to move stay cut at their source.
     const sourceFolder = getParentPath(cutItems[0].path);
-    const movedPaths = cutItems.map(item => item.path);
-    deleteItems(movedPaths);
-    clearAllCutItems();
-    await Promise.all([
-      api.reconcileIndexedFiles(sourceFolder, false),
-      api.reconcileIndexedFiles(node.path, false),
-    ]);
+    if (result.movedPaths.length > 0) {
+      deleteItems(result.movedPaths);
+      await Promise.all([
+        api.reconcileIndexedFiles(sourceFolder, false),
+        api.reconcileIndexedFiles(node.path, false),
+      ]);
 
-    // If the browse view is currently showing this folder, refresh it
-    if (node.path === currentPath) {
-      onRefreshDirectory?.();
+      // If the browse view is currently showing this folder, refresh it
+      if (node.path === currentPath) {
+        onRefreshDirectory?.();
+      }
+
+      // Refresh both the destination and source folders if they are expanded.
+      await reloadExpandedTreeFolder(node.path);
+      await reloadExpandedTreeFolder(sourceFolder);
     }
 
-    // Refresh both the destination and source folders if they are expanded.
-    await reloadExpandedTreeFolder(node.path);
-    await reloadExpandedTreeFolder(sourceFolder);
+    if (result.success) {
+      clearAllCutItems();
+    }
   }, [currentPath, onRefreshDirectory]);
 
   const handleCreateFolder = useCallback(async (folderName: string) => {
