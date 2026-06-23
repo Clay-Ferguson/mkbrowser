@@ -88,8 +88,13 @@ export async function searchAndReplace(
           return null;
         }
 
-        // Perform the replacement and write the modified content back
-        const newContent = content.replace(searchRegex, replaceText);
+        // Perform the replacement and write the modified content back.
+        // Use a replacer FUNCTION (not a string) so replaceText is inserted
+        // verbatim: a string second argument would interpret `$$`, `$&`,
+        // `` $` ``, `$'`, and `$1`/`$2`… as special replacement patterns,
+        // breaking the documented "literal text" contract for any
+        // replacement containing `$`.
+        const newContent = content.replace(searchRegex, () => replaceText);
         await fs.promises.writeFile(filePath, newContent, 'utf-8');
 
         return {

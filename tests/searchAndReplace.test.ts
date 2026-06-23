@@ -74,6 +74,21 @@ describe('searchAndReplace', () => {
     expect(await fs.promises.readFile(path.join(tmpDir, 'a.md'), 'utf-8')).toBe('Z Z axb');
   });
 
+  it('treats replacement text as a literal ($-patterns are inserted verbatim)', async () => {
+    // Each `$`-sequence below would be interpreted as a special replacement
+    // pattern if replaceText were passed as a string to String.replace:
+    //   $&  -> the matched text, $$ -> a single $, $1 -> a capture group, etc.
+    // The replacer-function fix must insert them verbatim instead.
+    // searchAndReplace crawls the whole folder, so recreate the single file
+    // before each case to keep them independent.
+    const cases = ['$&', '$$', '$1', '$5', '$`', "$'"];
+    for (const replacement of cases) {
+      await writeFile('p.md', 'price tag');
+      await searchAndReplace(tmpDir, 'price', replacement, []);
+      expect(await fs.promises.readFile(path.join(tmpDir, 'p.md'), 'utf-8')).toBe(`${replacement} tag`);
+    }
+  });
+
   it('isolates per-file failures: a bad file is reported as success:false without aborting the batch', async () => {
     // Many files so the bounded-concurrency pool runs multiple workers in parallel.
     const fileCount = 60;
