@@ -95,6 +95,36 @@ describe('findPasteDuplicates', () => {
     expect(result.error).toMatch(/check destination/i);
     expect(result.error).toMatch(/EPERM/);
   });
+
+  it('flags two cut items that differ only in case as colliding with each other', async () => {
+    // notes.md + Notes.md map to the same target on a case-insensitive FS, but
+    // neither exists at the (empty) destination yet, so pathExists can't see it.
+    const items = [makeItem('/src/notes.md', 'notes.md'), makeItem('/src/Notes.md', 'Notes.md')];
+    const pathExists = async (_p: string) => false;
+    const result = await findPasteDuplicates(items, '/dest', pathExists);
+    expect(result.error).toBeUndefined();
+    expect(result.duplicates).toEqual(['notes.md', 'Notes.md']);
+  });
+
+  it('does not flag genuinely distinct names', async () => {
+    const items = [makeItem('/src/notes.md', 'notes.md'), makeItem('/src/other.md', 'other.md')];
+    const pathExists = async (_p: string) => false;
+    const result = await findPasteDuplicates(items, '/dest', pathExists);
+    expect(result.duplicates).toEqual([]);
+  });
+
+  it('merges destination duplicates and intra-batch case collisions without repeating a name', async () => {
+    const items = [
+      makeItem('/src/a.md', 'a.md'),
+      makeItem('/src/notes.md', 'notes.md'),
+      makeItem('/src/Notes.md', 'Notes.md'),
+    ];
+    // a.md already exists at the destination; notes.md/Notes.md collide intra-batch.
+    const pathExists = async (p: string) => p === '/dest/a.md';
+    const result = await findPasteDuplicates(items, '/dest', pathExists);
+    // Order follows the cut-item order; each name appears once.
+    expect(result.duplicates).toEqual(['a.md', 'notes.md', 'Notes.md']);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -192,6 +222,19 @@ describe('pasteCutItems', () => {
     const result = await pasteCutItems(items, '/dest', pathExists, async () => true);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/already exist/i);
+  });
+
+  it('aborts (without moving anything) when two cut items differ only in case', async () => {
+    const items = [makeItem('/docs/notes.md', 'notes.md'), makeItem('/docs/Notes.md', 'Notes.md')];
+    const renamed: string[] = [];
+    const renameFile = async (oldPath: string, _new: string) => {
+      renamed.push(oldPath);
+      return true;
+    };
+    const result = await pasteCutItems(items, '/dest', async () => false, renameFile);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/already exist/i);
+    expect(renamed).toEqual([]); // nothing was moved
   });
 
   it('moves items and returns success when all conditions pass', async () => {
@@ -319,7 +362,7 @@ describe('pasteCutItems', () => {
       maxInFlight = Math.max(maxInFlight, inFlight);
       await Promise.resolve();
       inFlight--;
-      const i = Number(oldPath.match(/f(\d+)\.md$/)![1]);
+      const i = Number(oldPath.match(/f(\d+)\.md$/)?.[1]);
       if (i === 7) throw new Error('EBUSY');
       return !shouldFail(i);
     };
@@ -410,7 +453,7 @@ describe('deleteSelectedItems', () => {
       maxInFlight = Math.max(maxInFlight, inFlight);
       await Promise.resolve();
       inFlight--;
-      const i = Number(p.match(/f(\d+)\.md$/)![1]);
+      const i = Number(p.match(/f(\d+)\.md$/)?.[1]);
       if (i === 5) throw new Error('locked');
       return !shouldFail(i);
     };

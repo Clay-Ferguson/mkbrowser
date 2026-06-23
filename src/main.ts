@@ -311,6 +311,34 @@ function setupIpcHandlers(): void {
   // Rename a file or folder
   ipcMain.handle('rename-file', async (_event, oldPath: string, newPath: string): Promise<boolean> => {
     try {
+      // Refuse to clobber a *different* existing entry at the destination.
+      // fs.rename silently overwrites the target on POSIX, and on Windows
+      // (libuv uses MoveFileEx with MOVEFILE_REPLACE_EXISTING), so without this
+      // guard a move/paste onto an occupied path would destroy the existing
+      // file. On case-insensitive filesystems (NTFS/APFS) this is also how a
+      // paste of two items differing only in case would silently lose data.
+      //
+      // The "different" qualifier matters: a pure case-only rename of a single
+      // file (Readme.md -> README.md) targets the SAME on-disk entry on a
+      // case-insensitive FS, where stat(newPath) resolves back to the source.
+      // That must still succeed, so we only block when the target is a distinct
+      // entry (different dev/ino).
+      if (oldPath !== newPath) {
+        let targetStat: import('fs').Stats | null = null;
+        try {
+          targetStat = await fs.promises.stat(newPath);
+        } catch {
+          targetStat = null; // nothing at the destination — safe to rename
+        }
+        if (targetStat) {
+          const sourceStat = await fs.promises.stat(oldPath);
+          const sameEntry = targetStat.dev === sourceStat.dev && targetStat.ino === sourceStat.ino;
+          if (!sameEntry) {
+            logger.warn(`Refusing to rename ${oldPath} -> ${newPath}: a different entry already exists at the destination`);
+            return false;
+          }
+        }
+      }
       await fs.promises.rename(oldPath, newPath);
       const dirPath = path.dirname(oldPath);
       const oldName = path.basename(oldPath);

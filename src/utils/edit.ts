@@ -64,6 +64,26 @@ export interface DuplicateCheckResult {
 /**
  * Find which cut items would create duplicates in the destination folder.
  *
+ * Two kinds of collision are reported:
+ *
+ * 1. **Against the destination.** A per-item `pathExists` check. Because the
+ *    main-process `pathExists` is a `stat` call, this already honors the
+ *    destination filesystem's own case rules (a `Readme.md` already on a
+ *    case-insensitive NTFS/APFS volume is matched by a cut item named
+ *    `README.MD`).
+ * 2. **Among the cut items themselves.** Two cut items whose names differ only
+ *    in case (`notes.md` + `Notes.md`) collide with *each other* on a
+ *    case-insensitive destination, mapping to the same target path. The per-item
+ *    check in (1) cannot catch this: it runs against the pre-move destination,
+ *    where neither target exists yet, so both items pass and the second `rename`
+ *    would clobber the first. We therefore detect case-insensitive duplicates
+ *    directly among the cut names. This is flagged unconditionally — the
+ *    renderer can't know the destination FS's case sensitivity, and rejecting
+ *    the rare "paste `notes.md` + `Notes.md` together" case on a case-sensitive
+ *    FS is far cheaper than risking a silent overwrite on Windows/macOS. (The
+ *    main-process `renameFile` non-clobber guard is the real safety net; this
+ *    just turns the hazard into a clean pre-paste message.)
+ *
  * A `pathExists` rejection (e.g. the IPC call throws) is converted into a hard
  * error rather than being swallowed as "does not exist": treating a failed
  * existence check as absent would risk a later `renameFile` silently
@@ -75,13 +95,43 @@ export async function findPasteDuplicates(
   pathExists: (path: string) => Promise<boolean>
 ): Promise<DuplicateCheckResult> {
   try {
-    const duplicateNames = await mapWithConcurrency(cutItems, FILE_OP_CONCURRENCY, async (item) => {
+    const existsAtDest = await mapWithConcurrency(cutItems, FILE_OP_CONCURRENCY, async (item) => {
       const destPath = joinPath(destinationPath, item.name);
       const exists = await pathExists(destPath);
       return exists ? item.name : null;
     });
 
-    return { duplicates: duplicateNames.filter((name): name is string => name !== null) };
+    // Intra-batch case-insensitive collisions: the first time a lowercased name
+    // repeats, both the earlier and current item are flagged.
+    const firstByLowerName = new Map<string, string>();
+    const caseCollisions = new Set<string>();
+    for (const item of cutItems) {
+      const lower = item.name.toLowerCase();
+      const first = firstByLowerName.get(lower);
+      if (first === undefined) {
+        firstByLowerName.set(lower, item.name);
+      } else {
+        caseCollisions.add(first);
+        caseCollisions.add(item.name);
+      }
+    }
+
+    // Merge both sources into a single de-duplicated list that preserves the
+    // original cut-item order.
+    const flagged = new Set<string>(caseCollisions);
+    for (const name of existsAtDest) {
+      if (name !== null) flagged.add(name);
+    }
+    const duplicates: string[] = [];
+    const seen = new Set<string>();
+    for (const item of cutItems) {
+      if (flagged.has(item.name) && !seen.has(item.name)) {
+        duplicates.push(item.name);
+        seen.add(item.name);
+      }
+    }
+
+    return { duplicates };
   } catch (err) {
     return {
       duplicates: [],
