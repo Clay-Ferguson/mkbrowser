@@ -105,14 +105,24 @@ export function createMatchPredicate(
   type: SearchType
 ): (content: string, filePath?: string) => MatchResult {
   if (type === 'advanced') {
+    // Compile the user expression ONCE, when the predicate is created — not once
+    // per file scanned. A syntax error in the query yields an always-false
+    // predicate rather than throwing or silently failing on every file.
+    let evalFunction: (...args: unknown[]) => unknown;
+    try {
+      evalFunction = new Function(
+        '$', 'past', 'future', 'today', 'prop',
+        `return (${queryStr});`,
+      ) as (...args: unknown[]) => unknown;
+    } catch {
+      return () => ({ matches: false, matchCount: 0 });
+    }
+
     return (content: string, filePath?: string) => {
       const { $, getMatchCount } = createContentSearcher(content);
       const prop = createPropFunction(content, filePath);
       try {
-        const expressionCode = `return (${queryStr});`;
-        const evalFunction = new Function('$', 'past', 'future', 'today', 'prop', expressionCode);
-        const rawResult = evalFunction($, past, future, today, prop);
-        const matches = Boolean(rawResult);
+        const matches = Boolean(evalFunction($, past, future, today, prop));
         const matchCount = getMatchCount();
         return {
           matches,

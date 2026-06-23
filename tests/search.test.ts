@@ -731,6 +731,16 @@ describe('createMatchPredicate (direct function testing)', () => {
     expect(result.matches).toBe(false);
     expect(result.matchCount).toBe(0);
   });
+
+  it('advanced predicate: malformed expression does not throw at build time and yields empty results', () => {
+    // The user expression is compiled once when the predicate is created. A
+    // syntax error must not throw here; it must produce an always-false
+    // predicate so the search yields an empty result set.
+    const predicate = createMatchPredicate('$$$invalid(((syntax', 'advanced');
+    expect(predicate('first file body').matches).toBe(false);
+    expect(predicate('second file body', '/some/path.md').matches).toBe(false);
+    expect(predicate('third file body').matchCount).toBe(0);
+  });
 });
 
 // ─── Section 10: createContentSearcher Unit Tests ───────────────────────────
