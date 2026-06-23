@@ -115,38 +115,43 @@ export async function pasteCutItems(
  * Result of delete operation
  */
 export interface DeleteResult {
+  /** True only if every selected item was deleted. */
   success: boolean;
   deletedPaths: string[];
-  failedItem?: string;
+  /** Names of every item that failed to delete (empty on full success). */
+  failedItems: string[];
 }
 
 /**
- * Delete selected items from the filesystem
+ * Delete selected items from the filesystem.
+ *
+ * Best-effort: every item is attempted regardless of earlier failures, so a
+ * single locked/permission-denied item never blocks the rest of the batch.
+ * Deletions that succeed are reported via `deletedPaths` (in selection order)
+ * and every failure is reported via `failedItems`, even when some succeed.
  */
 export async function deleteSelectedItems(
   selectedItems: ItemData[],
   deleteFile: (path: string) => Promise<boolean>
 ): Promise<DeleteResult> {
-  if (selectedItems.length === 0) {
-    return { success: true, deletedPaths: [] };
-  }
-
   const deletedPaths: string[] = [];
+  const failedItems: string[] = [];
 
   for (const item of selectedItems) {
-    const success = await deleteFile(item.path);
-    if (success) {
+    let ok = false;
+    try {
+      ok = await deleteFile(item.path);
+    } catch {
+      ok = false;
+    }
+    if (ok) {
       deletedPaths.push(item.path);
     } else {
-      return {
-        success: false,
-        deletedPaths,
-        failedItem: item.name,
-      };
+      failedItems.push(item.name);
     }
   }
 
-  return { success: true, deletedPaths };
+  return { success: failedItems.length === 0, deletedPaths, failedItems };
 }
 
 /**

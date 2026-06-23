@@ -213,7 +213,7 @@ describe('deleteSelectedItems', () => {
     expect(result.deletedPaths).toEqual(['/docs/a.md', '/docs/b.md']);
   });
 
-  it('returns failure and failedItem when deleteFile returns false', async () => {
+  it('returns failure and failedItems when deleteFile returns false', async () => {
     const items = [makeItem('/docs/a.md', 'a.md'), makeItem('/docs/b.md', 'b.md')];
     // fail on the second item
     let calls = 0;
@@ -223,9 +223,41 @@ describe('deleteSelectedItems', () => {
     };
     const result = await deleteSelectedItems(items, deleteFile);
     expect(result.success).toBe(false);
-    expect(result.failedItem).toBe('b.md');
-    // First item was deleted before failure
+    expect(result.failedItems).toEqual(['b.md']);
+    // First item was still deleted
     expect(result.deletedPaths).toEqual(['/docs/a.md']);
+  });
+
+  it('attempts every item when a middle item fails (best-effort)', async () => {
+    const items = [
+      makeItem('/docs/a.md', 'a.md'),
+      makeItem('/docs/b.md', 'b.md'),
+      makeItem('/docs/c.md', 'c.md'),
+    ];
+    // fail only on the middle item
+    const deleteFile = async (p: string) => p !== '/docs/b.md';
+    const result = await deleteSelectedItems(items, deleteFile);
+    expect(result.success).toBe(false);
+    expect(result.failedItems).toEqual(['b.md']);
+    // a.md and c.md were both deleted even though b.md failed
+    expect(result.deletedPaths).toEqual(['/docs/a.md', '/docs/c.md']);
+  });
+
+  it('reports all failures and treats a thrown deleteFile as a failure', async () => {
+    const items = [
+      makeItem('/docs/a.md', 'a.md'),
+      makeItem('/docs/b.md', 'b.md'),
+      makeItem('/docs/c.md', 'c.md'),
+    ];
+    const deleteFile = async (p: string) => {
+      if (p === '/docs/a.md') throw new Error('locked');
+      if (p === '/docs/c.md') return false;
+      return true;
+    };
+    const result = await deleteSelectedItems(items, deleteFile);
+    expect(result.success).toBe(false);
+    expect(result.failedItems).toEqual(['a.md', 'c.md']);
+    expect(result.deletedPaths).toEqual(['/docs/b.md']);
   });
 });
 

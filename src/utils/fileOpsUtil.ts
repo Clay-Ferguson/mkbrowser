@@ -120,7 +120,14 @@ export async function deleteSelected(
   const result = await deleteSelectedItems(selectedItems, api.deleteFile);
 
   if (!result.success) {
-    onSetError(result.failedItem ? `Failed to delete ${result.failedItem}` : 'Failed to delete items');
+    const failed = result.failedItems;
+    onSetError(
+      failed.length === 0
+        ? 'Failed to delete items'
+        : failed.length === 1
+          ? `Failed to delete ${failed[0]}`
+          : `Failed to delete ${failed.length} items: ${failed.join(', ')}`
+    );
   }
 
   if (result.deletedPaths.length > 0) {
