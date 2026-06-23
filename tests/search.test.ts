@@ -2,9 +2,10 @@
  * Search tests — Phase 1: Literal content search
  */
 import path from 'node:path';
+import os from 'node:os';
 import fs from 'node:fs';
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
-import { searchFolder, createMatchPredicate } from '../src/search';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
+import { searchFolder, createMatchPredicate, MOST_RECENT_LIMIT } from '../src/search';
 import { createContentSearcher } from '../src/utils/searchUtil';
 import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/utils/timeUtil';
 import { setupTestData, TEST_DATA_DIR, rel } from './fixtures/setup';
@@ -1041,5 +1042,89 @@ describe('today', () => {
 
   it('returns false for the not-found sentinel (NaN)', () => {
     expect(today(NO_TIMESTAMP)).toBe(false);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// mostRecent filter (filterMostRecent → buildResult cached-stat path)
+// ═══════════════════════════════════════════════════════════════════
+describe('mostRecent filter', () => {
+  // Build a throwaway tree with MOST_RECENT_LIMIT + 5 files, each given a
+  // distinct, monotonically increasing mtime so "newest" is deterministic:
+  // higher index == newer. The oldest 5 (indices 0-4) must be dropped.
+  const EXTRA = 5;
+  const TOTAL = MOST_RECENT_LIMIT + EXTRA;
+  let dir: string;
+
+  /** Zero-padded index parsed back out of a result path's basename. */
+  const indexOf = (p: string): number =>
+    parseInt(path.basename(p).replace(/\D/g, ''), 10);
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-most-recent-'));
+    const base = new Date('2026-01-01T00:00:00Z').getTime();
+    for (let i = 0; i < TOTAL; i++) {
+      const fp = path.join(dir, `f-${String(i).padStart(4, '0')}.md`);
+      fs.writeFileSync(fp, 'RECENT_MARKER content\n', 'utf-8');
+      // mtime increases with index → index 0 is oldest, TOTAL-1 is newest.
+      const when = new Date(base + i * 1000);
+      fs.utimesSync(fp, when, when);
+    }
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('keeps only the MOST_RECENT_LIMIT newest files by mtime', async () => {
+    // Empty query + mostRecent → every searchable file is a candidate, then the
+    // filter trims to the newest MOST_RECENT_LIMIT.
+    const results = await searchFolder(dir, '', 'literal', 'content', [], false, true);
+
+    expect(results).toHaveLength(MOST_RECENT_LIMIT);
+    // The 5 oldest (indices 0-4) must have been dropped; everything kept is newer.
+    for (const r of results) {
+      expect(indexOf(r.path)).toBeGreaterThanOrEqual(EXTRA);
+    }
+  });
+
+  it('returns all files unchanged when count is under the limit', async () => {
+    // A separate small tree (well under the limit) — nothing should be dropped.
+    const small = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-most-recent-small-'));
+    try {
+      for (let i = 0; i < 3; i++) {
+        fs.writeFileSync(path.join(small, `s-${i}.md`), 'RECENT_MARKER\n', 'utf-8');
+      }
+      const results = await searchFolder(small, '', 'literal', 'content', [], false, true);
+      expect(results).toHaveLength(3);
+    } finally {
+      fs.rmSync(small, { recursive: true, force: true });
+    }
+  });
+
+  it('populates both modifiedTime and createdTime on the mostRecent path', async () => {
+    // Guards the double-stat optimization: filterMostRecent caches mtime AND
+    // birthtime, so buildResult must still set createdTime (not just modifiedTime).
+    const results = await searchFolder(dir, '', 'literal', 'content', [], false, true);
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.modifiedTime).toBeTypeOf('number');
+      expect(r.createdTime).toBeTypeOf('number');
+    }
+  });
+
+  it('reports the same time metadata whether or not mostRecent is enabled', async () => {
+    // The cached-stat values fed into buildResult must match a fresh stat, so a
+    // file present in both result sets reports identical times.
+    const full = await searchFolder(dir, '', 'literal', 'content', [], false, false);
+    const recent = await searchFolder(dir, '', 'literal', 'content', [], false, true);
+
+    const fullByPath = new Map(full.map(r => [r.path, r]));
+    for (const r of recent) {
+      const reference = fullByPath.get(r.path);
+      expect(reference).toBeDefined();
+      expect(r.modifiedTime).toBe(reference!.modifiedTime);
+      expect(r.createdTime).toBe(reference!.createdTime);
+    }
   });
 });

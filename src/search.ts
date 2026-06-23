@@ -212,38 +212,63 @@ async function extractExifText(filePath: string): Promise<string> {
 /** Maximum number of files to keep when mostRecent filter is enabled */
 export const MOST_RECENT_LIMIT = 500;
 
+/** Modified/created timestamps captured from a single stat() call, in ms. */
+type StatTimes = { mtimeMs: number; birthtimeMs: number };
+
+/** A file path paired with the stat times captured for it. */
+type StatEntry = { path: string } & StatTimes;
+
 /**
  * Filter an array of file paths to the N most recently modified.
- * Stats all files, sorts by mtime descending, and returns the top MOST_RECENT_LIMIT.
+ * Stats all files (with bounded concurrency), sorts by mtime descending, and
+ * returns the top MOST_RECENT_LIMIT. The captured stat times are returned with
+ * each path so callers can reuse them (see buildResult's cachedStat) instead of
+ * stat'ing the same files a second time.
  */
-async function filterMostRecent(filePaths: string[]): Promise<string[]> {
-  const entries: Array<{ path: string; mtime: number }> = [];
-  for (const fp of filePaths) {
-    try {
-      const stat = await fs.promises.stat(fp);
-      entries.push({ path: fp, mtime: stat.mtimeMs });
-    } catch (err) {
-      // Expected: file may have vanished or be inaccessible. Skip it (it just
-      // won't be considered for the most-recent set), but log for traceability.
-      logger.debug('search: failed to stat file for mostRecent filter', fp, err);
-    }
-  }
-  entries.sort((a, b) => b.mtime - a.mtime);
-  return entries.slice(0, MOST_RECENT_LIMIT).map(e => e.path);
+async function filterMostRecent(filePaths: string[]): Promise<StatEntry[]> {
+  // mapWithConcurrency bounds the concurrent stat() calls (it preserves input
+  // order, though that's irrelevant here since we re-sort by mtime below).
+  const stats = await mapWithConcurrency(
+    filePaths,
+    SEARCH_FILE_CONCURRENCY,
+    async (fp): Promise<StatEntry | null> => {
+      try {
+        const stat = await fs.promises.stat(fp);
+        return { path: fp, mtimeMs: stat.mtimeMs, birthtimeMs: stat.birthtimeMs };
+      } catch (err) {
+        // Expected: file may have vanished or be inaccessible. Skip it (it just
+        // won't be considered for the most-recent set), but log for traceability.
+        logger.debug('search: failed to stat file for mostRecent filter', fp, err);
+        return null;
+      }
+    },
+  );
+  const entries = stats.filter((s): s is StatEntry => s !== null);
+  entries.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  return entries.slice(0, MOST_RECENT_LIMIT);
 }
 
 /**
  * Stat an entry and assemble its SearchResult. Stat failures are swallowed so an
  * entry that can't be stat'd still appears (without time metadata) — matching the
  * prior behavior. Factored out of the four near-identical build-and-push blocks.
+ *
+ * On the mostRecent path the file was already stat'd in filterMostRecent; pass
+ * those times as cachedStat to reuse them instead of stat'ing the file again.
  */
 async function buildResult(
   folderPath: string,
   entryPath: string,
   matchCount: number,
+  cachedStat?: StatTimes,
 ): Promise<SearchResult> {
   const relativePath = path.relative(folderPath, entryPath);
   const result: SearchResult = { path: entryPath, relativePath, matchCount };
+  if (cachedStat) {
+    result.modifiedTime = cachedStat.mtimeMs;
+    result.createdTime = cachedStat.birthtimeMs;
+    return result;
+  }
   try {
     const stat = await fs.promises.stat(entryPath);
     result.modifiedTime = stat.mtimeMs;
@@ -302,27 +327,34 @@ export async function searchFolder(
       dirsApi.withPromise(),
     ]);
 
-    let allEntries = [...files, ...dirs.filter(d => d !== folderPath)];
+    const allEntries = [...files, ...dirs.filter(d => d !== folderPath)];
 
-    // When mostRecent is enabled, limit to the 500 most recently modified entries
+    // When mostRecent is enabled, limit to the 500 most recently modified entries.
+    // filterMostRecent already stat'd them, so cache the times by path and feed
+    // them to buildResult to avoid a second stat per entry.
+    let entriesToSearch = allEntries;
+    let statCache: Map<string, StatTimes> | null = null;
     if (mostRecent) {
-      allEntries = await filterMostRecent(allEntries);
+      const recent = await filterMostRecent(allEntries);
+      entriesToSearch = recent.map(e => e.path);
+      statCache = new Map(recent.map(e => [e.path, e]));
     }
 
     // Stat entries with bounded concurrency. mapWithConcurrency preserves input
     // order, so the pre-sort order matches the old sequential loop exactly.
     const entryResults = await mapWithConcurrency(
-      allEntries,
+      entriesToSearch,
       SEARCH_FILE_CONCURRENCY,
       async (entryPath): Promise<SearchResult | null> => {
         const entryName = path.basename(entryPath);
+        const cachedStat = statCache?.get(entryPath);
         if (matchPredicate) {
           const { matches, matchCount } = matchPredicate(entryName);
           if (!matches) return null;
-          return buildResult(folderPath, entryPath, matchCount);
+          return buildResult(folderPath, entryPath, matchCount, cachedStat);
         }
         // No query — return all entries (mostRecent mode with empty query)
-        return buildResult(folderPath, entryPath, 1);
+        return buildResult(folderPath, entryPath, 1, cachedStat);
       },
     );
     for (const r of entryResults) {
@@ -345,8 +377,16 @@ export async function searchFolder(
 
     const files = await api.withPromise();
 
-    // When mostRecent is enabled, limit to the 500 most recently modified files
-    const filesToSearch = mostRecent ? await filterMostRecent(files) : files;
+    // When mostRecent is enabled, limit to the 500 most recently modified files.
+    // filterMostRecent already stat'd them, so cache the times by path and feed
+    // them to buildResult to avoid a second stat per file.
+    let filesToSearch = files;
+    let statCache: Map<string, StatTimes> | null = null;
+    if (mostRecent) {
+      const recent = await filterMostRecent(files);
+      filesToSearch = recent.map(e => e.path);
+      statCache = new Map(recent.map(e => [e.path, e]));
+    }
 
     // Read + stat files with bounded concurrency. mapWithConcurrency preserves
     // input order, so the pre-sort order matches the old sequential loop exactly.
@@ -356,10 +396,11 @@ export async function searchFolder(
       async (filePath): Promise<SearchResult | null> => {
         const ext = path.extname(filePath).toLowerCase();
         const isImage = EXIF_IMAGE_EXTENSIONS.has(ext);
+        const cachedStat = statCache?.get(filePath);
 
         // No query — return all files (mostRecent mode with empty query)
         if (!matchPredicate) {
-          return buildResult(folderPath, filePath, 1);
+          return buildResult(folderPath, filePath, 1, cachedStat);
         }
 
         // Only the file *read* is wrapped in try/catch: an unreadable file is an
@@ -384,7 +425,7 @@ export async function searchFolder(
         const { matches, matchCount } = matchPredicate(content, filePath);
         if (!matches) return null;
 
-        return buildResult(folderPath, filePath, matchCount);
+        return buildResult(folderPath, filePath, matchCount, cachedStat);
       },
     );
     for (const r of fileResults) {
