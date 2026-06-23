@@ -14,6 +14,7 @@ import { createContentSearcher } from './utils/searchUtil';
 import { splitFrontMatter } from './utils/tagUtil';
 import { escapeRegexExceptWildcard, buildExcludePredicate } from './utils/pathPattern';
 import { mapWithConcurrency } from './utils/asyncUtil';
+import { logger } from './utils/logUtil';
 
 /** Max number of files read/stat'd concurrently during a search. Bounded so huge
  * trees don't exhaust file descriptors (EMFILE) while still overlapping I/O. */
@@ -36,7 +37,10 @@ function getYaml(cache: YamlCache, content: string, filePath?: string): Record<s
   if (parts) {
     try {
       parsed = load(parts.yamlStr) as Record<string, unknown> | null ?? null;
-    } catch {
+    } catch (err) {
+      // Malformed front-matter YAML is an expected, file-specific condition (not a
+      // bug). Treat as "no front-matter" but log so it's distinguishable in a trace.
+      logger.debug('search: failed to parse front-matter YAML', filePath ?? '(inline)', err);
       parsed = null;
     }
   }
@@ -121,7 +125,12 @@ export function createMatchPredicate(
         '$', 'past', 'future', 'today', 'prop',
         `return (${queryStr});`,
       ) as (...args: unknown[]) => unknown;
-    } catch {
+    } catch (err) {
+      // The user's advanced query is syntactically invalid. We can't evaluate it,
+      // so the predicate matches nothing. Log at warn so an invalid query is
+      // distinguishable from a query that legitimately matched zero files.
+      // (Surfacing this to the UI as "invalid query" is tracked separately.)
+      logger.warn('search: invalid advanced query expression', queryStr, err);
       return () => ({ matches: false, matchCount: 0 });
     }
 
@@ -135,7 +144,11 @@ export function createMatchPredicate(
           matches,
           matchCount: matches ? Math.max(matchCount, 1) : 0,
         };
-      } catch {
+      } catch (err) {
+        // A runtime error while evaluating the (validly-compiled) query against
+        // this file's content — e.g. the expression references a property in a way
+        // that throws. Treat as a non-match for this file, but log it.
+        logger.debug('search: advanced query threw evaluating file', filePath ?? '(unknown)', err);
         return { matches: false, matchCount: 0 };
       }
     };
@@ -191,7 +204,10 @@ async function extractExifText(filePath: string): Promise<string> {
       }
     }
     return lines.join('\n');
-  } catch {
+  } catch (err) {
+    // No readable EXIF (unsupported/corrupt image, or no metadata). Expected for
+    // many images; return empty text so the file simply yields no EXIF matches.
+    logger.debug('search: failed to read EXIF metadata', filePath, err);
     return '';
   }
 }
@@ -209,8 +225,10 @@ async function filterMostRecent(filePaths: string[]): Promise<string[]> {
     try {
       const stat = await fs.promises.stat(fp);
       entries.push({ path: fp, mtime: stat.mtimeMs });
-    } catch {
-      // Skip files that can't be stat'd
+    } catch (err) {
+      // Expected: file may have vanished or be inaccessible. Skip it (it just
+      // won't be considered for the most-recent set), but log for traceability.
+      logger.debug('search: failed to stat file for mostRecent filter', fp, err);
     }
   }
   entries.sort((a, b) => b.mtime - a.mtime);
@@ -233,7 +251,11 @@ async function buildResult(
     const stat = await fs.promises.stat(entryPath);
     result.modifiedTime = stat.mtimeMs;
     result.createdTime = stat.birthtimeMs;
-  } catch { /* ignore stat errors */ }
+  } catch (err) {
+    // Expected: stat may fail (file vanished/inaccessible). The entry still
+    // appears in results without time metadata; log so it's not invisible.
+    logger.debug('search: failed to stat result entry', entryPath, err);
+  }
   return result;
 }
 
@@ -335,28 +357,37 @@ export async function searchFolder(
       filesToSearch,
       SEARCH_FILE_CONCURRENCY,
       async (filePath): Promise<SearchResult | null> => {
-        try {
-          const ext = path.extname(filePath).toLowerCase();
-          const isImage = EXIF_IMAGE_EXTENSIONS.has(ext);
+        const ext = path.extname(filePath).toLowerCase();
+        const isImage = EXIF_IMAGE_EXTENSIONS.has(ext);
 
-          if (matchPredicate) {
-            const content = isImage
-              ? await extractExifText(filePath)
-              : await fs.promises.readFile(filePath, 'utf-8');
-
-            if (isImage && !content) return null;
-
-            const { matches, matchCount } = matchPredicate(content, filePath);
-            if (!matches) return null;
-
-            return await buildResult(folderPath, filePath, matchCount);
-          }
-          // No query — return all files (mostRecent mode with empty query)
-          return await buildResult(folderPath, filePath, 1);
-        } catch {
-          // Skip files that can't be read
-          return null;
+        // No query — return all files (mostRecent mode with empty query)
+        if (!matchPredicate) {
+          return buildResult(folderPath, filePath, 1);
         }
+
+        // Only the file *read* is wrapped in try/catch: an unreadable file is an
+        // expected I/O condition we skip gracefully. Match evaluation and result
+        // construction are deliberately left outside the catch so a genuine bug
+        // in that path surfaces (via mapWithConcurrency's fail-fast) instead of
+        // being silently miscategorized as "file skipped". (Image EXIF reads are
+        // handled inside extractExifText, which returns '' on failure.)
+        let content: string;
+        if (isImage) {
+          content = await extractExifText(filePath);
+          if (!content) return null;
+        } else {
+          try {
+            content = await fs.promises.readFile(filePath, 'utf-8');
+          } catch (err) {
+            logger.debug('search: skipping unreadable file', filePath, err);
+            return null;
+          }
+        }
+
+        const { matches, matchCount } = matchPredicate(content, filePath);
+        if (!matches) return null;
+
+        return buildResult(folderPath, filePath, matchCount);
       },
     );
     for (const r of fileResults) {

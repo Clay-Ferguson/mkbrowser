@@ -3,7 +3,7 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { searchFolder, createMatchPredicate } from '../src/search';
 import { createContentSearcher } from '../src/utils/searchUtil';
 import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/utils/timeUtil';
@@ -312,6 +312,38 @@ describe('advanced content search', () => {
       const results = await searchFolder(TEST_DATA_DIR, 'false', 'advanced');
       expect(results).toEqual([]);
     });
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// 3b. Content-loop error handling (issue 005)
+//
+// The per-file content loop must distinguish two failure classes:
+//   - expected I/O errors (unreadable file) → skip gracefully, keep searching
+//   - unexpected errors in the match/result path → surface, not swallow
+// Previously a single over-broad try/catch turned BOTH into "file skipped".
+// ═══════════════════════════════════════════════════════════════════
+describe('content-loop error handling', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('skips unreadable files gracefully without throwing (expected I/O error)', async () => {
+    // Every file read fails with an I/O-style error. Search should still resolve
+    // — just with no results — rather than rejecting.
+    vi.spyOn(fs.promises, 'readFile').mockRejectedValue(
+      Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' }),
+    );
+    const results = await searchFolder(TEST_DATA_DIR, 'banana', 'literal');
+    expect(results).toEqual([]);
+  });
+
+  it('propagates unexpected (non-I/O) errors instead of swallowing them as "file skipped"', async () => {
+    // The read "succeeds" but returns a non-string, so the match path throws a
+    // TypeError (content.toLowerCase()). That is a programming-error-class failure
+    // and must surface — the narrowed try/catch only covers the read itself.
+    vi.spyOn(fs.promises, 'readFile').mockResolvedValue(123 as unknown as string);
+    await expect(searchFolder(TEST_DATA_DIR, 'banana', 'literal')).rejects.toThrow();
   });
 });
 
