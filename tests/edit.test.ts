@@ -171,6 +171,21 @@ describe('pasteCutItems', () => {
     expect(result.error).toMatch(/same folder/i);
   });
 
+  it('reports the cross-folder reason (not same-folder) when item[0] is in the destination but a later item is not', async () => {
+    // Regression: the cross-folder invariant must be established before the
+    // same-folder check leans on cutItems[0]. Here the first item already lives
+    // in the destination, so the old ordering would have wrongly reported
+    // "already in this folder" instead of the truthful cross-folder reason.
+    const items = [
+      makeItem('/dest/a.md', 'a.md'),
+      makeItem('/other/b.md', 'b.md'),
+    ];
+    const result = await pasteCutItems(items, '/dest', async () => false, async () => true);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/same folder/i);
+    expect(result.error).not.toMatch(/already in this folder/i);
+  });
+
   it('returns error when destination already has a file with the same name', async () => {
     const items = [makeItem('/docs/a.md', 'a.md')];
     const pathExists = async (_p: string) => true; // simulates existing file

@@ -46,13 +46,11 @@ export async function pasteIntoFolder(
 
   onSetError(null);
 
-  const sourceFolders = new Set(cutItems.map((item) => getParentPath(item.path)));
-  if (sourceFolders.size > 1) {
-    onSetError('Cannot paste: the cut items come from more than one source folder.');
-    return;
-  }
-  const [sourceFolder] = sourceFolders;
-
+  // pasteCutItems is the single authority for the "all cut items share one
+  // source folder" rule (and reports which items violate it), so we don't
+  // re-validate that here. We only need the shared source folder for the
+  // post-move index reconcile below, and it's derived there — where the move
+  // having happened already guarantees the folder was unique.
   const result = await pasteCutItems(
     cutItems,
     folderPath,
@@ -65,6 +63,7 @@ export async function pasteIntoFolder(
   // moved on disk so the UI never desyncs, regardless of success.
   const moved = result.movedPaths.length > 0;
   if (moved) {
+    const sourceFolder = getParentPath(cutItems[0].path);
     deleteItems(result.movedPaths);
     try {
       await Promise.all([

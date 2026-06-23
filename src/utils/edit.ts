@@ -112,7 +112,22 @@ export async function pasteCutItems(
     return { success: true, movedPaths: [] };
   }
 
-  // Check if pasting to the same folder
+  // Establish the single-source-folder invariant FIRST, before any check relies
+  // on cutItems[0] standing in for "the" source folder. Otherwise a genuinely
+  // cross-folder set whose first item happens to live in the destination would
+  // be reported as "already in this folder" instead of the truthful
+  // "must come from the same folder" reason.
+  const crossFolderItems = findCutItemsFromDifferentFolders(cutItems);
+  if (crossFolderItems.length > 0) {
+    return {
+      success: false,
+      error: `Cannot paste. Cut items must come from the same folder: ${crossFolderItems.join(', ')}`,
+      movedPaths: [],
+    };
+  }
+
+  // Now that uniqueness is guaranteed, cutItems[0] safely represents the shared
+  // source folder. Check if pasting back into that same folder.
   const sourceFolder = getParentPath(cutItems[0].path);
   if (sourceFolder === destinationPath) {
     return { success: false, error: 'Cannot paste. Cut items are already in this folder.', movedPaths: [] };
@@ -132,16 +147,6 @@ export async function pasteCutItems(
         movedPaths: [],
       };
     }
-  }
-
-  // Check for items from different folders
-  const crossFolderItems = findCutItemsFromDifferentFolders(cutItems);
-  if (crossFolderItems.length > 0) {
-    return {
-      success: false,
-      error: `Cannot paste. Cut items must come from the same folder: ${crossFolderItems.join(', ')}`,
-      movedPaths: [],
-    };
   }
 
   // Check for duplicates in destination
