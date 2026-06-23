@@ -4,20 +4,9 @@ import { load, dump } from 'js-yaml';
 import { customAlphabet } from 'nanoid';
 import { parseFrontMatter } from './fileUtil';
 import { ATTACH_SUFFIX } from './specialFiles';
+import { writeFileAtomic } from './atomicWrite';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
-
-/**
- * Writes content to filePath atomically: writes to a sibling .tmp file first,
- * then renames it into place. On Linux/macOS, rename() is POSIX-atomic within
- * the same filesystem, so readers always see either the old complete file or
- * the new complete file — never a truncated intermediate state.
- */
-async function writeFileAtomic(filePath: string, content: string): Promise<void> {
-  const tmpPath = filePath + '.tmp';
-  await fs.promises.writeFile(tmpPath, content, 'utf8');
-  await fs.promises.rename(tmpPath, filePath);
-}
 
 export type IndexEntry = { name: string; id?: string; create_time?: number; size?: number };
 

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fdir } from 'fdir';
 import { escapeRegexLiteral } from './utils/pathPattern';
 import { mapWithConcurrency } from './utils/asyncUtil';
+import { writeFileAtomic } from './utils/atomicWrite';
 
 /** Max number of files read/written concurrently during a search-and-replace.
  * Bounded so huge trees don't exhaust file descriptors (EMFILE) while still
@@ -95,7 +96,12 @@ export async function searchAndReplace(
         // breaking the documented "literal text" contract for any
         // replacement containing `$`.
         const newContent = content.replace(searchRegex, () => replaceText);
-        await fs.promises.writeFile(filePath, newContent, 'utf-8');
+        // Write atomically (temp file + rename) so a crash, power loss, or
+        // disk-full mid-write can never leave the user's document truncated or
+        // half-written — readers see either the full old file or the full new
+        // file. This is a bulk rewrite of the user's own docs, where data
+        // integrity matters most.
+        await writeFileAtomic(filePath, newContent);
 
         return {
           path: filePath,

@@ -116,6 +116,24 @@ describe('searchAndReplace', () => {
     }
   });
 
+  it('writes atomically and leaves no temp files behind after replacing', async () => {
+    await writeFile('a.md', 'foo foo');
+    await writeFile('sub/b.txt', 'foo');
+
+    const results = await searchAndReplace(tmpDir, 'foo', 'bar', []);
+
+    expect(results).toHaveLength(2);
+    // Content was replaced...
+    expect(await fs.promises.readFile(path.join(tmpDir, 'a.md'), 'utf-8')).toBe('bar bar');
+    expect(await fs.promises.readFile(path.join(tmpDir, 'sub/b.txt'), 'utf-8')).toBe('bar');
+    // ...and the atomic temp+rename left no stray temp files in any directory.
+    const rootEntries = await fs.promises.readdir(tmpDir);
+    const subEntries = await fs.promises.readdir(path.join(tmpDir, 'sub'));
+    expect([...rootEntries, ...subEntries].some(name => name.endsWith('.tmp'))).toBe(false);
+    expect(rootEntries.sort()).toEqual(['a.md', 'sub']);
+    expect(subEntries).toEqual(['b.txt']);
+  });
+
   it('respects ignored patterns and always excludes hidden files', async () => {
     await writeFile('keep.md', 'mark');
     await writeFile('node_modules/dep.md', 'mark');
