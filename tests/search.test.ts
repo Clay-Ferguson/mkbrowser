@@ -674,6 +674,44 @@ describe('edge cases', () => {
   });
 });
 
+// ── Section 8b: Concurrent searchFolder invocations ─────────────────────────
+describe('concurrent searches do not interfere', () => {
+  // The YAML parse cache is created per-invocation, so two overlapping searches
+  // must not corrupt each other's state. Running them back-to-back without
+  // awaiting the first (Promise.all) exercises the interleaved await points.
+  it('two searches started together both return correct results', async () => {
+    const [aResults, bResults] = await Promise.all([
+      searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal'),
+      searchFolder(TEST_DATA_DIR, 'apple', 'literal'),
+    ]);
+
+    const aPaths = aResults.map(r => r.relativePath).sort();
+    expect(aPaths).toEqual([
+      rel('duplicates', 'copy-one.md'),
+      rel('duplicates', 'copy-three.md'),
+      rel('duplicates', 'copy-two.md'),
+    ]);
+
+    const repeated = bResults.find(r => r.relativePath === rel('multi-match', 'repeated.md'));
+    expect(repeated?.matchCount).toBe(7);
+  });
+
+  it('many overlapping searches each return identical results to a solo run', async () => {
+    const solo = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    const expected = solo.map(r => r.relativePath).sort();
+
+    const runs = await Promise.all(
+      Array.from({ length: 8 }, () =>
+        searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal'),
+      ),
+    );
+
+    for (const run of runs) {
+      expect(run.map(r => r.relativePath).sort()).toEqual(expected);
+    }
+  });
+});
+
 // ── Section 9: createMatchPredicate Unit Tests ──────────────────────────────
 describe('createMatchPredicate (direct function testing)', () => {
   // ── Literal predicate ──────────────────────────────────────────────────────

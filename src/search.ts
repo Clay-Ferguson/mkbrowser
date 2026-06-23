@@ -14,16 +14,17 @@ import { createContentSearcher } from './utils/searchUtil';
 import { splitFrontMatter } from './utils/tagUtil';
 import { escapeRegexExceptWildcard, buildExcludePredicate } from './utils/pathPattern';
 
-/** Module-level YAML parse cache: keyed by file path, cleared at the start of each search */
-let yamlCache: Map<string, Record<string, unknown> | null> = new Map();
+/** YAML parse cache: keyed by file path. Created per `searchFolder` invocation so
+ * concurrent searches never share (and corrupt) each other's cached parses. */
+type YamlCache = Map<string, Record<string, unknown> | null>;
 
 /**
  * Return the parsed front-matter YAML for a file, using the cache when possible.
  * Falls back to parsing `content` if `filePath` is not provided or not yet cached.
  */
-function getYaml(content: string, filePath?: string): Record<string, unknown> | null {
-  if (filePath !== undefined && yamlCache.has(filePath)) {
-    return yamlCache.get(filePath) as Record<string, unknown> | null;
+function getYaml(cache: YamlCache, content: string, filePath?: string): Record<string, unknown> | null {
+  if (filePath !== undefined && cache.has(filePath)) {
+    return cache.get(filePath) as Record<string, unknown> | null;
   }
   const parts = splitFrontMatter(content);
   let parsed: Record<string, unknown> | null = null;
@@ -35,7 +36,7 @@ function getYaml(content: string, filePath?: string): Record<string, unknown> | 
     }
   }
   if (filePath !== undefined) {
-    yamlCache.set(filePath, parsed);
+    cache.set(filePath, parsed);
   }
   return parsed;
 }
@@ -80,9 +81,9 @@ function wildcardToRegex(pattern: string): RegExp {
  * `propPath` supports dot-notation to drill into nested YAML objects.
  * `valType` can be "string" (default) or "ts" (parse value as a date, return ms number).
  */
-function createPropFunction(content: string, filePath?: string): (propPath: string, valType?: 'string' | 'ts') => unknown {
+function createPropFunction(cache: YamlCache, content: string, filePath?: string): (propPath: string, valType?: 'string' | 'ts') => unknown {
   return (propPath: string, valType?: 'string' | 'ts'): unknown => {
-    const parsed = getYaml(content, filePath);
+    const parsed = getYaml(cache, content, filePath);
     if (!parsed) return undefined;
     const keys = propPath.split('.');
     let current: unknown = parsed;
@@ -102,7 +103,8 @@ function createPropFunction(content: string, filePath?: string): (propPath: stri
  */
 export function createMatchPredicate(
   queryStr: string,
-  type: SearchType
+  type: SearchType,
+  cache: YamlCache = new Map()
 ): (content: string, filePath?: string) => MatchResult {
   if (type === 'advanced') {
     // Compile the user expression ONCE, when the predicate is created — not once
@@ -120,7 +122,7 @@ export function createMatchPredicate(
 
     return (content: string, filePath?: string) => {
       const { $, getMatchCount } = createContentSearcher(content);
-      const prop = createPropFunction(content, filePath);
+      const prop = createPropFunction(cache, content, filePath);
       try {
         const matches = Boolean(evalFunction($, past, future, today, prop));
         const matchCount = getMatchCount();
@@ -231,11 +233,11 @@ export async function searchFolder(
   searchImageExif = false,
   mostRecent = false,
 ): Promise<SearchResult[]> {
-  yamlCache = new Map();
+  const yamlCache: YamlCache = new Map();
   const results: SearchResult[] = [];
   const shouldExcludePath = buildExcludePredicate(ignoredPaths);
   const hasQuery = query.trim().length > 0;
-  const matchPredicate = hasQuery ? createMatchPredicate(query, searchType) : null;
+  const matchPredicate = hasQuery ? createMatchPredicate(query, searchType, yamlCache) : null;
 
   if (searchMode === 'filenames') {
     // Search file and folder names
