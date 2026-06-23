@@ -57,7 +57,6 @@ const initialState: AppState = {
   settings: defaultSettings,
   highlightItem: null,
   pendingEditFile: null,
-  pendingEditLineNumber: null,
   pendingEditView: null,
   directoryRefreshNonce: 0,
   highlightedSearchResult: null,

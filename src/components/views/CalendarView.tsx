@@ -99,7 +99,7 @@ export default function CalendarView() {
       }
       setHighlightItem(filePath);
       navigateToBrowserPath(folder, filePath);
-      setPendingEditFile(filePath, undefined, 'browser');
+      setPendingEditFile(filePath, 'browser');
       // Force BrowseView to re-read the directory so the new file is in entries
       // before the pending-edit handler fires — otherwise, if currentPath was
       // already the calendar folder, no reload would happen and the edit

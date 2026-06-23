@@ -133,9 +133,6 @@ export interface SearchResult {
   path: string;
   relativePath: string;
   matchCount: number;
-  lineNumber?: number;
-  lineText?: string;
-  extraLine?: string;
   modifiedTime?: number;
   createdTime?: number;
 }

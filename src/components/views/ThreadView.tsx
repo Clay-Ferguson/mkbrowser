@@ -12,7 +12,6 @@ import {
   usePendingThreadScrollToBottom,
   clearPendingThreadScrollToBottom,
   usePendingEditFile,
-  usePendingEditLineNumber,
   usePendingEditView,
   clearPendingEditFile,
   setItemExpanded,
@@ -43,7 +42,6 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const rootPath = useRootPath();
   const pendingScrollToBottom = usePendingThreadScrollToBottom();
   const pendingEditFile = usePendingEditFile();
-  const pendingEditLineNumber = usePendingEditLineNumber();
   const pendingEditView = usePendingEditView();
   const [threadEntries, setThreadEntries] = useState<ThreadEntry[]>([]);
   const [childFolders, setChildFolders] = useState<ThreadChildFolder[]>([]);
@@ -154,12 +152,11 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   useEffect(() => {
     if (loading || !pendingEditFile || pendingEditView !== 'thread') return;
 
-    const lineNumber = pendingEditLineNumber ?? undefined;
     const filePath = pendingEditFile;
     let scrollTimer: ReturnType<typeof setTimeout> | undefined;
     const timer = setTimeout(() => {
       setItemExpanded(filePath, true);
-      setItemEditing(filePath, true, lineNumber);
+      setItemEditing(filePath, true);
       clearPendingEditFile();
 
       // The editor (CodeMirror) takes up significant vertical space once it
@@ -176,7 +173,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
       clearTimeout(timer);
       if (scrollTimer !== undefined) clearTimeout(scrollTimer);
     };
-  }, [loading, pendingEditFile, pendingEditView, pendingEditLineNumber, mainContainerRef]);
+  }, [loading, pendingEditFile, pendingEditView, mainContainerRef]);
 
   // Navigate breadcrumb — switches to browser view at the given path
   const handleBreadcrumbNavigate = useCallback((path: string) => {

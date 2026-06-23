@@ -66,19 +66,19 @@ export function clearPendingScrollToHeadingSlug(): void {
 /**
  * Set a file to start editing after navigation completes
  * @param filePath - The full path of the file to edit
- * @param lineNumber - Optional 1-based line number to scroll to
+ * @param view - Which view should consume the pending edit (defaults to 'browser')
  */
-export function setPendingEditFile(filePath: string, lineNumber?: number, view?: AppView): void {
-  setState({ pendingEditFile: filePath, pendingEditLineNumber: lineNumber ?? null, pendingEditView: view ?? 'browser' });
+export function setPendingEditFile(filePath: string, view?: AppView): void {
+  setState({ pendingEditFile: filePath, pendingEditView: view ?? 'browser' });
 }
 
 /**
- * Clear the pending edit file and line number (call after editing starts)
+ * Clear the pending edit file (call after editing starts)
  */
 export function clearPendingEditFile(): void {
   const state = getState();
-  if (state.pendingEditFile === null && state.pendingEditLineNumber === null && state.pendingEditView === null) return;
-  setState({ pendingEditFile: null, pendingEditLineNumber: null, pendingEditView: null });
+  if (state.pendingEditFile === null && state.pendingEditView === null) return;
+  setState({ pendingEditFile: null, pendingEditView: null });
 }
 
 export function useDirectoryRefreshNonce(): number {
@@ -206,13 +206,6 @@ export function usePendingScrollToHeadingSlug(): string | null {
  */
 export function usePendingEditFile(): string | null {
   return useStoreValue(s => s.pendingEditFile);
-}
-
-/**
- * Hook to subscribe to pending edit line number
- */
-export function usePendingEditLineNumber(): number | null {
-  return useStoreValue(s => s.pendingEditLineNumber);
 }
 
 /**

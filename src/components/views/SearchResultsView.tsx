@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { clsx } from 'clsx';
 import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { api } from '../../services/api';
 import {
@@ -70,10 +69,10 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     xlarge: 'text-xl',
   }[settings.fontSize];
 
-  const handleResultClick = (resultPath: string, lineNumber?: number) => {
+  const handleResultClick = (resultPath: string) => {
     // Track this as the highlighted search result
-    setHighlightedSearchResult({ path: resultPath, lineNumber });
-    
+    setHighlightedSearchResult({ path: resultPath });
+
     // Extract the parent folder from the result path
     const folderPath = getParentPath(resultPath);
 
@@ -90,10 +89,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const folderName = getFileName(searchFolder) || searchFolder;
 
   // Helper function to check if a result is highlighted
-  const isHighlighted = (path: string, lineNumber?: number): boolean => {
+  const isHighlighted = (path: string): boolean => {
     if (!highlightedSearchResult) return false;
-    return highlightedSearchResult.path === path && 
-           highlightedSearchResult.lineNumber === lineNumber;
+    return highlightedSearchResult.path === path;
   };
 
   const handleDeleteClick = (e: React.MouseEvent, path: string) => {
@@ -102,11 +100,11 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     setDeleteTarget({ path, name: fileName });
   };
 
-  const handleEditClick = (e: React.MouseEvent, resultPath: string, lineNumber?: number) => {
+  const handleEditClick = (e: React.MouseEvent, resultPath: string) => {
     e.stopPropagation();
 
     // Track this as the highlighted search result
-    setHighlightedSearchResult({ path: resultPath, lineNumber });
+    setHighlightedSearchResult({ path: resultPath });
 
     // Extract the parent folder from the result path
     const folderPath = getParentPath(resultPath);
@@ -116,8 +114,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     navigateToBrowserPath(folderPath, resultPath);
 
     // Set the pending edit so App.tsx will start editing after items load
-    // Include the line number if available (for scrolling to the match)
-    setPendingEditFile(resultPath, lineNumber);
+    setPendingEditFile(resultPath);
   };
 
   const handleDeleteConfirm = async () => {
@@ -203,49 +200,25 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
             {/* Results list */}
             {sortedResults.map((result) => {
-              const highlighted = isHighlighted(result.path, result.lineNumber);
-              const borderClass = highlighted 
+              const highlighted = isHighlighted(result.path);
+              const borderClass = highlighted
                 ? 'border-2 border-purple-500' : 'border border-slate-700 hover:border-slate-600';
-              
+
               return (
               <div
-                key={`${result.path}-${result.lineNumber || 0}`}
-                onClick={() => handleResultClick(result.path, result.lineNumber)}
+                key={result.path}
+                onClick={() => handleResultClick(result.path)}
                 className={`bg-slate-800 rounded-lg ${borderClass} px-2 py-1.5 transition-colors cursor-pointer`}
               >
                 <div className="flex items-start gap-2">
                   {/* File icon */}
                   <DocumentTextIcon className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
 
-                  {/* File path with optional line number */}
+                  {/* File path */}
                   <div className="flex-1 min-w-0">
                     <div className="text-slate-200 flex flex-wrap items-center gap-x-2 gap-y-0.5 break-words" title={result.path}>
                       <span className="break-all">{result.relativePath}</span>
-                      {result.lineNumber && result.lineNumber > 0 && (
-                        <span className="text-sm text-amber-400">:{result.lineNumber}</span>
-                      )}
                     </div>
-                    {/* Show matching line text if available */}
-                    {result.lineText && (
-                      <div
-                        className={clsx(
-                          'text-sm truncate mt-0.5 font-mono',
-                          /#p1\b/i.test(result.lineText) ? 'text-orange-400' :
-                          /#p2\b/i.test(result.lineText) ? 'text-yellow-400' :
-                          /#p3\b/i.test(result.lineText) ? 'text-blue-400' :
-                          'text-slate-400',
-                        )}
-                        title={result.lineText}
-                      >
-                        {result.lineText}
-                      </div>
-                    )}
-                    {/* Show extra context line below match if available */}
-                    {result.extraLine && (
-                      <div className="text-sm text-slate-500 truncate font-mono" title={result.extraLine}>
-                        ↳ {result.extraLine}
-                      </div>
-                    )}
                   </div>
 
                   {/* Match count */}
@@ -256,7 +229,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                   {/* Edit button */}
                   <button
                     type="button"
-                    onClick={(e) => handleEditClick(e, result.path, result.lineNumber)}
+                    onClick={(e) => handleEditClick(e, result.path)}
                     className={BUTTON_CLASS_BLUE}
                     title="Edit file"
                   >

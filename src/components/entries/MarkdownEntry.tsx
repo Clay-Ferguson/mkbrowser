@@ -185,7 +185,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         } else {
           navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
         }
-        setPendingEditFile(result.filePath, undefined, view);
+        setPendingEditFile(result.filePath, view);
       }
     } finally {
       setIsReplyLoading(false);

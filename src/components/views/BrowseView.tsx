@@ -58,7 +58,6 @@ import {
   useCurrentPath,
   usePendingScrollToFile,
   usePendingEditFile,
-  usePendingEditLineNumber,
   usePendingEditView,
   usePendingScrollToHeadingSlug,
   clearPendingScrollToHeadingSlug,
@@ -190,7 +189,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const pendingScrollToFile = usePendingScrollToFile();
   const pendingScrollToHeadingSlug = usePendingScrollToHeadingSlug();
   const pendingEditFile = usePendingEditFile();
-  const pendingEditLineNumber = usePendingEditLineNumber();
   const pendingEditView = usePendingEditView();
   const settings = useSettings();
   const expansionCounts = useExpansionCounts();
@@ -304,16 +302,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
         // Handle pending edit (e.g., from search results edit button)
         if (pendingEditFile && pendingEditView === 'browser') {
-          const lineNumber = pendingEditLineNumber ?? undefined;
           setTimeout(() => {
             setItemExpanded(pendingEditFile, true);
-            setItemEditing(pendingEditFile, true, lineNumber);
+            setItemEditing(pendingEditFile, true);
             clearPendingEditFile();
           }, 100);
         }
       }, 100);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: pendingEditLineNumber is always set in tandem with pendingEditFile (already a dep), so the effect already re-fires when it meaningfully changes
   }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, currentPath, currentView]);
 
   const generateExportFileName = (currentPath: string | null): string => {
@@ -796,7 +792,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         } else {
           const view = 'thread';
           navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
-          setPendingEditFile(result.filePath, undefined, view);
+          setPendingEditFile(result.filePath, view);
           // The new HUMAN.md is created directly in the current folder, so
           // currentPath doesn't change and BrowseView's load effect won't
           // re-fire on its own. Refresh explicitly so the file appears when

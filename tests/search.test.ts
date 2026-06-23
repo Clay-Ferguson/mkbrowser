@@ -607,6 +607,24 @@ describe('result metadata', () => {
     }
   });
 
+  it('results expose only the documented fields (no never-populated line-context fields)', async () => {
+    // searchFolder is whole-file: it never computes per-line context. The
+    // SearchResult contract was trimmed to match (issue 007), so results must
+    // not carry lineNumber / lineText / extraLine keys for any search mode.
+    const literal = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    const filenames = await searchFolder(TEST_DATA_DIR, 'readme', 'literal', 'filenames');
+    expect(literal.length).toBeGreaterThan(0);
+    expect(filenames.length).toBeGreaterThan(0);
+
+    const allowedKeys = new Set(['path', 'relativePath', 'matchCount', 'modifiedTime', 'createdTime']);
+    for (const r of [...literal, ...filenames]) {
+      expect(Object.keys(r).every(k => allowedKeys.has(k))).toBe(true);
+      expect('lineNumber' in r).toBe(false);
+      expect('lineText' in r).toBe(false);
+      expect('extraLine' in r).toBe(false);
+    }
+  });
+
   it('relativePath is relative to the searched folder root', async () => {
     const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
     expect(results.length).toBeGreaterThan(0);

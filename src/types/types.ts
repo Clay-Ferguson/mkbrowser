@@ -169,9 +169,6 @@ export interface SearchResultItem {
   path: string;
   relativePath: string;
   matchCount: number;
-  lineNumber?: number; // 1-based line number (0 or undefined for entire file matches)
-  lineText?: string; // The matching line text (only for line-by-line search)
-  extraLine?: string; // First non-empty line below match that isn't itself a match
   modifiedTime?: number; // File modification timestamp (milliseconds since epoch)
   createdTime?: number; // File creation timestamp (milliseconds since epoch)
 }
@@ -219,7 +216,7 @@ export type SearchSortDirection = 'asc' | 'desc';
 /**
  * A search result marked for persistent highlighting (path + optional line).
  */
-export type HighlightedSearchResult = { path: string; lineNumber?: number };
+export type HighlightedSearchResult = { path: string };
 
 /**
  * The selectable calendar views (month/week/work-week/day/agenda).
@@ -415,19 +412,13 @@ export interface AppState {
   pendingEditFile: string | null;
 
   /**
-   * Line number to scroll to when editing starts (1-based).
-   * Used with pendingEditFile when navigating from search results.
-   */
-  pendingEditLineNumber: number | null;
-
-  /**
    * Which view should consume the pending edit.
    * Set alongside pendingEditFile so only the correct view acts on it.
    */
   pendingEditView: AppView | null;
 
   /**
-   * Path and line number of the highlighted search result.
+   * Path of the highlighted search result.
    * Used to highlight the result when returning to search results view.
    */
   highlightedSearchResult: HighlightedSearchResult | null;
