@@ -2,6 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fdir } from 'fdir';
 import { escapeRegexLiteral } from './utils/pathPattern';
+import { mapWithConcurrency } from './utils/asyncUtil';
+
+/** Max number of files read/written concurrently during a search-and-replace.
+ * Bounded so huge trees don't exhaust file descriptors (EMFILE) while still
+ * overlapping I/O. Mirrors SEARCH_FILE_CONCURRENCY in search.ts. */
+const REPLACE_FILE_CONCURRENCY = 32;
 
 export interface ReplaceResult {
   path: string;
@@ -59,40 +65,53 @@ export async function searchAndReplace(
   const escapedSearch = escapeRegexLiteral(searchText);
   const searchRegex = new RegExp(escapedSearch, 'g');
 
-  // Process each file
-  for (const filePath of files) {
-    try {
-      const content = await fs.promises.readFile(filePath, 'utf-8');
-      
-      // Count how many replacements will be made
-      const matches = content.match(searchRegex);
-      const replacementCount = matches ? matches.length : 0;
+  // Process files with bounded concurrency so independent disk I/O overlaps
+  // without exhausting file descriptors (see REPLACE_FILE_CONCURRENCY). The
+  // try/catch stays INSIDE the callback and never rethrows: mapWithConcurrency
+  // fails fast on a thrown error, but here every file must be reported
+  // independently, so a single unreadable/unwritable file yields a
+  // `success: false` result instead of aborting the whole batch.
+  // Files with zero replacements return null and are filtered out below,
+  // matching the prior "only push when replacementCount > 0" behavior.
+  const fileResults = await mapWithConcurrency(
+    files,
+    REPLACE_FILE_CONCURRENCY,
+    async (filePath): Promise<ReplaceResult | null> => {
+      try {
+        const content = await fs.promises.readFile(filePath, 'utf-8');
 
-      if (replacementCount > 0) {
-        // Perform the replacement
+        // Count how many replacements will be made
+        const matches = content.match(searchRegex);
+        const replacementCount = matches ? matches.length : 0;
+
+        if (replacementCount === 0) {
+          return null;
+        }
+
+        // Perform the replacement and write the modified content back
         const newContent = content.replace(searchRegex, replaceText);
-        
-        // Write the modified content back to the file
         await fs.promises.writeFile(filePath, newContent, 'utf-8');
 
-        const relativePath = path.relative(folderPath, filePath);
-        results.push({
+        return {
           path: filePath,
-          relativePath,
+          relativePath: path.relative(folderPath, filePath),
           replacementCount,
           success: true,
-        });
+        };
+      } catch (err) {
+        return {
+          path: filePath,
+          relativePath: path.relative(folderPath, filePath),
+          replacementCount: 0,
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        };
       }
-    } catch (err) {
-      const relativePath = path.relative(folderPath, filePath);
-      results.push({
-        path: filePath,
-        relativePath,
-        replacementCount: 0,
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+    },
+  );
+
+  for (const r of fileResults) {
+    if (r) results.push(r);
   }
 
   return results;
