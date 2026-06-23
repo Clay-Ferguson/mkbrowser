@@ -3,6 +3,7 @@ import { joinFiles as joinFilesUtil } from './fileSplitJoin/joinUtil';
 import { splitFile as splitFileUtil } from './fileSplitJoin/splitUtil';
 import type { FileOps } from './fileSplitJoin/fileOps';
 import { getParentPath, joinPath } from './pathUtil';
+import { toErrorMessage } from './errorUtil';
 
 /**
  * Find cut items that come from different folders than the first cut item
@@ -18,22 +19,47 @@ export function findCutItemsFromDifferentFolders(cutItems: ItemData[]): string[]
 }
 
 /**
- * Find which cut items would create duplicates in the destination folder
+ * Result of a destination duplicate check.
+ */
+export interface DuplicateCheckResult {
+  /** Names of cut items whose destination path already exists. */
+  duplicates: string[];
+  /**
+   * Set when an existence check itself failed (the injected op rejected). When
+   * present the caller must abort the paste rather than proceed.
+   */
+  error?: string;
+}
+
+/**
+ * Find which cut items would create duplicates in the destination folder.
+ *
+ * A `pathExists` rejection (e.g. the IPC call throws) is converted into a hard
+ * error rather than being swallowed as "does not exist": treating a failed
+ * existence check as absent would risk a later `renameFile` silently
+ * overwriting a real file at the destination.
  */
 export async function findPasteDuplicates(
   cutItems: ItemData[],
   destinationPath: string,
   pathExists: (path: string) => Promise<boolean>
-): Promise<string[]> {
-  const duplicateNames = await Promise.all(
-    cutItems.map(async (item) => {
-      const destPath = joinPath(destinationPath, item.name);
-      const exists = await pathExists(destPath);
-      return exists ? item.name : null;
-    })
-  );
+): Promise<DuplicateCheckResult> {
+  try {
+    const duplicateNames = await Promise.all(
+      cutItems.map(async (item) => {
+        const destPath = joinPath(destinationPath, item.name);
+        const exists = await pathExists(destPath);
+        return exists ? item.name : null;
+      })
+    );
 
-  return duplicateNames.filter((name): name is string => Boolean(name));
+    return { duplicates: duplicateNames.filter((name): name is string => Boolean(name)) };
+  } catch (err) {
+    return {
+      duplicates: [],
+      error: `Failed to check destination for existing files: ${toErrorMessage(err)}`,
+    };
+  }
 }
 
 /**
@@ -82,11 +108,15 @@ export async function pasteCutItems(
   }
 
   // Check for duplicates in destination
-  const duplicates = await findPasteDuplicates(cutItems, destinationPath, pathExists);
-  if (duplicates.length > 0) {
+  const dupResult = await findPasteDuplicates(cutItems, destinationPath, pathExists);
+  if (dupResult.error) {
+    // The existence check failed; abort rather than risk overwriting a real file.
+    return { success: false, error: dupResult.error, movedPaths: [] };
+  }
+  if (dupResult.duplicates.length > 0) {
     return {
       success: false,
-      error: `Cannot paste. These items already exist: ${duplicates.join(', ')}`,
+      error: `Cannot paste. These items already exist: ${dupResult.duplicates.join(', ')}`,
       movedPaths: [],
     };
   }
@@ -97,7 +127,15 @@ export async function pasteCutItems(
   const movedPaths: string[] = [];
   for (const item of cutItems) {
     const newPath = joinPath(destinationPath, item.name);
-    const success = await renameFile(item.path, newPath);
+    let success = false;
+    try {
+      success = await renameFile(item.path, newPath);
+    } catch (err) {
+      // A rejected rename (e.g. EPERM/EBUSY from the main process) is reported as
+      // a failure for this item; already-moved items are still returned so the
+      // caller can reconcile the store/index.
+      return { success: false, error: `Failed to move ${item.name}: ${toErrorMessage(err)}`, movedPaths };
+    }
     if (!success) {
       return { success: false, error: `Failed to move ${item.name}`, movedPaths };
     }

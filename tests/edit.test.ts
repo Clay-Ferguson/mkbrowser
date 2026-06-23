@@ -64,7 +64,8 @@ describe('findPasteDuplicates', () => {
     const items = [makeItem('/src/a.md', 'a.md'), makeItem('/src/b.md', 'b.md')];
     const pathExists = async (_p: string) => false;
     const result = await findPasteDuplicates(items, '/dest', pathExists);
-    expect(result).toEqual([]);
+    expect(result.error).toBeUndefined();
+    expect(result.duplicates).toEqual([]);
   });
 
   it('returns names of items that already exist in the destination', async () => {
@@ -72,14 +73,27 @@ describe('findPasteDuplicates', () => {
     // Only /dest/a.md exists
     const pathExists = async (p: string) => p === '/dest/a.md';
     const result = await findPasteDuplicates(items, '/dest', pathExists);
-    expect(result).toEqual(['a.md']);
+    expect(result.duplicates).toEqual(['a.md']);
   });
 
   it('returns all names when every destination path exists', async () => {
     const items = [makeItem('/src/x.md', 'x.md'), makeItem('/src/y.md', 'y.md')];
     const pathExists = async (_p: string) => true;
     const result = await findPasteDuplicates(items, '/dest', pathExists);
-    expect(result).toEqual(['x.md', 'y.md']);
+    expect(result.duplicates).toEqual(['x.md', 'y.md']);
+  });
+
+  it('reports a hard error (and no duplicates) when pathExists rejects', async () => {
+    const items = [makeItem('/src/a.md', 'a.md'), makeItem('/src/b.md', 'b.md')];
+    // A rejecting existence check must NOT be swallowed as "does not exist",
+    // since that would risk a later rename overwriting a real file.
+    const pathExists = async (_p: string) => {
+      throw new Error('EPERM');
+    };
+    const result = await findPasteDuplicates(items, '/dest', pathExists);
+    expect(result.duplicates).toEqual([]);
+    expect(result.error).toMatch(/check destination/i);
+    expect(result.error).toMatch(/EPERM/);
   });
 });
 
@@ -191,6 +205,42 @@ describe('pasteCutItems', () => {
     const result = await pasteCutItems([], '/dest', async () => false, async () => true);
     expect(result.success).toBe(true);
     expect(result.movedPaths).toEqual([]);
+  });
+
+  it('aborts with a structured error when pathExists rejects (no overwrite risk)', async () => {
+    const items = [makeItem('/docs/a.md', 'a.md')];
+    const pathExists = async (_p: string) => {
+      throw new Error('EPERM');
+    };
+    let renameCalled = false;
+    const renameFile = async (_old: string, _new: string) => {
+      renameCalled = true;
+      return true;
+    };
+    const result = await pasteCutItems(items, '/dest', pathExists, renameFile);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/check destination/i);
+    expect(result.movedPaths).toEqual([]);
+    // The duplicate check failed, so we must never have attempted a rename.
+    expect(renameCalled).toBe(false);
+  });
+
+  it('returns a structured error when renameFile rejects, preserving already-moved paths', async () => {
+    const items = [
+      makeItem('/docs/a.md', 'a.md'),
+      makeItem('/docs/b.md', 'b.md'),
+    ];
+    // a.md moves; b.md's rename throws (e.g. EBUSY from the main process).
+    const renameFile = async (oldPath: string, _new: string) => {
+      if (oldPath === '/docs/b.md') throw new Error('EBUSY');
+      return true;
+    };
+    const result = await pasteCutItems(items, '/dest', async () => false, renameFile);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/failed to move b\.md/i);
+    expect(result.error).toMatch(/EBUSY/);
+    // a.md physically moved before the rejection and must be reported.
+    expect(result.movedPaths).toEqual(['/docs/a.md']);
   });
 });
 

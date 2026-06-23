@@ -15,6 +15,7 @@ import {
 import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
 import { pasteFromClipboard } from './clipboard';
 import { getParentPath, joinPath } from './pathUtil';
+import { toErrorMessage } from './errorUtil';
 
 /**
  * Error-callback signature shared by every file operation in this module.
@@ -24,11 +25,6 @@ type SetError = (e: string | null) => void;
 
 /** Delay before expanding a freshly pasted item, giving the refresh time to render it. */
 const EXPAND_AFTER_PASTE_DELAY_MS = 200;
-
-/** Normalizes a thrown value into a human-readable error message. */
-function toErrorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 /**
  * Moves all cut items in the store into the given folder, then reconciles the index
@@ -388,7 +384,7 @@ export async function runOcr(
       onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
     }
   } catch (err: unknown) {
-    onSetError('Failed to launch OCR terminal: ' + (err instanceof Error ? err.message : String(err)));
+    onSetError('Failed to launch OCR terminal: ' + toErrorMessage(err));
   }
 }
 
