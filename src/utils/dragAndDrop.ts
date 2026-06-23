@@ -1,9 +1,9 @@
 import type React from 'react';
 import { api } from '../services/api';
-import type { ItemData, FileNode } from '../types/types';
+import type { FileNode } from '../types/types';
 import { pasteCutItems } from './edit';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
-import { ensureTrailingSep, getParentPath } from './pathUtil';
+import { getParentPath, isPathInside } from './pathUtil';
 import { ATTACH_SUFFIX } from './specialFiles';
 
 /**
@@ -72,7 +72,9 @@ export function canDropInto(payload: DragPayload, destFolder: string): boolean {
   if (payload.path === destFolder) return false;
   const sourceFolder = getParentPath(payload.path);
   if (sourceFolder === destFolder) return false;
-  if (payload.isDirectory && destFolder.startsWith(ensureTrailingSep(payload.path))) return false;
+  // Boundary-correct, separator-aware descendant check (shared with pasteCutItems);
+  // avoids the startsWith bug where '.../projects-archive' looks "inside" '.../projects'.
+  if (payload.isDirectory && isPathInside(payload.path, destFolder)) return false;
   return true;
 }
 
@@ -87,10 +89,10 @@ export function canDropInto(payload: DragPayload, destFolder: string): boolean {
 export async function moveEntryIntoFolder(payload: DragPayload, destFolder: string): Promise<MoveResult> {
   const sourceFolder = getParentPath(payload.path);
 
-  // pasteCutItems only reads .path and .name; a minimal synthetic item is sufficient.
-  const item = { path: payload.path, name: payload.name, isDirectory: payload.isDirectory } as ItemData;
+  // pasteCutItems only reads .path, .name and .isDirectory; the DragPayload already
+  // provides exactly those fields, so it satisfies the narrowed parameter type directly.
   const result = await pasteCutItems(
-    [item],
+    [payload],
     destFolder,
     api.pathExists,
     api.renameFile

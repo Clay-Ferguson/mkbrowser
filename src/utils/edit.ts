@@ -2,13 +2,34 @@ import type { ItemData } from '../types/types';
 import { joinFiles as joinFilesUtil } from './fileSplitJoin/joinUtil';
 import { splitFile as splitFileUtil } from './fileSplitJoin/splitUtil';
 import type { FileOps } from './fileSplitJoin/fileOps';
-import { getParentPath, joinPath } from './pathUtil';
+import { getParentPath, joinPath, isPathInside } from './pathUtil';
 import { toErrorMessage } from './errorUtil';
+import { isTextFile, isMarkdownFile } from './fileTypes';
+
+/**
+ * Whether a file is eligible for the split/join operations. Reuses the canonical
+ * file-type predicates from `fileTypes.ts` (the same source of truth used across
+ * the app) rather than re-testing `.txt`/`.md` literals inline, so the set of
+ * "openable as text" files stays consistent with what split/join will accept.
+ * Both predicates match case-insensitively, so no `.toLowerCase()` is needed.
+ */
+function isSplittableJoinable(name: string): boolean {
+  return isTextFile(name) || isMarkdownFile(name);
+}
+
+/**
+ * The minimal subset of `ItemData` the move/paste primitives actually read. Using
+ * a structural `Pick` (rather than the full `ItemData`) lets callers like the
+ * drag-and-drop path pass a synthetic `{ path, name, isDirectory }` object without
+ * fabricating store-specific fields or casting. Real `ItemData` remains assignable
+ * as a structural superset.
+ */
+type CutItem = Pick<ItemData, 'path' | 'name' | 'isDirectory'>;
 
 /**
  * Find cut items that come from different folders than the first cut item
  */
-export function findCutItemsFromDifferentFolders(cutItems: ItemData[]): string[] {
+export function findCutItemsFromDifferentFolders(cutItems: Pick<ItemData, 'path' | 'name'>[]): string[] {
   if (cutItems.length === 0) return [];
 
   const baseFolder = getParentPath(cutItems[0].path);
@@ -40,7 +61,7 @@ export interface DuplicateCheckResult {
  * overwriting a real file at the destination.
  */
 export async function findPasteDuplicates(
-  cutItems: ItemData[],
+  cutItems: Pick<ItemData, 'name'>[],
   destinationPath: string,
   pathExists: (path: string) => Promise<boolean>
 ): Promise<DuplicateCheckResult> {
@@ -82,7 +103,7 @@ export interface PasteResult {
  * Paste cut items to the destination folder
  */
 export async function pasteCutItems(
-  cutItems: ItemData[],
+  cutItems: CutItem[],
   destinationPath: string,
   pathExists: (path: string) => Promise<boolean>,
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>
@@ -95,6 +116,22 @@ export async function pasteCutItems(
   const sourceFolder = getParentPath(cutItems[0].path);
   if (sourceFolder === destinationPath) {
     return { success: false, error: 'Cannot paste. Cut items are already in this folder.', movedPaths: [] };
+  }
+
+  // Reject moving a folder into itself or one of its own descendants. fs.rename
+  // would reject this on most platforms, but only with a generic, platform-
+  // dependent error and after partially mutating global state — so guard here,
+  // before any rename is attempted. isPathInside is separator-aware and avoids
+  // the startsWith boundary bug ('/notes/projects-archive' is a sibling of
+  // '/notes/projects', not a descendant).
+  for (const item of cutItems) {
+    if (item.isDirectory && isPathInside(item.path, destinationPath)) {
+      return {
+        success: false,
+        error: `Cannot move "${item.name}" into itself or one of its subfolders.`,
+        movedPaths: [],
+      };
+    }
   }
 
   // Check for items from different folders
@@ -169,7 +206,7 @@ export interface DeleteResult {
  * and every failure is reported via `failedItems`, even when some succeed.
  */
 export async function deleteSelectedItems(
-  selectedItems: ItemData[],
+  selectedItems: Pick<ItemData, 'path' | 'name'>[],
   deleteFile: (path: string) => Promise<boolean>
 ): Promise<DeleteResult> {
   const deletedPaths: string[] = [];
@@ -223,10 +260,9 @@ export async function performSplitFile(
     return { success: false, error: 'Cannot split a folder. Please select a text or markdown file.' };
   }
 
-  // Check that the file is a .txt or .md file
-  const fileName = selectedItem.name.toLowerCase();
-  if (!fileName.endsWith('.txt') && !fileName.endsWith('.md')) {
-    return { success: false, error: 'Split is only available for text (.txt) and markdown (.md) files.' };
+  // Check that the file is a text or markdown file
+  if (!isSplittableJoinable(selectedItem.name)) {
+    return { success: false, error: 'Split is only available for text and markdown files.' };
   }
 
   // Perform the split operation
@@ -260,14 +296,13 @@ export async function performJoinFiles(
     return { success: false, error: 'Please select at least two files to join.' };
   }
 
-  // Check that all selected items are files (not folders) and are .txt or .md files
+  // Check that all selected items are files (not folders) and are text/markdown files
   for (const item of selectedItems) {
     if (item.isDirectory) {
       return { success: false, error: `Cannot join folders. "${item.name}" is a folder.` };
     }
-    const fileName = item.name.toLowerCase();
-    if (!fileName.endsWith('.txt') && !fileName.endsWith('.md')) {
-      return { success: false, error: `Join is only available for text (.txt) and markdown (.md) files. "${item.name}" is not supported.` };
+    if (!isSplittableJoinable(item.name)) {
+      return { success: false, error: `Join is only available for text and markdown files. "${item.name}" is not supported.` };
     }
   }
 

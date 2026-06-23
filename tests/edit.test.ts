@@ -114,6 +114,53 @@ describe('pasteCutItems', () => {
     expect(result.error).toMatch(/already in this folder/i);
   });
 
+  it('rejects moving a folder into itself', async () => {
+    const items = [makeItem('/notes/projects', 'projects', true)];
+    let renameCalled = false;
+    const renameFile = async (_old: string, _new: string) => {
+      renameCalled = true;
+      return true;
+    };
+    const result = await pasteCutItems(items, '/notes/projects', async () => false, renameFile);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/itself or one of its subfolders/i);
+    expect(result.movedPaths).toEqual([]);
+    // The guard must fire before any rename is attempted.
+    expect(renameCalled).toBe(false);
+  });
+
+  it('rejects moving a folder into a direct child', async () => {
+    const items = [makeItem('/notes/projects', 'projects', true)];
+    const result = await pasteCutItems(items, '/notes/projects/sub', async () => false, async () => true);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/itself or one of its subfolders/i);
+    expect(result.movedPaths).toEqual([]);
+  });
+
+  it('rejects moving a folder into a deep descendant', async () => {
+    const items = [makeItem('/notes/projects', 'projects', true)];
+    const result = await pasteCutItems(items, '/notes/projects/a/b/c', async () => false, async () => true);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/itself or one of its subfolders/i);
+    expect(result.movedPaths).toEqual([]);
+  });
+
+  it('allows moving a folder into a sibling whose path shares a prefix (no startsWith false positive)', async () => {
+    // '/notes/projects-archive' starts with '/notes/projects' textually but is a
+    // sibling, not a descendant, so the move must be allowed.
+    const items = [makeItem('/notes/projects', 'projects', true)];
+    const result = await pasteCutItems(items, '/notes/projects-archive', async () => false, async () => true);
+    expect(result.success).toBe(true);
+    expect(result.movedPaths).toEqual(['/notes/projects']);
+  });
+
+  it('does not apply the descendant guard to non-directory items', async () => {
+    // A file named the same way must not be blocked by the folder guard.
+    const items = [makeItem('/notes/projects.md', 'projects.md', false)];
+    const result = await pasteCutItems(items, '/notes/projects.md/whatever', async () => false, async () => true);
+    expect(result.success).toBe(true);
+  });
+
   it('returns error when cut items come from different folders', async () => {
     const items = [
       makeItem('/docs/a.md', 'a.md'),
@@ -345,11 +392,31 @@ describe('performSplitFile (validation)', () => {
     expect(result.error).toMatch(/folder/i);
   });
 
-  it('returns error when selected file is not .md or .txt', async () => {
+  it('returns error when selected file is not a text/markdown type', async () => {
     const items = [makeItem('/docs/image.png', 'image.png')];
     const result = await performSplitFile(items, noopOps);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/text|markdown/i);
+  });
+
+  // Ops that read back content containing a split point, so a file that passes
+  // the type validation actually reaches and completes the split operation.
+  const splittableOps = {
+    ...noopOps,
+    readFile: async (_p: string) => 'alpha\n\n\nbeta',
+  };
+
+  it('accepts an uppercase-extension markdown file (case-insensitive)', async () => {
+    const items = [makeItem('/docs/notes.MD', 'notes.MD')];
+    const result = await performSplitFile(items, splittableOps);
+    // Passes validation and reaches the split op, which succeeds.
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a code file the app treats as text (e.g. .ts), staying consistent with the rest of the app', async () => {
+    const items = [makeItem('/docs/script.ts', 'script.ts')];
+    const result = await performSplitFile(items, splittableOps);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -380,7 +447,7 @@ describe('performJoinFiles (validation)', () => {
     expect(result.error).toMatch(/folder/i);
   });
 
-  it('returns error when a selected file is not .md or .txt', async () => {
+  it('returns error when a selected file is not a text/markdown type', async () => {
     const items = [
       makeItem('/docs/a.md', 'a.md'),
       makeItem('/docs/b.csv', 'b.csv'),
@@ -388,6 +455,18 @@ describe('performJoinFiles (validation)', () => {
     const result = await performJoinFiles(items, noopOps);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/not supported/i);
+  });
+
+  it('accepts mixed-case and code-file extensions the app treats as text', async () => {
+    // .MD (uppercase markdown), .txt, and .ts (a code type fileTypes.ts counts
+    // as text) must all pass validation and reach the join op, which succeeds.
+    const items = [
+      makeItem('/docs/a.MD', 'a.MD'),
+      makeItem('/docs/b.txt', 'b.txt'),
+      makeItem('/docs/c.ts', 'c.ts'),
+    ];
+    const result = await performJoinFiles(items, noopOps);
+    expect(result.success).toBe(true);
   });
 });
 
