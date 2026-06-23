@@ -5,6 +5,15 @@ import type { FileOps } from './fileSplitJoin/fileOps';
 import { getParentPath, joinPath, isPathInside } from './pathUtil';
 import { toErrorMessage } from './errorUtil';
 import { isTextFile, isMarkdownFile } from './fileTypes';
+import { mapWithConcurrency } from './asyncUtil';
+
+/**
+ * Bound on how many filesystem operations (rename/delete/existence checks) run
+ * concurrently. libuv's fs threadpool defaults to 4 threads, so values far above
+ * that give diminishing returns; 16 keeps large multi-selects well-bounded
+ * without serializing every round-trip.
+ */
+const FILE_OP_CONCURRENCY = 16;
 
 /**
  * Whether a file is eligible for the split/join operations. Reuses the canonical
@@ -66,13 +75,11 @@ export async function findPasteDuplicates(
   pathExists: (path: string) => Promise<boolean>
 ): Promise<DuplicateCheckResult> {
   try {
-    const duplicateNames = await Promise.all(
-      cutItems.map(async (item) => {
-        const destPath = joinPath(destinationPath, item.name);
-        const exists = await pathExists(destPath);
-        return exists ? item.name : null;
-      })
-    );
+    const duplicateNames = await mapWithConcurrency(cutItems, FILE_OP_CONCURRENCY, async (item) => {
+      const destPath = joinPath(destinationPath, item.name);
+      const exists = await pathExists(destPath);
+      return exists ? item.name : null;
+    });
 
     return { duplicates: duplicateNames.filter((name): name is string => name !== null) };
   } catch (err) {
@@ -163,25 +170,35 @@ export async function pasteCutItems(
     };
   }
 
-  // Move each item sequentially. This is not atomic: on a mid-loop failure the
-  // items already moved stay moved, so we report them via movedPaths and let the
-  // caller reconcile rather than leaving the store/index out of sync with disk.
-  const movedPaths: string[] = [];
-  for (const item of cutItems) {
+  // Move items with bounded concurrency rather than one-at-a-time: the renames
+  // are mutually independent (duplicates were pre-checked above), so serializing
+  // hundreds of IPC round-trips would needlessly stall a large multi-select.
+  // This is best-effort and not atomic: every item is attempted regardless of
+  // earlier failures, and the items that did move are reported via movedPaths so
+  // the caller can reconcile the store/index rather than desyncing on the first
+  // failure. A rejected rename (e.g. EPERM/EBUSY from the main process) is
+  // caught and treated as a failure for that item.
+  const outcomes = await mapWithConcurrency(cutItems, FILE_OP_CONCURRENCY, async (item) => {
     const newPath = joinPath(destinationPath, item.name);
-    let success = false;
     try {
-      success = await renameFile(item.path, newPath);
+      return { item, ok: await renameFile(item.path, newPath) };
     } catch (err) {
-      // A rejected rename (e.g. EPERM/EBUSY from the main process) is reported as
-      // a failure for this item; already-moved items are still returned so the
-      // caller can reconcile the store/index.
-      return { success: false, error: `Failed to move ${item.name}: ${toErrorMessage(err)}`, movedPaths };
+      return { item, ok: false, error: toErrorMessage(err) };
     }
-    if (!success) {
-      return { success: false, error: `Failed to move ${item.name}`, movedPaths };
-    }
-    movedPaths.push(item.path);
+  });
+
+  // movedPaths preserves selection order: mapWithConcurrency returns results in
+  // input order, and filtering keeps that order.
+  const movedPaths = outcomes.filter((o) => o.ok).map((o) => o.item.path);
+  const failures = outcomes.filter((o) => !o.ok);
+
+  if (failures.length > 0) {
+    const first = failures[0];
+    const error =
+      failures.length === 1
+        ? `Failed to move ${first.error ? `${first.item.name}: ${first.error}` : first.item.name}`
+        : `Failed to move ${failures.length} items: ${failures.map((f) => f.item.name).join(', ')}`;
+    return { success: false, error, movedPaths };
   }
 
   return {
@@ -209,27 +226,26 @@ export interface DeleteResult {
  * single locked/permission-denied item never blocks the rest of the batch.
  * Deletions that succeed are reported via `deletedPaths` (in selection order)
  * and every failure is reported via `failedItems`, even when some succeed.
+ *
+ * The independent deletes run with bounded concurrency rather than one-at-a-time
+ * so a large multi-select doesn't serialize hundreds of IPC round-trips.
  */
 export async function deleteSelectedItems(
   selectedItems: Pick<ItemData, 'path' | 'name'>[],
   deleteFile: (path: string) => Promise<boolean>
 ): Promise<DeleteResult> {
-  const deletedPaths: string[] = [];
-  const failedItems: string[] = [];
-
-  for (const item of selectedItems) {
-    let ok = false;
+  const outcomes = await mapWithConcurrency(selectedItems, FILE_OP_CONCURRENCY, async (item) => {
     try {
-      ok = await deleteFile(item.path);
+      return { item, ok: await deleteFile(item.path) };
     } catch {
-      ok = false;
+      return { item, ok: false };
     }
-    if (ok) {
-      deletedPaths.push(item.path);
-    } else {
-      failedItems.push(item.name);
-    }
-  }
+  });
+
+  // Both arrays preserve selection order: mapWithConcurrency returns results in
+  // input order, and filtering keeps that order.
+  const deletedPaths = outcomes.filter((o) => o.ok).map((o) => o.item.path);
+  const failedItems = outcomes.filter((o) => !o.ok).map((o) => o.item.name);
 
   return { success: failedItems.length === 0, deletedPaths, failedItems };
 }

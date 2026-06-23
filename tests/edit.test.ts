@@ -244,23 +244,25 @@ describe('pasteCutItems', () => {
     expect(result.movedPaths).toEqual(['/docs/a.md', '/docs/b.md']);
   });
 
-  it('stops at the first failure and does not move subsequent items', async () => {
+  it('is best-effort: attempts every item even when the first one fails', async () => {
     const items = [
       makeItem('/docs/a.md', 'a.md'),
       makeItem('/docs/b.md', 'b.md'),
       makeItem('/docs/c.md', 'c.md'),
     ];
     const attempted: string[] = [];
-    // The very first rename fails.
+    // The first item fails; b.md and c.md still succeed (no short-circuit).
     const renameFile = async (oldPath: string, _new: string) => {
       attempted.push(oldPath);
-      return false;
+      return oldPath !== '/docs/a.md';
     };
     const result = await pasteCutItems(items, '/dest', async () => false, renameFile);
     expect(result.success).toBe(false);
-    expect(result.movedPaths).toEqual([]);
-    // Loop short-circuits after the first failed rename.
-    expect(attempted).toEqual(['/docs/a.md']);
+    expect(result.error).toMatch(/failed to move a\.md/i);
+    // Every item is attempted; ordering is not guaranteed under concurrency.
+    expect(new Set(attempted)).toEqual(new Set(['/docs/a.md', '/docs/b.md', '/docs/c.md']));
+    // The two that succeeded are reported as moved, in selection order.
+    expect(result.movedPaths).toEqual(['/docs/b.md', '/docs/c.md']);
   });
 
   it('reports an empty movedPaths on success with no items', async () => {
@@ -304,6 +306,34 @@ describe('pasteCutItems', () => {
     // a.md physically moved before the rejection and must be reported.
     expect(result.movedPaths).toEqual(['/docs/a.md']);
   });
+
+  it('handles a large batch with bounded concurrency, aggregating failures', async () => {
+    const total = 200;
+    const items = Array.from({ length: total }, (_, i) => makeItem(`/docs/f${i}.md`, `f${i}.md`));
+    // Every 7th item fails; one of those throws to exercise the catch path.
+    const shouldFail = (i: number) => i % 7 === 0;
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const renameFile = async (oldPath: string, _new: string) => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await Promise.resolve();
+      inFlight--;
+      const i = Number(oldPath.match(/f(\d+)\.md$/)![1]);
+      if (i === 7) throw new Error('EBUSY');
+      return !shouldFail(i);
+    };
+    const result = await pasteCutItems(items, '/dest', async () => false, renameFile);
+
+    const expectedMoved = items.filter((_, i) => !shouldFail(i)).map((it) => it.path);
+    const failedCount = items.filter((_, i) => shouldFail(i)).length;
+    expect(result.success).toBe(false);
+    expect(result.movedPaths).toEqual(expectedMoved); // successes, in selection order
+    expect(result.error).toMatch(new RegExp(`failed to move ${failedCount} items`, 'i'));
+    // Concurrency stayed bounded and never collapsed to fully serial.
+    expect(maxInFlight).toBeLessThanOrEqual(16);
+    expect(maxInFlight).toBeGreaterThan(1);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -327,12 +357,8 @@ describe('deleteSelectedItems', () => {
 
   it('returns failure and failedItems when deleteFile returns false', async () => {
     const items = [makeItem('/docs/a.md', 'a.md'), makeItem('/docs/b.md', 'b.md')];
-    // fail on the second item
-    let calls = 0;
-    const deleteFile = async (_p: string) => {
-      calls++;
-      return calls < 2; // first call succeeds, second fails
-    };
+    // fail on b.md (path-based, not call-order-based, since deletes run concurrently)
+    const deleteFile = async (p: string) => p !== '/docs/b.md';
     const result = await deleteSelectedItems(items, deleteFile);
     expect(result.success).toBe(false);
     expect(result.failedItems).toEqual(['b.md']);
@@ -370,6 +396,34 @@ describe('deleteSelectedItems', () => {
     expect(result.success).toBe(false);
     expect(result.failedItems).toEqual(['a.md', 'c.md']);
     expect(result.deletedPaths).toEqual(['/docs/b.md']);
+  });
+
+  it('handles a large batch with bounded concurrency, aggregating failures', async () => {
+    const total = 200;
+    const items = Array.from({ length: total }, (_, i) => makeItem(`/docs/f${i}.md`, `f${i}.md`));
+    // Every 5th item fails; one of those throws to exercise the catch path.
+    const shouldFail = (i: number) => i % 5 === 0;
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const deleteFile = async (p: string) => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await Promise.resolve();
+      inFlight--;
+      const i = Number(p.match(/f(\d+)\.md$/)![1]);
+      if (i === 5) throw new Error('locked');
+      return !shouldFail(i);
+    };
+    const result = await deleteSelectedItems(items, deleteFile);
+
+    const expectedDeleted = items.filter((_, i) => !shouldFail(i)).map((it) => it.path);
+    const expectedFailed = items.filter((_, i) => shouldFail(i)).map((it) => it.name);
+    expect(result.success).toBe(false);
+    expect(result.deletedPaths).toEqual(expectedDeleted); // in selection order
+    expect(result.failedItems).toEqual(expectedFailed);
+    // Concurrency stayed bounded and never collapsed to fully serial.
+    expect(maxInFlight).toBeLessThanOrEqual(16);
+    expect(maxInFlight).toBeGreaterThan(1);
   });
 });
 
