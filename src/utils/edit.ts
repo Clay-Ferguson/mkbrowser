@@ -74,7 +74,7 @@ export async function findPasteDuplicates(
       })
     );
 
-    return { duplicates: duplicateNames.filter((name): name is string => Boolean(name)) };
+    return { duplicates: duplicateNames.filter((name): name is string => name !== null) };
   } catch (err) {
     return {
       duplicates: [],
