@@ -212,6 +212,11 @@ async function extractExifText(filePath: string): Promise<string> {
 /** Maximum number of files to keep when mostRecent filter is enabled */
 export const MOST_RECENT_LIMIT = 500;
 
+/** Hard ceiling on results returned from any single search, regardless of mode/query.
+ * Bounds the payload sent to the renderer and the size of the rendered list. The
+ * mostRecent path is additionally capped earlier at MOST_RECENT_LIMIT (500). */
+export const SEARCH_RESULT_LIMIT = 500;
+
 /** Modified/created timestamps captured from a single stat() call, in ms. */
 type StatTimes = { mtimeMs: number; birthtimeMs: number };
 
@@ -284,14 +289,24 @@ async function buildResult(
 /**
  * Search a folder for files matching the given query.
  *
+ * Empty-query contract: an empty/whitespace `query` is a deliberate "match every
+ * searchable entry" request (used by the "Recent Files" feature and to gather a
+ * file list for sorting). It is normally paired with `mostRecent` — the Search
+ * dialog disables searching on an empty query unless Recent Files is checked.
+ *
+ * Results are always bounded: the returned array is capped at SEARCH_RESULT_LIMIT
+ * and when `mostRecent` is set the candidate set is first reduced to the
+ * MOST_RECENT_LIMIT newest files. So no query — empty or not — can return an
+ * unbounded result set.
+ *
  * @param folderPath   - Root folder to search
- * @param query        - Search text or JavaScript expression
+ * @param query        - Search text or JavaScript expression (empty = match everything)
  * @param searchType   - 'literal' | 'wildcard' | 'advanced'
  * @param searchMode   - 'content' (search file bodies) or 'filenames'
  * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
  * @param searchImageExif - Whether to include image files and search their EXIF metadata
  * @param mostRecent   - Whether to limit search to the 500 most recently modified files
- * @returns Array of SearchResult sorted by matchCount descending
+ * @returns Array of SearchResult sorted by matchCount descending, capped at SEARCH_RESULT_LIMIT
  */
 export async function searchFolder(
   folderPath: string,
@@ -433,7 +448,9 @@ export async function searchFolder(
     }
   }
 
-  // Sort by match count (descending)
+  // Sort by match count (descending), then cap to the hard ceiling. The slice keeps
+  // the top SEARCH_RESULT_LIMIT by match count (for an empty query every entry has
+  // matchCount 1, so it's an arbitrary-but-bounded subset).
   results.sort((a, b) => b.matchCount - a.matchCount);
-  return results;
+  return results.slice(0, SEARCH_RESULT_LIMIT);
 }

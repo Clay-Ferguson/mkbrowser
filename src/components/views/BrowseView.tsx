@@ -691,7 +691,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         searchQuery,
         definition.searchMode,
         definition.searchTarget,
-        definition.searchImageExif
+        definition.searchImageExif,
+        definition.mostRecent
       );
       setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc', definition.name);
       setCurrentView('search-results');

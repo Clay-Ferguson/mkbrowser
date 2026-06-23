@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
-import { searchFolder, createMatchPredicate, MOST_RECENT_LIMIT } from '../src/search';
+import { searchFolder, createMatchPredicate, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/search';
 import { createContentSearcher } from '../src/utils/searchUtil';
 import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/utils/timeUtil';
 import { setupTestData, TEST_DATA_DIR, rel } from './fixtures/setup';
@@ -1126,5 +1126,39 @@ describe('mostRecent filter', () => {
       expect(r.modifiedTime).toBe(reference!.modifiedTime);
       expect(r.createdTime).toBe(reference!.createdTime);
     }
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// Universal result cap (SEARCH_RESULT_LIMIT) — no search can return an
+// unbounded result set, regardless of query or mode.
+// ═══════════════════════════════════════════════════════════════════
+describe('result cap', () => {
+  // A tree larger than the cap, every file matching the same literal marker.
+  const EXTRA = 10;
+  const TOTAL = SEARCH_RESULT_LIMIT + EXTRA;
+  let dir: string;
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-result-cap-'));
+    for (let i = 0; i < TOTAL; i++) {
+      fs.writeFileSync(path.join(dir, `f-${String(i).padStart(5, '0')}.md`), 'CAP_MARKER content\n', 'utf-8');
+    }
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('caps a matching content search at SEARCH_RESULT_LIMIT', async () => {
+    const results = await searchFolder(dir, 'CAP_MARKER', 'literal', 'content');
+    expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
+  });
+
+  it('bounds an empty query (mostRecent=false) at SEARCH_RESULT_LIMIT', async () => {
+    // Empty query matches every searchable entry; without mostRecent the result
+    // set would otherwise be the whole tree. It must still be capped.
+    const results = await searchFolder(dir, '', 'literal', 'content', [], false, false);
+    expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
   });
 });
