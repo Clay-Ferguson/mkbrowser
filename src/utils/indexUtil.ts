@@ -27,6 +27,40 @@ function indexPathFor(dirPath: string): string {
 }
 
 /**
+ * Returns `content` with a front-matter `id` field, plus the id that was used.
+ *
+ * The front matter is round-tripped through js-yaml: parse → set `id` → `dump`.
+ * We never hand-edit YAML text ourselves (no string-splicing the `id` line),
+ * because writing even a sliver of YAML parsing/serialization by hand is exactly
+ * the kind of thing that breaks on quoting, comments, multi-line scalars, etc.
+ * The cost is that the block is *normalized* by the round-trip — key order and
+ * quoting may change and YAML comments are dropped — which is an accepted
+ * trade-off; field values themselves are preserved. The new `id` is emitted
+ * first; any pre-existing `id` (e.g. a collision being re-keyed) is replaced.
+ *
+ * `isTaken` lets a caller reject ids already in use — reconcileIndexedFiles must
+ * keep ids unique within a directory; by default any generated id is accepted.
+ *
+ * This is the single home for id injection: both reconcileIndexedFiles and
+ * ensureFrontMatterIdIfIndexed call it, so the logic can't drift between them.
+ */
+function injectFrontMatterId(
+  content: string,
+  isTaken: (id: string) => boolean = () => false,
+): { content: string; id: string } {
+  let id = generateId();
+  while (isTaken(id)) id = generateId();
+
+  const { yaml: fm, content: body } = parseFrontMatter(content);
+
+  // Drop any existing id and re-add the new one first so it wins and leads the
+  // block. `fm` is null when the file had no front matter — then we start fresh.
+  const { id: _oldId, ...rest } = fm ?? {};
+  const updated = { id, ...rest };
+  return { content: `---\n${dump(updated, YAML_DUMP_OPTS)}---\n${body}`, id };
+}
+
+/**
  * True when an fs error is the ordinary "file does not exist" case. A missing
  * .INDEX.yaml simply means the directory isn't in Document Mode, so callers
  * treat ENOENT as expected (and silent) while logging any other errno.
@@ -190,7 +224,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
     const filePath = path.join(dirPath, name);
     try {
       const rawContent = await fs.promises.readFile(filePath, 'utf8');
-      const { yaml: fm, content: body } = parseFrontMatter(rawContent);
+      const { yaml: fm } = parseFrontMatter(rawContent);
 
       // A file needs a fresh id when it has none, or when its id is already
       // claimed by an older file. Filenames are unique within a directory, so a
@@ -205,22 +239,11 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
             `reconcileIndexedFiles: duplicate front-matter id "${fileId}" in "${name}" (already used by older file "${collidingName}"); assigning a new id`,
           );
         }
-        // Generate an id not already in use in this directory.
-        do {
-          fileId = generateId();
-        } while (idToName.has(fileId));
-
-        let newContent: string;
-        if (!fm) {
-          newContent = `---\nid: ${fileId}\n---\n${body}`;
-        } else {
-          // Strip any existing id and re-add it first so the new value wins
-          // and stays at the top of the front matter.
-          const { id: _oldId, ...rest } = fm;
-          const updated = { id: fileId, ...rest };
-          newContent = `---\n${dump(updated, YAML_DUMP_OPTS)}---\n${body}`;
-        }
-        await writeFileAtomic(filePath, newContent);
+        // Inject an id not already in use in this directory, preserving any
+        // existing front-matter formatting (see injectFrontMatterId).
+        const injected = injectFrontMatterId(rawContent, (id) => idToName.has(id));
+        fileId = injected.id;
+        await writeFileAtomic(filePath, injected.content);
       }
       nameToId.set(name, fileId);
       idToName.set(fileId, name);
@@ -552,18 +575,12 @@ export async function ensureFrontMatterIdIfIndexed(
   if (!indexYaml) return content;
 
   // Parse existing front matter
-  const { yaml: fm, content: body } = parseFrontMatter(content);
+  const { yaml: fm } = parseFrontMatter(content);
   if (fm?.id) return content; // already has an id
 
-  // Generate a new id and inject it into the front matter
-  const fileId = generateId();
-  let newContent: string;
-  if (!fm) {
-    newContent = `---\nid: ${fileId}\n---\n${body}`;
-  } else {
-    const updated = { id: fileId, ...fm };
-    newContent = `---\n${dump(updated, YAML_DUMP_OPTS)}---\n${body}`;
-  }
+  // Generate a new id and inject it, preserving any existing front-matter
+  // formatting (see injectFrontMatterId).
+  const { content: newContent, id: fileId } = injectFrontMatterId(content);
 
   // Update the .INDEX.yaml entry for this file to record the id
   const files = indexYaml.files ?? [];

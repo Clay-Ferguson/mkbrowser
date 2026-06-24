@@ -572,3 +572,59 @@ describe('YAML dump does not fold long lines', () => {
     expect(raw).toContain(longTitle);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Front-matter id injection (issues 006/007)
+//
+// The id is added by round-tripping the front matter through js-yaml (we never
+// hand-edit YAML text). That normalizes the block — comments are dropped and
+// key order/quoting may change — which is acceptable; what must hold is that the
+// id is injected (and leads the block) and that the user's field *values* and
+// document body survive. Long values must not be line-folded (issue 003).
+// ---------------------------------------------------------------------------
+
+describe('injecting an id round-trips front matter without losing field values', () => {
+  function readRaw(name: string) {
+    return fs.readFileSync(path.join(tmpDir, name), 'utf8');
+  }
+
+  it('adds a leading id while preserving other field values and the body', async () => {
+    touchFile(
+      'note.md',
+      '---\nzebra: keep this value\ntitle: My Title\napple: 1\n---\n# Body text\n',
+    );
+    writeIndex({ files: [] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    const raw = readRaw('note.md');
+    // The id is added at the top of the block, then the original body follows.
+    expect(raw).toMatch(/^---\nid: [0-9A-F]{9}\n/);
+    const parsed = parseFrontMatter(raw);
+    expect(parsed.content).toBe('# Body text\n');
+    expect(parsed.yaml?.id).toMatch(/^[0-9A-F]{9}$/);
+    expect(parsed.yaml?.zebra).toBe('keep this value');
+    expect(parsed.yaml?.title).toBe('My Title');
+    expect(parsed.yaml?.apple).toBe(1);
+  });
+
+  it('replaces a colliding id without leaving a duplicate mapping key', async () => {
+    // b.md is a paste of a.md: same id, plus extra fields and custom key order.
+    touchFile('a.md', '---\nid: DUP000001\n---\n# A');
+    await new Promise((r) => setTimeout(r, 20));
+    touchFile('b.md', '---\nid: DUP000001\nbeta: 2\nalpha: 1\n---\n# B\n');
+    writeIndex({ files: [{ name: 'a.md', id: 'DUP000001' }] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    const raw = readRaw('b.md');
+    // The colliding id is gone, and there is exactly one id line (no dup key
+    // that js-yaml would reject on the next read).
+    expect(raw).not.toContain('DUP000001');
+    expect(raw.match(/^id:/gm)?.length).toBe(1);
+    const parsed = parseFrontMatter(raw);
+    expect(parsed.yaml?.id).not.toBe('DUP000001');
+    expect(parsed.yaml?.beta).toBe(2);
+    expect(parsed.yaml?.alpha).toBe(1);
+  });
+});
