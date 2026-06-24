@@ -15,6 +15,8 @@ import {
   renameInIndexYaml,
   getSortedDirEntries,
   validateAttachFolderLocation,
+  ensureFrontMatterIdIfIndexed,
+  recordFrontMatterIdInIndex,
 } from '../src/utils/indexUtil';
 import type { IndexEntry, IndexOptions } from '../src/utils/indexUtil';
 import { parseFrontMatter } from '../src/utils/fileUtil';
@@ -949,5 +951,131 @@ describe('injecting an id round-trips front matter without losing field values',
     expect(parsed.yaml?.id).not.toBe('DUP000001');
     expect(parsed.yaml?.beta).toBe(2);
     expect(parsed.yaml?.alpha).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Per-directory serialization of index mutations (issue 013)
+// ---------------------------------------------------------------------------
+
+describe('concurrent .INDEX.yaml mutations are serialized per directory (issue 013)', () => {
+  it('does not drop an entry when an insert and a move race on the same directory', async () => {
+    touchFile('a.md');
+    touchFile('b.md');
+    touchFile('c.md');
+    touchFile('x.md');
+    writeIndex({ files: [{ name: 'a.md' }, { name: 'b.md' }, { name: 'c.md' }] });
+
+    // Fire both mutations WITHOUT awaiting the first. Without per-directory
+    // serialization both would read the pre-mutation index and the later write
+    // would clobber the earlier one (a lost update — the inserted entry or the
+    // move would vanish).
+    const insert = insertIntoIndexYaml(tmpDir, 'x.md', 'a.md');
+    const move = moveToEdgeInIndexYaml(tmpDir, 'c.md', 'top');
+    await Promise.all([insert, move]);
+
+    const names = readIndex().files.map((f: IndexEntry) => f.name);
+    // Both effects survive: the inserted entry is present AND the move happened.
+    expect(names).toContain('x.md');
+    expect(names[0]).toBe('c.md');
+    // No entry was lost in the process.
+    expect(new Set(names)).toEqual(new Set(['a.md', 'b.md', 'c.md', 'x.md']));
+  });
+
+  it('moveInIndexYaml writes .INDEX.yaml exactly once (no follow-up reorder write)', async () => {
+    writeIndex({ files: [{ name: 'a.md' }, { name: 'b.md' }, { name: 'c.md' }] });
+
+    // writeFileAtomic persists via a single rename(tmp -> target), so counting
+    // renames whose destination is the index file counts index writes.
+    const renameSpy = vi.spyOn(fs.promises, 'rename');
+    await moveInIndexYaml(tmpDir, 'b.md', 'up');
+    const indexWrites = renameSpy.mock.calls.filter(([, dest]) => dest === indexPath()).length;
+    renameSpy.mockRestore();
+
+    expect(indexWrites).toBe(1);
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['b.md', 'a.md', 'c.md']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ensureFrontMatterIdIfIndexed / recordFrontMatterIdInIndex (issue 014)
+// ---------------------------------------------------------------------------
+
+describe('ensureFrontMatterIdIfIndexed (issue 014)', () => {
+  it('injects an id and returns it without touching .INDEX.yaml, in Document Mode', async () => {
+    writeIndex({ files: [{ name: 'note.md' }] });
+    const indexBefore = fs.readFileSync(indexPath(), 'utf8');
+
+    const { content, addedId } = await ensureFrontMatterIdIfIndexed(
+      path.join(tmpDir, 'note.md'),
+      '# Hello',
+    );
+
+    expect(addedId).toMatch(/^[0-9A-F]{9}$/);
+    expect(parseFrontMatter(content).yaml?.id).toBe(addedId);
+    // The index write is deferred to recordFrontMatterIdInIndex (post file-write),
+    // so this function must leave .INDEX.yaml untouched.
+    expect(fs.readFileSync(indexPath(), 'utf8')).toBe(indexBefore);
+  });
+
+  it('is a no-op when the folder is not in Document Mode', async () => {
+    const { content, addedId } = await ensureFrontMatterIdIfIndexed(
+      path.join(tmpDir, 'note.md'),
+      '# Hello',
+    );
+    expect(addedId).toBeNull();
+    expect(content).toBe('# Hello');
+    expect(fs.existsSync(indexPath())).toBe(false);
+  });
+
+  it('is a no-op when the file already has an id', async () => {
+    writeIndex({ files: [{ name: 'note.md', id: 'AAAAAAAA1' }] });
+    const input = '---\nid: AAAAAAAA1\n---\n# Hello';
+    const { content, addedId } = await ensureFrontMatterIdIfIndexed(
+      path.join(tmpDir, 'note.md'),
+      input,
+    );
+    expect(addedId).toBeNull();
+    expect(content).toBe(input);
+  });
+});
+
+describe('recordFrontMatterIdInIndex (issue 014)', () => {
+  it('updates an existing entry with the id', async () => {
+    writeIndex({ files: [{ name: 'note.md' }] });
+    await recordFrontMatterIdInIndex(path.join(tmpDir, 'note.md'), 'ABCDEF123');
+    expect(readIndex().files.find((f: IndexEntry) => f.name === 'note.md')?.id).toBe('ABCDEF123');
+  });
+
+  it('appends a new entry when the file is not yet listed (no wait for reconcile)', async () => {
+    writeIndex({ files: [{ name: 'existing.md' }] });
+    await recordFrontMatterIdInIndex(path.join(tmpDir, 'fresh.md'), 'ABCDEF123');
+    const entry = readIndex().files.find((f: IndexEntry) => f.name === 'fresh.md');
+    expect(entry).toBeDefined();
+    expect(entry?.id).toBe('ABCDEF123');
+  });
+
+  it('is a no-op when the directory is not in Document Mode', async () => {
+    await recordFrontMatterIdInIndex(path.join(tmpDir, 'fresh.md'), 'ABCDEF123');
+    expect(fs.existsSync(indexPath())).toBe(false);
+  });
+});
+
+describe('save flow leaves file and index consistent for a new file (issue 014)', () => {
+  it('the injected id ends up in both the file and the index, file-written first', async () => {
+    // A Document Mode folder whose index does not yet list the brand-new file.
+    writeIndex({ files: [{ name: 'existing.md' }] });
+    const filePath = path.join(tmpDir, 'fresh.md');
+
+    // Mirror the write-file handler's ordering: inject id -> write file -> record id.
+    const { content, addedId } = await ensureFrontMatterIdIfIndexed(filePath, '# Fresh');
+    expect(addedId).not.toBeNull();
+    fs.writeFileSync(filePath, content, 'utf8'); // file written BEFORE the index
+    if (addedId) await recordFrontMatterIdInIndex(filePath, addedId);
+
+    const fileId = parseFrontMatter(fs.readFileSync(filePath, 'utf8')).yaml?.id;
+    const indexEntry = readIndex().files.find((f: IndexEntry) => f.name === 'fresh.md');
+    expect(fileId).toBe(addedId);
+    expect(indexEntry?.id).toBe(addedId);
   });
 });

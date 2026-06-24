@@ -6,7 +6,7 @@ import { initConfig, getConfig, updateConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 
 import { readDirectory, parseFrontMatter } from './utils/fileUtil';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, renameInIndexYaml } from './utils/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
 import { processTOC } from './utils/tocUtil';
 import { searchAndReplace, type ReplaceResult } from './utils/searchAndReplace';
@@ -223,13 +223,23 @@ function setupIpcHandlers(): void {
   ipcMain.handle('write-file', async (_event, filePath: string, content: string): Promise<{ ok: boolean; content: string }> => {
     try {
       let finalContent = content;
+      let addedIndexId: string | null = null;
 
       if (filePath.toLowerCase().endsWith('.md')) {
         finalContent = await processTOC(content);
-        finalContent = await ensureFrontMatterIdIfIndexed(filePath, finalContent);
+        const ensured = await ensureFrontMatterIdIfIndexed(filePath, finalContent);
+        finalContent = ensured.content;
+        addedIndexId = ensured.addedId;
       }
 
       await fs.promises.writeFile(filePath, finalContent, 'utf-8');
+
+      // Record a freshly-injected Document Mode id in .INDEX.yaml only AFTER the
+      // file content (which now carries that id) is on disk, so the index can
+      // never reference an id that isn't in the file (issue 014).
+      if (addedIndexId) {
+        await recordFrontMatterIdInIndex(filePath, addedIndexId);
+      }
 
       // Post-save: run front-matter autogen for Markdown files
       if (filePath.toLowerCase().endsWith('.md')) {

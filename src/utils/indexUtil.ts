@@ -37,6 +37,48 @@ function indexPathFor(dirPath: string): string {
 }
 
 /**
+ * Per-directory serialization for .INDEX.yaml mutations.
+ *
+ * Every mutator in this module follows read → modify-in-memory → writeFileAtomic.
+ * `writeFileAtomic` makes the *final* write atomic (temp file + rename), so a
+ * reader never sees a half-written file — but it does NOT make the surrounding
+ * read-modify-write atomic as a unit. Two operations on the same directory can
+ * both read the old index, then each write back its own version, and the later
+ * write silently drops the earlier one's change (a lost update). The UI can fire
+ * such operations in quick succession (e.g. an insert immediately followed by a
+ * move, or rapid move clicks), so this is a real hazard. See issue 013.
+ *
+ * Everything here runs in the single Electron main process, so a promise-chain
+ * mutex keyed by directory is sufficient: each operation waits for the previous
+ * one on the same .INDEX.yaml to settle before it reads, so reads and writes
+ * never interleave. Different directories never block each other.
+ *
+ * The tail promise stored in the map never rejects — errors are swallowed for
+ * the *lock* only, not for the caller, who still receives fn's real
+ * result/rejection — so one failed mutation can't break the chain for the next.
+ * The map entry is deleted once its chain drains, so the map can't grow without
+ * bound.
+ */
+const indexLocks = new Map<string, Promise<void>>();
+
+function withIndexLock<T>(dirPath: string, fn: () => Promise<T>): Promise<T> {
+  const key = path.resolve(dirPath);
+  const prev = indexLocks.get(key) ?? Promise.resolve();
+  const run = prev.then(fn);
+  // Keep the chain alive even if fn throws: the next waiter chains off this
+  // (always-resolving) tail, while the current caller still sees run's outcome.
+  const tail = run.then(
+    () => {},
+    () => {},
+  );
+  indexLocks.set(key, tail);
+  void tail.then(() => {
+    if (indexLocks.get(key) === tail) indexLocks.delete(key);
+  });
+  return run;
+}
+
+/**
  * Returns `content` with a front-matter `id` field, plus the id that was used.
  *
  * The front matter is round-tripped through js-yaml: parse → set `id` → `dump`.
@@ -476,68 +518,73 @@ export function appendNewEntries(
  * directly.
  */
 export async function reconcileIndexedFiles(dirPath: string, createIfMissing = false): Promise<void> {
-  const indexFilePath = indexPathFor(dirPath);
+  // Serialized per-directory (withIndexLock) so a reconcile can't interleave
+  // with a concurrent insert/move/rename/save on the same .INDEX.yaml and lose
+  // either side's update. See issue 013.
+  return withIndexLock(dirPath, async () => {
+    const indexFilePath = indexPathFor(dirPath);
 
-  // Read the raw existing index up front: we need it both to decide whether to
-  // bail (no index + !createIfMissing) and, verbatim, to skip an unchanged
-  // rewrite at the end. A missing index is normal; log anything else.
-  let existingIndexContent: string | null = null;
-  try {
-    existingIndexContent = await fs.promises.readFile(indexFilePath, 'utf8');
-  } catch (err) {
-    if (!isENOENT(err)) {
-      logger.debug(`reconcileIndexedFiles: cannot read "${indexFilePath}": ${err}`);
-    }
-  }
-  if (existingIndexContent === null && !createIfMissing) return;
-
-  let visibleEntries: fs.Dirent[];
-  try {
-    visibleEntries = await readVisibleEntries(dirPath);
-  } catch (err) {
-    // Can't list the directory — reconciliation can't proceed at all.
-    logger.warn(`reconcileIndexedFiles: cannot read directory "${dirPath}": ${err}`);
-    return;
-  }
-  const visibleNames = new Set(visibleEntries.map((e) => e.name));
-
-  const { nameToStat, fingerprintToVisibleNames } = await buildNonMarkdownFingerprints(
-    dirPath,
-    visibleEntries,
-  );
-  const { nameToId, idToName } = await ensureMarkdownIds(dirPath, visibleEntries);
-
-  // Parse existing index (already read above) or start fresh
-  let existingFiles: IndexEntry[] = [];
-  let existingOptions: IndexOptions = {};
-  if (existingIndexContent !== null) {
+    // Read the raw existing index up front: we need it both to decide whether to
+    // bail (no index + !createIfMissing) and, verbatim, to skip an unchanged
+    // rewrite at the end. A missing index is normal; log anything else.
+    let existingIndexContent: string | null = null;
     try {
-      const parsed = parseIndexYaml(load(existingIndexContent));
-      if (parsed) {
-        existingFiles = parsed.files;
-        existingOptions = parsed.options;
-      }
+      existingIndexContent = await fs.promises.readFile(indexFilePath, 'utf8');
     } catch (err) {
-      // Corrupt YAML (load threw) — start fresh (the rebuilt index will overwrite it).
-      logger.warn(`reconcileIndexedFiles: malformed "${indexFilePath}", rebuilding: ${err}`);
+      if (!isENOENT(err)) {
+        logger.debug(`reconcileIndexedFiles: cannot read "${indexFilePath}": ${err}`);
+      }
     }
-  }
+    if (existingIndexContent === null && !createIfMissing) return;
 
-  const { files: reconciledFiles, handledNames } = reconcileEntries(existingFiles, {
-    idToName,
-    fingerprintToVisibleNames,
-    nameToId,
-    visibleNames,
-  });
-  const files = appendNewEntries(reconciledFiles, visibleEntries, handledNames, {
-    nameToId,
-    nameToStat,
-  });
+    let visibleEntries: fs.Dirent[];
+    try {
+      visibleEntries = await readVisibleEntries(dirPath);
+    } catch (err) {
+      // Can't list the directory — reconciliation can't proceed at all.
+      logger.warn(`reconcileIndexedFiles: cannot read directory "${dirPath}": ${err}`);
+      return;
+    }
+    const visibleNames = new Set(visibleEntries.map((e) => e.name));
 
-  const newContent = dump({ files, options: existingOptions }, YAML_DUMP_OPTS);
-  if (newContent !== existingIndexContent) {
-    await writeFileAtomic(indexFilePath, newContent);
-  }
+    const { nameToStat, fingerprintToVisibleNames } = await buildNonMarkdownFingerprints(
+      dirPath,
+      visibleEntries,
+    );
+    const { nameToId, idToName } = await ensureMarkdownIds(dirPath, visibleEntries);
+
+    // Parse existing index (already read above) or start fresh
+    let existingFiles: IndexEntry[] = [];
+    let existingOptions: IndexOptions = {};
+    if (existingIndexContent !== null) {
+      try {
+        const parsed = parseIndexYaml(load(existingIndexContent));
+        if (parsed) {
+          existingFiles = parsed.files;
+          existingOptions = parsed.options;
+        }
+      } catch (err) {
+        // Corrupt YAML (load threw) — start fresh (the rebuilt index will overwrite it).
+        logger.warn(`reconcileIndexedFiles: malformed "${indexFilePath}", rebuilding: ${err}`);
+      }
+    }
+
+    const { files: reconciledFiles, handledNames } = reconcileEntries(existingFiles, {
+      idToName,
+      fingerprintToVisibleNames,
+      nameToId,
+      visibleNames,
+    });
+    const files = appendNewEntries(reconciledFiles, visibleEntries, handledNames, {
+      nameToId,
+      nameToStat,
+    });
+
+    const newContent = dump({ files, options: existingOptions }, YAML_DUMP_OPTS);
+    if (newContent !== existingIndexContent) {
+      await writeFileAtomic(indexFilePath, newContent);
+    }
+  });
 }
 
 /**
@@ -547,18 +594,22 @@ export async function writeIndexOptions(
   dirPath: string,
   options: IndexOptions,
 ): Promise<{ success: boolean; error?: string }> {
-  const indexFilePath = indexPathFor(dirPath);
-  try {
-    const existing = await readIndexYaml(dirPath);
-    const updated: IndexYaml = {
-      files: existing?.files ?? [],
-      options: { ...existing?.options, ...options },
-    };
-    await writeFileAtomic(indexFilePath, dump(updated, YAML_DUMP_OPTS));
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
-  }
+  // Serialized per-directory (withIndexLock) so the read-modify-write can't
+  // interleave with another index mutation and clobber the files list. See issue 013.
+  return withIndexLock(dirPath, async () => {
+    const indexFilePath = indexPathFor(dirPath);
+    try {
+      const existing = await readIndexYaml(dirPath);
+      const updated: IndexYaml = {
+        files: existing?.files ?? [],
+        options: { ...existing?.options, ...options },
+      };
+      await writeFileAtomic(indexFilePath, dump(updated, YAML_DUMP_OPTS));
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
 }
 
 /**
@@ -608,22 +659,27 @@ function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
  * each immediately follows its associated file. Writes back only if changed.
  */
 export async function validateAttachFolderLocation(dirPath: string): Promise<void> {
-  const indexFilePath = indexPathFor(dirPath);
-  try {
-    const indexYaml = await readIndexYaml(dirPath);
-    if (!indexYaml?.files) return;
+  // Serialized per-directory (withIndexLock) so its read-modify-write can't
+  // interleave with another index mutation. See issue 013. (The move helpers no
+  // longer call this — they fold the same reorder into their single write.)
+  return withIndexLock(dirPath, async () => {
+    const indexFilePath = indexPathFor(dirPath);
+    try {
+      const indexYaml = await readIndexYaml(dirPath);
+      if (!indexYaml?.files) return;
 
-    const reordered = reorderAttachFolders(indexYaml.files);
-    if (reordered === indexYaml.files) return; // no change
+      const reordered = reorderAttachFolders(indexYaml.files);
+      if (reordered === indexYaml.files) return; // no change
 
-    await writeFileAtomic(
-      indexFilePath,
-      dump({ ...indexYaml, files: reordered }, YAML_DUMP_OPTS),
-    );
-  } catch (err) {
-    // Best-effort; record the failed reorder but don't throw.
-    logger.warn(`validateAttachFolderLocation: failed to reorder "${indexFilePath}": ${err}`);
-  }
+      await writeFileAtomic(
+        indexFilePath,
+        dump({ ...indexYaml, files: reordered }, YAML_DUMP_OPTS),
+      );
+    } catch (err) {
+      // Best-effort; record the failed reorder but don't throw.
+      logger.warn(`validateAttachFolderLocation: failed to reorder "${indexFilePath}": ${err}`);
+    }
+  });
 }
 
 /**
@@ -634,34 +690,42 @@ export async function moveInIndexYaml(
   name: string,
   direction: 'up' | 'down',
 ): Promise<{ success: boolean; error?: string }> {
-  const indexFilePath = indexPathFor(dirPath);
-  try {
-    const indexYaml = await readIndexYaml(dirPath);
-    if (!indexYaml) return { success: false, error: `${INDEX_FILENAME} not found or unreadable` };
-    const files = indexYaml.files;
+  // Serialized per-directory (withIndexLock) so concurrent moves/inserts can't
+  // lose each other's update. The attach-folder reorder is folded into this
+  // function's single write (via reorderAttachFolders) rather than a second
+  // read-modify-write through validateAttachFolderLocation — fewer disk ops and,
+  // since validateAttachFolderLocation also takes the lock, no self-deadlock.
+  // See issue 013.
+  return withIndexLock(dirPath, async () => {
+    const indexFilePath = indexPathFor(dirPath);
+    try {
+      const indexYaml = await readIndexYaml(dirPath);
+      if (!indexYaml) return { success: false, error: `${INDEX_FILENAME} not found or unreadable` };
+      const files = indexYaml.files;
 
-    const idx = files.findIndex((f) => f.name === name);
-    if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
+      const idx = files.findIndex((f) => f.name === name);
+      if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
 
-    let swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= files.length) return { success: true };
-
-    // Skip over any attach folder at the swap target — landing on one would be
-    // immediately undone by validateAttachFolderLocation.
-    if (files[swapIdx].name.endsWith(ATTACH_SUFFIX)) {
-      swapIdx = direction === 'up' ? swapIdx - 1 : swapIdx + 1;
+      let swapIdx = direction === 'up' ? idx - 1 : idx + 1;
       if (swapIdx < 0 || swapIdx >= files.length) return { success: true };
+
+      // Skip over any attach folder at the swap target — landing on one would be
+      // immediately undone by the attach reorder below.
+      if (files[swapIdx].name.endsWith(ATTACH_SUFFIX)) {
+        swapIdx = direction === 'up' ? swapIdx - 1 : swapIdx + 1;
+        if (swapIdx < 0 || swapIdx >= files.length) return { success: true };
+      }
+
+      [files[idx], files[swapIdx]] = [files[swapIdx], files[idx]];
+
+      const reordered = reorderAttachFolders(files);
+      const newContent = dump({ ...indexYaml, files: reordered }, YAML_DUMP_OPTS);
+      await writeFileAtomic(indexFilePath, newContent);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
-
-    [files[idx], files[swapIdx]] = [files[swapIdx], files[idx]];
-
-    const newContent = dump({ ...indexYaml, files }, YAML_DUMP_OPTS);
-    await writeFileAtomic(indexFilePath, newContent);
-    await validateAttachFolderLocation(dirPath);
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
-  }
+  });
 }
 
 /**
@@ -672,29 +736,34 @@ export async function moveToEdgeInIndexYaml(
   name: string,
   edge: 'top' | 'bottom',
 ): Promise<{ success: boolean; error?: string }> {
-  const indexFilePath = indexPathFor(dirPath);
-  try {
-    const indexYaml = await readIndexYaml(dirPath);
-    if (!indexYaml) return { success: false, error: `${INDEX_FILENAME} not found or unreadable` };
-    const files = indexYaml.files;
+  // Serialized per-directory (withIndexLock); the attach reorder is folded into
+  // the single write here rather than a follow-up validateAttachFolderLocation
+  // call (which would re-read/re-write and, sharing the lock, deadlock). See issue 013.
+  return withIndexLock(dirPath, async () => {
+    const indexFilePath = indexPathFor(dirPath);
+    try {
+      const indexYaml = await readIndexYaml(dirPath);
+      if (!indexYaml) return { success: false, error: `${INDEX_FILENAME} not found or unreadable` };
+      const files = indexYaml.files;
 
-    const idx = files.findIndex((f) => f.name === name);
-    if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
+      const idx = files.findIndex((f) => f.name === name);
+      if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
 
-    const [entry] = files.splice(idx, 1);
-    if (edge === 'top') {
-      files.unshift(entry);
-    } else {
-      files.push(entry);
+      const [entry] = files.splice(idx, 1);
+      if (edge === 'top') {
+        files.unshift(entry);
+      } else {
+        files.push(entry);
+      }
+
+      const reordered = reorderAttachFolders(files);
+      const newContent = dump({ ...indexYaml, files: reordered }, YAML_DUMP_OPTS);
+      await writeFileAtomic(indexFilePath, newContent);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
-
-    const newContent = dump({ ...indexYaml, files }, YAML_DUMP_OPTS);
-    await writeFileAtomic(indexFilePath, newContent);
-    await validateAttachFolderLocation(dirPath);
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
-  }
+  });
 }
 
 /**
@@ -749,26 +818,42 @@ export async function getSortedDirEntries(
 }
 
 /**
- * Ensures a markdown file's content has a front-matter `id` field when the
- * file lives in a Document Mode folder (i.e. a sibling .INDEX.yaml exists).
+ * Result of {@link ensureFrontMatterIdIfIndexed}: the (possibly modified)
+ * content to write, and the id that was newly injected — or `null` when nothing
+ * changed (not Document Mode, or the file already had an id). When `addedId` is
+ * non-null the caller must, *after* persisting `content`, call
+ * {@link recordFrontMatterIdInIndex} so the id is recorded in .INDEX.yaml.
+ */
+export interface EnsureFrontMatterIdResult {
+  content: string;
+  addedId: string | null;
+}
+
+/**
+ * If `filePath` is a markdown file in a Document Mode folder (a sibling
+ * .INDEX.yaml exists) and its content has no front-matter `id`, returns the
+ * content with a freshly injected id plus that id as `addedId`. Otherwise
+ * returns the content unchanged with `addedId: null`.
  *
- * Returns the (possibly modified) content string. If an id was added, the
- * .INDEX.yaml entry for this filename is updated to record the new id so that
- * rename detection continues to work.
+ * This function deliberately does NOT touch .INDEX.yaml. The id is recorded in
+ * the index by {@link recordFrontMatterIdInIndex}, which the caller invokes only
+ * *after* the (id-bearing) content has been written to disk. That ordering
+ * closes the partial-failure window in issue 014: the index can never record an
+ * id for content that was never written — at worst the file has an id the index
+ * doesn't yet know about, which the next reconcile heals. Splitting "compute the
+ * content" from "persist the index" is what makes file-then-index ordering
+ * possible across the IPC write-file handler.
  *
- * Safe to call unconditionally on every .md save — it is a no-op when:
- *   - the directory has no .INDEX.yaml, or
- *   - the file already has an id in its front matter.
+ * Safe to call unconditionally on every .md save — a no-op (addedId: null) when
+ * the directory has no .INDEX.yaml or the file already has an id.
  */
 export async function ensureFrontMatterIdIfIndexed(
   filePath: string,
   content: string,
-): Promise<string> {
-  const dirPath = path.dirname(filePath);
-  const fileName = path.basename(filePath);
-  const indexFilePath = indexPathFor(dirPath);
+): Promise<EnsureFrontMatterIdResult> {
+  const indexFilePath = indexPathFor(path.dirname(filePath));
 
-  // Check if this folder is in Document Mode
+  // Document Mode is signalled by a readable, well-formed .INDEX.yaml sibling.
   let indexYaml: IndexYaml | null = null;
   try {
     const raw = await fs.promises.readFile(indexFilePath, 'utf8');
@@ -778,28 +863,54 @@ export async function ensureFrontMatterIdIfIndexed(
     if (!isENOENT(err)) {
       logger.warn(`ensureFrontMatterIdIfIndexed: cannot read/parse "${indexFilePath}": ${err}`);
     }
-    return content; // no usable .INDEX.yaml — nothing to do
+    return { content, addedId: null }; // no usable .INDEX.yaml — nothing to do
   }
-  if (!indexYaml) return content;
+  if (!indexYaml) return { content, addedId: null };
 
-  // Parse existing front matter
   const { yaml: fm } = parseFrontMatter(content);
-  if (fm?.id) return content; // already has an id
+  if (fm?.id) return { content, addedId: null }; // already has an id
 
-  // Generate a new id and inject it, preserving any existing front-matter
-  // formatting (see injectFrontMatterId).
-  const { content: newContent, id: fileId } = injectFrontMatterId(content);
+  // Inject a new id, preserving any existing front-matter formatting
+  // (see injectFrontMatterId). The index is updated separately, post-write.
+  const { content: newContent, id: addedId } = injectFrontMatterId(content);
+  return { content: newContent, addedId };
+}
 
-  // Update the .INDEX.yaml entry for this file to record the id
-  const files = indexYaml.files ?? [];
-  const entry = files.find((f) => f.name === fileName);
-  if (entry) {
-    entry.id = fileId;
-    const newIndexContent = dump({ ...indexYaml, files }, YAML_DUMP_OPTS);
-    await writeFileAtomic(indexFilePath, newIndexContent);
-  }
-
-  return newContent;
+/**
+ * Records `fileId` as the front-matter id of `filePath`'s entry in its
+ * directory's .INDEX.yaml. Must be called *after* the file content carrying that
+ * id has been written to disk (see {@link ensureFrontMatterIdIfIndexed}).
+ *
+ * If an entry for the file already exists, its id is set; otherwise a new
+ * `{ name, id }` entry is appended — so a brand-new file (saved before reconcile
+ * has appended it) leaves file and index consistent immediately rather than only
+ * after the next reconcile (issue 014). A no-op if the directory left Document
+ * Mode in the meantime.
+ *
+ * Serialized per-directory via withIndexLock so it can't interleave with a
+ * concurrent reconcile/move/insert and lose the update (issue 013).
+ */
+export async function recordFrontMatterIdInIndex(filePath: string, fileId: string): Promise<void> {
+  const dirPath = path.dirname(filePath);
+  const fileName = path.basename(filePath);
+  await withIndexLock(dirPath, async () => {
+    const indexFilePath = indexPathFor(dirPath);
+    try {
+      const indexYaml = await readIndexYaml(dirPath);
+      if (!indexYaml) return; // no longer Document Mode — nothing to record
+      const entry = indexYaml.files.find((f) => f.name === fileName);
+      if (entry) {
+        entry.id = fileId;
+      } else {
+        indexYaml.files.push({ name: fileName, id: fileId });
+      }
+      await writeFileAtomic(indexFilePath, dump(indexYaml, YAML_DUMP_OPTS));
+    } catch (err) {
+      // Best-effort: the file already carries the id, so a failed index write
+      // self-heals on the next reconcile. Record it but don't throw.
+      logger.warn(`recordFrontMatterIdInIndex: failed to record id for "${fileName}" in "${indexFilePath}": ${err}`);
+    }
+  });
 }
 
 /**
@@ -811,18 +922,24 @@ export async function renameInIndexYaml(
   oldName: string,
   newName: string,
 ): Promise<void> {
-  const indexFilePath = indexPathFor(dirPath);
-  try {
-    const indexYaml = await readIndexYaml(dirPath);
-    if (!indexYaml?.files) return;
-    const entry = indexYaml.files.find((f) => f.name === oldName);
-    if (!entry) return;
-    entry.name = newName;
-    await writeFileAtomic(indexFilePath, dump(indexYaml, YAML_DUMP_OPTS));
-  } catch (err) {
-    // Best-effort; record the failed index update but don't throw.
-    logger.warn(`renameInIndexYaml: failed to rename "${oldName}" → "${newName}" in "${indexFilePath}": ${err}`);
-  }
+  // Serialized per-directory (withIndexLock). The rename handler can call this
+  // twice in a row (the file, then its .attach folder) on the same directory;
+  // the lock makes the second read see the first's write instead of racing it.
+  // See issue 013.
+  return withIndexLock(dirPath, async () => {
+    const indexFilePath = indexPathFor(dirPath);
+    try {
+      const indexYaml = await readIndexYaml(dirPath);
+      if (!indexYaml?.files) return;
+      const entry = indexYaml.files.find((f) => f.name === oldName);
+      if (!entry) return;
+      entry.name = newName;
+      await writeFileAtomic(indexFilePath, dump(indexYaml, YAML_DUMP_OPTS));
+    } catch (err) {
+      // Best-effort; record the failed index update but don't throw.
+      logger.warn(`renameInIndexYaml: failed to rename "${oldName}" → "${newName}" in "${indexFilePath}": ${err}`);
+    }
+  });
 }
 
 /**
@@ -902,27 +1019,31 @@ export async function insertIntoIndexYaml(
   newName: string,
   insertAfterName: string | null,
 ): Promise<{ success: boolean; error?: string }> {
-  const indexFilePath = indexPathFor(dirPath);
-  try {
-    const indexYaml = (await readIndexYaml(dirPath)) ?? { files: [], options: {} };
-    const files = indexYaml.files;
+  // Serialized per-directory (withIndexLock) so a concurrent move/insert can't
+  // read the pre-insert index and write it back, dropping this entry. See issue 013.
+  return withIndexLock(dirPath, async () => {
+    const indexFilePath = indexPathFor(dirPath);
+    try {
+      const indexYaml = (await readIndexYaml(dirPath)) ?? { files: [], options: {} };
+      const files = indexYaml.files;
 
-    const newEntry = await buildEntryForName(dirPath, newName);
-    if (insertAfterName === null) {
-      files.unshift(newEntry);
-    } else {
-      const idx = files.findIndex((f) => f.name === insertAfterName);
-      if (idx === -1) {
-        files.push(newEntry);
+      const newEntry = await buildEntryForName(dirPath, newName);
+      if (insertAfterName === null) {
+        files.unshift(newEntry);
       } else {
-        files.splice(idx + 1, 0, newEntry);
+        const idx = files.findIndex((f) => f.name === insertAfterName);
+        if (idx === -1) {
+          files.push(newEntry);
+        } else {
+          files.splice(idx + 1, 0, newEntry);
+        }
       }
-    }
 
-    const newContent = dump({ ...indexYaml, files }, YAML_DUMP_OPTS);
-    await writeFileAtomic(indexFilePath, newContent);
-    return { success: true };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
-  }
+      const newContent = dump({ ...indexYaml, files }, YAML_DUMP_OPTS);
+      await writeFileAtomic(indexFilePath, newContent);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
 }
