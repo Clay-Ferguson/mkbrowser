@@ -139,11 +139,24 @@ describe('searchAndReplace', () => {
     await writeFile('node_modules/dep.md', 'mark');
     await writeFile('.hidden.md', 'mark');
 
-    const results = await searchAndReplace(tmpDir, 'mark', 'M', [/node_modules/]);
+    const results = await searchAndReplace(tmpDir, 'mark', 'M', ['node_modules']);
 
     expect(results.map(r => r.relativePath)).toEqual(['keep.md']);
     // Ignored/hidden files left untouched
     expect(await fs.promises.readFile(path.join(tmpDir, 'node_modules/dep.md'), 'utf-8')).toBe('mark');
     expect(await fs.promises.readFile(path.join(tmpDir, '.hidden.md'), 'utf-8')).toBe('mark');
+  });
+
+  it('accepts raw string patterns with wildcards (built via the shared exclude predicate)', async () => {
+    // ignoredPaths is now a raw string[] (matching searchFolder); wildcard `*`
+    // patterns are expanded by the shared buildExcludePredicate, not pre-compiled
+    // by the caller. A `*draft*` pattern should match the basename.
+    await writeFile('keep.md', 'mark');
+    await writeFile('my-draft-notes.md', 'mark');
+
+    const results = await searchAndReplace(tmpDir, 'mark', 'M', ['*draft*']);
+
+    expect(results.map(r => r.relativePath)).toEqual(['keep.md']);
+    expect(await fs.promises.readFile(path.join(tmpDir, 'my-draft-notes.md'), 'utf-8')).toBe('mark');
   });
 });

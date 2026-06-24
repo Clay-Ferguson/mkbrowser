@@ -10,7 +10,7 @@ import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdge
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
 import { processTOC } from './utils/tocUtil';
 import { searchAndReplace, type ReplaceResult } from './searchAndReplace';
-import { parseIgnoredPaths, buildIgnoredPatterns } from './utils/searchUtil';
+import { parseIgnoredPaths } from './utils/searchUtil';
 import { searchFolder, type SearchResult } from './search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './folderAnalysis';
 import { loadCalendarEvents, type CalendarEventResult } from './utils/calendar/calendarLoader';
@@ -427,8 +427,8 @@ function setupIpcHandlers(): void {
   // Search and replace in files recursively
   ipcMain.handle('search-and-replace', async (_event, folderPath: string, searchText: string, replaceText: string): Promise<ReplaceResult[]> => {
     try {
-      const ignoredPatterns = buildIgnoredPatterns(parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? ''));
-      return await searchAndReplace(folderPath, searchText, replaceText, ignoredPatterns);
+      const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
+      return await searchAndReplace(folderPath, searchText, replaceText, ignoredPaths);
     } catch (error) {
       logger.error('Error in search and replace:', error);
       return [];

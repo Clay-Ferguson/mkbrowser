@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fdir } from 'fdir';
-import { escapeRegexLiteral } from './utils/pathPattern';
+import { escapeRegexLiteral, buildExcludePredicate } from './utils/pathPattern';
 import { mapWithConcurrency } from './utils/asyncUtil';
 import { writeFileAtomic } from './utils/atomicWrite';
 
@@ -24,14 +24,14 @@ export interface ReplaceResult {
  * @param folderPath - The root folder to search in
  * @param searchText - The literal text to search for
  * @param replaceText - The literal text to replace with
- * @param ignoredPatterns - Array of RegExp patterns for paths to ignore
+ * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
  * @returns Array of ReplaceResult with details of each file processed
  */
 export async function searchAndReplace(
   folderPath: string,
   searchText: string,
   replaceText: string,
-  ignoredPatterns: RegExp[]
+  ignoredPaths: string[] = []
 ): Promise<ReplaceResult[]> {
   const results: ReplaceResult[] = [];
 
@@ -40,12 +40,8 @@ export async function searchAndReplace(
     return results;
   }
 
-  // Create exclude predicate (returns true to exclude)
-  const shouldExcludePath = (name: string, fullPath: string): boolean => {
-    // Always exclude hidden files/folders (starting with '.')
-    if (name.startsWith('.')) return true;
-    return ignoredPatterns.some(pattern => pattern.test(name) || pattern.test(fullPath));
-  };
+  // Exclude hidden files plus user ignore patterns — shared with searchFolder.
+  const shouldExcludePath = buildExcludePredicate(ignoredPaths);
 
   // Use fdir to crawl for .md and .txt files
   const api = new fdir()
