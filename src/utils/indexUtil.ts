@@ -6,9 +6,19 @@ import { customAlphabet } from 'nanoid';
 import { parseFrontMatter } from './fileUtil';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from './specialFiles';
 import { writeFileAtomic } from './atomicWrite';
+import { mapWithConcurrency } from './asyncUtil';
 import { logger } from './logUtil';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
+
+/**
+ * Bound on concurrent filesystem operations during reconciliation. Each visible
+ * file is stat'd/read/written independently, so we fan these out rather than
+ * awaiting one round-trip at a time (which sums to N round-trips on large or slow
+ * directories). The limit keeps us from opening thousands of fds at once (EMFILE)
+ * — the same rationale as the other bounded fs fan-outs in this codebase.
+ */
+const RECONCILE_FILE_CONCURRENCY = 32;
 
 /**
  * Shared options for every js-yaml `dump()` in this module.
@@ -178,24 +188,40 @@ async function buildNonMarkdownFingerprints(
 ): Promise<{ nameToStat: Map<string, Fingerprint>; fingerprintToVisibleNames: Map<string, string[]> }> {
   const nameToStat = new Map<string, Fingerprint>();
   const fingerprintToVisibleNames = new Map<string, string[]>();
-  for (const entry of visibleEntries) {
-    if (!entry.isDirectory() && !entry.name.toLowerCase().endsWith('.md')) {
+
+  const nonMarkdownFiles = visibleEntries.filter(
+    (e) => !e.isDirectory() && !e.name.toLowerCase().endsWith('.md'),
+  );
+
+  // Stat the files in parallel (bounded): each stat is an independent fs
+  // round-trip, so serial awaits would sum to N round-trips on large/slow
+  // directories. Files that can't be stat'd yield null (rename detection skipped
+  // for them); a per-file failure never aborts the batch. mapWithConcurrency
+  // preserves input order, so assembling the maps from its results below stays
+  // deterministic (matching the previous in-order build).
+  const stats = await mapWithConcurrency(
+    nonMarkdownFiles,
+    RECONCILE_FILE_CONCURRENCY,
+    async (entry) => {
       try {
         const stat = await fs.promises.stat(path.join(dirPath, entry.name));
-        const createTime = Math.round(stat.birthtimeMs);
-        const size = stat.size;
-        nameToStat.set(entry.name, { createTime, size });
-        const fp = fingerprintOf(createTime, size, entry.name);
-        const names = fingerprintToVisibleNames.get(fp);
-        if (names) names.push(entry.name);
-        else fingerprintToVisibleNames.set(fp, [entry.name]);
+        return { name: entry.name, createTime: Math.round(stat.birthtimeMs), size: stat.size };
       } catch (err) {
-        // Skip files that can't be stat'd (no fingerprint → rename detection skipped for it).
         logger.debug(
           `reconcileIndexedFiles: stat failed for "${path.join(dirPath, entry.name)}": ${err}`,
         );
+        return null;
       }
-    }
+    },
+  );
+
+  for (const s of stats) {
+    if (!s) continue;
+    nameToStat.set(s.name, { createTime: s.createTime, size: s.size });
+    const fp = fingerprintOf(s.createTime, s.size, s.name);
+    const names = fingerprintToVisibleNames.get(fp);
+    if (names) names.push(s.name);
+    else fingerprintToVisibleNames.set(fp, [s.name]);
   }
   return { nameToStat, fingerprintToVisibleNames };
 }
@@ -218,57 +244,100 @@ async function ensureMarkdownIds(
   const nameToId = new Map<string, string>();
   const idToName = new Map<string, string>();
 
-  const markdownFiles: Array<{ name: string; createTime: number }> = [];
-  for (const entry of visibleEntries) {
-    if (!entry.isDirectory() && entry.name.toLowerCase().endsWith('.md')) {
+  const markdownEntries = visibleEntries.filter(
+    (e) => !e.isDirectory() && e.name.toLowerCase().endsWith('.md'),
+  );
+
+  // Phase 1 — stat every markdown file in parallel (bounded) to get its birthtime.
+  // These stats are independent, so serial awaits would sum to N round-trips. A
+  // stat failure leaves createTime at 0 (treated as oldest — best effort).
+  const markdownFiles = await mapWithConcurrency(
+    markdownEntries,
+    RECONCILE_FILE_CONCURRENCY,
+    async (entry) => {
       let createTime = 0;
       try {
         createTime = (await fs.promises.stat(path.join(dirPath, entry.name))).birthtimeMs;
       } catch (err) {
-        // If stat fails, treat as oldest (0) — best effort.
         logger.debug(
           `reconcileIndexedFiles: stat failed for "${path.join(dirPath, entry.name)}", treating as oldest: ${err}`,
         );
       }
-      markdownFiles.push({ name: entry.name, createTime });
-    }
-  }
+      return { name: entry.name, createTime };
+    },
+  );
   // Oldest first; tie-break by name so ordering (and thus which file keeps a
   // shared id) is deterministic when creation times are equal.
   markdownFiles.sort((a, b) => a.createTime - b.createTime || a.name.localeCompare(b.name));
 
-  for (const { name } of markdownFiles) {
-    const filePath = path.join(dirPath, name);
-    try {
-      const rawContent = await fs.promises.readFile(filePath, 'utf8');
-      const { yaml: fm } = parseFrontMatter(rawContent);
-
-      // A file needs a fresh id when it has none, or when its id is already
-      // claimed by an older file. Filenames are unique within a directory, so a
-      // hit in idToName here means a true duplicate id — e.g. a copy/paste that
-      // carried the source file's front-matter id. Re-key the (newer) duplicate
-      // so the per-directory uniqueness invariant rename detection relies on holds.
-      let fileId = fm?.id ? String(fm.id) : undefined;
-      const collidingName = fileId ? idToName.get(fileId) : undefined;
-      if (!fileId || collidingName !== undefined) {
-        if (fileId && collidingName !== undefined) {
-          logger.warn(
-            `reconcileIndexedFiles: duplicate front-matter id "${fileId}" in "${name}" (already used by older file "${collidingName}"); assigning a new id`,
-          );
-        }
-        // Inject an id not already in use in this directory, preserving any
-        // existing front-matter formatting (see injectFrontMatterId).
-        const injected = injectFrontMatterId(rawContent, (id) => idToName.has(id));
-        fileId = injected.id;
-        await writeFileAtomic(filePath, injected.content);
+  // Phase 2 — read every file's content in parallel (bounded), preserving the
+  // oldest-first order (mapWithConcurrency returns results in input order). A read
+  // failure yields null content and is skipped below (no id → excluded from rename
+  // detection), matching the previous per-file skip.
+  const contents = await mapWithConcurrency(
+    markdownFiles,
+    RECONCILE_FILE_CONCURRENCY,
+    async ({ name }) => {
+      const filePath = path.join(dirPath, name);
+      try {
+        return { name, rawContent: await fs.promises.readFile(filePath, 'utf8') as string | null };
+      } catch (err) {
+        logger.debug(`reconcileIndexedFiles: cannot read "${filePath}": ${err}`);
+        return { name, rawContent: null };
       }
-      nameToId.set(name, fileId);
-      idToName.set(fileId, name);
-    } catch (err) {
-      // Skip unreadable / unwritable files (no id assigned → excluded from rename detection).
-      logger.debug(`reconcileIndexedFiles: cannot read/update "${filePath}": ${err}`);
+    },
+  );
+
+  // Phase 3 — decide ids sequentially in oldest-first order. This loop is purely
+  // synchronous (no awaits), so the cross-file collision logic that mutates and
+  // reads idToName/nameToId runs without interleaving — exactly as the old serial
+  // loop did. Files needing a (re)written id are collected for a batched write.
+  const pendingWrites: Array<{ name: string; filePath: string; content: string }> = [];
+  for (const { name, rawContent } of contents) {
+    if (rawContent === null) continue; // unreadable — skip (no id assigned)
+    const { yaml: fm } = parseFrontMatter(rawContent);
+
+    // A file needs a fresh id when it has none, or when its id is already
+    // claimed by an older file. Filenames are unique within a directory, so a
+    // hit in idToName here means a true duplicate id — e.g. a copy/paste that
+    // carried the source file's front-matter id. Re-key the (newer) duplicate
+    // so the per-directory uniqueness invariant rename detection relies on holds.
+    let fileId = fm?.id ? String(fm.id) : undefined;
+    const collidingName = fileId ? idToName.get(fileId) : undefined;
+    if (!fileId || collidingName !== undefined) {
+      if (fileId && collidingName !== undefined) {
+        logger.warn(
+          `reconcileIndexedFiles: duplicate front-matter id "${fileId}" in "${name}" (already used by older file "${collidingName}"); assigning a new id`,
+        );
+      }
+      // Inject an id not already in use in this directory, preserving any
+      // existing front-matter formatting (see injectFrontMatterId).
+      const injected = injectFrontMatterId(rawContent, (id) => idToName.has(id));
+      fileId = injected.id;
+      pendingWrites.push({ name, filePath: path.join(dirPath, name), content: injected.content });
     }
+    nameToId.set(name, fileId);
+    idToName.set(fileId, name);
   }
+
+  // Phase 4 — persist the injected ids in parallel (bounded). Writes target
+  // distinct paths, so they're independent. If a write fails the file couldn't be
+  // persisted, so drop it from the maps (no id → excluded from rename detection),
+  // matching the original per-file skip on a failed read/write.
+  await mapWithConcurrency(
+    pendingWrites,
+    RECONCILE_FILE_CONCURRENCY,
+    async ({ name, filePath, content }) => {
+      try {
+        await writeFileAtomic(filePath, content);
+      } catch (err) {
+        logger.debug(`reconcileIndexedFiles: cannot update "${filePath}": ${err}`);
+        const id = nameToId.get(name);
+        nameToId.delete(name);
+        if (id) idToName.delete(id);
+      }
+    },
+  );
 
   return { nameToId, idToName };
 }

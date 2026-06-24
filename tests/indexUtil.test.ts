@@ -572,6 +572,37 @@ describe('reconcileIndexedFiles', () => {
       statSpy.mockRestore();
     }
   });
+
+  it('assigns a unique id to every file across a large directory (bounded parallel I/O)', async () => {
+    // Exercises the parallel stat/read/write fan-out: more files than the
+    // concurrency limit, a mix of markdown (which gets ids written) and
+    // non-markdown (fingerprinted), all reconciled in one pass.
+    const COUNT = 80; // comfortably above RECONCILE_FILE_CONCURRENCY (32)
+    for (let i = 0; i < COUNT; i++) {
+      touchFile(`doc${i}.md`, `# Doc ${i}`); // no front matter → each needs an id
+      touchFile(`asset${i}.png`, `binary-${i}`); // non-markdown → fingerprinted
+    }
+    writeIndex({ files: [] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    // Every markdown file got a distinct id, both on disk and in the index.
+    const diskIds = Array.from({ length: COUNT }, (_, i) =>
+      parseFrontMatter(fs.readFileSync(path.join(tmpDir, `doc${i}.md`), 'utf8')).yaml?.id,
+    );
+    expect(diskIds.every(Boolean)).toBe(true);
+    expect(new Set(diskIds).size).toBe(COUNT);
+
+    const data = readIndex();
+    const mdEntries = data.files.filter((f: IndexEntry) => f.name.endsWith('.md'));
+    expect(mdEntries).toHaveLength(COUNT);
+    expect(new Set(mdEntries.map((f: IndexEntry) => f.id)).size).toBe(COUNT);
+
+    // Non-markdown files are all listed with a (create_time, size) fingerprint.
+    const pngEntries = data.files.filter((f: IndexEntry) => f.name.endsWith('.png'));
+    expect(pngEntries).toHaveLength(COUNT);
+    expect(pngEntries.every((f: IndexEntry) => f.size !== undefined)).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
