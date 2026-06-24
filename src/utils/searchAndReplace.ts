@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fdir } from 'fdir';
-import { escapeRegexLiteral, buildExcludePredicate } from './utils/pathPattern';
-import { mapWithConcurrency } from './utils/asyncUtil';
-import { writeFileAtomic } from './utils/atomicWrite';
+import { escapeRegexLiteral, buildExcludePredicate } from './pathPattern';
+import { mapWithConcurrency } from './asyncUtil';
+import { writeFileAtomic } from './atomicWrite';
 
 /** Max number of files read/written concurrently during a search-and-replace.
  * Bounded so huge trees don't exhaust file descriptors (EMFILE) while still

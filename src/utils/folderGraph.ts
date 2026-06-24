@@ -12,7 +12,7 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
-import { buildExcludePredicate } from './utils/pathPattern';
+import { buildExcludePredicate } from './pathPattern';
 
 /** Hard cap on recursion depth from the root folder (root = 0). */
 export const MAX_DEPTH = 10;

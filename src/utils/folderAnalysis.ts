@@ -7,8 +7,8 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
-import { HASHTAG_REGEX } from './utils/hashtagRegex';
-import { buildExcludePredicate } from './utils/pathPattern';
+import { HASHTAG_REGEX } from './hashtagRegex';
+import { buildExcludePredicate } from './pathPattern';
 
 /**
  * Result of a folder analysis scan
