@@ -10,6 +10,16 @@ import { writeFileAtomic } from './utils/atomicWrite';
  * overlapping I/O. Mirrors SEARCH_FILE_CONCURRENCY in search.ts. */
 const REPLACE_FILE_CONCURRENCY = 32;
 
+/** Upper bound (bytes) on a single file read fully into memory for replacement.
+ * Markdown/text notes are tiny; a multi-hundred-MB or multi-GB file (a stray
+ * log, exported data, an accidentally-renamed binary) that happens to match
+ * .md/.txt would otherwise be slurped into one V8 string in the Electron MAIN
+ * process — risking a memory spike (amplified by REPLACE_FILE_CONCURRENCY) or
+ * blowing past V8's maximum string length. Files larger than this are skipped
+ * and reported as a failed ReplaceResult rather than read. Mirrors
+ * MAX_SEARCH_FILE_BYTES in search.ts. */
+const MAX_REPLACE_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
+
 export interface ReplaceResult {
   path: string;
   relativePath: string;
@@ -89,6 +99,21 @@ export async function searchAndReplace(
     REPLACE_FILE_CONCURRENCY,
     async (filePath): Promise<ReplaceResult | null> => {
       try {
+        // Bound the per-file read: stat first and skip anything larger than
+        // MAX_REPLACE_FILE_BYTES so a pathological file can't memory-spike or
+        // crash the main process. Reported as a failed result (not silently
+        // dropped) so the user sees why it was left untouched.
+        const { size } = await fs.promises.stat(filePath);
+        if (size > MAX_REPLACE_FILE_BYTES) {
+          return {
+            path: filePath,
+            relativePath: path.relative(folderPath, filePath),
+            replacementCount: 0,
+            success: false,
+            error: `File too large to process (${size} bytes exceeds the ${MAX_REPLACE_FILE_BYTES}-byte limit); skipped`,
+          };
+        }
+
         const content = await fs.promises.readFile(filePath, 'utf-8');
 
         // Replace and count in a SINGLE pass: the replacer function runs once

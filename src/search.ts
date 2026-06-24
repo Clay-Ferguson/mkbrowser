@@ -20,6 +20,15 @@ import { logger } from './utils/logUtil';
  * trees don't exhaust file descriptors (EMFILE) while still overlapping I/O. */
 const SEARCH_FILE_CONCURRENCY = 32;
 
+/** Upper bound (bytes) on a single file read fully into memory while searching
+ * content. Mirrors MAX_REPLACE_FILE_BYTES in searchAndReplace.ts: a stray
+ * multi-hundred-MB/GB file matching .md/.txt would otherwise be slurped into one
+ * V8 string in the Electron MAIN process, risking a memory spike (amplified by
+ * SEARCH_FILE_CONCURRENCY) or blowing past V8's max string length. Oversized
+ * files are skipped (logged at debug), the same graceful handling as an
+ * unreadable file. */
+const MAX_SEARCH_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
+
 /** YAML parse cache: keyed by file path. Created per `searchFolder` invocation so
  * concurrent searches never share (and corrupt) each other's cached parses. */
 type YamlCache = Map<string, Record<string, unknown> | null>;
@@ -221,8 +230,10 @@ export const MOST_RECENT_LIMIT = 500;
  * mostRecent path is additionally capped earlier at MOST_RECENT_LIMIT (500). */
 export const SEARCH_RESULT_LIMIT = 500;
 
-/** Modified/created timestamps captured from a single stat() call, in ms. */
-type StatTimes = { mtimeMs: number; birthtimeMs: number };
+/** Modified/created timestamps (ms) plus byte size captured from a single stat()
+ * call. `size` lets the content-read path enforce MAX_SEARCH_FILE_BYTES while
+ * reusing an already-captured stat instead of issuing a second one. */
+type StatTimes = { mtimeMs: number; birthtimeMs: number; size: number };
 
 /** A file path paired with the stat times captured for it. */
 type StatEntry = { path: string } & StatTimes;
@@ -243,7 +254,7 @@ async function filterMostRecent(filePaths: string[]): Promise<StatEntry[]> {
     async (fp): Promise<StatEntry | null> => {
       try {
         const stat = await fs.promises.stat(fp);
-        return { path: fp, mtimeMs: stat.mtimeMs, birthtimeMs: stat.birthtimeMs };
+        return { path: fp, mtimeMs: stat.mtimeMs, birthtimeMs: stat.birthtimeMs, size: stat.size };
       } catch (err) {
         // Expected: file may have vanished or be inaccessible. Skip it (it just
         // won't be considered for the most-recent set), but log for traceability.
@@ -429,11 +440,26 @@ export async function searchFolder(
         // being silently miscategorized as "file skipped". (Image EXIF reads are
         // handled inside extractExifText, which returns '' on failure.)
         let content: string;
+        // Carries the stat used for the size check forward into buildResult so a
+        // matched file isn't stat'd twice. In mostRecent mode cachedStat already
+        // has the size (no extra stat); otherwise we stat here to bound the read.
+        let resultStat = cachedStat;
         if (isImage) {
           content = await extractExifText(filePath);
           if (!content) return null;
         } else {
           try {
+            if (!resultStat) {
+              const stat = await fs.promises.stat(filePath);
+              resultStat = { mtimeMs: stat.mtimeMs, birthtimeMs: stat.birthtimeMs, size: stat.size };
+            }
+            // Bound the per-file read so a pathological file can't memory-spike
+            // or crash the main process; skip it the same way as an unreadable
+            // file (see MAX_SEARCH_FILE_BYTES).
+            if (resultStat.size > MAX_SEARCH_FILE_BYTES) {
+              logger.debug('search: skipping oversized file', filePath, resultStat.size);
+              return null;
+            }
             content = await fs.promises.readFile(filePath, 'utf-8');
           } catch (err) {
             logger.debug('search: skipping unreadable file', filePath, err);
@@ -444,7 +470,7 @@ export async function searchFolder(
         const { matches, matchCount } = matchPredicate(content, filePath);
         if (!matches) return null;
 
-        return buildResult(folderPath, filePath, matchCount, cachedStat);
+        return buildResult(folderPath, filePath, matchCount, resultStat);
       },
     );
     for (const r of fileResults) {

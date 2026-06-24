@@ -200,6 +200,37 @@ describe('searchAndReplace', () => {
     expect(subEntries).toEqual(['b.txt']);
   });
 
+  it('skips files larger than the size limit and reports them as a failed result', async () => {
+    // A normal file that should be processed normally.
+    await writeFile('small.md', 'needle here');
+
+    // A file just over the 20 MB ceiling. Use truncate to make it sparse so the
+    // test stays fast and low-on-disk: the file *reports* a >20 MB size to stat
+    // without actually writing 20 MB of bytes. The guard stats first and skips
+    // it before ever reading, so its (sparse) contents never matter.
+    const bigPath = await writeFile('big.md', 'needle here');
+    const overLimit = 20 * 1024 * 1024 + 1;
+    await fs.promises.truncate(bigPath, overLimit);
+    const bigSizeBefore = (await fs.promises.stat(bigPath)).size;
+
+    const results = await searchAndReplace(tmpDir, 'needle', 'pin', []);
+
+    const byRel = new Map(results.map(r => [r.relativePath, r]));
+
+    // The small file was replaced as usual.
+    expect(byRel.get('small.md')).toMatchObject({ replacementCount: 1, success: true });
+    expect(await fs.promises.readFile(path.join(tmpDir, 'small.md'), 'utf-8')).toBe('pin here');
+
+    // The oversized file is reported as a non-success result with an explanatory
+    // error — not silently dropped — and is left completely untouched on disk.
+    const bigResult = byRel.get('big.md');
+    expect(bigResult).toBeDefined();
+    expect(bigResult?.success).toBe(false);
+    expect(bigResult?.replacementCount).toBe(0);
+    expect(bigResult?.error).toMatch(/too large/i);
+    expect((await fs.promises.stat(bigPath)).size).toBe(bigSizeBefore);
+  });
+
   it('respects ignored patterns and always excludes hidden files', async () => {
     await writeFile('keep.md', 'mark');
     await writeFile('node_modules/dep.md', 'mark');
