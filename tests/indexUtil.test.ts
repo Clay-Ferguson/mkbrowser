@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as yaml from 'js-yaml';
 import {
   readIndexYaml,
@@ -17,6 +17,7 @@ import {
 import type { IndexEntry, IndexOptions } from '../src/utils/indexUtil';
 import { parseFrontMatter } from '../src/utils/fileUtil';
 import { INDEX_FILENAME } from '../src/utils/specialFiles';
+import { logger } from '../src/utils/logUtil';
 
 type IndexData = { files: IndexEntry[]; options: IndexOptions };
 
@@ -91,6 +92,23 @@ describe('readIndexYaml', () => {
   it('returns null for an unreadable/malformed file', async () => {
     fs.writeFileSync(indexPath(), ': : invalid: yaml: [[[', 'utf8');
     expect(await readIndexYaml(tmpDir)).toBeNull();
+  });
+
+  it('logs a warning for a malformed index but stays silent on a missing one', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    try {
+      // Missing file (ENOENT) is the expected "not Document Mode" case — no log.
+      expect(await readIndexYaml(tmpDir)).toBeNull();
+      expect(warn).not.toHaveBeenCalled();
+
+      // Corrupt YAML is unexpected — it should be surfaced at warn level.
+      fs.writeFileSync(indexPath(), ': : invalid: yaml: [[[', 'utf8');
+      expect(await readIndexYaml(tmpDir)).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toContain(INDEX_FILENAME);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 
@@ -455,5 +473,47 @@ describe('reconcileIndexedFiles', () => {
     // All three end up in the index with those distinct ids.
     const indexIds = readIndex().files.map((f: IndexEntry) => f.id);
     expect(new Set(indexIds).size).toBe(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// YAML line-folding (lineWidth: -1) — long values must not be wrapped
+// ---------------------------------------------------------------------------
+
+describe('YAML dump does not fold long lines', () => {
+  function readRaw(name: string) {
+    return fs.readFileSync(path.join(tmpDir, name), 'utf8');
+  }
+
+  it('keeps a >80-char filename on a single line in .INDEX.yaml', async () => {
+    // js-yaml's default lineWidth (80) folds plain scalars at spaces, so a long
+    // descriptive filename would be split across lines. lineWidth: -1 disables
+    // that. The parsed value round-trips either way, so assert on the raw text.
+    const longName =
+      'a very long descriptive markdown filename that keeps going well past eighty columns wide.md';
+    expect(longName.length).toBeGreaterThan(80);
+
+    await insertIntoIndexYaml(tmpDir, longName, null);
+
+    const raw = fs.readFileSync(indexPath(), 'utf8');
+    // The full name appears verbatim on one line — folding would insert a
+    // newline + indent mid-name, breaking this substring match.
+    expect(raw).toContain(longName);
+  });
+
+  it('does not reflow a long front-matter value when injecting an id', async () => {
+    const longTitle =
+      'This is an extremely long front matter title that runs well beyond eighty characters of width';
+    expect(longTitle.length).toBeGreaterThan(80);
+    // Markdown file with front matter but no id — reconcile rewrites it to add one.
+    touchFile('a.md', `---\ntitle: ${longTitle}\n---\n# Body`);
+    writeIndex({ files: [] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    const raw = readRaw('a.md');
+    expect(raw).toContain('id:');
+    // The user's title must survive intact on one line, not folded.
+    expect(raw).toContain(longTitle);
   });
 });

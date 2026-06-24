@@ -9,9 +9,29 @@ import { logger } from './logUtil';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
 
+/**
+ * Shared options for every js-yaml `dump()` in this module.
+ *
+ * `lineWidth: -1` disables js-yaml's default 80-column line folding so long
+ * filenames (in the `files` list) and long user-authored front-matter values
+ * (titles, descriptions, URLs) are never wrapped/reflowed on a routine write —
+ * matching the convention already used in tagUtil.ts and joinUtil.ts.
+ * `noRefs: true` avoids emitting YAML anchors/aliases for duplicate references.
+ */
+const YAML_DUMP_OPTS = { indent: 2, lineWidth: -1, noRefs: true } as const;
+
 /** Absolute path to the .INDEX.yaml file for a given directory. */
 function indexPathFor(dirPath: string): string {
   return path.join(dirPath, INDEX_FILENAME);
+}
+
+/**
+ * True when an fs error is the ordinary "file does not exist" case. A missing
+ * .INDEX.yaml simply means the directory isn't in Document Mode, so callers
+ * treat ENOENT as expected (and silent) while logging any other errno.
+ */
+function isENOENT(err: unknown): boolean {
+  return (err as NodeJS.ErrnoException)?.code === 'ENOENT';
 }
 
 export type IndexEntry = { name: string; id?: string; create_time?: number; size?: number };
@@ -36,7 +56,12 @@ export async function readIndexYaml(dirPath: string): Promise<IndexYaml | null> 
     const parsed = load(content) as IndexYaml;
     if (parsed && typeof parsed === 'object') return parsed;
     return null;
-  } catch {
+  } catch (err) {
+    // A missing index is the normal "not Document Mode" case; anything else
+    // (malformed YAML, EACCES, …) is worth surfacing.
+    if (!isENOENT(err)) {
+      logger.warn(`readIndexYaml: cannot read/parse "${indexFilePath}": ${err}`);
+    }
     return null;
   }
 }
@@ -53,15 +78,20 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   let existingIndexContent: string | null = null;
   try {
     existingIndexContent = await fs.promises.readFile(indexFilePath, 'utf8');
-  } catch {
-    // No existing file
+  } catch (err) {
+    // A missing index is normal (the file may be created below); log anything else.
+    if (!isENOENT(err)) {
+      logger.debug(`reconcileIndexedFiles: cannot read "${indexFilePath}": ${err}`);
+    }
   }
   if (existingIndexContent === null && !createIfMissing) return;
 
   let dirEntries: fs.Dirent[];
   try {
     dirEntries = await fs.promises.readdir(dirPath, { withFileTypes: true });
-  } catch {
+  } catch (err) {
+    // Can't list the directory — reconciliation can't proceed at all.
+    logger.warn(`reconcileIndexedFiles: cannot read directory "${dirPath}": ${err}`);
     return;
   }
 
@@ -82,8 +112,11 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
         nameToStat.set(entry.name, { createTime, size });
         const ext = path.extname(entry.name).toLowerCase();
         fingerprintToVisibleName.set(`${createTime}:${size}:${ext}`, entry.name);
-      } catch {
-        // Skip files that can't be stat'd
+      } catch (err) {
+        // Skip files that can't be stat'd (no fingerprint → rename detection skipped for it).
+        logger.debug(
+          `reconcileIndexedFiles: stat failed for "${path.join(dirPath, entry.name)}": ${err}`,
+        );
       }
     }
   }
@@ -103,8 +136,11 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
       let createTime = 0;
       try {
         createTime = (await fs.promises.stat(path.join(dirPath, entry.name))).birthtimeMs;
-      } catch {
+      } catch (err) {
         // If stat fails, treat as oldest (0) — best effort.
+        logger.debug(
+          `reconcileIndexedFiles: stat failed for "${path.join(dirPath, entry.name)}", treating as oldest: ${err}`,
+        );
       }
       markdownFiles.push({ name: entry.name, createTime });
     }
@@ -145,14 +181,15 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
           // and stays at the top of the front matter.
           const { id: _oldId, ...rest } = fm;
           const updated = { id: fileId, ...rest };
-          newContent = `---\n${dump(updated)}---\n${body}`;
+          newContent = `---\n${dump(updated, YAML_DUMP_OPTS)}---\n${body}`;
         }
         await writeFileAtomic(filePath, newContent);
       }
       nameToId.set(name, fileId);
       idToName.set(fileId, name);
-    } catch {
-      // Skip unreadable / unwritable files
+    } catch (err) {
+      // Skip unreadable / unwritable files (no id assigned → excluded from rename detection).
+      logger.debug(`reconcileIndexedFiles: cannot read/update "${filePath}": ${err}`);
     }
   }
 
@@ -164,8 +201,9 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
       const parsed = load(existingIndexContent) as IndexYaml;
       if (parsed && Array.isArray(parsed.files)) files = parsed.files;
       if (parsed?.options && typeof parsed.options === 'object') existingOptions = parsed.options;
-    } catch {
-      // Parse error — start fresh
+    } catch (err) {
+      // Corrupt index — start fresh (the rebuilt index will overwrite it).
+      logger.warn(`reconcileIndexedFiles: malformed "${indexFilePath}", rebuilding: ${err}`);
     }
   }
 
@@ -226,7 +264,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
     }
   }
 
-  const newContent = dump({ files, options: existingOptions }, { indent: 2 });
+  const newContent = dump({ files, options: existingOptions }, YAML_DUMP_OPTS);
   if (newContent !== existingIndexContent) {
     await writeFileAtomic(indexFilePath, newContent);
   }
@@ -243,7 +281,7 @@ export async function writeIndexOptions(
   try {
     const existing = (await readIndexYaml(dirPath)) ?? {};
     const updated: IndexYaml = { ...existing, options: { ...existing.options, ...options } };
-    await writeFileAtomic(indexFilePath, dump(updated, { indent: 2 }));
+    await writeFileAtomic(indexFilePath, dump(updated, YAML_DUMP_OPTS));
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };
@@ -307,10 +345,11 @@ export async function validateAttachFolderLocation(dirPath: string): Promise<voi
 
     await writeFileAtomic(
       indexFilePath,
-      dump({ ...indexYaml, files: reordered }, { indent: 2 }),
+      dump({ ...indexYaml, files: reordered }, YAML_DUMP_OPTS),
     );
-  } catch {
-    // Best-effort
+  } catch (err) {
+    // Best-effort; record the failed reorder but don't throw.
+    logger.warn(`validateAttachFolderLocation: failed to reorder "${indexFilePath}": ${err}`);
   }
 }
 
@@ -343,7 +382,7 @@ export async function moveInIndexYaml(
 
     [files[idx], files[swapIdx]] = [files[swapIdx], files[idx]];
 
-    const newContent = dump({ ...indexYaml, files }, { indent: 2 });
+    const newContent = dump({ ...indexYaml, files }, YAML_DUMP_OPTS);
     await writeFileAtomic(indexFilePath, newContent);
     await validateAttachFolderLocation(dirPath);
     return { success: true };
@@ -376,7 +415,7 @@ export async function moveToEdgeInIndexYaml(
       files.push(entry);
     }
 
-    const newContent = dump({ ...indexYaml, files }, { indent: 2 });
+    const newContent = dump({ ...indexYaml, files }, YAML_DUMP_OPTS);
     await writeFileAtomic(indexFilePath, newContent);
     await validateAttachFolderLocation(dirPath);
     return { success: true };
@@ -462,8 +501,12 @@ export async function ensureFrontMatterIdIfIndexed(
     const raw = await fs.promises.readFile(indexFilePath, 'utf8');
     const parsed = load(raw) as IndexYaml;
     if (parsed && typeof parsed === 'object') indexYaml = parsed;
-  } catch {
-    return content; // no .INDEX.yaml — nothing to do
+  } catch (err) {
+    // A missing index is the normal "not Document Mode" case; surface anything else.
+    if (!isENOENT(err)) {
+      logger.warn(`ensureFrontMatterIdIfIndexed: cannot read/parse "${indexFilePath}": ${err}`);
+    }
+    return content; // no usable .INDEX.yaml — nothing to do
   }
   if (!indexYaml) return content;
 
@@ -478,7 +521,7 @@ export async function ensureFrontMatterIdIfIndexed(
     newContent = `---\nid: ${fileId}\n---\n${body}`;
   } else {
     const updated = { id: fileId, ...fm };
-    newContent = `---\n${dump(updated)}---\n${body}`;
+    newContent = `---\n${dump(updated, YAML_DUMP_OPTS)}---\n${body}`;
   }
 
   // Update the .INDEX.yaml entry for this file to record the id
@@ -486,7 +529,7 @@ export async function ensureFrontMatterIdIfIndexed(
   const entry = files.find((f) => f.name === fileName);
   if (entry) {
     entry.id = fileId;
-    const newIndexContent = dump({ ...indexYaml, files }, { indent: 2 });
+    const newIndexContent = dump({ ...indexYaml, files }, YAML_DUMP_OPTS);
     await writeFileAtomic(indexFilePath, newIndexContent);
   }
 
@@ -509,9 +552,10 @@ export async function renameInIndexYaml(
     const entry = indexYaml.files.find((f) => f.name === oldName);
     if (!entry) return;
     entry.name = newName;
-    await writeFileAtomic(indexFilePath, dump(indexYaml, { indent: 2 }));
-  } catch {
-    // Best-effort; don't throw
+    await writeFileAtomic(indexFilePath, dump(indexYaml, YAML_DUMP_OPTS));
+  } catch (err) {
+    // Best-effort; record the failed index update but don't throw.
+    logger.warn(`renameInIndexYaml: failed to rename "${oldName}" → "${newName}" in "${indexFilePath}": ${err}`);
   }
 }
 
@@ -542,7 +586,7 @@ export async function insertIntoIndexYaml(
       }
     }
 
-    const newContent = dump({ ...indexYaml, files }, { indent: 2 });
+    const newContent = dump({ ...indexYaml, files }, YAML_DUMP_OPTS);
     await writeFileAtomic(indexFilePath, newContent);
     return { success: true };
   } catch (err) {
