@@ -3,11 +3,16 @@ import path from 'node:path';
 import { load, dump } from 'js-yaml';
 import { customAlphabet } from 'nanoid';
 import { parseFrontMatter } from './fileUtil';
-import { ATTACH_SUFFIX } from './specialFiles';
+import { ATTACH_SUFFIX, INDEX_FILENAME } from './specialFiles';
 import { writeFileAtomic } from './atomicWrite';
 import { logger } from './logUtil';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
+
+/** Absolute path to the .INDEX.yaml file for a given directory. */
+function indexPathFor(dirPath: string): string {
+  return path.join(dirPath, INDEX_FILENAME);
+}
 
 export type IndexEntry = { name: string; id?: string; create_time?: number; size?: number };
 
@@ -25,7 +30,7 @@ export interface IndexYaml {
  * if the file doesn't exist or can't be parsed.
  */
 export async function readIndexYaml(dirPath: string): Promise<IndexYaml | null> {
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  const indexFilePath = indexPathFor(dirPath);
   try {
     const content = await fs.promises.readFile(indexFilePath, 'utf8');
     const parsed = load(content) as IndexYaml;
@@ -44,7 +49,7 @@ export async function readIndexYaml(dirPath: string): Promise<IndexYaml | null> 
  * - Appends any new files not yet listed in the index.
  */
 export async function reconcileIndexedFiles(dirPath: string, createIfMissing = false): Promise<void> {
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  const indexFilePath = indexPathFor(dirPath);
   let existingIndexContent: string | null = null;
   try {
     existingIndexContent = await fs.promises.readFile(indexFilePath, 'utf8');
@@ -234,7 +239,7 @@ export async function writeIndexOptions(
   dirPath: string,
   options: IndexOptions,
 ): Promise<{ success: boolean; error?: string }> {
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  const indexFilePath = indexPathFor(dirPath);
   try {
     const existing = (await readIndexYaml(dirPath)) ?? {};
     const updated: IndexYaml = { ...existing, options: { ...existing.options, ...options } };
@@ -292,7 +297,7 @@ function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
  * each immediately follows its associated file. Writes back only if changed.
  */
 export async function validateAttachFolderLocation(dirPath: string): Promise<void> {
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  const indexFilePath = indexPathFor(dirPath);
   try {
     const indexYaml = await readIndexYaml(dirPath);
     if (!indexYaml?.files) return;
@@ -317,10 +322,10 @@ export async function moveInIndexYaml(
   name: string,
   direction: 'up' | 'down',
 ): Promise<{ success: boolean; error?: string }> {
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  const indexFilePath = indexPathFor(dirPath);
   try {
     const indexYaml = await readIndexYaml(dirPath);
-    if (!indexYaml) return { success: false, error: '.INDEX.yaml not found or unreadable' };
+    if (!indexYaml) return { success: false, error: `${INDEX_FILENAME} not found or unreadable` };
     const files = indexYaml.files ?? [];
 
     const idx = files.findIndex((f) => f.name === name);
@@ -355,10 +360,10 @@ export async function moveToEdgeInIndexYaml(
   name: string,
   edge: 'top' | 'bottom',
 ): Promise<{ success: boolean; error?: string }> {
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  const indexFilePath = indexPathFor(dirPath);
   try {
     const indexYaml = await readIndexYaml(dirPath);
-    if (!indexYaml) return { success: false, error: '.INDEX.yaml not found or unreadable' };
+    if (!indexYaml) return { success: false, error: `${INDEX_FILENAME} not found or unreadable` };
     const files = indexYaml.files ?? [];
 
     const idx = files.findIndex((f) => f.name === name);
@@ -449,7 +454,7 @@ export async function ensureFrontMatterIdIfIndexed(
 ): Promise<string> {
   const dirPath = path.dirname(filePath);
   const fileName = path.basename(filePath);
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  const indexFilePath = indexPathFor(dirPath);
 
   // Check if this folder is in Document Mode
   let indexYaml: IndexYaml | null = null;
@@ -497,7 +502,7 @@ export async function renameInIndexYaml(
   oldName: string,
   newName: string,
 ): Promise<void> {
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  const indexFilePath = indexPathFor(dirPath);
   try {
     const indexYaml = await readIndexYaml(dirPath);
     if (!indexYaml?.files) return;
@@ -520,7 +525,7 @@ export async function insertIntoIndexYaml(
   newName: string,
   insertAfterName: string | null,
 ): Promise<{ success: boolean; error?: string }> {
-  const indexFilePath = path.join(dirPath, '.INDEX.yaml');
+  const indexFilePath = indexPathFor(dirPath);
   try {
     const indexYaml = (await readIndexYaml(dirPath)) ?? {};
     const files = indexYaml.files ?? [];

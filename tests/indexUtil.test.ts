@@ -16,6 +16,7 @@ import {
 } from '../src/utils/indexUtil';
 import type { IndexEntry, IndexOptions } from '../src/utils/indexUtil';
 import { parseFrontMatter } from '../src/utils/fileUtil';
+import { INDEX_FILENAME } from '../src/utils/specialFiles';
 
 type IndexData = { files: IndexEntry[]; options: IndexOptions };
 
@@ -51,6 +52,24 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+// ---------------------------------------------------------------------------
+// INDEX_FILENAME constant
+// ---------------------------------------------------------------------------
+
+describe('INDEX_FILENAME', () => {
+  it('matches the Document Mode index naming convention', () => {
+    // Pins the centralized constant to the literal the rest of the codebase
+    // (and these tests) rely on, so a typo there can't silently change the name.
+    expect(INDEX_FILENAME).toBe('.INDEX.yaml');
+  });
+
+  it('is the exact filename written to disk by reconcileIndexedFiles', async () => {
+    touchFile('a.md');
+    await reconcileIndexedFiles(tmpDir, true);
+    expect(fs.existsSync(path.join(tmpDir, INDEX_FILENAME))).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------

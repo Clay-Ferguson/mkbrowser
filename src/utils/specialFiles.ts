@@ -19,3 +19,6 @@ export const THINK_FILENAME = 'THINK.md';
 
 /** Suffix marking a hidden attachment folder (e.g. `foo.md.attach`). */
 export const ATTACH_SUFFIX = '.attach';
+
+/** Hidden file that marks a folder as a Document Mode "document" and stores entry ordering. */
+export const INDEX_FILENAME = '.INDEX.yaml';
