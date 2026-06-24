@@ -220,6 +220,95 @@ describe('insertIntoIndexYaml', () => {
 });
 
 // ---------------------------------------------------------------------------
+// insertIntoIndexYaml seeds identity at insert time (issue 012)
+//
+// Unlike the bulk reconcile append path, the insert bars splice a single new
+// entry in. That entry must carry its identity immediately — an id for markdown,
+// a create_time/size fingerprint for other files — so a rename of the freshly
+// inserted file is tracked without waiting for the next reconcile.
+// ---------------------------------------------------------------------------
+
+describe('insertIntoIndexYaml seeds identity at insert time', () => {
+  function readRaw(name: string) {
+    return fs.readFileSync(path.join(tmpDir, name), 'utf8');
+  }
+
+  it('assigns a front-matter id to an inserted markdown file and records it on the entry', async () => {
+    touchFile('a.md', '# Hello\n'); // no front matter yet
+    writeIndex({ files: [] });
+
+    await insertIntoIndexYaml(tmpDir, 'a.md', null);
+
+    const entry = readIndex().files[0];
+    expect(entry.name).toBe('a.md');
+    expect(entry.id).toMatch(/^[0-9A-F]{9}$/);
+    // The id is also persisted to the file's front matter, so it survives renames.
+    const { yaml: fm } = parseFrontMatter(readRaw('a.md'));
+    expect(fm?.id).toBe(entry.id);
+  });
+
+  it('reuses an existing front-matter id rather than minting a new one', async () => {
+    touchFile('a.md', '---\nid: ABCDEF123\n---\n# Hello\n');
+    writeIndex({ files: [] });
+
+    await insertIntoIndexYaml(tmpDir, 'a.md', null);
+
+    expect(readIndex().files[0].id).toBe('ABCDEF123');
+  });
+
+  it('records a create_time/size fingerprint for an inserted non-markdown file', async () => {
+    touchFile('cover.png', 'binary-ish');
+    writeIndex({ files: [] });
+
+    await insertIntoIndexYaml(tmpDir, 'cover.png', null);
+
+    const entry = readIndex().files[0];
+    expect(entry.name).toBe('cover.png');
+    expect(entry.id).toBeUndefined();
+    expect(typeof entry.create_time).toBe('number');
+    expect(entry.size).toBe('binary-ish'.length);
+  });
+
+  it('inserts a folder as a name-only entry', async () => {
+    makeDir('Chapter 1');
+    writeIndex({ files: [] });
+
+    await insertIntoIndexYaml(tmpDir, 'Chapter 1', null);
+
+    const entry = readIndex().files[0];
+    expect(entry).toEqual({ name: 'Chapter 1' });
+  });
+
+  it('degrades to a name-only entry when the file is not on disk', async () => {
+    // Best-effort: a stat failure must not fail the insert (older behavior).
+    writeIndex({ files: [] });
+
+    const result = await insertIntoIndexYaml(tmpDir, 'ghost.md', null);
+
+    expect(result.success).toBe(true);
+    expect(readIndex().files[0]).toEqual({ name: 'ghost.md' });
+  });
+
+  it('lets id-based rename detection fire on a freshly inserted markdown file before any full reconcile', async () => {
+    // Insert seeds the entry's id; renaming the file (id stays in front matter)
+    // and reconciling re-points the entry by id to the new name.
+    touchFile('draft.md', '# Draft\n');
+    writeIndex({ files: [] });
+    await insertIntoIndexYaml(tmpDir, 'draft.md', null);
+    const id = readIndex().files[0].id;
+    expect(id).toBeTruthy();
+
+    // Simulate a rename: move the file (front matter, incl. id, comes along).
+    fs.renameSync(path.join(tmpDir, 'draft.md'), path.join(tmpDir, 'final.md'));
+    await reconcileIndexedFiles(tmpDir);
+
+    const names = readIndex().files.map((f: IndexEntry) => f.name);
+    expect(names).toEqual(['final.md']); // re-pointed, not dropped+re-appended
+    expect(readIndex().files[0].id).toBe(id);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // renameInIndexYaml
 // ---------------------------------------------------------------------------
 

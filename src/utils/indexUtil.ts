@@ -826,9 +826,76 @@ export async function renameInIndexYaml(
 }
 
 /**
+ * Ensures the markdown file at filePath has a front-matter `id`, returning it.
+ * If the file already has one it is returned unchanged; otherwise a fresh id is
+ * injected (preserving any existing front matter — see injectFrontMatterId) and
+ * persisted. Returns null when the file can't be read or written, so callers can
+ * degrade to a name-only index entry rather than failing.
+ *
+ * Unlike ensureMarkdownIds (the bulk reconcile path), this does not check the id
+ * against the rest of the directory for uniqueness — it seeds identity for a
+ * single freshly-created file, and the astronomically-unlikely collision would be
+ * detected and re-keyed by the next reconcile anyway. This matches the unchecked
+ * injection already done by ensureFrontMatterIdIfIndexed on save.
+ */
+async function ensureFileFrontMatterId(filePath: string): Promise<string | null> {
+  try {
+    const content = await fs.promises.readFile(filePath, 'utf8');
+    const { yaml: fm } = parseFrontMatter(content);
+    if (fm?.id) return String(fm.id);
+    const { content: updated, id } = injectFrontMatterId(content);
+    await writeFileAtomic(filePath, updated);
+    return id;
+  } catch (err) {
+    logger.debug(`ensureFileFrontMatterId: cannot ensure id for "${filePath}": ${err}`);
+    return null;
+  }
+}
+
+/**
+ * Builds the IndexEntry for a single on-disk entry named `name` in `dirPath`,
+ * seeding the same identity reconcileIndexedFiles would assign when appending it:
+ *  - markdown file → ensures (and records) a front-matter `id`, so rename
+ *    detection works immediately rather than only after the next reconcile;
+ *  - other file    → records a create_time+size fingerprint from `fs.stat`;
+ *  - folder         → name only.
+ *
+ * Best-effort: any fs failure (stat/read/write) degrades to a name-only entry,
+ * exactly as the bulk append path does when a file can't be stat'd/read — the
+ * next reconcile fills in the missing identity.
+ */
+async function buildEntryForName(dirPath: string, name: string): Promise<IndexEntry> {
+  const entry: IndexEntry = { name };
+  const filePath = path.join(dirPath, name);
+
+  let stat: fs.Stats;
+  try {
+    stat = await fs.promises.stat(filePath);
+  } catch (err) {
+    logger.debug(`buildEntryForName: stat failed for "${filePath}": ${err}`);
+    return entry; // name-only; next reconcile will seed identity
+  }
+
+  if (stat.isDirectory()) return entry; // folders carry name only
+
+  if (name.toLowerCase().endsWith('.md')) {
+    const id = await ensureFileFrontMatterId(filePath);
+    if (id) entry.id = id;
+  } else {
+    entry.create_time = Math.round(stat.birthtimeMs);
+    entry.size = stat.size;
+  }
+  return entry;
+}
+
+/**
  * Inserts a new entry into the .INDEX.yaml files array at the position
  * immediately after insertAfterName (or at position 0 when null).
  * Existing entries and their id fields are preserved.
+ *
+ * The new entry is seeded with identity up front (markdown id / non-markdown
+ * fingerprint) via buildEntryForName, so a rename of the just-inserted file is
+ * tracked immediately rather than only after the next reconcile.
  */
 export async function insertIntoIndexYaml(
   dirPath: string,
@@ -840,7 +907,7 @@ export async function insertIntoIndexYaml(
     const indexYaml = (await readIndexYaml(dirPath)) ?? { files: [], options: {} };
     const files = indexYaml.files;
 
-    const newEntry: { name: string } = { name: newName };
+    const newEntry = await buildEntryForName(dirPath, newName);
     if (insertAfterName === null) {
       files.unshift(newEntry);
     } else {
