@@ -420,8 +420,8 @@ function setupIpcHandlers(): void {
   });
 
   // Reconcile .INDEX.yaml with the filesystem (phase 1: ensure all markdown files have a front-matter id)
-  ipcMain.handle('reconcile-indexed-files', async (_event, dirPath: string, createIfMissing = false): Promise<void> => {
-    await reconcileIndexedFiles(dirPath, createIfMissing);
+  ipcMain.handle('reconcile-indexed-files', async (_event, dirPath: string, createIfMissing = false): Promise<{ success: boolean; error?: string }> => {
+    return reconcileIndexedFiles(dirPath, createIfMissing);
   });
 
   // Read .INDEX.yaml for a directory

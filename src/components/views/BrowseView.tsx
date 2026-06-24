@@ -678,9 +678,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const handleEnableCustomOrdering = useCallback(async () => {
     if (!currentPath) return;
-    await api.reconcileIndexedFiles(currentPath, true);
+    const result = await api.reconcileIndexedFiles(currentPath, true);
+    if (!result.success) {
+      onSetError(result.error || 'Failed to enable custom ordering');
+      return;
+    }
     onRefreshDirectory();
-  }, [currentPath, onRefreshDirectory]);
+  }, [currentPath, onRefreshDirectory, onSetError]);
 
   const handleRunSearch = useCallback((definition: SearchDefinition) => {
     if (!currentPath) return;

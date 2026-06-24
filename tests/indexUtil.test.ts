@@ -341,6 +341,51 @@ describe('renameInIndexYaml', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Error-handling contract (issue 016): mutators return { success, error } and
+// never throw; documented no-ops are success; getSortedDirEntries deliberately
+// throws on a hard readdir failure.
+// ---------------------------------------------------------------------------
+
+describe('error-handling contract (issue 016)', () => {
+  it('reconcileIndexedFiles returns { success: true } on the happy path', async () => {
+    touchFile('a.md', '# A');
+    const result = await reconcileIndexedFiles(tmpDir, true);
+    expect(result).toEqual({ success: true });
+  });
+
+  it('reconcileIndexedFiles is a success no-op for a non-Document-Mode folder', async () => {
+    touchFile('a.md', '# A');
+    // No .INDEX.yaml and createIfMissing=false: nothing to do, but not a failure.
+    const result = await reconcileIndexedFiles(tmpDir, false);
+    expect(result).toEqual({ success: true });
+    expect(fs.existsSync(indexPath())).toBe(false);
+  });
+
+  it('reconcileIndexedFiles returns { success: false, error } when the directory cannot be read', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    const missingDir = path.join(tmpDir, 'does-not-exist');
+    // createIfMissing=true forces it past the "no index" no-op into the readdir,
+    // which fails (ENOENT) — surfaced as a structured error, not a throw.
+    const result = await reconcileIndexedFiles(missingDir, true);
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+    warnSpy.mockRestore();
+  });
+
+  it('renameInIndexYaml returns { success: true } on a rename and on a no-op', async () => {
+    writeIndex({ files: [{ name: 'old.md', id: 'ABC' }] });
+    await expect(renameInIndexYaml(tmpDir, 'old.md', 'new.md')).resolves.toEqual({ success: true });
+    // oldName no longer present — a documented no-op, still success.
+    await expect(renameInIndexYaml(tmpDir, 'old.md', 'x.md')).resolves.toEqual({ success: true });
+  });
+
+  it('getSortedDirEntries throws on an unreadable directory (intentional, see its doc)', async () => {
+    const missingDir = path.join(tmpDir, 'does-not-exist');
+    await expect(getSortedDirEntries(missingDir)).rejects.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // moveInIndexYaml
 // ---------------------------------------------------------------------------
 
