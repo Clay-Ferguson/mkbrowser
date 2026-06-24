@@ -113,6 +113,61 @@ describe('readIndexYaml', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Malformed-but-valid YAML (untrusted / hand-edited index content)
+//
+// .INDEX.yaml is a plain file the user (or an external sync/merge tool) can
+// corrupt into something that is valid YAML but the wrong *shape*. The schema
+// in indexUtil must normalize these cleanly — never throw, never character-
+// iterate a string, never let a non-string `name` reach `.endsWith(...)`.
+// ---------------------------------------------------------------------------
+
+describe('malformed .INDEX.yaml is normalized, not trusted', () => {
+  it('treats a non-array `files` (valid YAML scalar) as empty', async () => {
+    fs.writeFileSync(indexPath(), 'files: hello\n', 'utf8');
+    const result = await readIndexYaml(tmpDir);
+    expect(result?.files).toEqual([]);
+  });
+
+  it('drops entries that are not { name: string } but keeps the good ones', async () => {
+    // A mix: a valid entry, an entry missing `name`, an entry with a numeric
+    // `name`, and a bare scalar element.
+    writeIndex({ files: [{ name: 'a.md' }, { id: 'X' }, { name: 123 }, 'oops'] });
+    const result = await readIndexYaml(tmpDir);
+    expect(result?.files).toEqual([{ name: 'a.md' }]);
+  });
+
+  it('treats a non-object `options` as empty', async () => {
+    fs.writeFileSync(indexPath(), 'files: []\noptions: nope\n', 'utf8');
+    const result = await readIndexYaml(tmpDir);
+    expect(result?.options).toEqual({});
+  });
+
+  it('returns null for a top-level scalar or list document', async () => {
+    fs.writeFileSync(indexPath(), 'just a string\n', 'utf8');
+    expect(await readIndexYaml(tmpDir)).toBeNull();
+
+    fs.writeFileSync(indexPath(), '- a\n- b\n', 'utf8');
+    expect(await readIndexYaml(tmpDir)).toBeNull();
+  });
+
+  it('getSortedDirEntries falls back to alphabetical when `files` is a string', async () => {
+    touchFile('b.md');
+    touchFile('a.md');
+    fs.writeFileSync(indexPath(), 'files: not-an-array\n', 'utf8');
+    // Must not iterate the string's characters or throw.
+    const names = (await getSortedDirEntries(tmpDir)).map((e) => e.name);
+    expect(names).toEqual(['a.md', 'b.md']);
+  });
+
+  it('reorder/insert operations do not throw on a malformed index', async () => {
+    touchFile('a.md');
+    fs.writeFileSync(indexPath(), 'files: not-an-array\n', 'utf8');
+    await expect(moveInIndexYaml(tmpDir, 'a.md', 'up')).resolves.not.toThrow();
+    await expect(insertIntoIndexYaml(tmpDir, 'a.md', null)).resolves.toMatchObject({ success: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // writeIndexOptions
 // ---------------------------------------------------------------------------
 

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { load, dump } from 'js-yaml';
+import { z } from 'zod';
 import { customAlphabet } from 'nanoid';
 import { parseFrontMatter } from './fileUtil';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from './specialFiles';
@@ -34,28 +35,64 @@ function isENOENT(err: unknown): boolean {
   return (err as NodeJS.ErrnoException)?.code === 'ENOENT';
 }
 
-export type IndexEntry = { name: string; id?: string; create_time?: number; size?: number };
+/**
+ * Runtime schema for .INDEX.yaml. The file is plain text on the user's disk that
+ * can be hand-edited, synced, merged, or corrupted by external tools, so its
+ * parsed contents are untrusted and `js-yaml`'s `load()` returns `unknown`.
+ *
+ * This schema is the single source of truth: the `IndexEntry` / `IndexOptions` /
+ * `IndexYaml` types below are derived from it via `z.infer`, so the runtime
+ * validation and the compile-time types can never drift out of sync.
+ *
+ * Tolerance rules — a corrupt index should degrade cleanly, never throw:
+ *  - a `files` value that isn't an array → empty list
+ *  - individual entries that aren't `{ name: string }` → dropped (good ones kept)
+ *  - a missing / non-object `options` → empty options
+ */
+const IndexEntrySchema = z.object({
+  name: z.string(),
+  id: z.string().optional(),
+  create_time: z.number().optional(),
+  size: z.number().optional(),
+});
 
-export interface IndexOptions {
-  [key: string]: unknown;
-}
+const IndexYamlSchema = z.object({
+  files: z
+    .array(z.unknown())
+    .transform((arr) =>
+      arr.flatMap((e) => {
+        const parsed = IndexEntrySchema.safeParse(e);
+        return parsed.success ? [parsed.data] : [];
+      }),
+    )
+    .catch([]),
+  options: z.record(z.string(), z.unknown()).catch({}),
+});
 
-export interface IndexYaml {
-  files?: IndexEntry[];
-  options?: IndexOptions;
+export type IndexEntry = z.infer<typeof IndexEntrySchema>;
+export type IndexOptions = z.infer<typeof IndexYamlSchema>['options'];
+export type IndexYaml = z.infer<typeof IndexYamlSchema>;
+
+/**
+ * Validates an already-parsed YAML value against the index schema. Returns a
+ * well-formed `IndexYaml` (with `files` and `options` always present) or `null`
+ * when the top-level value isn't an object (empty file, a bare scalar, a list).
+ * Never throws — malformed structure is normalized away per the rules above.
+ */
+export function parseIndexYaml(parsed: unknown): IndexYaml | null {
+  const result = IndexYamlSchema.safeParse(parsed);
+  return result.success ? result.data : null;
 }
 
 /**
- * Reads and parses .INDEX.yaml from dirPath. Returns the parsed object, or null
- * if the file doesn't exist or can't be parsed.
+ * Reads and parses .INDEX.yaml from dirPath. Returns the validated object, or
+ * null if the file doesn't exist or can't be parsed.
  */
 export async function readIndexYaml(dirPath: string): Promise<IndexYaml | null> {
   const indexFilePath = indexPathFor(dirPath);
   try {
     const content = await fs.promises.readFile(indexFilePath, 'utf8');
-    const parsed = load(content) as IndexYaml;
-    if (parsed && typeof parsed === 'object') return parsed;
-    return null;
+    return parseIndexYaml(load(content));
   } catch (err) {
     // A missing index is the normal "not Document Mode" case; anything else
     // (malformed YAML, EACCES, …) is worth surfacing.
@@ -198,11 +235,13 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   let existingOptions: IndexOptions = {};
   if (existingIndexContent !== null) {
     try {
-      const parsed = load(existingIndexContent) as IndexYaml;
-      if (parsed && Array.isArray(parsed.files)) files = parsed.files;
-      if (parsed?.options && typeof parsed.options === 'object') existingOptions = parsed.options;
+      const parsed = parseIndexYaml(load(existingIndexContent));
+      if (parsed) {
+        files = parsed.files;
+        existingOptions = parsed.options;
+      }
     } catch (err) {
-      // Corrupt index — start fresh (the rebuilt index will overwrite it).
+      // Corrupt YAML (load threw) — start fresh (the rebuilt index will overwrite it).
       logger.warn(`reconcileIndexedFiles: malformed "${indexFilePath}", rebuilding: ${err}`);
     }
   }
@@ -279,8 +318,11 @@ export async function writeIndexOptions(
 ): Promise<{ success: boolean; error?: string }> {
   const indexFilePath = indexPathFor(dirPath);
   try {
-    const existing = (await readIndexYaml(dirPath)) ?? {};
-    const updated: IndexYaml = { ...existing, options: { ...existing.options, ...options } };
+    const existing = await readIndexYaml(dirPath);
+    const updated: IndexYaml = {
+      files: existing?.files ?? [],
+      options: { ...existing?.options, ...options },
+    };
     await writeFileAtomic(indexFilePath, dump(updated, YAML_DUMP_OPTS));
     return { success: true };
   } catch (err) {
@@ -365,7 +407,7 @@ export async function moveInIndexYaml(
   try {
     const indexYaml = await readIndexYaml(dirPath);
     if (!indexYaml) return { success: false, error: `${INDEX_FILENAME} not found or unreadable` };
-    const files = indexYaml.files ?? [];
+    const files = indexYaml.files;
 
     const idx = files.findIndex((f) => f.name === name);
     if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
@@ -403,7 +445,7 @@ export async function moveToEdgeInIndexYaml(
   try {
     const indexYaml = await readIndexYaml(dirPath);
     if (!indexYaml) return { success: false, error: `${INDEX_FILENAME} not found or unreadable` };
-    const files = indexYaml.files ?? [];
+    const files = indexYaml.files;
 
     const idx = files.findIndex((f) => f.name === name);
     if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
@@ -499,8 +541,7 @@ export async function ensureFrontMatterIdIfIndexed(
   let indexYaml: IndexYaml | null = null;
   try {
     const raw = await fs.promises.readFile(indexFilePath, 'utf8');
-    const parsed = load(raw) as IndexYaml;
-    if (parsed && typeof parsed === 'object') indexYaml = parsed;
+    indexYaml = parseIndexYaml(load(raw));
   } catch (err) {
     // A missing index is the normal "not Document Mode" case; surface anything else.
     if (!isENOENT(err)) {
@@ -571,8 +612,8 @@ export async function insertIntoIndexYaml(
 ): Promise<{ success: boolean; error?: string }> {
   const indexFilePath = indexPathFor(dirPath);
   try {
-    const indexYaml = (await readIndexYaml(dirPath)) ?? {};
-    const files = indexYaml.files ?? [];
+    const indexYaml = (await readIndexYaml(dirPath)) ?? { files: [], options: {} };
+    const files = indexYaml.files;
 
     const newEntry: { name: string } = { name: newName };
     if (insertAfterName === null) {
