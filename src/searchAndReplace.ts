@@ -77,21 +77,31 @@ export async function searchAndReplace(
       try {
         const content = await fs.promises.readFile(filePath, 'utf-8');
 
-        // Count how many replacements will be made
-        const matches = content.match(searchRegex);
-        const replacementCount = matches ? matches.length : 0;
+        // Replace and count in a SINGLE pass: the replacer function runs once
+        // per match, so incrementing here yields the match count without a
+        // second `content.match(searchRegex)` scan (and its throwaway match
+        // array). Using a replacer FUNCTION (not a string) also inserts
+        // replaceText verbatim: a string second argument would interpret
+        // `$$`, `$&`, `` $` ``, `$'`, and `$1`/`$2`… as special replacement
+        // patterns, breaking the documented "literal text" contract for any
+        // replacement containing `$`.
+        let replacementCount = 0;
+        const newContent = content.replace(searchRegex, () => {
+          replacementCount++;
+          return replaceText;
+        });
 
-        if (replacementCount === 0) {
+        // Skip files whose bytes didn't actually change. This covers the
+        // zero-match case AND the no-op case where the replacement reproduces
+        // the original content (e.g. searchText === replaceText): there the
+        // count is > 0 yet nothing changed. Writing anyway would churn the
+        // file's mtime for nothing, which is user-visible here because the
+        // search feature sorts by most-recent. Such files are reported as
+        // zero effective replacements (omitted from results entirely).
+        if (replacementCount === 0 || newContent === content) {
           return null;
         }
 
-        // Perform the replacement and write the modified content back.
-        // Use a replacer FUNCTION (not a string) so replaceText is inserted
-        // verbatim: a string second argument would interpret `$$`, `$&`,
-        // `` $` ``, `$'`, and `$1`/`$2`… as special replacement patterns,
-        // breaking the documented "literal text" contract for any
-        // replacement containing `$`.
-        const newContent = content.replace(searchRegex, () => replaceText);
         // Write atomically (temp file + rename) so a crash, power loss, or
         // disk-full mid-write can never leave the user's document truncated or
         // half-written — readers see either the full old file or the full new

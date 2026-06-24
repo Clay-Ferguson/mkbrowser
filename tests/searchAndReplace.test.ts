@@ -56,6 +56,24 @@ describe('searchAndReplace', () => {
     expect(await fs.promises.readFile(path.join(tmpDir, 'c.md'), 'utf-8')).toBe('nothing to see');
   });
 
+  it('does not write or report files when the replacement reproduces the original bytes', async () => {
+    // searchText === replaceText: every match "replaces" with identical text,
+    // so the count is > 0 but the file's content is unchanged. The file must
+    // not be rewritten (no mtime churn) and must not appear in results.
+    const file = await writeFile('a.md', 'foo and foo again');
+    const before = await fs.promises.stat(file);
+
+    // Ensure any rewrite would produce a detectably different mtime.
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    const results = await searchAndReplace(tmpDir, 'foo', 'foo', []);
+
+    expect(results).toEqual([]);
+    const after = await fs.promises.stat(file);
+    expect(after.mtimeMs).toBe(before.mtimeMs);
+    expect(await fs.promises.readFile(file, 'utf-8')).toBe('foo and foo again');
+  });
+
   it('only processes .md and .txt files', async () => {
     await writeFile('keep.md', 'token');
     await writeFile('skip.json', 'token');
