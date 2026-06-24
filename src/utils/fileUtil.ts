@@ -4,7 +4,7 @@ import { load } from 'js-yaml';
 import type { FileEntry } from "../global";
 import { logger } from './logUtil';
 import { readAiHint } from '../ai/aiHint';
-import { readIndexYaml } from './indexUtil';
+import { readIndexYaml, compareByIndexOrder } from './indexUtil';
 import { ATTACH_SUFFIX } from './specialFiles';
 import { compareNames } from './fileTypes';
 
@@ -197,17 +197,16 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
   const indexYaml = await readIndexYaml(dirPath);
   const indexFiles = indexYaml?.files;
   if (indexFiles) {
+    // Order by the canonical .INDEX.yaml rule shared with document export
+    // (getSortedDirEntries), so on-screen order can never diverge from exported
+    // order for an indexed folder. (issue 015)
     const nameToOrder = new Map(indexFiles.map((f, i) => [f.name, i]));
     for (const entry of fileEntries) {
       const order = nameToOrder.get(entry.name);
       if (order !== undefined) entry.indexOrder = order;
     }
-    fileEntries.sort((a, b) => {
-      const aOrder = a.indexOrder ?? Infinity;
-      const bOrder = b.indexOrder ?? Infinity;
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return compareNames(a.name, b.name);
-    });
+    const compare = compareByIndexOrder(indexFiles);
+    fileEntries.sort((a, b) => compare(a.name, b.name));
   } else {
     fileEntries.sort((a, b) => {
       if (a.isDirectory && !b.isDirectory) return -1;

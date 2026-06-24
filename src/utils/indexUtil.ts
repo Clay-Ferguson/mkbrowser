@@ -4,6 +4,7 @@ import { load, dump } from 'js-yaml';
 import { z } from 'zod';
 import { customAlphabet } from 'nanoid';
 import { parseFrontMatter } from './fileUtil';
+import { compareNames } from './fileTypes';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from './specialFiles';
 import { writeFileAtomic } from './atomicWrite';
 import { mapWithConcurrency } from './asyncUtil';
@@ -767,6 +768,32 @@ export async function moveToEdgeInIndexYaml(
 }
 
 /**
+ * The single, canonical Document Mode ordering rule for the entries of one
+ * directory, given that directory's `.INDEX.yaml` `files` list.
+ *
+ * Returns a comparator over entry *names* that orders by each name's position in
+ * the index, with any names absent from the index ("extras" — e.g. a file just
+ * created but not yet reconciled into `.INDEX.yaml`) sorting *after* the indexed
+ * entries, tie-broken by natural name order (`compareNames`).
+ *
+ * Both the main UI listing (`readDirectory` in fileUtil) and document export
+ * (`getSortedDirEntries` → exportUtil) build their ordering from this one
+ * function, so the exported document order can never silently diverge from the
+ * on-screen order for an indexed folder. (See issue 015.)
+ */
+export function compareByIndexOrder(
+  indexFiles: IndexEntry[],
+): (a: string, b: string) => number {
+  const nameToOrder = new Map(indexFiles.map((f, i) => [f.name, i]));
+  return (a, b) => {
+    const aOrder = nameToOrder.get(a) ?? Infinity;
+    const bOrder = nameToOrder.get(b) ?? Infinity;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return compareNames(a, b);
+  };
+}
+
+/**
  * Returns the visible entries of a directory in document-mode order when a
  * .INDEX.yaml exists, or alphabetically when it does not.
  *
@@ -786,35 +813,20 @@ export async function getSortedDirEntries(
     isDir: e.isDirectory(),
   });
 
+  const items = visible.map(toItem);
+
   const indexYaml = await readIndexYaml(dirPath);
   if (!indexYaml?.files?.length) {
-    // No document mode — alphabetical fallback
-    return visible
-      .map(toItem)
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    // No document mode — natural-name (numeric-aware) fallback, files and folders
+    // sorted together so ordinal-prefixed names control order.
+    return items.sort((a, b) => compareNames(a.name, b.name));
   }
 
-  // Build a lookup from name → Dirent for fast access
-  const nameMap = new Map(visible.map((e) => [e.name, e]));
-
-  // Emit entries in index order, then any extras not listed in the index alphabetically
-  const ordered: Array<{ name: string; entryPath: string; isDir: boolean }> = [];
-  const seen = new Set<string>();
-  for (const entry of indexYaml.files) {
-    const dirent = nameMap.get(entry.name);
-    if (dirent) {
-      ordered.push(toItem(dirent));
-      seen.add(entry.name);
-    }
-  }
-  // Append any disk entries not present in the index (new files not yet reconciled)
-  for (const e of visible) {
-    if (!seen.has(e.name)) {
-      ordered.push(toItem(e));
-    }
-  }
-
-  return ordered;
+  // Document mode: order by the canonical .INDEX.yaml rule shared with the main
+  // UI listing (readDirectory), so exported order can never diverge from
+  // on-screen order. Extras not yet in the index sort after, by name. (issue 015)
+  const compare = compareByIndexOrder(indexYaml.files);
+  return items.sort((a, b) => compare(a.name, b.name));
 }
 
 /**

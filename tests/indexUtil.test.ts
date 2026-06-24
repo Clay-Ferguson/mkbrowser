@@ -19,7 +19,7 @@ import {
   recordFrontMatterIdInIndex,
 } from '../src/utils/indexUtil';
 import type { IndexEntry, IndexOptions } from '../src/utils/indexUtil';
-import { parseFrontMatter } from '../src/utils/fileUtil';
+import { parseFrontMatter, readDirectory } from '../src/utils/fileUtil';
 import { INDEX_FILENAME } from '../src/utils/specialFiles';
 import { logger } from '../src/utils/logUtil';
 
@@ -488,6 +488,36 @@ describe('getSortedDirEntries', () => {
     const file = entries.find((e) => e.name === 'file.md');
     expect(subdir?.isDir).toBe(true);
     expect(file?.isDir).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Export order (getSortedDirEntries) must match display order (readDirectory)
+// for an indexed folder — they share one ordering primitive. (issue 015)
+// ---------------------------------------------------------------------------
+
+describe('getSortedDirEntries and readDirectory agree on indexed ordering (issue 015)', () => {
+  it('produce identical order, including extras not yet in the index', async () => {
+    touchFile('c.md');
+    touchFile('a.md');
+    touchFile('b.md');
+    // Extras present on disk but NOT listed in the index (e.g. just-created
+    // files not yet reconciled). This is the case the two functions used to
+    // order differently: readDirectory sorted extras by name, getSortedDirEntries
+    // appended them in raw readdir order.
+    touchFile('extra2.md');
+    touchFile('extra1.md');
+    makeDir('zsub');
+    writeIndex({ files: [{ name: 'c.md' }, { name: 'a.md' }, { name: 'b.md' }] });
+
+    const exportOrder = (await getSortedDirEntries(tmpDir)).map((e) => e.name);
+    const displayOrder = (await readDirectory(tmpDir, false)).map((e) => e.name);
+
+    // Indexed entries follow the index; extras come after, by natural name order.
+    const expected = ['c.md', 'a.md', 'b.md', 'extra1.md', 'extra2.md', 'zsub'];
+    expect(exportOrder).toEqual(expected);
+    expect(displayOrder).toEqual(expected);
+    expect(exportOrder).toEqual(displayOrder);
   });
 });
 
