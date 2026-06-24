@@ -1,7 +1,7 @@
 
 # Analyze Code to Search for Coding Convention Violations, Areas for Improvement, and Bugs
 
-Please look at my files which are directly inside the `src/components` folder (ignoring subfolders! i.e just the 13 tsx files) and identify areas which break any industry standard coding conventions or aren't following standard TypeScript/React/Electron bests-practices. Search for Bugs while you're at it too. 
+Please look at my file `src/search.ts` and identify areas which break any industry standard coding conventions or aren't following standard TypeScript/React/Electron bests-practices. Search for Bugs while you're at it too. 
 
 Break down your observations into a set of markdown files and create them in a folder named `current_work` which you can create in the root of the project. Do not print them out here in your response but put all your findings ONLY in these markdown files. Just do that and then print "done" into this chat window. Write each file into `current_work` using a numbered file naming convention (i.e. 001_memory_issue.md, 002_bug_with_sync.md, etc). When you generate each markdown file it should be written to describe one single issue that has been identified, and give enough information about the issue, to fully describe the problem, and proposed ideas for a solution. Try not to identify things using line numbers because they can change over time of course. Also go ahead and make the markdown file be formatted as an actual AI PROMPT to your future self so that you can independently work on each of the issues you identify, one by one, which why you're creating them. 
 
