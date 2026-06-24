@@ -531,6 +531,47 @@ describe('reconcileIndexedFiles', () => {
     const indexIds = readIndex().files.map((f: IndexEntry) => f.id);
     expect(new Set(indexIds).size).toBe(3);
   });
+
+  it('reconciles two colliding non-markdown files without dropping or re-pointing either (issue 009)', async () => {
+    // Two empty pngs share ext (.png) and size (0). Force their birthtimes equal
+    // so the "createTime:size:ext" fingerprints collide exactly as they would on a
+    // filesystem with an unreliable/zero birthtime — the original bug's trigger.
+    // Last-writer-wins fingerprinting would re-point one entry onto the other file
+    // and drop/duplicate the genuine one; the fix must leave both intact.
+    touchFile('a.png', '');
+    touchFile('b.png', '');
+
+    const realStat = fs.promises.stat.bind(fs.promises);
+    const statSpy = vi
+      .spyOn(fs.promises, 'stat')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockImplementation(async (p: any) => {
+        const s = await realStat(p);
+        if (typeof p === 'string' && p.endsWith('.png')) {
+          (s as fs.Stats).birthtimeMs = 1000; // identical for both → colliding fingerprint
+        }
+        return s;
+      });
+
+    try {
+      writeIndex({
+        files: [
+          { name: 'a.png', create_time: 1000, size: 0 },
+          { name: 'b.png', create_time: 1000, size: 0 },
+        ],
+      });
+
+      await reconcileIndexedFiles(tmpDir);
+
+      const names = readIndex().files.map((f: IndexEntry) => f.name);
+      // Neither entry dropped, neither re-pointed onto the other, no duplicate.
+      expect(names.filter((n) => n === 'a.png')).toHaveLength(1);
+      expect(names.filter((n) => n === 'b.png')).toHaveLength(1);
+      expect([...names].sort()).toEqual(['a.png', 'b.png']);
+    } finally {
+      statSpy.mockRestore();
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -550,7 +591,7 @@ function fakeDirent(name: string, isDir = false): fs.Dirent {
 describe('reconcileEntries', () => {
   const emptyMaps = () => ({
     idToName: new Map<string, string>(),
-    fingerprintToVisibleName: new Map<string, string>(),
+    fingerprintToVisibleNames: new Map<string, string[]>(),
     nameToId: new Map<string, string>(),
     visibleNames: new Set<string>(),
   });
@@ -572,7 +613,9 @@ describe('reconcileEntries', () => {
 
   it('renames a fingerprinted non-markdown entry via (create_time,size,ext)', () => {
     const maps = emptyMaps();
-    maps.fingerprintToVisibleName.set('100:50:.png', 'new.png');
+    // Unambiguous 1:1 fingerprint: one index entry, one disk file → confident rename.
+    maps.fingerprintToVisibleNames.set('100:50:.png', ['new.png']);
+    maps.visibleNames.add('new.png');
     const { files, handledNames } = reconcileEntries(
       [{ name: 'old.png', create_time: 100, size: 50 }],
       maps,
@@ -585,6 +628,51 @@ describe('reconcileEntries', () => {
     const maps = emptyMaps();
     const { files } = reconcileEntries([{ name: 'old.png', create_time: 1, size: 2 }], maps);
     expect(files).toEqual([]);
+  });
+
+  it('does not re-point colliding fingerprints — keeps each entry on its own file', () => {
+    // Two non-markdown files with an identical fingerprint (same ext, size, and
+    // birthtime — e.g. two empty pngs, or any files when birthtime is an
+    // unreliable 0). Both still exist on disk under their own names; reconcile
+    // must leave each entry pointing at its own file, never collapse onto one.
+    const maps = emptyMaps();
+    maps.fingerprintToVisibleNames.set('0:0:.png', ['a.png', 'b.png']);
+    maps.visibleNames.add('a.png');
+    maps.visibleNames.add('b.png');
+    const { files, handledNames } = reconcileEntries(
+      [
+        { name: 'a.png', create_time: 0, size: 0 },
+        { name: 'b.png', create_time: 0, size: 0 },
+      ],
+      maps,
+    );
+    expect(files.map((f) => f.name)).toEqual(['a.png', 'b.png']);
+    expect(handledNames.has('a.png')).toBe(true);
+    expect(handledNames.has('b.png')).toBe(true);
+  });
+
+  it('falls back to name-only (no re-point) when a fingerprint is ambiguous and a name is gone', () => {
+    // Same colliding fingerprint, but one of the two files was renamed away
+    // (a.png → c.png). Because the fingerprint is ambiguous we must NOT bind the
+    // a.png entry to b.png or c.png; instead a.png is treated as gone (dropped)
+    // and b.png stays put. A missed rename is the safe failure mode.
+    const maps = emptyMaps();
+    maps.fingerprintToVisibleNames.set('0:0:.png', ['b.png', 'c.png']);
+    maps.visibleNames.add('b.png');
+    maps.visibleNames.add('c.png');
+    const { files, handledNames } = reconcileEntries(
+      [
+        { name: 'a.png', create_time: 0, size: 0 },
+        { name: 'b.png', create_time: 0, size: 0 },
+      ],
+      maps,
+    );
+    // a.png dropped (not re-pointed), b.png kept on its own file.
+    expect(files.map((f) => f.name)).toEqual(['b.png']);
+    expect(handledNames.has('a.png')).toBe(false);
+    expect(handledNames.has('b.png')).toBe(true);
+    // c.png is left unhandled so the caller appends it as a new entry.
+    expect(handledNames.has('c.png')).toBe(false);
   });
 
   it('keeps a name-only entry that is still visible and back-fills its id', () => {

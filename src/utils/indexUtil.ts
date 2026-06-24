@@ -161,16 +161,23 @@ async function readVisibleEntries(dirPath: string): Promise<fs.Dirent[]> {
 
 /**
  * Stats every visible non-markdown file to build the maps used for rename
- * detection: `nameToStat` (name → {createTime, size}) and `fingerprintToVisibleName`
- * (fingerprint → name). Files that can't be stat'd are skipped (no fingerprint →
- * no rename detection for them).
+ * detection: `nameToStat` (name → {createTime, size}) and `fingerprintToVisibleNames`
+ * (fingerprint → all names sharing it). Files that can't be stat'd are skipped (no
+ * fingerprint → no rename detection for them).
+ *
+ * The fingerprint ("createTime:size:ext") is deliberately *not* assumed unique:
+ * `stat.birthtimeMs` is unreliable on some Linux filesystems (returns 0), and even
+ * a real birthtime collides for empty files or batch-created copies of the same
+ * type. So a fingerprint can legitimately map to several disk files — we keep the
+ * full list (rather than last-writer-wins) so reconcileEntries can recognize the
+ * ambiguity and refuse to re-point an entry to the wrong file. See reconcileEntries.
  */
 async function buildNonMarkdownFingerprints(
   dirPath: string,
   visibleEntries: fs.Dirent[],
-): Promise<{ nameToStat: Map<string, Fingerprint>; fingerprintToVisibleName: Map<string, string> }> {
+): Promise<{ nameToStat: Map<string, Fingerprint>; fingerprintToVisibleNames: Map<string, string[]> }> {
   const nameToStat = new Map<string, Fingerprint>();
-  const fingerprintToVisibleName = new Map<string, string>();
+  const fingerprintToVisibleNames = new Map<string, string[]>();
   for (const entry of visibleEntries) {
     if (!entry.isDirectory() && !entry.name.toLowerCase().endsWith('.md')) {
       try {
@@ -178,7 +185,10 @@ async function buildNonMarkdownFingerprints(
         const createTime = Math.round(stat.birthtimeMs);
         const size = stat.size;
         nameToStat.set(entry.name, { createTime, size });
-        fingerprintToVisibleName.set(fingerprintOf(createTime, size, entry.name), entry.name);
+        const fp = fingerprintOf(createTime, size, entry.name);
+        const names = fingerprintToVisibleNames.get(fp);
+        if (names) names.push(entry.name);
+        else fingerprintToVisibleNames.set(fp, [entry.name]);
       } catch (err) {
         // Skip files that can't be stat'd (no fingerprint → rename detection skipped for it).
         logger.debug(
@@ -187,7 +197,7 @@ async function buildNonMarkdownFingerprints(
       }
     }
   }
-  return { nameToStat, fingerprintToVisibleName };
+  return { nameToStat, fingerprintToVisibleNames };
 }
 
 /**
@@ -270,6 +280,12 @@ async function ensureMarkdownIds(
  * matched a disk entry ("handled") so the caller knows which visible entries are
  * still new. Name-only entries also pick up an id when their file now has one.
  *
+ * Non-markdown fingerprints (createTime:size:ext) are not guaranteed unique, so a
+ * rename is only inferred when the fingerprint maps one-to-one (one index entry ↔
+ * one disk file). Ambiguous (colliding) fingerprints fall back to name-only
+ * matching and are never re-pointed — a missed rename is preferred to binding an
+ * entry to the wrong file. See issue 009 / the Document Mode technical note.
+ *
  * Pure: reads only the supplied maps and returns the filtered entries plus the
  * handled-name set — no filesystem access. (Entry objects are mutated in place
  * for renames/id-assignment, matching the previous inline behavior.)
@@ -278,13 +294,28 @@ export function reconcileEntries(
   files: IndexEntry[],
   maps: {
     idToName: Map<string, string>;
-    fingerprintToVisibleName: Map<string, string>;
+    fingerprintToVisibleNames: Map<string, string[]>;
     nameToId: Map<string, string>;
     visibleNames: Set<string>;
   },
 ): { files: IndexEntry[]; handledNames: Set<string> } {
-  const { idToName, fingerprintToVisibleName, nameToId, visibleNames } = maps;
+  const { idToName, fingerprintToVisibleNames, nameToId, visibleNames } = maps;
   const handledNames = new Set<string>();
+
+  // Count how many index entries claim each fingerprint. A "createTime:size:ext"
+  // fingerprint is only a trustworthy rename signal when it maps one-to-one — a
+  // single index entry to a single disk file. When several entries and/or several
+  // disk files share it (collision; common for empty files or when birthtime is an
+  // unreliable 0), re-pointing would silently bind an entry to the wrong file. So
+  // in the ambiguous case we fall back to name-only matching and never re-point —
+  // safely missing a rename rather than corrupting the index. See issue 009.
+  const indexFingerprintCounts = new Map<string, number>();
+  for (const entry of files) {
+    if (!entry.id && entry.create_time !== undefined && entry.size !== undefined) {
+      const fp = fingerprintOf(entry.create_time, entry.size, entry.name);
+      indexFingerprintCounts.set(fp, (indexFingerprintCounts.get(fp) ?? 0) + 1);
+    }
+  }
 
   for (const entry of files) {
     if (entry.id) {
@@ -296,15 +327,19 @@ export function reconcileEntries(
       }
       // If no actualName: file was deleted — will be filtered out below
     } else if (entry.create_time !== undefined && entry.size !== undefined) {
-      // Fingerprinted non-markdown entry: match by (create_time, size, ext) to detect renames
-      const actualName = fingerprintToVisibleName.get(
-        fingerprintOf(entry.create_time, entry.size, entry.name),
-      );
-      if (actualName) {
-        entry.name = actualName;
-        handledNames.add(actualName);
+      // Fingerprinted non-markdown entry: match by (create_time, size, ext).
+      const fp = fingerprintOf(entry.create_time, entry.size, entry.name);
+      const diskNames = fingerprintToVisibleNames.get(fp);
+      if (diskNames?.length === 1 && indexFingerprintCounts.get(fp) === 1) {
+        // Unambiguous 1:1 fingerprint → confident rename detection.
+        entry.name = diskNames[0];
+        handledNames.add(entry.name);
+      } else if (visibleNames.has(entry.name)) {
+        // Ambiguous fingerprint (collision) — match by name only, never re-point.
+        handledNames.add(entry.name);
       }
-      // If no actualName: file was deleted — will be filtered out below
+      // Otherwise the name is gone and the fingerprint is ambiguous → treat as
+      // deleted (filtered out below) rather than risk a wrong re-point.
     } else {
       // Name-only entry (folder or old-style non-markdown without fingerprint)
       handledNames.add(entry.name);
@@ -313,12 +348,12 @@ export function reconcileEntries(
     }
   }
 
-  // Remove entries for files/folders that no longer exist on disk
+  // Remove entries for files/folders that no longer exist on disk. After the loop
+  // above, a non-id entry's `name` is correct iff its file still exists on disk
+  // (a confident rename updated it; a name-only match left it; a deletion leaves a
+  // name no longer present), so visibility-by-name is the single keep test.
   const kept = files.filter((entry) => {
     if (entry.id) return idToName.has(entry.id) || visibleNames.has(entry.name);
-    if (entry.create_time !== undefined && entry.size !== undefined) {
-      return fingerprintToVisibleName.has(fingerprintOf(entry.create_time, entry.size, entry.name));
-    }
     return visibleNames.has(entry.name);
   });
 
@@ -397,7 +432,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   }
   const visibleNames = new Set(visibleEntries.map((e) => e.name));
 
-  const { nameToStat, fingerprintToVisibleName } = await buildNonMarkdownFingerprints(
+  const { nameToStat, fingerprintToVisibleNames } = await buildNonMarkdownFingerprints(
     dirPath,
     visibleEntries,
   );
@@ -421,7 +456,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
 
   const { files: reconciledFiles, handledNames } = reconcileEntries(existingFiles, {
     idToName,
-    fingerprintToVisibleName,
+    fingerprintToVisibleNames,
     nameToId,
     visibleNames,
   });
