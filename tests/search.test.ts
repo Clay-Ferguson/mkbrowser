@@ -1172,14 +1172,21 @@ describe('mostRecent filter', () => {
     const full = await searchFolder(dir, '', 'literal', 'content', [], false, false);
     const recent = await searchFolder(dir, '', 'literal', 'content', [], false, true);
 
+    // Both result sets are capped at SEARCH_RESULT_LIMIT, and with TOTAL just over
+    // that cap they keep slightly different subsets (full drops an arbitrary few by
+    // crawl order; recent drops the oldest). So compare only the files present in
+    // both — the overlap is large (>= 2*limit - TOTAL) and is what this test cares
+    // about: identical time metadata regardless of how the times were obtained.
     const fullByPath = new Map(full.map(r => [r.path, r]));
+    let compared = 0;
     for (const r of recent) {
       const reference = fullByPath.get(r.path);
-      expect(reference).toBeDefined();
       if (!reference) continue;
+      compared++;
       expect(r.modifiedTime).toBe(reference.modifiedTime);
       expect(r.createdTime).toBe(reference.createdTime);
     }
+    expect(compared).toBeGreaterThan(0);
   });
 });
 
