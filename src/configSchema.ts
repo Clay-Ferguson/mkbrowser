@@ -1,0 +1,181 @@
+/**
+ * configSchema.ts — runtime validation for the main application config (config.yaml).
+ *
+ * `~/.config/mk-browser/config.yaml` is plain text on the user's disk that can be
+ * hand-edited, synced, merged, or corrupted by external tools, so its parsed
+ * contents are untrusted and `js-yaml`'s `load()` returns `unknown`. This mirrors
+ * the trust model already applied to `.INDEX.yaml` in `utils/indexUtil.ts`
+ * (`IndexYamlSchema` / `parseIndexYaml`).
+ *
+ * Unlike the index schema, the public `AppConfig` / `AppSettings` types in
+ * `types/shared.ts` are imported by renderer code, so we do NOT derive them via
+ * `z.infer` here (that would pull `zod` into the renderer bundle). Instead the
+ * hand-written interfaces stay canonical and this schema is cross-checked against
+ * them at compile time (see `_SchemaMatchesAppConfig` below), so the two can't
+ * drift.
+ *
+ * Tolerance rules — a corrupt config should degrade per-field, never throw and
+ * never wipe the whole config:
+ *  - a malformed scalar/enum field → its default (settings) or dropped (optional)
+ *  - a `files`-style array that isn't an array → empty list
+ *  - an individual array element that doesn't match → dropped (good ones kept)
+ *  - unknown / forward-compat keys → preserved (`.loose()`), never stripped
+ *  - a non-object top level (scalar, list, empty) → `null` from parseConfigYaml
+ */
+
+import { z } from 'zod';
+import { AI_PROVIDERS } from './types/shared';
+import type { AppConfig, AppSettings } from './types/shared';
+
+// ---------------------------------------------------------------------------
+// Settings defaults (single source of truth; configMgr imports these)
+// ---------------------------------------------------------------------------
+
+export const defaultSettings: AppSettings = {
+  fontSize: 'medium',
+  sortOrder: 'alphabetical',
+  foldersOnTop: true,
+  showToc: true,
+  ignoredPaths: '',
+  searchDefinitions: [],
+  contentWidth: 'medium',
+  bookmarks: [],
+  ocrToolsFolder: '',
+  calendarItemsFolder: '',
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * An array field whose individual elements are validated independently: any
+ * element that fails `elem` is dropped (the good ones are kept), and a value
+ * that isn't an array at all falls back to an empty list. Same shape as the
+ * `files` handling in `IndexYamlSchema`.
+ */
+function tolerantArray<T extends z.ZodTypeAny>(elem: T) {
+  return z
+    .array(z.unknown())
+    .transform((arr) =>
+      arr.flatMap((e) => {
+        const parsed = elem.safeParse(e);
+        return parsed.success ? [parsed.data as z.infer<T>] : [];
+      }),
+    )
+    .catch([] as z.infer<T>[]);
+}
+
+/**
+ * Coerce a value to a finite, non-negative number (accepting numeric strings),
+ * matching `coerceNonNegativeNumber` in configMgr. Yields `undefined` on failure
+ * so the field's `.catch(0)` supplies the default.
+ */
+const nonNegNumber = z.preprocess((v) => {
+  if (typeof v === 'number' && Number.isFinite(v) && v >= 0) return v;
+  if (typeof v === 'string' && v.trim()) {
+    const n = Number.parseFloat(v);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  return undefined;
+}, z.number());
+
+// ---------------------------------------------------------------------------
+// Element schemas
+// ---------------------------------------------------------------------------
+
+const SearchDefinitionSchema = z.object({
+  name: z.string(),
+  searchText: z.string(),
+  searchTarget: z.enum(['content', 'filenames']),
+  searchMode: z.enum(['literal', 'wildcard', 'advanced']),
+  sortBy: z.enum(['modified-time', 'created-time', 'file-name']),
+  sortDirection: z.enum(['asc', 'desc']),
+  mostRecent: z.boolean().optional(),
+});
+
+const BookmarkSchema = z.object({
+  path: z.string(),
+  name: z.string(),
+});
+
+const AIModelConfigSchema = z.object({
+  name: z.string(),
+  provider: z.enum(AI_PROVIDERS),
+  model: z.string(),
+  inputPer1M: nonNegNumber.catch(0),
+  outputPer1M: nonNegNumber.catch(0),
+  vision: z.boolean().catch(false),
+  readonly: z.boolean().catch(false),
+});
+
+const AIRewritePromptDefSchema = z.object({
+  name: z.string(),
+  prompt: z.string(),
+});
+
+// ---------------------------------------------------------------------------
+// Settings + top-level config schemas
+// ---------------------------------------------------------------------------
+
+const AppSettingsSchema = z
+  .object({
+    fontSize: z.enum(['small', 'medium', 'large', 'xlarge']).catch(defaultSettings.fontSize),
+    sortOrder: z
+      .enum(['alphabetical', 'created-chron', 'created-reverse', 'modified-chron', 'modified-reverse'])
+      .catch(defaultSettings.sortOrder),
+    foldersOnTop: z.boolean().catch(defaultSettings.foldersOnTop),
+    showToc: z.boolean().catch(defaultSettings.showToc),
+    ignoredPaths: z.string().catch(defaultSettings.ignoredPaths),
+    searchDefinitions: tolerantArray(SearchDefinitionSchema),
+    contentWidth: z.enum(['narrow', 'medium', 'wide', 'full']).catch(defaultSettings.contentWidth),
+    bookmarks: tolerantArray(BookmarkSchema),
+    ocrToolsFolder: z.string().catch(defaultSettings.ocrToolsFolder),
+    calendarItemsFolder: z.string().catch(defaultSettings.calendarItemsFolder),
+    showPropsInEditor: z.boolean().optional().catch(undefined),
+  })
+  .loose();
+
+const AppConfigSchema = z
+  .object({
+    browseFolder: z.string().catch(''),
+    curSubFolder: z.string().optional().catch(undefined),
+    settings: AppSettingsSchema.optional().catch(undefined),
+    lastExportFolder: z.string().optional().catch(undefined),
+    aiEnabled: z.boolean().optional().catch(undefined),
+    aiModels: tolerantArray(AIModelConfigSchema).optional(),
+    aiModel: z.string().optional().catch(undefined),
+    llamacppBaseUrl: z.string().optional().catch(undefined),
+    llamacppFolder: z.string().optional().catch(undefined),
+    agenticMode: z.boolean().optional().catch(undefined),
+    agenticAllowedFolders: z.string().optional().catch(undefined),
+    aiRewritePrompt: z.string().optional().catch(undefined),
+    aiRewritePrompts: tolerantArray(AIRewritePromptDefSchema).optional(),
+    fullDocContext: z.boolean().optional().catch(undefined),
+    tagsPanelVisible: z.boolean().optional().catch(undefined),
+    aiRewriteMode: z.boolean().optional().catch(undefined),
+    calendarViewType: z.enum(['month', 'week', 'work_week', 'day', 'agenda']).optional().catch(undefined),
+    recentFolders: tolerantArray(z.string()).optional(),
+    imageSize: z.enum(['small', 'large']).optional().catch(undefined),
+  })
+  .loose();
+
+/**
+ * Compile-time guard: the schema's inferred output must stay assignable to the
+ * hand-written `AppConfig`. If a field is added to `AppConfig` (or a type changes)
+ * without a matching schema change, this — and the `return` in `parseConfigYaml`
+ * — fail to compile.
+ */
+type _SchemaMatchesAppConfig = z.infer<typeof AppConfigSchema> extends AppConfig ? true : never;
+const _schemaMatchesAppConfig: _SchemaMatchesAppConfig = true;
+void _schemaMatchesAppConfig;
+
+/**
+ * Validate an already-parsed YAML value against the config schema. Returns a
+ * well-formed `AppConfig` (malformed fields normalized away per the rules above)
+ * or `null` when the top-level value isn't an object. Never throws.
+ */
+export function parseConfigYaml(parsed: unknown): AppConfig | null {
+  const result = AppConfigSchema.safeParse(parsed);
+  return result.success ? result.data : null;
+}

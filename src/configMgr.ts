@@ -11,7 +11,8 @@ import fs from 'node:fs';
 import { app } from 'electron';
 import * as yaml from 'js-yaml';
 import { enforceDefaultAIModels } from './ai/aiModel';
-import type { AppSettings, AppConfig, AIModelConfig } from './types/shared';
+import { defaultSettings, parseConfigYaml } from './configSchema';
+import type { AppConfig, AIModelConfig } from './types/shared';
 
 export type { FontSize, SortOrder, ContentWidth, ImageSize, SearchMode, SearchType, SearchSortBy, SearchSortDirection, SearchDefinition, Bookmark, AppSettings, AIModelConfig, AIRewritePromptDef, AppConfig } from './types/shared';
 
@@ -19,22 +20,9 @@ export type { FontSize, SortOrder, ContentWidth, ImageSize, SearchMode, SearchTy
 const CONFIG_DIR = path.join(app.getPath('home'), '.config', 'mk-browser');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
 
-// ---------------------------------------------------------------------------
-// Defaults
-// ---------------------------------------------------------------------------
-
-export const defaultSettings: AppSettings = {
-  fontSize: 'medium',
-  sortOrder: 'alphabetical',
-  foldersOnTop: true,
-  showToc: true,
-  ignoredPaths: '',
-  searchDefinitions: [],
-  contentWidth: 'medium',
-  bookmarks: [],
-  ocrToolsFolder: '',
-  calendarItemsFolder: '',
-};
+// `defaultSettings` is defined in and re-exported from configSchema (the schema
+// references it, so it lives there to avoid a circular import).
+export { defaultSettings };
 
 // ---------------------------------------------------------------------------
 // AI defaults
@@ -216,7 +204,10 @@ export function initConfig(): void {
   ensureConfigDir();
   try {
     if (fs.existsSync(CONFIG_FILE)) {
-      const parsed = yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')) as AppConfig;
+      // The config file is untrusted (hand-editable, syncable, corruptible), so
+      // validate it through the zod schema rather than casting. Malformed fields
+      // degrade to defaults; a non-object top level returns null (-> defaults).
+      const parsed = parseConfigYaml(yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')));
       if (parsed) {
         _config = {
           ...parsed,
