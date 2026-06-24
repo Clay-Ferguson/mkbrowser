@@ -107,30 +107,78 @@ describe('searchAndReplace', () => {
     }
   });
 
-  it('isolates per-file failures: a bad file is reported as success:false without aborting the batch', async () => {
+  // Triggering a per-file failure deterministically requires a file that lists in
+  // the crawl but fails to read; we use an unreadable file (chmod 000). The OS
+  // permission check is bypassed for root, so skip there rather than assert a
+  // failure that can't happen.
+  const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
+  it.skipIf(isRoot)('isolates per-file failures: a bad file is reported as success:false without aborting the batch', async () => {
     // Many files so the bounded-concurrency pool runs multiple workers in parallel.
     const fileCount = 60;
     for (let i = 0; i < fileCount; i++) {
       await writeFile(`f${i}.md`, 'needle');
     }
-    // A broken symlink with a .md name: fdir includes it as a file, but readFile
-    // rejects (ENOENT), exercising the in-callback try/catch error path.
-    await fs.promises.symlink(path.join(tmpDir, 'does-not-exist'), path.join(tmpDir, 'broken.md'));
+    // An unreadable .md file: fdir lists it (it's a real regular file), but
+    // readFile rejects (EACCES), exercising the in-callback try/catch error path.
+    const badPath = await writeFile('bad.md', 'needle');
+    await fs.promises.chmod(badPath, 0o000);
 
-    const results = await searchAndReplace(tmpDir, 'needle', 'pin', []);
+    let results;
+    try {
+      results = await searchAndReplace(tmpDir, 'needle', 'pin', []);
+    } finally {
+      // Restore perms so afterEach can remove the temp tree.
+      await fs.promises.chmod(badPath, 0o644);
+    }
 
     const failures = results.filter(r => !r.success);
     const successes = results.filter(r => r.success);
 
-    // The directory-as-file produced a failure result, not a thrown abort.
+    // The unreadable file produced a failure result, not a thrown abort.
     expect(failures).toHaveLength(1);
-    expect(failures[0].relativePath).toBe('broken.md');
+    expect(failures[0].relativePath).toBe('bad.md');
     expect(failures[0].error).toBeTruthy();
 
     // Every real file was still processed despite the failing entry.
     expect(successes).toHaveLength(fileCount);
     for (let i = 0; i < fileCount; i++) {
       expect(await fs.promises.readFile(path.join(tmpDir, `f${i}.md`), 'utf-8')).toBe('pin');
+    }
+  });
+
+  it('does not follow symlinks: files reachable only via a symlink are never written', async () => {
+    // A destructive bulk replace must stay confined to regular files physically
+    // under folderPath. Symlinks (to files OR directories) that escape the tree
+    // must be skipped entirely — never read, never rewritten, never clobbered.
+    await writeFile('real.md', 'needle');
+
+    // A real target living OUTSIDE the searched folder.
+    const outsideDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'snr-outside-'));
+    const outsideFile = path.join(outsideDir, 'secret.md');
+    await fs.promises.writeFile(outsideFile, 'needle', 'utf-8');
+    const outsideSubFile = path.join(outsideDir, 'inner.md');
+    await fs.promises.writeFile(outsideSubFile, 'needle', 'utf-8');
+
+    try {
+      // A .md-named symlink pointing at the outside file, and a symlinked
+      // directory whose contents would otherwise be reachable.
+      await fs.promises.symlink(outsideFile, path.join(tmpDir, 'linkfile.md'));
+      await fs.promises.symlink(outsideDir, path.join(tmpDir, 'linkdir'));
+
+      const results = await searchAndReplace(tmpDir, 'needle', 'pin', []);
+
+      // Only the genuine in-tree file is touched.
+      expect(results.map(r => r.relativePath)).toEqual(['real.md']);
+      expect(await fs.promises.readFile(path.join(tmpDir, 'real.md'), 'utf-8')).toBe('pin');
+
+      // The outside files are completely untouched.
+      expect(await fs.promises.readFile(outsideFile, 'utf-8')).toBe('needle');
+      expect(await fs.promises.readFile(outsideSubFile, 'utf-8')).toBe('needle');
+
+      // The symlink itself is not clobbered into a regular file.
+      expect((await fs.promises.lstat(path.join(tmpDir, 'linkfile.md'))).isSymbolicLink()).toBe(true);
+    } finally {
+      await fs.promises.rm(outsideDir, { recursive: true, force: true });
     }
   });
 

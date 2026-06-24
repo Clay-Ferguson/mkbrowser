@@ -43,8 +43,22 @@ export async function searchAndReplace(
   // Exclude hidden files plus user ignore patterns — shared with searchFolder.
   const shouldExcludePath = buildExcludePredicate(ignoredPaths);
 
-  // Use fdir to crawl for .md and .txt files
-  const api = new fdir()
+  // Use fdir to crawl for .md and .txt files.
+  //
+  // excludeSymlinks: this is a DESTRUCTIVE bulk write, so we deliberately do NOT
+  // follow symlinks — every matched path is read and rewritten, and a symlink can
+  // point outside `folderPath`. Confirmed behavior for fdir 6.5.0:
+  //   - DEFAULT (no option): a symlink whose name ends in .md/.txt is emitted as a
+  //     file entry. We would then read its target's bytes (possibly outside the
+  //     tree) and the atomic write would clobber the link with a regular file.
+  //     (Symlinked *directories* are not descended into by default, but symlinked
+  //     files still leak in.)
+  //   - excludeSymlinks: true — all symlinks (to files and to directories) are
+  //     skipped entirely, so the operation only ever touches regular files that
+  //     physically live under `folderPath`. This is the safest least-surprise
+  //     policy for "replace in this folder" and is the explicit, pinned default
+  //     here rather than relying on fdir's behavior for non-symlink entries.
+  const api = new fdir({ excludeSymlinks: true })
     .withFullPaths()
     .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
     .filter((filePath) => {
