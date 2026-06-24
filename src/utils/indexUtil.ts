@@ -137,42 +137,39 @@ export async function readIndexYaml(dirPath: string): Promise<IndexYaml | null> 
   }
 }
 
+/** Stat fingerprint used to detect renames of non-markdown files. */
+type Fingerprint = { createTime: number; size: number };
+
 /**
- * Reconciles a directory's .INDEX.yaml with the actual markdown files on disk.
- * - Ensures every .md file has a unique `id` in its YAML front matter.
- * - Creates .INDEX.yaml if it doesn't exist.
- * - Updates index entry names when an id match detects a rename.
- * - Appends any new files not yet listed in the index.
+ * The "createTime:size:ext" key under which a non-markdown file is recorded for
+ * rename detection. Centralized so the build, match, and filter sites can't
+ * drift apart on how the key is composed.
  */
-export async function reconcileIndexedFiles(dirPath: string, createIfMissing = false): Promise<void> {
-  const indexFilePath = indexPathFor(dirPath);
-  let existingIndexContent: string | null = null;
-  try {
-    existingIndexContent = await fs.promises.readFile(indexFilePath, 'utf8');
-  } catch (err) {
-    // A missing index is normal (the file may be created below); log anything else.
-    if (!isENOENT(err)) {
-      logger.debug(`reconcileIndexedFiles: cannot read "${indexFilePath}": ${err}`);
-    }
-  }
-  if (existingIndexContent === null && !createIfMissing) return;
+function fingerprintOf(createTime: number, size: number, name: string): string {
+  return `${createTime}:${size}:${path.extname(name).toLowerCase()}`;
+}
 
-  let dirEntries: fs.Dirent[];
-  try {
-    dirEntries = await fs.promises.readdir(dirPath, { withFileTypes: true });
-  } catch (err) {
-    // Can't list the directory — reconciliation can't proceed at all.
-    logger.warn(`reconcileIndexedFiles: cannot read directory "${dirPath}": ${err}`);
-    return;
-  }
+/**
+ * Reads a directory and returns only its visible (non-hidden) entries, mirroring
+ * BrowseView's visibility rule (a leading '.' marks an entry hidden). Throws on
+ * readdir failure so the orchestrator can log it and bail.
+ */
+async function readVisibleEntries(dirPath: string): Promise<fs.Dirent[]> {
+  const dirEntries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+  return dirEntries.filter((e) => !e.name.startsWith('.'));
+}
 
-  // Mirror BrowseView's visibility rule: exclude hidden entries only
-  const visibleEntries = dirEntries.filter((e) => !e.name.startsWith('.'));
-  const visibleNames = new Set(visibleEntries.map((e) => e.name));
-
-  // For non-markdown files: stat each one to build a fingerprint map keyed by "createTime:size:ext".
-  // This lets us detect renames of non-markdown files during reconciliation.
-  const nameToStat = new Map<string, { createTime: number; size: number }>();
+/**
+ * Stats every visible non-markdown file to build the maps used for rename
+ * detection: `nameToStat` (name → {createTime, size}) and `fingerprintToVisibleName`
+ * (fingerprint → name). Files that can't be stat'd are skipped (no fingerprint →
+ * no rename detection for them).
+ */
+async function buildNonMarkdownFingerprints(
+  dirPath: string,
+  visibleEntries: fs.Dirent[],
+): Promise<{ nameToStat: Map<string, Fingerprint>; fingerprintToVisibleName: Map<string, string> }> {
+  const nameToStat = new Map<string, Fingerprint>();
   const fingerprintToVisibleName = new Map<string, string>();
   for (const entry of visibleEntries) {
     if (!entry.isDirectory() && !entry.name.toLowerCase().endsWith('.md')) {
@@ -181,8 +178,7 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
         const createTime = Math.round(stat.birthtimeMs);
         const size = stat.size;
         nameToStat.set(entry.name, { createTime, size });
-        const ext = path.extname(entry.name).toLowerCase();
-        fingerprintToVisibleName.set(`${createTime}:${size}:${ext}`, entry.name);
+        fingerprintToVisibleName.set(fingerprintOf(createTime, size, entry.name), entry.name);
       } catch (err) {
         // Skip files that can't be stat'd (no fingerprint → rename detection skipped for it).
         logger.debug(
@@ -191,16 +187,27 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
       }
     }
   }
+  return { nameToStat, fingerprintToVisibleName };
+}
 
-  // For markdown files: ensure each has an id in its front matter; build bidirectional maps.
+/**
+ * Ensures every visible markdown file has a unique front-matter `id` (assigning
+ * and persisting one when it's missing or collides with an older file), and
+ * returns the bidirectional name↔id maps used for rename/duplicate detection.
+ *
+ * Files are processed oldest-first (tie-broken by name) so that when two share
+ * an id — e.g. a copy/paste duplicated the front matter — the oldest keeps the
+ * id and any newer duplicate is re-keyed. So a freshly pasted copy is the one
+ * that gets a fresh id, while the original keeps its identity (and its existing
+ * .INDEX.yaml entry).
+ */
+async function ensureMarkdownIds(
+  dirPath: string,
+  visibleEntries: fs.Dirent[],
+): Promise<{ nameToId: Map<string, string>; idToName: Map<string, string> }> {
   const nameToId = new Map<string, string>();
   const idToName = new Map<string, string>();
 
-  // Collect markdown files with their creation time so we can process them
-  // oldest-first. When two files share an id (e.g. a copy/paste duplicated the
-  // front matter), the oldest file keeps the id and any newer duplicate is
-  // re-keyed — so a freshly pasted copy is the one that gets a fresh id, while
-  // the original keeps its identity (and its existing .INDEX.yaml entry).
   const markdownFiles: Array<{ name: string; createTime: number }> = [];
   for (const entry of visibleEntries) {
     if (!entry.isDirectory() && entry.name.toLowerCase().endsWith('.md')) {
@@ -253,24 +260,32 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
     }
   }
 
-  // Parse existing index (already read above) or start fresh
-  let files: IndexEntry[] = [];
-  let existingOptions: IndexOptions = {};
-  if (existingIndexContent !== null) {
-    try {
-      const parsed = parseIndexYaml(load(existingIndexContent));
-      if (parsed) {
-        files = parsed.files;
-        existingOptions = parsed.options;
-      }
-    } catch (err) {
-      // Corrupt YAML (load threw) — start fresh (the rebuilt index will overwrite it).
-      logger.warn(`reconcileIndexedFiles: malformed "${indexFilePath}", rebuilding: ${err}`);
-    }
-  }
+  return { nameToId, idToName };
+}
 
-  // Reconcile existing entries: detect renames via id (markdown) or fingerprint (non-markdown)
+/**
+ * Reconciles the existing index entries against what's on disk: applies detected
+ * renames in place (by id for markdown, by fingerprint for non-markdown), drops
+ * entries whose file/folder no longer exists, and collects the set of names that
+ * matched a disk entry ("handled") so the caller knows which visible entries are
+ * still new. Name-only entries also pick up an id when their file now has one.
+ *
+ * Pure: reads only the supplied maps and returns the filtered entries plus the
+ * handled-name set — no filesystem access. (Entry objects are mutated in place
+ * for renames/id-assignment, matching the previous inline behavior.)
+ */
+export function reconcileEntries(
+  files: IndexEntry[],
+  maps: {
+    idToName: Map<string, string>;
+    fingerprintToVisibleName: Map<string, string>;
+    nameToId: Map<string, string>;
+    visibleNames: Set<string>;
+  },
+): { files: IndexEntry[]; handledNames: Set<string> } {
+  const { idToName, fingerprintToVisibleName, nameToId, visibleNames } = maps;
   const handledNames = new Set<string>();
+
   for (const entry of files) {
     if (entry.id) {
       // Markdown entry: match by id to detect renames
@@ -282,8 +297,9 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
       // If no actualName: file was deleted — will be filtered out below
     } else if (entry.create_time !== undefined && entry.size !== undefined) {
       // Fingerprinted non-markdown entry: match by (create_time, size, ext) to detect renames
-      const ext = path.extname(entry.name).toLowerCase();
-      const actualName = fingerprintToVisibleName.get(`${entry.create_time}:${entry.size}:${ext}`);
+      const actualName = fingerprintToVisibleName.get(
+        fingerprintOf(entry.create_time, entry.size, entry.name),
+      );
       if (actualName) {
         entry.name = actualName;
         handledNames.add(actualName);
@@ -298,17 +314,33 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
   }
 
   // Remove entries for files/folders that no longer exist on disk
-  files = files.filter((entry) => {
+  const kept = files.filter((entry) => {
     if (entry.id) return idToName.has(entry.id) || visibleNames.has(entry.name);
     if (entry.create_time !== undefined && entry.size !== undefined) {
-      const ext = path.extname(entry.name).toLowerCase();
-      return fingerprintToVisibleName.has(`${entry.create_time}:${entry.size}:${ext}`);
+      return fingerprintToVisibleName.has(fingerprintOf(entry.create_time, entry.size, entry.name));
     }
     return visibleNames.has(entry.name);
   });
 
-  // Append visible entries not yet in the index.
-  // Markdown files get an id; non-markdown files get a create_time+size fingerprint for rename detection.
+  return { files: kept, handledNames };
+}
+
+/**
+ * Appends visible entries not yet handled by reconciliation as new index
+ * entries: markdown files get their id, other files get a create_time+size
+ * fingerprint (for future rename detection), and folders get just a name.
+ *
+ * Pure: returns a new array (the existing entries first, then any appended
+ * ones) — no filesystem access.
+ */
+export function appendNewEntries(
+  files: IndexEntry[],
+  visibleEntries: fs.Dirent[],
+  handledNames: Set<string>,
+  maps: { nameToId: Map<string, string>; nameToStat: Map<string, Fingerprint> },
+): IndexEntry[] {
+  const { nameToId, nameToStat } = maps;
+  const result = [...files];
   for (const entry of visibleEntries) {
     if (!handledNames.has(entry.name)) {
       const newEntry: IndexEntry = { name: entry.name };
@@ -322,9 +354,81 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
           newEntry.size = stat.size;
         }
       }
-      files.push(newEntry);
+      result.push(newEntry);
     }
   }
+  return result;
+}
+
+/**
+ * Reconciles a directory's .INDEX.yaml with the actual markdown files on disk.
+ * - Ensures every .md file has a unique `id` in its YAML front matter.
+ * - Creates .INDEX.yaml if it doesn't exist.
+ * - Updates index entry names when an id match detects a rename.
+ * - Appends any new files not yet listed in the index.
+ *
+ * This is a thin orchestrator over the focused helpers above; the rename/filter
+ * (reconcileEntries) and append (appendNewEntries) steps are pure and unit-tested
+ * directly.
+ */
+export async function reconcileIndexedFiles(dirPath: string, createIfMissing = false): Promise<void> {
+  const indexFilePath = indexPathFor(dirPath);
+
+  // Read the raw existing index up front: we need it both to decide whether to
+  // bail (no index + !createIfMissing) and, verbatim, to skip an unchanged
+  // rewrite at the end. A missing index is normal; log anything else.
+  let existingIndexContent: string | null = null;
+  try {
+    existingIndexContent = await fs.promises.readFile(indexFilePath, 'utf8');
+  } catch (err) {
+    if (!isENOENT(err)) {
+      logger.debug(`reconcileIndexedFiles: cannot read "${indexFilePath}": ${err}`);
+    }
+  }
+  if (existingIndexContent === null && !createIfMissing) return;
+
+  let visibleEntries: fs.Dirent[];
+  try {
+    visibleEntries = await readVisibleEntries(dirPath);
+  } catch (err) {
+    // Can't list the directory — reconciliation can't proceed at all.
+    logger.warn(`reconcileIndexedFiles: cannot read directory "${dirPath}": ${err}`);
+    return;
+  }
+  const visibleNames = new Set(visibleEntries.map((e) => e.name));
+
+  const { nameToStat, fingerprintToVisibleName } = await buildNonMarkdownFingerprints(
+    dirPath,
+    visibleEntries,
+  );
+  const { nameToId, idToName } = await ensureMarkdownIds(dirPath, visibleEntries);
+
+  // Parse existing index (already read above) or start fresh
+  let existingFiles: IndexEntry[] = [];
+  let existingOptions: IndexOptions = {};
+  if (existingIndexContent !== null) {
+    try {
+      const parsed = parseIndexYaml(load(existingIndexContent));
+      if (parsed) {
+        existingFiles = parsed.files;
+        existingOptions = parsed.options;
+      }
+    } catch (err) {
+      // Corrupt YAML (load threw) — start fresh (the rebuilt index will overwrite it).
+      logger.warn(`reconcileIndexedFiles: malformed "${indexFilePath}", rebuilding: ${err}`);
+    }
+  }
+
+  const { files: reconciledFiles, handledNames } = reconcileEntries(existingFiles, {
+    idToName,
+    fingerprintToVisibleName,
+    nameToId,
+    visibleNames,
+  });
+  const files = appendNewEntries(reconciledFiles, visibleEntries, handledNames, {
+    nameToId,
+    nameToStat,
+  });
 
   const newContent = dump({ files, options: existingOptions }, YAML_DUMP_OPTS);
   if (newContent !== existingIndexContent) {

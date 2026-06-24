@@ -6,6 +6,8 @@ import * as yaml from 'js-yaml';
 import {
   readIndexYaml,
   reconcileIndexedFiles,
+  reconcileEntries,
+  appendNewEntries,
   writeIndexOptions,
   moveInIndexYaml,
   moveToEdgeInIndexYaml,
@@ -528,6 +530,119 @@ describe('reconcileIndexedFiles', () => {
     // All three end up in the index with those distinct ids.
     const indexIds = readIndex().files.map((f: IndexEntry) => f.id);
     expect(new Set(indexIds).size).toBe(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// reconcileEntries / appendNewEntries (pure helpers)
+//
+// These are the subtle rename/filter and append branches extracted out of
+// reconcileIndexedFiles. They touch no filesystem, so they can be exercised
+// directly with plain maps and lightweight fake Dirents.
+// ---------------------------------------------------------------------------
+
+// A minimal stand-in for fs.Dirent — reconcileEntries/appendNewEntries only ever
+// read `.name` and call `.isDirectory()`.
+function fakeDirent(name: string, isDir = false): fs.Dirent {
+  return { name, isDirectory: () => isDir } as unknown as fs.Dirent;
+}
+
+describe('reconcileEntries', () => {
+  const emptyMaps = () => ({
+    idToName: new Map<string, string>(),
+    fingerprintToVisibleName: new Map<string, string>(),
+    nameToId: new Map<string, string>(),
+    visibleNames: new Set<string>(),
+  });
+
+  it('renames a markdown entry to its file via id and marks it handled', () => {
+    const maps = emptyMaps();
+    maps.idToName.set('ABC', 'renamed.md');
+    const { files, handledNames } = reconcileEntries([{ name: 'old.md', id: 'ABC' }], maps);
+    expect(files).toEqual([{ name: 'renamed.md', id: 'ABC' }]);
+    expect(handledNames.has('renamed.md')).toBe(true);
+  });
+
+  it('drops a markdown entry whose id no longer maps to any file', () => {
+    const maps = emptyMaps(); // id 'GONE' not present, name not visible
+    const { files, handledNames } = reconcileEntries([{ name: 'gone.md', id: 'GONE' }], maps);
+    expect(files).toEqual([]);
+    expect(handledNames.size).toBe(0);
+  });
+
+  it('renames a fingerprinted non-markdown entry via (create_time,size,ext)', () => {
+    const maps = emptyMaps();
+    maps.fingerprintToVisibleName.set('100:50:.png', 'new.png');
+    const { files, handledNames } = reconcileEntries(
+      [{ name: 'old.png', create_time: 100, size: 50 }],
+      maps,
+    );
+    expect(files[0].name).toBe('new.png');
+    expect(handledNames.has('new.png')).toBe(true);
+  });
+
+  it('drops a fingerprinted entry whose fingerprint is gone', () => {
+    const maps = emptyMaps();
+    const { files } = reconcileEntries([{ name: 'old.png', create_time: 1, size: 2 }], maps);
+    expect(files).toEqual([]);
+  });
+
+  it('keeps a name-only entry that is still visible and back-fills its id', () => {
+    const maps = emptyMaps();
+    maps.visibleNames.add('note.md');
+    maps.nameToId.set('note.md', 'NEWID');
+    const { files, handledNames } = reconcileEntries([{ name: 'note.md' }], maps);
+    expect(files).toEqual([{ name: 'note.md', id: 'NEWID' }]);
+    expect(handledNames.has('note.md')).toBe(true);
+  });
+
+  it('drops a name-only entry whose file/folder no longer exists', () => {
+    const maps = emptyMaps(); // 'ghost' not in visibleNames
+    const { files, handledNames } = reconcileEntries([{ name: 'ghost' }], maps);
+    expect(files).toEqual([]);
+    // Name-only entries are always added to handledNames before the filter runs.
+    expect(handledNames.has('ghost')).toBe(true);
+  });
+});
+
+describe('appendNewEntries', () => {
+  const emptyMaps = () => ({
+    nameToId: new Map<string, string>(),
+    nameToStat: new Map<string, { createTime: number; size: number }>(),
+  });
+
+  it('appends a new markdown file with its id', () => {
+    const maps = emptyMaps();
+    maps.nameToId.set('new.md', 'ID1');
+    const result = appendNewEntries([], [fakeDirent('new.md')], new Set(), maps);
+    expect(result).toEqual([{ name: 'new.md', id: 'ID1' }]);
+  });
+
+  it('appends a new non-markdown file with a create_time+size fingerprint', () => {
+    const maps = emptyMaps();
+    maps.nameToStat.set('pic.png', { createTime: 7, size: 9 });
+    const result = appendNewEntries([], [fakeDirent('pic.png')], new Set(), maps);
+    expect(result).toEqual([{ name: 'pic.png', create_time: 7, size: 9 }]);
+  });
+
+  it('appends a new folder with just its name', () => {
+    const result = appendNewEntries([], [fakeDirent('sub', true)], new Set(), emptyMaps());
+    expect(result).toEqual([{ name: 'sub' }]);
+  });
+
+  it('skips entries already handled and preserves existing entries first', () => {
+    const maps = emptyMaps();
+    maps.nameToId.set('b.md', 'IDB');
+    const existing = [{ name: 'a.md', id: 'IDA' }];
+    const result = appendNewEntries(
+      existing,
+      [fakeDirent('a.md'), fakeDirent('b.md')],
+      new Set(['a.md']),
+      maps,
+    );
+    expect(result).toEqual([{ name: 'a.md', id: 'IDA' }, { name: 'b.md', id: 'IDB' }]);
+    // Returns a new array rather than mutating the input.
+    expect(result).not.toBe(existing);
   });
 });
 
