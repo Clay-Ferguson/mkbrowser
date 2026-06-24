@@ -15,6 +15,7 @@ import {
   validateAttachFolderLocation,
 } from '../src/utils/indexUtil';
 import type { IndexEntry, IndexOptions } from '../src/utils/indexUtil';
+import { parseFrontMatter } from '../src/utils/fileUtil';
 
 type IndexData = { files: IndexEntry[]; options: IndexOptions };
 
@@ -349,5 +350,91 @@ describe('reconcileIndexedFiles', () => {
     const content = fs.readFileSync(path.join(tmpDir, 'a.md'), 'utf8');
     expect(content).toMatch(/^---\n/);
     expect(content).toMatch(/id:/);
+  });
+
+  it('re-keys a duplicate front-matter id so copied markdown files get distinct ids', async () => {
+    // b.md is a copy of a.md and carries the same front-matter id
+    touchFile('a.md', '---\nid: DUP000001\n---\n# A');
+    touchFile('b.md', '---\nid: DUP000001\n---\n# B');
+    writeIndex({ files: [{ name: 'a.md', id: 'DUP000001' }] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    // Both files appear in the index, no entry lost
+    const data = readIndex();
+    expect(data.files.map((f: IndexEntry) => f.name).sort()).toEqual(['a.md', 'b.md']);
+
+    // Both index entries have distinct, defined ids
+    const ids = data.files.map((f: IndexEntry) => f.id);
+    expect(ids.every(Boolean)).toBe(true);
+    expect(new Set(ids).size).toBe(2);
+
+    // Front matter on disk is also distinct
+    const aId = parseFrontMatter(fs.readFileSync(path.join(tmpDir, 'a.md'), 'utf8')).yaml?.id;
+    const bId = parseFrontMatter(fs.readFileSync(path.join(tmpDir, 'b.md'), 'utf8')).yaml?.id;
+    expect(aId).toBeTruthy();
+    expect(bId).toBeTruthy();
+    expect(aId).not.toBe(bId);
+  });
+
+  it('lets the oldest file keep a shared id and re-keys the newer copy', async () => {
+    // a.md is created first (the original); b.md is created after (the paste).
+    touchFile('a.md', '---\nid: DUP000001\n---\n# A');
+    await new Promise((r) => setTimeout(r, 20));
+    touchFile('b.md', '---\nid: DUP000001\n---\n# B');
+    writeIndex({ files: [{ name: 'a.md', id: 'DUP000001' }] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    // The older original keeps the original id; the newer copy gets a fresh one.
+    const aId = parseFrontMatter(fs.readFileSync(path.join(tmpDir, 'a.md'), 'utf8')).yaml?.id;
+    const bId = parseFrontMatter(fs.readFileSync(path.join(tmpDir, 'b.md'), 'utf8')).yaml?.id;
+    expect(aId).toBe('DUP000001');
+    expect(bId).not.toBe('DUP000001');
+
+    // The pre-existing index entry still maps DUP000001 → a.md (identity preserved).
+    const data = readIndex();
+    const aEntry = data.files.find((f: IndexEntry) => f.name === 'a.md');
+    expect(aEntry?.id).toBe('DUP000001');
+  });
+
+  it('preserves other front-matter fields when re-keying a duplicate id', async () => {
+    touchFile('a.md', '---\nid: DUP000001\ntitle: Original\n---\n# A');
+    await new Promise((r) => setTimeout(r, 20));
+    touchFile('b.md', '---\nid: DUP000001\ntitle: Copy\ntags:\n  - x\n---\n# B');
+    writeIndex({ files: [{ name: 'a.md', id: 'DUP000001' }] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    // b.md is re-keyed, but its other front-matter fields survive untouched.
+    const bFm = parseFrontMatter(fs.readFileSync(path.join(tmpDir, 'b.md'), 'utf8')).yaml;
+    expect(bFm?.id).not.toBe('DUP000001');
+    expect(bFm?.title).toBe('Copy');
+    expect(bFm?.tags).toEqual(['x']);
+  });
+
+  it('re-keys all but the oldest when three files share an id', async () => {
+    touchFile('a.md', '---\nid: DUP000001\n---\n# A');
+    await new Promise((r) => setTimeout(r, 20));
+    touchFile('b.md', '---\nid: DUP000001\n---\n# B');
+    await new Promise((r) => setTimeout(r, 20));
+    touchFile('c.md', '---\nid: DUP000001\n---\n# C');
+    writeIndex({ files: [{ name: 'a.md', id: 'DUP000001' }] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    const idOf = (name: string) =>
+      parseFrontMatter(fs.readFileSync(path.join(tmpDir, name), 'utf8')).yaml?.id;
+    const aId = idOf('a.md');
+    const bId = idOf('b.md');
+    const cId = idOf('c.md');
+
+    // Oldest keeps the id; the two newer copies get fresh, mutually distinct ids.
+    expect(aId).toBe('DUP000001');
+    expect(new Set([aId, bId, cId]).size).toBe(3);
+
+    // All three end up in the index with those distinct ids.
+    const indexIds = readIndex().files.map((f: IndexEntry) => f.id);
+    expect(new Set(indexIds).size).toBe(3);
   });
 });

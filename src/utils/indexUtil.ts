@@ -5,6 +5,7 @@ import { customAlphabet } from 'nanoid';
 import { parseFrontMatter } from './fileUtil';
 import { ATTACH_SUFFIX } from './specialFiles';
 import { writeFileAtomic } from './atomicWrite';
+import { logger } from './logUtil';
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
 
@@ -82,36 +83,71 @@ export async function reconcileIndexedFiles(dirPath: string, createIfMissing = f
     }
   }
 
-  // For markdown files: ensure each has an id in its front matter; build bidirectional maps
+  // For markdown files: ensure each has an id in its front matter; build bidirectional maps.
   const nameToId = new Map<string, string>();
   const idToName = new Map<string, string>();
 
+  // Collect markdown files with their creation time so we can process them
+  // oldest-first. When two files share an id (e.g. a copy/paste duplicated the
+  // front matter), the oldest file keeps the id and any newer duplicate is
+  // re-keyed — so a freshly pasted copy is the one that gets a fresh id, while
+  // the original keeps its identity (and its existing .INDEX.yaml entry).
+  const markdownFiles: Array<{ name: string; createTime: number }> = [];
   for (const entry of visibleEntries) {
     if (!entry.isDirectory() && entry.name.toLowerCase().endsWith('.md')) {
-      const filePath = path.join(dirPath, entry.name);
+      let createTime = 0;
       try {
-        const rawContent = await fs.promises.readFile(filePath, 'utf8');
-        const { yaml: fm, content: body } = parseFrontMatter(rawContent);
-
-        let fileId: string;
-        if (fm?.id) {
-          fileId = String(fm.id);
-        } else {
-          fileId = generateId();
-          let newContent: string;
-          if (!fm) {
-            newContent = `---\nid: ${fileId}\n---\n${body}`;
-          } else {
-            const updated = { id: fileId, ...fm };
-            newContent = `---\n${dump(updated)}---\n${body}`;
-          }
-          await writeFileAtomic(filePath, newContent);
-        }
-        nameToId.set(entry.name, fileId);
-        idToName.set(fileId, entry.name);
+        createTime = (await fs.promises.stat(path.join(dirPath, entry.name))).birthtimeMs;
       } catch {
-        // Skip unreadable / unwritable files
+        // If stat fails, treat as oldest (0) — best effort.
       }
+      markdownFiles.push({ name: entry.name, createTime });
+    }
+  }
+  // Oldest first; tie-break by name so ordering (and thus which file keeps a
+  // shared id) is deterministic when creation times are equal.
+  markdownFiles.sort((a, b) => a.createTime - b.createTime || a.name.localeCompare(b.name));
+
+  for (const { name } of markdownFiles) {
+    const filePath = path.join(dirPath, name);
+    try {
+      const rawContent = await fs.promises.readFile(filePath, 'utf8');
+      const { yaml: fm, content: body } = parseFrontMatter(rawContent);
+
+      // A file needs a fresh id when it has none, or when its id is already
+      // claimed by an older file. Filenames are unique within a directory, so a
+      // hit in idToName here means a true duplicate id — e.g. a copy/paste that
+      // carried the source file's front-matter id. Re-key the (newer) duplicate
+      // so the per-directory uniqueness invariant rename detection relies on holds.
+      let fileId = fm?.id ? String(fm.id) : undefined;
+      const collidingName = fileId ? idToName.get(fileId) : undefined;
+      if (!fileId || collidingName !== undefined) {
+        if (fileId && collidingName !== undefined) {
+          logger.warn(
+            `reconcileIndexedFiles: duplicate front-matter id "${fileId}" in "${name}" (already used by older file "${collidingName}"); assigning a new id`,
+          );
+        }
+        // Generate an id not already in use in this directory.
+        do {
+          fileId = generateId();
+        } while (idToName.has(fileId));
+
+        let newContent: string;
+        if (!fm) {
+          newContent = `---\nid: ${fileId}\n---\n${body}`;
+        } else {
+          // Strip any existing id and re-add it first so the new value wins
+          // and stays at the top of the front matter.
+          const { id: _oldId, ...rest } = fm;
+          const updated = { id: fileId, ...rest };
+          newContent = `---\n${dump(updated)}---\n${body}`;
+        }
+        await writeFileAtomic(filePath, newContent);
+      }
+      nameToId.set(name, fileId);
+      idToName.set(fileId, name);
+    } catch {
+      // Skip unreadable / unwritable files
     }
   }
 

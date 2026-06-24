@@ -8,7 +8,7 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { searchAndReplace } from '../src/searchAndReplace';
+import { searchAndReplace } from '../src/utils/searchAndReplace';
 
 let tmpDir: string;
 
