@@ -4,7 +4,7 @@ import type { AppState, AppSettings, AiConfigState } from '../types/types';
 /**
  * Default settings
  */
-const defaultSettings: AppSettings = {
+export const defaultSettings: AppSettings = {
   fontSize: 'medium',
   sortOrder: 'alphabetical',
   foldersOnTop: true,

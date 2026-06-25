@@ -1,5 +1,7 @@
 import type { AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth } from '../types/types';
-import { getState, setState, useStoreValue } from './core';
+import { getState, setState, useStoreValue, defaultSettings } from './core';
+
+export { defaultSettings };
 
 // ============================================================================
 // Settings - application settings and bookmarks

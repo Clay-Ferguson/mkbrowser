@@ -52,7 +52,7 @@ export interface AppSettings {
   bookmarks: Bookmark[];
   ocrToolsFolder: string;
   calendarItemsFolder: string;
-  showPropsInEditor?: boolean;
+  showPropsInEditor: boolean;
 }
 
 /** Supported AI providers. Single source of truth for both the {@link AIProvider}

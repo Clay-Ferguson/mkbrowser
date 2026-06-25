@@ -20,6 +20,20 @@ vi.mock('../src/store', () => ({
     agenticMode: false,
     agenticAllowedFolders: '',
   },
+  defaultSettings: {
+    fontSize: 'medium',
+    sortOrder: 'alphabetical',
+    foldersOnTop: true,
+    showToc: true,
+    ignoredPaths: '',
+    searchDefinitions: [],
+    contentWidth: 'medium',
+    bookmarks: [],
+    ocrToolsFolder: '',
+    calendarItemsFolder: '',
+    indexTreeWidth: 'narrow',
+    showPropsInEditor: true,
+  },
 }));
 
 vi.mock('../src/services/api', () => ({
@@ -30,7 +44,7 @@ vi.mock('../src/services/api', () => ({
 }));
 
 import { loadConfig } from '../src/config';
-import { setCurrentPath } from '../src/store';
+import { setCurrentPath, setSettings, defaultSettings } from '../src/store';
 import { api } from '../src/services/api';
 
 describe('loadConfig — subfolder path validation', () => {
@@ -175,5 +189,59 @@ describe('loadConfig — common result fields are consistent across branches', (
     expect(result.lastExportFolder).toBe('/exports');
     expect(result.aiEnabled).toBe(true);
     expect(result.recentFolders).toEqual(['/a', '/b']);
+  });
+});
+
+describe('loadConfig — settings seeding', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.pathExists).mockResolvedValue(false);
+  });
+
+  it('seeds settings from store defaultSettings when config has no settings', async () => {
+    vi.mocked(api.getConfig).mockResolvedValue({ browseFolder: '/x' } as never);
+
+    await loadConfig();
+
+    expect(setSettings).not.toHaveBeenCalled();
+  });
+
+  it('seeds settings spreading store defaults first so store-only fields like indexTreeWidth are always present', async () => {
+    vi.mocked(api.getConfig).mockResolvedValue({
+      browseFolder: '/x',
+      settings: { fontSize: 'large', showPropsInEditor: true },
+    } as never);
+
+    await loadConfig();
+
+    expect(vi.mocked(setSettings)).toHaveBeenCalledWith({
+      ...defaultSettings,
+      fontSize: 'large',
+      showPropsInEditor: true,
+    });
+  });
+
+  it('lets config settings override the store default for showPropsInEditor', async () => {
+    vi.mocked(api.getConfig).mockResolvedValue({
+      browseFolder: '/x',
+      settings: { showPropsInEditor: false },
+    } as never);
+
+    await loadConfig();
+
+    const called = vi.mocked(setSettings).mock.calls[0][0];
+    expect(called.showPropsInEditor).toBe(false);
+  });
+
+  it('provides indexTreeWidth from store defaults even though it is not persisted in the config', async () => {
+    vi.mocked(api.getConfig).mockResolvedValue({
+      browseFolder: '/x',
+      settings: { fontSize: 'small' },
+    } as never);
+
+    await loadConfig();
+
+    const called = vi.mocked(setSettings).mock.calls[0][0];
+    expect(called.indexTreeWidth).toBe(defaultSettings.indexTreeWidth);
   });
 });

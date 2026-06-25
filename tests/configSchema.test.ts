@@ -195,3 +195,20 @@ describe('parseConfigYaml — top-level field tolerance', () => {
     expect(cfg?.calendarViewType).toBeUndefined();
   });
 });
+
+describe('parseConfigYaml — showPropsInEditor default', () => {
+  it('falls back to the canonical default when showPropsInEditor is absent', () => {
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: {} });
+    expect(cfg?.settings?.showPropsInEditor).toBe(defaultSettings.showPropsInEditor);
+  });
+
+  it('preserves an explicit false value for showPropsInEditor', () => {
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { showPropsInEditor: false } });
+    expect(cfg?.settings?.showPropsInEditor).toBe(false);
+  });
+
+  it('falls back to default when showPropsInEditor is a non-boolean', () => {
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { showPropsInEditor: 'yes' } });
+    expect(cfg?.settings?.showPropsInEditor).toBe(defaultSettings.showPropsInEditor);
+  });
+});

@@ -42,6 +42,7 @@ export const defaultSettings: AppSettings = {
   bookmarks: [],
   ocrToolsFolder: '',
   calendarItemsFolder: '',
+  showPropsInEditor: true,
 };
 
 /** Returns a fresh `AppSettings` with independent copies of all mutable arrays. */
@@ -138,7 +139,7 @@ const AppSettingsSchema = z
     bookmarks: tolerantArray(BookmarkSchema),
     ocrToolsFolder: z.string().catch(defaultSettings.ocrToolsFolder),
     calendarItemsFolder: z.string().catch(defaultSettings.calendarItemsFolder),
-    showPropsInEditor: z.boolean().optional().catch(undefined),
+    showPropsInEditor: z.boolean().catch(defaultSettings.showPropsInEditor),
   })
   .loose();
 

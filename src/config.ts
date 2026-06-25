@@ -1,4 +1,4 @@
-import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig, defaultAiConfig } from './store';
+import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig, defaultAiConfig, defaultSettings } from './store';
 import { api } from './services/api';
 import { isPathInside } from './utils/pathUtil';
 import type { AppConfig } from './types/shared';
@@ -50,7 +50,7 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     const config = await api.getConfig();
     // Load settings from config into store (only once at startup)
     if (config.settings) {
-      setSettings({ indexTreeWidth: 'narrow', showPropsInEditor: true, ...config.settings });
+      setSettings({ ...defaultSettings, ...config.settings });
     }
     if (config.calendarViewType) {
       setCalendarViewType(config.calendarViewType);
