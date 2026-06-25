@@ -2,8 +2,9 @@
  * configMgr.ts — Configuration Manager (main process only)
  *
  * Reads the YAML config file exactly once at startup via initConfig().
- * All subsequent reads use the in-memory object; writes update it and
- * flush to disk immediately. No re-reads ever happen after init.
+ * All subsequent reads use the in-memory object; writes update it
+ * synchronously and enqueue an async, atomic flush to disk (serialized so
+ * overlapping writes can't race). No re-reads ever happen after init.
  */
 
 import path from 'node:path';
@@ -14,6 +15,7 @@ import { enforceDefaultAIModels } from './ai/aiModel';
 import { defaultSettings, parseConfigYaml } from './configSchema';
 import type { AppConfig, AIModelConfig } from './types/shared';
 import { logger } from './utils/logUtil';
+import { writeFileAtomic } from './utils/atomicWrite';
 
 export type { FontSize, SortOrder, ContentWidth, ImageSize, SearchMode, SearchType, SearchSortBy, SearchSortDirection, SearchDefinition, Bookmark, AppSettings, AIModelConfig, AIRewritePromptDef, AppConfig } from './types/shared';
 
@@ -193,9 +195,43 @@ function ensureConfigDir(): void {
   }
 }
 
-function persistConfig(): void {
-  ensureConfigDir();
-  fs.writeFileSync(CONFIG_FILE, yaml.dump(_config), 'utf-8');
+// Serialize config writes through a single promise chain (mirrors withIndexLock
+// in indexUtil.ts, but there is only one config file so no per-key map is
+// needed). The main process is single-threaded, but persistConfig() is now
+// async: without serialization, two overlapping updateConfig() calls could race
+// on the atomic rename and land an older snapshot last. Chaining guarantees the
+// writes apply in call order, so the final on-disk file matches the final
+// in-memory state.
+let _writeChain: Promise<void> = Promise.resolve();
+
+/**
+ * Snapshot the current config and enqueue an atomic, fsync'd write to disk.
+ * Returns a promise that resolves once THIS snapshot has been persisted (or
+ * rejects if its write failed). The stored chain tail swallows errors so a
+ * single failed write can't break persistence for subsequent calls.
+ */
+function persistConfig(): Promise<void> {
+  // Snapshot synchronously at call time so the queued write reflects the config
+  // as of this call, regardless of later mutations.
+  const data = yaml.dump(_config);
+  const run = _writeChain.then(async () => {
+    await fs.promises.mkdir(CONFIG_DIR, { recursive: true });
+    await writeFileAtomic(CONFIG_FILE, data);
+  });
+  _writeChain = run.then(
+    () => {},
+    () => {},
+  );
+  return run;
+}
+
+/**
+ * Await any in-flight / queued config write. Call this on app quit so a write
+ * that is still flushing isn't lost. Never rejects (errors are logged at the
+ * write site / swallowed by the chain tail).
+ */
+export function flushConfig(): Promise<void> {
+  return _writeChain;
 }
 
 function backupBadConfig(): string | null {
@@ -234,18 +270,19 @@ export function getConfigLoadError(): { error: string; backupPath: string | null
  *     writing to disk (leaving the original intact so the user can recover it).
  *     A `.bak-<timestamp>` copy is created and getConfigLoadError() is set.
  */
-export function initConfig(): void {
+export async function initConfig(): Promise<void> {
   ensureConfigDir();
   _configLoadError = null;
 
   if (!fs.existsSync(CONFIG_FILE)) {
     // First-run: no config file on disk yet — write defaults.
     _config = { browseFolder: '', settings: { ...defaultSettings } };
-    if (createDefaultAISettings(_config)) persistConfig();
+    if (createDefaultAISettings(_config)) await persistConfig();
     return;
   }
 
-  // Config file exists: try to read and parse it.
+  // Config file exists: try to read and parse it. The sync read is acceptable
+  // here because initConfig() runs exactly once at startup (see issue 003).
   try {
     // The config file is untrusted (hand-editable, syncable, corruptible), so
     // validate it through the zod schema rather than casting. Malformed fields
@@ -253,7 +290,7 @@ export function initConfig(): void {
     const parsed = parseConfigYaml(yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')));
     if (parsed) {
       _config = { ...parsed, settings: { ...defaultSettings, ...parsed.settings } };
-      if (createDefaultAISettings(_config)) persistConfig();
+      if (createDefaultAISettings(_config)) await persistConfig();
       return;
     }
 
@@ -292,7 +329,7 @@ export function getConfig(): AppConfig {
  * Any key whose value is `undefined` is treated as a deletion (e.g. pass
  * `curSubFolder: undefined` to remove it entirely).
  */
-export function updateConfig(updates: Partial<AppConfig>): void {
+export function updateConfig(updates: Partial<AppConfig>): Promise<void> {
   _config = { ..._config, ...updates };
   // A key explicitly set to undefined means "delete this key"
   for (const key of Object.keys(updates) as (keyof AppConfig)[]) {
@@ -302,6 +339,8 @@ export function updateConfig(updates: Partial<AppConfig>): void {
   }
 
   // Enforce defaults and normalize AI model selection before persisting.
+  // The in-memory mutation above is synchronous, so getConfig() reflects the
+  // change immediately; the returned promise resolves once it reaches disk.
   createDefaultAISettings(_config);
-  persistConfig();
+  return persistConfig();
 }

@@ -7,7 +7,7 @@
 import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { writeFileAtomic } from '../src/utils/atomicWrite';
 
 let tmpDir: string;
@@ -85,5 +85,41 @@ describe('writeFileAtomic', () => {
     expect(tmpName.startsWith('.')).toBe(true);
     // ...and clearly a temp file.
     expect(tmpName.endsWith('.tmp')).toBe(true);
+  });
+
+  it('fsyncs the temp file before renaming it into place', async () => {
+    // Durability guarantee: the bytes must hit disk (handle.sync) BEFORE the
+    // rename, otherwise a power loss could make the rename durable while the
+    // data it points at was never written. Record the call order to prove it.
+    const target = path.join(tmpDir, 'durable.txt');
+    const order: string[] = [];
+
+    const realOpen = fs.promises.open;
+    const openSpy = vi.spyOn(fs.promises, 'open').mockImplementation(async (...args: Parameters<typeof realOpen>) => {
+      const handle = await realOpen(...args);
+      const realSync = handle.sync.bind(handle);
+      vi.spyOn(handle, 'sync').mockImplementation(async () => {
+        order.push('sync');
+        return realSync();
+      });
+      return handle;
+    });
+
+    const realRename = fs.promises.rename;
+    const renameSpy = vi.spyOn(fs.promises, 'rename').mockImplementation(async (...args: Parameters<typeof realRename>) => {
+      order.push('rename');
+      return realRename(...args);
+    });
+
+    try {
+      await writeFileAtomic(target, 'durable data');
+    } finally {
+      openSpy.mockRestore();
+      renameSpy.mockRestore();
+    }
+
+    expect(await fs.promises.readFile(target, 'utf8')).toBe('durable data');
+    // fsync happened, and it happened before the rename.
+    expect(order).toEqual(['sync', 'rename']);
   });
 });

@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, native
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
-import { initConfig, getConfig, updateConfig } from './configMgr';
+import { initConfig, getConfig, updateConfig, flushConfig } from './configMgr';
 import type { AppConfig } from './configMgr';
 
 import { readDirectory, parseFrontMatter } from './utils/fileUtil';
@@ -151,8 +151,12 @@ function setupIpcHandlers(): void {
   // Merge partial config updates into in-memory state and flush to disk.
   // Renderer callers send only the keys they own; the merge happens here on
   // the single main-process thread, so concurrent updates can't clobber.
-  ipcMain.handle('update-config', (_event, updates: Partial<AppConfig>): void => {
-    updateConfig(updates);
+  ipcMain.handle('update-config', (_event, updates: Partial<AppConfig>): Promise<void> => {
+    // updateConfig mutates in-memory state synchronously and returns a promise
+    // that resolves once the change is flushed to disk. Returning it lets the
+    // renderer's `await api.updateConfig(...)` resolve after persist (and surface
+    // write errors) without blocking the main-process event loop.
+    return updateConfig(updates);
   });
 
   // Set window title
@@ -848,7 +852,7 @@ async function handleCommandLineArgs(): Promise<void> {
         const absolutePath = path.resolve(folderPath);
 
         // Update in-memory config and persist to disk
-        updateConfig({ browseFolder: absolutePath, curSubFolder: undefined });
+        await updateConfig({ browseFolder: absolutePath, curSubFolder: undefined });
 
         logger.log(`Opening folder from command line: ${absolutePath}`);
       } else {
@@ -865,12 +869,24 @@ async function handleCommandLineArgs(): Promise<void> {
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
   setupLocalFileProtocol();
-  initConfig();          // Read config file once — all later access is in-memory
+  await initConfig();    // Read config file once — all later access is in-memory
   setupIpcHandlers();
   await handleCommandLineArgs();
   createWindow();
   // Remove the default Electron menu bar entirely — all menus are now HTML popup menus
   Menu.setApplicationMenu(null);
+});
+
+// Flush any in-flight/queued config write before the process exits, so the
+// last settings change can't be lost to an async write still in progress at
+// quit time. We preventDefault once, await the flush, then re-quit; the guard
+// makes the second pass a no-op so the quit proceeds.
+let isQuitting = false;
+app.on('before-quit', (event) => {
+  if (isQuitting) return;
+  event.preventDefault();
+  isQuitting = true;
+  void flushConfig().finally(() => app.quit());
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
