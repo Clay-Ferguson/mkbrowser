@@ -232,6 +232,30 @@ describe('withDefaultAISettings — pure function, no mutation', () => {
   });
 });
 
+describe('updateConfig — AI enforcement gating (issue 007)', () => {
+  it('does not alter aiModels/aiModel when only a non-AI key is updated', async () => {
+    await initConfig();
+    const before = getConfig();
+    const modelsBefore = before.aiModels ? [...before.aiModels] : [];
+    const aiModelBefore = before.aiModel;
+
+    await updateConfig({ curSubFolder: '/some/path' });
+
+    const after = getConfig();
+    expect(after.aiModel).toBe(aiModelBefore);
+    expect(after.aiModels).toEqual(modelsBefore);
+  });
+
+  it('still enforces AI defaults when an AI key is updated', async () => {
+    await initConfig();
+    // Wipe aiModels to simulate a partial config; updating aiEnabled should re-inject them.
+    await updateConfig({ aiEnabled: true, aiModels: undefined });
+    const after = getConfig();
+    expect(Array.isArray(after.aiModels)).toBe(true);
+    expect((after.aiModels?.length ?? 0)).toBeGreaterThan(0);
+  });
+});
+
 describe('updateConfig — atomic, durable writes (issue 002)', () => {
   it('leaves the previous good config intact when the write/rename fails mid-flush', async () => {
     // Start from a known-good on-disk config.

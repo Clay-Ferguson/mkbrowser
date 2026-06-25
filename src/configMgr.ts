@@ -322,6 +322,16 @@ export function getConfig(): AppConfig {
   return _config;
 }
 
+// Keys that withDefaultAISettings reads or writes. Used to skip the
+// enforcement pass when an unrelated key is the only thing changing.
+const AI_KEYS: ReadonlyArray<keyof AppConfig> = [
+  'aiEnabled',
+  'aiModels',
+  'aiModel',
+  'agenticMode',
+  'agenticAllowedFolders',
+];
+
 /**
  * Merge partial updates into the in-memory config and persist to disk.
  *
@@ -342,9 +352,11 @@ export function updateConfig(updates: Partial<AppConfig>): Promise<void> {
     }
   }
 
-  // Enforce defaults and normalize AI model selection before persisting.
-  // The in-memory mutation above is synchronous, so getConfig() reflects the
-  // change immediately; the returned promise resolves once it reaches disk.
-  _config = withDefaultAISettings(_config).config;
+  // Only run the AI-default enforcement pass when the update touches an
+  // AI-related key. Non-AI writes (e.g. curSubFolder, imageSize) must not
+  // silently mutate aiModels/aiModel as a side-effect.
+  if (AI_KEYS.some((k) => k in updates)) {
+    _config = withDefaultAISettings(_config).config;
+  }
   return persistConfig();
 }
