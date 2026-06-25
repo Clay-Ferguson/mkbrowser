@@ -19,6 +19,7 @@ vi.mock('electron', () => ({ app: { getPath: () => tmpHome } }));
 
 import { initConfig, getConfig, getConfigLoadError, updateConfig, withDefaultAISettings } from '../src/configMgr';
 import { defaultSettings, cloneDefaultSettings } from '../src/configSchema';
+import type { AIModelConfig } from '../src/types/shared';
 
 const CONFIG_DIR = path.join(tmpHome, '.config', 'mk-browser');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
@@ -229,6 +230,43 @@ describe('withDefaultAISettings — pure function, no mutation', () => {
     const input = { browseFolder: '/my/folder', settings: cloneDefaultSettings() };
     const { config: result } = withDefaultAISettings(input);
     expect(result.browseFolder).toBe('/my/folder');
+  });
+
+  it('normalizes invalid pricing values to 0 on a custom model', () => {
+    const badModel: AIModelConfig = {
+      name: 'My Custom Model',
+      provider: 'OPENAI',
+      model: 'gpt-test',
+      inputPer1M: -5,
+      outputPer1M: NaN,
+      vision: false,
+      readonly: false,
+    };
+    const input = { browseFolder: '', settings: cloneDefaultSettings(), aiModels: [badModel], aiModel: badModel.name };
+    const { config: result, changed } = withDefaultAISettings(input);
+    const custom = result.aiModels?.find((m) => m.name === 'My Custom Model');
+    expect(custom).toBeDefined();
+    expect(custom?.inputPer1M).toBe(0);
+    expect(custom?.outputPer1M).toBe(0);
+    expect(changed).toBe(true);
+  });
+
+  it('preserves valid pricing values on a custom model unchanged', () => {
+    const goodModel: AIModelConfig = {
+      name: 'My Custom Model',
+      provider: 'OPENAI',
+      model: 'gpt-test',
+      inputPer1M: 1.5,
+      outputPer1M: 2.0,
+      vision: false,
+      readonly: false,
+    };
+    const { config: populated } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
+    const input = { ...populated, aiModels: [...(populated.aiModels ?? []), goodModel] };
+    const { config: result } = withDefaultAISettings(input);
+    const custom = result.aiModels?.find((m) => m.name === 'My Custom Model');
+    expect(custom?.inputPer1M).toBe(1.5);
+    expect(custom?.outputPer1M).toBe(2.0);
   });
 });
 
