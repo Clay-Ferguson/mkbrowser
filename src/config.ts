@@ -60,25 +60,26 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     }
     // Seed the renderer-reactive AI config mirror (see store/aiConfig.ts).
     setAiConfig({ ...defaultAiConfig, ...pickAiConfig(config) });
-    if (config.browseFolder) {
-      const exists = await api.pathExists(config.browseFolder);
-      if (exists) {
-        // If a saved subfolder exists and is valid, start there instead of the root
-        let initialPath = config.browseFolder;
-        if (config.curSubFolder && isPathInside(config.browseFolder, config.curSubFolder)) {
-          const subExists = await api.pathExists(config.curSubFolder);
-          if (subExists) {
-            initialPath = config.curSubFolder;
-          }
-        }
-        setCurrentPath(initialPath);
-        return { rootPath: config.browseFolder, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled, recentFolders: config.recentFolders ?? [] };
-      } else {
-        return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled, recentFolders: config.recentFolders ?? [] };
-      }
-    } else {
-      return { rootPath: null, loaded: true, error: null, lastExportFolder: config.lastExportFolder ?? '', aiEnabled: !!config.aiEnabled, recentFolders: config.recentFolders ?? [] };
+    const base = {
+      loaded: true,
+      error: null as string | null,
+      lastExportFolder: config.lastExportFolder ?? '',
+      aiEnabled: !!config.aiEnabled,
+      recentFolders: config.recentFolders ?? [],
+    };
+    if (!config.browseFolder || !(await api.pathExists(config.browseFolder))) {
+      return { ...base, rootPath: null };
     }
+    // If a saved subfolder exists and is valid, start there instead of the root
+    let initialPath = config.browseFolder;
+    if (config.curSubFolder && isPathInside(config.browseFolder, config.curSubFolder)) {
+      const subExists = await api.pathExists(config.curSubFolder);
+      if (subExists) {
+        initialPath = config.curSubFolder;
+      }
+    }
+    setCurrentPath(initialPath);
+    return { ...base, rootPath: config.browseFolder };
   } catch {
     return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '', aiEnabled: false, recentFolders: [] };
   }

@@ -96,3 +96,58 @@ describe('loadConfig — subfolder path validation', () => {
     expect(api.pathExists).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('loadConfig — common result fields are consistent across branches', () => {
+  const commonConfig = {
+    lastExportFolder: '/exports',
+    aiEnabled: true,
+    recentFolders: ['/a', '/b'],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns common fields when browseFolder is absent', async () => {
+    vi.mocked(api.getConfig).mockResolvedValue({ ...commonConfig } as never);
+
+    const result = await loadConfig();
+
+    expect(result.loaded).toBe(true);
+    expect(result.error).toBeNull();
+    expect(result.rootPath).toBeNull();
+    expect(result.lastExportFolder).toBe('/exports');
+    expect(result.aiEnabled).toBe(true);
+    expect(result.recentFolders).toEqual(['/a', '/b']);
+  });
+
+  it('returns common fields when browseFolder does not exist on disk', async () => {
+    vi.mocked(api.getConfig).mockResolvedValue({
+      ...commonConfig,
+      browseFolder: '/missing',
+    } as never);
+    vi.mocked(api.pathExists).mockResolvedValue(false);
+
+    const result = await loadConfig();
+
+    expect(result.rootPath).toBeNull();
+    expect(result.lastExportFolder).toBe('/exports');
+    expect(result.aiEnabled).toBe(true);
+    expect(result.recentFolders).toEqual(['/a', '/b']);
+  });
+
+  it('returns common fields when browseFolder is valid', async () => {
+    vi.mocked(api.getConfig).mockResolvedValue({
+      ...commonConfig,
+      browseFolder: '/home/user/docs',
+    } as never);
+    vi.mocked(api.pathExists).mockResolvedValue(true);
+
+    const result = await loadConfig();
+
+    expect(result.rootPath).toBe('/home/user/docs');
+    expect(result.lastExportFolder).toBe('/exports');
+    expect(result.aiEnabled).toBe(true);
+    expect(result.recentFolders).toEqual(['/a', '/b']);
+  });
+});
