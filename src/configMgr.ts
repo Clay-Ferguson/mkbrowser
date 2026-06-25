@@ -17,8 +17,6 @@ import type { AppConfig, AIModelConfig } from './types/shared';
 import { logger } from './utils/logUtil';
 import { writeFileAtomic } from './utils/atomicWrite';
 
-export type { FontSize, SortOrder, ContentWidth, ImageSize, SearchMode, SearchType, SearchSortBy, SearchSortDirection, SearchDefinition, Bookmark, AppSettings, AIModelConfig, AIRewritePromptDef, AppConfig } from './types/shared';
-
 // Config file location — resolved per OS by Electron (Linux: ~/.config/mk-browser)
 const CONFIG_DIR = app.getPath('userData');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');

@@ -378,3 +378,17 @@ describe('getConfig() — encapsulation (issue 014)', () => {
     expectTypeOf(cfg).not.toEqualTypeOf<AppConfig>();
   });
 });
+
+describe('configMgr module boundary (issue 020)', () => {
+  // configMgr is a main-process runtime manager and must not become a secondary
+  // import surface for shared types — those have a single canonical home in
+  // src/types/shared.ts. Type-only re-exports are erased at runtime so they
+  // can't be detected via module exports; assert against the source instead.
+  it('does not bulk re-export shared types from ./types/shared', () => {
+    const source = fs.readFileSync(
+      path.join(__dirname, '../src/configMgr.ts'),
+      'utf-8',
+    );
+    expect(source).not.toMatch(/export\s+type\s*\{[^}]*\}\s*from\s*['"]\.\/types\/shared['"]/);
+  });
+});
