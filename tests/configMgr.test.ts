@@ -3,8 +3,8 @@ import path from 'node:path';
 import * as yaml from 'js-yaml';
 import { describe, it, expect, expectTypeOf, beforeEach, afterEach, vi } from 'vitest';
 
-// configMgr calls app.getPath('home') at module load to locate config.yaml, so
-// point Electron at a throwaway home dir created before the module is imported.
+// configMgr calls app.getPath('userData') at module load to locate config.yaml.
+// Point Electron at a throwaway dir created before the module is imported.
 const { tmpHome } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const os = require('node:os') as typeof import('node:os');
@@ -21,7 +21,8 @@ import { initConfig, getConfig, getConfigLoadError, updateConfig, withDefaultAIS
 import { defaultSettings, cloneDefaultSettings } from '../src/configSchema';
 import type { AIModelConfig, AppConfig } from '../src/types/shared';
 
-const CONFIG_DIR = path.join(tmpHome, '.config', 'mk-browser');
+// configMgr uses app.getPath('userData') directly as CONFIG_DIR, so tmpHome IS the dir.
+const CONFIG_DIR = tmpHome;
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
 
 function writeConfig(content: string) {
@@ -29,12 +30,23 @@ function writeConfig(content: string) {
   fs.writeFileSync(CONFIG_FILE, content, 'utf-8');
 }
 
+function cleanConfigDir() {
+  // Remove config files without deleting tmpHome itself (CONFIG_DIR === tmpHome).
+  if (fs.existsSync(CONFIG_DIR)) {
+    for (const f of fs.readdirSync(CONFIG_DIR)) {
+      if (f.startsWith('config.yaml')) {
+        fs.unlinkSync(path.join(CONFIG_DIR, f));
+      }
+    }
+  }
+}
+
 beforeEach(() => {
-  fs.rmSync(CONFIG_DIR, { recursive: true, force: true });
+  cleanConfigDir();
 });
 
 afterEach(() => {
-  fs.rmSync(CONFIG_DIR, { recursive: true, force: true });
+  cleanConfigDir();
   vi.restoreAllMocks();
 });
 
