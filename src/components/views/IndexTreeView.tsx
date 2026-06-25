@@ -49,7 +49,7 @@ import {
 import { extractHeadingTree } from '../../utils/tocUtil';
 import { scrollElementIntoView } from '../../utils/entryDom';
 import { getActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
-import { ensureTrailingSep, getFileName, getParentPath, joinPath, splitPathSegments } from '../../utils/pathUtil';
+import { ensureTrailingSep, getFileName, getParentPath, isPathInside, joinPath, splitPathSegments } from '../../utils/pathUtil';
 
 const INDENT_SIZE = 20;
 
@@ -195,7 +195,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   }, [rootPath, treeRoot?.path]);
 
   const expandToPath = useCallback(async (targetPath: string) => {
-    if (!rootPath || !targetPath.startsWith(rootPath)) return;
+    if (!rootPath || !isPathInside(rootPath, targetPath)) return;
 
     const relative = targetPath.slice(rootPath.length).replace(/^[/\\]/, '');
     const segments = splitPathSegments(relative);

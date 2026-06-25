@@ -1,5 +1,6 @@
 import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig, defaultAiConfig } from './store';
 import { api } from './services/api';
+import { isPathInside } from './utils/pathUtil';
 import type { AppConfig } from './types/shared';
 import type { AiConfigState } from './store';
 
@@ -64,7 +65,7 @@ export async function loadConfig(): Promise<LoadConfigResult> {
       if (exists) {
         // If a saved subfolder exists and is valid, start there instead of the root
         let initialPath = config.browseFolder;
-        if (config.curSubFolder && config.curSubFolder.startsWith(config.browseFolder)) {
+        if (config.curSubFolder && isPathInside(config.browseFolder, config.curSubFolder)) {
           const subExists = await api.pathExists(config.curSubFolder);
           if (subExists) {
             initialPath = config.curSubFolder;
