@@ -1,5 +1,46 @@
 import { describe, it, expect } from 'vitest';
-import { parseConfigYaml, defaultSettings, cloneDefaultSettings } from '../src/configSchema';
+import { parseConfigYaml, defaultSettings, cloneDefaultSettings, coerceNonNegativeNumber } from '../src/configSchema';
+
+// ---------------------------------------------------------------------------
+// coerceNonNegativeNumber — shared coercion used by schema preprocess + configMgr
+// ---------------------------------------------------------------------------
+
+describe('coerceNonNegativeNumber', () => {
+  it('passes through a finite non-negative number unchanged', () => {
+    expect(coerceNonNegativeNumber(0)).toBe(0);
+    expect(coerceNonNegativeNumber(3.5)).toBe(3.5);
+    expect(coerceNonNegativeNumber(1000)).toBe(1000);
+  });
+
+  it('parses a numeric string to a number', () => {
+    expect(coerceNonNegativeNumber('3.50')).toBe(3.5);
+    expect(coerceNonNegativeNumber('0')).toBe(0);
+    expect(coerceNonNegativeNumber('  10  ')).toBe(10);
+  });
+
+  it('returns undefined for negative numbers', () => {
+    expect(coerceNonNegativeNumber(-1)).toBeUndefined();
+    expect(coerceNonNegativeNumber('-5')).toBeUndefined();
+  });
+
+  it('returns undefined for non-finite numbers', () => {
+    expect(coerceNonNegativeNumber(Infinity)).toBeUndefined();
+    expect(coerceNonNegativeNumber(NaN)).toBeUndefined();
+  });
+
+  it('returns undefined for non-numeric strings', () => {
+    expect(coerceNonNegativeNumber('bad')).toBeUndefined();
+    expect(coerceNonNegativeNumber('')).toBeUndefined();
+    expect(coerceNonNegativeNumber('  ')).toBeUndefined();
+  });
+
+  it('returns undefined for null, undefined, object, and boolean', () => {
+    expect(coerceNonNegativeNumber(null)).toBeUndefined();
+    expect(coerceNonNegativeNumber(undefined)).toBeUndefined();
+    expect(coerceNonNegativeNumber({})).toBeUndefined();
+    expect(coerceNonNegativeNumber(true)).toBeUndefined();
+  });
+});
 
 // ---------------------------------------------------------------------------
 // parseConfigYaml — the untrusted-config equivalent of parseIndexYaml.

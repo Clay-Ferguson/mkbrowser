@@ -80,7 +80,8 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     }
     setCurrentPath(initialPath);
     return { ...base, rootPath: config.browseFolder };
-  } catch {
+  } catch (err) {
+    console.error('[config] loadConfig failed', err);
     return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '', aiEnabled: false, recentFolders: [] };
   }
 }

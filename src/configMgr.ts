@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import { app } from 'electron';
 import * as yaml from 'js-yaml';
 import { enforceDefaultAIModels } from './ai/aiModel';
-import { defaultSettings, cloneDefaultSettings, parseConfigYaml } from './configSchema';
+import { defaultSettings, cloneDefaultSettings, parseConfigYaml, coerceNonNegativeNumber } from './configSchema';
 import type { AppConfig, AIModelConfig } from './types/shared';
 import { logger } from './utils/logUtil';
 import { writeFileAtomic } from './utils/atomicWrite';
@@ -116,15 +116,6 @@ const DEFAULT_AI_MODEL = 'Claude Haiku';
 export function withDefaultAISettings(config: AppConfig): { config: AppConfig; changed: boolean } {
   let changed = false;
   const next = { ...config };
-
-  const coerceNonNegativeNumber = (value: unknown): number | undefined => {
-    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return value;
-    if (typeof value === 'string' && value.trim()) {
-      const parsed = Number.parseFloat(value);
-      if (Number.isFinite(parsed) && parsed >= 0) return parsed;
-    }
-    return undefined;
-  };
 
   // Always enforce built-in default models (case-insensitive name matching).
   // Defaults overwrite any user-defined model with the same name.

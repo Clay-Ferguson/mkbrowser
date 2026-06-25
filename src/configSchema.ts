@@ -72,18 +72,19 @@ function tolerantArray<T extends z.ZodTypeAny>(elem: T) {
 }
 
 /**
- * Coerce a value to a finite, non-negative number (accepting numeric strings),
- * matching `coerceNonNegativeNumber` in configMgr. Yields `undefined` on failure
- * so the field's `.catch(0)` supplies the default.
+ * Coerce a value to a finite, non-negative number (accepting numeric strings).
+ * Returns `undefined` on failure so callers can supply a fallback.
  */
-const nonNegNumber = z.preprocess((v) => {
+export function coerceNonNegativeNumber(v: unknown): number | undefined {
   if (typeof v === 'number' && Number.isFinite(v) && v >= 0) return v;
   if (typeof v === 'string' && v.trim()) {
     const n = Number.parseFloat(v);
     if (Number.isFinite(n) && n >= 0) return n;
   }
   return undefined;
-}, z.number());
+}
+
+const nonNegNumber = z.preprocess(coerceNonNegativeNumber, z.number());
 
 // ---------------------------------------------------------------------------
 // Element schemas

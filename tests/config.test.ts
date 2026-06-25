@@ -97,6 +97,32 @@ describe('loadConfig — subfolder path validation', () => {
   });
 });
 
+describe('loadConfig — error handling', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('logs the underlying error and returns the fallback result when api.getConfig throws', async () => {
+    const cause = new Error('IPC channel closed');
+    vi.mocked(api.getConfig).mockRejectedValue(cause);
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await loadConfig();
+
+    expect(spy).toHaveBeenCalledWith('[config] loadConfig failed', cause);
+    expect(result).toEqual({
+      rootPath: null,
+      loaded: false,
+      error: 'Failed to load configuration',
+      lastExportFolder: '',
+      aiEnabled: false,
+      recentFolders: [],
+    });
+
+    spy.mockRestore();
+  });
+});
+
 describe('loadConfig — common result fields are consistent across branches', () => {
   const commonConfig = {
     lastExportFolder: '/exports',
