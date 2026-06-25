@@ -1,6 +1,7 @@
 import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig, defaultAiConfig, defaultSettings } from './store';
 import { api } from './services/api';
 import { isPathInside } from './utils/pathUtil';
+import { logger } from './utils/logUtil';
 import type { AppConfig } from './types/shared';
 import type { AiConfigState } from './store';
 
@@ -81,7 +82,7 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     setCurrentPath(initialPath);
     return { ...base, rootPath: config.browseFolder };
   } catch (err) {
-    console.error('[config] loadConfig failed', err);
+    logger.error('[config] loadConfig failed', err);
     return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '', aiEnabled: false, recentFolders: [] };
   }
 }
@@ -97,7 +98,7 @@ export async function saveAiConfig(updates: Partial<AppConfig>): Promise<void> {
   try {
     await api.updateConfig(updates);
   } catch (err) {
-    console.error('[config] saveAiConfig failed', err);
+    logger.error('[config] saveAiConfig failed', err);
     throw err;
   }
   const mirror = pickAiConfig(updates);
