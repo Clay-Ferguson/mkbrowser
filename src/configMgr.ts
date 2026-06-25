@@ -13,6 +13,7 @@ import * as yaml from 'js-yaml';
 import { enforceDefaultAIModels } from './ai/aiModel';
 import { defaultSettings, parseConfigYaml } from './configSchema';
 import type { AppConfig, AIModelConfig } from './types/shared';
+import { logger } from './utils/logUtil';
 
 export type { FontSize, SortOrder, ContentWidth, ImageSize, SearchMode, SearchType, SearchSortBy, SearchSortDirection, SearchDefinition, Bookmark, AppSettings, AIModelConfig, AIRewritePromptDef, AppConfig } from './types/shared';
 
@@ -177,6 +178,11 @@ export function createDefaultAISettings(config: AppConfig): boolean {
 
 let _config: AppConfig = { browseFolder: '', settings: { ...defaultSettings } };
 
+// Set when initConfig() encounters a file that exists but cannot be read or
+// parsed. Callers can surface this to the user; updateConfig() remains safe to
+// call — it writes explicit user changes rather than guessed defaults.
+let _configLoadError: { error: string; backupPath: string | null } | null = null;
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
@@ -192,43 +198,80 @@ function persistConfig(): void {
   fs.writeFileSync(CONFIG_FILE, yaml.dump(_config), 'utf-8');
 }
 
+function backupBadConfig(): string | null {
+  const backupPath = `${CONFIG_FILE}.bak-${Date.now()}`;
+  try {
+    fs.copyFileSync(CONFIG_FILE, backupPath);
+    logger.warn(`[configMgr] Backed up unreadable config to: ${backupPath}`);
+    return backupPath;
+  } catch (err) {
+    logger.warn('[configMgr] Failed to create config backup:', err);
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 /**
+ * Returns the load error from the most recent initConfig() call, or null if
+ * the config was loaded successfully (or the file was absent on first run).
+ */
+export function getConfigLoadError(): { error: string; backupPath: string | null } | null {
+  return _configLoadError;
+}
+
+/**
  * Read the config file into memory. Must be called once at app startup
  * before any other configMgr function is used.
+ *
+ * Three outcomes are possible:
+ *  1. File absent   → first-run: write defaults to disk and return.
+ *  2. File readable and valid → load into memory; persist only if AI defaults
+ *     were added (the existing file is never clobbered on a successful parse).
+ *  3. File exists but unreadable/invalid → load in-memory defaults WITHOUT
+ *     writing to disk (leaving the original intact so the user can recover it).
+ *     A `.bak-<timestamp>` copy is created and getConfigLoadError() is set.
  */
 export function initConfig(): void {
   ensureConfigDir();
-  try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      // The config file is untrusted (hand-editable, syncable, corruptible), so
-      // validate it through the zod schema rather than casting. Malformed fields
-      // degrade to defaults; a non-object top level returns null (-> defaults).
-      const parsed = parseConfigYaml(yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')));
-      if (parsed) {
-        _config = {
-          ...parsed,
-          settings: { ...defaultSettings, ...parsed.settings },
-        };
-        if (createDefaultAISettings(_config)) {
-          persistConfig();
-        }
-        return;
-      }
-    }
-  } catch {
-    // Corrupted config — fall through to defaults
+  _configLoadError = null;
+
+  if (!fs.existsSync(CONFIG_FILE)) {
+    // First-run: no config file on disk yet — write defaults.
+    _config = { browseFolder: '', settings: { ...defaultSettings } };
+    if (createDefaultAISettings(_config)) persistConfig();
+    return;
   }
 
-  // First-run (or corrupted config): initialize a full default config,
-  // including AI defaults, then persist so subsequent reads are consistent.
-  _config = { browseFolder: '', settings: { ...defaultSettings } };
-  if (createDefaultAISettings(_config)) {
-    persistConfig();
+  // Config file exists: try to read and parse it.
+  try {
+    // The config file is untrusted (hand-editable, syncable, corruptible), so
+    // validate it through the zod schema rather than casting. Malformed fields
+    // degrade to defaults; a non-object top level returns null.
+    const parsed = parseConfigYaml(yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')));
+    if (parsed) {
+      _config = { ...parsed, settings: { ...defaultSettings, ...parsed.settings } };
+      if (createDefaultAISettings(_config)) persistConfig();
+      return;
+    }
+
+    // Parsed as valid YAML but top-level value isn't an object.
+    const errorMsg = 'Config file top-level value is not an object';
+    logger.error(`[configMgr] ${errorMsg} — running on in-memory defaults. File: ${CONFIG_FILE}`);
+    _configLoadError = { error: errorMsg, backupPath: backupBadConfig() };
+
+  } catch (err) {
+    // YAML syntax error, I/O error (EACCES, EBUSY, …), or any other read failure.
+    logger.error('[configMgr] Failed to read/parse config file — running on in-memory defaults.', CONFIG_FILE, err);
+    _configLoadError = { error: String(err), backupPath: backupBadConfig() };
   }
+
+  // File exists but is unreadable/corrupt: use in-memory defaults, do NOT persist
+  // (leave the on-disk file untouched so the user can recover or inspect it).
+  _config = { browseFolder: '', settings: { ...defaultSettings } };
+  createDefaultAISettings(_config);
 }
 
 /**
