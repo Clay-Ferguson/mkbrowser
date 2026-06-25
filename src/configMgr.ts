@@ -109,11 +109,13 @@ const DEFAULT_AI_MODELS: AIModelConfig[] = [
 const DEFAULT_AI_MODEL = 'Claude Haiku';
 
 /**
- * Ensure AI-related config fields exist with sensible defaults.
- * Returns true if any value was populated (caller should persist).
+ * Return a new AppConfig with AI-related fields populated to sensible defaults.
+ * The input object is never modified. `changed` is true when any field was added
+ * or normalised (caller should persist when true).
  */
-export function createDefaultAISettings(config: AppConfig): boolean {
+export function withDefaultAISettings(config: AppConfig): { config: AppConfig; changed: boolean } {
   let changed = false;
+  const next = { ...config };
 
   const coerceNonNegativeNumber = (value: unknown): number | undefined => {
     if (typeof value === 'number' && Number.isFinite(value) && value >= 0) return value;
@@ -127,9 +129,9 @@ export function createDefaultAISettings(config: AppConfig): boolean {
   // Always enforce built-in default models (case-insensitive name matching).
   // Defaults overwrite any user-defined model with the same name.
   const enforced = enforceDefaultAIModels<AIModelConfig>({
-    existingModels: config.aiModels,
+    existingModels: next.aiModels,
     defaultModels: DEFAULT_AI_MODELS,
-    selectedModelName: config.aiModel,
+    selectedModelName: next.aiModel,
     defaultSelectedModelName: DEFAULT_AI_MODEL,
   });
 
@@ -137,13 +139,13 @@ export function createDefaultAISettings(config: AppConfig): boolean {
     changed = true;
   }
 
-  config.aiModels = enforced.models as AIModelConfig[];
-  config.aiModel = enforced.selectedModel;
+  next.aiModels = enforced.models as AIModelConfig[];
+  next.aiModel = enforced.selectedModel;
 
   // Ensure pricing fields exist and are valid numbers for all models.
   // Older configs won't have these fields; we normalize and persist once.
-  if (config.aiModels) {
-    config.aiModels = config.aiModels.map((m) => {
+  if (next.aiModels) {
+    next.aiModels = next.aiModels.map((m) => {
       const inputPer1M = coerceNonNegativeNumber((m as unknown as Record<string, unknown>).inputPer1M) ?? 0;
       const outputPer1M = coerceNonNegativeNumber((m as unknown as Record<string, unknown>).outputPer1M) ?? 0;
 
@@ -156,22 +158,22 @@ export function createDefaultAISettings(config: AppConfig): boolean {
     });
   }
 
-  if (config.aiEnabled === undefined) {
-    config.aiEnabled = false;
+  if (next.aiEnabled === undefined) {
+    next.aiEnabled = false;
     changed = true;
   }
 
-  if (config.agenticMode === undefined) {
-    config.agenticMode = false;
+  if (next.agenticMode === undefined) {
+    next.agenticMode = false;
     changed = true;
   }
 
-  if (config.agenticAllowedFolders === undefined) {
-    config.agenticAllowedFolders = '';
+  if (next.agenticAllowedFolders === undefined) {
+    next.agenticAllowedFolders = '';
     changed = true;
   }
 
-  return changed;
+  return { config: next, changed };
 }
 
 // ---------------------------------------------------------------------------
@@ -276,8 +278,9 @@ export async function initConfig(): Promise<void> {
 
   if (!fs.existsSync(CONFIG_FILE)) {
     // First-run: no config file on disk yet — write defaults.
-    _config = { browseFolder: '', settings: cloneDefaultSettings() };
-    if (createDefaultAISettings(_config)) await persistConfig();
+    const { config: withAI, changed } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
+    _config = withAI;
+    if (changed) await persistConfig();
     return;
   }
 
@@ -289,8 +292,10 @@ export async function initConfig(): Promise<void> {
     // degrade to defaults; a non-object top level returns null.
     const parsed = parseConfigYaml(yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')));
     if (parsed) {
-      _config = { ...parsed, settings: { ...cloneDefaultSettings(), ...parsed.settings } };
-      if (createDefaultAISettings(_config)) await persistConfig();
+      const base = { ...parsed, settings: { ...cloneDefaultSettings(), ...parsed.settings } };
+      const { config: withAI, changed } = withDefaultAISettings(base);
+      _config = withAI;
+      if (changed) await persistConfig();
       return;
     }
 
@@ -307,8 +312,7 @@ export async function initConfig(): Promise<void> {
 
   // File exists but is unreadable/corrupt: use in-memory defaults, do NOT persist
   // (leave the on-disk file untouched so the user can recover or inspect it).
-  _config = { browseFolder: '', settings: cloneDefaultSettings() };
-  createDefaultAISettings(_config);
+  _config = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() }).config;
 }
 
 /**
@@ -341,6 +345,6 @@ export function updateConfig(updates: Partial<AppConfig>): Promise<void> {
   // Enforce defaults and normalize AI model selection before persisting.
   // The in-memory mutation above is synchronous, so getConfig() reflects the
   // change immediately; the returned promise resolves once it reaches disk.
-  createDefaultAISettings(_config);
+  _config = withDefaultAISettings(_config).config;
   return persistConfig();
 }

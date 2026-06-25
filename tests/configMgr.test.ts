@@ -17,8 +17,8 @@ const { tmpHome } = vi.hoisted(() => {
 
 vi.mock('electron', () => ({ app: { getPath: () => tmpHome } }));
 
-import { initConfig, getConfig, getConfigLoadError, updateConfig } from '../src/configMgr';
-import { defaultSettings } from '../src/configSchema';
+import { initConfig, getConfig, getConfigLoadError, updateConfig, withDefaultAISettings } from '../src/configMgr';
+import { defaultSettings, cloneDefaultSettings } from '../src/configSchema';
 
 const CONFIG_DIR = path.join(tmpHome, '.config', 'mk-browser');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
@@ -46,7 +46,7 @@ describe('initConfig — schema-validated load', () => {
     // Bad enum reverted to default; valid override preserved.
     expect(cfg.settings?.fontSize).toBe(defaultSettings.fontSize);
     expect(cfg.settings?.foldersOnTop).toBe(false);
-    // createDefaultAISettings still runs over the validated config.
+    // withDefaultAISettings still runs over the validated config.
     expect(Array.isArray(cfg.aiModels)).toBe(true);
     expect(cfg.aiModels?.length).toBeGreaterThan(0);
     expect(getConfigLoadError()).toBeNull();
@@ -192,6 +192,43 @@ describe('initConfig — backup on error', () => {
     const files = fs.readdirSync(CONFIG_DIR);
     const baks = files.filter((f) => f.startsWith('config.yaml.bak-'));
     expect(baks.length).toBe(0);
+  });
+});
+
+describe('withDefaultAISettings — pure function, no mutation', () => {
+  it('does not mutate its input (frozen object)', () => {
+    const input = Object.freeze({ browseFolder: '', settings: cloneDefaultSettings() });
+    expect(() => withDefaultAISettings(input)).not.toThrow();
+    // Input fields remain absent on the original object.
+    expect((input as Record<string, unknown>).aiModels).toBeUndefined();
+    expect((input as Record<string, unknown>).aiEnabled).toBeUndefined();
+  });
+
+  it('returns a new config object with AI defaults populated', () => {
+    const input = { browseFolder: '/test', settings: cloneDefaultSettings() };
+    const { config: result, changed } = withDefaultAISettings(input);
+    expect(result).not.toBe(input);
+    expect(Array.isArray(result.aiModels)).toBe(true);
+    expect(result.aiModels?.length).toBeGreaterThan(0);
+    expect(result.aiEnabled).toBe(false);
+    expect(result.agenticMode).toBe(false);
+    expect(result.agenticAllowedFolders).toBe('');
+    expect(changed).toBe(true);
+  });
+
+  it('returns changed=false when all AI fields are already set correctly', () => {
+    const input = { browseFolder: '', settings: cloneDefaultSettings() };
+    // Apply once to get a fully populated config.
+    const { config: populated } = withDefaultAISettings(input);
+    // Apply again — nothing should differ.
+    const { changed } = withDefaultAISettings(populated);
+    expect(changed).toBe(false);
+  });
+
+  it('preserves the original browseFolder value on the returned config', () => {
+    const input = { browseFolder: '/my/folder', settings: cloneDefaultSettings() };
+    const { config: result } = withDefaultAISettings(input);
+    expect(result.browseFolder).toBe('/my/folder');
   });
 });
 
