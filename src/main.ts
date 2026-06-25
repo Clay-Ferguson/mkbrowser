@@ -540,7 +540,7 @@ function setupIpcHandlers(): void {
   // Load tags from the tags.yaml in the config folder
   ipcMain.handle('load-tags', async (): Promise<TagCategory[]> => {
     try {
-      const configDir = path.join(app.getPath('home'), '.config', 'mk-browser');
+      const configDir = app.getPath('userData');
       return await loadTags(configDir);
     } catch (error) {
       logger.error('Error loading tags:', error);
@@ -550,7 +550,7 @@ function setupIpcHandlers(): void {
 
   // Save tags.yaml to the config folder
   ipcMain.handle('save-tags', async (_event, yamlContent: string): Promise<void> => {
-    const configDir = path.join(app.getPath('home'), '.config', 'mk-browser');
+    const configDir = app.getPath('userData');
     const tagsFile = path.join(configDir, 'tags.yaml');
     await fs.promises.writeFile(tagsFile, yamlContent, 'utf-8');
   });
