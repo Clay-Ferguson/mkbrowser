@@ -40,11 +40,12 @@ vi.mock('../src/services/api', () => ({
   api: {
     getConfig: vi.fn(),
     pathExists: vi.fn(),
+    updateConfig: vi.fn(),
   },
 }));
 
-import { loadConfig } from '../src/config';
-import { setCurrentPath, setSettings, defaultSettings } from '../src/store';
+import { loadConfig, saveAiConfig } from '../src/config';
+import { setCurrentPath, setSettings, setAiConfig, defaultSettings } from '../src/store';
 import { api } from '../src/services/api';
 
 describe('loadConfig — subfolder path validation', () => {
@@ -243,5 +244,56 @@ describe('loadConfig — settings seeding', () => {
 
     const called = vi.mocked(setSettings).mock.calls[0][0];
     expect(called.indexTreeWidth).toBe(defaultSettings.indexTreeWidth);
+  });
+});
+
+describe('saveAiConfig — persist-first ordering', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('calls updateConfig before setAiConfig so store only reflects persisted state', async () => {
+    const callOrder: string[] = [];
+    vi.mocked(api.updateConfig).mockImplementation(async () => { callOrder.push('updateConfig'); });
+    vi.mocked(setAiConfig).mockImplementation(() => { callOrder.push('setAiConfig'); });
+
+    await saveAiConfig({ aiEnabled: true });
+
+    expect(callOrder).toEqual(['updateConfig', 'setAiConfig']);
+  });
+
+  it('does not update the store when updateConfig rejects', async () => {
+    vi.mocked(api.updateConfig).mockRejectedValue(new Error('IPC write error'));
+
+    await expect(saveAiConfig({ aiEnabled: true })).rejects.toThrow('IPC write error');
+
+    expect(setAiConfig).not.toHaveBeenCalled();
+  });
+
+  it('logs the error and rethrows when updateConfig rejects', async () => {
+    const cause = new Error('disk full');
+    vi.mocked(api.updateConfig).mockRejectedValue(cause);
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(saveAiConfig({ aiModel: 'gpt-4' })).rejects.toThrow('disk full');
+
+    expect(spy).toHaveBeenCalledWith('[config] saveAiConfig failed', cause);
+    spy.mockRestore();
+  });
+
+  it('updates the store with AI fields after successful persist', async () => {
+    vi.mocked(api.updateConfig).mockResolvedValue(undefined as never);
+
+    await saveAiConfig({ aiEnabled: true, aiModel: 'llama3' });
+
+    expect(setAiConfig).toHaveBeenCalledWith({ aiEnabled: true, aiModel: 'llama3' });
+  });
+
+  it('does not call setAiConfig when updates contain no AI fields', async () => {
+    vi.mocked(api.updateConfig).mockResolvedValue(undefined as never);
+
+    await saveAiConfig({ browseFolder: '/some/path' } as never);
+
+    expect(setAiConfig).not.toHaveBeenCalled();
   });
 });

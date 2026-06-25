@@ -94,7 +94,12 @@ export async function loadConfig(): Promise<LoadConfigResult> {
  * `api.updateConfig` directly. Non-AI keys in `updates` are simply persisted.
  */
 export async function saveAiConfig(updates: Partial<AppConfig>): Promise<void> {
+  try {
+    await api.updateConfig(updates);
+  } catch (err) {
+    console.error('[config] saveAiConfig failed', err);
+    throw err;
+  }
   const mirror = pickAiConfig(updates);
   if (Object.keys(mirror).length > 0) setAiConfig(mirror);
-  await api.updateConfig(updates);
 }
