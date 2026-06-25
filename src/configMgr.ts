@@ -47,7 +47,6 @@ const DEFAULT_AI_MODELS: AIModelConfig[] = [
   // Pricing:   https://platform.claude.com/docs/en/about-claude/pricing
   { name: 'Claude Sonnet 3.7', provider: 'ANTHROPIC', model: 'claude-3-7-sonnet-20250219', inputPer1M: 3.00, outputPer1M: 15.00, vision: true, readonly: true },
   { name: 'Claude Haiku 3.5', provider: 'ANTHROPIC', model: 'claude-3-5-haiku-20241022', inputPer1M: 0.80, outputPer1M: 4.00, vision: true, readonly: true },
-  { name: 'Claude Haiku', provider: 'ANTHROPIC', model: 'claude-haiku-4-5-20251001', inputPer1M: 1.00, outputPer1M: 5.00, vision: true, readonly: true },
   { name: 'Claude Opus 3', provider: 'ANTHROPIC', model: 'claude-3-opus-20240229', inputPer1M: 15.00, outputPer1M: 75.00, vision: true, readonly: true },
   // OpenAI — GPT-5 generation
   // Model IDs: https://developers.openai.com/api/docs/models
@@ -106,7 +105,7 @@ const DEFAULT_AI_MODELS: AIModelConfig[] = [
   { name: 'Local LLAMA.CPP', provider: 'LLAMACPP', model: 'local', inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true },
 ];
 
-const DEFAULT_AI_MODEL = 'Claude Haiku';
+const DEFAULT_AI_MODEL = 'Claude Haiku 4.5';
 
 /**
  * Return a new AppConfig with AI-related fields populated to sensible defaults.

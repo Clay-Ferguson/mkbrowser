@@ -346,6 +346,26 @@ describe('updateConfig — atomic, durable writes (issue 002)', () => {
   });
 });
 
+describe('DEFAULT_AI_MODELS catalog integrity', () => {
+  it('contains no two entries with the same model ID', () => {
+    const { config } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
+    const modelIds = (config.aiModels ?? []).map((m) => m.model);
+    const unique = new Set(modelIds);
+    expect(unique.size).toBe(modelIds.length);
+  });
+
+  it('DEFAULT_AI_MODEL refers to an entry that exists in the catalog', () => {
+    const { config } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
+    const names = new Set((config.aiModels ?? []).map((m) => m.name));
+    expect(names.has(config.aiModel ?? '')).toBe(true);
+  });
+
+  it('default selected model is Claude Haiku 4.5', () => {
+    const { config } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
+    expect(config.aiModel).toBe('Claude Haiku 4.5');
+  });
+});
+
 describe('getConfig() — encapsulation (issue 014)', () => {
   it('returns Readonly<AppConfig>, preventing top-level mutation at the type level', async () => {
     await initConfig();
