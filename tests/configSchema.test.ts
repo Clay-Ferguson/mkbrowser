@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseConfigYaml, defaultSettings } from '../src/configSchema';
+import { parseConfigYaml, defaultSettings, cloneDefaultSettings } from '../src/configSchema';
 
 // ---------------------------------------------------------------------------
 // parseConfigYaml — the untrusted-config equivalent of parseIndexYaml.
@@ -109,6 +109,35 @@ describe('parseConfigYaml — aiModels tolerance', () => {
   it('falls back to an empty list when aiModels is not an array', () => {
     const cfg = parseConfigYaml({ browseFolder: '/x', aiModels: {} });
     expect(cfg?.aiModels).toEqual([]);
+  });
+});
+
+describe('cloneDefaultSettings — immutability', () => {
+  it('returns a new object each call', () => {
+    const a = cloneDefaultSettings();
+    const b = cloneDefaultSettings();
+    expect(a).not.toBe(b);
+  });
+
+  it('returns distinct searchDefinitions and bookmarks arrays each call', () => {
+    const a = cloneDefaultSettings();
+    const b = cloneDefaultSettings();
+    expect(a.searchDefinitions).not.toBe(b.searchDefinitions);
+    expect(a.bookmarks).not.toBe(b.bookmarks);
+  });
+
+  it('mutating cloned arrays does not corrupt defaultSettings', () => {
+    const clone = cloneDefaultSettings();
+    (clone.bookmarks as Array<{ path: string; name: string }>).push({ path: '/x', name: 'X' });
+    (clone.searchDefinitions as Array<unknown>).push({ name: 'test' });
+    expect(defaultSettings.bookmarks).toHaveLength(0);
+    expect(defaultSettings.searchDefinitions).toHaveLength(0);
+  });
+
+  it('two failing array parses produce independent empty arrays', () => {
+    const cfg1 = parseConfigYaml({ browseFolder: '/a', settings: { bookmarks: 'not-an-array' } });
+    const cfg2 = parseConfigYaml({ browseFolder: '/b', settings: { bookmarks: 'not-an-array' } });
+    expect(cfg1?.settings?.bookmarks).not.toBe(cfg2?.settings?.bookmarks);
   });
 });
 

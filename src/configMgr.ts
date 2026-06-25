@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import { app } from 'electron';
 import * as yaml from 'js-yaml';
 import { enforceDefaultAIModels } from './ai/aiModel';
-import { defaultSettings, parseConfigYaml } from './configSchema';
+import { defaultSettings, cloneDefaultSettings, parseConfigYaml } from './configSchema';
 import type { AppConfig, AIModelConfig } from './types/shared';
 import { logger } from './utils/logUtil';
 import { writeFileAtomic } from './utils/atomicWrite';
@@ -178,7 +178,7 @@ export function createDefaultAISettings(config: AppConfig): boolean {
 // In-memory state (single source of truth after init)
 // ---------------------------------------------------------------------------
 
-let _config: AppConfig = { browseFolder: '', settings: { ...defaultSettings } };
+let _config: AppConfig = { browseFolder: '', settings: cloneDefaultSettings() };
 
 // Set when initConfig() encounters a file that exists but cannot be read or
 // parsed. Callers can surface this to the user; updateConfig() remains safe to
@@ -276,7 +276,7 @@ export async function initConfig(): Promise<void> {
 
   if (!fs.existsSync(CONFIG_FILE)) {
     // First-run: no config file on disk yet — write defaults.
-    _config = { browseFolder: '', settings: { ...defaultSettings } };
+    _config = { browseFolder: '', settings: cloneDefaultSettings() };
     if (createDefaultAISettings(_config)) await persistConfig();
     return;
   }
@@ -289,7 +289,7 @@ export async function initConfig(): Promise<void> {
     // degrade to defaults; a non-object top level returns null.
     const parsed = parseConfigYaml(yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')));
     if (parsed) {
-      _config = { ...parsed, settings: { ...defaultSettings, ...parsed.settings } };
+      _config = { ...parsed, settings: { ...cloneDefaultSettings(), ...parsed.settings } };
       if (createDefaultAISettings(_config)) await persistConfig();
       return;
     }
@@ -307,7 +307,7 @@ export async function initConfig(): Promise<void> {
 
   // File exists but is unreadable/corrupt: use in-memory defaults, do NOT persist
   // (leave the on-disk file untouched so the user can recover or inspect it).
-  _config = { browseFolder: '', settings: { ...defaultSettings } };
+  _config = { browseFolder: '', settings: cloneDefaultSettings() };
   createDefaultAISettings(_config);
 }
 

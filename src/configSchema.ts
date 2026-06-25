@@ -44,6 +44,11 @@ export const defaultSettings: AppSettings = {
   calendarItemsFolder: '',
 };
 
+/** Returns a fresh `AppSettings` with independent copies of all mutable arrays. */
+export function cloneDefaultSettings(): AppSettings {
+  return { ...defaultSettings, searchDefinitions: [], bookmarks: [] };
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -63,7 +68,7 @@ function tolerantArray<T extends z.ZodTypeAny>(elem: T) {
         return parsed.success ? [parsed.data as z.infer<T>] : [];
       }),
     )
-    .catch([] as z.infer<T>[]);
+    .catch(() => [] as z.infer<T>[]);
 }
 
 /**
