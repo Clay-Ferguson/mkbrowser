@@ -168,7 +168,7 @@ describe('initConfig — backup on error', () => {
     expect(baks.length).toBe(1);
     const err = getConfigLoadError();
     expect(err?.backupPath).toBeTruthy();
-    expect(fs.existsSync(err!.backupPath!)).toBe(true);
+    expect(fs.existsSync(err?.backupPath ?? '')).toBe(true);
   });
 
   it('backup contains the original bad content', async () => {
@@ -176,7 +176,7 @@ describe('initConfig — backup on error', () => {
     writeConfig(badContent);
     await initConfig();
     const err = getConfigLoadError();
-    expect(fs.readFileSync(err!.backupPath!, 'utf-8')).toBe(badContent);
+    expect(fs.readFileSync(err?.backupPath ?? '', 'utf-8')).toBe(badContent);
   });
 
   it('does not create a .bak file on first-run (no config present)', async () => {
