@@ -2,11 +2,39 @@ import { useState, useMemo } from 'react';
 import { clsx } from 'clsx';
 import { api } from '../../services/api';
 import { logger } from '../../utils/logUtil';
-import { getExifDescriptionTarget } from '../../utils/exifDescriptionTarget';
 import Dialog from './common/Dialog';
 import AlertDialog from './AlertDialog';
 import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../utils/styles';
 import type { ExifData, ExifSection } from '../../types/shared';
+
+/**
+ * Where a human-readable "Description" should be embedded for a given image type.
+ * `group`/`tag` match the grouped EXIF shape used by readExifMetadata/writeExifMetadata.
+ */
+interface ExifDescriptionTarget {
+  group: string;
+  tag: string;
+}
+
+/**
+ * Resolve the EXIF group/tag that should hold a Description for the given file
+ * (accepts a path or a bare extension). Returns null for unsupported types.
+ *
+ * This mirrors the OCR script's EMBED_TAG_MAP (merlin_ocr.py) so embedded text
+ * lands in the same place whether written here or by OCR — keep the two in sync.
+ */
+function getExifDescriptionTarget(filePathOrExt: string): ExifDescriptionTarget | null {
+  const ext = filePathOrExt.toLowerCase().split('.').pop();
+  switch (ext) {
+    case 'png':
+      return { group: 'png', tag: 'Description' };
+    case 'jpg':
+    case 'jpeg':
+      return { group: 'xmp-dc', tag: 'Description' }; // XMP Dublin Core namespace
+    default:
+      return null;
+  }
+}
 
 interface ExifDialogProps {
   data: ExifData;

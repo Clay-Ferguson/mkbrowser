@@ -10,7 +10,7 @@ import { dump } from 'js-yaml';
 import { parseFrontMatter } from '../fileUtil';
 import { isMarkdownFile } from '../fileTypes';
 import { getFileName } from '../pathUtil';
-import type { FileOps } from './fileOps';
+import type { FileOps } from '../../types/shared';
 
 /**
  * For a markdown file being appended (not the lead file), strips its front

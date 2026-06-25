@@ -15,7 +15,7 @@ import {
 import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
 import { pasteFromClipboard } from './clipboard';
 import { getParentPath, joinPath } from './pathUtil';
-import { toErrorMessage } from './errorUtil';
+import { toErrorMessage } from './logUtil';
 
 /**
  * Error-callback signature shared by every file operation in this module.

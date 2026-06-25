@@ -9,7 +9,7 @@
  */
 
 import { getFileName, getParentPath, joinPath } from '../pathUtil';
-import type { FileOps } from './fileOps';
+import type { FileOps } from '../../types/shared';
 
 /**
  * Delimiter between parts: a run of 3 or more line breaks (each optionally

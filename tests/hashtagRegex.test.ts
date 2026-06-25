@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { HASHTAG_REGEX } from '../src/utils/hashtagRegex';
+import { HASHTAG_REGEX } from '../src/utils/regexPatterns';
 
 beforeEach(() => {
   HASHTAG_REGEX.lastIndex = 0;

@@ -1,9 +1,9 @@
 import type { ItemData } from '../types/types';
 import { joinFiles as joinFilesUtil } from './fileSplitJoin/joinUtil';
 import { splitFile as splitFileUtil } from './fileSplitJoin/splitUtil';
-import type { FileOps } from './fileSplitJoin/fileOps';
+import type { FileOps } from '../types/shared';
 import { getParentPath, joinPath, isPathInside } from './pathUtil';
-import { toErrorMessage } from './errorUtil';
+import { toErrorMessage } from './logUtil';
 import { isTextFile, isMarkdownFile } from './fileTypes';
 import { mapWithConcurrency } from './asyncUtil';
 

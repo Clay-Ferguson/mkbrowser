@@ -1,4 +1,4 @@
-import { DATE_REGEX } from './dateRegex';
+import { DATE_REGEX } from './regexPatterns';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

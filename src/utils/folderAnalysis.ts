@@ -7,7 +7,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
-import { HASHTAG_REGEX } from './hashtagRegex';
+import { HASHTAG_REGEX } from './regexPatterns';
 import { buildExcludePredicate } from './pathPattern';
 
 /**
