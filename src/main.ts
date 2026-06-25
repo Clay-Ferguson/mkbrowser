@@ -144,7 +144,7 @@ function setupIpcHandlers(): void {
   });
 
   // Get the in-memory config (no file I/O after startup)
-  ipcMain.handle('get-config', (): AppConfig => {
+  ipcMain.handle('get-config', () => {
     return getConfig();
   });
 

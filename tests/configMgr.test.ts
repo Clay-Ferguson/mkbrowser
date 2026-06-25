@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import * as yaml from 'js-yaml';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, expectTypeOf, beforeEach, afterEach, vi } from 'vitest';
 
 // configMgr calls app.getPath('home') at module load to locate config.yaml, so
 // point Electron at a throwaway home dir created before the module is imported.
@@ -19,7 +19,7 @@ vi.mock('electron', () => ({ app: { getPath: () => tmpHome } }));
 
 import { initConfig, getConfig, getConfigLoadError, updateConfig, withDefaultAISettings } from '../src/configMgr';
 import { defaultSettings, cloneDefaultSettings } from '../src/configSchema';
-import type { AIModelConfig } from '../src/types/shared';
+import type { AIModelConfig, AppConfig } from '../src/types/shared';
 
 const CONFIG_DIR = path.join(tmpHome, '.config', 'mk-browser');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.yaml');
@@ -331,5 +331,18 @@ describe('updateConfig — atomic, durable writes (issue 002)', () => {
     // No temp files linger after a successful flush.
     const stray = fs.readdirSync(CONFIG_DIR).filter((f) => f.endsWith('.tmp'));
     expect(stray).toEqual([]);
+  });
+});
+
+describe('getConfig() — encapsulation (issue 014)', () => {
+  it('returns Readonly<AppConfig>, preventing top-level mutation at the type level', async () => {
+    await initConfig();
+    const cfg = getConfig();
+    // Runtime sanity: function returns a usable config object.
+    expect(typeof cfg.browseFolder).toBe('string');
+    // Type-level: the declared return type is Readonly<AppConfig>, not the mutable AppConfig.
+    // This catches accidental mutations like cfg.browseFolder = '...' at compile time.
+    expectTypeOf(cfg).toEqualTypeOf<Readonly<AppConfig>>();
+    expectTypeOf(cfg).not.toEqualTypeOf<AppConfig>();
   });
 });

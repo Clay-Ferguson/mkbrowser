@@ -308,8 +308,9 @@ export async function initConfig(): Promise<void> {
 
 /**
  * Return the in-memory config object. No file I/O.
+ * Readonly return type prevents accidental mutation — use updateConfig() instead.
  */
-export function getConfig(): AppConfig {
+export function getConfig(): Readonly<AppConfig> {
   return _config;
 }
 
