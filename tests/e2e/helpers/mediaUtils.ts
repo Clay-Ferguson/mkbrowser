@@ -42,10 +42,14 @@ function cleanupTestDataFilesRecursive(dir: string): void {
 
 // Checked-in seed config copied into each test's isolated user-data dir.
 const SEED_CONFIG_FILE = path.join(__dirname, '../fixtures/seed-config.yaml');
+// Checked-in seed hashtag library (tags.yaml lives next to config.yaml in the
+// user-data dir, read from app.getPath('userData')/tags.yaml).
+const SEED_TAGS_FILE = path.join(__dirname, '../fixtures/seed-tags.yaml');
 
 /**
  * Create a fresh, throwaway Electron `userData` directory seeded with the e2e
- * `seed-config.yaml`, and return its absolute path. The `electronApp` fixture
+ * `seed-config.yaml` (as config.yaml) and `seed-tags.yaml` (as tags.yaml), and
+ * return its absolute path. The `electronApp` fixture
  * launches the app with `--user-data-dir=<this>` so the app reads/writes ONLY
  * this temp config — never the user's real `~/.config/mk-browser/config.yaml`
  * (nor the `~/.config/Electron/config.yaml` a raw-Electron launch would default
@@ -56,6 +60,7 @@ const SEED_CONFIG_FILE = path.join(__dirname, '../fixtures/seed-config.yaml');
 export function createSeededUserDataDir(): string {
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkbrowser-e2e-'));
   fs.copyFileSync(SEED_CONFIG_FILE, path.join(userDataDir, 'config.yaml'));
+  fs.copyFileSync(SEED_TAGS_FILE, path.join(userDataDir, 'tags.yaml'));
   return userDataDir;
 }
 

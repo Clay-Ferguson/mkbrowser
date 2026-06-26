@@ -1,0 +1,53 @@
+# Seed hashtag library for Playwright e2e tests.
+#
+# The electronApp fixture copies this file into the throwaway --user-data-dir as
+# tags.yaml before launching the app (the app reads tags from
+# `app.getPath('userData')/tags.yaml`). Without it, the tag picker / hashtag
+# editor would be empty and the custom-tags-demo would have no tags to select.
+#
+# Mirrors the user's real ~/.config/mk-browser/tags.yaml so the demo shows a
+# realistic library; the custom-tags-demo specifically selects priority/p1 and
+# type/note.
+hashtags:
+  category:
+    bill:
+      description: |
+        Recurring payments and one-time expenses to be tracked.
+    history:
+      description: |
+        Past records, completed projects, and archival reference material.
+    home:
+      description: |
+        Household chores, repairs, and grocery related planning.
+    meeting:
+      description: |
+        Preparation notes, agendas, and follow-up actions.
+    purchased:
+      description: |
+        Confirmation numbers, tracking links, and delivery dates.
+    trip:
+      description: |
+        Full travel itineraries, flight confirmations, and hotel booking details.
+  type:
+    note:
+      description: |
+        Quick thoughts and unstructured ideas for later organization.
+    to-buy:
+      description: |
+        Shopping list items and price comparison research notes.
+    todo:
+      description: |
+        Current tasks and active action items for this week.
+  priority:
+    done:
+      description: |
+        Completed items.
+    p1:
+      description: |
+        High priority tasks. Must be completed within 24 hours.
+    p2:
+      description: |
+        Medium priority tasks. Target completion within 7 days.
+    p3:
+      description: |
+        Low priority tasks. No immediate deadline or backlog items.

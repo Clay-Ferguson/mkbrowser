@@ -74,3 +74,15 @@ aiEnabled: false
 agenticMode: false
 agenticAllowedFolders: ''
 tagsPanelVisible: false
+# Personas selected (not created) by the chat-persona and ai-rewrite demos.
+# Stored as aiRewritePrompts (top-level array of {name, prompt}); these populate
+# the AI Personas dropdown in AISettingsView beyond the built-in [Default Agent].
+aiRewritePrompts:
+  - name: Hemingway
+    prompt: >-
+      Rewrite the text in the spare, punchy style of Ernest Hemingway. Use short
+      declarative sentences, plain words, and no ornamentation.
+  - name: Pirate
+    prompt: >-
+      You are a swashbuckling pirate. Speak and write entirely in boisterous
+      pirate talk, full of "Arrr", "matey", and seafaring slang.
