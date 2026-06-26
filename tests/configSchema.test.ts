@@ -122,20 +122,84 @@ describe('parseConfigYaml — settings tolerance', () => {
     expect(cfg?.settings?.searchDefinitions).toEqual([good]);
   });
 
+  it('keeps a searchDefinition with a legacy/obsolete sortBy, coercing it to a default', () => {
+    // Regression: a saved search with an obsolete `sortBy: line-time` (no longer
+    // a valid SearchSortBy) must NOT be dropped — the bad enum field degrades to
+    // its default instead of failing the whole element.
+    const legacy = {
+      name: 'TODOs - Today',
+      searchText: "prop('tags')?.includes('todo')",
+      searchTarget: 'content',
+      searchMode: 'advanced',
+      sortBy: 'line-time',
+      sortDirection: 'desc',
+      searchImageExif: false,
+      mostRecent: false,
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [legacy] } });
+    const defs = cfg?.settings?.searchDefinitions;
+    expect(defs).toHaveLength(1);
+    expect(defs?.[0]).toMatchObject({ name: 'TODOs - Today', sortBy: 'modified-time' });
+  });
+
   it('preserves unknown keys inside settings', () => {
     const cfg = parseConfigYaml({ browseFolder: '/x', settings: { futureSetting: true } });
     expect((cfg?.settings as Record<string, unknown> | undefined)?.futureSetting).toBe(true);
   });
+
+  it('preserves unknown forward-compat keys on a searchDefinition (loose element schema)', () => {
+    const def = {
+      name: 'X',
+      searchText: 'foo',
+      searchTarget: 'content',
+      searchMode: 'literal',
+      sortBy: 'modified-time',
+      sortDirection: 'desc',
+      futureField: 'keep-me',
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
+    expect((cfg?.settings?.searchDefinitions?.[0] as Record<string, unknown>).futureField).toBe('keep-me');
+  });
+
+  it('preserves unknown forward-compat keys on a bookmark (loose element schema)', () => {
+    const cfg = parseConfigYaml({
+      browseFolder: '/x',
+      settings: { bookmarks: [{ path: '/p', name: 'B', futureField: 'keep-me' }] },
+    });
+    expect((cfg?.settings?.bookmarks?.[0] as Record<string, unknown>).futureField).toBe('keep-me');
+  });
 });
 
 describe('parseConfigYaml — aiModels tolerance', () => {
-  it('drops a model with an invalid provider, keeps valid ones', () => {
+  it('keeps a model with an unsupported provider, coercing it to a default', () => {
+    // Regression: an unsupported `provider` must NOT drop the whole model (its
+    // name/model id/pricing) — same data-loss class as the legacy `sortBy` bug.
+    // The bad enum degrades to AI_PROVIDERS[0] instead.
     const valid = { name: 'M', provider: 'OPENAI', model: 'gpt-x', inputPer1M: 1, outputPer1M: 2, vision: true, readonly: false };
     const cfg = parseConfigYaml({
       browseFolder: '/x',
-      aiModels: [valid, { name: 'Bad', provider: 'NOPE', model: 'y' }],
+      aiModels: [valid, { name: 'Bad', provider: 'NOPE', model: 'y', inputPer1M: 1, outputPer1M: 2, vision: false, readonly: false }],
+    });
+    expect(cfg?.aiModels).toHaveLength(2);
+    expect(cfg?.aiModels?.[0]).toEqual(valid);
+    expect(cfg?.aiModels?.[1]).toMatchObject({ name: 'Bad', model: 'y', provider: 'ANTHROPIC' });
+  });
+
+  it('still drops a model that is missing required string fields', () => {
+    const valid = { name: 'M', provider: 'OPENAI', model: 'gpt-x', inputPer1M: 1, outputPer1M: 2, vision: true, readonly: false };
+    const cfg = parseConfigYaml({
+      browseFolder: '/x',
+      aiModels: [valid, { provider: 'OPENAI' /* no name/model */ }, { not: 'a model' }],
     });
     expect(cfg?.aiModels).toEqual([valid]);
+  });
+
+  it('preserves unknown forward-compat keys on a model (loose element schema)', () => {
+    const cfg = parseConfigYaml({
+      browseFolder: '/x',
+      aiModels: [{ name: 'M', provider: 'OPENAI', model: 'm', inputPer1M: 1, outputPer1M: 2, vision: false, readonly: false, futureField: 'keep-me' }],
+    });
+    expect((cfg?.aiModels?.[0] as Record<string, unknown>).futureField).toBe('keep-me');
   });
 
   it('coerces numeric-string prices and defaults bad prices to 0', () => {

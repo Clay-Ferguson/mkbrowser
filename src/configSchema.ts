@@ -91,35 +91,62 @@ const nonNegNumber = z.preprocess(coerceNonNegativeNumber, z.number());
 // Element schemas
 // ---------------------------------------------------------------------------
 
-const SearchDefinitionSchema = z.object({
-  name: z.string(),
-  searchText: z.string(),
-  searchTarget: z.enum(['content', 'filenames']),
-  searchMode: z.enum(['literal', 'wildcard', 'advanced']),
-  sortBy: z.enum(['modified-time', 'created-time', 'file-name']),
-  sortDirection: z.enum(['asc', 'desc']),
-  mostRecent: z.boolean().optional(),
-});
+// Two hardening rules applied to every element schema below, both serving the
+// top-of-file tolerance contract that a corrupt/legacy config should degrade
+// per-field and never wipe a whole record:
+//
+//  1. Required *enum* fields get `.catch(<default>)` so an obsolete or malformed
+//     value (e.g. a legacy `sortBy: line-time`, or an AI `provider` not yet in
+//     AI_PROVIDERS) degrades to a sane default instead of failing the element —
+//     which `tolerantArray` would then drop, silently deleting the record.
+//  2. Every element schema is `.loose()` so unknown / forward-compat keys are
+//     preserved across a read→write round-trip, matching what AppSettingsSchema
+//     and AppConfigSchema already do at their levels. Without this, a newly
+//     added field (the way `searchImageExif` was once added to saved searches)
+//     is silently stripped on the next save until the schema is updated.
 
-const BookmarkSchema = z.object({
-  path: z.string(),
-  name: z.string(),
-});
+// Enum defaults mirror the SearchDialog form defaults.
+const SearchDefinitionSchema = z
+  .object({
+    name: z.string(),
+    searchText: z.string(),
+    searchTarget: z.enum(['content', 'filenames']).catch('content'),
+    searchMode: z.enum(['literal', 'wildcard', 'advanced']).catch('literal'),
+    sortBy: z.enum(['modified-time', 'created-time', 'file-name']).catch('modified-time'),
+    sortDirection: z.enum(['asc', 'desc']).catch('desc'),
+    searchImageExif: z.boolean().optional(),
+    mostRecent: z.boolean().optional(),
+  })
+  .loose();
 
-const AIModelConfigSchema = z.object({
-  name: z.string(),
-  provider: z.enum(AI_PROVIDERS),
-  model: z.string(),
-  inputPer1M: nonNegNumber.catch(0),
-  outputPer1M: nonNegNumber.catch(0),
-  vision: z.boolean().catch(false),
-  readonly: z.boolean().catch(false),
-});
+const BookmarkSchema = z
+  .object({
+    path: z.string(),
+    name: z.string(),
+  })
+  .loose();
 
-const AIRewritePromptDefSchema = z.object({
-  name: z.string(),
-  prompt: z.string(),
-});
+// An unsupported `provider` degrades to AI_PROVIDERS[0] rather than dropping the
+// whole model (name, model id, pricing): a mis-routed model is visible and
+// fixable in the UI, whereas a vanished one is a silent surprise.
+const AIModelConfigSchema = z
+  .object({
+    name: z.string(),
+    provider: z.enum(AI_PROVIDERS).catch(AI_PROVIDERS[0]),
+    model: z.string(),
+    inputPer1M: nonNegNumber.catch(0),
+    outputPer1M: nonNegNumber.catch(0),
+    vision: z.boolean().catch(false),
+    readonly: z.boolean().catch(false),
+  })
+  .loose();
+
+const AIRewritePromptDefSchema = z
+  .object({
+    name: z.string(),
+    prompt: z.string(),
+  })
+  .loose();
 
 // ---------------------------------------------------------------------------
 // Settings + top-level config schemas
