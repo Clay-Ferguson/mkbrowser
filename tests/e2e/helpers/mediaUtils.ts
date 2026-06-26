@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import type { Page, Locator } from '@playwright/test';
 import { screenshotWithHighlight, highlightElement, HIGHLIGHT } from './visual-indicators';
@@ -39,50 +40,33 @@ function cleanupTestDataFilesRecursive(dir: string): void {
   }
 }
 
-// Location of the app's persistent config file (must match CONFIG_FILE in
-// src/configMgr.ts) and the in-memory backup taken by saveSettings().
-// configFileExisted distinguishes "file was absent" from "file was empty".
-const CONFIG_FILE = path.join(
-  process.env.HOME || '',
-  '.config',
-  'mk-browser',
-  'config.yaml'
-);
-let savedConfigYaml: string | null = null;
-let configFileExisted = false;
-let settingsSaved = false;
+// Checked-in seed config copied into each test's isolated user-data dir.
+const SEED_CONFIG_FILE = path.join(__dirname, '../fixtures/seed-config.yaml');
 
 /**
- * Backs up the entire on-disk `config.yaml` so `restoreSettings` can recreate
- * it byte-for-byte after a test. Tests run against the user's real config, so
- * this guarantees no test can permanently alter any persisted setting.
+ * Create a fresh, throwaway Electron `userData` directory seeded with the e2e
+ * `seed-config.yaml`, and return its absolute path. The `electronApp` fixture
+ * launches the app with `--user-data-dir=<this>` so the app reads/writes ONLY
+ * this temp config — never the user's real `~/.config/mk-browser/config.yaml`
+ * (nor the `~/.config/Electron/config.yaml` a raw-Electron launch would default
+ * to). This is why tests can mutate settings freely without a backup/restore.
  *
  * Called automatically by the `electronApp` fixture before the app launches.
  */
-export function saveSettings(): void {
-  configFileExisted = fs.existsSync(CONFIG_FILE);
-  savedConfigYaml = configFileExisted ? fs.readFileSync(CONFIG_FILE, 'utf-8') : null;
-  settingsSaved = true;
+export function createSeededUserDataDir(): string {
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkbrowser-e2e-'));
+  fs.copyFileSync(SEED_CONFIG_FILE, path.join(userDataDir, 'config.yaml'));
+  return userDataDir;
 }
 
 /**
- * Recreates `config.yaml` from the backup taken by `saveSettings`. If the file
- * did not exist at save time, it is removed instead. Does nothing if
- * `saveSettings` was never called.
- *
- * Called automatically by the `electronApp` fixture after the app has closed,
- * so the app cannot overwrite the restored file on shutdown.
+ * Remove a user-data dir created by `createSeededUserDataDir`. Safe to call with
+ * a missing dir. Called by the `electronApp` fixture after the app has closed.
  */
-export function restoreSettings(): void {
-  if (!settingsSaved) {
-    return;
+export function removeUserDataDir(userDataDir: string): void {
+  if (userDataDir && fs.existsSync(userDataDir)) {
+    fs.rmSync(userDataDir, { recursive: true, force: true });
   }
-  if (configFileExisted && savedConfigYaml !== null) {
-    fs.writeFileSync(CONFIG_FILE, savedConfigYaml, 'utf-8');
-  } 
-  savedConfigYaml = null;
-  configFileExisted = false;
-  settingsSaved = false;
 }
 
 /**

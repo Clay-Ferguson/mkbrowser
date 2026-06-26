@@ -1,7 +1,7 @@
 import * as path from 'path';
 import { test as base, _electron as electron } from '@playwright/test';
 import type { ElectronApplication, Page } from '@playwright/test';
-import { saveSettings, restoreSettings } from '../helpers/mediaUtils';
+import { createSeededUserDataDir, removeUserDataDir } from '../helpers/mediaUtils';
 
 /**
  * Custom Playwright fixtures for Electron testing.
@@ -30,12 +30,13 @@ export const test = base.extend<{
     // Use Electron with the Vite dev build (Playwright's recommended approach)
     const mainJsPath = path.join(__dirname, '../../../.vite/build/main.js');
 
-    // Back up the user's real config.yaml; restored in teardown below so no
-    // test can permanently alter persisted settings.
-    saveSettings();
+    // Launch against an isolated, seeded user-data dir (via --user-data-dir) so
+    // the app reads/writes a throwaway config.yaml and never touches the user's
+    // real ~/.config/mk-browser config. The dir is removed in teardown.
+    const userDataDir = createSeededUserDataDir();
 
     const app = await electron.launch({
-      args: [mainJsPath, testDataPath],
+      args: [mainJsPath, `--user-data-dir=${userDataDir}`, testDataPath],
       env: {
         ...process.env,
         ELECTRON_DISABLE_SANDBOX: '1',
@@ -45,14 +46,14 @@ export const test = base.extend<{
       executablePath: undefined,
       timeout: 30000,
     });
-    
+
     // Provide the app to the test
     await use(app);
-    
-    // Cleanup: close the app after the test, then restore config.yaml
-    // (after close, so the app can't overwrite it on shutdown).
+
+    // Cleanup: close the app, then delete the throwaway user-data dir (after
+    // close, so the app can't recreate config.yaml on shutdown).
     await app.close();
-    restoreSettings();
+    removeUserDataDir(userDataDir);
   },
 
   /**

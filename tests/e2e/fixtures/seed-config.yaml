@@ -1,0 +1,76 @@
+# Seed config for Playwright e2e tests.
+#
+# The electronApp fixture copies this file into a throwaway --user-data-dir as
+# config.yaml before launching the app, so e2e runs use this isolated config and
+# can NEVER read or modify the user's real config (~/.config/mk-browser) or the
+# stray ~/.config/Electron config that a raw-Electron launch would otherwise use.
+#
+# Only what the tests need is seeded here:
+#   - searchDefinitions  → so the search menu is populated (advanced-search-demo)
+#   - baseline settings   → a known starting state
+# aiModels are intentionally omitted: configMgr always enforces DEFAULT_AI_MODELS,
+# so they are auto-populated on load. API keys come from *_API_KEY env vars, not
+# this file. browseFolder is set at launch from the folder argv the fixture passes.
+browseFolder: ''
+settings:
+  fontSize: medium
+  sortOrder: alphabetical
+  foldersOnTop: true
+  showToc: true
+  ignoredPaths: ''
+  searchDefinitions:
+    - name: Timeline
+      searchText: ''
+      searchTarget: content
+      searchMode: literal
+      sortBy: file-name
+      sortDirection: desc
+      searchImageExif: false
+      mostRecent: true
+    - name: TODOs
+      searchText: prop('tags')?.includes('todo')
+      searchTarget: content
+      searchMode: advanced
+      sortBy: modified-time
+      sortDirection: desc
+      mostRecent: false
+    - name: TODOs - Today
+      searchText: prop('tags')?.includes('todo') && today(prop('due','ts'))
+      searchTarget: content
+      searchMode: advanced
+      sortBy: modified-time
+      sortDirection: desc
+      searchImageExif: false
+      mostRecent: false
+    - name: TODOs - Future
+      searchText: prop('tags')?.includes('todo') && future(prop('due','ts'))
+      searchTarget: content
+      searchMode: advanced
+      sortBy: modified-time
+      sortDirection: desc
+      searchImageExif: false
+      mostRecent: false
+    - name: TODOs - Past
+      searchText: prop('tags')?.includes('todo') && {{nl}}past(prop('due','ts'))
+      searchTarget: content
+      searchMode: advanced
+      sortBy: modified-time
+      sortDirection: desc
+      mostRecent: false
+    - name: Political Free People Search
+      searchText: $("political") && $("free people")
+      searchTarget: content
+      searchMode: advanced
+      sortBy: modified-time
+      sortDirection: desc
+      searchImageExif: false
+      mostRecent: false
+  contentWidth: medium
+  bookmarks: []
+  ocrToolsFolder: ''
+  calendarItemsFolder: ''
+  showPropsInEditor: false
+aiEnabled: false
+agenticMode: false
+agenticAllowedFolders: ''
+tagsPanelVisible: false
