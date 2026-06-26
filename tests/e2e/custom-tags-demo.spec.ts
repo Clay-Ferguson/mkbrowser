@@ -25,7 +25,7 @@ test.describe('Custom Hashtags Demo', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
-    await resetSettings(mainWindow);
+    await resetSettings(mainWindow, { aiEnabled: true });
 
     let step = 1;
 

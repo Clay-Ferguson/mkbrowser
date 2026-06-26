@@ -76,17 +76,26 @@ export function removeUserDataDir(userDataDir: string): void {
  *   - `tagsPanelVisible`        (the "show tags" toggle / handleToggleTagsVisible)
  *   - `settings.showPropsInEditor` (the "show properties" toggle / handleToggleShowProps)
  *
+ * The seed config disables AI by default so the non-AI demo screenshots stay
+ * AI-free. Tests that exercise AI features opt in with `{ aiEnabled: true }`,
+ * which flips the flag here (otherwise it stays whatever the seed config set).
+ *
  * The Electron app is already running by the time tests call this, so we update
  * the main-process config (which persists to disk and stays in memory) and then
  * reload the renderer so it re-reads both values.
  *
  * @param mainWindow - The Playwright Page object for the app's main window
+ * @param options.aiEnabled - When true, enable AI features for this test
  *
  * @example
  * await resetSettings(mainWindow);
+ * await resetSettings(mainWindow, { aiEnabled: true });
  */
-export async function resetSettings(mainWindow: Page): Promise<void> {
-  await mainWindow.evaluate(async () => {
+export async function resetSettings(
+  mainWindow: Page,
+  { aiEnabled = false }: { aiEnabled?: boolean } = {}
+): Promise<void> {
+  await mainWindow.evaluate(async (aiEnabled) => {
     const api = (window as unknown as { electronAPI: {
       getConfig: () => Promise<{ settings?: Record<string, unknown> }>;
       updateConfig: (updates: Record<string, unknown>) => Promise<void>;
@@ -94,9 +103,10 @@ export async function resetSettings(mainWindow: Page): Promise<void> {
     const config = await api.getConfig();
     await api.updateConfig({
       tagsPanelVisible: false,
+      aiEnabled,
       settings: { ...(config.settings ?? {}), showPropsInEditor: false },
     });
-  });
+  }, aiEnabled);
   await mainWindow.reload();
   await mainWindow.waitForLoadState('domcontentloaded');
 }

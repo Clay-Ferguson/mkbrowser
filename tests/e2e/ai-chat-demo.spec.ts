@@ -17,7 +17,7 @@ test.describe('AI Chat Demo', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
-    await resetSettings(mainWindow);
+    await resetSettings(mainWindow, { aiEnabled: true });
 
     // Clean up any previously created AI chat folders (A, A1, A2, …) in mkbrowser-test
     const testDataDir = path.join(__dirname, '../../mkbrowser-test');

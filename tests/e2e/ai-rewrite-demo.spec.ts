@@ -24,7 +24,7 @@ test.describe('AI Rewrite Persona Demo', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
-    await resetSettings(mainWindow);
+    await resetSettings(mainWindow, { aiEnabled: true });
 
     // Remove any leftover file from a previous run so the Create File step is
     // always working with a clean slate.

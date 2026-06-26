@@ -17,7 +17,7 @@ test.describe('AI Vision Demo', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
-    await resetSettings(mainWindow);
+    await resetSettings(mainWindow, { aiEnabled: true });
 
     // Clean up any previously created AI chat folders (H, H1, H2, …), HUMAN.md files,
     // and A folders inside ai-vision-demo

@@ -21,7 +21,7 @@ test.describe('AI Chat Persona Demo', () => {
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
-    await resetSettings(mainWindow);
+    await resetSettings(mainWindow, { aiEnabled: true });
 
     // Delete any leftover HUMAN.md in the folder we start out in (mkbrowser-test).
     // If it already exists, starting a new chat warns that the file is present,
