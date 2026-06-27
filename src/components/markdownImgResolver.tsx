@@ -198,10 +198,11 @@ export function createCustomImage(entryPath: string) {
     }
     
     return (
-      <img 
-        src={resolvedSrc} 
-        alt={alt} 
+      <img
+        src={resolvedSrc}
+        alt={alt}
         {...props}
+        loading="lazy"
         onError={() => setHasError(true)}
         className="max-w-full h-auto"
       />
