@@ -98,8 +98,9 @@ export const ENTRY_EDITOR_ICON_BTN = 'p-1 text-slate-200 hover:text-slate-100 ho
 export const RENAME_INPUT_CLASS = 'flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm';
 
 // Popup menu structural classes
-// Z_MODAL keeps popup menus above CodeMirror's internal panels/tooltips (see Z_MODAL note).
-export const MENU_CONTAINER    = `fixed ${Z_MODAL} bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px] max-w-xs`;
+// Menus render in the browser's top layer via the Popover API (see PopupMenu.tsx),
+// so they clear CodeMirror's internal panels/tooltips without needing Z_MODAL.
+export const MENU_CONTAINER    = `fixed bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px] max-w-xs`;
 export const MENU_ITEM_BASE    = 'w-full text-left py-2 text-sm transition-colors flex items-center gap-2';
 export const MENU_ITEM_ENABLED = 'text-slate-200 hover:bg-blue-800 cursor-pointer';
 export const MENU_ITEM_DISABLED = 'text-slate-500 cursor-not-allowed';

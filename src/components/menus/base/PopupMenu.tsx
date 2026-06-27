@@ -25,7 +25,8 @@ export interface PopupMenuProps {
 }
 
 /**
- * Reusable popup menu that positions itself below an anchor element or at mouse coordinates.
+ * Reusable popup menu that renders in the browser's top layer (via the Popover
+ * API) and positions itself below an anchor element or at mouse coordinates.
  * Handles click-outside dismiss, Escape key, and viewport edge-clipping.
  */
 export default function PopupMenu({ anchorRef, mousePosition, onClose, disableClose = false, children, style: extraStyle, 'data-testid': dataTestId }: PopupMenuProps) {
@@ -91,10 +92,29 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
     setPosition({ top, left });
   }, [anchorRef, mousePosition]);
 
-  // Position on mount and reposition while open if the viewport resizes or scrolls,
-  // so the menu stays anchored instead of detaching/overflowing. Scroll uses capture
-  // to also catch scrolling inside nested scrollable containers.
+  // Promote the menu into the browser's top layer via the Popover API, then
+  // position it. Top-layer rendering sits above all page content regardless of
+  // z-index/overflow/transform — the same benefit Dialog.tsx gets from
+  // <dialog>.showModal() — so the menu no longer needs Z_MODAL to clear
+  // CodeMirror's internal panels/tooltips. We use popover="manual" (not "auto")
+  // because auto popovers are light-dismissed by showModal() and can't be kept
+  // open while a sub-dialog is up (the disableClose case); dismissal is instead
+  // handled by the click-outside/Escape listeners below, exactly as before.
+  // showPopover() must run before the first updatePosition() because a hidden
+  // popover has no measurable size.
+  //
+  // Reposition while open if the viewport resizes or scrolls, so the menu stays
+  // anchored instead of detaching/overflowing. Scroll uses capture to also catch
+  // scrolling inside nested scrollable containers.
   useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (menu && !menu.matches(':popover-open')) {
+      try {
+        menu.showPopover();
+      } catch {
+        // Already shown (e.g. a StrictMode effect re-invocation); ignore.
+      }
+    }
     updatePosition();
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
@@ -130,11 +150,17 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   return (
     <div
       ref={menuRef}
+      popover="manual"
       data-testid={dataTestId}
       className={MENU_CONTAINER}
       style={{
         top: position?.top,
         left: position?.left,
+        // Neutralise the UA popover defaults (inset: 0; margin: auto) so our
+        // computed top/left position the menu instead of stretching it edge-to-edge.
+        right: 'auto',
+        bottom: 'auto',
+        margin: 0,
         // Keep invisible until position is calculated to avoid flicker
         visibility: position ? 'visible' : 'hidden',
         ...extraStyle,
