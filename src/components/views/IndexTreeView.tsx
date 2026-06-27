@@ -563,6 +563,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
             onClick={handleNarrowTree}
             className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
             title="Narrow tree"
+            data-testid="file-explorer-tree-narrow"
           >
             <ChevronDoubleLeftIcon className="w-5 h-5" />
           </button>
@@ -573,6 +574,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
             onClick={handleWidenTree}
             className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
             title="Widen tree"
+            data-testid="file-explorer-tree-widen"
           >
             <ChevronDoubleRightIcon className="w-5 h-5" />
           </button>

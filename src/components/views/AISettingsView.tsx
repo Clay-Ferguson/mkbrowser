@@ -332,6 +332,7 @@ function AISettingsView() {
                         placeholder={"/home/user/projects\n/home/user/documents"}
                         rows={4}
                         className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
+                        data-testid="ai-agentic-allowed-folders-textarea"
                       />
                     </div>
                   )}
@@ -362,6 +363,7 @@ function AISettingsView() {
                           onClick={handleCreateModel}
                           title="Create new model"
                           className="p-1.5 text-slate-400 hover:text-green-400 hover:bg-slate-700 rounded transition-colors"
+                          data-testid="ai-settings-create-model-button"
                         >
                           <PlusIcon className="w-5 h-5" />
                         </button>
@@ -371,6 +373,7 @@ function AISettingsView() {
                           title="Edit selected model"
                           disabled={aiModels.length === 0}
                           className={BUTTON_CLASS_BLUE}
+                          data-testid="ai-settings-edit-model-button"
                         >
                           <PencilIcon className="w-5 h-5" />
                         </button>
@@ -382,6 +385,7 @@ function AISettingsView() {
                           title="Delete selected model"
                           disabled={aiModels.length === 0 || selectedModelIsReadonly}
                           className={BUTTON_CLASS_RED}
+                          data-testid="ai-settings-delete-model-button"
                         >
                           <TrashIcon className="w-5 h-5" />
                         </button>
@@ -416,6 +420,7 @@ function AISettingsView() {
                                     checked={isSelected}
                                     onChange={() => handleAiModelChange(m.name)}
                                     className="w-5 h-5 cursor-pointer accent-blue-500"
+                                    data-testid={`ai-model-radio-${m.name}`}
                                   />
                                 </td>
                                 <td className="py-2 font-mono text-xs">{m.name}</td>
@@ -454,6 +459,7 @@ function AISettingsView() {
                           disabled={llamaServerBusy || llamaServerStatus === 'running' || llamaServerStatus === 'loading'}
                           onClick={startLlama}
                           className="px-3 py-1 text-xs bg-green-700 hover:bg-green-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
+                          data-testid="llama-server-start-button"
                         >
                           Start
                         </button>
@@ -462,6 +468,7 @@ function AISettingsView() {
                           disabled={llamaServerBusy || llamaServerStatus === 'stopped'}
                           onClick={stopLlama}
                           className="px-3 py-1 text-xs bg-red-700 hover:bg-red-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
+                          data-testid="llama-server-stop-button"
                         >
                           Stop
                         </button>
@@ -470,6 +477,7 @@ function AISettingsView() {
                           disabled={llamaServerBusy}
                           onClick={refreshLlama}
                           className="px-3 py-1 text-xs bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:text-slate-500 text-slate-200 rounded transition-colors"
+                          data-testid="llama-server-refresh-button"
                         >
                           Refresh
                         </button>
@@ -484,6 +492,7 @@ function AISettingsView() {
                           onChange={(e) => handleLlamacppBaseUrlChange(e.target.value)}
                           onBlur={handleLlamacppBaseUrlBlur}
                           className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
+                          data-testid="llamacpp-base-url-input"
                         />
                       </div>
 
@@ -497,6 +506,7 @@ function AISettingsView() {
                           onBlur={() => saveAiConfigField({ llamacppFolder })}
                           placeholder="/path/to/llamacpp"
                           className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
+                          data-testid="llamacpp-folder-input"
                         />
                       </div>
                     </div>
@@ -554,6 +564,7 @@ function AISettingsView() {
                         void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: name });
                       }}
                       className={BUTTON_CLASS_DLG_GREEN}
+                      data-testid="ai-persona-save-button"
                     >
                       Save
                     </button>
@@ -562,6 +573,7 @@ function AISettingsView() {
                       disabled={!selectedPromptName.trim() || selectedPromptName === DEFAULT_PERSONA_NAME || !aiRewritePrompts.some((p) => p.name === selectedPromptName)}
                       onClick={() => setShowPromptDeleteConfirm(true)}
                       className={BUTTON_CLASS_DLG_RED}
+                      data-testid="ai-persona-delete-button"
                     >
                       Delete
                     </button>
@@ -574,6 +586,7 @@ function AISettingsView() {
                     rows={5}
                     placeholder={DEFAULT_AI_REWRITE_PERSONA}
                     className="w-full bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-base font-mono disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-slate-500"
+                    data-testid="ai-persona-prompt-textarea"
                   />
                 </div>
               </section>

@@ -55,6 +55,7 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
             onChange={(e) => setName(e.target.value)}
             className={DLG_INPUT_CLASS}
             placeholder="Bookmark name..."
+            data-testid="bookmark-name-input"
           />
         </div>
 
@@ -63,6 +64,7 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
             type="button"
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
+            data-testid="bookmark-dialog-cancel-button"
           >
             Cancel
           </button>
@@ -70,6 +72,7 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
             type="submit"
             disabled={!name.trim()}
             className={BUTTON_CLASS_DLG_BLUE}
+            data-testid="bookmark-dialog-save-button"
           >
             Save
           </button>

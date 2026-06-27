@@ -197,6 +197,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                   title="Add Category"
                   onClick={addCategory}
                   className="text-slate-400 hover:text-slate-100 text-lg leading-none cursor-pointer transition-colors"
+                  data-testid="tags-editor-add-category-button"
                 >
                   ＋
                 </button>
@@ -219,6 +220,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                         value={renameValue}
                         onChange={(e) => setRenameValue(e.target.value)}
                         onBlur={commitRename}
+                        data-testid="tags-editor-category-rename-input"
                         onKeyDown={(e) => {
                           // preventDefault stops Escape from also dismissing the
                           // surrounding <dialog>; this Esc only cancels the rename.
@@ -242,6 +244,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                       title="Rename"
                       onClick={() => startRename(cat)}
                       className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-200 text-xl px-2 cursor-pointer flex-shrink-0"
+                      data-testid={`tags-editor-category-edit-button-${cat.id}`}
                     >
                       ✎
                     </button>
@@ -251,6 +254,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                       onClick={() => { if (cat.tags.length === 0) deleteCategory(cat.id); }}
                       disabled={cat.tags.length > 0}
                       className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 text-xl px-2 cursor-pointer flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-slate-400"
+                      data-testid={`tags-editor-category-delete-button-${cat.id}`}
                     >
                       ✕
                     </button>
@@ -274,6 +278,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                       title="Add Tag"
                       onClick={() => addTag(selectedCat.id)}
                       className="text-slate-400 hover:text-slate-100 text-lg leading-none cursor-pointer transition-colors"
+                      data-testid="tags-editor-add-tag-button"
                     >
                       ＋
                     </button>
@@ -290,6 +295,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                               onChange={(e) => updateTag(selectedCat.id, tag.id, 'name', e.target.value)}
                               placeholder="tagname"
                               className={`${inputCls} flex-1 min-w-0`}
+                              data-testid={`tags-editor-tag-name-input-${tag.id}`}
                             />
                           </div>
                           <input
@@ -298,6 +304,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                             onChange={(e) => updateTag(selectedCat.id, tag.id, 'description', e.target.value.replace(/\n/g, ' '))}
                             placeholder="Description…"
                             className={`${inputCls} w-full ml-5`}
+                            data-testid={`tags-editor-tag-description-input-${tag.id}`}
                           />
                         </div>
                         <button
@@ -305,6 +312,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                           title="Delete tag"
                           onClick={() => deleteTag(selectedCat.id, tag.id)}
                           className="mt-1 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 text-xl px-2 cursor-pointer flex-shrink-0 transition-opacity"
+                          data-testid={`tags-editor-tag-delete-button-${tag.id}`}
                         >
                           ✕
                         </button>
@@ -328,6 +336,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
               type="button"
               onClick={onClose}
               className={BUTTON_CLASS_DLG_CANCEL}
+              data-testid="tags-editor-dialog-cancel-button"
             >
               Cancel
             </button>
@@ -336,6 +345,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
               onClick={handleSave}
               disabled={saving || loading}
               className={BUTTON_CLASS_DLG_BLUE}
+              data-testid="tags-editor-dialog-save-button"
             >
               {saving ? 'Saving…' : 'Save'}
             </button>

@@ -83,6 +83,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
           checked={checked}
           onChange={() => handleToggle(category, def)}
           className={CHECKBOX_CLASS}
+          data-testid={`tags-picker-checkbox-${def.tag.replace('#', '')}`}
         />
         <span className="whitespace-nowrap">{def.tag}</span>
       </label>

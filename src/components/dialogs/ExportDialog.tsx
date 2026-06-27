@@ -93,6 +93,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
               onClick={handleSelectFolder}
               className="px-3 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors cursor-pointer"
               title="Browse for folder"
+              data-testid="export-browse-folder-button"
             >
               <FolderIcon className="w-5 h-5" />
             </button>

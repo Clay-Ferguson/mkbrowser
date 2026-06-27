@@ -92,6 +92,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               placeholder="e.g. Claude Haiku"
               disabled={isReadonly}
               className={DLG_INPUT_CLASS_ALT}
+              data-testid="ai-model-name-input"
             />
           </div>
 
@@ -103,6 +104,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               onChange={(e) => { if (isAIProvider(e.target.value)) setProvider(e.target.value); }}
               disabled={isReadonly}
               className={`${DLG_INPUT_CLASS_ALT} cursor-pointer`}
+              data-testid="ai-model-provider-select"
             >
               {AI_PROVIDERS.map((p) => (
                 <option key={p} value={p}>{p}</option>
@@ -120,6 +122,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               placeholder="e.g. claude-3-haiku-20240307"
               disabled={isReadonly}
               className={`${DLG_INPUT_CLASS_ALT} font-mono`}
+              data-testid="ai-model-model-input"
             />
           </div>
 
@@ -134,6 +137,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               onChange={(e) => setInputPer1MText(e.target.value)}
               disabled={isReadonly}
               className={`${DLG_INPUT_CLASS_ALT} font-mono`}
+              data-testid="ai-model-input-price-input"
             />
           </div>
 
@@ -147,6 +151,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
               onChange={(e) => setOutputPer1MText(e.target.value)}
               disabled={isReadonly}
               className={`${DLG_INPUT_CLASS_ALT} font-mono`}
+              data-testid="ai-model-output-price-input"
             />
           </div>
         </div>
@@ -157,6 +162,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
             type="button"
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
+            data-testid="ai-model-dialog-cancel-button"
           >
             Cancel
           </button>
@@ -164,6 +170,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
             type="submit"
             disabled={!isValid || isReadonly}
             className={BUTTON_CLASS_DLG_BLUE}
+            data-testid="ai-model-dialog-save-button"
           >
             Save
           </button>

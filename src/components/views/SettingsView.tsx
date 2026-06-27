@@ -237,6 +237,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
             type="button"
             onClick={() => setShowTagsEditor(true)}
             className="px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 rounded-lg transition-colors cursor-pointer"
+            data-testid="settings-edit-hashtags-button"
           >
             Edit Hashtags
           </button>

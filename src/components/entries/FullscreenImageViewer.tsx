@@ -137,6 +137,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
             onChange={(e) => setItemSelected(fullscreenImagePath, e.target.checked)}
             className="h-5 w-5 accent-blue-500 flex-shrink-0"
             aria-label={`Select ${currentImage.name}`}
+            data-testid="fullscreen-image-select-checkbox"
           />
           <span className="text-white/70 text-sm">{currentImage.name}</span>
         </label>
@@ -146,6 +147,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
           disabled={exifLoading}
           className="fixed top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors z-10"
           title="View EXIF metadata"
+          data-testid="fullscreen-image-exif-button"
         >
           <InformationCircleIcon className="w-6 h-6" />
         </button>

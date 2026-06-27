@@ -148,6 +148,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
               type="button"
               onClick={handleStop}
               className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded cursor-pointer"
+              data-testid="streaming-dialog-stop-button"
             >
               Stop
             </button>
@@ -156,6 +157,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
               type="button"
               onClick={onClose}
               className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm rounded cursor-pointer"
+              data-testid="streaming-dialog-close-button"
             >
               Close
             </button>

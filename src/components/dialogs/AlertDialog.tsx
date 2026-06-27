@@ -42,6 +42,7 @@ function AlertDialog({
             type="button"
             onClick={onClose}
             className={BUTTON_CLASS_DLG_BLUE}
+            data-testid="alert-dialog-ok-button"
           >
             {buttonLabel}
           </button>

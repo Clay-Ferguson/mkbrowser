@@ -40,12 +40,14 @@ function RenameDialog({ currentName, isDirectory, onRename, onCancel }: RenameDi
           value={name}
           onChange={(e) => setName(e.target.value)}
           className={DLG_INPUT_CLASS}
+          data-testid="rename-dialog-input"
         />
         <div className="flex justify-end gap-3 mt-6">
           <button
             type="button"
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
+            data-testid="rename-dialog-cancel-button"
           >
             Cancel
           </button>
@@ -53,6 +55,7 @@ function RenameDialog({ currentName, isDirectory, onRename, onCancel }: RenameDi
             type="submit"
             disabled={isNoOp}
             className={BUTTON_CLASS_DLG_BLUE}
+            data-testid="rename-dialog-submit-button"
           >
             Rename
           </button>

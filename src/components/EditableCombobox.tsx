@@ -164,6 +164,7 @@ function EditableCombobox({
           className="px-2 bg-slate-900 border border-slate-600 rounded-r hover:bg-slate-800 focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           tabIndex={-1}
           aria-label="Toggle dropdown"
+          data-testid="combobox-toggle-button"
         >
           <svg
             className={clsx('w-4 h-4 text-slate-400 transition-transform', isOpen && 'rotate-180')}

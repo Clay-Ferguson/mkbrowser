@@ -242,6 +242,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
                 type="button"
                 onClick={handleEdit}
                 className={BUTTON_CLASS_DLG_GREEN}
+                data-testid="exif-dialog-edit-button"
               >
                 Edit
               </button>
@@ -249,6 +250,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
                 type="button"
                 onClick={onClose}
                 className={BUTTON_CLASS_DLG_BLUE}
+                data-testid="exif-dialog-close-button"
               >
                 Close
               </button>
@@ -261,6 +263,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
                 onClick={handleAddDescription}
                 className="px-3 py-2 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors mr-auto"
                 title="Add description field for storing text"
+                data-testid="exif-add-description-button"
               >
                 Add Description
               </button>
@@ -269,6 +272,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
                 onClick={handleSave}
                 className={BUTTON_CLASS_DLG_BLUE}
                 disabled={saving}
+                data-testid="exif-dialog-save-button"
               >
                 {saving ? 'Saving...' : 'Save'}
               </button>
@@ -277,6 +281,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
                 onClick={handleCancel}
                 className="px-4 py-2 text-sm text-white bg-slate-600 hover:bg-slate-500 rounded transition-colors"
                 disabled={saving}
+                data-testid="exif-dialog-edit-cancel-button"
               >
                 Cancel
               </button>

@@ -34,6 +34,7 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
             onChange={(e) => setSearchText(e.target.value)}
             className={DLG_INPUT_CLASS}
             placeholder="Text to find..."
+            data-testid="replace-search-input"
           />
         </div>
 
@@ -47,6 +48,7 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
             onChange={(e) => setReplaceText(e.target.value)}
             className={DLG_INPUT_CLASS}
             placeholder="Replacement text..."
+            data-testid="replace-text-input"
           />
         </div>
 
@@ -59,6 +61,7 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
             type="button"
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
+            data-testid="replace-dialog-cancel-button"
           >
             Cancel
           </button>
@@ -66,6 +69,7 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
             type="submit"
             disabled={!searchText.trim()}
             className={BUTTON_CLASS_DLG_BLUE}
+            data-testid="replace-dialog-submit-button"
           >
             Replace
           </button>

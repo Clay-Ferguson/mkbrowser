@@ -78,6 +78,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
         onClick={() => !atRoot && onNavigate(normalizedRoot)}
         disabled={atRoot}
         {...dropProps(normalizedRoot)}
+        data-testid="breadcrumb-home-button"
         className={clsx(
           'p-2 text-slate-400 hover:bg-slate-700 border rounded cursor-pointer flex-shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-transparent',
           dragOverPath === normalizedRoot
@@ -116,6 +117,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
                 type="button"
                 onClick={() => onNavigate(segmentPath)}
                 {...dropProps(segmentPath)}
+                data-testid={`breadcrumb-segment-${part}`}
                 className={clsx(
                   'px-2 py-1 text-slate-200 hover:bg-slate-700 border rounded cursor-pointer no-underline break-all transition-colors',
                   isDragOver
@@ -140,6 +142,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
           className="p-2 text-slate-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer flex-shrink-0 transition-colors"
           aria-label="Reveal in folder tree"
           title="Reveal in folder tree"
+          data-testid="breadcrumb-reveal-tree-button"
         >
           <ViewfinderCircleIcon className="w-5 h-5" />
         </button>

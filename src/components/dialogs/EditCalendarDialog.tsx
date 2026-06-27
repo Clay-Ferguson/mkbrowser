@@ -113,6 +113,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                 onChange={(e) => setStartTime(e.target.value)}
                 placeholder="e.g. 2:00 PM"
                 className={clsx(DLG_INPUT_CLASS_ALT_COMPACT, 'w-28')}
+                data-testid="calendar-start-time-input"
               />
             </div>
             <div>
@@ -123,6 +124,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="hrs"
                 className={clsx(DLG_INPUT_CLASS_ALT_COMPACT, 'w-16')}
+                data-testid="calendar-duration-input"
               />
             </div>
             <div>
@@ -167,6 +169,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                         key={day}
                         type="button"
                         onClick={() => toggleDay(day)}
+                        data-testid={`calendar-day-button-${day.toLowerCase()}`}
                         className={clsx(
                           'w-8 h-7 text-xs rounded transition-colors',
                           byday.includes(day)
@@ -186,6 +189,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                   value={endType}
                   onChange={(e) => setEndType(asEndType(e.target.value))}
                   className={DLG_INPUT_CLASS_ALT_COMPACT}
+                  data-testid="calendar-end-type-select"
                 >
                   {END_OPTIONS.map(o => (
                     <option key={o} value={o}>{END_LABELS[o]}</option>
@@ -201,6 +205,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                     onChange={(e) => setUntilStr(e.target.value)}
                     placeholder="MM/DD/YYYY"
                     className={clsx(DLG_INPUT_CLASS_ALT_COMPACT, 'w-28')}
+                    data-testid="calendar-until-date-input"
                   />
                 </div>
               )}
@@ -214,6 +219,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                     onChange={(e) => setCount(e.target.value.replace(/\D/g, ''))}
                     placeholder="N"
                     className={clsx(DLG_INPUT_CLASS_ALT_COMPACT, 'w-12')}
+                    data-testid="calendar-count-input"
                   />
                 </div>
               )}
@@ -226,6 +232,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
             type="button"
             onClick={onCancel}
             className={BUTTON_CLASS_DLG_CANCEL}
+            data-testid="calendar-dialog-cancel-button"
           >
             Cancel
           </button>

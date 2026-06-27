@@ -100,6 +100,7 @@ export default function BookmarksPopupMenu({
                   type="button"
                   className={MENU_ROW_LABEL}
                   onClick={() => void handleClick(fullPath)}
+                  data-testid={`bookmark-item-${name}`}
                 >
                   <Icon className={`${MENU_ROW_ICON} ${iconColorClass}`} />
                   <span className="truncate">{name}</span>
@@ -110,6 +111,7 @@ export default function BookmarksPopupMenu({
                     className={`${MENU_ICON_BTN} hover:text-slate-100`}
                     title="Edit bookmark"
                     onClick={(e) => { e.stopPropagation(); setEditingBookmark(bookmark); }}
+                    data-testid={`bookmark-edit-button-${name}`}
                   >
                     <PencilIcon className={MENU_ACTION_ICON} />
                   </button>
@@ -118,6 +120,7 @@ export default function BookmarksPopupMenu({
                     className={`${MENU_ICON_BTN} hover:text-red-400`}
                     title="Delete bookmark"
                     onClick={(e) => { e.stopPropagation(); void handleDelete(fullPath); }}
+                    data-testid={`bookmark-delete-button-${name}`}
                   >
                     <TrashIcon className={MENU_ACTION_ICON} />
                   </button>

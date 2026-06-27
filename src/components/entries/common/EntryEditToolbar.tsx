@@ -63,6 +63,7 @@ export function EntryEditToolbar({
         onClick={onToggleExpandedEditor}
         title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
         className={ENTRY_EDITOR_ICON_BTN}
+        data-testid="entry-editor-expand-toggle-button"
       >
         {expandedEditor
           ? <ArrowsPointingInIcon className="w-5 h-5" />
@@ -75,6 +76,7 @@ export function EntryEditToolbar({
           disabled={rewriteDisabled}
           title={selectedPromptName ? `Rewrite as ${selectedPromptName}` : (hasSelection ? 'Rewrite selected text' : 'Rewrite')}
           className={BUTTON_CLASS_SM_PURPLE}
+          data-testid="entry-editor-ai-rewrite-button"
         >
           {isRewriting ? 'Rewriting with AI...' : (hasSelection ? 'AI Rewrite Selection' : 'AI Rewrite')}
         </button>
