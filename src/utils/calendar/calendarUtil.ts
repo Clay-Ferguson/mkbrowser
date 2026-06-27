@@ -2,27 +2,7 @@
  * Utilities for turning a markdown file into a calendar item via front matter injection.
  */
 
-/**
- * Single source of truth for front-matter fence detection, shared by both readers and
- * writers (and by calendarLoader). Opening `---` (with optional trailing whitespace) on its
- * own line; lazy body; closing `---` (optional trailing whitespace) anchored to its own line
- * or end-of-file. CRLF-tolerant so reads and writes never disagree on line endings.
- */
-const FRONT_MATTER_RE = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
-
-export interface FrontMatterSplit {
-  /** Inner YAML text between the fences — no fences, no surrounding newlines, no stray `\r`. */
-  yaml: string;
-  /** Document body after the closing fence and its trailing newline. */
-  body: string;
-}
-
-/** Split markdown into its front-matter YAML and body, or null if there is no closed fence. */
-export function splitFrontMatter(content: string): FrontMatterSplit | null {
-  const m = FRONT_MATTER_RE.exec(content);
-  if (!m) return null;
-  return { yaml: m[1], body: content.slice(m[0].length) };
-}
+import { splitFrontMatter } from '../frontMatterUtil';
 
 function getCurrentDateStr(): string {
   const now = new Date();
@@ -51,7 +31,7 @@ function getUntilDateStr(): string {
  */
 export function hasDueProperty(content: string): boolean {
   const parsed = splitFrontMatter(content);
-  return !!parsed && /^due\s*:/m.test(parsed.yaml);
+  return !!parsed && /^due\s*:/m.test(parsed.yamlStr);
 }
 
 function buildCalendarBlock(repeating: boolean): string {
@@ -76,7 +56,7 @@ function getScalarProperty(content: string, key: string, stripQuotes = false): s
   const parsed = splitFrontMatter(content);
   if (!parsed) return null;
   const pattern = stripQuotes ? `^${key}\\s*:\\s*"?(.+?)"?\\s*$` : `^${key}\\s*:\\s*(.+)$`;
-  const match = parsed.yaml.match(new RegExp(pattern, 'm'));
+  const match = parsed.yamlStr.match(new RegExp(pattern, 'm'));
   return match ? match[1].trim() : null;
 }
 
@@ -103,9 +83,9 @@ function setFrontMatterProperty(content: string, key: string, value: string): st
   const parsed = splitFrontMatter(content);
   if (parsed) {
     const re = new RegExp(`^${key}\\s*:.*$`, 'm');
-    const yaml = re.test(parsed.yaml)
-      ? parsed.yaml.replace(re, `${key}: ${value}`)
-      : `${key}: ${value}\n${parsed.yaml}`;
+    const yaml = re.test(parsed.yamlStr)
+      ? parsed.yamlStr.replace(re, `${key}: ${value}`)
+      : `${key}: ${value}\n${parsed.yamlStr}`;
     return `---\n${yaml}\n---\n${parsed.body}`;
   }
   return `---\n${key}: ${value}\n---\n${content}`;
@@ -165,7 +145,7 @@ export interface RRuleProps {
 export function getRRuleProperty(content: string): RRuleProps | null {
   const parsed = splitFrontMatter(content);
   if (!parsed) return null;
-  const match = parsed.yaml.match(/^rrule:\n((?:[ \t]+.+\n?)*)/m);
+  const match = parsed.yamlStr.match(/^rrule:\n((?:[ \t]+.+\n?)*)/m);
   if (!match) return null;
   const block = match[1];
   const extract = (key: string) => {
@@ -199,7 +179,7 @@ export function setRRuleProperty(content: string, rrule: RRuleProps | null): str
   }
   // Strip any existing rrule block (the `rrule:` line plus its indented children), then
   // drop trailing blank lines it left behind.
-  const yaml = parsed.yaml.replace(/^rrule:\n(?:[ \t]+.+\n?)*/m, '').replace(/\n+$/, '');
+  const yaml = parsed.yamlStr.replace(/^rrule:\n(?:[ \t]+.+\n?)*/m, '').replace(/\n+$/, '');
   if (!rrule?.freq) {
     return `---\n${yaml}\n---\n${parsed.body}`;
   }
@@ -219,7 +199,7 @@ export function injectCalendarFrontMatter(content: string, repeating: boolean): 
   const parsed = splitFrontMatter(content);
 
   if (parsed) {
-    return `---\n${calendarBlock}\n${parsed.yaml}\n---\n${parsed.body}`;
+    return `---\n${calendarBlock}\n${parsed.yamlStr}\n---\n${parsed.body}`;
   }
 
   return `---\n${calendarBlock}\n---\n${content}`;

@@ -1,7 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import type { ItemData } from '../types/types';
 import { createItemData } from '../types/types';
-import { splitFrontMatter, getTagsFromYaml, getPropsFromYaml } from '../utils/tagUtil';
+import { getTagsFromYaml } from '../utils/tagUtil';
+import { splitFrontMatter, getPropsFromYaml } from '../utils/frontMatterUtil';
 import { getParentPath } from '../utils/pathUtil';
 import { getState, setState, subscribe, useStoreValue } from './core';
 

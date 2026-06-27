@@ -19,7 +19,8 @@ import {
   recordFrontMatterIdInIndex,
 } from '../src/utils/indexUtil';
 import type { IndexEntry, IndexOptions } from '../src/utils/indexUtil';
-import { parseFrontMatter, readDirectory } from '../src/utils/fileUtil';
+import { readDirectory } from '../src/utils/fileUtil';
+import { parseFrontMatter } from '../src/utils/frontMatterUtil';
 import { INDEX_FILENAME } from '../src/utils/specialFiles';
 import { logger } from '../src/utils/logUtil';
 

@@ -50,18 +50,9 @@ import { extractHeadingTree } from '../../utils/tocUtil';
 import { scrollElementIntoView } from '../../utils/entryDom';
 import { getActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, joinPath, splitPathSegments } from '../../utils/pathUtil';
+import { parseFrontMatter } from '../../utils/frontMatterUtil';
 
 const INDENT_SIZE = 20;
-
-function extractFrontMatterId(rawContent: string): string | null {
-  if (!rawContent.startsWith('---')) return null;
-  const afterOpen = rawContent.slice(3);
-  const closingIdx = afterOpen.search(/\n(---|\.\.\.)\s*(\n|$)/);
-  if (closingIdx === -1) return null;
-  const yamlBlock = afterOpen.slice(0, closingIdx);
-  const match = yamlBlock.match(/^id:\s*(.+)$/m);
-  return match ? match[1].trim() : null;
-}
 
 function computeRelativePath(fromDir: string, toFile: string): string {
   const fromParts = splitPathSegments(fromDir);
@@ -502,7 +493,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           if (node.path.endsWith('.md')) {
             api.readFile(node.path)
               .then((raw) => {
-                const id = extractFrontMatterId(raw);
+                const idVal = parseFrontMatter(raw).yaml?.id;
+                const id = idVal !== null && idVal !== undefined ? String(idVal) : '';
                 const suffix = id ? `<!-- id:${id} -->` : '';
                 activeEditor.handle.insertAtCursor(`[${label}](${relPath})${suffix}`);
               })

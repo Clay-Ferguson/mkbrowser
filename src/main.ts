@@ -5,7 +5,8 @@ import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './configMgr';
 import type { AppConfig, OcrTarget } from './types/shared';
 
-import { readDirectory, parseFrontMatter } from './utils/fileUtil';
+import { readDirectory } from './utils/fileUtil';
+import { parseFrontMatter } from './utils/frontMatterUtil';
 import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml } from './utils/indexUtil';
 import { frontMatterFileSaved } from './utils/frontMatterHandler';
 import { processTOC } from './utils/tocUtil';

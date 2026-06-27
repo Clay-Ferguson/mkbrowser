@@ -3,7 +3,7 @@ import path from 'node:path';
 import { load, dump } from 'js-yaml';
 import { z } from 'zod';
 import { customAlphabet } from 'nanoid';
-import { parseFrontMatter } from './fileUtil';
+import { parseFrontMatter } from './frontMatterUtil';
 import { compareNames } from './fileTypes';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from './specialFiles';
 import { writeFileAtomic } from './atomicWrite';

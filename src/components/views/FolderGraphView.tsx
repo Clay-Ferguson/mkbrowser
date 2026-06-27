@@ -22,7 +22,7 @@ import {
   navigateToBrowserPath,
   setHighlightItem,
 } from '../../store';
-import { parseFrontMatter } from '../../utils/fileUtil';
+import { parseFrontMatter } from '../../utils/frontMatterUtil';
 import { getParentPath } from '../../utils/pathUtil';
 
 interface SimNode extends SimulationNodeDatum {

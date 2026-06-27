@@ -7,7 +7,7 @@
  */
 
 import { dump } from 'js-yaml';
-import { parseFrontMatter } from '../fileUtil';
+import { parseFrontMatter } from '../frontMatterUtil';
 import { isMarkdownFile } from '../fileTypes';
 import { getFileName } from '../pathUtil';
 import type { FileOps } from '../../types/shared';

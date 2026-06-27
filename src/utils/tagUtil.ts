@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { load, dump } from 'js-yaml';
 import { api } from '../services/api';
+import { splitFrontMatter, assembleFrontMatter } from './frontMatterUtil';
 
 /** A single hashtag definition. `tag` always includes the `#` prefix (e.g. `"#cooking"`). */
 export interface HashtagDefinition {
@@ -45,11 +46,6 @@ export function tagName(tag: string): string {
   return tag.startsWith('#') ? tag.slice(1) : tag;
 }
 
-export function splitFrontMatter(text: string): { yamlStr: string; body: string } | null {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*\r?\n?/.exec(text);
-  return match ? { yamlStr: match[1], body: text.slice(match[0].length) } : null;
-}
-
 export function getTagsFromYaml(yamlStr: string): string[] {
   try {
     const parsed = load(yamlStr) as Record<string, unknown> | null;
@@ -57,18 +53,6 @@ export function getTagsFromYaml(yamlStr: string): string[] {
     return parsed.tags.filter((t): t is string => typeof t === 'string');
   } catch {
     return [];
-  }
-}
-
-/** Returns all front matter properties except 'tags', preserving their parsed types. */
-export function getPropsFromYaml(yamlStr: string): Record<string, unknown> {
-  try {
-    const parsed = load(yamlStr) as Record<string, unknown> | null;
-    if (!parsed) return {};
-    const { tags: _tags, ...rest } = parsed;
-    return rest;
-  } catch {
-    return {};
   }
 }
 
@@ -85,11 +69,6 @@ export function setTagsInYaml(yamlStr: string, tags: string[]): string {
     delete parsed.tags;
   }
   return Object.keys(parsed).length > 0 ? dump(parsed) : '';
-}
-
-export function assembleFrontMatter(yamlContent: string, body: string): string {
-  const trimmed = yamlContent.trim();
-  return trimmed ? `---\n${trimmed}\n---\n${body}` : body;
 }
 
 export function removeTagFromText(text: string, tag: string): string {

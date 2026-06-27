@@ -11,7 +11,7 @@ import * as ExifReader from 'exifreader';
 import { load } from 'js-yaml';
 import { parseDateString, past, future, today } from './timeUtil';
 import { createContentSearcher } from './searchUtil';
-import { splitFrontMatter } from './tagUtil';
+import { splitFrontMatter } from './frontMatterUtil';
 import { escapeRegexExceptWildcard, buildExcludePredicate } from './pathPattern';
 import { mapWithConcurrency } from './asyncUtil';
 import { logger } from './logUtil';

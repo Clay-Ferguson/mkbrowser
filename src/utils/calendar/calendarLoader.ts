@@ -6,7 +6,8 @@ import { RRule, Weekday } from 'rrule';
 import { logger } from '../logUtil';
 import { buildExcludePredicate } from '../pathPattern';
 import { mapWithConcurrency } from '../asyncUtil';
-import { parseDueStr, splitFrontMatter } from './calendarUtil';
+import { parseDueStr } from './calendarUtil';
+import { splitFrontMatter } from '../frontMatterUtil';
 
 export interface CalendarEventResult {
   id: string;
@@ -188,7 +189,7 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
     const fm = splitFrontMatter(content);
     if (!fm) return [];
 
-    const parsed = load(fm.yaml) as Record<string, unknown> | null;
+    const parsed = load(fm.yamlStr) as Record<string, unknown> | null;
     if (!parsed || typeof parsed.due !== 'string') return [];
 
     const dueDate = parseDueStr(parsed.due);

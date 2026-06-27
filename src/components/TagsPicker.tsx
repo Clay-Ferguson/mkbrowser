@@ -4,9 +4,10 @@ import { useItem, getItemEditContent, setItemEditContent } from '../store';
 import { CHECKBOX_CLASS, MONO_FONT_STACK } from '../utils/styles';
 import {
   fetchTags, type TagsLoadState, type TagCategory, type HashtagDefinition,
-  tagName, splitFrontMatter, getTagsFromYaml,
+  tagName, getTagsFromYaml,
   removeTagFromText, insertTagIntoText,
 } from '../utils/tagUtil';
+import { splitFrontMatter } from '../utils/frontMatterUtil';
 
 interface TagsPickerProps {
   /** Full path of the file being edited */
