@@ -1,6 +1,6 @@
 import { useState, type RefObject } from 'react';
 import { api } from '../../../services/api';
-import { logger } from '../../../utils/logUtil';
+import { logger } from '../../../shared/logUtil';
 import { setItemReviewing } from '../../../store';
 import type { CodeMirrorEditorHandle } from '../../editor/CodeMirrorEditor';
 import type { DeferrableAction, StreamingRunner } from './useAiStreamingDialog';

@@ -17,12 +17,12 @@ import {
   validateAttachFolderLocation,
   ensureFrontMatterIdIfIndexed,
   recordFrontMatterIdInIndex,
-} from '../src/utils/indexUtil';
-import type { IndexEntry, IndexOptions } from '../src/utils/indexUtil';
-import { readDirectory } from '../src/utils/fileUtil';
-import { parseFrontMatter } from '../src/utils/frontMatterUtil';
-import { INDEX_FILENAME } from '../src/utils/specialFiles';
-import { logger } from '../src/utils/logUtil';
+} from '../src/main/indexUtil';
+import type { IndexEntry, IndexOptions } from '../src/main/indexUtil';
+import { readDirectory } from '../src/main/fileUtil';
+import { parseFrontMatter } from '../src/shared/frontMatterUtil';
+import { INDEX_FILENAME } from '../src/shared/specialFiles';
+import { logger } from '../src/shared/logUtil';
 
 type IndexData = { files: IndexEntry[]; options: IndexOptions };
 

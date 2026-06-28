@@ -1,11 +1,11 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import type { FileEntry } from "../global";
-import { logger } from './logUtil';
+import { logger } from '../shared/logUtil';
 import { readAiHint } from '../ai/aiHint';
 import { readIndexYaml, compareByIndexOrder } from './indexUtil';
-import { ATTACH_SUFFIX } from './specialFiles';
-import { compareNames } from './fileTypes';
+import { ATTACH_SUFFIX } from '../shared/specialFiles';
+import { compareNames } from '../shared/fileTypes';
 
 interface FsOperations {
   stat: (path: string) => Promise<unknown>;

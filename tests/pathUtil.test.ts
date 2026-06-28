@@ -10,7 +10,7 @@ import {
   ensureTrailingSep,
   isAbsolutePath,
   isPathInside,
-} from '../src/utils/pathUtil';
+} from '../src/renderer/pathUtil';
 
 // Outside the renderer there is no window.electronAPI, so pathSep() falls
 // back to '/'. All joining assertions below assume that.

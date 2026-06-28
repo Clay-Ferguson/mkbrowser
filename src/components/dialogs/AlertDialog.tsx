@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 import Dialog from './common/Dialog';
-import { BUTTON_CLASS_DLG_BLUE } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_BLUE } from '../../renderer/styles';
 
 interface AlertDialogProps {
   message: string;

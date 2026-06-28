@@ -10,18 +10,18 @@ import { markdown } from '@codemirror/lang-markdown';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import Typo from 'typo-js';
-import { globalHighlightText } from '../../utils/globalHighlight';
+import { globalHighlightText } from '../../renderer/globalHighlight';
 import AlertDialog from '../dialogs/AlertDialog';
 import { useSettings } from '../../store';
-import { formatDate, formatTimestamp } from '../../utils/timeUtil';
-import { hashtagPlugin, hashtagTheme } from '../../utils/editor/editorHashtagUtil';
-import { datePlugin, dateTheme, dateTooltipExtension } from '../../utils/editor/editorDateUtil';
-import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../utils/editor/editorFrontMatterUtil';
+import { formatDate, formatTimestamp } from '../../shared/timeUtil';
+import { hashtagPlugin, hashtagTheme } from '../../renderer/editor/editorHashtagUtil';
+import { datePlugin, dateTheme, dateTooltipExtension } from '../../renderer/editor/editorDateUtil';
+import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../renderer/editor/editorFrontMatterUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
 import { createFontSizeTheme } from './editorTheme';
-import { logger } from '../../utils/logUtil';
+import { logger } from '../../shared/logUtil';
 
 // Delay before auto-focusing / scrolling to a line after mount. Lets CodeMirror finish its
 // initial layout so focus and scrollIntoView land on correctly measured content.

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
 import { useHasCutItems, useItem, useHasIndexFile, deleteItems } from '../../store';
-import { buildEntryHeaderId } from '../../utils/entryDom';
-import { ATTACH_SUFFIX } from '../../utils/specialFiles';
+import { buildEntryHeaderId } from '../../renderer/entryDom';
+import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 import {
   makeEntryDragStartHandler,
   ENTRY_DND_MIME,
@@ -11,8 +11,8 @@ import {
   canDropInto,
   moveEntryIntoFolder,
   reloadExpandedTreeFolder,
-} from '../../utils/dragAndDrop';
-import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED } from '../../utils/styles';
+} from '../../renderer/dragAndDrop';
+import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useEntry,

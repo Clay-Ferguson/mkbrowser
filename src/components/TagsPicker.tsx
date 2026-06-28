@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { useItem, getItemEditContent, setItemEditContent } from '../store';
-import { CHECKBOX_CLASS, MONO_FONT_STACK } from '../utils/styles';
+import { CHECKBOX_CLASS, MONO_FONT_STACK } from '../renderer/styles';
 import {
-  fetchTags, type TagsLoadState, type TagCategory, type HashtagDefinition,
+  type TagsLoadState, type TagCategory, type HashtagDefinition,
   tagName, getTagsFromYaml,
   removeTagFromText, insertTagIntoText,
-} from '../utils/tagUtil';
-import { splitFrontMatter } from '../utils/frontMatterUtil';
+} from '../shared/tagUtil';
+import { fetchTags } from '../renderer/tagApi';
+import { splitFrontMatter } from '../shared/frontMatterUtil';
 
 interface TagsPickerProps {
   /** Full path of the file being edited */

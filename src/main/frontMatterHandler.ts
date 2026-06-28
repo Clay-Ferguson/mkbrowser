@@ -1,7 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
-import { convertMDtoHTML } from './exportMDtoHTML';
-import { logger } from './logUtil';
+import { convertMDtoHTML } from '../shared/exportMDtoHTML';
+import { logger } from '../shared/logUtil';
 
 /**
  * Called after a Markdown file has been successfully saved.

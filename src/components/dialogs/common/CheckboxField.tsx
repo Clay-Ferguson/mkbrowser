@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import type { ReactNode } from 'react';
 import { clsx } from 'clsx';
-import { CHECKBOX_FIELD_CLASS } from '../../../utils/styles';
+import { CHECKBOX_FIELD_CLASS } from '../../../renderer/styles';
 
 interface CheckboxFieldProps {
   label: string;

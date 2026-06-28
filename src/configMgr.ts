@@ -14,8 +14,8 @@ import * as yaml from 'js-yaml';
 import { enforceDefaultAIModels } from './ai/aiModel';
 import { defaultSettings, cloneDefaultSettings, parseConfigYaml, coerceNonNegativeNumber } from './configSchema';
 import type { AppConfig, AIModelConfig } from './types/shared';
-import { logger } from './utils/logUtil';
-import { writeFileAtomic } from './utils/atomicWrite';
+import { logger } from './shared/logUtil';
+import { writeFileAtomic } from './main/atomicWrite';
 
 // Config file location — resolved per OS by Electron (Linux: ~/.config/mk-browser)
 const CONFIG_DIR = app.getPath('userData');

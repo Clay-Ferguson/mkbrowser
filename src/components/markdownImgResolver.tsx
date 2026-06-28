@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { ExtraProps } from 'react-markdown';
 import { api } from '../services/api';
-import { logger } from '../utils/logUtil';
-import { decodeMarkdownUrl } from '../utils/linkUtil';
-import { getParentPath, pathSep, splitPathSegments } from '../utils/pathUtil';
+import { logger } from '../shared/logUtil';
+import { decodeMarkdownUrl } from '../renderer/linkUtil';
+import { getParentPath, pathSep, splitPathSegments } from '../renderer/pathUtil';
 
 // Cache for resolved image paths to avoid repeated file system lookups.
 // Key format: `${markdownFilePath}|${imageSrc}` -> resolved absolute path.

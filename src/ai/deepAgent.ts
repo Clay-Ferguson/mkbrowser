@@ -31,7 +31,7 @@ import type { PreprocessResult } from './promptPreprocess';
 
 import { aiTools } from './tools';
 import { getConfig } from '../configMgr';
-import { logger } from '../utils/logUtil';
+import { logger } from '../shared/logUtil';
 import { consumeScriptedAnswer } from './scriptedAnswer';
 import { getReasoningContent } from './messageUtil';
 import { StreamProcessor } from './streamProcessor';

@@ -2,8 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { api } from '../../../services/api';
 import { setHighlightItem, setItemRenaming, renameItem, updateBookmarkPath } from '../../../store';
 import type { RenameState } from './types';
-import { getParentPath, joinPath } from '../../../utils/pathUtil';
-import { logger } from '../../../utils/logUtil';
+import { getParentPath, joinPath } from '../../../renderer/pathUtil';
+import { logger } from '../../../shared/logUtil';
 
 interface UseRenameOptions {
   /** Full path of the entry */

@@ -14,8 +14,8 @@ import {
   MENU_ACTION_ICON,
   MENU_FOLDER_ICON,
   MENU_FILE_ICON,
-} from '../../utils/styles';
-import { ensureTrailingSep, getFileName } from '../../utils/pathUtil';
+} from '../../renderer/styles';
+import { ensureTrailingSep, getFileName } from '../../renderer/pathUtil';
 
 interface BookmarksPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;

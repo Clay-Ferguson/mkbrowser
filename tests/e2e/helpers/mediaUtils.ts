@@ -3,7 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import type { Page, Locator } from '@playwright/test';
 import { screenshotWithHighlight, highlightElement, HIGHLIGHT } from './visual-indicators';
-import { logger } from '../../../src/utils/logUtil';
+import { logger } from '../../../src/shared/logUtil';
 
 /**
  * Media utilities for E2E tests - screenshot and video helpers.

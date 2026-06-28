@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fdir } from 'fdir';
-import { escapeRegexLiteral, buildExcludePredicate } from './pathPattern';
-import { mapWithConcurrency } from './asyncUtil';
+import { escapeRegexLiteral, buildExcludePredicate } from '../shared/pathPattern';
+import { mapWithConcurrency } from '../shared/asyncUtil';
 import { writeFileAtomic } from './atomicWrite';
 
 /** Max number of files read/written concurrently during a search-and-replace.

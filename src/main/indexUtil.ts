@@ -3,12 +3,12 @@ import path from 'node:path';
 import { load, dump } from 'js-yaml';
 import { z } from 'zod';
 import { customAlphabet } from 'nanoid';
-import { parseFrontMatter } from './frontMatterUtil';
-import { compareNames } from './fileTypes';
-import { ATTACH_SUFFIX, INDEX_FILENAME } from './specialFiles';
+import { parseFrontMatter } from '../shared/frontMatterUtil';
+import { compareNames } from '../shared/fileTypes';
+import { ATTACH_SUFFIX, INDEX_FILENAME } from '../shared/specialFiles';
 import { writeFileAtomic } from './atomicWrite';
-import { mapWithConcurrency } from './asyncUtil';
-import { logger } from './logUtil';
+import { mapWithConcurrency } from '../shared/asyncUtil';
+import { logger } from '../shared/logUtil';
 
 /**
  * Error-handling contract for this module's exported functions.

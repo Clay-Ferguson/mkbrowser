@@ -8,7 +8,7 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { writeFileAtomic } from '../src/utils/atomicWrite';
+import { writeFileAtomic } from '../src/main/atomicWrite';
 
 let tmpDir: string;
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { splitFrontMatter } from '../src/utils/frontMatterUtil';
+import { splitFrontMatter } from '../src/shared/frontMatterUtil';
 
 describe('splitFrontMatter', () => {
   it('returns null for plain text with no front matter', () => {

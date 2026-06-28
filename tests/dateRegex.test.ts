@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { DATE_REGEX } from '../src/utils/regexPatterns';
-import { extractTimestamp } from '../src/utils/timeUtil';
+import { DATE_REGEX } from '../src/shared/regexPatterns';
+import { extractTimestamp } from '../src/shared/timeUtil';
 
 // Strings that the editor decoration is meant to highlight (valid date shapes).
 const decoratorValid = [

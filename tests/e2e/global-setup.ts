@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { logger } from '../../src/utils/logUtil';
+import { logger } from '../../src/shared/logUtil';
 
 /**
  * Copy the resources folder into .vite/build/ so that when Playwright launches

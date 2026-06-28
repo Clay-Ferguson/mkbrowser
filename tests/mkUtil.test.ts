@@ -4,7 +4,7 @@ import {
   stripHtmlComments,
   preprocessWikiLinks,
   splitOnColumnBreaks,
-} from '../src/utils/mkUtil';
+} from '../src/shared/mkUtil';
 
 // ---------------------------------------------------------------------------
 // preprocessMathEscapes

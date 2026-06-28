@@ -9,7 +9,7 @@ import { python } from '@codemirror/lang-python';
 import { unifiedMergeView, acceptChunk, rejectChunk, getChunks } from '@codemirror/merge';
 import { useSettings } from '../../store';
 import { createFontSizeTheme } from './editorTheme';
-import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN } from '../../utils/styles';
+import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN } from '../../renderer/styles';
 
 interface DiffReviewEditorProps {
   originalText: string;

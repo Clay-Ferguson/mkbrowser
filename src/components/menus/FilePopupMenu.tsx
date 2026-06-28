@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 import { useRootPath } from '../../store';
-import { isPathInside } from '../../utils/pathUtil';
+import { isPathInside } from '../../renderer/pathUtil';
 
 interface FilePopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;

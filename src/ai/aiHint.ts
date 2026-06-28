@@ -10,7 +10,7 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { AI_FOLDER_REGEX, HUMAN_FOLDER_REGEX } from './aiPatterns';
-import { HUMAN_FILENAME, AI_FILENAME } from '../utils/specialFiles';
+import { HUMAN_FILENAME, AI_FILENAME } from '../shared/specialFiles';
 
 /** Max length of the preview snippet shown next to a conversation folder. */
 export const AI_HINT_MAX_LENGTH = 120;

@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { loadCalendarEntryForFile, loadCalendarEvents } from '../src/utils/calendar/calendarLoader';
+import { loadCalendarEntryForFile, loadCalendarEvents } from '../src/main/calendarLoader';
 import {
   hasDueProperty,
   getDueProperty,
@@ -15,7 +15,7 @@ import {
   setRRuleProperty,
   injectCalendarFrontMatter,
   parseDueStr,
-} from '../src/utils/calendar/calendarUtil';
+} from '../src/shared/calendarUtil';
 
 let tmpDir: string;
 

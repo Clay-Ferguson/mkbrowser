@@ -5,8 +5,8 @@ import SearchDefinitionsPanel from './SearchDefinitionsPanel';
 import CheckboxField from './common/CheckboxField';
 import RadioGroup from './common/RadioGroup';
 import type { SearchDefinition } from '../../types/types';
-import * as globalHighlight from '../../utils/globalHighlight';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../utils/styles';
+import * as globalHighlight from '../../renderer/globalHighlight';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../renderer/styles';
 
 // Search's checkbox/radio inputs use a blue-500 accent (vs the blue-600 default
 // in CheckboxField/RadioField), so override the input class to preserve it.

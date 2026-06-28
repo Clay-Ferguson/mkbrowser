@@ -22,7 +22,7 @@ import { saveAiConfig } from '../../config';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import MarkdownEntry from '../entries/MarkdownEntry';
 import ThreadAvatar, { ThreadAvatarDefs } from '../ThreadAvatar';
-import { logger } from '../../utils/logUtil';
+import { logger } from '../../shared/logUtil';
 import PathBreadcrumb from '../PathBreadcrumb';
 
 const DEFAULT_PERSONA_NAME = '[Default Agent]';

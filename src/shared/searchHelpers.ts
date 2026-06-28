@@ -1,10 +1,8 @@
-import { getSettings, setSettings, type SearchDefinition } from '../store';
-import { api } from '../services/api';
-import { logger } from './logUtil';
-
-// Re-exported for backwards compatibility; the implementation now lives in the
-// process-neutral pathPattern module so it can be shared with the main process.
-export { buildIgnoredPatterns } from './pathPattern';
+/**
+ * Process-neutral (pure) search helpers, safe to import from either the main
+ * process or the renderer. The renderer-only helpers that touch the store / IPC
+ * live in `searchUtil.ts`.
+ */
 
 /**
  * Parse a newline-delimited ignored-paths string into a trimmed, non-empty array.
@@ -19,7 +17,7 @@ export function parseIgnoredPaths(raw: string): string[] {
 /**
  * Creates a search function that checks if content contains given text (case-insensitive)
  * and tracks the total number of matches found.
- * 
+ *
  * @param content - The text content to search within
  * @returns An object containing the search function and match count getter
  */
@@ -29,7 +27,7 @@ export function createContentSearcher(content: string): {
 } {
   const contentLower = content.toLowerCase();
   let matchCount = 0;
-  
+
   /**
    * The '$' function checks if content contains the given text (case-insensitive)
    * and increments matchCount for each call that returns true
@@ -50,39 +48,10 @@ export function createContentSearcher(content: string): {
     }
     return false;
   };
-  
+
   const getMatchCount = (): number => matchCount;
-  
+
   return { $, getMatchCount };
-}
-
-export async function saveSearchDefinitionToConfig(definition: SearchDefinition): Promise<void> {
-  try {
-    const currentSettings = getSettings();
-    const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
-      (def) => def.name !== definition.name
-    );
-    updatedSearchDefinitions.push(definition);
-    const updatedSettings = { ...currentSettings, searchDefinitions: updatedSearchDefinitions };
-    setSettings(updatedSettings);
-    await api.updateConfig({ settings: updatedSettings });
-  } catch (err) {
-    logger.error('Failed to save search definition:', err);
-  }
-}
-
-export async function deleteSearchDefinitionFromConfig(name: string): Promise<void> {
-  try {
-    const currentSettings = getSettings();
-    const updatedSearchDefinitions = currentSettings.searchDefinitions.filter(
-      (def) => def.name !== name
-    );
-    const updatedSettings = { ...currentSettings, searchDefinitions: updatedSearchDefinitions };
-    setSettings(updatedSettings);
-    await api.updateConfig({ settings: updatedSettings });
-  } catch (err) {
-    logger.error('Failed to delete search definition:', err);
-  }
 }
 
 export function buildReplaceResultMessage(results: Array<{ success: boolean; replacementCount: number }>): string {

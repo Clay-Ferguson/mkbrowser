@@ -8,8 +8,8 @@
  * best-effort rollback so the user's files are left as they were.
  */
 
-import { getFileName, getParentPath, joinPath } from '../pathUtil';
-import type { FileOps } from '../../types/shared';
+import { getFileName, getParentPath, joinPath } from './pathUtil';
+import type { FileOps } from '../types/shared';
 
 /**
  * Delimiter between parts: a run of 3 or more line breaks (each optionally

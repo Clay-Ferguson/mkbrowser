@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { EditorView } from '@codemirror/view';
 import Typo from 'typo-js';
-import { logger } from '../../utils/logUtil';
-import { formatDate, formatTimestamp } from '../../utils/timeUtil';
-import { hasDueProperty, injectCalendarFrontMatter } from '../../utils/calendar/calendarUtil';
-import { isMarkdownFile } from '../../utils/fileTypes';
-import { buildMarkdownLinks } from '../../utils/linkUtil';
+import { logger } from '../../shared/logUtil';
+import { formatDate, formatTimestamp } from '../../shared/timeUtil';
+import { hasDueProperty, injectCalendarFrontMatter } from '../../shared/calendarUtil';
+import { isMarkdownFile } from '../../shared/fileTypes';
+import { buildMarkdownLinks } from '../../renderer/linkUtil';
 import { useSelectedLinkItems } from '../../store';
 import { wordAt, type SpellingSuggestion } from './spellChecker';
 

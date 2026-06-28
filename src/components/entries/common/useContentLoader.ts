@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../../services/api';
 import { useItem, setItemContent, isCacheValid } from '../../../store';
-import { applyGlobalHighlight, globalHighlightText } from '../../../utils/globalHighlight';
+import { applyGlobalHighlight, globalHighlightText } from '../../../renderer/globalHighlight';
 import type { ContentLoaderState } from './types';
 
 interface UseContentLoaderOptions {

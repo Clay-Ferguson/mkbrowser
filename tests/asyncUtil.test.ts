@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapWithConcurrency } from '../src/utils/asyncUtil';
+import { mapWithConcurrency } from '../src/shared/asyncUtil';
 
 describe('mapWithConcurrency', () => {
   it('returns results in input order', async () => {

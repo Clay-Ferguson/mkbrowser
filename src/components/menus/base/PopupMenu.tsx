@@ -1,7 +1,7 @@
 import { useRef, useLayoutEffect, useEffect, useState, useCallback, type ReactNode, type RefObject, type ComponentType } from 'react';
 import { clsx } from 'clsx';
 import { CheckIcon } from '@heroicons/react/24/solid';
-import { MENU_CONTAINER, MENU_ITEM_BASE, MENU_ITEM_ENABLED, MENU_ITEM_DISABLED, MENU_DIVIDER } from '../../../utils/styles';
+import { MENU_CONTAINER, MENU_ITEM_BASE, MENU_ITEM_ENABLED, MENU_ITEM_DISABLED, MENU_DIVIDER } from '../../../renderer/styles';
 
 /** Gap in px between the anchor element and the menu. */
 const ANCHOR_GAP = 4;

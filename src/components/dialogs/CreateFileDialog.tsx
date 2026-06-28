@@ -1,4 +1,4 @@
-import { generateTimestampFileName } from '../../utils/timeUtil';
+import { generateTimestampFileName } from '../../shared/timeUtil';
 import NameInputDialog from './common/NameInputDialog';
 
 interface CreateFileDialogProps {

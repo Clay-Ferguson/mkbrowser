@@ -7,10 +7,10 @@
  */
 
 import { dump } from 'js-yaml';
-import { parseFrontMatter } from '../frontMatterUtil';
-import { isMarkdownFile } from '../fileTypes';
-import { getFileName } from '../pathUtil';
-import type { FileOps } from '../../types/shared';
+import { parseFrontMatter } from '../shared/frontMatterUtil';
+import { isMarkdownFile } from '../shared/fileTypes';
+import { getFileName } from './pathUtil';
+import type { FileOps } from '../types/shared';
 
 /**
  * For a markdown file being appended (not the lead file), strips its front

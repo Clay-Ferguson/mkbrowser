@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import DlgHeader from './DlgHeader';
-import { DLG_CONTAINER } from '../../../utils/styles';
+import { DLG_CONTAINER } from '../../../renderer/styles';
 
 interface DialogProps {
   /** Title shown in the DlgHeader; also wired to the dialog via aria-labelledby. */

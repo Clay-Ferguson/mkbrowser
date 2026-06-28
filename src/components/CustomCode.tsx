@@ -3,7 +3,7 @@ import type { ExtraProps } from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { MermaidDiagram } from './MermaidDiagram';
-import { nodeToString } from '../utils/reactUtil';
+import { nodeToString } from '../renderer/reactUtil';
 
 // `node` is react-markdown's internal hast node; destructure it out so it isn't
 // spread onto the DOM <code> element (React warns on unknown DOM props).

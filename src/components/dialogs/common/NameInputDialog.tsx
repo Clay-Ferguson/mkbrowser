@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Dialog from './Dialog';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS, DLG_LABEL_CLASS } from '../../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS, DLG_LABEL_CLASS } from '../../../renderer/styles';
 
 interface NameInputDialogProps {
   /** Dialog title, e.g. "Create new file". */

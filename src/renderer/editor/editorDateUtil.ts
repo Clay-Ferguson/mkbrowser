@@ -1,8 +1,8 @@
 import { Decoration, DecorationSet, ViewPlugin, ViewUpdate, EditorView, hoverTooltip } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
-import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../timeUtil';
-import { DATE_REGEX } from '../regexPatterns';
-import { MONO_FONT_STACK } from '../styles';
+import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../../shared/timeUtil';
+import { DATE_REGEX } from '../../shared/regexPatterns';
+import { MONO_FONT_STACK } from '../../renderer/styles';
 import { EDITOR_COLORS } from './editorColors';
 import { eachVisibleLine } from './editorViewportUtil';
 

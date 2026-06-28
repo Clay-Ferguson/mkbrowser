@@ -6,7 +6,7 @@
  * it is also bundled into the renderer (browser) process.
  */
 import type { FileEntry } from '../global';
-import { HUMAN_FILENAME, AI_FILENAME } from '../utils/specialFiles';
+import { HUMAN_FILENAME, AI_FILENAME } from '../shared/specialFiles';
 
 /** Matches AI conversation folders: "A", "A1", "A2", etc. (case-sensitive) */
 export const AI_FOLDER_REGEX = /^A\d*$/;

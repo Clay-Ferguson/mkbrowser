@@ -9,7 +9,7 @@ import path from 'node:path';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { getConfig } from '../configMgr';
-import { logger } from '../utils/logUtil';
+import { logger } from '../shared/logUtil';
 
 /** When true, log file-access tool invocations (file names read / listed) to the console. */
 const DEBUG = true;

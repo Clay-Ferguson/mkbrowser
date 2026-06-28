@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
-import { buildEntryHeaderId } from '../../../utils/entryDom';
-import { RENAME_INPUT_CLASS } from '../../../utils/styles';
+import { buildEntryHeaderId } from '../../../renderer/entryDom';
+import { RENAME_INPUT_CLASS } from '../../../renderer/styles';
 
 interface RenameInputProps {
   /** Full path of the entry (used for element ID) */

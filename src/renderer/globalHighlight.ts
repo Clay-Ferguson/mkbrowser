@@ -1,4 +1,4 @@
-import { logger } from '../utils/logUtil';
+import { logger } from '../shared/logUtil';
 
 export let globalHighlightText: string| null = null;
 

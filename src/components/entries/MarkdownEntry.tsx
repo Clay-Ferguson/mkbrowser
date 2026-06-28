@@ -6,7 +6,7 @@ import { api } from '../../services/api';
 import { saveAiConfig } from '../../config';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../types/types';
-import { removeTOC } from '../../utils/tocUtil';
+import { removeTOC } from '../../shared/tocUtil';
 import {
   useItem,
   useSettings,
@@ -31,11 +31,11 @@ import DiffReviewEditor from '../editor/DiffReviewEditor';
 import TagsPicker from '../TagsPicker';
 import PropsDisplay from '../PropsDisplay';
 import MarkdownView from './MarkdownView';
-import { logger } from '../../utils/logUtil';
-import { getParentPath } from '../../utils/pathUtil';
-import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
-import { HUMAN_FILENAME, AI_FILENAME } from '../../utils/specialFiles';
-import { TIMESTAMP_FILENAME_RE } from '../../utils/timeUtil';
+import { logger } from '../../shared/logUtil';
+import { getParentPath } from '../../renderer/pathUtil';
+import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
+import { HUMAN_FILENAME, AI_FILENAME } from '../../shared/specialFiles';
+import { TIMESTAMP_FILENAME_RE } from '../../shared/timeUtil';
 import {
   useEditableEntry,
   useToggleExpanded,
@@ -47,7 +47,7 @@ import {
   EntryShell,
   type BaseEntryProps,
 } from './common';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../utils/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../renderer/styles';
 
 
 interface MarkdownEntryProps extends BaseEntryProps {

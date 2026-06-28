@@ -4,7 +4,7 @@ import type { FileNode } from '../types/types';
 import { pasteCutItems } from './edit';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
 import { getParentPath, isPathInside } from './pathUtil';
-import { ATTACH_SUFFIX } from './specialFiles';
+import { ATTACH_SUFFIX } from '../shared/specialFiles';
 
 /**
  * Custom drag-and-drop MIME type used to carry a single dragged file/folder between

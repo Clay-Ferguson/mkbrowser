@@ -1,7 +1,7 @@
 import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig, defaultAiConfig, defaultSettings } from './store';
 import { api } from './services/api';
-import { isPathInside } from './utils/pathUtil';
-import { logger } from './utils/logUtil';
+import { isPathInside } from './renderer/pathUtil';
+import { logger } from './shared/logUtil';
 import type { AppConfig } from './types/shared';
 import type { AiConfigState } from './store';
 

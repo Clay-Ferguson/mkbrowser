@@ -2,8 +2,8 @@ import path from 'node:path';
 import * as chokidar from 'chokidar';
 import type { CalendarEventResult } from './calendarLoader';
 import { loadCalendarEntryForFile } from './calendarLoader';
-import { escapeRegexExceptWildcard } from '../pathPattern';
-import { logger } from '../logUtil';
+import { escapeRegexExceptWildcard } from '../shared/pathPattern';
+import { logger } from '../shared/logUtil';
 
 export type CalendarFileChangedCallback = (results: CalendarEventResult[], filePath: string) => void;
 export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolean) => void;

@@ -10,8 +10,8 @@ import {
   deleteSelectedItems,
   performSplitFile,
   performJoinFiles,
-} from '../src/utils/edit';
-import { joinFiles } from '../src/utils/fileSplitJoin/joinUtil';
+} from '../src/renderer/edit';
+import { joinFiles } from '../src/renderer/joinUtil';
 import type { ItemData } from '../src/types/types';
 
 // ---------------------------------------------------------------------------

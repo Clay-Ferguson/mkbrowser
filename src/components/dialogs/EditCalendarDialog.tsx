@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import { DayPicker } from 'react-day-picker';
 import Dialog from './common/Dialog';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS_ALT_COMPACT } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
 // eslint-disable-next-line import/no-unresolved -- resolved via package "exports" map (src/style.css); resolver can't follow it
 import 'react-day-picker/style.css';
-import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, parseDueStr, formatDueDate, RRuleProps } from '../../utils/calendar/calendarUtil';
+import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, parseDueStr, formatDueDate, RRuleProps } from '../../shared/calendarUtil';
 
 interface EditCalendarDialogProps {
   content: string;

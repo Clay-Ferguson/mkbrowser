@@ -3,11 +3,11 @@ import fs from 'node:fs';
 import { fdir } from 'fdir';
 import { load } from 'js-yaml';
 import { RRule, Weekday } from 'rrule';
-import { logger } from '../logUtil';
-import { buildExcludePredicate } from '../pathPattern';
-import { mapWithConcurrency } from '../asyncUtil';
-import { parseDueStr } from './calendarUtil';
-import { splitFrontMatter } from '../frontMatterUtil';
+import { logger } from '../shared/logUtil';
+import { buildExcludePredicate } from '../shared/pathPattern';
+import { mapWithConcurrency } from '../shared/asyncUtil';
+import { parseDueStr } from '../shared/calendarUtil';
+import { splitFrontMatter } from '../shared/frontMatterUtil';
 
 export interface CalendarEventResult {
   id: string;

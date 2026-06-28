@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { Z_MODAL } from '../../utils/styles';
+import { Z_MODAL } from '../../renderer/styles';
 import type { ContextMenuState } from './useEditorContextMenu';
 
 interface EditorContextMenuProps {

@@ -41,9 +41,9 @@ import type { CalendarEvent, AppView } from './types/types';
 import type { CalendarEventResult, AppConfig } from './types/shared';
 import type { FileNode } from './store';
 import { loadConfig } from './config';
-import { isPathInside } from './utils/pathUtil';
-import { applyGlobalHighlight, globalHighlightText } from './utils/globalHighlight';
-import { logger } from './utils/logUtil';
+import { isPathInside } from './renderer/pathUtil';
+import { applyGlobalHighlight, globalHighlightText } from './renderer/globalHighlight';
+import { logger } from './shared/logUtil';
 
 async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isDirectory || !node.isExpanded) return node;

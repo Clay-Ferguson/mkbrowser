@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRelativePath, buildMarkdownLinks, decodeMarkdownUrl } from '../src/utils/linkUtil';
+import { getRelativePath, buildMarkdownLinks, decodeMarkdownUrl } from '../src/renderer/linkUtil';
 
 describe('getRelativePath', () => {
   it('returns just the file name when target is in the same directory', () => {

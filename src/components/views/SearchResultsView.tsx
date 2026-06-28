@@ -19,9 +19,9 @@ import {
   useSearchSortBy,
   useSearchSortDirection,
 } from '../../store';
-import { getFileName, getParentPath } from '../../utils/pathUtil';
-import { buildFolderGraphFromSearchResults } from '../../utils/searchTreeBuilder';
-import { getContentWidthClasses, BUTTON_CLASS_BLUE, BUTTON_CLASS_RED } from '../../utils/styles';
+import { getFileName, getParentPath } from '../../renderer/pathUtil';
+import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
+import { getContentWidthClasses, BUTTON_CLASS_BLUE, BUTTON_CLASS_RED } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
 interface SearchResultsViewProps {

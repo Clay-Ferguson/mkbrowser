@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isMarkdownFile } from '../src/utils/fileTypes';
+import { isMarkdownFile } from '../src/shared/fileTypes';
 
 // ---------------------------------------------------------------------------
 // isMarkdownFile — the single source of truth for the markdown extension

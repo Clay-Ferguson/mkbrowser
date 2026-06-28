@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
-import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../utils/timeUtil';
-import { MONO_FONT_STACK } from '../utils/styles';
+import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../shared/timeUtil';
+import { MONO_FONT_STACK } from '../renderer/styles';
 
 function getDateTooltip(value: unknown): string | undefined {
   const str = String(value);

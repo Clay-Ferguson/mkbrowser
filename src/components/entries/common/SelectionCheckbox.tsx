@@ -1,5 +1,5 @@
 import { setItemSelected } from '../../../store';
-import { CHECKBOX_CLASS } from '../../../utils/styles';
+import { CHECKBOX_CLASS } from '../../../renderer/styles';
 
 interface SelectionCheckboxProps {
   /** Full path of the entry */

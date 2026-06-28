@@ -5,28 +5,29 @@ import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './configMgr';
 import type { AppConfig, OcrTarget } from './types/shared';
 
-import { readDirectory } from './utils/fileUtil';
-import { parseFrontMatter } from './utils/frontMatterUtil';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml } from './utils/indexUtil';
-import { frontMatterFileSaved } from './utils/frontMatterHandler';
-import { processTOC } from './utils/tocUtil';
-import { searchAndReplace, type ReplaceResult } from './utils/searchAndReplace';
-import { parseIgnoredPaths } from './utils/searchUtil';
-import { searchFolder, type SearchResult } from './utils/search';
-import { analyzeFolderHashtags, type FolderAnalysisResult } from './utils/folderAnalysis';
-import { loadCalendarEvents, type CalendarEventResult } from './utils/calendar/calendarLoader';
-import { startCalendarWatcher, stopCalendarWatcher, getCalendarWatcherFolder } from './utils/calendar/calendarWatcher';
-import { scanFolderTree, type FolderGraphResult } from './utils/folderGraph';
-import { loadTags, type TagCategory } from './utils/tagUtil';
+import { readDirectory } from './main/fileUtil';
+import { parseFrontMatter } from './shared/frontMatterUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml } from './main/indexUtil';
+import { frontMatterFileSaved } from './main/frontMatterHandler';
+import { processTOC } from './shared/tocUtil';
+import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
+import { parseIgnoredPaths } from './shared/searchHelpers';
+import { searchFolder, type SearchResult } from './main/search';
+import { analyzeFolderHashtags, type FolderAnalysisResult } from './main/folderAnalysis';
+import { loadCalendarEvents, type CalendarEventResult } from './main/calendarLoader';
+import { startCalendarWatcher, stopCalendarWatcher, getCalendarWatcherFolder } from './main/calendarWatcher';
+import { scanFolderTree, type FolderGraphResult } from './main/folderGraph';
+import { loadTags } from './main/tagLoader';
+import type { TagCategory } from './shared/tagUtil';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
 import { hasScriptedAnswer, queueScriptedAnswer } from './ai/langGraph';
 import type { StreamCallbacks } from './ai/langGraph';
 import { getUsageWithCosts, resetUsage } from './ai/usageTracker';
 import { checkHealth, ensureRunning, stopServer } from './ai/llamaServer';
-import { readExifMetadata, writeExifMetadata } from './utils/exifUtil';
-import { logger } from './utils/logUtil';
-import { exportFolderContents, exportToPdf } from './utils/exportUtil';
-import { runShellScript, runOcrInTerminal } from './utils/launcherUtil';
+import { readExifMetadata, writeExifMetadata } from './main/exifUtil';
+import { logger } from './shared/logUtil';
+import { exportFolderContents, exportToPdf } from './main/exportUtil';
+import { runShellScript, runOcrInTerminal } from './main/launcherUtil';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
 const ENABLE_STREAM_RESPONSE = true;
@@ -42,7 +43,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 import type { FileEntry } from './global';
-import { ATTACH_SUFFIX } from './utils/specialFiles';
+import { ATTACH_SUFFIX } from './shared/specialFiles';
 
 let mainWindow: BrowserWindow | null = null;
 

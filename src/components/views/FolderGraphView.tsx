@@ -22,8 +22,8 @@ import {
   navigateToBrowserPath,
   setHighlightItem,
 } from '../../store';
-import { parseFrontMatter } from '../../utils/frontMatterUtil';
-import { getParentPath } from '../../utils/pathUtil';
+import { parseFrontMatter } from '../../shared/frontMatterUtil';
+import { getParentPath } from '../../renderer/pathUtil';
 
 interface SimNode extends SimulationNodeDatum {
   id: string;

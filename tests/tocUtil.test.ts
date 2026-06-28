@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { removeTOC, processTOC, extractHeadingTree } from '../src/utils/tocUtil';
+import { removeTOC, processTOC, extractHeadingTree } from '../src/shared/tocUtil';
 
 describe('removeTOC', () => {
   it('strips TOC body leaving only the opening tag', () => {

@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { AI_PROVIDERS } from '../../types/shared';
 import type { AIModelConfig, AIProvider } from '../../types/shared';
 import Dialog from './common/Dialog';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_FOOTER_CLASS, DLG_INPUT_CLASS_ALT } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_FOOTER_CLASS, DLG_INPUT_CLASS_ALT } from '../../renderer/styles';
 
 const isAIProvider = (value: string): value is AIProvider =>
   (AI_PROVIDERS as readonly string[]).includes(value);

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { clsx } from 'clsx';
 import { api } from '../../services/api';
-import { fetchTags, serializeTagsToYaml } from '../../utils/tagUtil';
-import type { TagCategory, HashtagDefinition } from '../../utils/tagUtil';
+import { serializeTagsToYaml } from '../../shared/tagUtil';
+import type { TagCategory, HashtagDefinition } from '../../shared/tagUtil';
+import { fetchTags } from '../../renderer/tagApi';
 import Dialog from './common/Dialog';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS_ALT_COMPACT } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
 
 interface EditorTag {
   id: string;

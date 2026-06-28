@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { ExtraProps } from 'react-markdown';
 import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
-import { logger } from '../utils/logUtil';
-import { nodeToString } from '../utils/reactUtil';
+import { logger } from '../shared/logUtil';
+import { nodeToString } from '../renderer/reactUtil';
 
 // `node` is react-markdown's internal hast node; destructure it out so it isn't
 // spread onto the DOM <pre> element (React warns on unknown DOM props).

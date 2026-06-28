@@ -1,4 +1,4 @@
-import { RADIO_FIELD_CLASS } from '../../../utils/styles';
+import { RADIO_FIELD_CLASS } from '../../../renderer/styles';
 
 interface RadioFieldProps {
   name: string;

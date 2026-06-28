@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { api } from '../../../services/api';
-import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../utils/styles';
+import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../renderer/styles';
 import { toggleBookmark, addBookmark, toggleItemExpanded, setCurrentView, useSettings, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 

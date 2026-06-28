@@ -7,8 +7,8 @@ import { api } from '../../services/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useSettings, useActiveCalendarFolder } from '../../store';
 import type { CalendarEvent, CalendarViewType } from '../../types/types';
-import { logger } from '../../utils/logUtil';
-import { getParentPath, joinPath } from '../../utils/pathUtil';
+import { logger } from '../../shared/logUtil';
+import { getParentPath, joinPath } from '../../renderer/pathUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
 
 function formatDueDate(d: Date): string {

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { splitFile } from '../src/utils/fileSplitJoin/splitUtil';
+import { splitFile } from '../src/renderer/splitUtil';
 
 /**
  * Build an in-memory mock filesystem and the injectable file ops splitFile

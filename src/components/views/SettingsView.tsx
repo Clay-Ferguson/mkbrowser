@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import TagsEditorDialog from '../dialogs/TagsEditorDialog';
 import CheckboxField from '../dialogs/common/CheckboxField';
-import { SETTINGS_CHECKBOX_CLASS } from '../../utils/styles';
+import { SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
 import {
   setFontSize,
   setFoldersOnTop,

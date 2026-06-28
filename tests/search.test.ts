@@ -5,9 +5,9 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
-import { searchFolder, createMatchPredicate, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/utils/search';
-import { createContentSearcher } from '../src/utils/searchUtil';
-import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/utils/timeUtil';
+import { searchFolder, createMatchPredicate, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/main/search';
+import { createContentSearcher } from '../src/shared/searchHelpers';
+import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/shared/timeUtil';
 import { setupTestData, TEST_DATA_DIR, rel } from './fixtures/setup';
 
 // Build all fixture files once before the entire suite

@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { api } from '../../../services/api';
-import { logger } from '../../../utils/logUtil';
+import { logger } from '../../../shared/logUtil';
 
 /** An action that may be deferred until the streaming dialog is closed. */
 export type DeferrableAction = () => void;

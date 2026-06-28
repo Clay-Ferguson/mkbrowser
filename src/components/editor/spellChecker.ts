@@ -3,9 +3,9 @@ import { RangeSetBuilder } from '@codemirror/state';
 import { RefObject } from 'react';
 import Typo from 'typo-js';
 import { api } from '../../services/api';
-import { logger } from '../../utils/logUtil';
-import { frontMatterEndLine } from '../../utils/editor/editorFrontMatterUtil';
-import { eachVisibleLine } from '../../utils/editor/editorViewportUtil';
+import { logger } from '../../shared/logUtil';
+import { frontMatterEndLine } from '../../renderer/editor/editorFrontMatterUtil';
+import { eachVisibleLine } from '../../renderer/editor/editorViewportUtil';
 
 // Singleton for the spell checker
 let typoInstance: Typo | null = null;

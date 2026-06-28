@@ -22,8 +22,8 @@ import {
   EntryShell,
   type BaseEntryProps,
 } from './common';
-import { getTextFileLanguage } from '../../utils/fileTypes';
-import { ENTRY_CONTENT_AREA, ENTRY_LOADING } from '../../utils/styles';
+import { getTextFileLanguage } from '../../shared/fileTypes';
+import { ENTRY_CONTENT_AREA, ENTRY_LOADING } from '../../renderer/styles';
 
 
 type TextEntryProps = BaseEntryProps;

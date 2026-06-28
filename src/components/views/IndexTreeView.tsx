@@ -3,8 +3,8 @@ import { clsx } from 'clsx';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
-import { getIconForFileExtension, isImageFile } from '../../utils/fileTypes';
-import type { FileIconType } from '../../utils/fileTypes';
+import { getIconForFileExtension, isImageFile } from '../../shared/fileTypes';
+import type { FileIconType } from '../../shared/fileTypes';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
 import CreateFolderDialog from '../dialogs/CreateFolderDialog';
@@ -35,7 +35,7 @@ import {
   setPendingScrollToHeadingSlug,
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
-import { pasteCutItems } from '../../utils/edit';
+import { pasteCutItems } from '../../renderer/edit';
 import {
   ENTRY_DND_MIME,
   parseDragPayload,
@@ -45,12 +45,12 @@ import {
   reloadExpandedTreeFolder,
   makeTreeNodes as makeNodes,
   findTreeNodeByPath as findNodeByPath,
-} from '../../utils/dragAndDrop';
-import { extractHeadingTree } from '../../utils/tocUtil';
-import { scrollElementIntoView } from '../../utils/entryDom';
-import { getActiveMarkdownEditor } from '../../utils/activeMarkdownEditor';
-import { ensureTrailingSep, getFileName, getParentPath, isPathInside, joinPath, splitPathSegments } from '../../utils/pathUtil';
-import { parseFrontMatter } from '../../utils/frontMatterUtil';
+} from '../../renderer/dragAndDrop';
+import { extractHeadingTree } from '../../shared/tocUtil';
+import { scrollElementIntoView } from '../../renderer/entryDom';
+import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
+import { ensureTrailingSep, getFileName, getParentPath, isPathInside, joinPath, splitPathSegments } from '../../renderer/pathUtil';
+import { parseFrontMatter } from '../../shared/frontMatterUtil';
 
 const INDENT_SIZE = 20;
 

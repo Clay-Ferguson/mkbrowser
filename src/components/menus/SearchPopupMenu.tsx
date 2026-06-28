@@ -1,7 +1,7 @@
 import { useMemo, type RefObject } from 'react';
 import type { SearchDefinition } from '../../store';
 import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
-import { globalHighlightText, setGlobalHighlightText, applyGlobalHighlight } from '../../utils/globalHighlight';
+import { globalHighlightText, setGlobalHighlightText, applyGlobalHighlight } from '../../renderer/globalHighlight';
 
 interface SearchPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;

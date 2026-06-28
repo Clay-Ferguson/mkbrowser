@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { clsx } from 'clsx';
 import type { FileEntry } from '../../../global';
-import { buildEntryHeaderId } from '../../../utils/entryDom';
-import { formatFlyoverInfo } from '../../../utils/fileTypes';
-import { makeEntryDragStartHandler } from '../../../utils/dragAndDrop';
+import { buildEntryHeaderId } from '../../../renderer/entryDom';
+import { formatFlyoverInfo } from '../../../shared/fileTypes';
+import { makeEntryDragStartHandler } from '../../../renderer/dragAndDrop';
 import ConfirmDialog from '../../dialogs/ConfirmDialog';
 import { RenameInput } from './RenameInput';
 import { SelectionCheckbox } from './SelectionCheckbox';
@@ -14,7 +14,7 @@ import {
   ENTRY_HEADER_ROW,
   ENTRY_HEADER_EXPANDED,
   ENTRY_NAME_SPAN,
-} from '../../../utils/styles';
+} from '../../../renderer/styles';
 
 interface EntryShellProps {
   /** The file entry — used for path/name/drag/flyover */

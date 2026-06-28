@@ -1,6 +1,6 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
-import { HASHTAG_REGEX } from '../regexPatterns';
+import { HASHTAG_REGEX } from '../../shared/regexPatterns';
 import { EDITOR_COLORS } from './editorColors';
 import { eachVisibleLine } from './editorViewportUtil';
 

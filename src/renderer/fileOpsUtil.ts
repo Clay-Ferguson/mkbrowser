@@ -2,7 +2,7 @@ import type { ItemData } from '../types/types';
 import type { OcrTarget } from '../types/shared';
 import { api } from '../services/api';
 import type { FileEntry } from '../global';
-import { isImageFile, isTextFile, isMarkdownFile } from './fileTypes';
+import { isImageFile, isTextFile, isMarkdownFile } from '../shared/fileTypes';
 import {
   deleteItems,
   clearAllSelections,
@@ -15,7 +15,7 @@ import {
 import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
 import { pasteFromClipboard } from './clipboard';
 import { getParentPath, joinPath } from './pathUtil';
-import { toErrorMessage } from './logUtil';
+import { toErrorMessage } from '../shared/logUtil';
 
 /**
  * Error-callback signature shared by every file operation in this module.

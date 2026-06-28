@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDateString } from '../src/utils/timeUtil';
+import { parseDateString } from '../src/shared/timeUtil';
 
 describe('parseDateString', () => {
   it('returns NaN for empty string', () => {

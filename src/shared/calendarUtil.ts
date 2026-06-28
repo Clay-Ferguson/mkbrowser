@@ -2,7 +2,7 @@
  * Utilities for turning a markdown file into a calendar item via front matter injection.
  */
 
-import { splitFrontMatter } from '../frontMatterUtil';
+import { splitFrontMatter } from '../shared/frontMatterUtil';
 
 function getCurrentDateStr(): string {
   const now = new Date();

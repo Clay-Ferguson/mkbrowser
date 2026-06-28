@@ -8,8 +8,8 @@ import {
   canDropInto,
   moveEntryIntoFolder,
   reloadExpandedTreeFolder,
-} from '../utils/dragAndDrop';
-import { joinPath, splitPathSegments, isPathInside } from '../utils/pathUtil';
+} from '../renderer/dragAndDrop';
+import { joinPath, splitPathSegments, isPathInside } from '../renderer/pathUtil';
 
 export type PathBreadcrumbProps = {
   rootPath: string;

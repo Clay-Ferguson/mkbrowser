@@ -14,10 +14,10 @@ import { getActiveModel, getActiveProvider, ensureModelServerRunning } from './a
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
-import { readIndexYaml } from '../utils/indexUtil';
-import { HUMAN_FILENAME, AI_FILENAME, THINK_FILENAME } from '../utils/specialFiles';
+import { readIndexYaml } from '../main/indexUtil';
+import { HUMAN_FILENAME, AI_FILENAME, THINK_FILENAME } from '../shared/specialFiles';
 import { invokeAI, streamAI, resolveActivePersona, hasScriptedAnswer, type AIUsageInfo, type AIInvokeResult, type StreamCallbacks } from './langGraph';
-import { logger } from '../utils/logUtil';
+import { logger } from '../shared/logUtil';
 import { readAiHint } from './aiHint';
 
 /**

@@ -1,5 +1,5 @@
 import type { CalendarEvent, CalendarViewType } from '../types/types';
-import { ensureTrailingSep } from '../utils/pathUtil';
+import { ensureTrailingSep } from '../renderer/pathUtil';
 import { getState, setState, useStoreValue } from './core';
 
 // ============================================================================

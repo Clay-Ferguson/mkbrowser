@@ -7,9 +7,9 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fdir } from 'fdir';
-import { logger } from '../utils/logUtil';
-import { wildcardToAnchoredRegex } from '../utils/pathPattern';
-import { HUMAN_FILENAME } from '../utils/specialFiles';
+import { logger } from '../shared/logUtil';
+import { wildcardToAnchoredRegex } from '../shared/pathPattern';
+import { HUMAN_FILENAME } from '../shared/specialFiles';
 
 const debug = false;
 

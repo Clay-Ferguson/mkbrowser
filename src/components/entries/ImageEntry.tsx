@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { clsx } from 'clsx';
 import { PhotoIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon } from '@heroicons/react/24/outline';
 import { api } from '../../services/api';
-import { logger } from '../../utils/logUtil';
+import { logger } from '../../shared/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import type { ExifData } from '../../types/shared';
 import { useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';

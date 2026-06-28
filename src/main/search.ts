@@ -9,12 +9,12 @@ import fs from 'node:fs';
 import { fdir } from 'fdir';
 import * as ExifReader from 'exifreader';
 import { load } from 'js-yaml';
-import { parseDateString, past, future, today } from './timeUtil';
-import { createContentSearcher } from './searchUtil';
-import { splitFrontMatter } from './frontMatterUtil';
-import { escapeRegexExceptWildcard, buildExcludePredicate } from './pathPattern';
-import { mapWithConcurrency } from './asyncUtil';
-import { logger } from './logUtil';
+import { parseDateString, past, future, today } from '../shared/timeUtil';
+import { createContentSearcher } from '../shared/searchHelpers';
+import { splitFrontMatter } from '../shared/frontMatterUtil';
+import { escapeRegexExceptWildcard, buildExcludePredicate } from '../shared/pathPattern';
+import { mapWithConcurrency } from '../shared/asyncUtil';
+import { logger } from '../shared/logUtil';
 
 /** Max number of files read/stat'd concurrently during a search. Bounded so huge
  * trees don't exhaust file descriptors (EMFILE) while still overlapping I/O. */

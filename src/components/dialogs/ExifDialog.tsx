@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import { clsx } from 'clsx';
 import { api } from '../../services/api';
-import { logger } from '../../utils/logUtil';
+import { logger } from '../../shared/logUtil';
 import Dialog from './common/Dialog';
 import AlertDialog from './AlertDialog';
-import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../utils/styles';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../renderer/styles';
 import type { ExifData, ExifSection } from '../../types/shared';
 
 /**

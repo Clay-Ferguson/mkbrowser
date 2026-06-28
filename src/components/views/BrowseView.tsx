@@ -70,15 +70,16 @@ import {
   useImageSizeTransitioning,
   type SearchDefinition,
 } from '../../store';
-import { scrollItemIntoView, scrollElementIntoView } from '../../utils/entryDom';
-import { isImageFile, isTextFile, sortEntries } from '../../utils/fileTypes';
-import { getContentWidthClasses } from '../../utils/styles';
-import { generateTimestampFileName } from '../../utils/timeUtil';
+import { scrollItemIntoView, scrollElementIntoView } from '../../renderer/entryDom';
+import { isImageFile, isTextFile, sortEntries } from '../../shared/fileTypes';
+import { getContentWidthClasses } from '../../renderer/styles';
+import { generateTimestampFileName } from '../../shared/timeUtil';
 import { hasHumanMd } from '../../ai/aiPatterns';
-import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, buildReplaceResultMessage } from '../../utils/searchUtil';
-import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../utils/fileOpsUtil';
-import { getFileName } from '../../utils/pathUtil';
-import { ATTACH_SUFFIX } from '../../utils/specialFiles';
+import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig } from '../../renderer/searchUtil';
+import { buildReplaceResultMessage } from '../../shared/searchHelpers';
+import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
+import { getFileName } from '../../renderer/pathUtil';
+import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 interface AttachFolderContentsProps {
   entries: FileEntry[];
