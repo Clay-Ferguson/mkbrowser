@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { api } from '../../../services/api';
+import { api } from '../../../renderer/api';
 import { logger } from '../../../shared/logUtil';
 
 /** An action that may be deferred until the streaming dialog is closed. */

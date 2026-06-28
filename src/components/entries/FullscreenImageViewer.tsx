@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import { Z_MODAL } from '../../renderer/styles';
 import type { FileEntry as FileEntryType } from '../../global';

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { FolderIcon } from '@heroicons/react/24/outline';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import Dialog from './common/Dialog';
 import CheckboxField from './common/CheckboxField';
 import RadioField from './common/RadioField';

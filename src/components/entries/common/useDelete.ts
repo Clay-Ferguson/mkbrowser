@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { api } from '../../../services/api';
+import { api } from '../../../renderer/api';
 import type { DeleteState } from './types';
 import { deleteItems } from '../../../store';
 

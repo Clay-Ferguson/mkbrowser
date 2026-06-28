@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { clsx } from 'clsx';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import { serializeTagsToYaml } from '../../shared/tagUtil';
 import type { TagCategory, HashtagDefinition } from '../../shared/tagUtil';
 import { fetchTags } from '../../renderer/tagApi';

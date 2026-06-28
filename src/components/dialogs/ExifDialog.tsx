@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { clsx } from 'clsx';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import Dialog from './common/Dialog';
 import AlertDialog from './AlertDialog';

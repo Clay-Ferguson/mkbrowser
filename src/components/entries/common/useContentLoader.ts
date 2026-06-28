@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../../services/api';
+import { api } from '../../../renderer/api';
 import { useItem, setItemContent, isCacheValid } from '../../../store';
 import { applyGlobalHighlight, globalHighlightText } from '../../../renderer/globalHighlight';
 import type { ContentLoaderState } from './types';

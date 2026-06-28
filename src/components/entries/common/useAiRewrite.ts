@@ -1,5 +1,5 @@
 import { useState, type RefObject } from 'react';
-import { api } from '../../../services/api';
+import { api } from '../../../renderer/api';
 import { logger } from '../../../shared/logUtil';
 import { setItemReviewing } from '../../../store';
 import type { CodeMirrorEditorHandle } from '../../editor/CodeMirrorEditor';

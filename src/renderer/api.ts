@@ -7,7 +7,7 @@ import type { ElectronAPI } from '../shared/shared';
  * here instead of reaching for `window.electronAPI` directly. Centralizing the
  * bridge in one module keeps the IPC surface isolated, decouples presentational
  * components from the preload global, and makes them easy to unit-test: a test
- * mocks this module (`vi.mock('../services/api')`) rather than stubbing a
+ * mocks this module (`vi.mock('../renderer/api')`) rather than stubbing a
  * browser global on every run.
  *
  * The exported `api` is a Proxy that forwards lazily to the live

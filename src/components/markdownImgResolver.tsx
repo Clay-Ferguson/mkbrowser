@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { ExtraProps } from 'react-markdown';
-import { api } from '../services/api';
+import { api } from '../renderer/api';
 import { logger } from '../shared/logUtil';
 import { decodeMarkdownUrl } from '../renderer/linkUtil';
 import { getParentPath, pathSep, splitPathSegments } from '../renderer/pathUtil';

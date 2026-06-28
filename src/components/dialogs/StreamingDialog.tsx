@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import Dialog from './common/Dialog';
 
 interface StreamingDialogProps {

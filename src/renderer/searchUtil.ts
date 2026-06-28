@@ -1,5 +1,5 @@
 import { getSettings, setSettings, type SearchDefinition } from '../store';
-import { api } from '../services/api';
+import { api } from './api';
 import { logger } from '../shared/logUtil';
 
 // Pure, process-neutral search helpers (parseIgnoredPaths, createContentSearcher,

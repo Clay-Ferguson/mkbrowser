@@ -8,7 +8,7 @@
  * preload bridge ('\' on Windows, '/' on Linux/macOS).
  */
 
-import { getApi } from '../services/api';
+import { getApi } from './api';
 
 let cachedSep: string | null = null;
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { clsx } from 'clsx';
 import { FolderIcon } from '@heroicons/react/24/solid';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import type { FileEntry } from '../../global';
 import type { ThreadEntry, ThreadChildFolder } from '../../store';
 import {

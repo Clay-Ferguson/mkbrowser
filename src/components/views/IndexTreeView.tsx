@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import { getIconForFileExtension, isImageFile } from '../../shared/fileTypes';
 import type { FileIconType } from '../../shared/fileTypes';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';

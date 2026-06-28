@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { api } from '../../../services/api';
+import { api } from '../../../renderer/api';
 import { setHighlightItem, setItemRenaming, renameItem, updateBookmarkPath } from '../../../store';
 import type { RenameState } from './types';
 import { getParentPath, joinPath } from '../../../renderer/pathUtil';

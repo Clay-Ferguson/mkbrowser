@@ -3,7 +3,7 @@ import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useSettings, useActiveCalendarFolder } from '../../store';
 import type { CalendarEvent, CalendarViewType } from '../../shared/types';

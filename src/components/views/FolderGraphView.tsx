@@ -12,7 +12,7 @@ import {
 import { select } from 'd3-selection';
 import { drag as d3drag, type D3DragEvent } from 'd3-drag';
 import { zoom as d3zoom, zoomIdentity, type D3ZoomEvent } from 'd3-zoom';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import 'd3-transition';
 import { forceLabelRect } from './forceLabelRect';
 import { forceCrossGroupRepel } from './forceCrossGroupRepel';

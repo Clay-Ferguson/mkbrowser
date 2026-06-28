@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
-import { api } from './services/api';
+import { api } from './renderer/api';
 import type { FileEntry } from './global';
 import AlertDialog from './components/dialogs/AlertDialog';
 import SearchResultsView from './components/views/SearchResultsView';

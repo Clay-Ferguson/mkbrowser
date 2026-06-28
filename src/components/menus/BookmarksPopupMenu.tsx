@@ -1,6 +1,6 @@
 import { useMemo, useState, type RefObject } from 'react';
 import { FolderIcon, DocumentIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import BookmarkDialog from '../dialogs/BookmarkDialog';

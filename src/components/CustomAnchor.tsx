@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ExtraProps } from 'react-markdown';
-import { api } from '../services/api';
+import { api } from '../renderer/api';
 import { setHighlightItem, navigateToBrowserPath } from '../store';
 import { decodeMarkdownUrl } from '../renderer/linkUtil';
 import { getParentPath, isAbsolutePath, pathSep, splitPath } from '../renderer/pathUtil';

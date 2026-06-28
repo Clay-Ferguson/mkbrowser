@@ -1,5 +1,5 @@
 import type React from 'react';
-import { api } from '../services/api';
+import { api } from './api';
 import type { FileNode } from '../shared/types';
 import { pasteCutItems } from './edit';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';

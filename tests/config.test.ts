@@ -36,7 +36,7 @@ vi.mock('../src/store', () => ({
   },
 }));
 
-vi.mock('../src/services/api', () => ({
+vi.mock('../src/renderer/api', () => ({
   api: {
     getConfig: vi.fn(),
     pathExists: vi.fn(),
@@ -46,7 +46,7 @@ vi.mock('../src/services/api', () => ({
 
 import { loadConfig, saveAiConfig } from '../src/renderer/config';
 import { setCurrentPath, setSettings, setAiConfig, defaultSettings } from '../src/store';
-import { api } from '../src/services/api';
+import { api } from '../src/renderer/api';
 
 describe('loadConfig — subfolder path validation', () => {
   beforeEach(() => {

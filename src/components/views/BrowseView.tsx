@@ -4,7 +4,7 @@ import {
   ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
   FolderPlusIcon, DocumentPlusIcon, CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import IndexInsertBar from '../IndexInsertBar';
 import type { FileEntry } from '../../global';
 import FolderEntry from '../entries/FolderEntry';

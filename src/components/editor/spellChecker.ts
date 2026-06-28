@@ -2,7 +2,7 @@ import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@
 import { RangeSetBuilder } from '@codemirror/state';
 import { RefObject } from 'react';
 import Typo from 'typo-js';
-import { api } from '../../services/api';
+import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import { frontMatterEndLine } from '../../renderer/editor/editorFrontMatterUtil';
 import { eachVisibleLine } from '../../renderer/editor/editorViewportUtil';
