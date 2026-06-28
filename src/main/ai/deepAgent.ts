@@ -30,7 +30,7 @@ import { createChatModel, getActiveModelConfig } from './aiModel';
 import type { PreprocessResult } from './promptPreprocess';
 
 import { aiTools } from './tools';
-import { getConfig } from '../../configMgr';
+import { getConfig } from '../configMgr';
 import { logger } from '../../shared/logUtil';
 import { consumeScriptedAnswer } from './scriptedAnswer';
 import { getReasoningContent } from './messageUtil';

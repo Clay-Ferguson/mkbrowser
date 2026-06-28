@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseConfigYaml, defaultSettings, cloneDefaultSettings, coerceNonNegativeNumber } from '../src/configSchema';
+import { parseConfigYaml, defaultSettings, cloneDefaultSettings, coerceNonNegativeNumber } from '../src/main/configSchema';
 
 // ---------------------------------------------------------------------------
 // coerceNonNegativeNumber — shared coercion used by schema preprocess + configMgr

@@ -11,11 +11,11 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { app } from 'electron';
 import * as yaml from 'js-yaml';
-import { enforceDefaultAIModels } from './main/ai/aiModel';
+import { enforceDefaultAIModels } from './ai/aiModel';
 import { defaultSettings, cloneDefaultSettings, parseConfigYaml, coerceNonNegativeNumber } from './configSchema';
-import type { AppConfig, AIModelConfig } from './shared/shared';
-import { logger } from './shared/logUtil';
-import { writeFileAtomic } from './main/atomicWrite';
+import type { AppConfig, AIModelConfig } from '../shared/shared';
+import { logger } from '../shared/logUtil';
+import { writeFileAtomic } from './atomicWrite';
 
 // Config file location — resolved per OS by Electron (Linux: ~/.config/mk-browser)
 const CONFIG_DIR = app.getPath('userData');

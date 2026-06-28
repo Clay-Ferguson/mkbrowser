@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { clsx } from 'clsx';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../services/api';
-import { saveAiConfig } from '../../config';
+import { saveAiConfig } from '../../renderer/config';
 import { useAiConfigState, getAiConfig } from '../../store';
 import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../shared/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';

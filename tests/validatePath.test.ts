@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock configMgr.getConfig to return controlled agenticAllowedFolders
 const mockGetConfig = vi.fn();
 
-vi.mock('../src/configMgr', () => ({
+vi.mock('../src/main/configMgr', () => ({
   getConfig: (...args: unknown[]) => mockGetConfig(...args),
 }));
 

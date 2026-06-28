@@ -1,9 +1,9 @@
-import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig, defaultAiConfig, defaultSettings } from './store';
-import { api } from './services/api';
-import { isPathInside } from './renderer/pathUtil';
-import { logger } from './shared/logUtil';
-import type { AppConfig } from './shared/shared';
-import type { AiConfigState } from './store';
+import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig, defaultAiConfig, defaultSettings } from '../store';
+import { api } from '../services/api';
+import { isPathInside } from './pathUtil';
+import { logger } from '../shared/logUtil';
+import type { AppConfig } from '../shared/shared';
+import type { AiConfigState } from '../store';
 
 /**
  * Project the AI-related keys present in a (partial) AppConfig onto the store's

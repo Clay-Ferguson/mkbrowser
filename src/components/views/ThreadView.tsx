@@ -18,7 +18,7 @@ import {
   setItemEditing,
   useAiConfigState,
 } from '../../store';
-import { saveAiConfig } from '../../config';
+import { saveAiConfig } from '../../renderer/config';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import MarkdownEntry from '../entries/MarkdownEntry';
 import ThreadAvatar, { ThreadAvatarDefs } from '../ThreadAvatar';

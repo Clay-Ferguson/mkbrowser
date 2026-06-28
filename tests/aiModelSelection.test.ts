@@ -15,7 +15,7 @@ import type { AIModelConfig } from '../src/types/shared';
 // ---------------------------------------------------------------------------
 
 const mockGetConfig = vi.fn();
-vi.mock('../src/configMgr', () => ({
+vi.mock('../src/main/configMgr', () => ({
   getConfig: (...args: unknown[]) => mockGetConfig(...args),
 }));
 

@@ -40,7 +40,7 @@ import {
 import type { CalendarEvent, AppView } from './shared/types';
 import type { CalendarEventResult, AppConfig } from './shared/shared';
 import type { FileNode } from './store';
-import { loadConfig } from './config';
+import { loadConfig } from './renderer/config';
 import { isPathInside } from './renderer/pathUtil';
 import { applyGlobalHighlight, globalHighlightText } from './renderer/globalHighlight';
 import { logger } from './shared/logUtil';

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 // configMgr.ts calls app.getPath() at module-level (not inside a function), so Electron's
 // `app` object (which is undefined outside the main process) is accessed the moment the
 // module is imported, crashing before any tests run.
-vi.mock('../src/configMgr', () => ({ getConfig: vi.fn() }));
+vi.mock('../src/main/configMgr', () => ({ getConfig: vi.fn() }));
 
 import { enforceDefaultAIModels, type AIModelConfigLike } from '../src/main/ai/aiModel';
 

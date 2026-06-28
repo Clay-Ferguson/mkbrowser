@@ -17,8 +17,8 @@ const { tmpHome } = vi.hoisted(() => {
 
 vi.mock('electron', () => ({ app: { getPath: () => tmpHome } }));
 
-import { initConfig, getConfig, getConfigLoadError, updateConfig, withDefaultAISettings } from '../src/configMgr';
-import { defaultSettings, cloneDefaultSettings } from '../src/configSchema';
+import { initConfig, getConfig, getConfigLoadError, updateConfig, withDefaultAISettings } from '../src/main/configMgr';
+import { defaultSettings, cloneDefaultSettings } from '../src/main/configSchema';
 import type { AIModelConfig, AppConfig } from '../src/types/shared';
 
 // configMgr uses app.getPath('userData') directly as CONFIG_DIR, so tmpHome IS the dir.
@@ -386,7 +386,7 @@ describe('configMgr module boundary (issue 020)', () => {
   // can't be detected via module exports; assert against the source instead.
   it('does not bulk re-export shared types from ./types/shared', () => {
     const source = fs.readFileSync(
-      path.join(__dirname, '../src/configMgr.ts'),
+      path.join(__dirname, '../src/main/configMgr.ts'),
       'utf-8',
     );
     expect(source).not.toMatch(/export\s+type\s*\{[^}]*\}\s*from\s*['"]\.\/types\/shared['"]/);

@@ -44,7 +44,7 @@ vi.mock('../src/services/api', () => ({
   },
 }));
 
-import { loadConfig, saveAiConfig } from '../src/config';
+import { loadConfig, saveAiConfig } from '../src/renderer/config';
 import { setCurrentPath, setSettings, setAiConfig, defaultSettings } from '../src/store';
 import { api } from '../src/services/api';
 

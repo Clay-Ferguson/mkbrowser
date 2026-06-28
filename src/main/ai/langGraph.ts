@@ -7,7 +7,7 @@ import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { HumanMessage, SystemMessage, type BaseMessage } from '@langchain/core/messages';
 import { aiTools } from './tools';
-import { getConfig } from '../../configMgr';
+import { getConfig } from '../configMgr';
 import { buildSystemPrompt } from '../../shared/ai/aiPrompts';
 import type { PreprocessResult } from './promptPreprocess';
 import { createChatModel, getActiveModelConfig } from './aiModel';

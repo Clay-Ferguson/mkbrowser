@@ -8,7 +8,7 @@ import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import { fdir } from 'fdir';
 import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
-import { getConfig } from '../../configMgr';
+import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
 import { getActiveModel, getActiveProvider, ensureModelServerRunning } from './aiModel';
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from '../../shared/ai/aiPrompts';

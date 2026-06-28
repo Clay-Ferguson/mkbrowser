@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, protocol, net, shell, native
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
-import { initConfig, getConfig, updateConfig, flushConfig } from './configMgr';
+import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
 import type { AppConfig, OcrTarget } from './shared/shared';
 
 import { readDirectory } from './main/fileUtil';
