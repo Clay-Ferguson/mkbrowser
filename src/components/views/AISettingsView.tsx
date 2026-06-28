@@ -6,7 +6,7 @@ import { saveAiConfig } from '../../config';
 import { useAiConfigState, getAiConfig } from '../../store';
 import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../types/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
-import { DEFAULT_AI_REWRITE_PERSONA } from '../../ai/aiPrompts';
+import { DEFAULT_AI_REWRITE_PERSONA } from '../../shared/ai/aiPrompts';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import AlertDialog from '../dialogs/AlertDialog';

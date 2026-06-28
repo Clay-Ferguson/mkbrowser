@@ -1,5 +1,5 @@
 /**
- * Unit tests for the active-model helpers in src/ai/aiModel.ts:
+ * Unit tests for the active-model helpers in src/main/ai/aiModel.ts:
  * getActiveModel, getActiveProvider, and ensureModelServerRunning.
  *
  * These resolve the user's selected model from config and decide whether the
@@ -20,11 +20,11 @@ vi.mock('../src/configMgr', () => ({
 }));
 
 const mockEnsureRunning = vi.fn(() => Promise.resolve());
-vi.mock('../src/ai/llamaServer', () => ({
+vi.mock('../src/main/ai/llamaServer', () => ({
   ensureRunning: (...args: unknown[]) => mockEnsureRunning(...args),
 }));
 
-import { getActiveModel, getActiveProvider, ensureModelServerRunning } from '../src/ai/aiModel';
+import { getActiveModel, getActiveProvider, ensureModelServerRunning } from '../src/main/ai/aiModel';
 
 // ---------------------------------------------------------------------------
 // Helpers

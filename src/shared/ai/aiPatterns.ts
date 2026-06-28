@@ -5,8 +5,8 @@
  * NOTE: This file must NOT import Node.js modules (e.g. 'node:fs') because
  * it is also bundled into the renderer (browser) process.
  */
-import type { FileEntry } from '../global';
-import { HUMAN_FILENAME, AI_FILENAME } from '../shared/specialFiles';
+import type { FileEntry } from '../../global';
+import { HUMAN_FILENAME, AI_FILENAME } from '../specialFiles';
 
 /** Matches AI conversation folders: "A", "A1", "A2", etc. (case-sensitive) */
 export const AI_FOLDER_REGEX = /^A\d*$/;

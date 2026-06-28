@@ -30,11 +30,11 @@ import { createChatModel, getActiveModelConfig } from './aiModel';
 import type { PreprocessResult } from './promptPreprocess';
 
 import { aiTools } from './tools';
-import { getConfig } from '../configMgr';
-import { logger } from '../shared/logUtil';
+import { getConfig } from '../../configMgr';
+import { logger } from '../../shared/logUtil';
 import { consumeScriptedAnswer } from './scriptedAnswer';
 import { getReasoningContent } from './messageUtil';
-import { StreamProcessor } from './streamProcessor';
+import { StreamProcessor } from '../../main/ai/streamProcessor';
 import { checkHealth } from './llamaServer';
 
 /** 
@@ -56,7 +56,7 @@ function debugLog(...args: unknown[]) {
   if (DEBUG) logger.log('[deepAgent DEBUG]', ...args);
 }
 
-import { buildSystemPrompt } from './aiPrompts';
+import { buildSystemPrompt } from '../../shared/ai/aiPrompts';
 
 /**
  * Create a Deep Agent configured for MkBrowser.

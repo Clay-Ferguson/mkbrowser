@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import type { FileEntry } from "../global";
 import { logger } from '../shared/logUtil';
-import { readAiHint } from '../ai/aiHint';
+import { readAiHint } from './ai/aiHint';
 import { readIndexYaml, compareByIndexOrder } from './indexUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { compareNames } from '../shared/fileTypes';

@@ -1,5 +1,5 @@
 /**
- * Unit tests for StreamProcessor (src/ai/streamProcessor.ts).
+ * Unit tests for StreamProcessor (src/main/ai/streamProcessor.ts).
  *
  * StreamProcessor consumes LangGraph `streamEvents()` events and accumulates
  * content / thinking / usage while splitting out llama.cpp inline
@@ -12,7 +12,7 @@
  * Electron or LangChain.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { StreamProcessor, type StreamEventLike } from '../src/ai/streamProcessor';
+import { StreamProcessor, type StreamEventLike } from '../src/main/ai/streamProcessor';
 
 // ---------------------------------------------------------------------------
 // Helpers

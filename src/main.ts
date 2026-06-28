@@ -19,11 +19,11 @@ import { startCalendarWatcher, stopCalendarWatcher, getCalendarWatcherFolder } f
 import { scanFolderTree, type FolderGraphResult } from './main/folderGraph';
 import { loadTags } from './main/tagLoader';
 import type { TagCategory } from './shared/tagUtil';
-import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './ai/aiUtil';
-import { hasScriptedAnswer, queueScriptedAnswer } from './ai/langGraph';
-import type { StreamCallbacks } from './ai/langGraph';
-import { getUsageWithCosts, resetUsage } from './ai/usageTracker';
-import { checkHealth, ensureRunning, stopServer } from './ai/llamaServer';
+import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './main/ai/aiUtil';
+import { hasScriptedAnswer, queueScriptedAnswer } from './main/ai/langGraph';
+import type { StreamCallbacks } from './main/ai/langGraph';
+import { getUsageWithCosts, resetUsage } from './main/ai/usageTracker';
+import { checkHealth, ensureRunning, stopServer } from './main/ai/llamaServer';
 import { readExifMetadata, writeExifMetadata } from './main/exifUtil';
 import { logger } from './shared/logUtil';
 import { exportFolderContents, exportToPdf } from './main/exportUtil';

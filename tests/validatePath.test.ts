@@ -1,5 +1,5 @@
 /**
- * Unit tests for the validatePath function from src/ai/tools.ts.
+ * Unit tests for the validatePath function from src/main/ai/tools.ts.
  *
  * We mock the configMgr module so tests don't depend on any config file
  * on disk.  We also mock node:fs/promises so we control what realpath returns
@@ -27,7 +27,7 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 // Now import the function under test (after mocks are hoisted)
-import { validatePath } from '../src/ai/tools';
+import { validatePath } from '../src/main/ai/tools';
 
 // ---------------------------------------------------------------------------
 // Helpers

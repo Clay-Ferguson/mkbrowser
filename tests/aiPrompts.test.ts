@@ -1,12 +1,12 @@
 /**
- * Unit tests for buildSystemPrompt (src/ai/aiPrompts.ts).
+ * Unit tests for buildSystemPrompt (src/shared/ai/aiPrompts.ts).
  *
  * Pure string composition — no LLM involved. Verifies that the user's selected
  * persona is appended to the base system prompt, and that blank/absent personas
  * fall back to the base prompt unchanged.
  */
 import { describe, it, expect } from 'vitest';
-import { buildSystemPrompt, MKBROWSER_SYSTEM_PROMPT } from '../src/ai/aiPrompts';
+import { buildSystemPrompt, MKBROWSER_SYSTEM_PROMPT } from '../src/shared/ai/aiPrompts';
 
 describe('buildSystemPrompt', () => {
   it('returns the base prompt unchanged when no persona is given', () => {

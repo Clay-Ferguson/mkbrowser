@@ -12,7 +12,7 @@
  *
  * This module runs in the main process only — never import from the renderer.
  */
-import { logger } from '../shared/logUtil';
+import { logger } from '../../shared/logUtil';
 
 /** Set to true to enable verbose debug logging for AI invocations. */
 const DEBUG = true;

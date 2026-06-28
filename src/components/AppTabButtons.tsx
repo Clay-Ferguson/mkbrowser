@@ -2,7 +2,7 @@ import { useRef, useState, useCallback } from 'react';
 import { clsx } from 'clsx';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { showTab, hideTab, useCurrentView, setCurrentView, useFolderAnalysis, useFolderGraph, useSearchResults, useVisibleTabs, useCurrentPath, useRootPath, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, setSearchResults, type AppView } from '../store';
-import { isAiThreadByEntries } from '../ai/aiPatterns';
+import { isAiThreadByEntries } from '../shared/ai/aiPatterns';
 import { getParentPath, isPathInside } from '../renderer/pathUtil';
 import type { FileEntry } from '../global';
 import appLogo from '../../public/icon-256.png';

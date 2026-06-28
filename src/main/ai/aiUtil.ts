@@ -8,16 +8,16 @@ import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import { fdir } from 'fdir';
 import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
-import { getConfig } from '../configMgr';
+import { getConfig } from '../../configMgr';
 import { recordUsage } from './usageTracker';
 import { getActiveModel, getActiveProvider, ensureModelServerRunning } from './aiModel';
-import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from './aiPrompts';
+import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from '../../shared/ai/aiPrompts';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
-import { readIndexYaml } from '../main/indexUtil';
-import { HUMAN_FILENAME, AI_FILENAME, THINK_FILENAME } from '../shared/specialFiles';
+import { readIndexYaml } from '../indexUtil';
+import { HUMAN_FILENAME, AI_FILENAME, THINK_FILENAME } from '../../shared/specialFiles';
 import { invokeAI, streamAI, resolveActivePersona, hasScriptedAnswer, type AIUsageInfo, type AIInvokeResult, type StreamCallbacks } from './langGraph';
-import { logger } from '../shared/logUtil';
+import { logger } from '../../shared/logUtil';
 import { readAiHint } from './aiHint';
 
 /**

@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 // module is imported, crashing before any tests run.
 vi.mock('../src/configMgr', () => ({ getConfig: vi.fn() }));
 
-import { enforceDefaultAIModels, type AIModelConfigLike } from '../src/ai/aiModel';
+import { enforceDefaultAIModels, type AIModelConfigLike } from '../src/main/ai/aiModel';
 
 describe('enforceDefaultAIModels', () => {
   const defaults = [

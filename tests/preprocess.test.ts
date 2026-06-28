@@ -13,7 +13,7 @@ import {
   getImageMimeType,
   isImageFile,
   MAX_IMAGE_SIZE_BYTES,
-} from '../src/ai/promptPreprocess';
+} from '../src/main/ai/promptPreprocess';
 
 // ── Test fixture directory ─────────────────────────────────────────
 // NOTE: Must NOT live under test-data/ — that directory is wiped by search.test.ts's beforeAll.

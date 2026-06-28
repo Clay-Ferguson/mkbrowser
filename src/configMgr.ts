@@ -11,7 +11,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { app } from 'electron';
 import * as yaml from 'js-yaml';
-import { enforceDefaultAIModels } from './ai/aiModel';
+import { enforceDefaultAIModels } from './main/ai/aiModel';
 import { defaultSettings, cloneDefaultSettings, parseConfigYaml, coerceNonNegativeNumber } from './configSchema';
 import type { AppConfig, AIModelConfig } from './types/shared';
 import { logger } from './shared/logUtil';

@@ -1,8 +1,8 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { ChatAnthropic } from "@langchain/anthropic";
-import { getConfig } from '../configMgr';
-import type { AIModelConfig } from '../types/shared';
+import { getConfig } from '../../configMgr';
+import type { AIModelConfig } from '../../types/shared';
 import { ensureRunning } from './llamaServer';
 import { createDebugLog } from "./aiLog";
 
@@ -10,7 +10,7 @@ const debugLog = createDebugLog('aiModel');
 
 export type AIProvider = 'ANTHROPIC' | 'OPENAI' | 'GOOGLE' | 'LLAMACPP';
 
-interface AIModelConfigLike {
+export interface AIModelConfigLike {
   name: string;
   provider: AIProvider;
   model: string;

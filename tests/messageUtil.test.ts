@@ -1,5 +1,5 @@
 /**
- * Unit tests for messageUtil (src/ai/messageUtil.ts) — the typed accessors for
+ * Unit tests for messageUtil (src/main/ai/messageUtil.ts) — the typed accessors for
  * the loosely-typed fields LangChain attaches to messages / stream chunks.
  *
  * These are pure functions over plain objects; no LLM or LangChain runtime is
@@ -11,7 +11,7 @@ import {
   getReasoningContent,
   hasToolCalls,
   getUsageMetadata,
-} from '../src/ai/messageUtil';
+} from '../src/main/ai/messageUtil';
 
 describe('getAdditionalKwargs', () => {
   it('returns the additional_kwargs object when present', () => {

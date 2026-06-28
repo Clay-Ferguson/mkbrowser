@@ -74,7 +74,7 @@ import { scrollItemIntoView, scrollElementIntoView } from '../../renderer/entryD
 import { isImageFile, isTextFile, sortEntries } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
 import { generateTimestampFileName } from '../../shared/timeUtil';
-import { hasHumanMd } from '../../ai/aiPatterns';
+import { hasHumanMd } from '../../shared/ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig } from '../../renderer/searchUtil';
 import { buildReplaceResultMessage } from '../../shared/searchHelpers';
 import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
