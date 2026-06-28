@@ -4,7 +4,7 @@ import Dialog from './common/Dialog';
 import SearchDefinitionsPanel from './SearchDefinitionsPanel';
 import CheckboxField from './common/CheckboxField';
 import RadioGroup from './common/RadioGroup';
-import type { SearchDefinition } from '../../types/types';
+import type { SearchDefinition } from '../../shared/types';
 import * as globalHighlight from '../../renderer/globalHighlight';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../renderer/styles';
 

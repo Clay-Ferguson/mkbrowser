@@ -1,5 +1,5 @@
-import type { ItemData } from '../types/types';
-import type { OcrTarget } from '../types/shared';
+import type { ItemData } from '../shared/types';
+import type { OcrTarget } from '../shared/shared';
 import { api } from '../services/api';
 import type { FileEntry } from '../global';
 import { isImageFile, isTextFile, isMarkdownFile } from '../shared/fileTypes';

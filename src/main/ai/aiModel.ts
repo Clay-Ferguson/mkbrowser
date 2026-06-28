@@ -2,7 +2,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { getConfig } from '../../configMgr';
-import type { AIModelConfig } from '../../types/shared';
+import type { AIModelConfig } from '../../shared/shared';
 import { ensureRunning } from './llamaServer';
 import { createDebugLog } from "./aiLog";
 

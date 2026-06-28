@@ -37,8 +37,8 @@ import {
   updateCalendarEvent,
   deleteCalendarEventsUnderPath,
 } from './store';
-import type { CalendarEvent, AppView } from './types/types';
-import type { CalendarEventResult, AppConfig } from './types/shared';
+import type { CalendarEvent, AppView } from './shared/types';
+import type { CalendarEventResult, AppConfig } from './shared/shared';
 import type { FileNode } from './store';
 import { loadConfig } from './config';
 import { isPathInside } from './renderer/pathUtil';

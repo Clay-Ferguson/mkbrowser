@@ -1,4 +1,4 @@
-import type { CalendarEvent, CalendarViewType } from '../types/types';
+import type { CalendarEvent, CalendarViewType } from '../shared/types';
 import { ensureTrailingSep } from '../renderer/pathUtil';
 import { getState, setState, useStoreValue } from './core';
 

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { AI_PROVIDERS } from '../../types/shared';
-import type { AIModelConfig, AIProvider } from '../../types/shared';
+import { AI_PROVIDERS } from '../../shared/shared';
+import type { AIModelConfig, AIProvider } from '../../shared/shared';
 import Dialog from './common/Dialog';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_FOOTER_CLASS, DLG_INPUT_CLASS_ALT } from '../../renderer/styles';
 

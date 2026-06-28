@@ -24,9 +24,9 @@ export type {
   ProviderUsage,
   AIUsageWithCosts,
   ElectronAPI,
-} from './types/shared';
+} from './shared/shared';
 
-import type { ElectronAPI } from './types/shared';
+import type { ElectronAPI } from './shared/shared';
 
 declare global {
   interface Window {

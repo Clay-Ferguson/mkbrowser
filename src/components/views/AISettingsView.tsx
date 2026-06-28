@@ -4,7 +4,7 @@ import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/re
 import { api } from '../../services/api';
 import { saveAiConfig } from '../../config';
 import { useAiConfigState, getAiConfig } from '../../store';
-import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../types/shared';
+import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../shared/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../shared/ai/aiPrompts';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';

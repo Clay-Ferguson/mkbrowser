@@ -4,7 +4,7 @@ import { PhotoIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, MagnifyingGl
 import { api } from '../../services/api';
 import { logger } from '../../shared/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
-import type { ExifData } from '../../types/shared';
+import type { ExifData } from '../../shared/shared';
 import { useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
 import ExifDialog from '../dialogs/ExifDialog';
 import FullscreenImageViewer from './FullscreenImageViewer';

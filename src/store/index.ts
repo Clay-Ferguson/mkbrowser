@@ -1,5 +1,5 @@
-export type { AppState, AppView, AppSettings, AiConfigState, Bookmark, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, FolderAnalysisState, FolderGraphState, FolderGraphNode, FolderGraphLink, HashtagEntry, ThreadEntry, ThreadChildFolder, TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode, CalendarEvent } from '../types/types';
-export { createItemData } from '../types/types';
+export type { AppState, AppView, AppSettings, AiConfigState, Bookmark, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, FolderAnalysisState, FolderGraphState, FolderGraphNode, FolderGraphLink, HashtagEntry, ThreadEntry, ThreadChildFolder, TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode, CalendarEvent } from '../shared/types';
+export { createItemData } from '../shared/types';
 
 // Store is split into cohesive slices that all share the core
 // state/subscribe/emitChange primitives from `./core`. This barrel is the

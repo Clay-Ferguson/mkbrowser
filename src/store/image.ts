@@ -1,4 +1,4 @@
-import type { ImageSize } from '../types/shared';
+import type { ImageSize } from '../shared/shared';
 import { setState, useStoreValue } from './core';
 
 // ============================================================================

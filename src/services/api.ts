@@ -1,4 +1,4 @@
-import type { ElectronAPI } from '../types/shared';
+import type { ElectronAPI } from '../shared/shared';
 
 /**
  * Single, typed access point to the Electron preload bridge (the IPC boundary).

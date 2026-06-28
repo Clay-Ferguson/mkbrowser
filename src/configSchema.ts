@@ -24,8 +24,8 @@
  */
 
 import { z } from 'zod';
-import { AI_PROVIDERS } from './types/shared';
-import type { AppConfig, AppSettings } from './types/shared';
+import { AI_PROVIDERS } from './shared/shared';
+import type { AppConfig, AppSettings } from './shared/shared';
 
 // ---------------------------------------------------------------------------
 // Settings defaults (single source of truth; configMgr imports these)

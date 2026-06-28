@@ -1,4 +1,4 @@
-import type { AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth } from '../types/types';
+import type { AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth } from '../shared/types';
 import { getState, setState, useStoreValue, defaultSettings } from './core';
 
 export { defaultSettings };

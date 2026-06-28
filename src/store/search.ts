@@ -1,4 +1,4 @@
-import type { HighlightedSearchResult, SearchResultItem, SearchSortBy, SearchSortDirection } from '../types/types';
+import type { HighlightedSearchResult, SearchResultItem, SearchSortBy, SearchSortDirection } from '../shared/types';
 import { setState, useStoreValue } from './core';
 
 // ============================================================================

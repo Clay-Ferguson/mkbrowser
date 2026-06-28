@@ -1,4 +1,4 @@
-import type { AiConfigState } from '../types/types';
+import type { AiConfigState } from '../shared/types';
 import { getState, setState, useStoreValue, defaultAiConfig } from './core';
 
 export { defaultAiConfig };

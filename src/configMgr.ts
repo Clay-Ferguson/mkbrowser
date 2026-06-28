@@ -13,7 +13,7 @@ import { app } from 'electron';
 import * as yaml from 'js-yaml';
 import { enforceDefaultAIModels } from './main/ai/aiModel';
 import { defaultSettings, cloneDefaultSettings, parseConfigYaml, coerceNonNegativeNumber } from './configSchema';
-import type { AppConfig, AIModelConfig } from './types/shared';
+import type { AppConfig, AIModelConfig } from './shared/shared';
 import { logger } from './shared/logUtil';
 import { writeFileAtomic } from './main/atomicWrite';
 

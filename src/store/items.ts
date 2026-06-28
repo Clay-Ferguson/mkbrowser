@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import type { ItemData } from '../types/types';
-import { createItemData } from '../types/types';
+import type { ItemData } from '../shared/types';
+import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
 import { getParentPath } from '../renderer/pathUtil';

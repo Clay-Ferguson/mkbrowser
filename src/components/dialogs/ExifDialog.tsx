@@ -5,7 +5,7 @@ import { logger } from '../../shared/logUtil';
 import Dialog from './common/Dialog';
 import AlertDialog from './AlertDialog';
 import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../renderer/styles';
-import type { ExifData, ExifSection } from '../../types/shared';
+import type { ExifData, ExifSection } from '../../shared/shared';
 
 /**
  * Where a human-readable "Description" should be embedded for a given image type.

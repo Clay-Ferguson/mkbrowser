@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { clsx } from 'clsx';
 import { ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
-import type { SearchDefinition } from '../../types/types';
+import type { SearchDefinition } from '../../shared/types';
 import { DLG_LABEL_CLASS, DLG_INPUT_CLASS } from '../../renderer/styles';
 
 interface SearchDefinitionsPanelProps {

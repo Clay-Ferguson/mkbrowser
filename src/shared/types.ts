@@ -532,7 +532,7 @@ export interface AppState {
    * Image display size: 'small' (default, max-h-96) or 'large' (max-h-[48rem]).
    * Persisted to AppConfig. Changing this triggers a re-render of all ImageEntry components.
    */
-  imageSize: import('../types/shared').ImageSize;
+  imageSize: import('./shared').ImageSize;
 
   /**
    * True while the image-size toggle animation is running (fade-in over 750ms).
@@ -561,10 +561,10 @@ export interface AiConfigState {
   aiEnabled: boolean;
   aiRewriteMode: boolean;
   aiRewritePrompt: string;
-  aiRewritePrompts: import('../types/shared').AIRewritePromptDef[];
+  aiRewritePrompts: import('./shared').AIRewritePromptDef[];
   tagsPanelVisible: boolean;
   fullDocContext: boolean;
-  aiModels: import('../types/shared').AIModelConfig[];
+  aiModels: import('./shared').AIModelConfig[];
   aiModel: string;
   llamacppBaseUrl: string;
   llamacppFolder: string;

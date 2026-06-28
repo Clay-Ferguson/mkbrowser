@@ -1,6 +1,6 @@
 import type React from 'react';
 import { api } from '../services/api';
-import type { FileNode } from '../types/types';
+import type { FileNode } from '../shared/types';
 import { pasteCutItems } from './edit';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
 import { getParentPath, isPathInside } from './pathUtil';

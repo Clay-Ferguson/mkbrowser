@@ -1,4 +1,4 @@
-import type { AppState, AppView, FolderAnalysisState, FolderGraphState } from '../types/types';
+import type { AppState, AppView, FolderAnalysisState, FolderGraphState } from '../shared/types';
 import { getState, setState, useStoreValue } from './core';
 
 // ============================================================================

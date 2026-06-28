@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppConfig, ElectronAPI, CalendarEventResult, OcrTarget } from './types/shared';
+import type { AppConfig, ElectronAPI, CalendarEventResult, OcrTarget } from './shared/shared';
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {

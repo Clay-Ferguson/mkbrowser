@@ -1,7 +1,7 @@
 import { exiftool } from 'exiftool-vendored';
 import * as ExifReader from 'exifreader';
 import { logger } from '../shared/logUtil';
-import type { ExifData } from '../types/shared';
+import type { ExifData } from '../shared/shared';
 /**
  * Write EXIF metadata to an image file. Accepts a grouped tag object (same as readExifMetadata output).
  * Only string values are supported. Returns true on success, false on error.

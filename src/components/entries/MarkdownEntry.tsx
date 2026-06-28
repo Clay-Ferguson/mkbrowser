@@ -5,7 +5,7 @@ import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } 
 import { api } from '../../services/api';
 import { saveAiConfig } from '../../config';
 import type { FileEntry } from '../../global';
-import type { AppView } from '../../types/types';
+import type { AppView } from '../../shared/types';
 import { removeTOC } from '../../shared/tocUtil';
 import {
   useItem,

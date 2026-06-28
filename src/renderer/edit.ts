@@ -1,7 +1,7 @@
-import type { ItemData } from '../types/types';
+import type { ItemData } from '../shared/types';
 import { joinFiles as joinFilesUtil } from './joinUtil';
 import { splitFile as splitFileUtil } from './splitUtil';
-import type { FileOps } from '../types/shared';
+import type { FileOps } from '../shared/shared';
 import { getParentPath, joinPath, isPathInside } from './pathUtil';
 import { toErrorMessage } from '../shared/logUtil';
 import { isTextFile, isMarkdownFile } from '../shared/fileTypes';

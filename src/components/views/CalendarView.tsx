@@ -6,7 +6,7 @@ import { enUS } from 'date-fns/locale/en-US';
 import { api } from '../../services/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useCalendarEvents, useCalendarLoading, useCalendarViewType, setCalendarViewType, useCalendarViewTime, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useSettings, useActiveCalendarFolder } from '../../store';
-import type { CalendarEvent, CalendarViewType } from '../../types/types';
+import type { CalendarEvent, CalendarViewType } from '../../shared/types';
 import { logger } from '../../shared/logUtil';
 import { getParentPath, joinPath } from '../../renderer/pathUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';

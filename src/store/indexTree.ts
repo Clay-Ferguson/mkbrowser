@@ -1,4 +1,4 @@
-import type { AppState, TreeNode, FileNode } from '../types/types';
+import type { AppState, TreeNode, FileNode } from '../shared/types';
 import { getState, setState, useStoreValue } from './core';
 
 // ============================================================================

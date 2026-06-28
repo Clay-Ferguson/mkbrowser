@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { AppState, AppSettings, AiConfigState } from '../types/types';
+import type { AppState, AppSettings, AiConfigState } from '../shared/types';
 
 /**
  * Default settings
