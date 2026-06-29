@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { splitFrontMatter } from '../src/shared/frontMatterUtil';
+import {
+  splitFrontMatter,
+  parseFrontMatter,
+  assembleFrontMatter,
+  getPropsFromYaml,
+} from '../src/shared/frontMatterUtil';
 
 describe('splitFrontMatter', () => {
   it('returns null for plain text with no front matter', () => {
@@ -63,5 +68,156 @@ describe('splitFrontMatter', () => {
     const result = splitFrontMatter(text);
     expect(result).not.toBeNull();
     expect(result?.body).toBe('body');
+  });
+
+  it('allows trailing whitespace on the opening ---', () => {
+    const text = '---  \ntitle: x\n---\nbody';
+    const result = splitFrontMatter(text);
+    expect(result).not.toBeNull();
+    expect(result?.yamlStr).toBe('title: x');
+    expect(result?.body).toBe('body');
+  });
+
+  it('matches a closing --- anchored at end of file with no trailing newline', () => {
+    const text = '---\ntitle: x\n---';
+    const result = splitFrontMatter(text);
+    expect(result).not.toBeNull();
+    expect(result?.yamlStr).toBe('title: x');
+    expect(result?.body).toBe('');
+  });
+
+  it('does not treat closing ... (yaml end-doc) as a fence', () => {
+    // Unlike parseFrontMatter, splitFrontMatter only recognizes --- fences.
+    const text = '---\ntitle: x\n...\nbody';
+    expect(splitFrontMatter(text)).toBeNull();
+  });
+});
+
+describe('parseFrontMatter', () => {
+  it('returns null yaml and unchanged content for plain text', () => {
+    const result = parseFrontMatter('just some text');
+    expect(result.yaml).toBeNull();
+    expect(result.content).toBe('just some text');
+  });
+
+  it('parses yaml into an object and strips the block from the body', () => {
+    const result = parseFrontMatter('---\ntitle: hello\ncount: 3\n---\nbody text');
+    expect(result.yaml).toEqual({ title: 'hello', count: 3 });
+    expect(result.content).toBe('body text');
+  });
+
+  it('preserves parsed value types (numbers, booleans, lists)', () => {
+    const result = parseFrontMatter('---\nn: 42\nflag: true\ntags:\n  - a\n  - b\n---\nx');
+    expect(result.yaml).toEqual({ n: 42, flag: true, tags: ['a', 'b'] });
+  });
+
+  it('recognizes a closing ... delimiter', () => {
+    const result = parseFrontMatter('---\ntitle: x\n...\nbody');
+    expect(result.yaml).toEqual({ title: 'x' });
+    expect(result.content).toBe('body');
+  });
+
+  it('handles a closing delimiter at end of file with no trailing newline', () => {
+    const result = parseFrontMatter('---\ntitle: x\n---');
+    expect(result.yaml).toEqual({ title: 'x' });
+    expect(result.content).toBe('');
+  });
+
+  it('returns null yaml for an unterminated front matter block', () => {
+    const raw = '---\ntitle: x\nno closing fence';
+    const result = parseFrontMatter(raw);
+    expect(result.yaml).toBeNull();
+    expect(result.content).toBe(raw);
+  });
+
+  it('returns null yaml (unchanged content) for malformed YAML', () => {
+    const raw = '---\nthis: : : not valid\n---\nbody';
+    const result = parseFrontMatter(raw);
+    expect(result.yaml).toBeNull();
+    // On malformed YAML the original content is returned untouched, not the body.
+    expect(result.content).toBe(raw);
+  });
+
+  it('returns null yaml when the block parses to a non-object (array)', () => {
+    const raw = '---\n- a\n- b\n---\nbody';
+    const result = parseFrontMatter(raw);
+    expect(result.yaml).toBeNull();
+    expect(result.content).toBe(raw);
+  });
+
+  it('returns null yaml when the block parses to a scalar', () => {
+    const raw = '---\njust a string\n---\nbody';
+    const result = parseFrontMatter(raw);
+    expect(result.yaml).toBeNull();
+    expect(result.content).toBe(raw);
+  });
+
+  it('returns null yaml for an empty front matter block (parses to undefined)', () => {
+    const raw = '---\n\n---\nbody';
+    const result = parseFrontMatter(raw);
+    expect(result.yaml).toBeNull();
+    expect(result.content).toBe(raw);
+  });
+
+  it('preserves a blank line at the start of the body', () => {
+    const result = parseFrontMatter('---\ntitle: x\n---\n\nbody');
+    expect(result.yaml).toEqual({ title: 'x' });
+    expect(result.content).toBe('\nbody');
+  });
+});
+
+describe('assembleFrontMatter', () => {
+  it('wraps yaml and body in --- fences', () => {
+    expect(assembleFrontMatter('title: x', 'body')).toBe('---\ntitle: x\n---\nbody');
+  });
+
+  it('trims surrounding whitespace from the yaml content', () => {
+    expect(assembleFrontMatter('\n  title: x  \n', 'body')).toBe('---\ntitle: x\n---\nbody');
+  });
+
+  it('returns just the body when yaml is empty', () => {
+    expect(assembleFrontMatter('', 'body')).toBe('body');
+  });
+
+  it('returns just the body when yaml is only whitespace', () => {
+    expect(assembleFrontMatter('   \n\t', 'body')).toBe('body');
+  });
+
+  it('round-trips with splitFrontMatter', () => {
+    const original = '---\ntitle: x\ntags:\n  - a\n---\nthe body\nmore';
+    const split = splitFrontMatter(original);
+    expect(split).not.toBeNull();
+    if (!split) return;
+    expect(assembleFrontMatter(split.yamlStr, split.body)).toBe(original);
+  });
+});
+
+describe('getPropsFromYaml', () => {
+  it('returns all properties except tags', () => {
+    expect(getPropsFromYaml('title: x\ntags:\n  - a\ncount: 2')).toEqual({ title: 'x', count: 2 });
+  });
+
+  it('preserves parsed value types', () => {
+    expect(getPropsFromYaml('n: 5\nflag: false\nnested:\n  k: v')).toEqual({
+      n: 5,
+      flag: false,
+      nested: { k: 'v' },
+    });
+  });
+
+  it('returns an empty object for empty input', () => {
+    expect(getPropsFromYaml('')).toEqual({});
+  });
+
+  it('returns an empty object for malformed YAML', () => {
+    expect(getPropsFromYaml('this: : : not valid')).toEqual({});
+  });
+
+  it('returns an empty object when yaml has only a tags property', () => {
+    expect(getPropsFromYaml('tags:\n  - a\n  - b')).toEqual({});
+  });
+
+  it('returns an empty object when yaml parses to null', () => {
+    expect(getPropsFromYaml('null')).toEqual({});
   });
 });

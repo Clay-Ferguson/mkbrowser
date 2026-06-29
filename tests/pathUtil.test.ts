@@ -41,6 +41,14 @@ describe('getParentPath', () => {
   it('returns empty string for a file directly under the root', () => {
     expect(getParentPath('/file.md')).toBe('');
   });
+
+  it('returns empty string for an empty path', () => {
+    expect(getParentPath('')).toBe('');
+  });
+
+  it('strips only the trailing separator for a path ending in one', () => {
+    expect(getParentPath('/home/user/')).toBe('/home/user');
+  });
 });
 
 describe('getFileName', () => {
@@ -58,6 +66,14 @@ describe('getFileName', () => {
 
   it('returns empty string for a path ending in a separator', () => {
     expect(getFileName('/home/user/')).toBe('');
+  });
+
+  it('returns empty string for a path ending in a backslash', () => {
+    expect(getFileName('C:\\Users\\')).toBe('');
+  });
+
+  it('returns empty string for an empty path', () => {
+    expect(getFileName('')).toBe('');
   });
 });
 
@@ -86,6 +102,19 @@ describe('joinPath', () => {
   it('handles a windows-style trailing backslash on the left part', () => {
     expect(joinPath('C:\\Users\\', 'file.md')).toBe('C:\\Users/file.md');
   });
+
+  it('collapses a leading backslash on the right part', () => {
+    expect(joinPath('/home', '\\file.md')).toBe('/home/file.md');
+  });
+
+  it('returns the single part unchanged', () => {
+    expect(joinPath('/home/user')).toBe('/home/user');
+  });
+
+  it('returns empty string when given no parts or only empty parts', () => {
+    expect(joinPath()).toBe('');
+    expect(joinPath('', '', '')).toBe('');
+  });
 });
 
 describe('splitPath / splitPathSegments', () => {
@@ -101,6 +130,19 @@ describe('splitPath / splitPathSegments', () => {
     expect(splitPathSegments('/a//b/')).toEqual(['a', 'b']);
     expect(splitPathSegments('C:\\a\\b')).toEqual(['C:', 'a', 'b']);
   });
+
+  it('splits a path with no separators into a single segment', () => {
+    expect(splitPath('file.md')).toEqual(['file.md']);
+  });
+
+  it('splits an empty string into a single empty segment', () => {
+    expect(splitPath('')).toEqual(['']);
+  });
+
+  it('splitPathSegments returns an empty array for an empty string', () => {
+    expect(splitPathSegments('')).toEqual([]);
+    expect(splitPathSegments('///')).toEqual([]);
+  });
 });
 
 describe('endsWithSep / ensureTrailingSep', () => {
@@ -110,10 +152,18 @@ describe('endsWithSep / ensureTrailingSep', () => {
     expect(endsWithSep('/a')).toBe(false);
   });
 
+  it('reports false for an empty string', () => {
+    expect(endsWithSep('')).toBe(false);
+  });
+
   it('appends a separator only when missing', () => {
     expect(ensureTrailingSep('/a')).toBe('/a/');
     expect(ensureTrailingSep('/a/')).toBe('/a/');
     expect(ensureTrailingSep('C:\\a\\')).toBe('C:\\a\\');
+  });
+
+  it('appends the fallback separator to an empty string', () => {
+    expect(ensureTrailingSep('')).toBe('/');
   });
 });
 
@@ -135,6 +185,19 @@ describe('isAbsolutePath', () => {
     expect(isAbsolutePath('file.md')).toBe(false);
     expect(isAbsolutePath('./file.md')).toBe(false);
     expect(isAbsolutePath('../file.md')).toBe(false);
+  });
+
+  it('rejects a drive letter without a following separator', () => {
+    expect(isAbsolutePath('C:')).toBe(false);
+    expect(isAbsolutePath('C:file.md')).toBe(false);
+  });
+
+  it('rejects the empty string', () => {
+    expect(isAbsolutePath('')).toBe(false);
+  });
+
+  it('treats a multi-character drive prefix as relative', () => {
+    expect(isAbsolutePath('CD:\\Users')).toBe(false);
   });
 });
 
@@ -165,5 +228,18 @@ describe('isPathInside', () => {
 
   it('rejects unrelated paths', () => {
     expect(isPathInside('/home/user/notes', '/var/log')).toBe(false);
+  });
+
+  it('matches across mixed separators between root and child', () => {
+    expect(isPathInside('/home/user/notes', '/home/user/notes\\2024')).toBe(true);
+    expect(isPathInside('C:\\Users\\notes', 'C:\\Users\\notes/2024')).toBe(true);
+  });
+
+  it('ignores multiple trailing separators', () => {
+    expect(isPathInside('/home/user/notes//', '/home/user/notes')).toBe(true);
+  });
+
+  it('does not treat the child as inside when it is a parent of the root', () => {
+    expect(isPathInside('/home/user/notes', '/home/user')).toBe(false);
   });
 });

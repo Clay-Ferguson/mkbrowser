@@ -15,6 +15,7 @@ import {
   setRRuleProperty,
   injectCalendarFrontMatter,
   parseDueStr,
+  formatDueDate,
 } from '../src/shared/calendarUtil';
 
 let tmpDir: string;
@@ -406,6 +407,51 @@ describe('parseDueStr', () => {
   it('trims surrounding whitespace', () => {
     expect(parseDueStr('  6/18/2026  ')?.getTime()).toBe(new Date(2026, 5, 18).getTime());
   });
+
+  it('accepts a valid leap day (2/29 in a leap year)', () => {
+    expect(parseDueStr('2/29/2024')?.getTime()).toBe(new Date(2024, 1, 29).getTime());
+  });
+
+  it('rejects a leap day in a non-leap year', () => {
+    expect(parseDueStr('2/29/2026')).toBeNull();
+  });
+
+  it('rejects a string with more than three parts', () => {
+    expect(parseDueStr('1/2/3/4')).toBeNull();
+  });
+
+  it('rejects an empty string', () => {
+    expect(parseDueStr('')).toBeNull();
+  });
+
+  it('accepts the last day of months with 31 and 30 days', () => {
+    expect(parseDueStr('1/31/2026')?.getDate()).toBe(31);
+    expect(parseDueStr('4/30/2026')?.getDate()).toBe(30);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatDueDate
+// ---------------------------------------------------------------------------
+
+describe('formatDueDate', () => {
+  it('formats a date as M/D/YYYY with no zero padding', () => {
+    expect(formatDueDate(new Date(2026, 5, 5))).toBe('6/5/2026');
+  });
+
+  it('keeps multi-digit month and day un-padded', () => {
+    expect(formatDueDate(new Date(2026, 11, 31))).toBe('12/31/2026');
+  });
+
+  it('uses a 4-digit year', () => {
+    expect(formatDueDate(new Date(2027, 0, 1))).toBe('1/1/2027');
+  });
+
+  it('round-trips with parseDueStr', () => {
+    const original = new Date(2026, 6, 4);
+    const reparsed = parseDueStr(formatDueDate(original));
+    expect(reparsed?.getTime()).toBe(original.getTime());
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -594,6 +640,39 @@ describe('setRRuleProperty', () => {
   it('returns content unchanged when passed null with no existing rrule', () => {
     const result = setRRuleProperty(WITH_DUE, null);
     expect(result).toBe(WITH_DUE);
+  });
+
+  it('emits indented byday and until lines that read back', () => {
+    const result = setRRuleProperty(WITH_DUE, {
+      freq: 'weekly',
+      byday: 'TU,TH',
+      until: '12/31/2027',
+    });
+    expect(result).toMatch(/^ {2}byday: TU,TH$/m);
+    expect(result).toMatch(/^ {2}until: 12\/31\/2027$/m);
+    const r = getRRuleProperty(result);
+    expect(r?.byday).toBe('TU,TH');
+    expect(r?.until).toBe('12/31/2027');
+  });
+
+  it('emits interval line when interval is greater than 1', () => {
+    const result = setRRuleProperty(WITH_DUE, { freq: 'weekly', interval: '3' });
+    expect(result).toMatch(/^ {2}interval: 3$/m);
+    expect(getRRuleProperty(result)?.interval).toBe('3');
+  });
+
+  it('does nothing when no front matter exists and rrule has no freq', () => {
+    const result = setRRuleProperty(NO_FM, { interval: '2' });
+    expect(result).toBe(NO_FM);
+  });
+
+  it('creates front matter when none exists and rrule has a freq', () => {
+    const result = setRRuleProperty(NO_FM, { freq: 'daily', count: '4' });
+    expect(result.startsWith('---')).toBe(true);
+    const r = getRRuleProperty(result);
+    expect(r?.freq).toBe('daily');
+    expect(r?.count).toBe('4');
+    expect(result).toContain('Just plain body text.');
   });
 });
 

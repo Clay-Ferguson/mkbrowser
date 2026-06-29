@@ -186,7 +186,7 @@ export function getDaysFromToday(timestamp: number): number {
 
 /**
  * Format a days-from-today value as a human-readable string.
- * Examples: "(today)", "(-3 days)", "(1y 2m 5d)".
+ * Examples: "(today)", "-(3 days)", "+(1y 2m 5d)".
  */
 export function formatDaysDisplay(days: number): string {
   if (days === 0) return '(today)';

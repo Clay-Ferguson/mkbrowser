@@ -21,6 +21,17 @@ describe('removeTOC', () => {
     const input = 'before\n<!-- TOC -->\n- [x](#x)\n<!-- /TOC -->\nafter';
     expect(removeTOC(input)).toBe('before\n<!-- TOC -->\nafter');
   });
+
+  it('strips every TOC block when multiple are present', () => {
+    const input =
+      '<!-- TOC -->\n- [a](#a)\n<!-- /TOC -->\nmid\n<!-- TOC -->\n- [b](#b)\n<!-- /TOC -->';
+    expect(removeTOC(input)).toBe('<!-- TOC -->\nmid\n<!-- TOC -->');
+  });
+
+  it('collapses an empty TOC body (adjacent tags)', () => {
+    const input = '<!-- TOC -->\n<!-- /TOC -->';
+    expect(removeTOC(input)).toBe('<!-- TOC -->');
+  });
 });
 
 describe('processTOC', () => {
@@ -82,6 +93,28 @@ describe('processTOC', () => {
     const tocSection = result.slice(result.indexOf('<!-- TOC -->'), result.indexOf('<!-- /TOC -->'));
     expect(tocSection).toContain('Section');
     expect(tocSection).not.toContain('My Doc');
+  });
+
+  it('does not treat an inline <!-- TOC --> in prose as a placeholder', async () => {
+    const content = '# Title\n\nSome prose with <!-- TOC --> in the middle.\n\n## Alpha\n';
+    expect(await processTOC(content)).toBe(content);
+  });
+
+  it('excludes headings deeper than H3 (maxDepth 3)', async () => {
+    const content = '# Title\n\n<!-- TOC -->\n\n## A\n\n### B\n\n#### C\n';
+    const result = await processTOC(content);
+    const tocSection = result.slice(result.indexOf('<!-- TOC -->'), result.indexOf('<!-- /TOC -->'));
+    expect(tocSection).toContain('](#a)');
+    expect(tocSection).toContain('](#b)');
+    expect(tocSection).not.toContain('](#c)');
+  });
+
+  it('ignores headings inside tilde-fenced code blocks', async () => {
+    const content = '# Title\n\n<!-- TOC -->\n\n## Real Section\n\n~~~\n## Fake Heading\n~~~\n';
+    const result = await processTOC(content);
+    const tocSection = result.slice(result.indexOf('<!-- TOC -->'), result.indexOf('<!-- /TOC -->'));
+    expect(tocSection).toContain('Real Section');
+    expect(tocSection).not.toContain('Fake Heading');
   });
 });
 
@@ -147,5 +180,40 @@ describe('extractHeadingTree', () => {
     const tree = extractHeadingTree('f.md', content);
     expect(tree).toHaveLength(3);
     tree.forEach(n => expect(n.children).toBeNull());
+  });
+
+  it('pops the stack so a sibling after nesting returns to the root level', () => {
+    // # Title skipped; ## A has child ### A1; ## B is a new root with no children
+    const content = '# Title\n\n## A\n\n### A1\n\n## B\n';
+    const tree = extractHeadingTree('f.md', content);
+    expect(tree.map(n => n.heading)).toEqual(['A', 'B']);
+    expect(tree[0].children?.map(n => n.heading)).toEqual(['A1']);
+    expect(tree[1].children).toBeNull();
+  });
+
+  it('retains headings deeper than H3 (no maxDepth cap)', () => {
+    // Unlike processTOC (maxDepth 3), the tree keeps H4 and beyond
+    const content = '# Title\n\n## A\n\n### B\n\n#### C\n';
+    const tree = extractHeadingTree('f.md', content);
+    expect(tree[0].heading).toBe('A');
+    expect(tree[0].children?.[0].heading).toBe('B');
+    expect(tree[0].children?.[0].children?.[0].heading).toBe('C');
+    expect(tree[0].children?.[0].children?.[0].depth).toBe(4);
+  });
+
+  it('ignores headings inside tilde-fenced code blocks', () => {
+    const content = '# Title\n\n## Real\n\n~~~\n## Fake\n~~~\n';
+    const tree = extractHeadingTree('f.md', content);
+    expect(tree.map(n => n.heading)).toEqual(['Real']);
+  });
+
+  it('attaches a deeper heading directly under a shallower ancestor (skipped level)', () => {
+    // # Title skipped; ## A then ###  (no H3 between) jumps to H4 under A
+    const content = '# Title\n\n## A\n\n#### Deep\n';
+    const tree = extractHeadingTree('f.md', content);
+    expect(tree).toHaveLength(1);
+    expect(tree[0].heading).toBe('A');
+    expect(tree[0].children?.[0].heading).toBe('Deep');
+    expect(tree[0].children?.[0].depth).toBe(4);
   });
 });

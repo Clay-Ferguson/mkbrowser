@@ -17,8 +17,11 @@ function makeFs(
   opts: {
     createFailOn?: string;        // path whose createFile returns { success: false }
     writeFail?: boolean;          // writeFile returns { ok: false }
-    renameFail?: boolean;         // renameFile returns false
+    renameFail?: boolean;         // renameFile returns false (every call)
+    renameFailOnCall?: number;    // renameFile returns false only on the Nth call (1-based)
     deleteFailOn?: string;        // path whose deleteFile returns false
+    readThrow?: boolean;          // readFile throws
+    existsThrowOn?: string;       // path whose pathExists throws
     existsOverride?: (path: string) => boolean | undefined; // override pathExists
   } = {}
 ) {
@@ -27,6 +30,7 @@ function makeFs(
 
   const readFile = async (path: string) => {
     calls.read++;
+    if (opts.readThrow) throw new Error(`read failed: ${path}`);
     const content = fs.get(path);
     if (content === undefined) throw new Error(`no such file: ${path}`);
     return content;
@@ -49,6 +53,7 @@ function makeFs(
   const renameFile = async (oldPath: string, newPath: string) => {
     calls.rename++;
     if (opts.renameFail) return false;
+    if (opts.renameFailOnCall === calls.rename) return false;
     const content = fs.get(oldPath) ?? '';
     fs.set(newPath, content);
     fs.delete(oldPath);
@@ -57,6 +62,7 @@ function makeFs(
 
   const pathExists = async (path: string) => {
     calls.exists++;
+    if (opts.existsThrowOn === path) throw new Error(`exists failed: ${path}`);
     const override = opts.existsOverride?.(path);
     if (override !== undefined) return override;
     return fs.has(path);
@@ -100,6 +106,57 @@ describe('splitFile — happy path', () => {
 
     expect(result.success).toBe(true);
     expect(result.filePaths).toEqual(['/docs/README-00', '/docs/README-01']);
+  });
+
+  it('splits on the last dot for multi-dot filenames (archive.tar.gz)', async () => {
+    const m = makeFs({ '/docs/archive.tar.gz': 'AAA\n\n\nBBB' });
+    const result = await run('/docs/archive.tar.gz', m);
+
+    expect(result.success).toBe(true);
+    expect(result.filePaths).toEqual([
+      '/docs/archive.tar-00.gz',
+      '/docs/archive.tar-01.gz',
+    ]);
+    expect(m.fs.get('/docs/archive.tar-00.gz')).toBe('AAA');
+    expect(m.fs.get('/docs/archive.tar-01.gz')).toBe('BBB');
+  });
+
+  it('zero-pads part numbers to two digits and keeps order for 10+ parts', async () => {
+    const content = Array.from({ length: 11 }, (_, i) => `P${i}`).join('\n\n\n');
+    const m = makeFs({ '/docs/note.md': content });
+    const result = await run('/docs/note.md', m);
+
+    expect(result.success).toBe(true);
+    expect(result.fileCount).toBe(11);
+    // Two-digit padding: index 9 -> "-09", index 10 -> "-10" (not "-010").
+    expect(result.filePaths?.[9]).toBe('/docs/note-09.md');
+    expect(result.filePaths?.[10]).toBe('/docs/note-10.md');
+    expect(m.fs.get('/docs/note-09.md')).toBe('P9');
+    expect(m.fs.get('/docs/note-10.md')).toBe('P10');
+  });
+});
+
+describe('splitFile — input/IO errors before mutation', () => {
+  it('returns an error (no mutation) when reading the file throws', async () => {
+    const m = makeFs({ '/docs/note.md': 'AAA\n\n\nBBB' }, { readThrow: true });
+    const result = await run('/docs/note.md', m);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/read failed/i);
+    expect(m.calls.create + m.calls.rename + m.calls.write + m.calls.delete).toBe(0);
+  });
+
+  it('returns an error (no mutation) when the collision check throws', async () => {
+    const m = makeFs(
+      { '/docs/note.md': 'AAA\n\n\nBBB' },
+      { existsThrowOn: '/docs/note-00.md' }
+    );
+    const result = await run('/docs/note.md', m);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/existing files|exists failed/i);
+    expect(m.calls.create + m.calls.rename + m.calls.write + m.calls.delete).toBe(0);
+    expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB');
   });
 });
 
@@ -186,6 +243,19 @@ describe('splitFile — rollback on failure', () => {
     expect(m.fs.has('/docs/note-00.md')).toBe(false);
   });
 
+  it('rename-fails-at-main-step: deletes created parts and leaves the original in place', async () => {
+    const m = makeFs({ '/docs/note.md': 'AAA\n\n\nBBB\n\n\nCCC' }, { renameFail: true });
+    const result = await run('/docs/note.md', m);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/rename.*-00|rolled back/i);
+    // Original was never renamed away, so it remains untouched.
+    expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB\n\n\nCCC');
+    // The parts created before the rename were rolled back.
+    expect(m.fs.has('/docs/note-01.md')).toBe(false);
+    expect(m.fs.has('/docs/note-02.md')).toBe(false);
+  });
+
   it('reports incomplete rollback when an undo step itself fails', async () => {
     const m = makeFs(
       { '/docs/note.md': 'AAA\n\n\nBBB' },
@@ -195,5 +265,21 @@ describe('splitFile — rollback on failure', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/rollback incomplete/i);
+  });
+
+  it('reports incomplete rollback when restoring the original filename fails', async () => {
+    // Forward rename (call #1) succeeds so the original is renamed to -00; the
+    // write then fails, and the rollback's restore rename (call #2) fails.
+    const m = makeFs(
+      { '/docs/note.md': 'AAA\n\n\nBBB' },
+      { writeFail: true, renameFailOnCall: 2 }
+    );
+    const result = await run('/docs/note.md', m);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/rollback incomplete/i);
+    // Restore failed, so the renamed -00 file is still what holds the content.
+    expect(m.fs.has('/docs/note.md')).toBe(false);
+    expect(m.fs.has('/docs/note-00.md')).toBe(true);
   });
 });

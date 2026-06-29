@@ -53,6 +53,17 @@ describe('findCutItemsFromDifferentFolders', () => {
     const items = [makeItem('/docs/a.md', 'a.md')];
     expect(findCutItemsFromDifferentFolders(items)).toEqual([]);
   });
+
+  it('returns the names of every item from a folder other than the first, in order', () => {
+    const items = [
+      makeItem('/docs/a.md', 'a.md'),
+      makeItem('/other/b.md', 'b.md'),
+      makeItem('/docs/c.md', 'c.md'),
+      makeItem('/elsewhere/d.md', 'd.md'),
+    ];
+    // Both b.md and d.md live outside the baseline folder ('/docs'); c.md does not.
+    expect(findCutItemsFromDifferentFolders(items)).toEqual(['b.md', 'd.md']);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -124,6 +135,24 @@ describe('findPasteDuplicates', () => {
     const result = await findPasteDuplicates(items, '/dest', pathExists);
     // Order follows the cut-item order; each name appears once.
     expect(result.duplicates).toEqual(['a.md', 'notes.md', 'Notes.md']);
+  });
+
+  it('flags all members of a three-way case collision, each once, in cut-item order', async () => {
+    const items = [
+      makeItem('/src/notes.md', 'notes.md'),
+      makeItem('/src/Notes.md', 'Notes.md'),
+      makeItem('/src/NOTES.md', 'NOTES.md'),
+    ];
+    const pathExists = async (_p: string) => false;
+    const result = await findPasteDuplicates(items, '/dest', pathExists);
+    expect(result.error).toBeUndefined();
+    expect(result.duplicates).toEqual(['notes.md', 'Notes.md', 'NOTES.md']);
+  });
+
+  it('returns no duplicates for an empty cut list', async () => {
+    const result = await findPasteDuplicates([], '/dest', async () => true);
+    expect(result.error).toBeUndefined();
+    expect(result.duplicates).toEqual([]);
   });
 });
 
@@ -390,6 +419,13 @@ describe('deleteSelectedItems', () => {
     expect(result.deletedPaths).toEqual([]);
   });
 
+  it('returns success with no failedItems when a single item deletes cleanly', async () => {
+    const result = await deleteSelectedItems([makeItem('/docs/a.md', 'a.md')], async () => true);
+    expect(result.success).toBe(true);
+    expect(result.deletedPaths).toEqual(['/docs/a.md']);
+    expect(result.failedItems).toEqual([]);
+  });
+
   it('deletes all items and returns their paths', async () => {
     const items = [makeItem('/docs/a.md', 'a.md'), makeItem('/docs/b.md', 'b.md')];
     const deleteFile = async (_p: string) => true;
@@ -530,6 +566,16 @@ describe('performSplitFile (validation)', () => {
     const result = await performSplitFile(items, splittableOps);
     expect(result.success).toBe(true);
   });
+
+  it('propagates the split op error when validation passes but the file has no split points', async () => {
+    // A valid markdown file whose content lacks the blank-line delimiter passes
+    // validation but fails inside splitFile; that error must reach the caller.
+    const items = [makeItem('/docs/notes.md', 'notes.md')];
+    const noSplitPointOps = { ...noopOps, readFile: async (_p: string) => 'one block, no delimiter' };
+    const result = await performSplitFile(items, noSplitPointOps);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/split points/i);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -579,6 +625,20 @@ describe('performJoinFiles (validation)', () => {
     ];
     const result = await performJoinFiles(items, noopOps);
     expect(result.success).toBe(true);
+  });
+
+  it('propagates the join op error when validation passes but the underlying write fails', async () => {
+    // Two valid markdown files clear validation, but the join op's write reports
+    // failure; performJoinFiles must surface that error rather than claim success.
+    const items = [makeItem('/docs/a.md', 'a.md'), makeItem('/docs/b.md', 'b.md')];
+    const failingWriteOps = {
+      ...noopOps,
+      readFile: async (_p: string) => 'content',
+      writeFile: async (_p: string, c: string) => ({ ok: false, content: c }),
+    };
+    const result = await performJoinFiles(items, failingWriteOps);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/failed to write/i);
   });
 });
 
@@ -657,5 +717,144 @@ describe('joinFiles (write verification)', () => {
     expect(result.error).toMatch(/NOT deleted/i);
     expect(fs.deleted).toEqual([]);
     expect(fs.store['/docs/b.txt']).toBe('beta');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// joinFiles — markdown front-matter handling for appended (non-lead) files
+// ---------------------------------------------------------------------------
+
+// Shared in-memory filesystem for the front-matter / error-path suites below.
+// Mirrors the IPC contract: writeFile echoes back the bytes it stored, deleteFile
+// records what it removed.
+function makeJoinFs(initial: Record<string, string>) {
+  const store: Record<string, string> = { ...initial };
+  const deleted: string[] = [];
+  return {
+    store,
+    deleted,
+    readFile: async (p: string) => store[p] ?? '',
+    writeFile: async (p: string, c: string) => {
+      store[p] = c;
+      return { ok: true, content: c };
+    },
+    deleteFile: async (p: string) => {
+      delete store[p];
+      deleted.push(p);
+      return true;
+    },
+  };
+}
+
+describe('joinFiles (markdown front-matter handling)', () => {
+  it("converts an appended markdown file's front matter into a fenced yaml block and drops its id", async () => {
+    const lead = '# Lead doc\n\nlead body';
+    const appended =
+      '---\nid: should-be-removed\ntitle: Second\ntags:\n  - x\n  - y\n---\nappended body';
+    const fs = makeJoinFs({ '/docs/a.md': lead, '/docs/b.md': appended });
+
+    const result = await joinFiles(['/docs/a.md', '/docs/b.md'], fs);
+
+    expect(result.success).toBe(true);
+    const joined = fs.store['/docs/a.md'];
+    // Lead content is preserved verbatim and comes first.
+    expect(joined.startsWith(lead)).toBe(true);
+    // The appended file's front matter became a fenced yaml block...
+    expect(joined).toContain('```yaml\n');
+    expect(joined).toContain('title: Second');
+    // ...with the id stripped out, and the body retained.
+    expect(joined).not.toContain('should-be-removed');
+    expect(joined).not.toContain('id:');
+    expect(joined).toContain('appended body');
+  });
+
+  it('leaves the lead file raw even when it has front matter (only appended files are converted)', async () => {
+    const lead = '---\nid: keep-me\ntitle: Lead\n---\nlead body';
+    const fs = makeJoinFs({ '/docs/a.md': lead, '/docs/b.md': 'plain second body' });
+
+    const result = await joinFiles(['/docs/a.md', '/docs/b.md'], fs);
+
+    expect(result.success).toBe(true);
+    const joined = fs.store['/docs/a.md'];
+    // Lead front matter is untouched — still raw `---` fences, id intact.
+    expect(joined.startsWith('---\nid: keep-me')).toBe(true);
+    expect(joined).not.toContain('```yaml');
+  });
+
+  it('leaves an appended markdown file with no front matter unchanged', async () => {
+    const fs = makeJoinFs({ '/docs/a.md': 'lead', '/docs/b.md': 'no front matter here' });
+
+    const result = await joinFiles(['/docs/a.md', '/docs/b.md'], fs);
+
+    expect(result.success).toBe(true);
+    expect(fs.store['/docs/a.md']).toBe('lead\n\n\nno front matter here');
+  });
+
+  it('does not convert front matter in a non-markdown appended file', async () => {
+    const appended = '---\nid: x\ntitle: T\n---\nbody';
+    const fs = makeJoinFs({ '/docs/a.txt': 'lead', '/docs/b.txt': appended });
+
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt'], fs);
+
+    expect(result.success).toBe(true);
+    // .txt is not markdown, so the content is appended raw, fences and all.
+    expect(fs.store['/docs/a.txt']).toBe('lead\n\n\n' + appended);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// joinFiles — delete gating + error/edge paths
+// ---------------------------------------------------------------------------
+
+describe('joinFiles (delete + error paths)', () => {
+  it('reports an error when deleting a non-lead source fails', async () => {
+    const fs = makeJoinFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
+    // Write + verification succeed, but the delete of the non-lead source fails.
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt'], {
+      ...fs,
+      deleteFile: async () => false,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/failed to delete/i);
+    expect(result.error).toContain('/docs/b.txt');
+  });
+
+  it('joins a single file and deletes nothing', async () => {
+    const fs = makeJoinFs({ '/docs/only.txt': 'solo' });
+
+    const result = await joinFiles(['/docs/only.txt'], fs);
+
+    expect(result.success).toBe(true);
+    expect(result.resultPath).toBe('/docs/only.txt');
+    expect(result.filesJoined).toBe(1);
+    expect(fs.deleted).toEqual([]);
+    expect(fs.store['/docs/only.txt']).toBe('solo');
+  });
+
+  it('surfaces the thrown Error message when a file op throws', async () => {
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt'], {
+      readFile: async () => {
+        throw new Error('disk gone');
+      },
+      writeFile: async (_p: string, c: string) => ({ ok: true, content: c }),
+      deleteFile: async () => true,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('disk gone');
+  });
+
+  it('falls back to a generic message when a non-Error value is thrown', async () => {
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt'], {
+      readFile: async () => {
+        throw 'oops-string';
+      },
+      writeFile: async (_p: string, c: string) => ({ ok: true, content: c }),
+      deleteFile: async () => true,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/unknown error/i);
   });
 });
