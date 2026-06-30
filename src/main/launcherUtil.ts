@@ -44,6 +44,15 @@ export async function findTerminalEmulator(): Promise<{ cmd: string; args: strin
   return null;
 }
 
+/**
+ * Run a shell script (`.sh` file) in an external terminal window. If the script's
+ * first 10 lines contain the directive `# Terminal=false`, the script is instead
+ * launched silently in the background with no visible terminal. In both cases the
+ * child process is detached so the app does not wait for it to finish.
+ *
+ * Returns `{ success: false }` when the file is not a `.sh` script, cannot be
+ * read, or no terminal emulator is available.
+ */
 export async function runShellScript(filePath: string): Promise<{ success: boolean; error?: string }> {
   if (!filePath.endsWith('.sh')) {
     return { success: false, error: `Not a shell script: ${filePath}` };

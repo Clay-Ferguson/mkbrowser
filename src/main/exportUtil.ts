@@ -5,6 +5,15 @@ import { fdir } from 'fdir';
 import { getSortedDirEntries } from './indexUtil';
 import { findTerminalEmulator } from './launcherUtil';
 
+/**
+ * Rewrite relative image references in a markdown document to absolute paths so
+ * they resolve correctly after the content is moved to a different location (e.g.
+ * concatenated into an export file). Both markdown syntax (`![alt](path)`) and
+ * HTML `<img src="...">` attributes are handled. References that are already
+ * absolute, remote (http/https), data URIs, or anchors are left unchanged. A
+ * relative path is only rewritten when the resolved file actually exists on disk;
+ * unresolvable references are left as-is so the caller can decide how to handle them.
+ */
 function rewriteImagePathsToAbsolute(content: string, sourceFilePath: string): string {
   const sourceDir = path.dirname(sourceFilePath);
 

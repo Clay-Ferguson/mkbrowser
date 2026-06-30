@@ -16,6 +16,12 @@ export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolea
 let currentWatcher: ReturnType<typeof chokidar.watch> | null = null;
 let currentFolder: string | null = null;
 
+/**
+ * Build a chokidar `ignored` predicate that excludes hidden files (leading dot),
+ * node_modules, any file whose extension is neither absent nor `.md`, and any path
+ * matching one of the user's `extraPatterns` (wildcard-aware, case-insensitive).
+ * Extensionless paths are allowed through so directories remain watchable.
+ */
 function buildIgnoredFn(extraPatterns: string[]): (filePath: string) => boolean {
   const compiled = extraPatterns.map(pat => {
     const escaped = escapeRegexExceptWildcard(pat);
@@ -31,6 +37,17 @@ function buildIgnoredFn(extraPatterns: string[]): (filePath: string) => boolean 
   };
 }
 
+/**
+ * Start watching `folderPath` for `.md` file changes and deletions.
+ *
+ * - If already watching the exact same folder, this is a no-op.
+ * - Any existing watcher is fully closed (awaited) before the new one starts, so
+ *   the two never coexist and can't emit duplicate events or leak file handles.
+ * - `onChanged` fires with the file's updated {@link CalendarEventResult} entries
+ *   on creation or modification.
+ * - `onDeleted` fires with the removed path and a `isFolder` flag on deletion.
+ * - `ignoredPaths` accepts the same wildcard patterns used by folder browsing.
+ */
 export async function startCalendarWatcher(
   folderPath: string,
   onChanged: CalendarFileChangedCallback,
@@ -82,6 +99,12 @@ export async function startCalendarWatcher(
   });
 }
 
+/**
+ * Stop and close the active calendar watcher. Module state is cleared
+ * synchronously so the "already watching" guard in {@link startCalendarWatcher}
+ * sees a clean slate immediately; the underlying chokidar close is then awaited.
+ * A no-op when no watcher is active.
+ */
 export async function stopCalendarWatcher(): Promise<void> {
   if (!currentWatcher) return;
   // Capture and clear the module state synchronously so the "already watching"
@@ -96,6 +119,7 @@ export async function stopCalendarWatcher(): Promise<void> {
   }
 }
 
+/** Return the folder path currently being watched, or `null` if no watcher is active. */
 export function getCalendarWatcherFolder(): string | null {
   return currentFolder;
 }

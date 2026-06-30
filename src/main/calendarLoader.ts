@@ -103,6 +103,19 @@ function normalizeRRule(raw: Record<string, unknown>): RRuleYaml {
   };
 }
 
+/**
+ * Expand a parsed `rrule:` YAML block into individual {@link CalendarEventResult}
+ * occurrences. Each occurrence inherits the event's title, snippet, and filePath,
+ * and gets a unique `id` formed from `filePath + "::" + occurrenceIndex` so the
+ * calendar can distinguish repeated events from distinct files.
+ *
+ * RRule arithmetic is performed entirely in UTC (wall-clock encoded via
+ * `Date.UTC(...)`) to avoid weekday drift on non-UTC machines and DST shifts for
+ * timed events; each occurrence's UTC components are decoded back to local time
+ * before being returned. See the inline comment for the full rationale.
+ *
+ * Returns `[]` when `rruleYaml.freq` is absent or unrecognized.
+ */
 function expandRRule(
   rruleYaml: RRuleYaml,
   dueDate: Date,
@@ -175,6 +188,11 @@ function expandRRule(
   });
 }
 
+/**
+ * Extract a short preview snippet from a markdown file body (the text after the
+ * front-matter block). Returns up to 5 non-empty lines joined with newlines,
+ * capped at 400 characters (with a trailing `...` when truncated).
+ */
 function extractSnippet(body: string): string {
   const lines = body.split(/\r?\n/).filter(l => l.trim().length > 0).slice(0, 5);
   const joined = lines.join('\n');
@@ -233,6 +251,13 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
   }
 }
 
+/**
+ * Scan a folder recursively for markdown files that carry a `due:` front-matter
+ * field and return all resulting calendar events. Each file may produce more than
+ * one event when it has an `rrule:` block (recurring events). Hidden files and
+ * user-configured ignore patterns are excluded; file reads are bounded to
+ * CALENDAR_READ_CONCURRENCY concurrent operations to avoid EMFILE on large vaults.
+ */
 export async function loadCalendarEvents(
   folderPath: string,
   ignoredPaths: string[] = [],

@@ -35,7 +35,11 @@ export async function writeExifMetadata(filePath: string, data: ExifData): Promi
 }
 
 /**
- * Read EXIF metadata from an image file, returning grouped tag descriptions.
+ * Read EXIF metadata from an image file and return it as a grouped map. Each
+ * top-level key is a metadata group name (e.g. `"EXIF"`, `"XMP"`, `"ICC"`); each
+ * value is a flat object mapping tag name to its human-readable description string.
+ * Thumbnail groups are excluded. Tags whose description is not a string or number
+ * are omitted. Groups with no eligible tags are omitted from the result.
  */
 export async function readExifMetadata(filePath: string): Promise<ExifData> {
   const tags = await ExifReader.load(filePath, { expanded: true, length: 128 * 1024 });

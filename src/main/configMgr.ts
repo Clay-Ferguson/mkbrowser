@@ -179,6 +179,7 @@ let _configLoadError: { error: string; backupPath: string | null } | null = null
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+/** Create the config directory if it does not already exist. */
 function ensureConfigDir(): void {
   if (!fs.existsSync(CONFIG_DIR)) {
     fs.mkdirSync(CONFIG_DIR, { recursive: true });
@@ -224,6 +225,11 @@ export function flushConfig(): Promise<void> {
   return _writeChain;
 }
 
+/**
+ * Copy the config file to a timestamped `.bak-<ms>` sibling as a recovery aid
+ * when the file exists but cannot be parsed. Returns the backup path on success,
+ * or `null` when the copy itself fails (e.g. the file is unreadable).
+ */
 function backupBadConfig(): string | null {
   const backupPath = `${CONFIG_FILE}.bak-${Date.now()}`;
   try {
