@@ -10,10 +10,19 @@ interface BookmarkDialogProps {
   onCancel: () => void;
 }
 
+// Last path segment, tolerant of trailing slashes and either separator.
 function basename(p: string): string {
   return p.replace(/[/\\]+$/, '').split(/[/\\]/).pop() ?? p;
 }
 
+/**
+ * Dialog for adding or editing a bookmark's display name (the path itself is
+ * fixed and shown read-only). Passing `initialName` puts it in Edit mode — both
+ * the title and that prop's presence drive the Add/Edit distinction. When no
+ * name is supplied, the default seeds from the path's basename, dropping the
+ * extension for files but keeping the full name for folders. Save is blocked
+ * while the name is blank.
+ */
 function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: BookmarkDialogProps) {
   const base = basename(path);
   const defaultName = initialName ?? (isFolder

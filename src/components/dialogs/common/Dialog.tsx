@@ -27,6 +27,10 @@ interface DialogProps {
   initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
+// First editable form field, excluding non-text inputs and disabled controls.
+const FIRST_FIELD_SELECTOR =
+  'input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=button]):not([disabled]), textarea:not([disabled]), select:not([disabled])';
+
 /**
  * Shared modal wrapper built on the native HTML <dialog> element.
  *
@@ -47,9 +51,6 @@ interface DialogProps {
  * useEffect(() => { ref.current?.focus(); ref.current?.select(); }) pattern.
  * Pass `initialFocusRef` to focus a specific element instead of the first field.
  */
-// First editable form field, excluding non-text inputs and disabled controls.
-const FIRST_FIELD_SELECTOR =
-  'input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=button]):not([disabled]), textarea:not([disabled]), select:not([disabled])';
 function Dialog({
   title,
   onClose,

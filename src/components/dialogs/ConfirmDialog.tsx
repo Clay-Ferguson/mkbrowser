@@ -8,6 +8,12 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
+/**
+ * Generic yes/no confirmation dialog, used wherever an action needs the user to
+ * confirm (typically a destructive one). "Yes" is styled as the destructive
+ * (red) action and "No" as the safe default; see the focus note below for why
+ * "No" receives initial focus.
+ */
 function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogProps) {
   // Focus the safe action ("No") on open so an accidental Enter doesn't trigger
   // the destructive "Yes". The dialog has no form fields, so without this focus

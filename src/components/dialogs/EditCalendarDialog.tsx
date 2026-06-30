@@ -30,6 +30,14 @@ const isDayCode = (value: string): value is DayCode => (DAY_CODES as readonly st
 const asEndType = (value: string): EndType =>
   (END_OPTIONS as readonly string[]).includes(value) ? (value as EndType) : 'never';
 
+/**
+ * Editor for a calendar item's scheduling front matter. Reads the existing due
+ * date, start time, duration, and recurrence (RRULE) out of `content`, lets the
+ * user edit them — including a full recurrence builder (frequency, interval,
+ * weekly by-day selection, and an end condition of never/until-date/after-N) —
+ * and on Save writes the values back, returning the updated `content` string via
+ * onSave. The body itself is untouched; only the scheduling properties change.
+ */
 function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogProps) {
   const existingDue = getDueProperty(content);
   const [selected, setSelected] = useState<Date | undefined>(

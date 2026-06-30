@@ -28,6 +28,9 @@ interface TagsEditorDialogProps {
 // isn't test-friendly; these IDs only need to be unique within a session.
 function newId() { return crypto.randomUUID(); }
 
+// Convert loaded tag data into the editor's local model: assign stable row ids,
+// drop the leading '#' from tag names (the UI shows it separately), and flatten
+// multi-line descriptions to single lines. Inverse of toTagCategories.
 function fromLoaded(categories: TagCategory[]): EditorCategory[] {
   return categories.map((cat) => ({
     id: newId(),
@@ -40,6 +43,8 @@ function fromLoaded(categories: TagCategory[]): EditorCategory[] {
   }));
 }
 
+// Convert the editor model back to the persisted shape: re-add the '#' prefix to
+// each tag name and drop the editor-only row ids. Inverse of fromLoaded.
 function toTagCategories(editor: EditorCategory[]): TagCategory[] {
   return editor.map((cat) => ({
     name: cat.name,
@@ -50,6 +55,9 @@ function toTagCategories(editor: EditorCategory[]): TagCategory[] {
   }));
 }
 
+// Returns the first validation problem as a user-facing message, or null when the
+// categories are valid: names must be non-empty and unique, both for categories
+// and for the tags within each category.
 function validate(cats: EditorCategory[]): string | null {
   const catNames = cats.map((c) => c.name.trim());
   if (catNames.some((n) => n === '')) return 'Category names cannot be empty.';
@@ -62,6 +70,15 @@ function validate(cats: EditorCategory[]): string | null {
   return null;
 }
 
+/**
+ * Two-pane editor for the hashtag taxonomy: a category list on the left and the
+ * tags within the selected category on the right. Tags are loaded via fetchTags
+ * into a local, id-keyed model (see fromLoaded) so categories and tags can be
+ * added, renamed, edited, and removed without touching disk until Save. A
+ * category can only be deleted once empty. Save validates (see validate),
+ * serializes back to YAML, and persists via `api.saveTags`; load/save failures
+ * are shown inline in the footer.
+ */
 export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
   const [categories, setCategories] = useState<EditorCategory[]>([]);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);

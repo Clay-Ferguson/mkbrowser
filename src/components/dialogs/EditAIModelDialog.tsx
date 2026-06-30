@@ -14,6 +14,14 @@ interface EditAIModelDialogProps {
   onCancel: () => void;
 }
 
+/**
+ * Create/edit form for a single AI model configuration (name, provider, model id,
+ * and input/output per-1M-token pricing). Passing `initialModel` switches it to
+ * Edit mode and seeds the fields. Built-in models (`readonly`) are shown for
+ * reference but every control is disabled and Save is blocked. The price fields
+ * are held as raw strings and validated via `parseNonNegative`, so Save stays
+ * disabled until the name, model id, and both prices are valid.
+ */
 function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialogProps) {
   const [name, setName] = useState(initialModel?.name ?? '');
   const [provider, setProvider] = useState<AIProvider>(initialModel?.provider ?? 'ANTHROPIC');

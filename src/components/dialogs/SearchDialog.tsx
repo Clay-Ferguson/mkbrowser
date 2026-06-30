@@ -49,6 +49,20 @@ interface SearchDialogProps {
   searchDefinitions: SearchDefinition[];
 }
 
+/**
+ * The full search dialog: a left panel of saved search definitions
+ * (SearchDefinitionsPanel) and a right panel of search options — the query, the
+ * target (file contents vs. names), the mode (literal/wildcard/advanced), EXIF
+ * and recent-files toggles, and result sorting. It can run a search (onSearch),
+ * save the current options as a named definition (onSave), or delete one
+ * (onDeleteSearchDefinition, gated behind a ConfirmDialog).
+ *
+ * Two cross-cutting behaviours worth knowing:
+ *  - Newlines in the query are persisted as the `{{nl}}` token (definitions are
+ *    single-line) and expanded back to real newlines when loaded/edited.
+ *  - For literal searches the query is pushed into the globalHighlight module so
+ *    matches stay highlighted in the document view after the dialog closes.
+ */
 function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, initialValues, searchDefinitions }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState(
     initialValues?.searchQuery ? initialValues.searchQuery.replace(/\{\{nl\}\}/g, '\n') : (globalHighlight.globalHighlightText || '')

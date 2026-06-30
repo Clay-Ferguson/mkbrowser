@@ -13,6 +13,13 @@ interface AlertDialogProps {
   preserveWhitespace?: boolean;
 }
 
+/**
+ * A single-button "OK" dialog for surfacing a message or error to the user — the
+ * in-app replacement for the browser's native alert(). Two opt-in flags cover the
+ * variants this consolidated: `scrollable` caps the height and scrolls long text
+ * (the old ErrorDialog), and `preserveWhitespace` keeps line breaks (the old
+ * MessageDialog). Often stacked above another dialog (see ExifDialog).
+ */
 function AlertDialog({
   message,
   onClose,

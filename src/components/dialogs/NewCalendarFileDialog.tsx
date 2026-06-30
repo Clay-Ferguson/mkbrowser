@@ -8,6 +8,11 @@ interface NewCalendarFileDialogProps {
   onCancel: () => void;
 }
 
+/**
+ * Single-field dialog for naming a new calendar item file. Prefilled with
+ * `initialFileName` (the caller supplies the calendar-appropriate default) and
+ * confirms with a non-empty, trimmed name.
+ */
 function NewCalendarFileDialog({ initialFileName, onCreate, onCancel }: NewCalendarFileDialogProps) {
   const [fileName, setFileName] = useState(initialFileName);
 

@@ -61,6 +61,14 @@ const GROUP_LABELS: Record<string, string> = {
   photoshop: 'Photoshop',
 };
 
+/**
+ * Viewer/editor for an image's EXIF (and related) metadata, shown grouped by
+ * namespace with `GROUP_LABELS` providing friendly headings. Opens read-only;
+ * "Edit" switches to an editable copy where each tag becomes a textarea and a
+ * type-appropriate "Description" field can be added (see getExifDescriptionTarget).
+ * Saving writes via `api.writeExif` then reloads from disk so the view reflects
+ * what was actually persisted. Errors surface through a stacked AlertDialog.
+ */
 function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   // Current display data (starts with prop, updates after save)
   const [displayData, setDisplayData] = useState(data);

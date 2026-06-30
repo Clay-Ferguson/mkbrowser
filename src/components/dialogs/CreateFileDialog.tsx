@@ -13,6 +13,10 @@ const normalizeFileName = (raw: string): string => {
   return baseName.includes('.') ? baseName : `${baseName}.md`;
 };
 
+/**
+ * "Create new file" dialog — a thin configuration of the shared NameInputDialog
+ * that supplies the file-specific labels and the `normalizeFileName` rule above.
+ */
 function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDialogProps) {
   return (
     <NameInputDialog

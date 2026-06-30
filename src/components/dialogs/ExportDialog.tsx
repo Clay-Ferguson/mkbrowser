@@ -24,6 +24,15 @@ interface ExportDialogProps {
   onCancel: () => void;
 }
 
+/**
+ * Configures an "export folder contents" operation: it gathers the destination
+ * folder and base file name plus toggles for including subfolders, per-file
+ * filename headings, and divider lines, and an output-format choice of Markdown
+ * or PDF. The file name is entered without an extension (one is rejected with an
+ * inline error); `handleExport` always emits a `.md` filename in ExportOptions and
+ * signals PDF via `exportToPdf`, leaving the actual Markdown→PDF conversion to the
+ * caller. Returns the chosen options through onExport.
+ */
 function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: ExportDialogProps) {
   const [outputFolder, setOutputFolder] = useState(defaultFolder);
   const [fileName, setFileName] = useState(() => defaultFileName.replace(/\.[a-zA-Z0-9]+$/, ''));

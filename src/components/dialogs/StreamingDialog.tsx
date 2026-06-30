@@ -11,6 +11,15 @@ interface StreamingDialogProps {
   onCancel: () => void;
 }
 
+/**
+ * Live view of an in-flight AI request. On mount it subscribes to the AI stream
+ * IPC events (content, thinking, tool-use, done, error) and renders the response
+ * as it arrives, walking through pending → streaming → done/error/cancelled
+ * states that drive the title and footer button. While running, the footer shows
+ * a "Stop" button (and ✕/Esc) that aborts the backend stream via onCancel before
+ * closing; once finished those just close via onClose. See appendText below for
+ * why output is written to the DOM directly instead of through React state.
+ */
 function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
   const outputRef = useRef<HTMLPreElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
