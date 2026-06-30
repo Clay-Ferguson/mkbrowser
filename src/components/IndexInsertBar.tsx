@@ -5,11 +5,15 @@ interface IndexInsertBarProps {
   onInsertFolder: () => void;
 }
 
+/**
+ * A pair of insert-here buttons (file and folder) that float in the right-hand
+ * gutter at a specific index position in the entry list.
+ *
+ * Uses a zero-height wrapper so the bar occupies no vertical space in the layout;
+ * the buttons are positioned absolutely into the gutter column reserved by the
+ * entry list's padding.
+ */
 function IndexInsertBar({ onInsertFile, onInsertFolder }: IndexInsertBarProps) {
-  // A zero-height wrapper keeps the insert point at its correct vertical position
-  // in the flow without consuming any vertical space. The buttons are absolutely
-  // positioned into the right-hand gutter (reserved by padding on the entry list)
-  // and stacked over-under to minimize horizontal footprint.
   return (
     <div className="relative h-0">
       <div className="absolute top-0 right-0 translate-x-full flex flex-row gap-1">

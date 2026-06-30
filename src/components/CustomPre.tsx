@@ -4,6 +4,15 @@ import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon } from '@heroicons/re
 import { logger } from '../shared/logUtil';
 import { nodeToString } from '../renderer/reactUtil';
 
+/**
+ * Custom <pre> renderer for react-markdown that adds a copy-to-clipboard button.
+ *
+ * For language-tagged blocks, CustomCode/SyntaxHighlighter already renders its own
+ * container, so this component wraps it in a relative-positioned div and overlays
+ * the copy button without duplicating the <pre> tag. Mermaid blocks suppress the
+ * copy button since the diagram is an SVG, not copyable source text. Plain (untagged)
+ * pre blocks get a normal <pre> with the copy button overlaid.
+ */
 // `node` is react-markdown's internal hast node; destructure it out so it isn't
 // spread onto the DOM <pre> element (React warns on unknown DOM props).
 export default function CustomPre({ children, node, ...props }: React.HTMLAttributes<HTMLPreElement> & ExtraProps) {
@@ -15,6 +24,7 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
   const hasLanguage = !!languageMatch;
   const isMermaid = languageMatch?.[1] === 'mermaid';
 
+  // Extracts plain text from the child <code> element and writes it to the clipboard.
   const handleCopy = async () => {
     const codeContent = (codeElement?.props as { children?: React.ReactNode })?.children;
     const textToCopy = nodeToString(codeContent).replace(/\n$/, '');

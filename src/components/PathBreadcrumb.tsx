@@ -19,6 +19,14 @@ export type PathBreadcrumbProps = {
   onRefreshDirectory?: () => void;
 };
 
+/**
+ * Renders the current directory path as a row of clickable breadcrumb segments.
+ *
+ * Each ancestor segment is a clickable button that navigates to that directory.
+ * The current (rightmost) segment is non-interactive. Every segment — including the
+ * root home icon — doubles as a drag-and-drop target that accepts file/folder moves.
+ * A "reveal in tree" button appears at the end when the index tree panel is visible.
+ */
 function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory }: PathBreadcrumbProps) {
   const settings = useSettings();
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
@@ -30,6 +38,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
 
   const parts = splitPathSegments(relativePath);
 
+  // Returns the absolute path for breadcrumb segment at `index`; -1 resolves to root.
   const buildPathForIndex = (index: number) => {
     if (index < 0) return normalizedRoot;
     return joinPath(normalizedRoot, ...parts.slice(0, index + 1));
@@ -37,8 +46,8 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
 
   const atRoot = normalizedCurrent === normalizedRoot;
 
-  // Makes a breadcrumb segment a drop target for files/folders dragged from the BrowseView
-  // entry icons or the IndexTreeView.
+  // Produces drag-event handlers that make a breadcrumb segment a drop target for
+  // ENTRY_DND_MIME payloads (dragged from BrowseView entry icons or the IndexTreeView).
   const dropProps = (folderPath: string) => ({
     onDragOver: (e: React.DragEvent) => {
       if (!e.dataTransfer.types.includes(ENTRY_DND_MIME)) return;

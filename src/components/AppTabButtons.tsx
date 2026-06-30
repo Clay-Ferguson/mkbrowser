@@ -35,6 +35,14 @@ const allTabs: TabConfig[] = [
   { id: 'calendar', label: 'Calendar' },
 ];
 
+/**
+ * Top navigation bar showing the app logo (file menu), view tabs, system menu,
+ * and an "Up Level" button when browsing below the root folder.
+ *
+ * Tab visibility is driven by store state: tabs appear when their corresponding
+ * data is available (search results, analysis, graph, AI thread) and disappear
+ * when closed — clearing the underlying data.
+ */
 function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
   const currentView = useCurrentView();
   const folderAnalysis = useFolderAnalysis();
@@ -47,6 +55,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
   const [showFileMenu, setShowFileMenu] = useState(false);
   const [showSystemMenu, setShowSystemMenu] = useState(false);
 
+  // Navigate to the parent directory and highlight the folder we came from.
   const navigateUp = useCallback(() => {
     if (!currentPath || currentPath === rootPath) return;
     const parent = getParentPath(currentPath);
@@ -59,6 +68,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
 
   const visibleTabs = useVisibleTabs();
 
+  // Returns a click handler that clears a tab's data and falls back to Browse if that tab was active.
   const makeCloseHandler = (tabId: AppView, close: () => void) => () => {
     close();
     if (currentView === tabId) setCurrentView('browser');

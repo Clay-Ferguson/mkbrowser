@@ -5,6 +5,13 @@ import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { MermaidDiagram } from './MermaidDiagram';
 import { nodeToString } from '../renderer/reactUtil';
 
+/**
+ * Custom code-block renderer for react-markdown.
+ *
+ * Routes fenced code blocks to the right renderer: `mermaid` language blocks go
+ * to MermaidDiagram, any other language-tagged block gets Prism syntax highlighting,
+ * and untagged inline code falls back to a plain <code> element.
+ */
 // `node` is react-markdown's internal hast node; destructure it out so it isn't
 // spread onto the DOM <code> element (React warns on unknown DOM props).
 function CustomCode({ className, children, node, ...props }: React.HTMLAttributes<HTMLElement> & ExtraProps) {

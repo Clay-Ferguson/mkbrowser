@@ -2,6 +2,8 @@ import { clsx } from 'clsx';
 import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../shared/timeUtil';
 import { MONO_FONT_STACK } from '../renderer/styles';
 
+// Returns a human-readable relative-date tooltip ("N days ago", "today", etc.) for
+// date-like string values, or undefined if the string doesn't parse as a recognizable date.
 function getDateTooltip(value: unknown): string | undefined {
   const str = String(value);
   const timestamp = extractTimestamp(str);

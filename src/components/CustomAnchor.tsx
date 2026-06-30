@@ -9,6 +9,16 @@ interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement
   entryPath: string;
 }
 
+/**
+ * Custom <a> renderer for react-markdown that intercepts three link types:
+ *   - External URLs (http/https, file://) — opened via the system default handler.
+ *   - In-page anchor links (#section) — scrolled inside the container since Electron
+ *     SPAs don't use window-level scrolling.
+ *   - Relative file paths — resolved against the markdown file's location and used
+ *     to navigate the BrowseView.
+ *
+ * Also stops mouseup propagation so link clicks don't trigger the parent's edit-mode handler.
+ */
 // `node` is react-markdown's internal hast node; destructure it out so it isn't
 // spread onto the DOM <a> element (React warns on unknown DOM props).
 export default function CustomAnchor({ href, children, entryPath, node, ...props }: CustomAnchorProps) {

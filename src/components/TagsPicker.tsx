@@ -15,6 +15,15 @@ interface TagsPickerProps {
   filePath: string;
 }
 
+/**
+ * Displays all predefined hashtag categories and lets the user toggle tags on/off in
+ * the front matter of the file being edited.
+ *
+ * Tag definitions are loaded once from the project's tag configuration. Within each
+ * category, selecting a tag deselects any other active sibling (radio-button behaviour),
+ * except in the special "all" category which allows multiple simultaneous selections.
+ * Returns null until the tag definitions are loaded or when no categories exist.
+ */
 export default function TagsPicker({ filePath }: TagsPickerProps) {
   const item = useItem(filePath);
   const editContent = item?.editContent ?? '';
@@ -46,6 +55,8 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   const fmParts = splitFrontMatter(editContent);
   const activeTags = fmParts ? getTagsFromYaml(fmParts.yamlStr) : [];
 
+  // Toggle a tag in the file's front matter. For non-"all" categories, removes any
+  // already-active sibling tag before inserting the new one.
   const handleToggle = (category: TagCategory, def: HashtagDefinition) => {
     let currentContent = getItemEditContent(filePath);
     const isChecked = activeTags.includes(tagName(def.tag));
@@ -67,6 +78,8 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     setItemEditContent(filePath, currentContent);
   };
 
+  // Renders a single tag as a styled checkbox pill; checked state reflects whether
+  // the tag is present in the file's current front matter.
   const renderTag = (category: TagCategory, def: HashtagDefinition) => {
     const checked = activeTags.includes(tagName(def.tag));
     return (

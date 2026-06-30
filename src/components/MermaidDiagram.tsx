@@ -18,6 +18,10 @@ mermaid.initialize({
 const mermaidRenderQueue: Array<() => Promise<void>> = [];
 let isRenderingMermaid = false;
 
+/**
+ * Drains the render queue one task at a time. Mermaid's renderer is not re-entrant,
+ * so tasks must run serially; this ensures only one render is in flight at any moment.
+ */
 async function processMermaidQueue() {
   if (isRenderingMermaid || mermaidRenderQueue.length === 0) return;
 
@@ -39,6 +43,10 @@ async function processMermaidQueue() {
   }
 }
 
+/**
+ * Enqueue a Mermaid render task for serial execution.
+ * Kicks off the queue processor immediately if it is not already running.
+ */
 export function queueMermaidRender(task: () => Promise<void>) {
   mermaidRenderQueue.push(task);
   void processMermaidQueue();
@@ -46,6 +54,13 @@ export function queueMermaidRender(task: () => Promise<void>) {
 
 let mermaidIdCounter = 0;
 
+/**
+ * Renders a Mermaid diagram from its source string.
+ *
+ * Renders are serialized through a module-level queue because Mermaid's renderer is
+ * not re-entrant. When `code` changes the component resets to a loading state during
+ * render (not inside an effect) to avoid a cascading re-render.
+ */
 export function MermaidDiagram({ code }: { code: string }) {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string>('');
