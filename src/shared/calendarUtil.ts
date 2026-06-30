@@ -91,10 +91,12 @@ function setFrontMatterProperty(content: string, key: string, value: string): st
   return `---\n${key}: ${value}\n---\n${content}`;
 }
 
+/** Sets or updates the `start` property in front matter, quoting the value. */
 export function setStartProperty(content: string, startValue: string): string {
   return setFrontMatterProperty(content, 'start', `"${startValue}"`);
 }
 
+/** Sets or updates the `duration` property in front matter. */
 export function setDurationProperty(content: string, durationValue: string): string {
   return setFrontMatterProperty(content, 'duration', durationValue);
 }
@@ -142,6 +144,7 @@ export interface RRuleProps {
   count?: string;
 }
 
+/** Parses the `rrule:` block from front matter and returns its fields, or null if absent. */
 export function getRRuleProperty(content: string): RRuleProps | null {
   const parsed = splitFrontMatter(content);
   if (!parsed) return null;
@@ -171,6 +174,11 @@ function buildRRuleBlock(rrule: RRuleProps): string {
   return lines.join('\n');
 }
 
+/**
+ * Replaces or removes the `rrule:` block in front matter. Pass `null` (or an
+ * object with no `freq`) to remove the block entirely. Creates front matter if
+ * none exists and an rrule is being set.
+ */
 export function setRRuleProperty(content: string, rrule: RRuleProps | null): string {
   const parsed = splitFrontMatter(content);
   if (!parsed) {

@@ -163,6 +163,7 @@ export function parseDateString(value: string): number {
   return timestampFromMatch(match);
 }
 
+/** Returns today's date formatted as `MM/DD/YY` (two-digit year). */
 export function formatDate(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -214,7 +215,7 @@ export function formatDaysDisplay(days: number): string {
   return `${sign}(${parts.join(' ')})`;
 }
 
-// Generate a folder name based on current date/time: YYYY-MM-DD--HH-MM-SS-AM/PM
+/** Generates a folder name from the current date/time in `YYYY-MM-DD--HH-MM-SS-AM/PM` format. */
 export function generateTimestampFolderName(): string {
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
@@ -224,7 +225,7 @@ export function generateTimestampFolderName(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}--${pad(hours12)}-${pad(now.getMinutes())}-${pad(now.getSeconds())}-${ampm}`;
 }
 
-// Generate a filename based on current date/time: YYYY-MM-DD--HH-MM-SS-AM/PM.md
+/** Generates a markdown filename from the current date/time in `YYYY-MM-DD--HH-MM-SS-AM/PM.md` format. */
 export function generateTimestampFileName(): string {
   return `${generateTimestampFolderName()}.md`;
 }
@@ -234,7 +235,7 @@ export function generateTimestampFileName(): string {
 // two stay in sync.
 export const TIMESTAMP_FILENAME_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-(AM|PM)\.md$/;
 
-// Format current date/time as MM/DD/YY HH:MM AM/PM
+/** Returns the current date/time formatted as `MM/DD/YY HH:MM AM/PM`. */
 export function formatTimestamp(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');

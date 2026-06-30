@@ -28,15 +28,10 @@ export function createContentSearcher(content: string): {
   const contentLower = content.toLowerCase();
   let matchCount = 0;
 
-  /**
-   * The '$' function checks if content contains the given text (case-insensitive)
-   * and increments matchCount for each call that returns true
-   */
   const $ = (searchText: string): boolean => {
     const searchLower = searchText.toLowerCase();
     const found = contentLower.includes(searchLower);
     if (found) {
-      // Count occurrences for matchCount
       let count = 0;
       let idx = 0;
       while ((idx = contentLower.indexOf(searchLower, idx)) !== -1) {
@@ -54,6 +49,11 @@ export function createContentSearcher(content: string): {
   return { $, getMatchCount };
 }
 
+/**
+ * Summarize the outcome of a search-and-replace operation as a human-readable
+ * string. Reports total replacement count, number of files modified, and (if
+ * any) how many files could not be processed.
+ */
 export function buildReplaceResultMessage(results: Array<{ success: boolean; replacementCount: number }>): string {
   const successfulFiles = results.filter((r) => r.success);
   const totalReplacements = successfulFiles.reduce((sum, r) => sum + r.replacementCount, 0);

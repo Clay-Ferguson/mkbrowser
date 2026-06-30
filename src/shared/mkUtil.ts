@@ -1,3 +1,5 @@
+/** Replaces escaped dollar signs (`\$`) with the HTML entity `&#36;` so KaTeX
+ *  does not interpret them as the start of a math expression. */
 export function preprocessMathEscapes(content: string): string {
   return content.replace(/\\\$/g, '&#36;');
 }
@@ -26,6 +28,7 @@ export function safeUrlTransform(url: string): string {
   return ALLOWED_URL_SCHEMES.has(match[1].toLowerCase()) ? url : '';
 }
 
+/** Removes all HTML comments (`<!-- … -->`) from content, including multi-line ones. */
 export function stripHtmlComments(content: string): string {
   return content.replace(/<!--[\s\S]*?-->/g, '');
 }
@@ -52,11 +55,23 @@ export function preprocessWikiLinks(content: string): string {
   });
 }
 
+/**
+ * A single column's text after splitting on `|||` delimiters.
+ * `lineOffset` is the 0-based line index in the original content where this
+ * column's first non-blank line begins (used for line-number-accurate error
+ * reporting and editor gutter alignment).
+ */
 export interface ColumnChunk {
   text: string;
-  lineOffset: number; // 0-based line index in the original content where this column's text begins
+  lineOffset: number;
 }
 
+/**
+ * Splits markdown content on `|||` column-break delimiters (a line containing
+ * only `|||`), returning each segment as a `ColumnChunk`. Delimiters inside
+ * fenced code blocks are ignored. Whitespace-only leading lines are trimmed from
+ * each chunk, and `lineOffset` is adjusted to point at the first real line.
+ */
 export function splitOnColumnBreaks(content: string): ColumnChunk[] {
   const lines = content.split('\n');
   const chunks: ColumnChunk[] = [];

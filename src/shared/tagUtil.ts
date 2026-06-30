@@ -23,6 +23,7 @@ export function tagName(tag: string): string {
   return tag.startsWith('#') ? tag.slice(1) : tag;
 }
 
+/** Parses the `tags` array from a raw YAML string, returning bare tag names (no `#`). Returns `[]` on parse error or missing tags. */
 export function getTagsFromYaml(yamlStr: string): string[] {
   try {
     const parsed = load(yamlStr) as Record<string, unknown> | null;
@@ -33,6 +34,11 @@ export function getTagsFromYaml(yamlStr: string): string[] {
   }
 }
 
+/**
+ * Serialize `tags` back into a YAML string, replacing any existing `tags` key.
+ * Tags are stored sorted alphabetically. If `tags` is empty the key is omitted.
+ * Returns an empty string when the resulting document would be empty.
+ */
 export function setTagsInYaml(yamlStr: string, tags: string[]): string {
   let parsed: Record<string, unknown>;
   try {
@@ -48,6 +54,7 @@ export function setTagsInYaml(yamlStr: string, tags: string[]): string {
   return Object.keys(parsed).length > 0 ? dump(parsed) : '';
 }
 
+/** Removes a tag from a markdown document's front matter, leaving the rest unchanged. */
 export function removeTagFromText(text: string, tag: string): string {
   const parts = splitFrontMatter(text);
   if (!parts) return text;
@@ -55,6 +62,11 @@ export function removeTagFromText(text: string, tag: string): string {
   return assembleFrontMatter(setTagsInYaml(parts.yamlStr, updated), parts.body);
 }
 
+/**
+ * Inserts a tag into a markdown document's front matter. If the tag is already
+ * present the document is returned unchanged. If there is no front matter block
+ * one is created containing only the tags list.
+ */
 export function insertTagIntoText(text: string, tag: string): string {
   const name = tagName(tag);
   const parts = splitFrontMatter(text);

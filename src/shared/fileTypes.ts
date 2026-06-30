@@ -23,6 +23,7 @@ function getExtension(fileName: string): string {
   return i < 0 ? '' : fileName.slice(i).toLowerCase();
 }
 
+/** Returns true if the file's extension is a recognized image format. */
 export function isImageFile(fileName: string): boolean {
   return IMAGE_EXTENSIONS.has(getExtension(fileName));
 }
@@ -35,20 +36,24 @@ const TEXT_FILE_LANGUAGES: Record<string, TextFileLanguage> = {
   '.py': 'python',
 };
 
+/** Returns true if the file's extension maps to a known text language (js/ts/py/txt). */
 export function isTextFile(fileName: string): boolean {
   return getExtension(fileName) in TEXT_FILE_LANGUAGES;
 }
 
+/** Returns true if the file has a `.md` extension. */
 export function isMarkdownFile(fileName: string): boolean {
   return fileName.toLowerCase().endsWith('.md');
 }
 
+/** Returns the syntax-highlight language for a text file, defaulting to `'text'`. */
 export function getTextFileLanguage(fileName: string): TextFileLanguage {
   return TEXT_FILE_LANGUAGES[getExtension(fileName)] ?? 'text';
 }
 
 export type FileIconType = 'markdown' | 'text' | 'image' | 'generic';
 
+/** Returns the icon category for a file based on its extension. */
 export function getIconForFileExtension(fileName: string): FileIconType {
   const ext = getExtension(fileName);
   if (ext === '.md') return 'markdown';
@@ -107,6 +112,7 @@ export function sortEntries(entries: FileEntry[], sortOrder: SortOrder, foldersO
   }
 }
 
+/** Formats a file's created/modified timestamps as a multi-line tooltip string. */
 export function formatFlyoverInfo(entry: FileEntry): string {
   const fmt = (ms: number) => ms ? new Date(ms).toLocaleString() : 'Unknown';
   return `File Info\n─────────────\nCreated: ${fmt(entry.createdTime)}\nModified: ${fmt(entry.modifiedTime)}`;

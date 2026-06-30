@@ -1,9 +1,8 @@
-// Usage example:
-//   import { logger } from './utils/logUtil';
-//   logger.log('hello', someVar);
-//   logger.warn('something unexpected', details);
-//   logger.error('something failed', err);
-
+/**
+ * Thin wrapper around the console so call sites import `logger` instead of
+ * referencing `console` directly. This lets us suppress the ESLint `no-console`
+ * rule in one place and makes it trivial to swap in a real logging library later.
+ */
 export const logger = {
     // eslint-disable-next-line no-console
     log: (...args: unknown[]) => console.log(...args),
