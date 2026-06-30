@@ -21,6 +21,12 @@ interface ImageEntryProps extends BaseEntryProps {
   isAttachment?: boolean;
 }
 
+/**
+ * Entry component for image files. Expands inline to show a thumbnail at the current global
+ * image size (small/large, persisted to config). Clicking the image opens a fullscreen overlay
+ * (FullscreenImageViewer). Overlaid buttons let the user toggle image size and view EXIF metadata.
+ * The EXIF dialog state is shared with the fullscreen viewer so only one dialog instance exists.
+ */
 function ImageEntry(props: ImageEntryProps) {
   const { entry, allImages, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
   // logger.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
@@ -81,6 +87,7 @@ function ImageEntry(props: ImageEntryProps) {
 
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
+  /** Fetches EXIF metadata for the given image and opens the EXIF dialog. */
   const handleExifClick = async (e: React.MouseEvent, imagePath: string, imageName: string) => {
     e.stopPropagation();
     setExifLoading(true);

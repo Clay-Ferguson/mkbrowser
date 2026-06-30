@@ -9,6 +9,11 @@ import {
 
 type GenericEntryProps = BaseEntryProps;
 
+/**
+ * Entry component for files with no dedicated renderer (not Markdown, text, or image).
+ * Renders a header row with rename, bookmark, delete, and move actions. The entry does
+ * not expand — clicking the name has no effect beyond the hover action bar.
+ */
 function GenericEntry(props: GenericEntryProps) {
   const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
   const { core, rename, del } = useEntry(props);

@@ -38,8 +38,10 @@ interface EntryActionBarProps {
 }
 
 /**
- * Reusable action button bar for Entry components.
- * Renders insert, edit, rename, open-external, delete, and bookmark buttons.
+ * Reusable action button bar rendered on hover over an entry. Shows buttons
+ * for: delete, open with OS app, reveal in folder tree, add/remove bookmark,
+ * paste clipboard as attachment (when the prop is provided), and move
+ * up/down (only in indexed/document mode, when the move handlers are provided).
  */
 export function EntryActionBar({
   path,
@@ -59,6 +61,7 @@ export function EntryActionBar({
   const settings = useSettings();
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
 
+  // Removing a bookmark is immediate; adding one opens a dialog so the user can give it a name.
   const handleBookmarkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isBookmarked) {
@@ -198,7 +201,8 @@ export function EntryActionBar({
 }
 
 /**
- * Utility to create a toggle expanded handler
+ * Returns a callback that toggles the expanded state of the entry at `path` in the store.
+ * Used by all entry types to wire the name-click handler.
  */
 export function useToggleExpanded(path: string) {
   return () => toggleItemExpanded(path);

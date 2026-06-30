@@ -10,6 +10,7 @@ interface EntryEditToolbarProps {
 
   /** Whether to show the AI Rewrite button. */
   showRewrite: boolean;
+  /** Callback to trigger the AI rewrite operation. */
   onAiRewrite: () => void;
   /** Disable the rewrite button (saving / rewrite already in flight). */
   rewriteDisabled: boolean;
@@ -22,8 +23,11 @@ interface EntryEditToolbarProps {
 
   /** Whether to show the Cancel/Save pair (hidden during review). */
   showSaveCancel: boolean;
+  /** Whether a save is in progress (disables both Cancel and Save buttons). */
   saving: boolean;
+  /** Cancel handler — exits edit mode without saving. */
   onCancel: () => void;
+  /** Save handler — persists the current editor content to disk. */
   onSave: () => void;
 
   /** Entry-specific buttons rendered before the expand button (e.g. props/tags/calendar). */

@@ -59,6 +59,17 @@ interface MarkdownEntryProps extends BaseEntryProps {
 }
 
 
+/**
+ * Entry component for Markdown files. Expands inline to show a rendered MarkdownView; clicking
+ * the content area (or any block) opens an inline CodeMirror editor. Supports:
+ * - AI rewrite of the whole document or a selected range (via the shared streaming dialog)
+ * - Ask AI (sends the file content to the AI; only shown for HUMAN.md files)
+ * - Reply (creates a new HUMAN.md for the next conversation turn; only shown for AI.md files)
+ * - Tags panel and front-matter properties display/editing
+ * - Calendar-info editing via a dedicated dialog
+ * - Paste-as-attachment workflows (both cut-items and clipboard)
+ * In document mode, timestamp-based file names are hidden from the header row.
+ */
 function MarkdownEntry(props: MarkdownEntryProps) {
   const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, documentMode = false } = props;
   const item = useItem(entry.path);
@@ -75,6 +86,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const expandedEditor = useExpandedEditor();
 
   const { editContent: editEditContent, handleCancel: editHandleCancel } = edit;
+  // Only exit edit mode on Escape when the content is unmodified (comparing without TOC, since the
+  // TOC block is stripped on edit entry). If the user has typed something, Escape falls through to
+  // CodeMirror (e.g. to dismiss autocomplete).
   const handleEscape = useCallback(() => {
     if (editEditContent === removeTOC(content)) {
       editHandleCancel();
@@ -96,6 +110,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     });
   };
 
+  // When enabling the props panel for the first time on a file that has no front matter,
+  // prepend an empty YAML block so the editor starts inside the delimiters.
   const handleToggleShowProps = () => {
     const turningOn = !showPropsInEditor;
     if (turningOn && !edit.editContent.startsWith('---')) {
@@ -114,9 +130,10 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
 
-  // Register from the editor's onReady callback (rather than reading editorRef in an effect, which
-  // can run before the imperative handle is attached on first mount). The effect below handles
-  // unregistration when editing ends, the path changes, or the component unmounts.
+  // Registers the editor handle so that external callers (e.g. global search jump-to-line) can
+  // reach the live CodeMirror instance. Registration happens in the onReady callback rather than
+  // an effect because effects can run before the imperative handle is attached on first mount.
+  // The effect below handles unregistration when editing ends, the path changes, or the component unmounts.
   const handleEditorReady = useCallback((handle: CodeMirrorEditorHandle) => {
     registerActiveMarkdownEditor(entry.path, handle);
   }, [entry.path]);

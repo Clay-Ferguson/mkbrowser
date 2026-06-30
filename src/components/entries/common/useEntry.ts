@@ -19,7 +19,7 @@ interface UseEntryOptions {
 }
 
 interface UseEntryResult {
-  /** Spread of useEntryCore */
+  /** State from useEntryCore (expanded, selected, renaming, highlighted, bookmarked) */
   core: EntryCoreState;
   /** Rename state/handlers */
   rename: RenameState;

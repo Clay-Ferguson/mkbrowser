@@ -30,6 +30,13 @@ interface FolderEntryProps extends BaseEntryProps {
   indentFolder?: boolean;
 }
 
+/**
+ * Entry component for directories. Clicking navigates into the folder; right-click starts inline
+ * rename. Also acts as a drag-and-drop target: items dragged from the entry list or index tree can
+ * be dropped here to move them into this folder. Attach folders (created automatically as siblings
+ * of their parent file) suppress the move-up/down buttons even in indexed (document) mode, since
+ * their position in the index is tied to their parent file.
+ */
 function FolderEntry(props: FolderEntryProps) {
   const { entry, onNavigate, onSaveSettings, onPasteIntoFolder, onRefreshDirectory, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder, indentFolder } = props;
   // Folders select the full name on rename; they don't use isExpanded.

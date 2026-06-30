@@ -28,6 +28,11 @@ import { ENTRY_CONTENT_AREA, ENTRY_LOADING } from '../../renderer/styles';
 
 type TextEntryProps = BaseEntryProps;
 
+/**
+ * Entry component for plain-text files. Expands inline to show a read-only CodeMirror view;
+ * clicking the content area opens an editable CodeMirror editor. Supports AI rewrite of the
+ * whole document or a selected range, and shows a diff-review editor after a rewrite completes.
+ */
 function TextEntry(props: TextEntryProps) {
   const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
   const item = useItem(entry.path);
@@ -47,6 +52,8 @@ function TextEntry(props: TextEntryProps) {
   const expandedEditor = useExpandedEditor();
 
   const { editContent: editEditContent, handleCancel: editHandleCancel } = edit;
+  // Only exit edit mode on Escape when the content is unmodified; if the user has typed
+  // something, Escape is passed through to CodeMirror (e.g. to dismiss autocomplete).
   const handleEscape = useCallback(() => {
     if (editEditContent === content) {
       editHandleCancel();
