@@ -63,6 +63,7 @@ const PROVIDER_DEFAULT_PRICING: Record<string, PricingEntry> = {
 const CONFIG_DIR = path.join(app.getPath('home'), '.config', 'mk-browser');
 const USAGE_FILE = path.join(CONFIG_DIR, 'ai-usage.json');
 
+/** Return a zeroed-out AIUsageData object used as the initial / reset state. */
 function defaultUsage(): AIUsageData {
   return {
     totalInputTokens: 0,
@@ -101,6 +102,11 @@ async function saveUsage(data: AIUsageData): Promise<void> {
 // recordUsage calls could otherwise lose one of the increments.
 let usageWriteQueue: Promise<void> = Promise.resolve();
 
+/**
+ * Chain `task` onto the serial write queue so that concurrent calls (e.g. two
+ * rapid AI requests finishing at the same time) don't race on the JSON file.
+ * Errors are logged under `label` but do not break the queue for future writes.
+ */
 function enqueueUsageWrite(task: () => Promise<void>, label: string): Promise<void> {
   const result = usageWriteQueue.then(task);
   usageWriteQueue = result.catch((err: unknown) => logger.error(`${label}:`, err));

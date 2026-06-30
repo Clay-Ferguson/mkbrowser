@@ -89,8 +89,11 @@ export function extractUsage(message: BaseMessage): AIUsageInfo | undefined {
 
 /** Callbacks for streaming AI responses. */
 export interface StreamCallbacks {
+  /** Called for each incremental visible-content token as it arrives. */
   onChunk: (token: string) => void;
+  /** Called for each incremental thinking/reasoning token (Anthropic extended thinking, llama.cpp `<think>` blocks). */
   onThinkingChunk: (token: string) => void;
+  /** Called once when a tool invocation begins, with the tool name and a brief one-line summary of its input. */
   onToolCall: (toolName: string, summary: string) => void;
 }
 

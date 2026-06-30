@@ -23,10 +23,12 @@ interface EnforceDefaultModelsResult<T extends AIModelConfigLike> {
   changed: boolean;
 }
 
+/** Trim and lowercase a model name for case-insensitive map lookups. */
 function normalizeKey(name: string): string {
   return name.trim().toLowerCase();
 }
 
+/** Return a copy of `model` with whitespace-trimmed name/model fields and an explicit `readonly` value. */
 function normalizeModel<T extends AIModelConfigLike>(model: T, readonly: boolean): Omit<T, 'readonly'> & { readonly: boolean } {
   return {
     ...model,
@@ -36,6 +38,7 @@ function normalizeModel<T extends AIModelConfigLike>(model: T, readonly: boolean
   };
 }
 
+/** Deep-equal check for model config entries (name, provider, model string, and readonly flag). */
 function modelsEqual(a: AIModelConfigLike, b: AIModelConfigLike): boolean {
   return (
     a.name === b.name &&

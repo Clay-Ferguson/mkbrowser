@@ -16,6 +16,7 @@ interface MessageExtras {
   };
 }
 
+/** Return the `additional_kwargs` map from a message, or an empty object when absent. */
 export function getAdditionalKwargs(msg: unknown): Record<string, unknown> {
   return (msg as MessageExtras)?.additional_kwargs ?? {};
 }
