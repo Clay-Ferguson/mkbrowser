@@ -5,6 +5,11 @@ export let globalHighlightText: string| null = null;
 let _observer: MutationObserver | null = null;
 let _rafId: number | null = null;
 
+/**
+ * Coalesces rapid successive highlight requests into a single rAF callback so
+ * that a burst of DOM mutations (e.g. a React re-render) does not trigger
+ * redundant highlight passes in the same frame.
+ */
 function scheduleHighlight() {
   if (_rafId !== null) return;
   _rafId = requestAnimationFrame(() => {
@@ -13,6 +18,12 @@ function scheduleHighlight() {
   });
 }
 
+/**
+ * Sets the active global search text and manages the MutationObserver that keeps
+ * highlights in sync as the DOM changes. Schedules an immediate highlight pass, then
+ * re-highlights whenever the document body mutates (e.g. after React renders new entries).
+ * Passing null (or an empty string) clears the CSS Custom Highlight and disconnects the observer.
+ */
 export function setGlobalHighlightText(text: string | null) {
   globalHighlightText = text;
 
@@ -37,6 +48,13 @@ export function setGlobalHighlightText(text: string | null) {
 
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'INPUT', 'TEXTAREA']);
 
+/**
+ * Walks every visible text node in the document body and registers CSS Custom Highlight
+ * ranges for all case-insensitive matches of `searchText`. Replaces any previously
+ * registered 'global-search' highlight. Script, style, input, and textarea nodes are
+ * skipped so that highlight markers never appear inside editable or code-execution
+ * contexts. Passing null or an empty string clears the highlight and returns immediately.
+ */
 export function applyGlobalHighlight(searchText: string | null): void {
   // logger.log('[globalHighlight] called, searchText:', searchText);
   // logger.log('[globalHighlight] CSS.highlights available:', typeof CSS !== 'undefined' && 'highlights' in CSS);

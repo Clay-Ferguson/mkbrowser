@@ -6,11 +6,14 @@ import { MONO_FONT_STACK } from '../../renderer/styles';
 import { EDITOR_COLORS } from './editorColors';
 import { eachVisibleLine } from './editorViewportUtil';
 
-// Decoration for date patterns
+// Shared decoration instance applied to every matched date token.
 export const dateMark = Decoration.mark({ class: 'cm-date' });
 
-// Extract date patterns from text with their positions
-// Matches: MM/DD/YYYY, MM/DD/YY, and optionally with HH:MM AM/PM or HH:MM:SS AM/PM
+/**
+ * Scans `text` for date patterns and returns the start/end character offsets of
+ * each match. Recognised formats: MM/DD/YYYY and MM/DD/YY, each optionally
+ * followed by a time component (HH:MM AM/PM or HH:MM:SS AM/PM).
+ */
 export function extractDates(text: string): { from: number; to: number }[] {
   const dates: { from: number; to: number }[] = [];
   // Build a fresh global instance from the shared source so scanning gets its
@@ -26,7 +29,11 @@ export function extractDates(text: string): { from: number; to: number }[] {
   return dates;
 }
 
-// Create date decorations for a view
+/**
+ * Builds a `DecorationSet` that marks every date token in the editor's current
+ * visible viewport. Only the visible range is scanned; the plugin re-runs on
+ * `viewportChanged` so off-screen content is decorated lazily.
+ */
 export function createDateDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
 
@@ -41,7 +48,10 @@ export function createDateDecorations(view: EditorView): DecorationSet {
   return builder.finish();
 }
 
-// ViewPlugin for date highlighting
+/**
+ * CodeMirror `ViewPlugin` that applies date highlight decorations.
+ * Rebuilds decorations whenever the document or viewport changes.
+ */
 export const datePlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
@@ -61,7 +71,11 @@ export const datePlugin = ViewPlugin.fromClass(
   }
 );
 
-// Hover tooltip extension for dates — shows days-from-today on mouseover
+/**
+ * CodeMirror hover-tooltip extension for date tokens. When the pointer hovers
+ * over a recognised date, shows a tooltip with the human-readable distance from
+ * today (e.g. "2 days ago", "in 3 days", "today").
+ */
 export const dateTooltipExtension = hoverTooltip((view, pos) => {
   const line = view.state.doc.lineAt(pos);
   const lineOffset = pos - line.from;
@@ -91,7 +105,9 @@ export const dateTooltipExtension = hoverTooltip((view, pos) => {
   return null;
 });
 
-// Theme for dates
+/**
+ * CodeMirror base theme that styles `.cm-date` tokens and their hover tooltips.
+ */
 export const dateTheme = EditorView.baseTheme({
   '.cm-date': {
     color: EDITOR_COLORS.green400,

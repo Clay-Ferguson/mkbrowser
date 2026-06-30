@@ -9,7 +9,11 @@ const hashtagP1Mark = Decoration.mark({ class: 'cm-hashtag-p1' });
 const hashtagP2Mark = Decoration.mark({ class: 'cm-hashtag-p2' });
 const hashtagRegularMark = Decoration.mark({ class: 'cm-hashtag-regular' });
 
-// Extract hashtags from text with their positions
+/**
+ * Scans `text` for hashtag tokens and returns the tag string along with its
+ * start/end character offsets within the line. A fresh `RegExp` instance is
+ * created each call so the stateful `lastIndex` does not leak between calls.
+ */
 export function extractHashtags(text: string): { tag: string; from: number; to: number }[] {
   const hashtags: { tag: string; from: number; to: number }[] = [];
   const regex = new RegExp(HASHTAG_REGEX.source, 'g');
@@ -24,7 +28,12 @@ export function extractHashtags(text: string): { tag: string; from: number; to: 
   return hashtags;
 }
 
-// Create hashtag decorations for a view
+/**
+ * Builds a `DecorationSet` that marks every hashtag token in the editor's
+ * visible viewport. `#p1` receives a priority-1 mark, `#p2` receives a
+ * priority-2 mark, and all other tags receive the regular hashtag mark.
+ * Only the visible range is scanned; the plugin re-runs on `viewportChanged`.
+ */
 export function createHashtagDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
 
@@ -50,7 +59,10 @@ export function createHashtagDecorations(view: EditorView): DecorationSet {
   return builder.finish();
 }
 
-// ViewPlugin for hashtag highlighting
+/**
+ * CodeMirror `ViewPlugin` that applies hashtag highlight decorations.
+ * Rebuilds decorations whenever the document or viewport changes.
+ */
 export const hashtagPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
@@ -70,7 +82,10 @@ export const hashtagPlugin = ViewPlugin.fromClass(
   }
 );
 
-// Theme for hashtags
+/**
+ * CodeMirror base theme that styles `.cm-hashtag-p1` (#p1, orange),
+ * `.cm-hashtag-p2` (#p2, yellow), and `.cm-hashtag-regular` (all other tags, sky-blue).
+ */
 export const hashtagTheme = EditorView.baseTheme({
   '.cm-hashtag-p1': {
     color: EDITOR_COLORS.orange400,

@@ -27,6 +27,12 @@ export function findFrontMatterRange(doc: Text): FrontMatterRange | null {
   return { openLine: 1, closeLine: 0 };
 }
 
+/**
+ * Builds decorations for the YAML front-matter region at the top of the document.
+ * The opening/closing `---` delimiters receive `cm-front-matter-delim`, the `id:`
+ * line receives `cm-front-matter-id`, and all other content lines receive
+ * `cm-front-matter`. Returns an empty set when no front matter is present.
+ */
 export function createFrontMatterDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const doc = view.state.doc;
@@ -68,6 +74,11 @@ function buildHrLineDecorations(view: EditorView): DecorationSet {
   return builder.finish();
 }
 
+/**
+ * CodeMirror `ViewPlugin` that draws a visual horizontal rule beneath any `---`
+ * line outside the front-matter region (line number > 1). Runs at `Prec.highest`
+ * so the line decoration renders above other plugins.
+ */
 export const hrLinePlugin = Prec.highest(ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
@@ -81,6 +92,11 @@ export const hrLinePlugin = Prec.highest(ViewPlugin.fromClass(
   { decorations: (v) => v.decorations }
 ));
 
+/**
+ * CodeMirror `ViewPlugin` that applies syntax-highlight decorations to the YAML
+ * front-matter block at the top of the document. Runs at `Prec.highest` so
+ * front-matter styling takes precedence over other plugins.
+ */
 export const frontMatterPlugin = Prec.highest(ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
@@ -119,7 +135,13 @@ function buildFrontMatterHideDecorations(state: EditorState): DecorationSet {
   return builder.finish();
 }
 
-// Block decorations must come from a StateField, not a ViewPlugin
+/**
+ * `StateField` that collapses the front-matter block to zero height using a
+ * `Decoration.replace` block decoration, hiding it from the editor viewport.
+ *
+ * Block decorations must originate from a `StateField`, not a `ViewPlugin`,
+ * because CodeMirror only permits block decorations from state fields.
+ */
 export const frontMatterHideField = StateField.define<DecorationSet>({
   create(state) { return buildFrontMatterHideDecorations(state); },
   update(deco, tr) {
@@ -179,6 +201,9 @@ export const frontMatterCursorGuard = EditorState.transactionFilter.of((tr) => {
   return [tr, { selection: EditorSelection.create(ranges, sel.mainIndex), sequential: true }];
 });
 
+/**
+ * CodeMirror base theme for front-matter syntax highlighting and `---` HR lines.
+ */
 export const frontMatterTheme = EditorView.baseTheme({
   '.cm-front-matter': {
     color: EDITOR_COLORS.green400,

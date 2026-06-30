@@ -1,7 +1,8 @@
 import { joinPath } from './pathUtil';
 
 /**
- * Generate a timestamp-based filename
+ * Generates a timestamp-based filename in the format `YYYY-MM-DD--HH-MM-SS<extension>`,
+ * used for pasted clipboard items where no meaningful name is available.
  */
 export function generateTimestampFilename(extension: string): string {
   const now = new Date();

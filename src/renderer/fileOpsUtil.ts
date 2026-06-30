@@ -196,21 +196,6 @@ export async function joinSelectedFiles(
 }
 
 /**
- * Creates a new file in the current folder, optionally inserting it at a specific position
- * in the folder's .INDEX.yaml. For Markdown and text files, immediately opens the item
- * in edit mode after creation.
- *
- * @param fileName - The name of the new file (e.g. "notes.md").
- * @param currentPath - Absolute path of the folder where the file will be created.
- * @param insertAtIndex - Zero-based position at which to insert the new file in the index.
- *   If null, the file is appended by the next reconcile rather than inserted explicitly.
- * @param sortedEntries - The current sorted list of folder entries, used to resolve the
- *   "insert after" sibling name when insertAtIndex is set.
- * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after creation.
- * @param onSetError - Callback invoked with an error message if the creation fails.
- * @param onCloseDialog - Callback invoked to close the "new file" dialog.
- */
-/**
  * Shared implementation behind {@link createFileOp} and {@link createFolderOp}: creates the
  * item on disk, closes the dialog, optionally inserts it into the folder's .INDEX.yaml at a
  * specific position, highlights and scrolls to it, then refreshes the directory.
@@ -264,6 +249,21 @@ async function createItemOp(
   onCreated?.(itemPath);
 }
 
+/**
+ * Creates a new file in the current folder, optionally inserting it at a specific position
+ * in the folder's .INDEX.yaml. For Markdown and text files, immediately opens the item
+ * in edit mode after creation.
+ *
+ * @param fileName - The name of the new file (e.g. "notes.md").
+ * @param currentPath - Absolute path of the folder where the file will be created.
+ * @param insertAtIndex - Zero-based position at which to insert the new file in the index.
+ *   If null, the file is appended by the next reconcile rather than inserted explicitly.
+ * @param sortedEntries - The current sorted list of folder entries, used to resolve the
+ *   "insert after" sibling name when insertAtIndex is set.
+ * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after creation.
+ * @param onSetError - Callback invoked with an error message if the creation fails.
+ * @param onCloseDialog - Callback invoked to close the "new file" dialog.
+ */
 export async function createFileOp(
   fileName: string,
   currentPath: string | null,

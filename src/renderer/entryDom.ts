@@ -11,6 +11,7 @@ export function temporaryHighlightItem(element: HTMLElement) {
     element.style.boxShadow = '';
   }, 7000);
 }
+/** Builds the DOM element ID for a file-entry header row, used by scrollItemIntoView and temporaryHighlightItem. */
 export const buildEntryHeaderId = (filePath: string) => `entry-${encodeURIComponent(filePath)}`;
 
 /**
