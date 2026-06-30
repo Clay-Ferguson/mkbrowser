@@ -7,10 +7,16 @@ import { logger } from '../../shared/logUtil';
 import { frontMatterEndLine } from '../../renderer/editor/editorFrontMatterUtil';
 import { eachVisibleLine } from '../../renderer/editor/editorViewportUtil';
 
-// Singleton for the spell checker
+// Module-level singletons so the dictionary is fetched and compiled exactly once,
+// even if multiple editor instances call loadSpellChecker concurrently.
 let typoInstance: Typo | null = null;
 let typoLoadingPromise: Promise<Typo | null> | null = null;
 
+/**
+ * Loads the en_US Hunspell dictionary via IPC and returns a shared `Typo` instance.
+ * Concurrent callers receive the same in-flight promise, so the dictionary files are
+ * fetched and compiled only once per session. Returns `null` if loading fails.
+ */
 export async function loadSpellChecker(): Promise<Typo | null> {
   if (typoInstance) return typoInstance;
   if (typoLoadingPromise) return typoLoadingPromise;
@@ -29,10 +35,13 @@ export async function loadSpellChecker(): Promise<Typo | null> {
   return typoLoadingPromise;
 }
 
-// Decoration for misspelled words
 const misspelledMark = Decoration.mark({ class: 'cm-misspelled' });
 
-// Extract words from text with their positions
+/**
+ * Splits `text` into spellcheckable tokens, returning each token with its start and end
+ * offsets within the string. Matches letter sequences including internal apostrophes
+ * (e.g. "don't") so contractions are checked as a single word.
+ */
 export function extractWords(text: string): { word: string; from: number; to: number }[] {
   const words: { word: string; from: number; to: number }[] = [];
   // Match word characters, including apostrophes within words
@@ -48,9 +57,11 @@ export function extractWords(text: string): { word: string; from: number; to: nu
   return words;
 }
 
-// Find the word at a position within a single line of text, using the same
-// word definition as extractWords so the spell-check underlines and the
-// context-menu lookup can never drift apart.
+/**
+ * Returns the word that contains character offset `pos` within `text`, or `null` if
+ * `pos` falls outside any word boundary. Uses the same tokenisation as `extractWords`
+ * so spell-check underlines and the context-menu misspelling lookup always agree.
+ */
 export function wordAt(text: string, pos: number): { word: string; from: number; to: number } | null {
   for (const w of extractWords(text)) {
     if (pos >= w.from && pos <= w.to) return w;
@@ -58,7 +69,11 @@ export function wordAt(text: string, pos: number): { word: string; from: number;
   return null;
 }
 
-// Create spell check decorations for a view
+/**
+ * Builds a `DecorationSet` that underlines every misspelled word visible in the current
+ * viewport. Front-matter lines are skipped. Only the visible range is scanned so large
+ * files don't incur unnecessary work on every keystroke or scroll event.
+ */
 export function createSpellCheckDecorations(view: EditorView, typo: Typo | null): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
 
@@ -92,7 +107,12 @@ export function createSpellCheckDecorations(view: EditorView, typo: Typo | null)
   return builder.finish();
 }
 
-// ViewPlugin for spell checking
+/**
+ * Creates a CodeMirror `ViewPlugin` that recomputes spell-check decorations whenever
+ * the document or visible viewport changes. Receives `typoRef` rather than a `Typo`
+ * instance directly so the plugin continues to work after the spell checker loads
+ * asynchronously post-mount.
+ */
 export function createSpellCheckPlugin(typoRef: RefObject<Typo | null>) {
   return ViewPlugin.fromClass(
     class {

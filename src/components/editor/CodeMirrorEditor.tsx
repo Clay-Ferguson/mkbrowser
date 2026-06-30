@@ -108,6 +108,14 @@ export interface CodeMirrorEditorHandle {
   insertAtCursor(text: string): void;
 }
 
+/**
+ * Full-featured CodeMirror 6 editor with Markdown/code language support, spell checking,
+ * front-matter hiding, hashtag/date decorations, and a custom context menu.
+ *
+ * The view is created once on mount and never rebuilt for prop changes — mutable props
+ * (value, fontSize, showPropsInEditor) are applied through separate effects or compartments
+ * so that undo history, cursor position, and the async spell checker are preserved.
+ */
 const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);

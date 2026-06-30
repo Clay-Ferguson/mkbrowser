@@ -25,6 +25,18 @@ interface UseEditorContextMenuProps {
   onMakeRepeatingCalendarItem?: () => void;
 }
 
+/**
+ * Manages state and event handlers for the editor's right-click context menu.
+ *
+ * On right-click, checks whether the cursor lands on a misspelled word (using the same
+ * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
+ * top of the menu. Also exposes cut/copy/paste, select-all, timestamp/date insertion,
+ * and — for Markdown files — "Paste Link" and calendar-item creation actions.
+ *
+ * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
+ * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
+ * `canPasteLink`, `calendarAlreadyExists`).
+ */
 export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   const [calendarAlreadyExists, setCalendarAlreadyExists] = useState(false);
@@ -34,6 +46,8 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     setContextMenu(prev => ({ ...prev, visible: false }));
   }, []);
 
+  // Converts the click coordinates to a document position, checks whether that position
+  // falls inside a misspelled word, and opens the menu with spelling suggestions when it does.
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     const view = viewRef.current;
@@ -193,6 +207,9 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     view.focus();
   }, [closeContextMenu, viewRef]);
 
+  // Shared implementation for both calendar-item variants. Aborts with an alert if a
+  // 'due' property already exists in the front matter; otherwise injects the calendar
+  // front matter and invokes the parent callback (used to trigger a save).
   const makeCalendarItem = useCallback((repeating: boolean, callback?: () => void) => {
     const view = viewRef.current;
     if (!view) return;

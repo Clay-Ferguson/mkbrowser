@@ -12,14 +12,23 @@ import { createFontSizeTheme } from './editorTheme';
 import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN } from '../../renderer/styles';
 
 interface DiffReviewEditorProps {
+  /** The pre-edit content, shown as the "original" side in the unified diff. */
   originalText: string;
+  /** The post-edit content (the current document), shown as the "modified" side. */
   modifiedText: string;
   language?: 'markdown' | 'text' | 'javascript' | 'typescript' | 'python';
   /** Reports the final document after the user resolves every chunk (accepting or rejecting all). */
   onComplete: (finalText: string) => void;
+  /** Called when the user cancels the review without saving. */
   onCancel: () => void;
 }
 
+/**
+ * Read-only unified diff viewer built on CodeMirror's `unifiedMergeView`. Shows the AI-rewritten
+ * text alongside the original so the user can accept or reject individual change chunks before
+ * committing the result. "Accept All" bulk-resolves every chunk; "Done" rejects all remaining
+ * chunks and finalises with the current document state.
+ */
 function DiffReviewEditor({ originalText, modifiedText, language = 'text', onComplete, onCancel }: DiffReviewEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);

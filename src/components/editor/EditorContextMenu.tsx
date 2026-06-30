@@ -19,8 +19,15 @@ interface EditorContextMenuProps {
   isMarkdown?: boolean;
 }
 
+// Minimum gap (px) kept between the menu edge and the browser viewport on all sides.
 const VIEWPORT_MARGIN = 8;
 
+/**
+ * Floating context menu for the CodeMirror editor. Renders at the right-click coordinates,
+ * clamped so it stays fully within the viewport. Includes standard edit actions (cut/copy/paste,
+ * select all), timestamp/date insertion, optional spell-check suggestions, and Markdown-only
+ * items (Paste Link, calendar item creation). Closes on outside click, scroll, or Escape.
+ */
 export function EditorContextMenu({
   contextMenu,
   onCut,
@@ -61,6 +68,7 @@ export function EditorContextMenu({
     }
   }, [contextMenu.visible]);
 
+  // Arrow/Home/End keyboard navigation within the menu — moves focus between menu items.
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return;
     e.preventDefault();
