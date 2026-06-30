@@ -57,9 +57,11 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const [typingDraft, setTypingDraft] = useState<string | null>(null);
   const personaName = typingDraft ?? storedPersona;
 
-  // Change the active chat persona (the "selected prompt") and persist it.
-  // saveAiConfig persists AND mirrors into the store (which the editor's AI
-  // Rewrite button subscribes to).
+  /**
+   * Commits a persona selection from the combobox, clears the typing draft, and
+   * persists the new active persona via `saveAiConfig` so the editor's AI Rewrite
+   * button (which reads the same store mirror) picks it up immediately.
+   */
   const handlePersonaSelect = useCallback((name: string) => {
     setTypingDraft(null);
     void saveAiConfig({ aiRewritePrompt: name });
@@ -68,7 +70,12 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   // Ref to the scrollable container (used for auto-scrolling to bottom / to an item)
   const mainContainerRef = useRef<HTMLElement | null>(null);
 
-  // Fetch thread entries when the current path changes
+  /**
+   * Fetches the ordered list of HUMAN.md / AI.md turn files for the current
+   * folder hierarchy via `gatherThreadEntries`, seeds the store with each
+   * entry's metadata so MarkdownEntry's content loader can warm its cache, and
+   * updates the `isThread` / `childFolders` state that drives the UI branches.
+   */
   const loadThread = useCallback(async () => {
     if (!currentPath) {
       setIsThread(false);
@@ -180,9 +187,11 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
     navigateToBrowserPath(path);
   }, []);
 
-  // Drill into a conversation branch folder while staying on the thread tab.
-  // currentPath is shared with the browse view, but we keep currentView as
-  // 'thread' so the user remains in the thread UI as they navigate deeper.
+  /**
+   * Navigates into a conversation branch folder while keeping the current view
+   * set to 'thread', so the user drills deeper into the conversation tree
+   * without switching to the browser tab.
+   */
   const handleChildFolderClick = useCallback((folderPath: string) => {
     navigateToBrowserPath(folderPath, undefined, 'thread');
   }, []);

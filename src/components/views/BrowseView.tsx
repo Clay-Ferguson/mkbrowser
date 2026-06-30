@@ -91,6 +91,13 @@ interface AttachFolderContentsProps {
   onPasteIntoFolder?: (folderPath: string) => void;
 }
 
+/**
+ * Recursively renders the contents of an attachment folder (a sibling folder
+ * whose name ends with the ATTACH_SUFFIX convention). Entries are indented by
+ * `level` so they visually nest under their parent markdown file. Directories
+ * inside the attachment folder are rendered recursively; files are dispatched
+ * to the appropriate entry component by type.
+ */
 function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder }: AttachFolderContentsProps) {
   const items = useItems();
   const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
@@ -142,6 +149,14 @@ interface BrowseViewProps {
   onSaveSettings: () => void;
 }
 
+/**
+ * The primary file-browser view. Renders the current folder's entries as a
+ * vertical list of typed entry components (markdown, image, text, folder, etc.)
+ * and provides the full toolbar: search, sort, create, cut/paste, export, OCR,
+ * AI chat, calendar, and folder graph/analysis. Scroll position is saved per
+ * folder and restored on navigation. In index-ordered (document) mode the sort
+ * menu is hidden and inline IndexInsertBars replace the create buttons.
+ */
 function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastExportFolder, onRefreshDirectory, onSetError, onSaveSettings }: BrowseViewProps) {
   const rootPath = useRootPath();
   const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
@@ -313,6 +328,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     }
   }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, currentPath, currentView]);
 
+  /** Derives a default export file name from the current folder name. */
   const generateExportFileName = (currentPath: string | null): string => {
     if (!currentPath) return 'export.md';
     const folderName = getFileName(currentPath);
@@ -414,6 +430,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     await pasteIntoFolder(folderPath, items, onSetError, onRefreshDirectory);
   }, [items, onRefreshDirectory, onSetError]);
 
+  /**
+   * Returns the attachment folder path for `filePath`, creating it on disk if it
+   * does not yet exist. If the current folder uses index ordering the new attach
+   * folder is also inserted into .INDEX.yaml immediately after its parent file.
+   * Returns null and reports an error if folder creation fails.
+   */
   const ensureAttachFolder = useCallback(async (filePath: string): Promise<string | null> => {
     const attachFolderPath = `${filePath}${ATTACH_SUFFIX}`;
     const exists = await api.pathExists(attachFolderPath);
@@ -463,6 +485,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   // eslint-disable-next-line react-hooks/exhaustive-deps -- false positive: getSelectedItems only reads items, which is already a dep. Listing the unmemoized helper would defeat this callback's memoization.
   }, [currentPath, items, onRefreshDirectory, onSetError]);
 
+  /**
+   * Marks selected items as cut. If any selected file has a sibling attachment
+   * folder that was not also selected, prompts the user to confirm cutting the
+   * file without its attachments before proceeding.
+   */
   const handleCutClick = useCallback(() => {
     const hasOrphanedAttachment = visibleEntries.some((entry) => {
       if (entry.isDirectory || !items.get(entry.path)?.isSelected) return false;
@@ -784,6 +811,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     })();
   }, [currentPath, onSetError]);
 
+  /**
+   * Starts a new AI conversation in the current folder by creating a HUMAN.md
+   * turn file via the `replyToAi` IPC call, then navigates to the thread view
+   * and opens the new file for editing. Prevents creating a second conversation
+   * when one already exists in the folder.
+   */
   const newAiChat = () => {
     if (!currentPath) return;
     if (hasHumanMd(entries)) {

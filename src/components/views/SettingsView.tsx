@@ -56,6 +56,13 @@ interface SettingsViewProps {
   onSaveSettings: () => void;
 }
 
+/**
+ * General application settings page. Covers appearance (font size, content
+ * width, folder tree width, folders-on-top, table of contents), files to ignore
+ * in searches, OCR tools folder path, calendar items folder path, and hashtag
+ * management. Each field writes to the store immediately and triggers
+ * `onSaveSettings` to persist to disk.
+ */
 function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const settings = useSettings();
   const [showTagsEditor, setShowTagsEditor] = useState(false);

@@ -7,6 +7,12 @@ interface FolderAnalysisViewProps {
   onSearchHashtag: (hashtag: string, ctrlKey: boolean) => void;
 }
 
+/**
+ * Displays the results of a folder hashtag analysis: total files scanned and a
+ * sorted list of every unique hashtag with its occurrence count. Each hashtag is
+ * a clickable button — a plain click triggers a file-name search, and Ctrl+click
+ * triggers a line-by-line search via the `onSearchHashtag` callback.
+ */
 function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
   const folderAnalysis = useFolderAnalysis();
 

@@ -54,6 +54,10 @@ import { parseFrontMatter } from '../../shared/frontMatterUtil';
 
 const INDENT_SIZE = 20;
 
+/**
+ * Computes the relative path from `fromDir` to `toFile` using `..` segments,
+ * matching the format expected in Markdown link hrefs (e.g. `../sibling/file.md`).
+ */
 function computeRelativePath(fromDir: string, toFile: string): string {
   const fromParts = splitPathSegments(fromDir);
   const toParts = splitPathSegments(toFile);
@@ -98,6 +102,13 @@ function isAnyExpanded(nodes: TreeNode[]): boolean {
   return nodes.some(n => n.isExpanded);
 }
 
+/**
+ * Flattens the visible portion of the tree into a flat array of `{node, depth}`
+ * pairs for virtual list rendering. Collapsed nodes are included but their
+ * children are omitted; cut nodes are skipped entirely. Heading sub-trees and
+ * index-ordered (document mode) nodes preserve their existing order; all other
+ * nodes are sorted alphabetically with optional folders-on-top.
+ */
 function flattenVisible(
   nodes: TreeNode[],
   cutPaths: Set<string>,
@@ -132,6 +143,15 @@ function isParentOf(candidatePath: string, currentPath: string): boolean {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
+/**
+ * Collapsible file-explorer sidebar showing the full folder tree rooted at the
+ * app's root path. Supports expand/collapse (lazy-loading children on first
+ * expand), drag-and-drop reordering between folders, cut/paste, rename, delete,
+ * bookmarks, and a right-click context menu. Markdown files expand to reveal
+ * their heading tree. Clicking a heading or file navigates the browse view to
+ * that item; Ctrl+clicking a shell script runs it. The "Paste Link" context-menu
+ * action inserts a relative Markdown link at the active editor's cursor.
+ */
 function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) {
   const rootPath = useRootPath();
   const currentPath = useCurrentPath();
@@ -185,6 +205,11 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     void load();
   }, [rootPath, treeRoot?.path]);
 
+  /**
+   * Expands every ancestor folder from the root down to `targetPath`, loading
+   * directory contents on demand for any node that hasn't been opened yet, then
+   * scrolls the target node into the center of the tree panel.
+   */
   const expandToPath = useCallback(async (targetPath: string) => {
     if (!rootPath || !isPathInside(rootPath, targetPath)) return;
 
@@ -229,6 +254,14 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     void expandToPath(pendingReveal);
   }, [pendingReveal, expandToPath]);
 
+  /**
+   * Handles a click on any tree row. Behavior depends on node type:
+   * - Heading node: toggles expansion of the heading's child headings.
+   * - Markdown file: toggles expansion; loads heading children from disk on
+   *   first expand.
+   * - Directory: toggles expansion; reads directory contents on first expand.
+   * - Other file types: no-op (non-expandable).
+   */
   const handleNodeClick = useCallback(async (node: TreeNode) => {
     if (isMarkdownHeadingNode(node)) {
       // Toggle heading expansion
@@ -278,6 +311,12 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     }
   }, []);
 
+  /**
+   * Moves all cut items into `node`'s folder via rename. Applied partially on
+   * disk failure — only the files that actually moved are removed from the store
+   * and reconciled with .INDEX.yaml, so the UI never desyncs from disk. The cut
+   * flag is cleared only when every item moved successfully.
+   */
   const handlePasteIntoFolder = useCallback(async (node: FileNode, e: React.MouseEvent) => {
     e.stopPropagation();
     const cutItems = getCutItems();
@@ -375,6 +414,12 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     await reloadExpandedTreeFolder(parentPath);
   }, [deleteTarget, currentPath, onRefreshDirectory]);
 
+  /**
+   * Handles a drag-and-drop of a file or folder entry onto a directory node.
+   * Moves the dragged item into the target folder on disk, removes it from the
+   * store, and refreshes both the source and destination folders in the tree and
+   * (if visible) in the browse view.
+   */
   const handleDropOnFolder = useCallback(async (node: FileNode, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -439,6 +484,12 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     if (hasChildren) void handleNodeClick(node);
   };
 
+  /**
+   * Shows the context menu for a heading row. The only available action is
+   * "Browse", which scrolls the existing rendered heading into view if the
+   * document is already open, or navigates to the file and queues a heading
+   * scroll via `pendingScrollToHeadingSlug` otherwise.
+   */
   const handleHeadingContextMenu = (node: MarkdownHeadingNode, e: React.MouseEvent) => {
     e.preventDefault();
     setContextMenu({
@@ -460,6 +511,14 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     });
   };
 
+  /**
+   * Shows the context menu for a file or directory row. Available actions depend
+   * on node type: directories get Browse/New Folder/Rename/Delete and (when cut
+   * items exist) Paste; files get Browse/Rename/Delete and (when a markdown file
+   * is being edited) "Paste Link", which inserts a relative Markdown link at the
+   * active editor's cursor — using the file's front-matter `id` field as a comment
+   * suffix when present.
+   */
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();
     const activeEditor = editingMarkdownPath ? getActiveMarkdownEditor() : null;

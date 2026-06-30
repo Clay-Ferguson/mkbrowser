@@ -131,6 +131,7 @@ const COLOR_HIGHLIGHT = '#a855f7'; // purple
 const COLOR_CONTAINS = '#22c55e'; // green — shown on a folder's children while hovering it
 const COLOR_PATH = '#ef4444';     // red — links from a hovered node up to the root
 
+/** Returns the fill color for a graph node based on its type and highlight state. */
 function colorForNode(d: SimNode, highlighted: boolean): string {
   if (highlighted) return COLOR_HIGHLIGHT;
   if (d.depth === 0) return COLOR_ROOT;
@@ -140,6 +141,7 @@ function colorForNode(d: SimNode, highlighted: boolean): string {
   return COLOR_OTHER;
 }
 
+/** Returns the circle radius for a node — folders scale up with their child count. */
 function nodeRadius(d: SimNode): number {
   if (!d.isDirectory) return NODE_RADIUS_BASE;
   return NODE_RADIUS_BASE + Math.min(10, Math.sqrt(d.childCount));
@@ -174,6 +176,16 @@ async function getFilePreview(filePath: string, name: string): Promise<string> {
   return `${name}\n${divider}\n${preview}`;
 }
 
+/**
+ * Interactive D3 force-directed graph of a folder tree. Nodes represent files
+ * and folders; links represent parent-child containment. Supports drag-to-reposition,
+ * scroll-to-zoom, click-to-navigate, and hover highlighting (green for a folder's
+ * direct children, red for the hovered node's ancestor path to root). File nodes
+ * show a lazily-loaded content preview in the native SVG tooltip. The simulation
+ * uses several layered repulsion forces (cross-folder, file-vs-non-parent-folder,
+ * folder-hub long-range) to keep clusters visually separated; see the module-level
+ * constants for tuning knobs.
+ */
 function FolderGraphView() {
   const folderGraph = useFolderGraph();
   const highlightItem = useHighlightItem();
@@ -489,6 +501,12 @@ function FolderGraphView() {
       });
     root.call(zoomBehavior);
 
+    /**
+     * Computes the bounding box of all settled nodes and applies a zoom transform
+     * that fits the entire graph within the container with padding. Pass
+     * `animate: true` for a smooth transition (used once on initial settle),
+     * or `false` for an instant snap.
+     */
     function zoomToFit(animate: boolean): void {
       let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
       for (const n of simNodes) {

@@ -11,11 +11,13 @@ import { logger } from '../../shared/logUtil';
 import { getParentPath, joinPath } from '../../renderer/pathUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
 
+/** Formats a Date as MM/DD/YYYY for use in the `due:` front-matter field. */
 function formatDueDate(d: Date): string {
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
 }
 
+/** Formats a Date as H:MM AM/PM for use in the `start:` front-matter field. */
 function formatStartTime(d: Date): string {
   const h24 = d.getHours();
   const h12 = h24 % 12 || 12;
@@ -44,6 +46,14 @@ interface PendingSlot {
   defaultFileName: string;
 }
 
+/**
+ * Renders a react-big-calendar view populated with events parsed from Markdown
+ * front matter in the active calendar folder. Clicking a calendar slot opens a
+ * dialog to create a new Markdown file pre-filled with `due:`, `start:`, and
+ * `duration:` fields derived from the selection. Clicking an event navigates the
+ * browser to the corresponding file. The selected view type and current date are
+ * persisted to config so they survive app restarts.
+ */
 export default function CalendarView() {
   const events = useCalendarEvents();
   const loading = useCalendarLoading();
@@ -60,6 +70,11 @@ export default function CalendarView() {
     void api.updateConfig({ calendarViewType: vt });
   };
 
+  /**
+   * Handles a drag-select or click on an empty calendar slot. Builds the initial
+   * front-matter block (`due:`, and optionally `start:` + `duration:` for timed
+   * slots) and opens the new-file dialog so the user can name the event file.
+   */
   const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
     const { start, end } = slotInfo;
     const isAllDay =
@@ -79,6 +94,11 @@ export default function CalendarView() {
     setPendingSlot({ content, defaultFileName: '' });
   };
 
+  /**
+   * Creates the calendar Markdown file with the pending front-matter content in
+   * the configured calendar items folder, then navigates the browser to it and
+   * opens it for editing.
+   */
   const handleCreateCalendarFile = async (fileName: string) => {
     if (!pendingSlot) return;
     const { content } = pendingSlot;

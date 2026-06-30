@@ -28,6 +28,14 @@ interface SearchResultsViewProps {
   onNavigateToResult: (folderPath: string, resultPath: string) => void;
 }
 
+/**
+ * Displays the results of the most recent folder search as a sorted list of
+ * file cards. Each card shows the relative path and match count, and provides
+ * Edit (navigate to browser and open the file for editing) and Delete buttons.
+ * Results can be rendered as a folder graph via the "Graph View" button. The
+ * active sort order (file name, created time, or modified time) and direction
+ * are read from the store and applied client-side on each render.
+ */
 function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const searchResults = useSearchResults();
   const searchQuery = useSearchQuery();

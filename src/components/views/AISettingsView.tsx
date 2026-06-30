@@ -15,6 +15,15 @@ import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_GREEN, BUTTON_CLA
 
 const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
+/**
+ * Settings page for all AI-related configuration: enabling AI, selecting and
+ * managing model configs, configuring the llama.cpp local server, editing
+ * rewrite personas, and viewing per-provider usage statistics.
+ *
+ * AI config lives on AppConfig (not AppSettings), so it is mirrored into the
+ * store via `saveAiConfig` to keep the editor, ThreadView, and this form in sync
+ * without a full config reload.
+ */
 function AISettingsView() {
   // AI config (lives top-level on AppConfig, not AppSettings) is mirrored into
   // the store so this form, the editor, and ThreadView all stay in sync. Read
@@ -128,6 +137,11 @@ function AISettingsView() {
     setPendingSaveModel(null);
   }, [aiModels, saveAiConfigField, normalizeModelKey]);
 
+  /**
+   * Validates a model save from EditAIModelDialog and either applies it immediately
+   * or routes through a confirmation dialog when the chosen name already exists.
+   * Built-in (readonly) models can never be overwritten — an alert is shown instead.
+   */
   const handleDialogSave = useCallback((model: AIModelConfig) => {
     // Check for name collision (only matters if it's a different entry than what we're editing)
     const isCreate = !editingModel;
@@ -193,6 +207,7 @@ function AISettingsView() {
     setShowResetConfirm(false);
   }, []);
 
+  /** Starts the local llama.cpp server and updates the displayed status. */
   const startLlama = async () => {
     setLlamaServerBusy(true);
     setLlamaServerStatus('loading');
@@ -206,6 +221,7 @@ function AISettingsView() {
     setLlamaServerBusy(false);
   };
 
+  /** Stops the local llama.cpp server and updates the displayed status. */
   const stopLlama = async () => {
     setLlamaServerBusy(true);
     const result = await api.stopLlamaServer();
@@ -217,6 +233,7 @@ function AISettingsView() {
     setLlamaServerBusy(false);
   };
 
+  /** Re-pings the llama.cpp health endpoint and refreshes the displayed status. */
   const refreshLlama = async () => {
     const status = await api.checkLlamaHealth();
     setLlamaServerStatus(status);
