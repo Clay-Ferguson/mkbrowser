@@ -4,6 +4,7 @@ import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 interface ToolsPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
+  /** When false, the "New AI Chat" item is hidden. */
   aiEnabled: boolean;
   onFolderAnalysis: () => void;
   onFolderGraph: () => void;
@@ -12,6 +13,10 @@ interface ToolsPopupMenuProps {
   onRunOcr: () => void;
 }
 
+/**
+ * Popup menu for the Tools toolbar button. Exposes advanced folder operations:
+ * AI chat (when AI is enabled), folder analysis, folder graph, export, and OCR.
+ */
 export default function ToolsPopupMenu({
   anchorRef,
   onClose,

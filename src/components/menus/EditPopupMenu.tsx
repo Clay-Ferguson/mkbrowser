@@ -1,6 +1,12 @@
 import type { RefObject } from 'react';
 import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
+/**
+ * Popup menu for the Edit toolbar button. Exposes file-level editing operations:
+ * undo cut, selection management, split/join, find-and-replace, and copy link.
+ * Each action callback is responsible for the actual operation; the menu only
+ * wires up the items and closes itself after a selection.
+ */
 interface EditPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;

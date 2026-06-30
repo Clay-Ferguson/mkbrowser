@@ -8,10 +8,16 @@ interface FilePopupMenuProps {
   onClose: () => void;
   onSelectFolder: () => void;
   onQuit: () => void;
+  /** Ordered list of recently visited folder paths (most-recent first). */
   recentFolders: string[];
   onOpenRecentFolder: (folder: string) => void;
 }
 
+/**
+ * Popup menu for the File toolbar button. Shows "Open Folder", an optional
+ * list of recently visited folders, and "Quit". Recent folders that resolve
+ * to the root ("/") are omitted since the root has its own dedicated nav icon.
+ */
 export default function FilePopupMenu({
   anchorRef,
   onClose,
@@ -22,6 +28,11 @@ export default function FilePopupMenu({
 }: FilePopupMenuProps) {
   const rootPath = useRootPath();
 
+  /**
+   * Returns a display label for a recent folder. When the folder is inside the
+   * current root, the label is the root-relative path; otherwise the full path
+   * is returned. Returns "/" when the folder equals the root itself.
+   */
   const folderLabel = (folder: string) => {
     if (rootPath && isPathInside(rootPath, folder)) {
       const rel = folder.slice(rootPath.length).replace(/^[/\\]/, '');

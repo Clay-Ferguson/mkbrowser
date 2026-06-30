@@ -8,6 +8,10 @@ interface SystemPopupMenuProps {
   onAiSettings: () => void;
 }
 
+/**
+ * Popup menu for the system (gear/hamburger) toolbar button. Provides
+ * navigation to the general Settings view and the AI Settings view.
+ */
 export default function SystemPopupMenu({
   anchorRef,
   onClose,

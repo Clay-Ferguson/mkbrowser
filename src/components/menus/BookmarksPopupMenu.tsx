@@ -20,11 +20,20 @@ import { ensureTrailingSep, getFileName } from '../../renderer/pathUtil';
 interface BookmarksPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
+  /** Full list of bookmarks; the menu filters to those under rootPath. */
   bookmarks: Bookmark[];
+  /** Current root folder; bookmarks outside this tree are hidden. */
   rootPath: string;
+  /** Called with the bookmark's full path when the user clicks a bookmark. */
   onNavigate: (fullPath: string) => void;
 }
 
+/**
+ * Popup menu listing bookmarks scoped to the current root folder.
+ * Items are sorted alphabetically by name. Each row has inline Edit and
+ * Delete icon buttons. Clicking a bookmark navigates to it; if the path
+ * no longer exists on disk the bookmark is removed and an alert is shown.
+ */
 export default function BookmarksPopupMenu({
   anchorRef,
   onClose,
@@ -45,15 +54,18 @@ export default function BookmarksPopupMenu({
     );
   }, [bookmarks, rootPath]);
 
+  /** Writes the current settings (including bookmarks) to the config file. */
   const persistBookmarks = async () => {
     await api.updateConfig({ settings: getSettings() });
   };
 
+  /** Removes a bookmark from the store and persists the change. */
   const handleDelete = async (fullPath: string) => {
     removeBookmark(fullPath);
     await persistBookmarks();
   };
 
+  /** Saves a renamed bookmark label and closes the edit dialog. */
   const handleEditSave = async (name: string) => {
     if (!editingBookmark) return;
     updateBookmarkName(editingBookmark.path, name);
@@ -61,6 +73,10 @@ export default function BookmarksPopupMenu({
     setEditingBookmark(null);
   };
 
+  /**
+   * Navigates to the bookmarked path. If the path no longer exists on disk,
+   * the bookmark is automatically removed and an alert is shown instead.
+   */
   const handleClick = async (fullPath: string) => {
     const exists = await api.pathExists(fullPath);
     if (!exists) {
@@ -75,6 +91,7 @@ export default function BookmarksPopupMenu({
     onClose();
   };
 
+  /** Heuristic: treats a path as a folder when its filename has no extension. */
   const isFolder = (path: string) => {
     const name = getFileName(path);
     return !name.includes('.');

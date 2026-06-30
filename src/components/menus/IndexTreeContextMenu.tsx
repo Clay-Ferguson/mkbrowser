@@ -1,17 +1,29 @@
 import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
 interface IndexTreeContextMenuProps {
+  /** Screen coordinates where the right-click occurred; the menu opens here. */
   mousePosition: { x: number; y: number };
+  /** True when the right-clicked node is a directory (reserved for future use). */
   isDirectory: boolean;
   onClose: () => void;
   onBrowse: () => void;
+  /** When provided, a "New Folder" item is shown. */
   onNewFolder?: () => void;
+  /** When provided, a "Rename" item is shown. */
   onRename?: () => void;
+  /** When provided, a "Delete" item is shown. */
   onDelete?: () => void;
+  /** When provided, a "Paste into Folder" item is shown. */
   onPaste?: () => void;
+  /** When provided, a "Paste Link" item is shown. */
   onPasteLink?: () => void;
 }
 
+/**
+ * Right-click context menu for nodes in the index tree panel. Appears at the
+ * cursor position and renders only the action items whose callbacks are provided
+ * by the caller (optional items are omitted when the callback is absent).
+ */
 export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onNewFolder, onRename, onDelete, onPaste, onPasteLink }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
