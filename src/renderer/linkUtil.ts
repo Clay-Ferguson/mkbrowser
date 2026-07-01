@@ -22,9 +22,12 @@ export function decodeMarkdownUrl(url: string): string {
  * uses forward slashes (markdown URL convention) with `../` segments to climb
  * out of the source directory as needed.
  */
-export function getRelativePath(fromFilePath: string, toPath: string): string {
-  const fromDir = getParentPath(fromFilePath);
-  const fromParts = splitPathSegments(fromDir);
+/**
+ * Core of {@link getRelativePath}, taking the source directory already split into
+ * segments so a caller looping over many `toPath`s can split the (constant) source
+ * directory once instead of on every call.
+ */
+function relativePathFromParts(fromParts: string[], toPath: string): string {
   const toParts = splitPathSegments(toPath);
 
   // Skip the shared leading path segments.
@@ -38,16 +41,21 @@ export function getRelativePath(fromFilePath: string, toPath: string): string {
   return segments.join('/');
 }
 
+export function getRelativePath(fromFilePath: string, toPath: string): string {
+  return relativePathFromParts(splitPathSegments(getParentPath(fromFilePath)), toPath);
+}
+
 /**
  * Build markdown link text for a set of full paths, made relative to the file
  * being edited. Image files become inline image embeds (`![]()`), everything
  * else becomes a standard link (`[]()`). Items are separated by a blank line.
  */
 export function buildMarkdownLinks(currentFilePath: string, linkPaths: string[]): string {
+  const fromParts = splitPathSegments(getParentPath(currentFilePath));
   return linkPaths
     .map((fullPath) => {
       const name = getFileName(fullPath);
-      const relPath = getRelativePath(currentFilePath, fullPath);
+      const relPath = relativePathFromParts(fromParts, fullPath);
       // Percent-encode each path segment so spaces and other special characters
       // don't break the markdown link, while preserving the path separators.
       const url = relPath.split('/').map(encodeURIComponent).join('/');

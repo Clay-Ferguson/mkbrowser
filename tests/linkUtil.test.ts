@@ -39,6 +39,19 @@ describe('buildMarkdownLinks', () => {
     const result = buildMarkdownLinks('/a/b/note.md', ['/a/c/img.jpg']);
     expect(result).toBe('![img.jpg](../c/img.jpg)');
   });
+
+  it('resolves each path independently when a single call mixes different depths', () => {
+    // Guards the shared, precomputed source-directory segments: every entry must be
+    // resolved against the same origin regardless of its own depth or order.
+    const result = buildMarkdownLinks('/a/b/note.md', [
+      '/a/b/pic.png',        // same directory
+      '/a/b/sub/deep.png',   // subdirectory
+      '/a/c/img.jpg',        // sibling directory (needs ../)
+    ]);
+    expect(result).toBe(
+      '![pic.png](pic.png)\n\n![deep.png](sub/deep.png)\n\n![img.jpg](../c/img.jpg)'
+    );
+  });
 });
 
 describe('decodeMarkdownUrl', () => {

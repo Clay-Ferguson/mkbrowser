@@ -43,10 +43,11 @@ function EditableCombobox({
   const listRef = useRef<HTMLUListElement>(null);
 
   // Filter options based on current input value, unless showAllOptions is true
+  const lowerValue = value.toLowerCase();
   const filteredOptions = showAllOptions
     ? options
     : options.filter((option) =>
-        option.label.toLowerCase().includes(value.toLowerCase())
+        option.label.toLowerCase().includes(lowerValue)
       );
 
   // Close dropdown when clicking outside

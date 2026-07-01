@@ -412,7 +412,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                     setTagsVisible(true);
                   }}
                   onPropClick={async (key) => {
-                    const line = (content?.split('\n') ?? []).findIndex(l => l.startsWith(`${key}:`)) + 1;
+                    const propPrefix = `${key}:`;
+                    const line = (content?.split('\n') ?? []).findIndex(l => l.startsWith(propPrefix)) + 1;
                     await edit.handleEditClick(line > 0 ? line : undefined);
                     setShowPropsInEditor(true);
                     onSaveSettings();

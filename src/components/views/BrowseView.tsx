@@ -493,7 +493,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const handleCutClick = useCallback(() => {
     const hasOrphanedAttachment = visibleEntries.some((entry) => {
       if (entry.isDirectory || !items.get(entry.path)?.isSelected) return false;
-      const attachEntry = visibleEntries.find((e) => e.name === `${entry.name}${ATTACH_SUFFIX}`);
+      const attachName = `${entry.name}${ATTACH_SUFFIX}`;
+      const attachEntry = visibleEntries.find((e) => e.name === attachName);
       return attachEntry !== undefined && !items.get(attachEntry.path)?.isSelected;
     });
     if (hasOrphanedAttachment) {
