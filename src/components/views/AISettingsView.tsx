@@ -109,8 +109,9 @@ function AISettingsView() {
   // --- AI Model CRUD handlers ---
 
   const normalizeModelKey = useCallback((name: string) => name.trim().toLowerCase(), []);
+  const selectedModelKey = normalizeModelKey(selectedAiModel);
 
-  const selectedModel = aiModels.find((m) => normalizeModelKey(m.name) === normalizeModelKey(selectedAiModel));
+  const selectedModel = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
   const selectedModelIsReadonly = Boolean(selectedModel?.readonly);
 
   const handleCreateModel = useCallback(() => {
@@ -119,12 +120,12 @@ function AISettingsView() {
   }, []);
 
   const handleEditModel = useCallback(() => {
-    const current = aiModels.find((m) => normalizeModelKey(m.name) === normalizeModelKey(selectedAiModel));
+    const current = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
     if (current) {
       setEditingModel(current);
       setShowEditDialog(true);
     }
-  }, [aiModels, selectedAiModel, normalizeModelKey]);
+  }, [aiModels, selectedModelKey, normalizeModelKey]);
 
   const applyModelSave = useCallback((model: AIModelConfig) => {
     const modelKey = normalizeModelKey(model.name);
@@ -189,7 +190,7 @@ function AISettingsView() {
   }, []);
 
   const handleDeleteModel = useCallback(() => {
-    const current = aiModels.find((m) => normalizeModelKey(m.name) === normalizeModelKey(selectedAiModel));
+    const current = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
     if (current?.readonly) {
       setShowDeleteConfirm(false);
       return;
@@ -198,7 +199,7 @@ function AISettingsView() {
     const newSelected = updated.length > 0 ? updated[0].name : '';
     void saveAiConfigField({ aiModels: updated, aiModel: newSelected });
     setShowDeleteConfirm(false);
-  }, [aiModels, selectedAiModel, saveAiConfigField, normalizeModelKey]);
+  }, [aiModels, selectedAiModel, selectedModelKey, saveAiConfigField, normalizeModelKey]);
 
   const handleResetUsage = useCallback(async () => {
     await api.resetAiUsage();
@@ -423,7 +424,7 @@ function AISettingsView() {
                         </thead>
                         <tbody>
                           {aiModels.map((m) => {
-                            const isSelected = normalizeModelKey(m.name) === normalizeModelKey(selectedAiModel);
+                            const isSelected = normalizeModelKey(m.name) === selectedModelKey;
                             return (
                               <tr
                                 key={m.name}
