@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import type { SortOrder } from '../../shared/types';
-import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
+import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 
 /** All available sort modes shown as checkable menu items. */
 const sortOptions: { value: SortOrder; label: string }[] = [
@@ -17,21 +17,17 @@ interface SortPopupMenuProps {
   /** The currently active sort order; its menu item is rendered with a checkmark. */
   currentSortOrder: SortOrder;
   onSelectSortOrder: (order: SortOrder) => void;
-  /** When provided, an "Enable Document Mode" item is appended after a divider. */
-  onEnableCustomOrdering?: () => void;
 }
 
 /**
  * Popup menu for the Sort toolbar button. Renders a checkable list of sort
- * options and an optional "Enable Document Mode" entry for switching to
- * manual drag-and-drop ordering.
+ * options.
  */
 export default function SortPopupMenu({
   anchorRef,
   onClose,
   currentSortOrder,
   onSelectSortOrder,
-  onEnableCustomOrdering,
 }: SortPopupMenuProps) {
 
   return (
@@ -47,15 +43,6 @@ export default function SortPopupMenu({
           />
         );
       })}
-      {onEnableCustomOrdering && (
-        <>
-          <PopupMenuDivider />
-          <PopupMenuItem
-            label="Enable Document Mode"
-            onClick={() => { onEnableCustomOrdering(); onClose(); }}
-          />
-        </>
-      )}
     </PopupMenu>
   );
 }

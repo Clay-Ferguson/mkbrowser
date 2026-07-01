@@ -43,26 +43,29 @@ test.describe('Document Mode Demo', () => {
     const sortMenuButton = mainWindow.getByTestId('sort-menu-button');
     await expect(sortMenuButton).toBeVisible({ timeout: 10000 });
 
+    // The "Enable Document Mode" option lives at the bottom of the Edit menu
+    const editMenuButton = mainWindow.getByTestId('edit-menu-button');
+    await expect(editMenuButton).toBeVisible({ timeout: 10000 });
+
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'initial-view');
     writeNarration(
       screenshotDir,
       step++,
       `Welcome to MkBrowser. In this demo we will be exploring the Document Mode feature using a folder that contains part of the Federalist Papers —
-       a collection of historical political essays. 
+       a collection of historical political essays.
        You can see the folder contents listed here, with each file and subfolder representing a section of the document.`
     );
 
-    // Highlight the sort menu button and explain what it does
-    await takeScreenshot(mainWindow, sortMenuButton, screenshotDir, step++, 'sort-menu-button-highlighted');
+    // Highlight the edit menu button and explain what it does
+    await takeScreenshot(mainWindow, editMenuButton, screenshotDir, step++, 'edit-menu-button-highlighted');
     writeNarration(
       screenshotDir,
       step++,
-      `At the top of the content area you can see the sort button. 
-      Normally this menu lets you choose how the folder entries are ordered — by filename, creation time, or modification time. 
-      But it also gives us access to a more powerful option: enabling Document Mode. Let's click it to open the menu.`
+      `At the top of the content area you can see the edit button.
+      This menu gives us access to file-level editing operations, and also a more powerful option at the bottom: enabling Document Mode. Let's click it to open the menu.`
     );
 
-    await demoClick(sortMenuButton);
+    await demoClick(editMenuButton);
 
     // Wait for the menu to appear, then highlight "Enable Document Mode"
     const enableDocumentModeItem = mainWindow.getByText('Enable Document Mode');

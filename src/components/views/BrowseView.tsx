@@ -1157,7 +1157,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onClose={() => setShowSortMenu(false)}
           currentSortOrder={settings.sortOrder}
           onSelectSortOrder={handleSelectSortOrder}
-          onEnableCustomOrdering={currentPath ? handleEnableCustomOrdering : undefined}
         />
       )}
 
@@ -1188,6 +1187,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
           joinDisabled={selectedFileCount < 2 || hasSelectedFolders}
           copyLinkDisabled={!hasSelectedItems}
+          onEnableCustomOrdering={!hasIndexFile && currentPath ? handleEnableCustomOrdering : undefined}
         />
       )}
 

@@ -23,6 +23,8 @@ interface EditPopupMenuProps {
   splitDisabled: boolean;
   joinDisabled: boolean;
   copyLinkDisabled: boolean;
+  /** When provided, an "Enable Document Mode" item is appended after a divider. */
+  onEnableCustomOrdering?: () => void;
 }
 
 export default function EditPopupMenu({
@@ -40,6 +42,7 @@ export default function EditPopupMenu({
   splitDisabled,
   joinDisabled,
   copyLinkDisabled,
+  onEnableCustomOrdering,
 }: EditPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
@@ -74,13 +77,20 @@ export default function EditPopupMenu({
         label="Replace in Files"
         onClick={() => { onReplaceInFiles(); onClose(); }}
       />
-      <PopupMenuDivider />
       <PopupMenuItem
         label="Copy Link"
         data-testid="menu-copy-link"
         onClick={() => { onCopyLink(); onClose(); }}
         disabled={copyLinkDisabled}
       />
+      {onEnableCustomOrdering && (
+        <>
+          <PopupMenuItem
+            label="Enable Document Mode"
+            onClick={() => { onEnableCustomOrdering(); onClose(); }}
+          />
+        </>
+      )}
     </PopupMenu>
   );
 }

@@ -27,7 +27,7 @@ This application supports something called `Document Mode` which is the ability 
 
 The user experience is Jupyter-like, but we're using individual markdown files and/or images as the document content. any folder that contains a file named `.INDEX.yaml` is considered to be a "Document" and so when the user navigates to one of these folders, it triggers our GUI to begin displaying and editing the files and folders in a particular order, with a unique set of features that is not available to the standard file system type editing that we do for ordinary folders. the key innovation that we accomplish with the `.INDEX.yaml` is to have the yam will be able to define a custom file ordering (ordinal positioning) for each file in the document, so that the document structure is maintained.
 
-The way a user would initialize this special "Document View" for any given folder is simply by navigating to that folder and then picking, **Custom File Ordering** from the sort options menu (`SortPopupMenu.tsx`). This will automatically create the `.INDEX.yaml` file (and initializle it) and switch the user into the Document View mode. The react global state variable that indicates we're in document mode is `hasIndexFile`.
+The way a user would initialize this special "Document View" for any given folder is simply by navigating to that folder and then picking, **Enable Document Mode** from the Edit menu (`EditPopupMenu.tsx`). This will automatically create the `.INDEX.yaml` file (and initializle it) and switch the user into the Document View mode. The react global state variable that indicates we're in document mode is `hasIndexFile`.
 
 The document-editing controls (insert bars, selection checkboxes, and the ordering/creation buttons) are always visible whenever a folder is a document — there is no separate "Edit Mode" toggle.
 
@@ -67,7 +67,7 @@ Key points:
 
 ## Enabling Custom Ordering
 
-Custom ordering is enabled via the **Sort menu**, accessible from the sort button in the BrowseView toolbar. When no `.INDEX.yaml` exists in the current folder, the menu shows the standard sort options (Filename, Created Time, etc.) plus an additional item at the bottom:
+Custom ordering is enabled via the **Edit menu**, accessible from the edit button in the BrowseView toolbar. When no `.INDEX.yaml` exists in the current folder, the menu shows its standard items (Undo Cut, Select All, Split, Join, etc.) plus an additional item at the very bottom:
 
 > **Enable Document Mode**
 
@@ -77,7 +77,7 @@ Clicking this item triggers `reconcileIndexedFiles` with `createIfMissing = true
 2. Creates `.INDEX.yaml` and populates it with all visible entries in filesystem order.
 3. Refreshes the directory listing.
 
-After the refresh, BrowseView detects entries with `indexOrder` values and switches into indexed mode: the sort menu is replaced by an informational message ("Files ordered by .INDEX.yaml"), and insert bars appear between every entry.
+After the refresh, BrowseView detects entries with `indexOrder` values and switches into indexed mode: the sort menu is replaced by an informational message ("Files ordered by .INDEX.yaml"), the "Enable Document Mode" item disappears from the Edit menu, and insert bars appear between every entry.
 
 
 ## Insert Bars
@@ -213,7 +213,7 @@ Because a wrong re-point silently corrupts the index (an entry bound to the wron
 | Preload bridge                                                      | `src/preload.ts` |
 | API type declarations                                               | `src/global.d.ts` |
 | BrowseView — insert bars, indexed-mode rendering, useEffects        | `src/components/views/BrowseView.tsx` |
-| Sort menu                                                           | `src/components/menus/SortPopupMenu.tsx` |
+| Edit menu ("Enable Document Mode" item)                             | `src/components/menus/EditPopupMenu.tsx` |
 | Directory reading + indexOrder injection                            | `src/utils/fileUtils.ts` |
 
 
