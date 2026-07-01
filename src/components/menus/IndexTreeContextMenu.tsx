@@ -17,6 +17,10 @@ interface IndexTreeContextMenuProps {
   onPaste?: () => void;
   /** When provided, a "Paste Link" item is shown. */
   onPasteLink?: () => void;
+  /** When provided, a "Copy Path" item is shown. */
+  onCopyPath?: () => void;
+  /** When provided, a "Copy Relative Path" item is shown. */
+  onCopyRelativePath?: () => void;
 }
 
 /**
@@ -24,7 +28,7 @@ interface IndexTreeContextMenuProps {
  * cursor position and renders only the action items whose callbacks are provided
  * by the caller (optional items are omitted when the callback is absent).
  */
-export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onNewFolder, onRename, onDelete, onPaste, onPasteLink }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onNewFolder, onRename, onDelete, onPaste, onPasteLink, onCopyPath, onCopyRelativePath }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       <PopupMenuItem
@@ -61,6 +65,19 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
         <PopupMenuItem
           label="Paste Link"
           onClick={() => { onPasteLink(); onClose(); }}
+        />
+      )}
+      {(onCopyPath || onCopyRelativePath) && <PopupMenuDivider />}
+      {onCopyPath && (
+        <PopupMenuItem
+          label="Copy Path"
+          onClick={() => { onCopyPath(); onClose(); }}
+        />
+      )}
+      {onCopyRelativePath && (
+        <PopupMenuItem
+          label="Copy Relative Path"
+          onClick={() => { onCopyRelativePath(); onClose(); }}
         />
       )}
     </PopupMenu>

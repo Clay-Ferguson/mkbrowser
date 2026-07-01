@@ -177,6 +177,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     onDelete?: () => void;
     onPaste?: () => void;
     onPasteLink?: () => void;
+    onCopyPath?: () => void;
+    onCopyRelativePath?: () => void;
   } | null>(null);
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
@@ -517,7 +519,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    * items exist) Paste; files get Browse/Rename/Delete and (when a markdown file
    * is being edited) "Paste Link", which inserts a relative Markdown link at the
    * active editor's cursor — using the file's front-matter `id` field as a comment
-   * suffix when present.
+   * suffix when present. Both directories and files also get "Copy Path" (absolute)
+   * and "Copy Relative Path" (relative to the folder currently browsed in
+   * BrowseView).
    */
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();
@@ -544,6 +548,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       ...(hasCutItems && node.isDirectory ? {
         onPaste: () => void handlePasteIntoFolder(node, e),
       } : {}),
+      onCopyPath: () => void navigator.clipboard.writeText(node.path),
+      onCopyRelativePath: () => void navigator.clipboard.writeText(computeRelativePath(currentPath, node.path)),
       ...(activeEditor && !node.isDirectory ? {
         onPasteLink: () => {
           const editorDir = getParentPath(activeEditor.path);
@@ -652,6 +658,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           onDelete={contextMenu.onDelete}
           onPaste={contextMenu.onPaste}
           onPasteLink={contextMenu.onPasteLink}
+          onCopyPath={contextMenu.onCopyPath}
+          onCopyRelativePath={contextMenu.onCopyRelativePath}
         />
       )}
       {createFolderParent && (
