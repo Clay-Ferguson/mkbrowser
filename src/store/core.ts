@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { create } from 'zustand';
 import type { AppState, AppSettings, AiConfigState } from '../shared/types';
 
 /**
@@ -83,52 +83,31 @@ const initialState: AppState = {
 };
 
 /**
- * Current state (mutable reference)
+ * The single Zustand store. State only — actions live in the slice files and
+ * mutate through `setState` below (Phase 2 of ZUSTAND_CONVERSION.md moves them
+ * inside the store).
  */
-let state: AppState = initialState;
-
-/**
- * Set of listener functions to notify on state changes
- */
-const listeners = new Set<() => void>();
-
-/**
- * Notify all listeners that state has changed
- *
- * NOTE: if you ever need to print out the value of a state variable to detect it
- * every time it changes value, you can do what's being done in the commented line
- * below where we were doing that for a previous troubleshooting scenario
- */
-export function emitChange(): void {
-  // console.log('[store] expandedEditor =', state.expandedEditor, new Error().stack?.split('\n')[2]?.trim());
-  for (const listener of listeners) {
-    listener();
-  }
-}
+const useAppStore = create<AppState>()(() => initialState);
 
 /**
  * Subscribe to state changes
  */
 export function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
+  return useAppStore.subscribe(listener);
 }
 
 /**
  * Read the current state snapshot (non-reactive).
  */
 export function getState(): AppState {
-  return state;
+  return useAppStore.getState();
 }
 
 /**
  * Merge a partial state and notify subscribers.
  */
 export function setState(patch: Partial<AppState>): void {
-  state = { ...state, ...patch };
-  emitChange();
+  useAppStore.setState(patch);
 }
 
 /**
@@ -137,11 +116,11 @@ export function setState(patch: Partial<AppState>): void {
  * The selector must return either a primitive or a value already stored in
  * state (e.g. `s => s.items`). Because every action replaces the slices it
  * mutates with fresh objects, such references stay stable while unchanged, so
- * `useSyncExternalStore` won't trigger spurious re-renders. Do not return a
+ * the store won't trigger spurious re-renders. Do not return a
  * freshly-allocated object/array from the selector — that would change identity
  * on every call and loop. For derived values, compute a cached snapshot
  * instead (see `getExpansionCountsSnapshot`).
  */
 export function useStoreValue<T>(selector: (s: AppState) => T): T {
-  return useSyncExternalStore(subscribe, () => selector(state));
+  return useAppStore(selector);
 }
