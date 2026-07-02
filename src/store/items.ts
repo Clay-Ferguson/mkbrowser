@@ -1,10 +1,10 @@
-import { useSyncExternalStore } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type { ItemData } from '../shared/types';
 import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
 import { getParentPath } from '../renderer/pathUtil';
-import { getState, setState, subscribe, useStoreValue } from './core';
+import { getState, setState, useStoreValue } from './core';
 
 // ============================================================================
 // Items - actions and hooks for the items Map
@@ -274,15 +274,15 @@ export interface ExpansionCounts {
 }
 
 /**
- * Get expansion counts for items in a specific directory path.
+ * Compute expansion counts for items in a specific directory path.
  * Only counts items that are direct children of the given path, are not cut,
  * and are not directories (since folders aren't expandable).
  */
-export function getExpansionCounts(directoryPath: string): ExpansionCounts {
+function computeExpansionCounts(items: Map<string, ItemData>, directoryPath: string): ExpansionCounts {
   let expandedCount = 0;
   let collapsedCount = 0;
 
-  for (const [itemPath, item] of getState().items) {
+  for (const [itemPath, item] of items) {
     // Skip cut items (they're not visible)
     if (item.isCut) continue;
 
@@ -308,33 +308,14 @@ export function getExpansionCounts(directoryPath: string): ExpansionCounts {
 }
 
 /**
- * Memoized expansion counts. The full O(n) scan is keyed on the inputs it
- * depends on: the `items` Map (replaced on every mutation) and `currentPath`.
- * Because `useSyncExternalStore` calls the snapshot on every render and every
- * change, this ensures the scan only runs when those inputs actually change
- * while still returning a stable reference otherwise.
- */
-let cachedExpansionCounts: ExpansionCounts = { expandedCount: 0, collapsedCount: 0, totalCount: 0 };
-let cachedExpansionCountsItems: Map<string, ItemData> | null = null;
-let cachedExpansionCountsPath: string | null = null;
-
-function getExpansionCountsSnapshot(): ExpansionCounts {
-  const { items, currentPath } = getState();
-
-  if (items !== cachedExpansionCountsItems || currentPath !== cachedExpansionCountsPath) {
-    cachedExpansionCounts = getExpansionCounts(currentPath);
-    cachedExpansionCountsItems = items;
-    cachedExpansionCountsPath = currentPath;
-  }
-
-  return cachedExpansionCounts;
-}
-
-/**
- * Hook to subscribe to expansion counts for the current path
+ * Hook to subscribe to expansion counts for the current path.
+ *
+ * The selector returns a freshly-computed object, so it is wrapped in
+ * `useShallow`: the result is compared key-by-key against the previous one,
+ * and the component only re-renders when a count actually changes.
  */
 export function useExpansionCounts(): ExpansionCounts {
-  return useSyncExternalStore(subscribe, getExpansionCountsSnapshot);
+  return useStoreValue(useShallow(s => computeExpansionCounts(s.items, s.currentPath)));
 }
 
 /**
@@ -594,13 +575,13 @@ export function useItems(): Map<string, ItemData> {
  * Hook to get a specific item by path.
  * Returns undefined if the item doesn't exist.
  *
- * Selects the item itself (not the whole Map) as the snapshot so the component
- * only re-renders when *this* item's reference changes. The store preserves
- * referential identity for unchanged items, so `useSyncExternalStore`'s built-in
- * `Object.is` comparison bails out of re-renders triggered by other items.
+ * Selects the item itself (not the whole Map) so the component only re-renders
+ * when *this* item's reference changes. The store preserves referential
+ * identity for unchanged items, so the store hook's built-in `Object.is`
+ * comparison bails out of re-renders triggered by other items.
  */
 export function useItem(path: string): ItemData | undefined {
-  return useSyncExternalStore(subscribe, () => getState().items.get(path));
+  return useStoreValue(s => s.items.get(path));
 }
 
 /**

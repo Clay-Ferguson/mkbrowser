@@ -113,13 +113,12 @@ export function setState(patch: Partial<AppState>): void {
 /**
  * Generic selector hook for subscribing to a slice of the store.
  *
- * The selector must return either a primitive or a value already stored in
- * state (e.g. `s => s.items`). Because every action replaces the slices it
- * mutates with fresh objects, such references stay stable while unchanged, so
- * the store won't trigger spurious re-renders. Do not return a
- * freshly-allocated object/array from the selector — that would change identity
- * on every call and loop. For derived values, compute a cached snapshot
- * instead (see `getExpansionCountsSnapshot`).
+ * Selector results are compared with `Object.is`, so a selector that returns a
+ * primitive or a value already stored in state (e.g. `s => s.items`) only
+ * re-renders when that value actually changes. A selector that *derives* a
+ * fresh object/array/tuple must be wrapped in `useShallow` from
+ * `zustand/react/shallow` so results are compared shallowly instead of by
+ * identity (see `useExpansionCounts` in `items.ts`).
  */
 export function useStoreValue<T>(selector: (s: AppState) => T): T {
   return useAppStore(selector);

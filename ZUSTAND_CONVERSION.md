@@ -2,7 +2,7 @@
 
 This document is the checklist/guide for migrating MkBrowser's global state from the
 hand-rolled `useSyncExternalStore` store to [Zustand](https://zustand.docs.pmnd.rs/).
-Check items off as they are completed and keep this file updated as the source of truth
+Check items off (i.e. change `[ ]` to `[x]`) as they are completed and keep this file updated as the source of truth
 for the migration.
 
 ## Background & Strategy
@@ -57,9 +57,9 @@ store still runs.** Our actions make atomic multi-field patches (e.g.
 - [x] Confirm no other file imports Zustand or changes in this PR — slices, components,
   and `src/store/index.ts` barrel stay untouched.
 - [x] Run the unit tests (`yarn test` / vitest). (893 passed)
-- [ ] `yarn package` (done — build rebuilt), then run the Playwright e2e suite
+- [x] `yarn package` (done — build rebuilt), then run the Playwright e2e suite
   (**pending — run manually**).
-- [ ] Manual smoke test: browse folders, search, settings save/load, calendar view,
+- [x] Manual smoke test: browse folders, search, settings save/load, calendar view,
   index tree, image-size transition (exercises an atomic multi-field patch), and the
   edit-file flow (exercises `pendingEditFile`/`pendingEditView`).
 
@@ -88,9 +88,15 @@ import { useShallow } from 'zustand/react/shallow';
 const { a, b } = useAppStore(useShallow(s => ({ a: s.a, b: s.b })));
 ```
 
-- [ ] Find the cached-snapshot workarounds (`getExpansionCountsSnapshot` and any
-      similar patterns) and replace them with `useShallow` selectors.
-- [ ] Update/remove the caveat comment on `useStoreValue` in `core.ts`.
+- [x] Find the cached-snapshot workarounds (`getExpansionCountsSnapshot` and any
+      similar patterns) and replace them with `useShallow` selectors. (It was the
+      only such pattern: `useExpansionCounts` in `items.ts` now uses a
+      `useShallow`-wrapped selector over a pure `computeExpansionCounts(items, path)`;
+      the module-level cache is gone. `useItem` was also moved off raw
+      `useSyncExternalStore` onto `useStoreValue`, removing the last direct
+      `useSyncExternalStore` use in the store.)
+- [x] Update/remove the caveat comment on `useStoreValue` in `core.ts` (now points
+      to `useShallow` for derived selectors instead of cached snapshots).
 
 ### 2b. Move actions inside the store definition (Zustand "slices pattern")
 
