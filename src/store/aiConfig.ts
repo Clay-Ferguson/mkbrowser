@@ -1,5 +1,5 @@
 import type { AiConfigState } from '../shared/types';
-import { getState, useStoreValue, defaultAiConfig } from './core';
+import { getState, defaultAiConfig } from './core';
 import type { StoreSet, StoreGet } from './core';
 
 export { defaultAiConfig };
@@ -18,7 +18,7 @@ export { defaultAiConfig };
 
 /**
  * Actions owned by this slice. Composed into the single store's state type in
- * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
+ * `core.ts`.
  */
 export interface AiConfigSlice {
   setAiConfig: (updates: Partial<AiConfigState>) => void;
@@ -52,11 +52,4 @@ export function setAiConfig(updates: Partial<AiConfigState>): void {
  */
 export function getAiConfig(): AiConfigState {
   return getState().aiConfig;
-}
-
-/**
- * Hook to subscribe to the AI config mirror.
- */
-export function useAiConfigState(): AiConfigState {
-  return useStoreValue(s => s.aiConfig);
 }

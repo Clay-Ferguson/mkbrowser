@@ -23,13 +23,7 @@ import {
   setCurrentPath,
   navigateToBrowserPath,
   setRootPath,
-  useRootPath,
-  useItems,
-  useCurrentView,
-  useCurrentPath,
-  useDirectoryRefreshNonce,
-  useFolderGraph,
-  useSettings,
+  useAppStore,
   getIndexTreeRoot,
   setIndexTreeRoot,
   getEditingItem,
@@ -82,7 +76,7 @@ async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
 }
 
 function App() {
-  const rootPath = useRootPath();
+  const rootPath = useAppStore(s => s.rootPath);
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,12 +87,12 @@ function App() {
   // toggled via CSS), so each view's scroll position is preserved natively.
   // This set tracks which views have been activated at least once.
   const [visitedViews, setVisitedViews] = useState<Set<AppView>>(() => new Set<AppView>(['browser']));
-  const items = useItems();
-  const currentView = useCurrentView();
-  const currentPath = useCurrentPath();
-  const directoryRefreshNonce = useDirectoryRefreshNonce();
-  const folderGraph = useFolderGraph();
-  const settings = useSettings();
+  const items = useAppStore(s => s.items);
+  const currentView = useAppStore(s => s.currentView);
+  const currentPath = useAppStore(s => s.currentPath);
+  const directoryRefreshNonce = useAppStore(s => s.directoryRefreshNonce);
+  const folderGraph = useAppStore(s => s.folderGraph);
+  const settings = useAppStore(s => s.settings);
 
   // Mark the active view as visited so it stays mounted from now on. Adjusting
   // state during render (rather than in an effect) avoids a cascading re-render

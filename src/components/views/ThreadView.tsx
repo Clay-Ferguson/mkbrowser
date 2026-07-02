@@ -5,18 +5,13 @@ import { api } from '../../renderer/api';
 import type { FileEntry } from '../../global';
 import type { ThreadEntry, ThreadChildFolder } from '../../store';
 import {
-  useCurrentPath,
-  useRootPath,
   navigateToBrowserPath,
   upsertItems,
-  usePendingThreadScrollToBottom,
   clearPendingThreadScrollToBottom,
-  usePendingEditFile,
-  usePendingEditView,
   clearPendingEditFile,
   setItemExpanded,
   setItemEditing,
-  useAiConfigState,
+  useAppStore,
 } from '../../store';
 import { saveAiConfig } from '../../renderer/config';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
@@ -38,11 +33,11 @@ interface ThreadViewProps {
  * HUMAN.md or AI.md turn in chronological order (oldest at top).
  */
 function ThreadView({ onSaveSettings }: ThreadViewProps) {
-  const currentPath = useCurrentPath();
-  const rootPath = useRootPath();
-  const pendingScrollToBottom = usePendingThreadScrollToBottom();
-  const pendingEditFile = usePendingEditFile();
-  const pendingEditView = usePendingEditView();
+  const currentPath = useAppStore(s => s.currentPath);
+  const rootPath = useAppStore(s => s.rootPath);
+  const pendingScrollToBottom = useAppStore(s => s.pendingThreadScrollToBottom);
+  const pendingEditFile = useAppStore(s => s.pendingEditFile);
+  const pendingEditView = useAppStore(s => s.pendingEditView);
   const [threadEntries, setThreadEntries] = useState<ThreadEntry[]>([]);
   const [childFolders, setChildFolders] = useState<ThreadChildFolder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +47,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   // so a persona created/renamed/selected in AISettingsView is reflected here
   // without a remount. `typingDraft` holds any in-progress combobox edit until
   // it's committed via onSelect.
-  const { aiRewritePrompt, aiRewritePrompts } = useAiConfigState();
+  const { aiRewritePrompt, aiRewritePrompts } = useAppStore(s => s.aiConfig);
   const storedPersona = aiRewritePrompt || DEFAULT_PERSONA_NAME;
   const [typingDraft, setTypingDraft] = useState<string | null>(null);
   const personaName = typingDraft ?? storedPersona;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { clsx } from 'clsx';
 import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
-import { useHasCutItems, useItem, useHasIndexFile, deleteItems } from '../../store';
+import { hasAnyCutItems, useAppStore, deleteItems } from '../../store';
 import { buildEntryHeaderId } from '../../renderer/entryDom';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 import {
@@ -44,9 +44,9 @@ function FolderEntry(props: FolderEntryProps) {
   const { isRenaming, isSelected, isHighlighted, isBookmarked } = core;
   const { inputRef: renameInputRef, newName, setNewName, saving: renameSaving, handleKeyDown, handleSave, handleRenameClick } = rename;
 
-  const hasCutItems = useHasCutItems();
-  const item = useItem(entry.path);
-  const hasIndexFile = useHasIndexFile();
+  const hasCutItems = useAppStore(s => hasAnyCutItems(s.items));
+  const item = useAppStore(s => s.items.get(entry.path));
+  const hasIndexFile = useAppStore(s => s.hasIndexFile);
   const aiHint = item?.aiHint;
 
   const handleInputClick = (e: React.MouseEvent) => {

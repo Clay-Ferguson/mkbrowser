@@ -9,7 +9,7 @@
 //
 // These are written eagerly as the user scrolls but only read imperatively on
 // folder change, so they live in a plain module-level store rather than the
-// reactive app state. Keeping them out of `useSyncExternalStore` makes "update
+// reactive app state. Keeping them out of the Zustand store makes "update
 // without re-rendering" explicit and avoids the tearing risk of mutating the
 // store snapshot without notifying listeners.
 // ============================================================================

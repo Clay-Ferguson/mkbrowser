@@ -5,7 +5,7 @@ import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import type { ExifData } from '../../shared/shared';
-import { useImageSize, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
+import { useAppStore, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
 import ExifDialog from '../dialogs/ExifDialog';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import {
@@ -35,7 +35,7 @@ function ImageEntry(props: ImageEntryProps) {
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
   // Image size from global store (shared across all ImageEntry instances)
-  const imageSize = useImageSize();
+  const imageSize = useAppStore(s => s.imageSize);
 
   // Ref to this entry's expanded image, used to re-center it after a size toggle.
   const imgRef = useRef<HTMLImageElement>(null);

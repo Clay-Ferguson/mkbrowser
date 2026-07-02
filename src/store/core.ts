@@ -19,7 +19,7 @@ import type { ItemsSlice } from './items';
 
 /**
  * Full store state: the plain `AppState` fields plus the actions contributed
- * by each slice (Zustand slices pattern — ZUSTAND_CONVERSION.md §2b).
+ * by each slice.
  */
 export type StoreState = AppState & ImageSlice & AiConfigSlice & SearchSlice & CalendarSlice &
   IndexTreeSlice & SettingsSlice & ViewSlice & ItemsSlice;
@@ -118,10 +118,17 @@ const initialState: AppState = {
 
 /**
  * The single Zustand store, composed from `initialState` plus every slice's
- * actions (Zustand slices pattern — ZUSTAND_CONVERSION.md §2b). All mutations
- * go through these actions; there is no free-form `setState` anymore.
+ * actions. All mutations go through these actions.
+ *
+ * Components subscribe with direct selectors: `useAppStore(s => s.currentPath)`.
+ * Selector results are compared with `Object.is`, so a selector that returns a
+ * primitive or a value already stored in state (e.g. `s => s.items`) only
+ * re-renders when that value actually changes. A selector that *derives* a
+ * fresh object/array/tuple must be wrapped in `useShallow` from
+ * `zustand/react/shallow` so results are compared shallowly instead of by
+ * identity (see `useExpansionCounts` in `items.ts`).
  */
-const useAppStore = create<StoreState>()((set, get) => ({
+export const useAppStore = create<StoreState>()((set, get) => ({
   ...initialState,
   ...createImageSlice(set),
   ...createAiConfigSlice(set, get),
@@ -139,18 +146,4 @@ const useAppStore = create<StoreState>()((set, get) => ({
  */
 export function getState(): StoreState {
   return useAppStore.getState();
-}
-
-/**
- * Generic selector hook for subscribing to a slice of the store.
- *
- * Selector results are compared with `Object.is`, so a selector that returns a
- * primitive or a value already stored in state (e.g. `s => s.items`) only
- * re-renders when that value actually changes. A selector that *derives* a
- * fresh object/array/tuple must be wrapped in `useShallow` from
- * `zustand/react/shallow` so results are compared shallowly instead of by
- * identity (see `useExpansionCounts` in `items.ts`).
- */
-export function useStoreValue<T>(selector: (s: StoreState) => T): T {
-  return useAppStore(selector);
 }

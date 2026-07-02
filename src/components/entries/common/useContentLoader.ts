@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../../renderer/api';
-import { useItem, setItemContent, isCacheValid } from '../../../store';
+import { useAppStore, setItemContent, isCacheValid } from '../../../store';
 import { applyGlobalHighlight, globalHighlightText } from '../../../renderer/globalHighlight';
 import type { ContentLoaderState } from './types';
 
@@ -25,7 +25,7 @@ export function useContentLoader({
   isExpanded,
   errorMessage = 'Error reading file',
 }: UseContentLoaderOptions): ContentLoaderState {
-  const item = useItem(path);
+  const item = useAppStore(s => s.items.get(path));
   const [loading, setLoading] = useState(false);
 
   // Load content if not cached or cache is stale

@@ -10,14 +10,7 @@ import {
   deleteItems,
   setFolderGraph,
   setCurrentView,
-  useSearchResults,
-  useSearchQuery,
-  useSearchFolder,
-  useSearchName,
-  useSettings,
-  useHighlightedSearchResult,
-  useSearchSortBy,
-  useSearchSortDirection,
+  useAppStore,
 } from '../../store';
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
@@ -37,14 +30,14 @@ interface SearchResultsViewProps {
  * are read from the store and applied client-side on each render.
  */
 function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
-  const searchResults = useSearchResults();
-  const searchQuery = useSearchQuery();
-  const searchFolder = useSearchFolder();
-  const searchName = useSearchName();
-  const settings = useSettings();
-  const highlightedSearchResult = useHighlightedSearchResult();
-  const searchSortBy = useSearchSortBy();
-  const searchSortDirection = useSearchSortDirection();
+  const searchResults = useAppStore(s => s.searchResults);
+  const searchQuery = useAppStore(s => s.searchQuery);
+  const searchFolder = useAppStore(s => s.searchFolder);
+  const searchName = useAppStore(s => s.searchName);
+  const settings = useAppStore(s => s.settings);
+  const highlightedSearchResult = useAppStore(s => s.highlightedSearchResult);
+  const searchSortBy = useAppStore(s => s.searchSortBy);
+  const searchSortDirection = useAppStore(s => s.searchSortDirection);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
 

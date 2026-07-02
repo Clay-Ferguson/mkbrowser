@@ -4,7 +4,7 @@ import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
 import { getParentPath } from '../renderer/pathUtil';
-import { getState, useStoreValue } from './core';
+import { getState, useAppStore } from './core';
 import type { StoreSet, StoreGet } from './core';
 
 // ============================================================================
@@ -54,7 +54,7 @@ function mergeItem(existing: ItemData | undefined, item: IncomingItem): ItemData
 
 /**
  * Actions owned by this slice. Composed into the single store's state type in
- * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
+ * `core.ts`.
  */
 export interface ItemsSlice {
   upsertItems: (items: IncomingItem[]) => void;
@@ -604,7 +604,7 @@ export function getItemEditContent(path: string): string {
 }
 
 // ============================================================================
-// Hooks
+// Hooks & selector helpers
 // ============================================================================
 
 /**
@@ -658,54 +658,17 @@ function computeExpansionCounts(items: Map<string, ItemData>, directoryPath: str
  * and the component only re-renders when a count actually changes.
  */
 export function useExpansionCounts(): ExpansionCounts {
-  return useStoreValue(useShallow(s => computeExpansionCounts(s.items, s.currentPath)));
+  return useAppStore(useShallow(s => computeExpansionCounts(s.items, s.currentPath)));
 }
 
 /**
- * Hook to subscribe to the items Map
+ * Check whether any items are currently cut. Pure helper for direct selectors:
+ * `useAppStore(s => hasAnyCutItems(s.items))` — the result is a primitive, so
+ * no `useShallow` is needed.
  */
-export function useItems(): Map<string, ItemData> {
-  return useStoreValue(s => s.items);
-}
-
-/**
- * Hook to get a specific item by path.
- * Returns undefined if the item doesn't exist.
- *
- * Selects the item itself (not the whole Map) so the component only re-renders
- * when *this* item's reference changes. The store preserves referential
- * identity for unchanged items, so the store hook's built-in `Object.is`
- * comparison bails out of re-renders triggered by other items.
- */
-export function useItem(path: string): ItemData | undefined {
-  return useStoreValue(s => s.items.get(path));
-}
-
-/**
- * Hook to subscribe to highlighted item name
- */
-export function useHighlightItem(): string | null {
-  return useStoreValue(s => s.highlightItem);
-}
-
-/**
- * Hook to check whether any items are currently cut
- */
-export function useHasCutItems(): boolean {
-  const items = useStoreValue(s => s.items);
+export function hasAnyCutItems(items: Map<string, ItemData>): boolean {
   for (const item of items.values()) {
     if (item.isCut) return true;
   }
   return false;
-}
-
-/**
- * Hook to get the path of the currently-editing markdown file, or null if none.
- */
-export function useEditingMarkdownPath(): string | null {
-  const items = useStoreValue(s => s.items);
-  for (const [path, item] of items.entries()) {
-    if (item.editing && path.endsWith('.md')) return path;
-  }
-  return null;
 }

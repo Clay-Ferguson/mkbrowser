@@ -1,5 +1,5 @@
 import type { AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth } from '../shared/types';
-import { getState, useStoreValue, defaultSettings } from './core';
+import { getState, defaultSettings } from './core';
 import type { StoreSet, StoreGet } from './core';
 
 export { defaultSettings };
@@ -10,7 +10,7 @@ export { defaultSettings };
 
 /**
  * Actions owned by this slice. Composed into the single store's state type in
- * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
+ * `core.ts`.
  */
 export interface SettingsSlice {
   setSettings: (settings: AppSettings) => void;
@@ -221,11 +221,4 @@ export function isBookmarked(filePath: string): boolean {
  */
 export function getSettings(): AppSettings {
   return getState().settings;
-}
-
-/**
- * Hook to subscribe to settings
- */
-export function useSettings(): AppSettings {
-  return useStoreValue(s => s.settings);
 }

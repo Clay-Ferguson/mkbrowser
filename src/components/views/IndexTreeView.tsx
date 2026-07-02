@@ -11,14 +11,8 @@ import CreateFolderDialog from '../dialogs/CreateFolderDialog';
 import RenameDialog from '../dialogs/RenameDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
-  useRootPath,
-  useCurrentPath,
-  useIndexTreeRoot,
-  useSettings,
-  usePendingIndexTreeReveal,
-  useHasCutItems,
-  useHighlightItem,
-  useEditingMarkdownPath,
+  useAppStore,
+  hasAnyCutItems,
   setIndexTreeRoot,
   expandIndexTreeNode,
   collapseIndexTreeNode,
@@ -153,14 +147,21 @@ function isParentOf(candidatePath: string, currentPath: string): boolean {
  * action inserts a relative Markdown link at the active editor's cursor.
  */
 function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) {
-  const rootPath = useRootPath();
-  const currentPath = useCurrentPath();
-  const treeRoot = useIndexTreeRoot();
-  const settings = useSettings();
-  const pendingReveal = usePendingIndexTreeReveal();
-  const hasCutItems = useHasCutItems();
-  const highlightItem = useHighlightItem();
-  const editingMarkdownPath = useEditingMarkdownPath();
+  const rootPath = useAppStore(s => s.rootPath);
+  const currentPath = useAppStore(s => s.currentPath);
+  const treeRoot = useAppStore(s => s.indexTreeRoot);
+  const settings = useAppStore(s => s.settings);
+  const pendingReveal = useAppStore(s => s.pendingIndexTreeReveal);
+  const hasCutItems = useAppStore(s => hasAnyCutItems(s.items));
+  const highlightItem = useAppStore(s => s.highlightItem);
+  // Derived: the path of the markdown file currently in edit mode, if any.
+  // Returns a primitive, so no useShallow is needed.
+  const editingMarkdownPath = useAppStore(s => {
+    for (const [path, item] of s.items) {
+      if (item.editing && path.endsWith('.md')) return path;
+    }
+    return null;
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);

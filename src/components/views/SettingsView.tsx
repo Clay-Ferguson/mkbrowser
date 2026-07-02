@@ -11,7 +11,7 @@ import {
   setOcrToolsFolder,
   setCalendarItemsFolder,
   setIndexTreeWidth,
-  useSettings,
+  useAppStore,
   type FontSize,
   type ContentWidth,
   type IndexTreeWidth,
@@ -64,7 +64,7 @@ interface SettingsViewProps {
  * `onSaveSettings` to persist to disk.
  */
 function SettingsView({ onSaveSettings }: SettingsViewProps) {
-  const settings = useSettings();
+  const settings = useAppStore(s => s.settings);
   const [showTagsEditor, setShowTagsEditor] = useState(false);
 
   // Font size is now applied globally via data-font-size attribute on html element

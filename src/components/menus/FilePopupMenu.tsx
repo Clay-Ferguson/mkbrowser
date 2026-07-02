@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
-import { useRootPath } from '../../store';
+import { useAppStore } from '../../store';
 import { isPathInside } from '../../renderer/pathUtil';
 
 interface FilePopupMenuProps {
@@ -26,7 +26,7 @@ export default function FilePopupMenu({
   recentFolders,
   onOpenRecentFolder,
 }: FilePopupMenuProps) {
-  const rootPath = useRootPath();
+  const rootPath = useAppStore(s => s.rootPath);
 
   /**
    * Returns a display label for a recent folder. When the folder is inside the

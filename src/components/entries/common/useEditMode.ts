@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { api } from '../../../renderer/api';
-import { useItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing, upsertItem } from '../../../store';
+import { useAppStore, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing, upsertItem } from '../../../store';
 import { applyGlobalHighlight, globalHighlightText } from '../../../renderer/globalHighlight';
 import { removeTOC } from '../../../shared/tocUtil';
 import type { EditModeState } from './types';
@@ -20,7 +20,7 @@ interface UseEditModeOptions {
  * child components like TagsPicker can read and modify it.
  */
 export function useEditMode({ path, content }: UseEditModeOptions): EditModeState {
-  const item = useItem(path);
+  const item = useAppStore(s => s.items.get(path));
   const [saving, setSaving] = useState(false);
   const editInitialized = useRef(false);
 

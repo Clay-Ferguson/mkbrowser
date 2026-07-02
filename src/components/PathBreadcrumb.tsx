@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { clsx } from 'clsx';
 import { HomeIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
-import { useSettings, setPendingIndexTreeReveal, setCurrentView, deleteItems } from '../store';
+import { useAppStore, setPendingIndexTreeReveal, setCurrentView, deleteItems } from '../store';
 import {
   ENTRY_DND_MIME,
   parseDragPayload,
@@ -28,7 +28,7 @@ export type PathBreadcrumbProps = {
  * A "reveal in tree" button appears at the end when the index tree panel is visible.
  */
 function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory }: PathBreadcrumbProps) {
-  const settings = useSettings();
+  const settings = useAppStore(s => s.settings);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const normalizedRoot = rootPath.replace(/[/\\]+$/, '');
   const normalizedCurrent = currentPath.replace(/[/\\]+$/, '');

@@ -1,5 +1,5 @@
 import type { AppState, TreeNode, FileNode } from '../shared/types';
-import { getState, useStoreValue } from './core';
+import { getState } from './core';
 import type { StoreSet, StoreGet } from './core';
 
 // ============================================================================
@@ -40,7 +40,7 @@ function collapseAllNodes(node: TreeNode): TreeNode {
 
 /**
  * Actions owned by this slice. Composed into the single store's state type in
- * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
+ * `core.ts`.
  */
 export interface IndexTreeSlice {
   setIndexTreeRoot: (root: FileNode | null) => void;
@@ -171,36 +171,8 @@ export function setIndexYaml(indexYaml: AppState['indexYaml']): void {
 }
 
 /**
- * Hook to subscribe to the IndexTree root node.
- */
-export function useIndexTreeRoot(): FileNode | null {
-  return useStoreValue(s => s.indexTreeRoot);
-}
-
-/**
  * Get the current IndexTree root node without subscribing (for use in async callbacks).
  */
 export function getIndexTreeRoot(): FileNode | null {
   return getState().indexTreeRoot;
-}
-
-/**
- * Hook to subscribe to the pending IndexTree reveal path.
- */
-export function usePendingIndexTreeReveal(): string | null {
-  return useStoreValue(s => s.pendingIndexTreeReveal);
-}
-
-/**
- * Hook to subscribe to hasIndexFile
- */
-export function useHasIndexFile(): boolean {
-  return useStoreValue(s => s.hasIndexFile);
-}
-
-/**
- * Hook to subscribe to the current directory's parsed .INDEX.yaml
- */
-export function useIndexYaml(): AppState['indexYaml'] {
-  return useStoreValue(s => s.indexYaml);
 }

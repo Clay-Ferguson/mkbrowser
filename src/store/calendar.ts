@@ -1,6 +1,6 @@
 import type { CalendarEvent, CalendarViewType } from '../shared/types';
 import { ensureTrailingSep } from '../renderer/pathUtil';
-import { getState, useStoreValue } from './core';
+import { getState } from './core';
 import type { StoreSet, StoreGet } from './core';
 
 // ============================================================================
@@ -9,7 +9,7 @@ import type { StoreSet, StoreGet } from './core';
 
 /**
  * Actions owned by this slice. Composed into the single store's state type in
- * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
+ * `core.ts`.
  */
 export interface CalendarSlice {
   setCalendarFolder: (folder: string | null) => void;
@@ -103,46 +103,4 @@ export function setCalendarViewType(viewType: CalendarViewType): void {
 
 export function setCalendarViewTime(date: Date): void {
   getState().setCalendarViewTime(date);
-}
-
-/**
- * Hook to subscribe to the calendar's configured folder.
- */
-export function useCalendarFolder(): string | null {
-  return useStoreValue(s => s.calendarFolder);
-}
-
-/**
- * Hook to subscribe to the folder whose events are currently loaded.
- */
-export function useActiveCalendarFolder(): string | null {
-  return useStoreValue(s => s.activeCalendarFolder);
-}
-
-/**
- * Hook to subscribe to the loaded calendar events.
- */
-export function useCalendarEvents(): CalendarEvent[] | null {
-  return useStoreValue(s => s.calendarEvents);
-}
-
-/**
- * Hook to subscribe to the calendar loading flag.
- */
-export function useCalendarLoading(): boolean {
-  return useStoreValue(s => s.calendarLoading);
-}
-
-/**
- * Hook to subscribe to the active calendar view type (month/week/day).
- */
-export function useCalendarViewType(): CalendarViewType {
-  return useStoreValue(s => s.calendarViewType);
-}
-
-/**
- * Hook to subscribe to the date the calendar is currently centered on.
- */
-export function useCalendarViewTime(): Date {
-  return useStoreValue(s => s.calendarViewTime);
 }

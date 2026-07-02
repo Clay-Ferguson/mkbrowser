@@ -1,5 +1,5 @@
 import type { HighlightedSearchResult, SearchResultItem, SearchSortBy, SearchSortDirection } from '../shared/types';
-import { getState, useStoreValue } from './core';
+import { getState } from './core';
 import type { StoreSet } from './core';
 
 // ============================================================================
@@ -8,7 +8,7 @@ import type { StoreSet } from './core';
 
 /**
  * Actions owned by this slice. Composed into the single store's state type in
- * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
+ * `core.ts`.
  */
 export interface SearchSlice {
   setHighlightedSearchResult: (result: HighlightedSearchResult | null) => void;
@@ -77,53 +77,4 @@ export function setSearchResults(
 
 export function clearSearchResults(): void {
   getState().clearSearchResults();
-}
-
-/**
- * Hook to subscribe to search results
- */
-export function useSearchResults(): SearchResultItem[] {
-  return useStoreValue(s => s.searchResults);
-}
-
-/**
- * Hook to subscribe to search query
- */
-export function useSearchQuery(): string {
-  return useStoreValue(s => s.searchQuery);
-}
-
-/**
- * Hook to subscribe to search folder
- */
-export function useSearchFolder(): string {
-  return useStoreValue(s => s.searchFolder);
-}
-
-/**
- * Hook to subscribe to the saved-search name (empty if results are not from a named search)
- */
-export function useSearchName(): string {
-  return useStoreValue(s => s.searchName);
-}
-
-/**
- * Hook to subscribe to search sort by
- */
-export function useSearchSortBy(): SearchSortBy {
-  return useStoreValue(s => s.searchSortBy);
-}
-
-/**
- * Hook to subscribe to search sort direction
- */
-export function useSearchSortDirection(): SearchSortDirection {
-  return useStoreValue(s => s.searchSortDirection);
-}
-
-/**
- * Hook to subscribe to highlighted search result
- */
-export function useHighlightedSearchResult(): HighlightedSearchResult | null {
-  return useStoreValue(s => s.highlightedSearchResult);
 }

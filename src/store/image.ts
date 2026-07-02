@@ -1,5 +1,5 @@
 import type { ImageSize } from '../shared/shared';
-import { getState, useStoreValue } from './core';
+import { getState } from './core';
 import type { StoreSet } from './core';
 
 // ============================================================================
@@ -8,7 +8,7 @@ import type { StoreSet } from './core';
 
 /**
  * Actions owned by this slice. Composed into the single store's state type in
- * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
+ * `core.ts`.
  */
 export interface ImageSlice {
   setImageSize: (size: ImageSize) => void;
@@ -33,20 +33,6 @@ export function createImageSlice(set: StoreSet): ImageSlice {
     setImageSizeWithTransition: (size) =>
       set({ imageSize: size, imageSizeTransitioning: true }),
   };
-}
-
-/**
- * Hook to subscribe to the inline image display size.
- */
-export function useImageSize(): ImageSize {
-  return useStoreValue(s => s.imageSize);
-}
-
-/**
- * Hook to subscribe to whether the image size is mid-transition.
- */
-export function useImageSizeTransitioning(): boolean {
-  return useStoreValue(s => s.imageSizeTransitioning);
 }
 
 // Thin non-hook wrappers so the barrel API (and every caller) is unchanged;

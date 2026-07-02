@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { saveAiConfig } from '../../renderer/config';
-import { useAiConfigState, getAiConfig } from '../../store';
+import { useAppStore, getAiConfig } from '../../store';
 import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../shared/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../shared/ai/aiPrompts';
@@ -36,7 +36,7 @@ function AISettingsView() {
     fullDocContext,
     aiRewriteMode,
     aiRewritePrompts,
-  } = useAiConfigState();
+  } = useAppStore(s => s.aiConfig);
 
   // Text fields keep a local buffer for keystroke responsiveness, seeded lazily
   // from the store (nothing else writes them) and persisted on blur.

@@ -1,5 +1,5 @@
 import type { AppState, AppView, FolderAnalysisState, FolderGraphState } from '../shared/types';
-import { getState, useStoreValue } from './core';
+import { getState } from './core';
 import type { StoreSet, StoreGet } from './core';
 
 // ============================================================================
@@ -9,7 +9,7 @@ import type { StoreSet, StoreGet } from './core';
 
 /**
  * Actions owned by this slice. Composed into the single store's state type in
- * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
+ * `core.ts`.
  */
 export interface ViewSlice {
   setCurrentView: (view: AppView) => void;
@@ -242,100 +242,4 @@ export function setExpandedEditor(expandedEditor: boolean): void {
 
 export function setSelectedLinkItems(paths: string[]): void {
   getState().setSelectedLinkItems(paths);
-}
-
-// ============================================================================
-// Hooks
-// ============================================================================
-
-export function useDirectoryRefreshNonce(): number {
-  return useStoreValue(s => s.directoryRefreshNonce);
-}
-
-/**
- * Hook to subscribe to the current view
- */
-export function useCurrentView(): AppView {
-  return useStoreValue(s => s.currentView);
-}
-
-/**
- * Hook to subscribe to the current path
- */
-export function useCurrentPath(): string {
-  return useStoreValue(s => s.currentPath);
-}
-
-/**
- * Hook to subscribe to pending scroll to file
- */
-export function usePendingScrollToFile(): string | null {
-  return useStoreValue(s => s.pendingScrollToFile);
-}
-
-export function usePendingScrollToHeadingSlug(): string | null {
-  return useStoreValue(s => s.pendingScrollToHeadingSlug);
-}
-
-/**
- * Hook to subscribe to pending edit file path
- */
-export function usePendingEditFile(): string | null {
-  return useStoreValue(s => s.pendingEditFile);
-}
-
-/**
- * Hook to subscribe to pending edit view
- */
-export function usePendingEditView(): AppView | null {
-  return useStoreValue(s => s.pendingEditView);
-}
-
-/**
- * Hook to subscribe to pendingThreadScrollToBottom
- */
-export function usePendingThreadScrollToBottom(): boolean {
-  return useStoreValue(s => s.pendingThreadScrollToBottom);
-}
-
-/**
- * Hook to subscribe to whether the editor is in its expanded layout.
- */
-export function useExpandedEditor(): boolean {
-  return useStoreValue(s => s.expandedEditor);
-}
-
-/**
- * Hook to subscribe to the paths captured by "Copy Link"
- */
-export function useSelectedLinkItems(): string[] {
-  return useStoreValue(s => s.selectedLinkItems);
-}
-
-/**
- * Hook to subscribe to folder analysis state
- */
-export function useFolderAnalysis(): FolderAnalysisState | null {
-  return useStoreValue(s => s.folderAnalysis);
-}
-
-/**
- * Hook to subscribe to folder graph state
- */
-export function useFolderGraph(): FolderGraphState | null {
-  return useStoreValue(s => s.folderGraph);
-}
-
-/**
- * Hook to subscribe to rootPath
- */
-export function useRootPath(): string {
-  return useStoreValue(s => s.rootPath);
-}
-
-/**
- * Hook to subscribe to visible tabs
- */
-export function useVisibleTabs(): Set<AppView> {
-  return useStoreValue(s => s.visibleTabs);
 }

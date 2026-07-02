@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { setAiConfig, useAiConfigState } from '../../../store';
+import { setAiConfig, useAppStore } from '../../../store';
 
 export interface AiConfigState {
   /** Whether AI features are enabled at all. */
@@ -32,7 +32,7 @@ export interface UseAiConfigResult extends AiConfigState {
  * change to survive a restart must also persist it (see `saveAiConfig`).
  */
 export function useAiConfig(): UseAiConfigResult {
-  const { aiEnabled, aiRewriteMode, aiRewritePrompt, tagsPanelVisible } = useAiConfigState();
+  const { aiEnabled, aiRewriteMode, aiRewritePrompt, tagsPanelVisible } = useAppStore(s => s.aiConfig);
 
   const setTagsVisible = useCallback((visible: boolean) => {
     setAiConfig({ tagsPanelVisible: visible });
