@@ -97,7 +97,7 @@ export async function processTOC(content: string): Promise<string> {
   }
 
   const ast = unified().use(remarkParse).parse(sanitized) as Root;
-  const result = toc(ast, { maxDepth: 3, tight: true });
+  const result = toc(ast, { maxDepth: 6, tight: true });
 
   if (!result.map) {
     return content;

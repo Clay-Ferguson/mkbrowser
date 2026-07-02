@@ -100,13 +100,15 @@ describe('processTOC', () => {
     expect(await processTOC(content)).toBe(content);
   });
 
-  it('excludes headings deeper than H3 (maxDepth 3)', async () => {
-    const content = '# Title\n\n<!-- TOC -->\n\n## A\n\n### B\n\n#### C\n';
+  it('includes deep headings up to H6 (maxDepth 6)', async () => {
+    const content = '# Title\n\n<!-- TOC -->\n\n## A\n\n### B\n\n#### C\n\n##### D\n\n###### E\n';
     const result = await processTOC(content);
     const tocSection = result.slice(result.indexOf('<!-- TOC -->'), result.indexOf('<!-- /TOC -->'));
     expect(tocSection).toContain('](#a)');
     expect(tocSection).toContain('](#b)');
-    expect(tocSection).not.toContain('](#c)');
+    expect(tocSection).toContain('](#c)');
+    expect(tocSection).toContain('](#d)');
+    expect(tocSection).toContain('](#e)');
   });
 
   it('ignores headings inside tilde-fenced code blocks', async () => {
