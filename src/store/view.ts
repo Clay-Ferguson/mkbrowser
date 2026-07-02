@@ -1,5 +1,6 @@
 import type { AppState, AppView, FolderAnalysisState, FolderGraphState } from '../shared/types';
-import { getState, setState, useStoreValue } from './core';
+import { getState, useStoreValue } from './core';
+import type { StoreSet, StoreGet } from './core';
 
 // ============================================================================
 // View / navigation - current view & path, pending scroll/edit signals,
@@ -7,128 +8,217 @@ import { getState, setState, useStoreValue } from './core';
 // ============================================================================
 
 /**
- * Set the current view
+ * Actions owned by this slice. Composed into the single store's state type in
+ * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
  */
-export function setCurrentView(view: AppView): void {
-  if (getState().currentView === view) return;
-  setState({ currentView: view });
+export interface ViewSlice {
+  setCurrentView: (view: AppView) => void;
+  setCurrentPath: (path: string) => void;
+  navigateToBrowserPath: (path: string, scrollToFile?: string, view?: AppView) => void;
+  clearPendingScrollToFile: () => void;
+  setPendingScrollToFile: (fileName: string) => void;
+  setPendingScrollToHeadingSlug: (slug: string) => void;
+  clearPendingScrollToHeadingSlug: () => void;
+  setPendingEditFile: (filePath: string, view?: AppView) => void;
+  clearPendingEditFile: () => void;
+  requestDirectoryRefresh: () => void;
+  setPendingThreadScrollToBottom: () => void;
+  clearPendingThreadScrollToBottom: () => void;
+  setFolderAnalysis: (data: FolderAnalysisState | null) => void;
+  setFolderGraph: (data: FolderGraphState | null) => void;
+  setRootPath: (path: string) => void;
+  showTab: (tab: AppView) => void;
+  hideTab: (tab: AppView) => void;
+  setExpandedEditor: (expandedEditor: boolean) => void;
+  setSelectedLinkItems: (paths: string[]) => void;
 }
 
 /**
- * Set the current path being browsed
+ * Slice creator called by `core.ts` inside `create()`. A function declaration
+ * (not a `const`) so it is hoisted and safe under the core ↔ slice import
+ * cycle regardless of module load order.
  */
-export function setCurrentPath(path: string): void {
-  if (getState().currentPath === path) return;
-  setState({ currentPath: path });
-}
+export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
+  return {
+    /** Set the current view. */
+    setCurrentView: (view) => {
+      if (get().currentView === view) return;
+      set({ currentView: view });
+    },
 
-/**
- * Navigate to a path and switch to browser view in a single state update.
- * Optionally set a file to scroll to after render completes.
- *
- * Optionally accepts a 'view' parameter to specify which view to navigate to (default is 'browser').
- */
-export function navigateToBrowserPath(path: string, scrollToFile?: string, view: AppView = 'browser'): void {
-  const newState: Partial<AppState> = {
-    currentPath: path,
-    currentView: view,
+    /** Set the current path being browsed. */
+    setCurrentPath: (path) => {
+      if (get().currentPath === path) return;
+      set({ currentPath: path });
+    },
+
+    /**
+     * Navigate to a path and switch to browser view in a single state update.
+     * Optionally set a file to scroll to after render completes.
+     *
+     * Optionally accepts a 'view' parameter to specify which view to navigate
+     * to (default is 'browser').
+     */
+    navigateToBrowserPath: (path, scrollToFile, view = 'browser') => {
+      const newState: Partial<AppState> = {
+        currentPath: path,
+        currentView: view,
+      };
+      if (scrollToFile !== undefined) {
+        newState.pendingScrollToFile = scrollToFile;
+      }
+      set(newState);
+    },
+
+    /** Clear the pending scroll to file (call after scrolling completes). */
+    clearPendingScrollToFile: () => {
+      if (get().pendingScrollToFile === null) return;
+      set({ pendingScrollToFile: null });
+    },
+
+    /** Set a file to scroll into view after render completes. */
+    setPendingScrollToFile: (fileName) => set({ pendingScrollToFile: fileName }),
+
+    setPendingScrollToHeadingSlug: (slug) => set({ pendingScrollToHeadingSlug: slug }),
+
+    clearPendingScrollToHeadingSlug: () => {
+      if (get().pendingScrollToHeadingSlug === null) return;
+      set({ pendingScrollToHeadingSlug: null });
+    },
+
+    /**
+     * Set a file to start editing after navigation completes.
+     * @param filePath - The full path of the file to edit
+     * @param view - Which view should consume the pending edit (defaults to 'browser')
+     */
+    setPendingEditFile: (filePath, view) =>
+      set({ pendingEditFile: filePath, pendingEditView: view ?? 'browser' }),
+
+    /** Clear the pending edit file (call after editing starts). */
+    clearPendingEditFile: () => {
+      const state = get();
+      if (state.pendingEditFile === null && state.pendingEditView === null) return;
+      set({ pendingEditFile: null, pendingEditView: null });
+    },
+
+    /** Ask BrowseView to reload the current directory even if currentPath hasn't changed. */
+    requestDirectoryRefresh: () =>
+      set({ directoryRefreshNonce: get().directoryRefreshNonce + 1 }),
+
+    /** Request ThreadView to scroll to bottom after its next render. */
+    setPendingThreadScrollToBottom: () => set({ pendingThreadScrollToBottom: true }),
+
+    /** Clear the pending thread scroll-to-bottom flag (call after the scroll timer is created). */
+    clearPendingThreadScrollToBottom: () => {
+      if (!get().pendingThreadScrollToBottom) return;
+      set({ pendingThreadScrollToBottom: false });
+    },
+
+    /** Set folder analysis results. */
+    setFolderAnalysis: (data) => set({ folderAnalysis: data }),
+
+    /**
+     * Set the folder graph data. Pass null to clear it.
+     * Used both for the initial scan result and to overwrite when the user
+     * re-launches the graph from the menu.
+     */
+    setFolderGraph: (data) => set({ folderGraph: data }),
+
+    /** Set the root folder path. */
+    setRootPath: (path) => {
+      if (get().rootPath === path) return;
+      set({ rootPath: path });
+    },
+
+    /**
+     * Show a tab in the tab bar (adds it to visibleTabs).
+     * Does not persist — resets on restart.
+     */
+    showTab: (tab) => {
+      const visibleTabs = get().visibleTabs;
+      if (visibleTabs.has(tab)) return;
+      const next = new Set(visibleTabs);
+      next.add(tab);
+      set({ visibleTabs: next });
+    },
+
+    hideTab: (tab) => {
+      const visibleTabs = get().visibleTabs;
+      if (!visibleTabs.has(tab)) return;
+      const next = new Set(visibleTabs);
+      next.delete(tab);
+      set({ visibleTabs: next });
+    },
+
+    /** Toggle the editor between its normal and expanded (full-width) layout. */
+    setExpandedEditor: (expandedEditor) => set({ expandedEditor }),
+
+    /** Store the full paths captured by "Copy Link" for later "Paste Link". */
+    setSelectedLinkItems: (paths) => set({ selectedLinkItems: paths }),
   };
-  if (scrollToFile !== undefined) {
-    newState.pendingScrollToFile = scrollToFile;
-  }
-  setState(newState);
 }
 
-/**
- * Clear the pending scroll to file (call after scrolling completes)
- */
+// Thin non-hook wrappers so the barrel API (and every caller) is unchanged;
+// they delegate to the actions living inside the store.
+
+export function setCurrentView(view: AppView): void {
+  getState().setCurrentView(view);
+}
+
+export function setCurrentPath(path: string): void {
+  getState().setCurrentPath(path);
+}
+
+export function navigateToBrowserPath(path: string, scrollToFile?: string, view: AppView = 'browser'): void {
+  getState().navigateToBrowserPath(path, scrollToFile, view);
+}
+
 export function clearPendingScrollToFile(): void {
-  if (getState().pendingScrollToFile === null) return;
-  setState({ pendingScrollToFile: null });
+  getState().clearPendingScrollToFile();
 }
 
-/**
- * Set a file to scroll into view after render completes
- */
 export function setPendingScrollToFile(fileName: string): void {
-  setState({ pendingScrollToFile: fileName });
+  getState().setPendingScrollToFile(fileName);
 }
 
 export function setPendingScrollToHeadingSlug(slug: string): void {
-  setState({ pendingScrollToHeadingSlug: slug });
+  getState().setPendingScrollToHeadingSlug(slug);
 }
 
 export function clearPendingScrollToHeadingSlug(): void {
-  if (getState().pendingScrollToHeadingSlug === null) return;
-  setState({ pendingScrollToHeadingSlug: null });
+  getState().clearPendingScrollToHeadingSlug();
 }
 
-/**
- * Set a file to start editing after navigation completes
- * @param filePath - The full path of the file to edit
- * @param view - Which view should consume the pending edit (defaults to 'browser')
- */
 export function setPendingEditFile(filePath: string, view?: AppView): void {
-  setState({ pendingEditFile: filePath, pendingEditView: view ?? 'browser' });
+  getState().setPendingEditFile(filePath, view);
 }
 
-/**
- * Clear the pending edit file (call after editing starts)
- */
 export function clearPendingEditFile(): void {
-  const state = getState();
-  if (state.pendingEditFile === null && state.pendingEditView === null) return;
-  setState({ pendingEditFile: null, pendingEditView: null });
+  getState().clearPendingEditFile();
 }
 
-export function useDirectoryRefreshNonce(): number {
-  return useStoreValue(s => s.directoryRefreshNonce);
-}
-
-/**
- * Ask BrowseView to reload the current directory even if currentPath hasn't changed.
- */
 export function requestDirectoryRefresh(): void {
-  setState({ directoryRefreshNonce: getState().directoryRefreshNonce + 1 });
+  getState().requestDirectoryRefresh();
 }
 
-/**
- * Request ThreadView to scroll to bottom after its next render.
- */
 export function setPendingThreadScrollToBottom(): void {
-  setState({ pendingThreadScrollToBottom: true });
+  getState().setPendingThreadScrollToBottom();
 }
 
-/**
- * Clear the pending thread scroll-to-bottom flag (call after the scroll timer is created).
- */
 export function clearPendingThreadScrollToBottom(): void {
-  if (!getState().pendingThreadScrollToBottom) return;
-  setState({ pendingThreadScrollToBottom: false });
+  getState().clearPendingThreadScrollToBottom();
 }
 
-/**
- * Set folder analysis results
- */
 export function setFolderAnalysis(data: FolderAnalysisState | null): void {
-  setState({ folderAnalysis: data });
+  getState().setFolderAnalysis(data);
 }
 
-/**
- * Set the folder graph data. Pass null to clear it.
- * Used both for the initial scan result and to overwrite when the user
- * re-launches the graph from the menu.
- */
 export function setFolderGraph(data: FolderGraphState | null): void {
-  setState({ folderGraph: data });
+  getState().setFolderGraph(data);
 }
 
-/**
- * Set the root folder path.
- */
 export function setRootPath(path: string): void {
-  if (getState().rootPath === path) return;
-  setState({ rootPath: path });
+  getState().setRootPath(path);
 }
 
 /**
@@ -138,43 +228,29 @@ export function isTabVisible(tab: AppView): boolean {
   return getState().visibleTabs.has(tab);
 }
 
-/**
- * Show a tab in the tab bar (adds it to visibleTabs).
- * Does not persist — resets on restart.
- */
 export function showTab(tab: AppView): void {
-  const visibleTabs = getState().visibleTabs;
-  if (visibleTabs.has(tab)) return;
-  const next = new Set(visibleTabs);
-  next.add(tab);
-  setState({ visibleTabs: next });
+  getState().showTab(tab);
 }
 
 export function hideTab(tab: AppView): void {
-  const visibleTabs = getState().visibleTabs;
-  if (!visibleTabs.has(tab)) return;
-  const next = new Set(visibleTabs);
-  next.delete(tab);
-  setState({ visibleTabs: next });
+  getState().hideTab(tab);
 }
 
-/**
- * Toggle the editor between its normal and expanded (full-width) layout.
- */
 export function setExpandedEditor(expandedEditor: boolean): void {
-  setState({ expandedEditor });
+  getState().setExpandedEditor(expandedEditor);
 }
 
-/**
- * Store the full paths captured by "Copy Link" for later "Paste Link".
- */
 export function setSelectedLinkItems(paths: string[]): void {
-  setState({ selectedLinkItems: paths });
+  getState().setSelectedLinkItems(paths);
 }
 
 // ============================================================================
 // Hooks
 // ============================================================================
+
+export function useDirectoryRefreshNonce(): number {
+  return useStoreValue(s => s.directoryRefreshNonce);
+}
 
 /**
  * Hook to subscribe to the current view

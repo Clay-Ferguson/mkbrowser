@@ -4,7 +4,8 @@ import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
 import { getParentPath } from '../renderer/pathUtil';
-import { getState, setState, useStoreValue } from './core';
+import { getState, useStoreValue } from './core';
+import type { StoreSet, StoreGet } from './core';
 
 // ============================================================================
 // Items - actions and hooks for the items Map
@@ -52,6 +53,407 @@ function mergeItem(existing: ItemData | undefined, item: IncomingItem): ItemData
 }
 
 /**
+ * Actions owned by this slice. Composed into the single store's state type in
+ * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
+ */
+export interface ItemsSlice {
+  upsertItems: (items: IncomingItem[]) => void;
+  setItemContent: (path: string, content: string, modifiedTime?: number) => void;
+  toggleItemSelected: (path: string) => void;
+  toggleItemExpanded: (path: string) => void;
+  setItemExpanded: (path: string, isExpanded: boolean) => void;
+  setItemSelected: (path: string, isSelected: boolean) => void;
+  clearAllSelections: () => void;
+  selectItemsByPaths: (paths: string[]) => void;
+  expandAllItems: () => void;
+  collapseAllItems: () => void;
+  cutSelectedItems: () => void;
+  clearAllCutItems: () => void;
+  renameItem: (oldPath: string, newPath: string, newName: string) => void;
+  deleteItems: (paths: string[]) => void;
+  clearCache: () => void;
+  setItemEditing: (path: string, editing: boolean, goToLine?: number) => void;
+  setItemReviewing: (path: string, reviewing: boolean, rewrittenContent?: string) => void;
+  setItemEditContent: (path: string, editContent: string) => void;
+  clearItemGoToLine: (path: string) => void;
+  setItemRenaming: (path: string, renaming: boolean) => void;
+  setHighlightItem: (path: string | null) => void;
+}
+
+/**
+ * Slice creator called by `core.ts` inside `create()`. A function declaration
+ * (not a `const`) so it is hoisted and safe under the core ↔ slice import
+ * cycle regardless of module load order.
+ */
+export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
+  return {
+    /** Batch upsert multiple items at once (more efficient for directory loads). */
+    upsertItems: (items) => {
+      // Create new Map to ensure React detects the change
+      const newItems = new Map(get().items);
+
+      for (const item of items) {
+        newItems.set(item.path, mergeItem(newItems.get(item.path), item));
+      }
+
+      set({ items: newItems });
+    },
+
+    /** Set the cached content for a markdown file. */
+    setItemContent: (path, content, modifiedTime) => {
+      const state = get();
+      const existing = state.items.get(path);
+      if (!existing) return;
+
+      const now = modifiedTime ?? existing.modifiedTime;
+      const fmParts = splitFrontMatter(content);
+      const tags = fmParts ? getTagsFromYaml(fmParts.yamlStr).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })) : [];
+      const props = fmParts ? getPropsFromYaml(fmParts.yamlStr) : {};
+
+      const newItems = new Map(state.items);
+      newItems.set(path, {
+        ...existing,
+        content,
+        modifiedTime: now,
+        contentCachedAt: now,
+        tags,
+        props,
+      });
+
+      set({ items: newItems });
+    },
+
+    /** Toggle the selected state of an item. */
+    toggleItemSelected: (path) => {
+      const state = get();
+      const existing = state.items.get(path);
+      if (!existing) return;
+
+      const newItems = new Map(state.items);
+      newItems.set(path, {
+        ...existing,
+        isSelected: !existing.isSelected,
+      });
+
+      set({ items: newItems });
+    },
+
+    /** Toggle the expanded state of an item. */
+    toggleItemExpanded: (path) => {
+      const state = get();
+      const existing = state.items.get(path);
+      if (!existing) return;
+
+      const newItems = new Map(state.items);
+      newItems.set(path, {
+        ...existing,
+        isExpanded: !existing.isExpanded,
+      });
+
+      set({ items: newItems });
+    },
+
+    /** Set the expanded state of an item explicitly. */
+    setItemExpanded: (path, isExpanded) => {
+      const state = get();
+      const existing = state.items.get(path);
+      if (!existing) return;
+
+      const newItems = new Map(state.items);
+      newItems.set(path, {
+        ...existing,
+        isExpanded,
+      });
+
+      set({ items: newItems });
+    },
+
+    /** Set the selected state of an item explicitly. */
+    setItemSelected: (path, isSelected) => {
+      const state = get();
+      const existing = state.items.get(path);
+      if (!existing) return;
+
+      const newItems = new Map(state.items);
+      newItems.set(path, {
+        ...existing,
+        isSelected,
+      });
+
+      set({ items: newItems });
+    },
+
+    /** Clear selection state for all items. */
+    clearAllSelections: () => {
+      const state = get();
+      if (state.items.size === 0) return;
+
+      const newItems = new Map(state.items);
+      let hasChanges = false;
+
+      for (const [path, item] of newItems) {
+        if (item.isSelected) {
+          newItems.set(path, { ...item, isSelected: false });
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) return;
+
+      set({ items: newItems });
+    },
+
+    /**
+     * Select all items whose paths are in the provided array
+     * (used for Select All in the current folder view).
+     */
+    selectItemsByPaths: (paths) => {
+      const state = get();
+      if (state.items.size === 0 || paths.length === 0) return;
+
+      const pathSet = new Set(paths);
+      const newItems = new Map(state.items);
+      let hasChanges = false;
+
+      for (const [path, item] of newItems) {
+        if (pathSet.has(path) && !item.isSelected) {
+          newItems.set(path, { ...item, isSelected: true });
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) return;
+
+      set({ items: newItems });
+    },
+
+    /** Expand all items (set isExpanded to true for all). */
+    expandAllItems: () => {
+      const state = get();
+      if (state.items.size === 0) return;
+
+      const newItems = new Map(state.items);
+      let hasChanges = false;
+
+      for (const [path, item] of newItems) {
+        if (!item.isExpanded) {
+          newItems.set(path, { ...item, isExpanded: true });
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) return;
+
+      set({ items: newItems });
+    },
+
+    /** Collapse all items (set isExpanded to false for all). */
+    collapseAllItems: () => {
+      const state = get();
+      if (state.items.size === 0) return;
+
+      const newItems = new Map(state.items);
+      let hasChanges = false;
+
+      for (const [path, item] of newItems) {
+        if (item.isExpanded) {
+          newItems.set(path, { ...item, isExpanded: false });
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) return;
+
+      set({ items: newItems });
+    },
+
+    /** Mark all selected items as cut and clear their selection. */
+    cutSelectedItems: () => {
+      const state = get();
+      if (state.items.size === 0) return;
+
+      const newItems = new Map(state.items);
+      let hasChanges = false;
+
+      for (const [path, item] of newItems) {
+        if (item.isSelected) {
+          newItems.set(path, { ...item, isSelected: false, isCut: true });
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) return;
+
+      set({ items: newItems });
+    },
+
+    /** Clear cut state for all items. */
+    clearAllCutItems: () => {
+      const state = get();
+      if (state.items.size === 0) return;
+
+      const newItems = new Map(state.items);
+      let hasChanges = false;
+
+      for (const [path, item] of newItems) {
+        if (item.isCut) {
+          newItems.set(path, { ...item, isCut: false });
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) return;
+
+      set({ items: newItems });
+    },
+
+    /**
+     * Rename an item in the store: move its entry from oldPath to newPath,
+     * preserving all state (isSelected, isCut, isExpanded, content, etc.).
+     * This prevents phantom entries when a selected item is renamed.
+     */
+    renameItem: (oldPath, newPath, newName) => {
+      const state = get();
+      const existing = state.items.get(oldPath);
+      if (!existing) return;
+
+      const newItems = new Map(state.items);
+      newItems.delete(oldPath);
+      newItems.set(newPath, {
+        ...existing,
+        path: newPath,
+        name: newName,
+        renaming: false,
+      });
+
+      set({ items: newItems });
+    },
+
+    /** Delete multiple items from the store by their paths. */
+    deleteItems: (paths) => {
+      if (paths.length === 0) return;
+
+      const newItems = new Map(get().items);
+      let hasChanges = false;
+
+      for (const path of paths) {
+        if (newItems.has(path)) {
+          newItems.delete(path);
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) return;
+
+      set({ items: newItems });
+    },
+
+    /**
+     * Clear all cached items from the store.
+     * Called after operations that modify the filesystem (delete, paste)
+     * to ensure stale items don't remain in memory.
+     */
+    clearCache: () => set({ items: new Map<string, ItemData>() }),
+
+    /**
+     * Set the editing state of an item.
+     * @param path - The full path of the item
+     * @param editing - Whether the item is being edited
+     * @param goToLine - Optional 1-based line number to scroll to when editing starts
+     */
+    setItemEditing: (path, editing, goToLine) => {
+      const state = get();
+      const existing = state.items.get(path);
+      if (!existing) return;
+
+      const newItems = new Map(state.items);
+      newItems.set(path, {
+        ...existing,
+        editing,
+        goToLine: editing ? goToLine : undefined,
+        // Clear editContent and reviewing state when exiting edit mode
+        ...(editing ? {} : { editContent: undefined, reviewing: undefined, rewrittenContent: undefined }),
+      });
+
+      set({
+        items: newItems,
+        ...(editing ? { highlightItem: path } : {}),
+      });
+    },
+
+    /** Set the reviewing (diff review) state for a file. */
+    setItemReviewing: (path, reviewing, rewrittenContent) => {
+      const state = get();
+      const existing = state.items.get(path);
+      if (!existing) return;
+
+      const newItems = new Map(state.items);
+      newItems.set(path, {
+        ...existing,
+        reviewing,
+        rewrittenContent: reviewing ? rewrittenContent : undefined,
+      });
+
+      set({ items: newItems });
+    },
+
+    /** Set the current edit content for a file (used during editing). */
+    setItemEditContent: (path, editContent) => {
+      const state = get();
+      const existing = state.items.get(path);
+      if (!existing) return;
+      if (existing.editContent === editContent) return;
+
+      const newItems = new Map(state.items);
+      newItems.set(path, { ...existing, editContent });
+      set({ items: newItems });
+    },
+
+    /** Clear the goToLine property for an item (call after scrolling to the line). */
+    clearItemGoToLine: (path) => {
+      const state = get();
+      const existing = state.items.get(path);
+      if (!existing || existing.goToLine === undefined) return;
+
+      const newItems = new Map(state.items);
+      newItems.set(path, {
+        ...existing,
+        goToLine: undefined,
+      });
+
+      set({ items: newItems });
+    },
+
+    /** Set the renaming state of an item. */
+    setItemRenaming: (path, renaming) => {
+      const state = get();
+      const existing = state.items.get(path);
+      if (!existing) return;
+
+      const newItems = new Map(state.items);
+      newItems.set(path, {
+        ...existing,
+        renaming,
+      });
+
+      set({
+        items: newItems,
+        ...(renaming ? { highlightItem: path } : {}),
+      });
+    },
+
+    /** Set the currently highlighted item (by full path). */
+    setHighlightItem: (path) => {
+      if (get().highlightItem === path) return;
+      set({ highlightItem: path });
+    },
+  };
+}
+
+// Thin non-hook wrappers so the barrel API (and every caller) is unchanged;
+// they delegate to the actions living inside the store.
+
+/**
  * Add or update an item in the store.
  * If the item already exists and its modifiedTime hasn't changed,
  * preserves the existing cached content.
@@ -66,203 +468,144 @@ export function upsertItem(
   upsertItems([{ path, name, isDirectory, modifiedTime, createdTime }]);
 }
 
-/**
- * Batch upsert multiple items at once (more efficient for directory loads)
- */
 export function upsertItems(items: IncomingItem[]): void {
-  // Create new Map to ensure React detects the change
-  const newItems = new Map(getState().items);
-
-  for (const item of items) {
-    newItems.set(item.path, mergeItem(newItems.get(item.path), item));
-  }
-
-  setState({ items: newItems });
+  getState().upsertItems(items);
 }
 
-/**
- * Set the cached content for a markdown file
- */
 export function setItemContent(path: string, content: string, modifiedTime?: number): void {
-  const state = getState();
-  const existing = state.items.get(path);
-  if (!existing) return;
-
-  const now = modifiedTime ?? existing.modifiedTime;
-  const fmParts = splitFrontMatter(content);
-  const tags = fmParts ? getTagsFromYaml(fmParts.yamlStr).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })) : [];
-  const props = fmParts ? getPropsFromYaml(fmParts.yamlStr) : {};
-
-  const newItems = new Map(state.items);
-  newItems.set(path, {
-    ...existing,
-    content,
-    modifiedTime: now,
-    contentCachedAt: now,
-    tags,
-    props,
-  });
-
-  setState({ items: newItems });
+  getState().setItemContent(path, content, modifiedTime);
 }
 
-/**
- * Toggle the selected state of an item
- */
 export function toggleItemSelected(path: string): void {
-  const state = getState();
-  const existing = state.items.get(path);
-  if (!existing) return;
-
-  const newItems = new Map(state.items);
-  newItems.set(path, {
-    ...existing,
-    isSelected: !existing.isSelected,
-  });
-
-  setState({ items: newItems });
+  getState().toggleItemSelected(path);
 }
 
-/**
- * Toggle the expanded state of an item
- */
 export function toggleItemExpanded(path: string): void {
-  const state = getState();
-  const existing = state.items.get(path);
-  if (!existing) return;
-
-  const newItems = new Map(state.items);
-  newItems.set(path, {
-    ...existing,
-    isExpanded: !existing.isExpanded,
-  });
-
-  setState({ items: newItems });
+  getState().toggleItemExpanded(path);
 }
 
-/**
- * Set the expanded state of an item explicitly
- */
 export function setItemExpanded(path: string, isExpanded: boolean): void {
-  const state = getState();
-  const existing = state.items.get(path);
-  if (!existing) return;
-
-  const newItems = new Map(state.items);
-  newItems.set(path, {
-    ...existing,
-    isExpanded,
-  });
-
-  setState({ items: newItems });
+  getState().setItemExpanded(path, isExpanded);
 }
 
-/**
- * Set the selected state of an item explicitly
- */
 export function setItemSelected(path: string, isSelected: boolean): void {
-  const state = getState();
-  const existing = state.items.get(path);
-  if (!existing) return;
-
-  const newItems = new Map(state.items);
-  newItems.set(path, {
-    ...existing,
-    isSelected,
-  });
-
-  setState({ items: newItems });
+  getState().setItemSelected(path, isSelected);
 }
 
-/**
- * Clear selection state for all items
- */
 export function clearAllSelections(): void {
-  const state = getState();
-  if (state.items.size === 0) return;
-
-  const newItems = new Map(state.items);
-  let hasChanges = false;
-
-  for (const [path, item] of newItems) {
-    if (item.isSelected) {
-      newItems.set(path, { ...item, isSelected: false });
-      hasChanges = true;
-    }
-  }
-
-  if (!hasChanges) return;
-
-  setState({ items: newItems });
+  getState().clearAllSelections();
 }
 
-/**
- * Select all items whose paths are in the provided array
- * (used for Select All in the current folder view)
- */
 export function selectItemsByPaths(paths: string[]): void {
-  const state = getState();
-  if (state.items.size === 0 || paths.length === 0) return;
-
-  const pathSet = new Set(paths);
-  const newItems = new Map(state.items);
-  let hasChanges = false;
-
-  for (const [path, item] of newItems) {
-    if (pathSet.has(path) && !item.isSelected) {
-      newItems.set(path, { ...item, isSelected: true });
-      hasChanges = true;
-    }
-  }
-
-  if (!hasChanges) return;
-
-  setState({ items: newItems });
+  getState().selectItemsByPaths(paths);
 }
 
-/**
- * Expand all items (set isExpanded to true for all)
- */
 export function expandAllItems(): void {
-  const state = getState();
-  if (state.items.size === 0) return;
+  getState().expandAllItems();
+}
 
-  const newItems = new Map(state.items);
-  let hasChanges = false;
+export function collapseAllItems(): void {
+  getState().collapseAllItems();
+}
 
-  for (const [path, item] of newItems) {
-    if (!item.isExpanded) {
-      newItems.set(path, { ...item, isExpanded: true });
-      hasChanges = true;
-    }
-  }
+export function cutSelectedItems(): void {
+  getState().cutSelectedItems();
+}
 
-  if (!hasChanges) return;
+export function clearAllCutItems(): void {
+  getState().clearAllCutItems();
+}
 
-  setState({ items: newItems });
+export function renameItem(oldPath: string, newPath: string, newName: string): void {
+  getState().renameItem(oldPath, newPath, newName);
+}
+
+export function deleteItems(paths: string[]): void {
+  getState().deleteItems(paths);
+}
+
+export function clearCache(): void {
+  getState().clearCache();
+}
+
+export function setItemEditing(path: string, editing: boolean, goToLine?: number): void {
+  getState().setItemEditing(path, editing, goToLine);
+}
+
+export function setItemReviewing(path: string, reviewing: boolean, rewrittenContent?: string): void {
+  getState().setItemReviewing(path, reviewing, rewrittenContent);
+}
+
+export function setItemEditContent(path: string, editContent: string): void {
+  getState().setItemEditContent(path, editContent);
+}
+
+export function clearItemGoToLine(path: string): void {
+  getState().clearItemGoToLine(path);
+}
+
+export function setItemRenaming(path: string, renaming: boolean): void {
+  getState().setItemRenaming(path, renaming);
+}
+
+export function setHighlightItem(path: string | null): void {
+  getState().setHighlightItem(path);
+}
+
+// ============================================================================
+// Non-reactive readers (direct access, not hooks)
+// ============================================================================
+
+/**
+ * Get an item by path (direct access, not a hook)
+ */
+export function getItem(path: string): ItemData | undefined {
+  return getState().items.get(path);
 }
 
 /**
- * Collapse all items (set isExpanded to false for all)
+ * Get the item currently in edit mode, if any (direct access, not a hook)
  */
-export function collapseAllItems(): void {
-  const state = getState();
-  if (state.items.size === 0) return;
-
-  const newItems = new Map(state.items);
-  let hasChanges = false;
-
-  for (const [path, item] of newItems) {
-    if (item.isExpanded) {
-      newItems.set(path, { ...item, isExpanded: false });
-      hasChanges = true;
-    }
+export function getEditingItem(): { path: string; item: ItemData } | null {
+  for (const [path, item] of getState().items) {
+    if (item.editing) return { path, item };
   }
-
-  if (!hasChanges) return;
-
-  setState({ items: newItems });
+  return null;
 }
+
+/**
+ * Get all currently cut items (direct access, not a hook)
+ */
+export function getCutItems(): ItemData[] {
+  return Array.from(getState().items.values()).filter(item => item.isCut);
+}
+
+/**
+ * Check if cached content is valid for an item
+ */
+export function isCacheValid(path: string): boolean {
+  const item = getState().items.get(path);
+  // Check content for undefined (never loaded) rather than falsiness, so an
+  // empty file ('') still counts as cached once read — otherwise empty markdown
+  // files would be re-read on every content-loader pass.
+  if (!item || item.content === undefined || !item.contentCachedAt) {
+    return false;
+  }
+  // Cache is valid if the file hasn't been modified since we cached it
+  return item.contentCachedAt >= item.modifiedTime;
+}
+
+/**
+ * Get the current edit content for a file synchronously (not a hook).
+ * Useful for reading the latest value in event handlers without render lag.
+ */
+export function getItemEditContent(path: string): string {
+  return getState().items.get(path)?.editContent ?? '';
+}
+
+// ============================================================================
+// Hooks
+// ============================================================================
 
 /**
  * Expansion counts for items in a given directory
@@ -316,252 +659,6 @@ function computeExpansionCounts(items: Map<string, ItemData>, directoryPath: str
  */
 export function useExpansionCounts(): ExpansionCounts {
   return useStoreValue(useShallow(s => computeExpansionCounts(s.items, s.currentPath)));
-}
-
-/**
- * Mark all selected items as cut and clear their selection
- */
-export function cutSelectedItems(): void {
-  const state = getState();
-  if (state.items.size === 0) return;
-
-  const newItems = new Map(state.items);
-  let hasChanges = false;
-
-  for (const [path, item] of newItems) {
-    if (item.isSelected) {
-      newItems.set(path, { ...item, isSelected: false, isCut: true });
-      hasChanges = true;
-    }
-  }
-
-  if (!hasChanges) return;
-
-  setState({ items: newItems });
-}
-
-/**
- * Clear cut state for all items
- */
-export function clearAllCutItems(): void {
-  const state = getState();
-  if (state.items.size === 0) return;
-
-  const newItems = new Map(state.items);
-  let hasChanges = false;
-
-  for (const [path, item] of newItems) {
-    if (item.isCut) {
-      newItems.set(path, { ...item, isCut: false });
-      hasChanges = true;
-    }
-  }
-
-  if (!hasChanges) return;
-
-  setState({ items: newItems });
-}
-
-/**
- * Rename an item in the store: move its entry from oldPath to newPath,
- * preserving all state (isSelected, isCut, isExpanded, content, etc.).
- * This prevents phantom entries when a selected item is renamed.
- */
-export function renameItem(oldPath: string, newPath: string, newName: string): void {
-  const state = getState();
-  const existing = state.items.get(oldPath);
-  if (!existing) return;
-
-  const newItems = new Map(state.items);
-  newItems.delete(oldPath);
-  newItems.set(newPath, {
-    ...existing,
-    path: newPath,
-    name: newName,
-    renaming: false,
-  });
-
-  setState({ items: newItems });
-}
-
-/**
- * Delete multiple items from the store by their paths
- */
-export function deleteItems(paths: string[]): void {
-  if (paths.length === 0) return;
-
-  const newItems = new Map(getState().items);
-  let hasChanges = false;
-
-  for (const path of paths) {
-    if (newItems.has(path)) {
-      newItems.delete(path);
-      hasChanges = true;
-    }
-  }
-
-  if (!hasChanges) return;
-
-  setState({ items: newItems });
-}
-
-/**
- * Clear all cached items from the store.
- * Called after operations that modify the filesystem (delete, paste)
- * to ensure stale items don't remain in memory.
- */
-export function clearCache(): void {
-  setState({ items: new Map<string, ItemData>() });
-}
-
-/**
- * Get an item by path (direct access, not a hook)
- */
-export function getItem(path: string): ItemData | undefined {
-  return getState().items.get(path);
-}
-
-/**
- * Get the item currently in edit mode, if any (direct access, not a hook)
- */
-export function getEditingItem(): { path: string; item: ItemData } | null {
-  for (const [path, item] of getState().items) {
-    if (item.editing) return { path, item };
-  }
-  return null;
-}
-
-/**
- * Get all currently cut items (direct access, not a hook)
- */
-export function getCutItems(): ItemData[] {
-  return Array.from(getState().items.values()).filter(item => item.isCut);
-}
-
-/**
- * Check if cached content is valid for an item
- */
-export function isCacheValid(path: string): boolean {
-  const item = getState().items.get(path);
-  // Check content for undefined (never loaded) rather than falsiness, so an
-  // empty file ('') still counts as cached once read — otherwise empty markdown
-  // files would be re-read on every content-loader pass.
-  if (!item || item.content === undefined || !item.contentCachedAt) {
-    return false;
-  }
-  // Cache is valid if the file hasn't been modified since we cached it
-  return item.contentCachedAt >= item.modifiedTime;
-}
-
-/**
- * Set the editing state of an item
- * @param path - The full path of the item
- * @param editing - Whether the item is being edited
- * @param goToLine - Optional 1-based line number to scroll to when editing starts
- */
-export function setItemEditing(path: string, editing: boolean, goToLine?: number): void {
-  const state = getState();
-  const existing = state.items.get(path);
-  if (!existing) return;
-
-  const newItems = new Map(state.items);
-  newItems.set(path, {
-    ...existing,
-    editing,
-    goToLine: editing ? goToLine : undefined,
-    // Clear editContent and reviewing state when exiting edit mode
-    ...(editing ? {} : { editContent: undefined, reviewing: undefined, rewrittenContent: undefined }),
-  });
-
-  setState({
-    items: newItems,
-    ...(editing ? { highlightItem: path } : {}),
-  });
-}
-
-/**
- * Set the reviewing (diff review) state for a file.
- */
-export function setItemReviewing(path: string, reviewing: boolean, rewrittenContent?: string): void {
-  const state = getState();
-  const existing = state.items.get(path);
-  if (!existing) return;
-
-  const newItems = new Map(state.items);
-  newItems.set(path, {
-    ...existing,
-    reviewing,
-    rewrittenContent: reviewing ? rewrittenContent : undefined,
-  });
-
-  setState({ items: newItems });
-}
-
-/**
- * Set the current edit content for a file (used during editing).
- */
-export function setItemEditContent(path: string, editContent: string): void {
-  const state = getState();
-  const existing = state.items.get(path);
-  if (!existing) return;
-  if (existing.editContent === editContent) return;
-
-  const newItems = new Map(state.items);
-  newItems.set(path, { ...existing, editContent });
-  setState({ items: newItems });
-}
-
-/**
- * Get the current edit content for a file synchronously (not a hook).
- * Useful for reading the latest value in event handlers without render lag.
- */
-export function getItemEditContent(path: string): string {
-  return getState().items.get(path)?.editContent ?? '';
-}
-
-/**
- * Clear the goToLine property for an item (call after scrolling to the line)
- */
-export function clearItemGoToLine(path: string): void {
-  const state = getState();
-  const existing = state.items.get(path);
-  if (!existing || existing.goToLine === undefined) return;
-
-  const newItems = new Map(state.items);
-  newItems.set(path, {
-    ...existing,
-    goToLine: undefined,
-  });
-
-  setState({ items: newItems });
-}
-
-/**
- * Set the renaming state of an item
- */
-export function setItemRenaming(path: string, renaming: boolean): void {
-  const state = getState();
-  const existing = state.items.get(path);
-  if (!existing) return;
-
-  const newItems = new Map(state.items);
-  newItems.set(path, {
-    ...existing,
-    renaming,
-  });
-
-  setState({
-    items: newItems,
-    ...(renaming ? { highlightItem: path } : {}),
-  });
-}
-
-/**
- * Set the currently highlighted item (by full path)
- */
-export function setHighlightItem(path: string | null): void {
-  if (getState().highlightItem === path) return;
-  setState({ highlightItem: path });
 }
 
 /**

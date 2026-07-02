@@ -1,5 +1,6 @@
 import type { AppState, TreeNode, FileNode } from '../shared/types';
-import { getState, setState, useStoreValue } from './core';
+import { getState, useStoreValue } from './core';
+import type { StoreSet, StoreGet } from './core';
 
 // ============================================================================
 // IndexTree - the hierarchical .INDEX.yaml navigation tree
@@ -29,42 +30,6 @@ function updateNodeByPath<T extends TreeNode>(
   return changed ? { ...node, children: newChildren } : node;
 }
 
-/**
- * Replace the entire index tree root (used on initialization or rootPath change).
- */
-export function setIndexTreeRoot(root: FileNode | null): void {
-  setState({ indexTreeRoot: root });
-}
-
-/**
- * Mark a directory node as loading (spinner while re-reading its children).
- */
-export function setIndexTreeNodeLoading(path: string, loading: boolean): void {
-  const root = getState().indexTreeRoot;
-  if (!root) return;
-  const newRoot = updateNodeByPath(root, path, n => ({ ...n, isLoading: loading }));
-  if (newRoot === root) return;
-  setState({ indexTreeRoot: newRoot });
-}
-
-/**
- * Set a node's children and mark it as expanded.
- * Used for both directory nodes (children: FileNode[]) and markdown file nodes (children: MarkdownHeadingNode[]).
- */
-export function expandIndexTreeNode(path: string, children: TreeNode[]): void {
-  const root = getState().indexTreeRoot;
-  if (!root) return;
-
-  const newRoot = updateNodeByPath(root, path, n => ({
-    ...n,
-    isExpanded: true,
-    isLoading: false,
-    children,
-  }));
-  if (newRoot === root) return;
-  setState({ indexTreeRoot: newRoot });
-}
-
 function collapseAllNodes(node: TreeNode): TreeNode {
   if (!('isDirectory' in node) || !(node as FileNode).isDirectory) return node;
   const collapsedChildren = node.children
@@ -74,29 +39,135 @@ function collapseAllNodes(node: TreeNode): TreeNode {
 }
 
 /**
- * Collapse all expanded directory nodes in the tree (preserves root expansion).
+ * Actions owned by this slice. Composed into the single store's state type in
+ * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
  */
-export function collapseAllIndexTreeNodes(): void {
-  const root = getState().indexTreeRoot;
-  if (!root) return;
-  const newChildren = root.children
-    ? root.children.map(collapseAllNodes)
-    : root.children;
-  setState({ indexTreeRoot: { ...root, children: newChildren } });
+export interface IndexTreeSlice {
+  setIndexTreeRoot: (root: FileNode | null) => void;
+  setIndexTreeNodeLoading: (path: string, loading: boolean) => void;
+  expandIndexTreeNode: (path: string, children: TreeNode[]) => void;
+  collapseAllIndexTreeNodes: () => void;
+  collapseIndexTreeNode: (path: string) => void;
+  setPendingIndexTreeReveal: (path: string) => void;
+  clearPendingIndexTreeReveal: () => void;
+  setHasIndexFile: (hasIndexFile: boolean) => void;
+  setIndexYaml: (indexYaml: AppState['indexYaml']) => void;
 }
 
 /**
- * Collapse a node (directory or heading) without clearing its cached children.
+ * Slice creator called by `core.ts` inside `create()`. A function declaration
+ * (not a `const`) so it is hoisted and safe under the core ↔ slice import
+ * cycle regardless of module load order.
  */
+export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSlice {
+  return {
+    /** Replace the entire index tree root (used on initialization or rootPath change). */
+    setIndexTreeRoot: (root) => set({ indexTreeRoot: root }),
+
+    /** Mark a directory node as loading (spinner while re-reading its children). */
+    setIndexTreeNodeLoading: (path, loading) => {
+      const root = get().indexTreeRoot;
+      if (!root) return;
+      const newRoot = updateNodeByPath(root, path, n => ({ ...n, isLoading: loading }));
+      if (newRoot === root) return;
+      set({ indexTreeRoot: newRoot });
+    },
+
+    /**
+     * Set a node's children and mark it as expanded.
+     * Used for both directory nodes (children: FileNode[]) and markdown file
+     * nodes (children: MarkdownHeadingNode[]).
+     */
+    expandIndexTreeNode: (path, children) => {
+      const root = get().indexTreeRoot;
+      if (!root) return;
+
+      const newRoot = updateNodeByPath(root, path, n => ({
+        ...n,
+        isExpanded: true,
+        isLoading: false,
+        children,
+      }));
+      if (newRoot === root) return;
+      set({ indexTreeRoot: newRoot });
+    },
+
+    /** Collapse all expanded directory nodes in the tree (preserves root expansion). */
+    collapseAllIndexTreeNodes: () => {
+      const root = get().indexTreeRoot;
+      if (!root) return;
+      const newChildren = root.children
+        ? root.children.map(collapseAllNodes)
+        : root.children;
+      set({ indexTreeRoot: { ...root, children: newChildren } });
+    },
+
+    /** Collapse a node (directory or heading) without clearing its cached children. */
+    collapseIndexTreeNode: (path) => {
+      const root = get().indexTreeRoot;
+      if (!root) return;
+      const newRoot = updateNodeByPath(root, path, n => ({
+        ...n,
+        isExpanded: false,
+      }));
+      if (newRoot === root) return;
+      set({ indexTreeRoot: newRoot });
+    },
+
+    /** Signal IndexTree to expand to the given path and scroll it into view. */
+    setPendingIndexTreeReveal: (path) => set({ pendingIndexTreeReveal: path }),
+
+    /** Clear the pending reveal signal (called by IndexTree when it picks it up). */
+    clearPendingIndexTreeReveal: () => {
+      if (get().pendingIndexTreeReveal === null) return;
+      set({ pendingIndexTreeReveal: null });
+    },
+
+    /** Set whether the current directory contains a .INDEX.yaml file. */
+    setHasIndexFile: (hasIndexFile) => set({ hasIndexFile }),
+
+    /** Set the parsed .INDEX.yaml for the current directory. */
+    setIndexYaml: (indexYaml) => set({ indexYaml }),
+  };
+}
+
+// Thin non-hook wrappers so the barrel API (and every caller) is unchanged;
+// they delegate to the actions living inside the store.
+
+export function setIndexTreeRoot(root: FileNode | null): void {
+  getState().setIndexTreeRoot(root);
+}
+
+export function setIndexTreeNodeLoading(path: string, loading: boolean): void {
+  getState().setIndexTreeNodeLoading(path, loading);
+}
+
+export function expandIndexTreeNode(path: string, children: TreeNode[]): void {
+  getState().expandIndexTreeNode(path, children);
+}
+
+export function collapseAllIndexTreeNodes(): void {
+  getState().collapseAllIndexTreeNodes();
+}
+
 export function collapseIndexTreeNode(path: string): void {
-  const root = getState().indexTreeRoot;
-  if (!root) return;
-  const newRoot = updateNodeByPath(root, path, n => ({
-    ...n,
-    isExpanded: false,
-  }));
-  if (newRoot === root) return;
-  setState({ indexTreeRoot: newRoot });
+  getState().collapseIndexTreeNode(path);
+}
+
+export function setPendingIndexTreeReveal(path: string): void {
+  getState().setPendingIndexTreeReveal(path);
+}
+
+export function clearPendingIndexTreeReveal(): void {
+  getState().clearPendingIndexTreeReveal();
+}
+
+export function setHasIndexFile(hasIndexFile: boolean): void {
+  getState().setHasIndexFile(hasIndexFile);
+}
+
+export function setIndexYaml(indexYaml: AppState['indexYaml']): void {
+  getState().setIndexYaml(indexYaml);
 }
 
 /**
@@ -114,21 +185,6 @@ export function getIndexTreeRoot(): FileNode | null {
 }
 
 /**
- * Signal IndexTree to expand to the given path and scroll it into view.
- */
-export function setPendingIndexTreeReveal(path: string): void {
-  setState({ pendingIndexTreeReveal: path });
-}
-
-/**
- * Clear the pending reveal signal (called by IndexTree when it picks it up).
- */
-export function clearPendingIndexTreeReveal(): void {
-  if (getState().pendingIndexTreeReveal === null) return;
-  setState({ pendingIndexTreeReveal: null });
-}
-
-/**
  * Hook to subscribe to the pending IndexTree reveal path.
  */
 export function usePendingIndexTreeReveal(): string | null {
@@ -136,24 +192,10 @@ export function usePendingIndexTreeReveal(): string | null {
 }
 
 /**
- * Set whether the current directory contains a .INDEX.yaml file.
- */
-export function setHasIndexFile(hasIndexFile: boolean): void {
-  setState({ hasIndexFile });
-}
-
-/**
  * Hook to subscribe to hasIndexFile
  */
 export function useHasIndexFile(): boolean {
   return useStoreValue(s => s.hasIndexFile);
-}
-
-/**
- * Set the parsed .INDEX.yaml for the current directory.
- */
-export function setIndexYaml(indexYaml: AppState['indexYaml']): void {
-  setState({ indexYaml });
 }
 
 /**

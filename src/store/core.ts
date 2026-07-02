@@ -1,5 +1,39 @@
 import { create } from 'zustand';
 import type { AppState, AppSettings, AiConfigState } from '../shared/types';
+import { createImageSlice } from './image';
+import type { ImageSlice } from './image';
+import { createAiConfigSlice } from './aiConfig';
+import type { AiConfigSlice } from './aiConfig';
+import { createSearchSlice } from './search';
+import type { SearchSlice } from './search';
+import { createCalendarSlice } from './calendar';
+import type { CalendarSlice } from './calendar';
+import { createIndexTreeSlice } from './indexTree';
+import type { IndexTreeSlice } from './indexTree';
+import { createSettingsSlice } from './settings';
+import type { SettingsSlice } from './settings';
+import { createViewSlice } from './view';
+import type { ViewSlice } from './view';
+import { createItemsSlice } from './items';
+import type { ItemsSlice } from './items';
+
+/**
+ * Full store state: the plain `AppState` fields plus the actions contributed
+ * by each slice (Zustand slices pattern — ZUSTAND_CONVERSION.md §2b).
+ */
+export type StoreState = AppState & ImageSlice & AiConfigSlice & SearchSlice & CalendarSlice &
+  IndexTreeSlice & SettingsSlice & ViewSlice & ItemsSlice;
+
+/**
+ * The `set` signature handed to slice creators: a shallow-merging partial
+ * patch (Zustand's default). Slices only patch state fields, never actions.
+ */
+export type StoreSet = (patch: Partial<StoreState>) => void;
+
+/**
+ * The `get` signature handed to slice creators that read current state.
+ */
+export type StoreGet = () => StoreState;
 
 /**
  * Default settings
@@ -83,31 +117,28 @@ const initialState: AppState = {
 };
 
 /**
- * The single Zustand store. State only — actions live in the slice files and
- * mutate through `setState` below (Phase 2 of ZUSTAND_CONVERSION.md moves them
- * inside the store).
+ * The single Zustand store, composed from `initialState` plus every slice's
+ * actions (Zustand slices pattern — ZUSTAND_CONVERSION.md §2b). All mutations
+ * go through these actions; there is no free-form `setState` anymore.
  */
-const useAppStore = create<AppState>()(() => initialState);
+const useAppStore = create<StoreState>()((set, get) => ({
+  ...initialState,
+  ...createImageSlice(set),
+  ...createAiConfigSlice(set, get),
+  ...createSearchSlice(set),
+  ...createCalendarSlice(set, get),
+  ...createIndexTreeSlice(set, get),
+  ...createSettingsSlice(set, get),
+  ...createViewSlice(set, get),
+  ...createItemsSlice(set, get),
+}));
 
 /**
- * Subscribe to state changes
+ * Read the current state snapshot (non-reactive). Includes the slices'
+ * actions, so slice wrappers can call `getState().someAction(...)`.
  */
-export function subscribe(listener: () => void): () => void {
-  return useAppStore.subscribe(listener);
-}
-
-/**
- * Read the current state snapshot (non-reactive).
- */
-export function getState(): AppState {
+export function getState(): StoreState {
   return useAppStore.getState();
-}
-
-/**
- * Merge a partial state and notify subscribers.
- */
-export function setState(patch: Partial<AppState>): void {
-  useAppStore.setState(patch);
 }
 
 /**
@@ -120,6 +151,6 @@ export function setState(patch: Partial<AppState>): void {
  * `zustand/react/shallow` so results are compared shallowly instead of by
  * identity (see `useExpansionCounts` in `items.ts`).
  */
-export function useStoreValue<T>(selector: (s: AppState) => T): T {
+export function useStoreValue<T>(selector: (s: StoreState) => T): T {
   return useAppStore(selector);
 }

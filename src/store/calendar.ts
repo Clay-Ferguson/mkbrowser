@@ -1,16 +1,108 @@
 import type { CalendarEvent, CalendarViewType } from '../shared/types';
 import { ensureTrailingSep } from '../renderer/pathUtil';
-import { getState, setState, useStoreValue } from './core';
+import { getState, useStoreValue } from './core';
+import type { StoreSet, StoreGet } from './core';
 
 // ============================================================================
 // Calendar - events, loading state, view configuration
 // ============================================================================
 
 /**
- * Set the folder the calendar should load events from.
+ * Actions owned by this slice. Composed into the single store's state type in
+ * `core.ts` (Zustand slices pattern — see ZUSTAND_CONVERSION.md §2b).
  */
+export interface CalendarSlice {
+  setCalendarFolder: (folder: string | null) => void;
+  setActiveCalendarFolder: (folder: string | null) => void;
+  deleteCalendarEventsUnderPath: (deletedPath: string) => void;
+  updateCalendarEvent: (filePath: string, updated: CalendarEvent[]) => void;
+  setCalendarEvents: (events: CalendarEvent[]) => void;
+  setCalendarLoading: (loading: boolean) => void;
+  setCalendarViewType: (viewType: CalendarViewType) => void;
+  setCalendarViewTime: (date: Date) => void;
+}
+
+/**
+ * Slice creator called by `core.ts` inside `create()`. A function declaration
+ * (not a `const`) so it is hoisted and safe under the core ↔ slice import
+ * cycle regardless of module load order.
+ */
+export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice {
+  return {
+    /** Set the folder the calendar should load events from. */
+    setCalendarFolder: (folder) => set({ calendarFolder: folder }),
+
+    /** Set the folder whose events are currently loaded into the calendar. */
+    setActiveCalendarFolder: (folder) => set({ activeCalendarFolder: folder }),
+
+    /** Remove all calendar events whose `filePath` equals or lives under `deletedPath`. */
+    deleteCalendarEventsUnderPath: (deletedPath) => {
+      const calendarEvents = get().calendarEvents;
+      if (!calendarEvents) return;
+      const normalizedDir = ensureTrailingSep(deletedPath);
+      const remaining = calendarEvents.filter(
+        e => e.filePath !== deletedPath && !(e.filePath?.startsWith(normalizedDir) ?? false),
+      );
+      if (remaining.length !== calendarEvents.length) {
+        set({ calendarEvents: remaining });
+      }
+    },
+
+    /** Replace the events for a single file (upsert by filePath). */
+    updateCalendarEvent: (filePath, updated) => {
+      const calendarEvents = get().calendarEvents;
+      if (!calendarEvents) return;
+      const existing = calendarEvents.filter(e => e.filePath !== filePath);
+      set({ calendarEvents: [...existing, ...updated] });
+    },
+
+    /** Replace all calendar events and mark loading as complete. */
+    setCalendarEvents: (events) => set({ calendarEvents: events, calendarLoading: false }),
+
+    /** Set the calendar loading flag. */
+    setCalendarLoading: (loading) => set({ calendarLoading: loading }),
+
+    /** Set the active calendar view type (month/week/day). */
+    setCalendarViewType: (viewType) => set({ calendarViewType: viewType }),
+
+    /** Set the date the calendar is centered on. */
+    setCalendarViewTime: (date) => set({ calendarViewTime: date }),
+  };
+}
+
+// Thin non-hook wrappers so the barrel API (and every caller) is unchanged;
+// they delegate to the actions living inside the store.
+
 export function setCalendarFolder(folder: string | null): void {
-  setState({ calendarFolder: folder });
+  getState().setCalendarFolder(folder);
+}
+
+export function setActiveCalendarFolder(folder: string | null): void {
+  getState().setActiveCalendarFolder(folder);
+}
+
+export function deleteCalendarEventsUnderPath(deletedPath: string): void {
+  getState().deleteCalendarEventsUnderPath(deletedPath);
+}
+
+export function updateCalendarEvent(filePath: string, updated: CalendarEvent[]): void {
+  getState().updateCalendarEvent(filePath, updated);
+}
+
+export function setCalendarEvents(events: CalendarEvent[]): void {
+  getState().setCalendarEvents(events);
+}
+
+export function setCalendarLoading(loading: boolean): void {
+  getState().setCalendarLoading(loading);
+}
+
+export function setCalendarViewType(viewType: CalendarViewType): void {
+  getState().setCalendarViewType(viewType);
+}
+
+export function setCalendarViewTime(date: Date): void {
+  getState().setCalendarViewTime(date);
 }
 
 /**
@@ -21,56 +113,10 @@ export function useCalendarFolder(): string | null {
 }
 
 /**
- * Set the folder whose events are currently loaded into the calendar.
- */
-export function setActiveCalendarFolder(folder: string | null): void {
-  setState({ activeCalendarFolder: folder });
-}
-
-/**
  * Hook to subscribe to the folder whose events are currently loaded.
  */
 export function useActiveCalendarFolder(): string | null {
   return useStoreValue(s => s.activeCalendarFolder);
-}
-
-/**
- * Remove all calendar events whose `filePath` equals or lives under `deletedPath`.
- */
-export function deleteCalendarEventsUnderPath(deletedPath: string): void {
-  const calendarEvents = getState().calendarEvents;
-  if (!calendarEvents) return;
-  const normalizedDir = ensureTrailingSep(deletedPath);
-  const remaining = calendarEvents.filter(
-    e => e.filePath !== deletedPath && !(e.filePath?.startsWith(normalizedDir) ?? false),
-  );
-  if (remaining.length !== calendarEvents.length) {
-    setState({ calendarEvents: remaining });
-  }
-}
-
-/**
- * Replace the events for a single file (upsert by filePath).
- */
-export function updateCalendarEvent(filePath: string, updated: CalendarEvent[]): void {
-  const calendarEvents = getState().calendarEvents;
-  if (!calendarEvents) return;
-  const existing = calendarEvents.filter(e => e.filePath !== filePath);
-  setState({ calendarEvents: [...existing, ...updated] });
-}
-
-/**
- * Replace all calendar events and mark loading as complete.
- */
-export function setCalendarEvents(events: CalendarEvent[]): void {
-  setState({ calendarEvents: events, calendarLoading: false });
-}
-
-/**
- * Set the calendar loading flag.
- */
-export function setCalendarLoading(loading: boolean): void {
-  setState({ calendarLoading: loading });
 }
 
 /**
@@ -95,22 +141,8 @@ export function useCalendarViewType(): CalendarViewType {
 }
 
 /**
- * Set the active calendar view type (month/week/day).
- */
-export function setCalendarViewType(viewType: CalendarViewType): void {
-  setState({ calendarViewType: viewType });
-}
-
-/**
  * Hook to subscribe to the date the calendar is currently centered on.
  */
 export function useCalendarViewTime(): Date {
   return useStoreValue(s => s.calendarViewTime);
-}
-
-/**
- * Set the date the calendar is centered on.
- */
-export function setCalendarViewTime(date: Date): void {
-  setState({ calendarViewTime: date });
 }

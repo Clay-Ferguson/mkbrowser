@@ -117,10 +117,38 @@ Currently our actions are free module functions in slice files calling the share
 slice file exports a `createXxxSlice(set, get)` function, and `core.ts` composes them
 into the single store. This is what most Zustand codebases of this size do.
 
-- [ ] Convert one slice first (suggest `image.ts` — smallest) to validate the pattern.
-- [ ] Convert remaining slices one at a time: `scroll.ts`, `aiConfig.ts`, `search.ts`,
+- [x] Convert one slice first (suggest `image.ts` — smallest) to validate the pattern.
+      Pattern established (follow it for the remaining slices):
+      - `core.ts` exports `StoreState` (= `AppState` & converted slices' action
+        interfaces) and `StoreSet` (the shallow-merge patch `set` signature), and
+        composes `...createImageSlice(set)` into `create<StoreState>()`.
+      - The slice exports an `ImageSlice` actions interface and a
+        `createImageSlice(set: StoreSet)` **function declaration** (hoisted, so the
+        core ↔ slice import cycle is load-order safe — do not use a `const` arrow).
+      - The old free-function actions remain as thin wrappers delegating to
+        `getState().action(...)`, so the barrel API, all components, and all test
+        mocks stay unchanged (retiring the wrappers is 2c's call).
+- [x] Convert remaining slices one at a time: `scroll.ts`, `aiConfig.ts`, `search.ts`,
       `calendar.ts`, `indexTree.ts`, `settings.ts`, `view.ts`, `items.ts` (largest last).
-- [ ] Keep the `src/store/index.ts` barrel as the single public import surface.
+      Notes from the conversion:
+      - `scroll.ts` needed no conversion: it holds no reactive store state at all —
+        it is deliberately a plain module-level `Map` (see its header comment), so
+        there is nothing to move into the store. Left as is.
+      - Mutating actions moved inside the store; **pure readers** (`getSettings`,
+        `getAiConfig`, `isBookmarked`, `isTabVisible`, `getItem`, `getEditingItem`,
+        `getCutItems`, `isCacheValid`, `getItemEditContent`, `getIndexTreeRoot`)
+        stayed as free functions reading `getState()` — they mutate nothing, so they
+        don't belong in the store.
+      - Early-return no-change guards (e.g. `setCurrentPath` bailing when the path is
+        unchanged) were preserved inside the actions: Zustand's `setState` always
+        creates a new state object and notifies, so the guards still prevent
+        pointless notifications.
+      - With every slice converted, no code called core's `setState`/`subscribe`
+        anymore (verified by grep), so both were deleted from `core.ts`. The core's
+        public surface is now `getState`, `useStoreValue`, `StoreState`, `StoreSet`,
+        `StoreGet`, and the defaults.
+- [x] Keep the `src/store/index.ts` barrel as the single public import surface.
+      (Unchanged; the slice files' wrapper functions keep the exported API identical.)
 
 ### 2c. (Optional) Selector-hook convention: direct selectors vs. per-field wrapper hooks
 
