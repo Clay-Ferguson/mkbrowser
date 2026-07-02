@@ -6,7 +6,7 @@ import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { hasDueProperty, injectCalendarFrontMatter } from '../../shared/calendarUtil';
 import { isMarkdownFile } from '../../shared/fileTypes';
 import { buildMarkdownLinks } from '../../renderer/linkUtil';
-import { useAppStore } from '../../store';
+import { useAS } from '../../store';
 import { wordAt, type SpellingSuggestion } from './spellChecker';
 
 export interface ContextMenuState {
@@ -40,7 +40,7 @@ interface UseEditorContextMenuProps {
 export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   const [calendarAlreadyExists, setCalendarAlreadyExists] = useState(false);
-  const selectedLinkItems = useAppStore(s => s.selectedLinkItems);
+  const selectedLinkItems = useAS(s => s.selectedLinkItems);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(prev => ({ ...prev, visible: false }));

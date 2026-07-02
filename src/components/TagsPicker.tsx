@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
-import { useAppStore, getItemEditContent, setItemEditContent } from '../store';
+import { useAS, getItemEditContent, setItemEditContent } from '../store';
 import { CHECKBOX_CLASS, MONO_FONT_STACK } from '../renderer/styles';
 import {
   type TagsLoadState, type TagCategory, type HashtagDefinition,
@@ -25,7 +25,7 @@ interface TagsPickerProps {
  * Returns null until the tag definitions are loaded or when no categories exist.
  */
 export default function TagsPicker({ filePath }: TagsPickerProps) {
-  const item = useAppStore(s => s.items.get(filePath));
+  const item = useAS(s => s.items.get(filePath));
   const editContent = item?.editContent ?? '';
 
   const [loadState, setLoadState] = useState<TagsLoadState>({ status: 'loading' });

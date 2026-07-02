@@ -54,7 +54,7 @@ For your refactoring: each `ipcMain.handle(...)` is essentially an independent r
 
 ### How does this application handle global state?
 
-MkBrowser keeps all of its shared, application-wide state in a **single [Zustand](https://zustand.docs.pmnd.rs/) store** (Zustand v5) that lives under `src/store/`. There is exactly one store — `useAppStore`, created in `src/store/core.ts` — holding one `AppState` object plus all of the store's **actions**, composed from cohesive slice files using Zustand's documented [slices pattern](https://zustand.docs.pmnd.rs/guides/slices-pattern). Components **read** with direct selectors (`useAppStore(s => s.currentPath)`) that subscribe them to exactly the value they use, and they **write** through actions — functions defined *inside* the store alongside the state they mutate, also exported from the slice files as plain functions (`upsertItems`, `setCurrentPath`, `toggleBookmark`, `setAiConfig`, …) so non-React code can call them. Every action produces a *new* immutable copy of whatever slice of state it touches; Zustand notifies subscribers and React re-renders exactly the components whose selected values changed.
+MkBrowser keeps all of its shared, application-wide state in a **single [Zustand](https://zustand.docs.pmnd.rs/) store** (Zustand v5) that lives under `src/store/`. There is exactly one store — `useAS`, created in `src/store/core.ts` — holding one `AppState` object plus all of the store's **actions**, composed from cohesive slice files using Zustand's documented [slices pattern](https://zustand.docs.pmnd.rs/guides/slices-pattern). Components **read** with direct selectors (`useAS(s => s.currentPath)`) that subscribe them to exactly the value they use, and they **write** through actions — functions defined *inside* the store alongside the state they mutate, also exported from the slice files as plain functions (`upsertItems`, `setCurrentPath`, `toggleBookmark`, `setAiConfig`, …) so non-React code can call them. Every action produces a *new* immutable copy of whatever slice of state it touches; Zustand notifies subscribers and React re-renders exactly the components whose selected values changed.
 
 Because the store is a module-level singleton, any code in the renderer — React component, hook, plain utility function, or an async IPC callback — can import an action from the store barrel (`src/store/index.ts`) and call it. There is no provider to wrap the app in, no `dispatch`, no reducers, no action-type constants, and no context threading. State that must survive across app restarts (settings, the current subfolder, AI configuration, etc.) is **not** stored in the browser; it is persisted by the Electron *main* process to a YAML config file and re-hydrated into the store at startup. The renderer store is therefore best understood as the live, in-memory, reactive picture of the app, and the main-process config manager (`src/main/configMgr.ts`) is the durable source of truth for the subset of that state which is persistent.
 
@@ -66,7 +66,7 @@ The store began life as a hand-rolled mini-Zustand: a module-scope `AppState` ob
 
 - **Built on `useSyncExternalStore` under the hood** — the officially-blessed React 18/19 primitive for subscribing components to an external store without tearing (inconsistent reads across a render). Zustand wraps it for us.
 - **No Context re-render cascades.** A single React Context holding the whole app state would re-render *every* consumer on *any* change. Per-selector subscriptions mean a component that only reads `settings.fontSize` is not disturbed when, say, a search result arrives.
-- **Callable from anywhere.** Actions are reachable as plain functions on a module singleton (`useAppStore.getState().someAction(...)`, or the slice files' exported wrappers), so non-React code (utilities, async IPC handlers, menu-event listeners) mutates state the same way components do — no hooks-only restriction.
+- **Callable from anywhere.** Actions are reachable as plain functions on a module singleton (`useAS.getState().someAction(...)`, or the slice files' exported wrappers), so non-React code (utilities, async IPC handlers, menu-event listeners) mutates state the same way components do — no hooks-only restriction.
 - **Trivial to unit test.** Slices are plain modules; a test can call an action and assert via `getState()` with no React renderer involved.
 
 ### The store core (`src/store/core.ts`)
@@ -75,10 +75,10 @@ The store began life as a hand-rolled mini-Zustand: a module-scope `AppState` ob
 
 - **`StoreState`** — the full store type: `AppState & ImageSlice & AiConfigSlice & SearchSlice & ...` — i.e. the plain state fields plus the action interfaces contributed by every slice. (`AppState` itself is defined in `src/shared/types.ts`.)
 - **`StoreSet`** / **`StoreGet`** — the `set`/`get` signatures handed to slice creators. `set` takes a `Partial<StoreState>` patch and **shallow-merges** it (Zustand's default): it produces a brand-new top-level state object and notifies subscribers. Slices only ever patch state fields, never actions.
-- **`useAppStore`** — the store itself, created as:
+- **`useAS`** — the store itself, created as:
 
   ```ts
-  export const useAppStore = create<StoreState>()((set, get) => ({
+  export const useAS = create<StoreState>()((set, get) => ({
     ...initialState,
     ...createImageSlice(set),
     ...createAiConfigSlice(set, get),
@@ -88,7 +88,7 @@ The store began life as a hand-rolled mini-Zustand: a module-scope `AppState` ob
   ```
 
   `initialState` (also in `core.ts`) is a fully-populated `AppState` defining every field the app tracks and its initial value (`items: new Map()`, `currentPath: ''`, `currentView: 'browser'`, `settings: defaultSettings`, `aiConfig: defaultAiConfig`, and so on).
-- **`getState()`** — a thin wrapper over `useAppStore.getState()`: returns the current `StoreState` *non-reactively*. Use it to read state outside of render (in an event handler, an async callback, or another action) without subscribing — and to reach the actions from imperative code (`getState().setCurrentPath(...)`).
+- **`getState()`** — a thin wrapper over `useAS.getState()`: returns the current `StoreState` *non-reactively*. Use it to read state outside of render (in an event handler, an async callback, or another action) without subscribing — and to reach the actions from imperative code (`getState().setCurrentPath(...)`).
 
 There is deliberately **no free-form `setState`** exported anymore: all mutations go through the actions the slices define inside the store.
 
@@ -104,7 +104,7 @@ Zustand's `set` only replaces the *top-level* state object (shallow merge). It d
 
 | Slice file | Responsibility |
 |------------|----------------|
-| `core.ts` | The store itself (`useAppStore`), `getState`, the `StoreState`/`StoreSet`/`StoreGet` types, plus `initialState`, `defaultSettings`, `defaultAiConfig`. Composes every slice. |
+| `core.ts` | The store itself (`useAS`), `getState`, the `StoreState`/`StoreSet`/`StoreGet` types, plus `initialState`, `defaultSettings`, `defaultAiConfig`. Composes every slice. |
 | `items.ts` | The `items` `Map<path, ItemData>` — the file/folder listing and all per-item flags (selected, cut, expanded, editing, renaming, cached content, tags, props). The largest slice. |
 | `view.ts` | View/navigation state: `currentView`, `currentPath`, `rootPath`, `visibleTabs`, pending scroll/edit signals, folder analysis/graph, the directory-refresh nonce, expanded-editor flag. |
 | `settings.ts` | The persisted `AppSettings` (font size, sort order, content width, bookmarks, ignored paths, index-tree width, etc.) and all bookmark operations. |
@@ -114,9 +114,9 @@ Zustand's `set` only replaces the *top-level* state object (shallow merge). It d
 | `indexTree.ts` | The hierarchical `.INDEX.yaml` navigation tree (`indexTreeRoot`) and its expand/collapse/reveal operations. |
 | `image.ts` | Inline image display size and its CSS-transition flag. |
 | `scroll.ts` | Browser-view scroll positions per folder — a **non-reactive** module-level store (see below), not part of the Zustand store. |
-| `index.ts` | The **barrel**: re-exports `useAppStore` and every slice's actions, getters, and helpers, plus the shared store types. This is the single public import surface for the rest of the app. |
+| `index.ts` | The **barrel**: re-exports `useAS` and every slice's actions, getters, and helpers, plus the shared store types. This is the single public import surface for the rest of the app. |
 
-**Always import from the barrel**, e.g. `import { useAppStore, upsertItems, setCurrentPath } from '../../store'`. Components should not reach into individual slice files. The barrel also re-exports the store *type* interfaces (`AppState`, `AppSettings`, `AiConfigState`, `ItemData`, `TreeNode`, `FileNode`, etc.), all of which are actually declared in `src/shared/types.ts` and simply passed through `index.ts`.
+**Always import from the barrel**, e.g. `import { useAS, upsertItems, setCurrentPath } from '../../store'`. Components should not reach into individual slice files. The barrel also re-exports the store *type* interfaces (`AppState`, `AppSettings`, `AiConfigState`, `ItemData`, `TreeNode`, `FileNode`, etc.), all of which are actually declared in `src/shared/types.ts` and simply passed through `index.ts`.
 
 #### Anatomy of a slice
 
@@ -157,13 +157,13 @@ There are two ways to read, and choosing correctly matters.
 
 #### Reactive reads — selectors (inside render)
 
-Inside a React component or custom hook, read through `useAppStore` with a selector so the component re-renders when — and only when — that value changes:
+Inside a React component or custom hook, read through `useAS` with a selector so the component re-renders when — and only when — that value changes:
 
 ```ts
-const settings = useAppStore(s => s.settings);          // AppSettings
-const view = useAppStore(s => s.currentView);           // AppView
-const item = useAppStore(s => s.items.get(path));       // ItemData | undefined for one path
-const aiConfig = useAppStore(s => s.aiConfig);          // AiConfigState
+const settings = useAS(s => s.settings);          // AppSettings
+const view = useAS(s => s.currentView);           // AppView
+const item = useAS(s => s.items.get(path));       // ItemData | undefined for one path
+const aiConfig = useAS(s => s.aiConfig);          // AiConfigState
 ```
 
 There are no per-field wrapper hooks (`useSettings()`, `useCurrentPath()`, …) anymore — components select directly. The rare *derived* read that must return a fresh object lives in a small exported hook (e.g. `useExpansionCounts()` in `items.ts`) built on `useShallow` (below).
@@ -181,11 +181,11 @@ A selector that **allocates a fresh object/array on every call** — `s => ({ a:
 ```ts
 // items.ts — derives a fresh counts object, so it needs useShallow
 export function useExpansionCounts(): ExpansionCounts {
-  return useAppStore(useShallow(s => computeExpansionCounts(s.items, s.currentPath)));
+  return useAS(useShallow(s => computeExpansionCounts(s.items, s.currentPath)));
 }
 ```
 
-A derived selector that returns a **primitive** needs no wrapping — `Object.is` on a boolean/number/string is already a value comparison. `items.ts` exports the pure helper `hasAnyCutItems(items)` for exactly this: components subscribe with `useAppStore(s => hasAnyCutItems(s.items))`.
+A derived selector that returns a **primitive** needs no wrapping — `Object.is` on a boolean/number/string is already a value comparison. `items.ts` exports the pure helper `hasAnyCutItems(items)` for exactly this: components subscribe with `useAS(s => hasAnyCutItems(s.items))`.
 
 ### Writing state — actions
 
@@ -225,7 +225,7 @@ Because `set` takes a `Partial<StoreState>`, one action can atomically update se
 `items` is the busiest piece of state, so it has its own idioms in `items.ts`:
 
 - **Keyed by full path** in a `Map<string, ItemData>` for O(1) lookup, insertion, and deletion. `ItemData` (defined in `src/shared/types.ts`) carries both the file metadata (`path`, `name`, `isDirectory`, `modifiedTime`, `createdTime`) and all the transient UI flags (`isSelected`, `isCut`, `isExpanded`, `editing`, `editContent`, `renaming`, `reviewing`, cached `content` + `contentCachedAt`, parsed `tags` + `props`).
-- **Per-item referential identity.** Every mutation clones the Map *and* replaces only the specific entry object(s) that changed (`newItems.set(path, { ...existing, isSelected: !existing.isSelected })`). Unchanged entries keep their exact object reference. This is what makes the per-item selector `useAppStore(s => s.items.get(path))` cheap: Zustand's `Object.is` check on the selector result means a component rendering one file re-renders only when *that* file's entry object changes — a change to a *different* file (a new Map, but the same entry reference for this path) does not disturb it. This per-item isolation is essential in a folder view that may render hundreds of entries.
+- **Per-item referential identity.** Every mutation clones the Map *and* replaces only the specific entry object(s) that changed (`newItems.set(path, { ...existing, isSelected: !existing.isSelected })`). Unchanged entries keep their exact object reference. This is what makes the per-item selector `useAS(s => s.items.get(path))` cheap: Zustand's `Object.is` check on the selector result means a component rendering one file re-renders only when *that* file's entry object changes — a change to a *different* file (a new Map, but the same entry reference for this path) does not disturb it. This per-item isolation is essential in a folder view that may render hundreds of entries.
 - **Content caching & invalidation.** `mergeItem` (used by `upsertItem`/`upsertItems`) refreshes metadata on re-scan and *invalidates* cached content when the file's `modifiedTime` is newer than `contentCachedAt`. `isCacheValid(path)` and `setItemContent` manage this; note `content` is checked for `undefined` (never loaded) rather than falsiness, so an empty file still counts as cached.
 - **Direct getters for imperative code.** `getItem`, `getEditingItem`, `getCutItems`, `getItemEditContent` read the Map without subscribing, for use in handlers and callbacks.
 - **Renames preserve state.** `renameItem` moves the entry from `oldPath` to `newPath` in the Map (delete + set) while spreading the old flags/content forward, so a selected/expanded item stays selected/expanded through a rename instead of leaving a phantom entry.
@@ -252,7 +252,7 @@ Changes flow back to disk explicitly — the store does **not** auto-persist. Pa
 
 - **Settings:** the Settings view mutates the store live (`setFontSize`, `setSortOrder`, `toggleBookmark`, …) for instant UI feedback, and persistence happens by calling `api.updateConfig({ settings: getSettings() })` (see `handleSaveSettings` in `App.tsx`).
 - **Navigation:** an effect in `App.tsx` persists `curSubFolder` and `recentFolders` via `api.updateConfig(...)` whenever `currentPath`/`rootPath`/`recentFolders` change — each as its own config key so nothing else is clobbered.
-- **AI config — the two-write mirror pattern.** The AI configuration is special: `src/store/aiConfig.ts` holds a renderer-reactive **mirror** (`aiConfig` in `AppState`) of what is authoritatively stored in `configMgr`. The mirror exists so long-lived consumers (the editor's AI Rewrite button, ThreadView's persona dropdown, AISettingsView) can select `useAppStore(s => s.aiConfig)` and update *live* when the config changes elsewhere, instead of reading a one-time `api.getConfig()` snapshot that goes stale. To keep the two in sync, any code changing an AI field calls **`saveAiConfig(updates)`** in `renderer/config.ts` — the single sync point — which both persists via `api.updateConfig(updates)` **and** mirrors the change into the store via `setAiConfig(...)`. A shared `pickAiConfig` projection maps `AppConfig` keys onto the `AiConfigState` mirror shape, and is used by both `loadConfig` (seeding) and `saveAiConfig` (persisting), so the mirror has exactly one projection point. Never call `api.updateConfig` directly for an AI key — that would update disk but leave the live mirror stale.
+- **AI config — the two-write mirror pattern.** The AI configuration is special: `src/store/aiConfig.ts` holds a renderer-reactive **mirror** (`aiConfig` in `AppState`) of what is authoritatively stored in `configMgr`. The mirror exists so long-lived consumers (the editor's AI Rewrite button, ThreadView's persona dropdown, AISettingsView) can select `useAS(s => s.aiConfig)` and update *live* when the config changes elsewhere, instead of reading a one-time `api.getConfig()` snapshot that goes stale. To keep the two in sync, any code changing an AI field calls **`saveAiConfig(updates)`** in `renderer/config.ts` — the single sync point — which both persists via `api.updateConfig(updates)` **and** mirrors the change into the store via `setAiConfig(...)`. A shared `pickAiConfig` projection maps `AppConfig` keys onto the `AiConfigState` mirror shape, and is used by both `loadConfig` (seeding) and `saveAiConfig` (persisting), so the mirror has exactly one projection point. Never call `api.updateConfig` directly for an AI key — that would update disk but leave the live mirror stale.
 
 #### Session-only (never persisted) state
 
@@ -266,7 +266,7 @@ State flows into the store from several directions, all landing on the same acti
 - **Native menu events.** Native menu clicks are sent from `main.ts` via `webContents.send`, exposed by `preload.ts` as `onEventRequested`-style listeners, registered in `App.tsx`, and handled by calling store actions (cut/paste/select-all → `cutSelectedItems`, etc.). See the "Menu → IPC → Renderer Event" pattern in `AGENTS.md`.
 - **User interaction** in components, via the same actions.
 
-The reactive path out of the store is uniform: `useAppStore(selector)` → Zustand's subscription → re-render when the selected value changes.
+The reactive path out of the store is uniform: `useAS(selector)` → Zustand's subscription → re-render when the selected value changes.
 
 ### Adding a new piece of state — checklist
 
@@ -275,13 +275,13 @@ To add a new field to the global store:
 1. **Add the field to `AppState`** in `src/shared/types.ts` (and give it an initial value in `initialState` in `core.ts`). If it's a new settings/config field, add it to `AppSettings`/`AppConfig` and to `defaultSettings`/the config schema instead.
 2. **Pick or create the right slice** under `src/store/`. Group it with related state; only make a new slice for a genuinely new concern. (A new slice needs a `createXxxSlice` creator composed into `create()` in `core.ts` and its action interface added to `StoreState` — copy the shape of `image.ts`.)
 3. **Write the action** inside the slice creator: add its signature to the slice's action interface, build new immutable copies of what it changes, and call `set`. Add a no-op guard if the value can be set to its current value. Batch related fields into one `set`. Export a thin wrapper function that delegates to `getState().yourAction(...)` so imperative code and tests keep a plain-function API.
-4. **Read it with a direct selector** — `useAppStore(s => s.yourField)` — no wrapper hook needed. Add a non-reactive `getYourField()` getter (a free function reading `getState()`) if imperative code needs it. For a *derived* value that returns a fresh object/array, export a small hook that wraps the selector in `useShallow` (see `useExpansionCounts`); a derived primitive needs no wrapping.
+4. **Read it with a direct selector** — `useAS(s => s.yourField)` — no wrapper hook needed. Add a non-reactive `getYourField()` getter (a free function reading `getState()`) if imperative code needs it. For a *derived* value that returns a fresh object/array, export a small hook that wraps the selector in `useShallow` (see `useExpansionCounts`); a derived primitive needs no wrapping.
 5. **Confirm it flows through the `index.ts` barrel** (it already does `export * from './yourSlice'`; a brand-new slice file needs its `export *` line added).
 6. **If it must persist:** add the key to `AppConfig` and the config schema, seed it in `loadConfig()`, and write it back with `api.updateConfig({ yourKey })` at the appropriate moment (or, for AI keys, through `saveAiConfig`). If it's a live-updating mirror of main-process config, follow the `aiConfig` mirror pattern.
 
 ### Rules of thumb (the short list)
 
-- **Read in render → `useAppStore(selector)`. Read outside render → `getState()`/getter.**
+- **Read in render → `useAS(selector)`. Read outside render → `getState()`/getter.**
 - **Write → an action inside the store** (via its exported wrapper). Never mutate nested state in place.
 - **Every change allocates a new object/Map/Set/array** for the slice it touches; leave untouched slices at their existing reference.
 - **Selectors return primitives or stored references by default** — a selector that builds a fresh object/array must be wrapped in `useShallow`.

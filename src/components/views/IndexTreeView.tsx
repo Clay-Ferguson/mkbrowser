@@ -11,7 +11,7 @@ import CreateFolderDialog from '../dialogs/CreateFolderDialog';
 import RenameDialog from '../dialogs/RenameDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
-  useAppStore,
+  useAS,
   hasAnyCutItems,
   setIndexTreeRoot,
   expandIndexTreeNode,
@@ -147,16 +147,16 @@ function isParentOf(candidatePath: string, currentPath: string): boolean {
  * action inserts a relative Markdown link at the active editor's cursor.
  */
 function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) {
-  const rootPath = useAppStore(s => s.rootPath);
-  const currentPath = useAppStore(s => s.currentPath);
-  const treeRoot = useAppStore(s => s.indexTreeRoot);
-  const settings = useAppStore(s => s.settings);
-  const pendingReveal = useAppStore(s => s.pendingIndexTreeReveal);
-  const hasCutItems = useAppStore(s => hasAnyCutItems(s.items));
-  const highlightItem = useAppStore(s => s.highlightItem);
+  const rootPath = useAS(s => s.rootPath);
+  const currentPath = useAS(s => s.currentPath);
+  const treeRoot = useAS(s => s.indexTreeRoot);
+  const settings = useAS(s => s.settings);
+  const pendingReveal = useAS(s => s.pendingIndexTreeReveal);
+  const hasCutItems = useAS(s => hasAnyCutItems(s.items));
+  const highlightItem = useAS(s => s.highlightItem);
   // Derived: the path of the markdown file currently in edit mode, if any.
   // Returns a primitive, so no useShallow is needed.
-  const editingMarkdownPath = useAppStore(s => {
+  const editingMarkdownPath = useAS(s => {
     for (const [path, item] of s.items) {
       if (item.editing && path.endsWith('.md')) return path;
     }

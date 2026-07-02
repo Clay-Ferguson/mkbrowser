@@ -4,7 +4,7 @@ import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import { Z_MODAL } from '../../renderer/styles';
 import type { FileEntry as FileEntryType } from '../../global';
-import { setHighlightItem, setPendingScrollToFile, deleteItems, useAppStore, setItemSelected } from '../../store';
+import { setHighlightItem, setPendingScrollToFile, deleteItems, useAS, setItemSelected } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
 interface FullscreenImageViewerProps {
@@ -35,7 +35,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [fullscreenImagePath, setFullscreenImagePath] = useState(entry.path);
 
-  const fullscreenItem = useAppStore(s => s.items.get(fullscreenImagePath));
+  const fullscreenItem = useAS(s => s.items.get(fullscreenImagePath));
   const isSelected = fullscreenItem?.isSelected ?? false;
 
   // Keep the latest keydown handler in a ref so the document listener (below) can be

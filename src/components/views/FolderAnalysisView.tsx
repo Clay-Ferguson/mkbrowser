@@ -1,6 +1,6 @@
 import { HashtagIcon } from '@heroicons/react/24/outline';
 import {
-  useAppStore,
+  useAS,
 } from '../../store';
 
 interface FolderAnalysisViewProps {
@@ -14,7 +14,7 @@ interface FolderAnalysisViewProps {
  * triggers a line-by-line search via the `onSearchHashtag` callback.
  */
 function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
-  const folderAnalysis = useAppStore(s => s.folderAnalysis);
+  const folderAnalysis = useAS(s => s.folderAnalysis);
 
   if (!folderAnalysis) {
     return (

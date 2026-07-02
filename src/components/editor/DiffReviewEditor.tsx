@@ -7,7 +7,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { unifiedMergeView, acceptChunk, rejectChunk, getChunks } from '@codemirror/merge';
-import { useAppStore } from '../../store';
+import { useAS } from '../../store';
 import { createFontSizeTheme } from './editorTheme';
 import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN } from '../../renderer/styles';
 
@@ -32,7 +32,7 @@ interface DiffReviewEditorProps {
 function DiffReviewEditor({ originalText, modifiedText, language = 'text', onComplete, onCancel }: DiffReviewEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const settings = useAppStore(s => s.settings);
+  const settings = useAS(s => s.settings);
 
   useEffect(() => {
     if (!editorRef.current) return;

@@ -17,7 +17,7 @@ import 'd3-transition';
 import { forceLabelRect } from './forceLabelRect';
 import { forceCrossGroupRepel } from './forceCrossGroupRepel';
 import {
-  useAppStore,
+  useAS,
   navigateToBrowserPath,
   setHighlightItem,
 } from '../../store';
@@ -186,8 +186,8 @@ async function getFilePreview(filePath: string, name: string): Promise<string> {
  * constants for tuning knobs.
  */
 function FolderGraphView() {
-  const folderGraph = useAppStore(s => s.folderGraph);
-  const highlightItem = useAppStore(s => s.highlightItem);
+  const folderGraph = useAS(s => s.folderGraph);
+  const highlightItem = useAS(s => s.highlightItem);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const highlightRef = useRef<string | null>(highlightItem);

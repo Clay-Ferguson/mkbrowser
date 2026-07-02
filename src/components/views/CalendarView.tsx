@@ -5,7 +5,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { api } from '../../renderer/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { setCalendarViewType, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useAppStore } from '../../store';
+import { setCalendarViewType, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useAS } from '../../store';
 import type { CalendarEvent, CalendarViewType } from '../../shared/types';
 import { logger } from '../../shared/logUtil';
 import { getParentPath, joinPath } from '../../renderer/pathUtil';
@@ -55,13 +55,13 @@ interface PendingSlot {
  * persisted to config so they survive app restarts.
  */
 export default function CalendarView() {
-  const events = useAppStore(s => s.calendarEvents);
-  const loading = useAppStore(s => s.calendarLoading);
-  const calendarViewType = useAppStore(s => s.calendarViewType);
+  const events = useAS(s => s.calendarEvents);
+  const loading = useAS(s => s.calendarLoading);
+  const calendarViewType = useAS(s => s.calendarViewType);
   const view = viewTypeToRbc[calendarViewType] ?? Views.MONTH;
-  const date = useAppStore(s => s.calendarViewTime);
-  const settings = useAppStore(s => s.settings);
-  const activeCalendarFolder = useAppStore(s => s.activeCalendarFolder);
+  const date = useAS(s => s.calendarViewTime);
+  const settings = useAS(s => s.settings);
+  const activeCalendarFolder = useAS(s => s.activeCalendarFolder);
   const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
 
   const handleViewChange = (v: View) => {

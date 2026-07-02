@@ -120,7 +120,7 @@ const initialState: AppState = {
  * The single Zustand store, composed from `initialState` plus every slice's
  * actions. All mutations go through these actions.
  *
- * Components subscribe with direct selectors: `useAppStore(s => s.currentPath)`.
+ * Components subscribe with direct selectors: `useAS(s => s.currentPath)`.
  * Selector results are compared with `Object.is`, so a selector that returns a
  * primitive or a value already stored in state (e.g. `s => s.items`) only
  * re-renders when that value actually changes. A selector that *derives* a
@@ -128,7 +128,7 @@ const initialState: AppState = {
  * `zustand/react/shallow` so results are compared shallowly instead of by
  * identity (see `useExpansionCounts` in `items.ts`).
  */
-export const useAppStore = create<StoreState>()((set, get) => ({
+export const useAS = create<StoreState>()((set, get) => ({
   ...initialState,
   ...createImageSlice(set),
   ...createAiConfigSlice(set, get),
@@ -145,5 +145,5 @@ export const useAppStore = create<StoreState>()((set, get) => ({
  * actions, so slice wrappers can call `getState().someAction(...)`.
  */
 export function getState(): StoreState {
-  return useAppStore.getState();
+  return useAS.getState();
 }

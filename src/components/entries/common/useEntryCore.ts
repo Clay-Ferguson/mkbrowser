@@ -1,4 +1,4 @@
-import { useAppStore } from '../../../store';
+import { useAS } from '../../../store';
 import type { EntryCoreState } from './types';
 
 interface UseEntryCoreOptions {
@@ -15,9 +15,9 @@ interface UseEntryCoreOptions {
  * Consolidates store access and computed properties used by all Entry components.
  */
 export function useEntryCore({ path, defaultExpanded = false }: UseEntryCoreOptions): EntryCoreState {
-  const item = useAppStore(s => s.items.get(path));
-  const highlightItem = useAppStore(s => s.highlightItem);
-  const settings = useAppStore(s => s.settings);
+  const item = useAS(s => s.items.get(path));
+  const highlightItem = useAS(s => s.highlightItem);
+  const settings = useAS(s => s.settings);
 
   const isRenaming = item?.renaming ?? false;
   const isExpanded = item?.isExpanded ?? defaultExpanded;

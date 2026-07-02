@@ -33,12 +33,12 @@ Then call it from the renderer via `api.*` (see above). `src/global.d.ts` only d
 ## State Management (Zustand, single store)
 
 State lives in a **single Zustand store** (`src/store/`), composed via the slices pattern (full docs: `docs/technical_notes/DEVELOPER_GUIDE.md`):
-- `core.ts` — creates `useAppStore` from `initialState` + every slice's `createXxxSlice(set, get)`; exports `getState()` for non-reactive reads
+- `core.ts` — creates `useAS` from `initialState` + every slice's `createXxxSlice(set, get)`; exports `getState()` for non-reactive reads
 - slice files (`items.ts`, `search.ts`, `settings.ts`, `view.ts`, `calendar.ts`, `indexTree.ts`, `aiConfig.ts`, `image.ts`) — actions defined inside the store, plus thin wrapper functions and pure getters (`scroll.ts` is a deliberate non-reactive module-level Map)
-- `index.ts` — the barrel and single public import surface (re-exports `useAppStore`, all slices + types)
+- `index.ts` — the barrel and single public import surface (re-exports `useAS`, all slices + types)
 - Store type interfaces (`ItemData`, `AppState`, `AppSettings`, etc.) live in `src/shared/types.ts`
 
-Components read with direct selectors — `useAppStore(s => s.currentPath)` — wrapping derived object/array selectors in `useShallow`; there are no per-field wrapper hooks. Items are stored in `Map<path, ItemData>` for O(1) lookups. Always create **new objects** when mutating state to trigger React re-renders. Do **not** create additional Zustand stores — multi-field patches must stay atomic in the one store. Import `useAppStore` and actions from `../../store` (the `index.ts` barrel).
+Components read with direct selectors — `useAS(s => s.currentPath)` — wrapping derived object/array selectors in `useShallow`; there are no per-field wrapper hooks. Items are stored in `Map<path, ItemData>` for O(1) lookups. Always create **new objects** when mutating state to trigger React re-renders. Do **not** create additional Zustand stores — multi-field patches must stay atomic in the one store. Import `useAS` and actions from `../../store` (the `index.ts` barrel).
 
 ## Component Patterns
 

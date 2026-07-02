@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { clsx } from 'clsx';
 import { Bars3Icon } from '@heroicons/react/24/outline';
-import { showTab, hideTab, setCurrentView, useAppStore, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, setSearchResults, type AppView } from '../store';
+import { showTab, hideTab, setCurrentView, useAS, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, setSearchResults, type AppView } from '../store';
 import { isAiThreadByEntries } from '../shared/ai/aiPatterns';
 import { getParentPath, isPathInside } from '../renderer/pathUtil';
 import type { FileEntry } from '../global';
@@ -44,12 +44,12 @@ const allTabs: TabConfig[] = [
  * when closed — clearing the underlying data.
  */
 function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
-  const currentView = useAppStore(s => s.currentView);
-  const folderAnalysis = useAppStore(s => s.folderAnalysis);
-  const folderGraph = useAppStore(s => s.folderGraph);
-  const searchResults = useAppStore(s => s.searchResults);
-  const currentPath = useAppStore(s => s.currentPath);
-  const rootPath = useAppStore(s => s.rootPath);
+  const currentView = useAS(s => s.currentView);
+  const folderAnalysis = useAS(s => s.folderAnalysis);
+  const folderGraph = useAS(s => s.folderGraph);
+  const searchResults = useAS(s => s.searchResults);
+  const currentPath = useAS(s => s.currentPath);
+  const rootPath = useAS(s => s.rootPath);
   const logoRef = useRef<HTMLButtonElement>(null);
   const systemMenuRef = useRef<HTMLButtonElement>(null);
   const [showFileMenu, setShowFileMenu] = useState(false);
@@ -66,7 +66,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
     }
   }, [currentPath, rootPath]);
 
-  const visibleTabs = useAppStore(s => s.visibleTabs);
+  const visibleTabs = useAS(s => s.visibleTabs);
 
   // Returns a click handler that clears a tab's data and falls back to Browse if that tab was active.
   const makeCloseHandler = (tabId: AppView, close: () => void) => () => {

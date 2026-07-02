@@ -3,7 +3,7 @@ import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import {
   clearItemGoToLine,
   setItemReviewing,
-  useAppStore,
+  useAS,
   setExpandedEditor,
 } from '../../store';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
@@ -33,7 +33,7 @@ type TextEntryProps = BaseEntryProps;
  */
 function TextEntry(props: TextEntryProps) {
   const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
-  const item = useAppStore(s => s.items.get(entry.path));
+  const item = useAS(s => s.items.get(entry.path));
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
@@ -46,8 +46,8 @@ function TextEntry(props: TextEntryProps) {
   });
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
-  const hasIndexFile = useAppStore(s => s.hasIndexFile);
-  const expandedEditor = useAppStore(s => s.expandedEditor);
+  const hasIndexFile = useAS(s => s.hasIndexFile);
+  const expandedEditor = useAS(s => s.expandedEditor);
 
   const { editContent: editEditContent, handleCancel: editHandleCancel } = edit;
   // Only exit edit mode on Escape when the content is unmodified; if the user has typed

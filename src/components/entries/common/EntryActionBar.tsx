@@ -3,7 +3,7 @@ import { ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIc
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { api } from '../../../renderer/api';
 import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../renderer/styles';
-import { toggleBookmark, addBookmark, toggleItemExpanded, setCurrentView, useAppStore, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
+import { toggleBookmark, addBookmark, toggleItemExpanded, setCurrentView, useAS, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 
 interface EntryActionBarProps {
@@ -58,7 +58,7 @@ export function EntryActionBar({
   onPasteClipboardAsAttachment,
   isFolder = false,
 }: EntryActionBarProps) {
-  const settings = useAppStore(s => s.settings);
+  const settings = useAS(s => s.settings);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
 
   // Removing a bookmark is immediate; adding one opens a dialog so the user can give it a name.

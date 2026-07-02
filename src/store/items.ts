@@ -4,7 +4,7 @@ import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
 import { getParentPath } from '../renderer/pathUtil';
-import { getState, useAppStore } from './core';
+import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
 
 // ============================================================================
@@ -658,12 +658,12 @@ function computeExpansionCounts(items: Map<string, ItemData>, directoryPath: str
  * and the component only re-renders when a count actually changes.
  */
 export function useExpansionCounts(): ExpansionCounts {
-  return useAppStore(useShallow(s => computeExpansionCounts(s.items, s.currentPath)));
+  return useAS(useShallow(s => computeExpansionCounts(s.items, s.currentPath)));
 }
 
 /**
  * Check whether any items are currently cut. Pure helper for direct selectors:
- * `useAppStore(s => hasAnyCutItems(s.items))` — the result is a primitive, so
+ * `useAS(s => hasAnyCutItems(s.items))` — the result is a primitive, so
  * no `useShallow` is needed.
  */
 export function hasAnyCutItems(items: Map<string, ItemData>): boolean {

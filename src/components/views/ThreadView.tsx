@@ -11,7 +11,7 @@ import {
   clearPendingEditFile,
   setItemExpanded,
   setItemEditing,
-  useAppStore,
+  useAS,
 } from '../../store';
 import { saveAiConfig } from '../../renderer/config';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
@@ -33,11 +33,11 @@ interface ThreadViewProps {
  * HUMAN.md or AI.md turn in chronological order (oldest at top).
  */
 function ThreadView({ onSaveSettings }: ThreadViewProps) {
-  const currentPath = useAppStore(s => s.currentPath);
-  const rootPath = useAppStore(s => s.rootPath);
-  const pendingScrollToBottom = useAppStore(s => s.pendingThreadScrollToBottom);
-  const pendingEditFile = useAppStore(s => s.pendingEditFile);
-  const pendingEditView = useAppStore(s => s.pendingEditView);
+  const currentPath = useAS(s => s.currentPath);
+  const rootPath = useAS(s => s.rootPath);
+  const pendingScrollToBottom = useAS(s => s.pendingThreadScrollToBottom);
+  const pendingEditFile = useAS(s => s.pendingEditFile);
+  const pendingEditView = useAS(s => s.pendingEditView);
   const [threadEntries, setThreadEntries] = useState<ThreadEntry[]>([]);
   const [childFolders, setChildFolders] = useState<ThreadChildFolder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +47,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   // so a persona created/renamed/selected in AISettingsView is reflected here
   // without a remount. `typingDraft` holds any in-progress combobox edit until
   // it's committed via onSelect.
-  const { aiRewritePrompt, aiRewritePrompts } = useAppStore(s => s.aiConfig);
+  const { aiRewritePrompt, aiRewritePrompts } = useAS(s => s.aiConfig);
   const storedPersona = aiRewritePrompt || DEFAULT_PERSONA_NAME;
   const [typingDraft, setTypingDraft] = useState<string | null>(null);
   const personaName = typingDraft ?? storedPersona;

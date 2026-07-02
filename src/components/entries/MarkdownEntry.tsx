@@ -8,7 +8,7 @@ import type { FileEntry } from '../../global';
 import type { AppView } from '../../shared/types';
 import { removeTOC } from '../../shared/tocUtil';
 import {
-  useAppStore,
+  useAS,
   hasAnyCutItems,
   setHighlightItem,
   clearItemGoToLine,
@@ -69,8 +69,8 @@ interface MarkdownEntryProps extends BaseEntryProps {
  */
 function MarkdownEntry(props: MarkdownEntryProps) {
   const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, documentMode = false } = props;
-  const item = useAppStore(s => s.items.get(entry.path));
-  const hasCutItems = useAppStore(s => hasAnyCutItems(s.items));
+  const item = useAS(s => s.items.get(entry.path));
+  const hasCutItems = useAS(s => hasAnyCutItems(s.items));
 
   const { core, rename, del, loading, content, edit } = useEditableEntry(props, {
     defaultExpanded: true,
@@ -78,9 +78,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   });
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
-  const { showToc, showPropsInEditor } = useAppStore(s => s.settings);
-  const hasIndexFile = useAppStore(s => s.hasIndexFile);
-  const expandedEditor = useAppStore(s => s.expandedEditor);
+  const { showToc, showPropsInEditor } = useAS(s => s.settings);
+  const hasIndexFile = useAS(s => s.hasIndexFile);
+  const expandedEditor = useAS(s => s.expandedEditor);
 
   const { editContent: editEditContent, handleCancel: editHandleCancel } = edit;
   // Only exit edit mode on Escape when the content is unmodified (comparing without TOC, since the

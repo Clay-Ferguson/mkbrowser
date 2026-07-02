@@ -12,7 +12,7 @@ import { python } from '@codemirror/lang-python';
 import Typo from 'typo-js';
 import { globalHighlightText } from '../../renderer/globalHighlight';
 import AlertDialog from '../dialogs/AlertDialog';
-import { useAppStore } from '../../store';
+import { useAS } from '../../store';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../renderer/editor/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../renderer/editor/editorDateUtil';
@@ -145,7 +145,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   onReadyRef.current = onReady;
   onGoToLineCompleteRef.current = onGoToLineComplete;
   onGoToPositionCompleteRef.current = onGoToPositionComplete;
-  const settings = useAppStore(s => s.settings);
+  const settings = useAS(s => s.settings);
 
   // Stable handle object — its methods read viewRef lazily, so a single instance works for the
   // editor's whole lifetime. Shared by both the imperative ref and the onReady callback.

@@ -56,7 +56,7 @@ import {
   useExpansionCounts,
   setIndexYaml,
   setSelectedLinkItems,
-  useAppStore,
+  useAS,
   type SearchDefinition,
 } from '../../store';
 import { scrollItemIntoView, scrollElementIntoView } from '../../renderer/entryDom';
@@ -88,7 +88,7 @@ interface AttachFolderContentsProps {
  * to the appropriate entry component by type.
  */
 function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder }: AttachFolderContentsProps) {
-  const items = useAppStore(s => s.items);
+  const items = useAS(s => s.items);
   const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
   if (visibleEntries.length === 0) return null;
   const allImages = visibleEntries.filter(e => !e.isDirectory && isImageFile(e.name));
@@ -147,7 +147,7 @@ interface BrowseViewProps {
  * menu is hidden and inline IndexInsertBars replace the create buttons.
  */
 function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastExportFolder, onRefreshDirectory, onSetError, onSaveSettings }: BrowseViewProps) {
-  const rootPath = useAppStore(s => s.rootPath);
+  const rootPath = useAS(s => s.rootPath);
   const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState<boolean>(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
@@ -165,13 +165,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null);
   const [showCutOrphanAttachConfirm, setShowCutOrphanAttachConfirm] = useState<boolean>(false);
 
-  const hasIndexFile = useAppStore(s => s.hasIndexFile);
-  const expandedEditor = useAppStore(s => s.expandedEditor);
-  const imageSizeTransitioning = useAppStore(s => s.imageSizeTransitioning);
+  const hasIndexFile = useAS(s => s.hasIndexFile);
+  const expandedEditor = useAS(s => s.expandedEditor);
+  const imageSizeTransitioning = useAS(s => s.imageSizeTransitioning);
 
-  const items = useAppStore(s => s.items);
-  const currentView = useAppStore(s => s.currentView);
-  const currentPath = useAppStore(s => s.currentPath);
+  const items = useAS(s => s.items);
+  const currentView = useAS(s => s.currentView);
+  const currentPath = useAS(s => s.currentPath);
 
   // Detect whether the current folder uses index ordering, and load the yaml into the store
   useEffect(() => {
@@ -191,11 +191,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     if (!currentPath) return;
     void api.reconcileIndexedFiles(currentPath, false);
   }, [currentPath]);
-  const pendingScrollToFile = useAppStore(s => s.pendingScrollToFile);
-  const pendingScrollToHeadingSlug = useAppStore(s => s.pendingScrollToHeadingSlug);
-  const pendingEditFile = useAppStore(s => s.pendingEditFile);
-  const pendingEditView = useAppStore(s => s.pendingEditView);
-  const settings = useAppStore(s => s.settings);
+  const pendingScrollToFile = useAS(s => s.pendingScrollToFile);
+  const pendingScrollToHeadingSlug = useAS(s => s.pendingScrollToHeadingSlug);
+  const pendingEditFile = useAS(s => s.pendingEditFile);
+  const pendingEditView = useAS(s => s.pendingEditView);
+  const settings = useAS(s => s.settings);
   const expansionCounts = useExpansionCounts();
 
   const showExpandAll = expansionCounts.totalCount > 0 && expansionCounts.expandedCount < expansionCounts.totalCount;
