@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
 import { hasAnyCutItems, useAS, deleteItems } from '../../store';
 import { buildEntryHeaderId } from '../../renderer/entryDom';
+import { logger } from '../../shared/logUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 import {
   makeEntryDragStartHandler,
@@ -69,26 +70,34 @@ function FolderEntry(props: FolderEntryProps) {
 
   const handleDragLeave = () => setIsDragOver(false);
 
-  const handleDrop = async (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
 
+    // Read the drag payload synchronously — the DataTransfer is only valid
+    // during the event dispatch, before any await.
     const payload = parseDragPayload(e.dataTransfer.getData(ENTRY_DND_MIME));
     if (!payload || !canDropInto(payload, entry.path)) return;
 
-    const result = await moveEntryIntoFolder(payload, entry.path);
-    if (!result.success) return;
+    void (async () => {
+      try {
+        const result = await moveEntryIntoFolder(payload, entry.path);
+        if (!result.success) return;
 
-    // Drop the moved item from the store so the browse view stops showing it.
-    deleteItems([payload.path]);
+        // Drop the moved item from the store so the browse view stops showing it.
+        deleteItems([payload.path]);
 
-    // Refresh the source folder in the tree if it is expanded (this folder is collapsed
-    // in the tree by definition while being browsed, so only the source can need a reload).
-    await reloadExpandedTreeFolder(result.sourceFolder);
+        // Refresh the source folder in the tree if it is expanded (this folder is collapsed
+        // in the tree by definition while being browsed, so only the source can need a reload).
+        await reloadExpandedTreeFolder(result.sourceFolder);
 
-    // Refresh the browse view in case the moved item came from the folder being viewed.
-    onRefreshDirectory?.();
+        // Refresh the browse view in case the moved item came from the folder being viewed.
+        onRefreshDirectory?.();
+      } catch (err) {
+        logger.error('Failed to move item into folder:', err);
+      }
+    })();
   };
 
   return (
@@ -98,7 +107,7 @@ function FolderEntry(props: FolderEntryProps) {
         onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onDrop={(e) => void handleDrop(e)}
+        onDrop={handleDrop}
         className={clsx(
           'w-full flex items-center gap-3 px-2 py-0 transition-colors text-left cursor-pointer',
           isDragOver

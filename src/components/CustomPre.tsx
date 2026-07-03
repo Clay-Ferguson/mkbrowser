@@ -25,17 +25,19 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
   const isMermaid = languageMatch?.[1] === 'mermaid';
 
   // Extracts plain text from the child <code> element and writes it to the clipboard.
-  const handleCopy = async () => {
-    const codeContent = (codeElement?.props as { children?: React.ReactNode })?.children;
-    const textToCopy = nodeToString(codeContent).replace(/\n$/, '');
+  const handleCopy = () => {
+    void (async () => {
+      const codeContent = (codeElement?.props as { children?: React.ReactNode })?.children;
+      const textToCopy = nodeToString(codeContent).replace(/\n$/, '');
 
-    try {
-      await navigator.clipboard.writeText(textToCopy);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      logger.error('Failed to copy:', err);
-    }
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        logger.error('Failed to copy:', err);
+      }
+    })();
   };
 
   const copyButton = (

@@ -3,6 +3,7 @@ import { api } from '../../../renderer/api';
 import { useAS, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing, upsertItem } from '../../../store';
 import { applyGlobalHighlight, globalHighlightText } from '../../../renderer/globalHighlight';
 import { removeTOC } from '../../../shared/tocUtil';
+import { logger } from '../../../shared/logUtil';
 import type { EditModeState } from './types';
 
 interface UseEditModeOptions {
@@ -80,6 +81,11 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     }
   }, [path]);
 
+  // Stays async because the "Ask AI" button awaits it before continuing
+  // (MarkdownEntry.tsx). The catch keeps a failed IPC write from becoming an
+  // unhandled rejection at the fire-and-forget bindings (Ctrl+S, Save button,
+  // onBlur); callers that await it observe a resolved (no-op) result on failure,
+  // matching the pre-existing behavior when `result.ok` is false.
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
@@ -91,6 +97,8 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
           requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
         }
       }
+    } catch (err) {
+      logger.error('Failed to save file:', err);
     } finally {
       setSaving(false);
     }

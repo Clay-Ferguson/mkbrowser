@@ -80,7 +80,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
   const currentImage = allImages.find(img => img.path === fullscreenImagePath) || entry;
   const imageUrl = `local-file://${fullscreenImagePath}`;
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = () => {
     setShowDeleteConfirm(false);
     const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
     const pathToDelete = fullscreenImagePath;
@@ -97,23 +97,25 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
       }
     }
 
-    try {
-      const success = await api.deleteFile(pathToDelete);
-      if (success) {
-        // Remove the deleted item from the store so it no longer appears
-        // as selected or referenced in memory
-        deleteItems([pathToDelete]);
-        if (nextImagePath) {
-          setFullscreenImagePath(nextImagePath);
-        } else {
-          // No more images, close fullscreen
-          onClose();
+    void (async () => {
+      try {
+        const success = await api.deleteFile(pathToDelete);
+        if (success) {
+          // Remove the deleted item from the store so it no longer appears
+          // as selected or referenced in memory
+          deleteItems([pathToDelete]);
+          if (nextImagePath) {
+            setFullscreenImagePath(nextImagePath);
+          } else {
+            // No more images, close fullscreen
+            onClose();
+          }
+          onDelete();
         }
-        onDelete();
+      } catch (error) {
+        logger.error('[FullscreenImageViewer] Failed to delete image:', error);
       }
-    } catch (error) {
-      logger.error('[FullscreenImageViewer] Failed to delete image:', error);
-    }
+    })();
   };
 
   return (

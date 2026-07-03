@@ -185,25 +185,29 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     runner: runWithStreamingDialog,
   });
 
-  const handleReply = async () => {
+  const handleReply = () => {
     setIsReplyLoading(true);
-    try {
-      const parentFolder = getParentPath(entry.path);
-      const result = await api.replyToAi(parentFolder, true);
-      if ('error' in result) {
-        logger.error('Reply error:', result.error);
-      } else {
-        if (view === 'thread') {
-          navigateToBrowserPath(result.folderPath, undefined, 'thread');
-          setPendingThreadScrollToBottom();
+    void (async () => {
+      try {
+        const parentFolder = getParentPath(entry.path);
+        const result = await api.replyToAi(parentFolder, true);
+        if ('error' in result) {
+          logger.error('Reply error:', result.error);
         } else {
-          navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
+          if (view === 'thread') {
+            navigateToBrowserPath(result.folderPath, undefined, 'thread');
+            setPendingThreadScrollToBottom();
+          } else {
+            navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
+          }
+          setPendingEditFile(result.filePath, view);
         }
-        setPendingEditFile(result.filePath, view);
+      } catch (err) {
+        logger.error('Reply error:', err);
+      } finally {
+        setIsReplyLoading(false);
       }
-    } finally {
-      setIsReplyLoading(false);
-    }
+    })();
   };
 
   const headerRight = edit.isEditing ? (
@@ -219,7 +223,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       showSaveCancel={!item?.reviewing}
       saving={edit.saving}
       onCancel={edit.handleCancel}
-      onSave={edit.handleSave}
+      onSave={() => void edit.handleSave()}
       leftExtras={
         <>
           <button
@@ -258,9 +262,12 @@ function MarkdownEntry(props: MarkdownEntryProps) {
           <button
             type="button"
             data-testid="ask-ai-button"
-            onClick={async () => {
-              await edit.handleSave();
-              await handleAskAi(edit.editContent);
+            /* todo-0: this is ugly. define this as a function above */
+            onClick={() => {
+              void (async () => {
+                await edit.handleSave();
+                await handleAskAi(edit.editContent);
+              })();
             }}
             disabled={edit.saving || isAiLoading}
             className={`${BUTTON_CLASS_SM_PURPLE} flex-shrink-0`}
@@ -381,7 +388,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                     onGoToPositionComplete={() => setPendingCursorPos(null)}
                     onEscape={handleEscape}
                     onForceCancel={edit.handleCancel}
-                    onSave={edit.handleSave}
+                    onSave={() => void edit.handleSave()}
                     onSelectionChange={setHasSelection}
                     showPropsInEditor={showPropsInEditor}
                     fileName={entry.name}
@@ -404,16 +411,21 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                 <PropsDisplay
                   tags={item.tags ?? []}
                   props={item.props}
-                  onTagClick={async () => {
-                    await edit.handleEditClick();
-                    setTagsVisible(true);
+                  onTagClick={() => {
+                    void (async () => {
+                      await edit.handleEditClick();
+                      setTagsVisible(true);
+                    })();
                   }}
-                  onPropClick={async (key) => {
-                    const propPrefix = `${key}:`;
-                    const line = (content?.split('\n') ?? []).findIndex(l => l.startsWith(propPrefix)) + 1;
-                    await edit.handleEditClick(line > 0 ? line : undefined);
-                    setShowPropsInEditor(true);
-                    onSaveSettings();
+                  onPropClick={(key) => {
+                    /* todo-0: this is ugly. define this as a function above */
+                    void (async () => {
+                      const propPrefix = `${key}:`;
+                      const line = (content?.split('\n') ?? []).findIndex(l => l.startsWith(propPrefix)) + 1;
+                      await edit.handleEditClick(line > 0 ? line : undefined);
+                      setShowPropsInEditor(true);
+                      onSaveSettings();
+                    })();
                   }}
                 />
               )}

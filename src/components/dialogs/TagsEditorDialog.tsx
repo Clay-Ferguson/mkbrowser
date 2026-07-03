@@ -177,19 +177,21 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
 
   // --- Save ---
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(() => {
     const error = validate(categories);
     if (error) { setSaveError(error); return; }
     setSaving(true);
     setSaveError(null);
-    try {
-      const yaml = serializeTagsToYaml(toTagCategories(categories));
-      await api.saveTags(yaml);
-      onClose();
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to save.');
-      setSaving(false);
-    }
+    void (async () => {
+      try {
+        const yaml = serializeTagsToYaml(toTagCategories(categories));
+        await api.saveTags(yaml);
+        onClose();
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save.');
+        setSaving(false);
+      }
+    })();
   }, [categories, onClose]);
 
   const inputCls = DLG_INPUT_CLASS_ALT_COMPACT;

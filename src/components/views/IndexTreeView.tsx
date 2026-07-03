@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
+import { logger } from '../../shared/logUtil';
 import { getIconForFileExtension, isImageFile } from '../../shared/fileTypes';
 import type { FileIconType } from '../../shared/fileTypes';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
@@ -323,101 +324,129 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    * and reconciled with .INDEX.yaml, so the UI never desyncs from disk. The cut
    * flag is cleared only when every item moved successfully.
    */
-  const handlePasteIntoFolder = useCallback(async (node: FileNode, e: React.MouseEvent) => {
+  // Fire-and-forget UI handler: sync signature so the click's synchronous work
+  // runs before the event is recycled, with the async body wrapped in a
+  // try/catch that reports failures instead of leaking an unhandled rejection.
+  const handlePasteIntoFolder = useCallback((node: FileNode, e: React.MouseEvent) => {
     e.stopPropagation();
     const cutItems = getCutItems();
     if (cutItems.length === 0) return;
 
-    const result = await pasteCutItems(
-      cutItems,
-      node.path,
-      api.pathExists,
-      api.renameFile
-    );
+    void (async () => {
+      try {
+        const result = await pasteCutItems(
+          cutItems,
+          node.path,
+          api.pathExists,
+          api.renameFile
+        );
 
-    // The move is not atomic: reconcile the store/index with whatever actually
-    // moved on disk (movedPaths), even on partial failure, so the UI never
-    // desyncs. Items that failed to move stay cut at their source.
-    const sourceFolder = getParentPath(cutItems[0].path);
-    if (result.movedPaths.length > 0) {
-      deleteItems(result.movedPaths);
-      await Promise.all([
-        api.reconcileIndexedFiles(sourceFolder, false),
-        api.reconcileIndexedFiles(node.path, false),
-      ]);
+        // The move is not atomic: reconcile the store/index with whatever
+        // actually moved on disk (movedPaths), even on partial failure, so the
+        // UI never desyncs. Items that failed to move stay cut at their source.
+        const sourceFolder = getParentPath(cutItems[0].path);
+        if (result.movedPaths.length > 0) {
+          deleteItems(result.movedPaths);
+          await Promise.all([
+            api.reconcileIndexedFiles(sourceFolder, false),
+            api.reconcileIndexedFiles(node.path, false),
+          ]);
 
-      // If the browse view is currently showing this folder, refresh it
-      if (node.path === currentPath) {
-        onRefreshDirectory?.();
+          // If the browse view is currently showing this folder, refresh it
+          if (node.path === currentPath) {
+            onRefreshDirectory?.();
+          }
+
+          // Refresh both the destination and source folders if they are expanded.
+          await reloadExpandedTreeFolder(node.path);
+          await reloadExpandedTreeFolder(sourceFolder);
+        }
+
+        if (result.success) {
+          clearAllCutItems();
+        }
+      } catch (err) {
+        logger.error('Failed to paste items into folder:', err);
       }
-
-      // Refresh both the destination and source folders if they are expanded.
-      await reloadExpandedTreeFolder(node.path);
-      await reloadExpandedTreeFolder(sourceFolder);
-    }
-
-    if (result.success) {
-      clearAllCutItems();
-    }
+    })();
   }, [currentPath, onRefreshDirectory]);
 
-  const handleCreateFolder = useCallback(async (folderName: string) => {
+  const handleCreateFolder = useCallback((folderName: string) => {
     const parentPath = createFolderParent;
     if (!parentPath) return;
-    const folderPath = joinPath(parentPath, folderName);
-    const result = await api.createFolder(folderPath);
-    setCreateFolderParent(null);
-    if (!result.success) return;
 
-    await api.reconcileIndexedFiles(parentPath, false);
+    void (async () => {
+      try {
+        const folderPath = joinPath(parentPath, folderName);
+        const result = await api.createFolder(folderPath);
+        setCreateFolderParent(null);
+        if (!result.success) return;
 
-    // If the browse view is currently showing this folder, refresh it.
-    if (parentPath === currentPath) {
-      onRefreshDirectory?.();
-    }
+        await api.reconcileIndexedFiles(parentPath, false);
 
-    // Refresh the parent folder in the tree if it is expanded.
-    await reloadExpandedTreeFolder(parentPath);
+        // If the browse view is currently showing this folder, refresh it.
+        if (parentPath === currentPath) {
+          onRefreshDirectory?.();
+        }
+
+        // Refresh the parent folder in the tree if it is expanded.
+        await reloadExpandedTreeFolder(parentPath);
+      } catch (err) {
+        logger.error('Failed to create folder:', err);
+      }
+    })();
   }, [createFolderParent, currentPath, onRefreshDirectory]);
 
-  const handleRename = useCallback(async (newName: string) => {
+  const handleRename = useCallback((newName: string) => {
     const target = renameTarget;
     setRenameTarget(null);
     if (!target) return;
 
-    const parentPath = getParentPath(target.path);
-    const newPath = joinPath(parentPath, newName);
-    const success = await api.renameFile(target.path, newPath);
-    if (!success) return;
+    void (async () => {
+      try {
+        const parentPath = getParentPath(target.path);
+        const newPath = joinPath(parentPath, newName);
+        const success = await api.renameFile(target.path, newPath);
+        if (!success) return;
 
-    // If the browse view is showing the renamed item or its parent, refresh it.
-    if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
-      onRefreshDirectory?.();
-    }
+        // If the browse view is showing the renamed item or its parent, refresh it.
+        if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
+          onRefreshDirectory?.();
+        }
 
-    // Refresh the parent folder in the tree if it is expanded.
-    await reloadExpandedTreeFolder(parentPath);
+        // Refresh the parent folder in the tree if it is expanded.
+        await reloadExpandedTreeFolder(parentPath);
+      } catch (err) {
+        logger.error('Failed to rename item:', err);
+      }
+    })();
   }, [renameTarget, currentPath, onRefreshDirectory]);
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = useCallback(() => {
     const target = deleteTarget;
     setDeleteTarget(null);
     if (!target) return;
 
-    const parentPath = getParentPath(target.path);
-    const success = await api.deleteFile(target.path);
-    if (!success) return;
+    void (async () => {
+      try {
+        const parentPath = getParentPath(target.path);
+        const success = await api.deleteFile(target.path);
+        if (!success) return;
 
-    deleteItems([target.path]);
-    await api.reconcileIndexedFiles(parentPath, false);
+        deleteItems([target.path]);
+        await api.reconcileIndexedFiles(parentPath, false);
 
-    // If the browse view is showing the deleted item or its parent, refresh it.
-    if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
-      onRefreshDirectory?.();
-    }
+        // If the browse view is showing the deleted item or its parent, refresh it.
+        if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
+          onRefreshDirectory?.();
+        }
 
-    // Refresh the parent folder in the tree if it is expanded.
-    await reloadExpandedTreeFolder(parentPath);
+        // Refresh the parent folder in the tree if it is expanded.
+        await reloadExpandedTreeFolder(parentPath);
+      } catch (err) {
+        logger.error('Failed to delete item:', err);
+      }
+    })();
   }, [deleteTarget, currentPath, onRefreshDirectory]);
 
   /**
@@ -426,28 +455,36 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    * store, and refreshes both the source and destination folders in the tree and
    * (if visible) in the browse view.
    */
-  const handleDropOnFolder = useCallback(async (node: FileNode, e: React.DragEvent) => {
+  const handleDropOnFolder = useCallback((node: FileNode, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOverPath(null);
 
+    // Read the drag payload synchronously — the DataTransfer is only valid
+    // during the event dispatch, before any await.
     const payload = parseDragPayload(e.dataTransfer.getData(ENTRY_DND_MIME));
     if (!payload || !node.isDirectory) return;
     if (!canDropInto(payload, node.path)) return;
 
-    const result = await moveEntryIntoFolder(payload, node.path);
-    if (!result.success) return;
+    void (async () => {
+      try {
+        const result = await moveEntryIntoFolder(payload, node.path);
+        if (!result.success) return;
 
-    // Drop the moved item from the store so the browse view stops showing it.
-    deleteItems([payload.path]);
+        // Drop the moved item from the store so the browse view stops showing it.
+        deleteItems([payload.path]);
 
-    // Refresh the browse view if it is showing either affected folder.
-    if (node.path === currentPath || result.sourceFolder === currentPath) {
-      onRefreshDirectory?.();
-    }
+        // Refresh the browse view if it is showing either affected folder.
+        if (node.path === currentPath || result.sourceFolder === currentPath) {
+          onRefreshDirectory?.();
+        }
 
-    await reloadExpandedTreeFolder(node.path);
-    await reloadExpandedTreeFolder(result.sourceFolder);
+        await reloadExpandedTreeFolder(node.path);
+        await reloadExpandedTreeFolder(result.sourceFolder);
+      } catch (err) {
+        logger.error('Failed to move item into folder:', err);
+      }
+    })();
   }, [currentPath, onRefreshDirectory]);
 
   const handleDragOverFolder = useCallback((node: FileNode, e: React.DragEvent) => {
@@ -471,8 +508,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     setIndexTreeWidth(width);
     await api.updateConfig({ settings: getSettings() });
   };
-  const handleNarrowTree = () => saveTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
-  const handleWidenTree = () => saveTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
+  const handleNarrowTree = () => void saveTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
+  const handleWidenTree = () => void saveTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
 
   const handleBookmarkNavigate = (fullPath: string) => {
     const lastName = getFileName(fullPath);
@@ -550,7 +587,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         onNewFolder: () => setCreateFolderParent(node.path),
       } : {}),
       ...(hasCutItems && node.isDirectory ? {
-        onPaste: () => void handlePasteIntoFolder(node, e),
+        onPaste: () => handlePasteIntoFolder(node, e),
       } : {}),
       onCopyPath: () => void navigator.clipboard.writeText(node.path),
       onCopyRelativePath: () => void navigator.clipboard.writeText(computeRelativePath(currentPath, node.path)),
@@ -668,7 +705,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       )}
       {createFolderParent && (
         <CreateFolderDialog
-          onCreate={(folderName) => void handleCreateFolder(folderName)}
+          onCreate={handleCreateFolder}
           onCancel={() => setCreateFolderParent(null)}
         />
       )}
@@ -676,7 +713,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         <RenameDialog
           currentName={renameTarget.name}
           isDirectory={renameTarget.isDirectory}
-          onRename={(newName) => void handleRename(newName)}
+          onRename={handleRename}
           onCancel={() => setRenameTarget(null)}
         />
       )}
@@ -685,7 +722,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           message={deleteTarget.isDirectory
             ? `Delete folder "${deleteTarget.name}" and all of its contents?`
             : `Delete file "${deleteTarget.name}"?`}
-          onConfirm={() => void handleDelete()}
+          onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
         />
       )}
@@ -775,7 +812,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
               {...(node.isDirectory ? {
                 onDragOver: (e: React.DragEvent) => handleDragOverFolder(node, e),
                 onDragLeave: () => setDragOverPath(prev => (prev === node.path ? null : prev)),
-                onDrop: (e: React.DragEvent) => void handleDropOnFolder(node, e),
+                onDrop: (e: React.DragEvent) => handleDropOnFolder(node, e),
               } : {})}
             >
               <span

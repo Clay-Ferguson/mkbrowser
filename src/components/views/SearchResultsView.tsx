@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { api } from '../../renderer/api';
+import { logger } from '../../shared/logUtil';
 import {
   setSearchResults,
   setHighlightItem,
@@ -118,23 +119,28 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     setPendingEditFile(resultPath);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
+  const handleDeleteConfirm = () => {
+    const target = deleteTarget;
+    if (!target) return;
     setDeleting(true);
-    try {
-      const success = await api.deleteFile(deleteTarget.path);
-      if (success) {
-        // Remove the deleted item from the store so it no longer appears
-        // as selected or referenced in memory
-        deleteItems([deleteTarget.path]);
-        // Remove the deleted file from search results
-        const updatedResults = searchResults.filter(r => r.path !== deleteTarget.path);
-        setSearchResults(updatedResults, searchQuery, searchFolder);
+    void (async () => {
+      try {
+        const success = await api.deleteFile(target.path);
+        if (success) {
+          // Remove the deleted item from the store so it no longer appears
+          // as selected or referenced in memory
+          deleteItems([target.path]);
+          // Remove the deleted file from search results
+          const updatedResults = searchResults.filter(r => r.path !== target.path);
+          setSearchResults(updatedResults, searchQuery, searchFolder);
+        }
+      } catch (err) {
+        logger.error('Failed to delete file:', err);
+      } finally {
+        setDeleting(false);
+        setDeleteTarget(null);
       }
-    } finally {
-      setDeleting(false);
-      setDeleteTarget(null);
-    }
+    })();
   };
 
   const handleDeleteCancel = () => {

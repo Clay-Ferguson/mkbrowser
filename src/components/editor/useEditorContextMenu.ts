@@ -81,64 +81,73 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
   }, [viewRef, typoRef]);
 
-  const handleCut = useCallback(async () => {
-    const view = viewRef.current;
-    if (!view) return;
+  // Fire-and-forget menu handlers: sync `() => void` signature with the async
+  // clipboard work (and its error handling) contained inside, so call sites can
+  // pass them directly without a `void` adapter.
+  const handleCut = useCallback(() => {
+    void (async () => {
+      const view = viewRef.current;
+      if (!view) return;
 
-    const { from, to } = view.state.selection.main;
-    if (from !== to) {
-      const selectedText = view.state.sliceDoc(from, to);
-      try {
-        await navigator.clipboard.writeText(selectedText);
-        view.dispatch({
-          changes: { from, to, insert: '' },
-        });
-      } catch (err) {
-        logger.error('Failed to cut to clipboard:', err);
+      const { from, to } = view.state.selection.main;
+      if (from !== to) {
+        const selectedText = view.state.sliceDoc(from, to);
+        try {
+          await navigator.clipboard.writeText(selectedText);
+          view.dispatch({
+            changes: { from, to, insert: '' },
+          });
+        } catch (err) {
+          logger.error('Failed to cut to clipboard:', err);
+        }
       }
-    }
-    closeContextMenu();
-    view.focus();
-  }, [closeContextMenu, viewRef]);
-
-  const handleCopy = useCallback(async () => {
-    const view = viewRef.current;
-    if (!view) return;
-
-    const { from, to } = view.state.selection.main;
-    if (from !== to) {
-      const selectedText = view.state.sliceDoc(from, to);
-      try {
-        await navigator.clipboard.writeText(selectedText);
-      } catch (err) {
-        logger.error('Failed to copy to clipboard:', err);
-      }
-    }
-    closeContextMenu();
-    view.focus();
-  }, [closeContextMenu, viewRef]);
-
-  const handlePaste = useCallback(async () => {
-    const view = viewRef.current;
-    if (!view) return;
-
-    let text: string;
-    try {
-      text = await navigator.clipboard.readText();
-    } catch (err) {
-      logger.error('Failed to read from clipboard:', err);
       closeContextMenu();
       view.focus();
-      return;
-    }
+    })();
+  }, [closeContextMenu, viewRef]);
 
-    const { from, to } = view.state.selection.main;
-    view.dispatch({
-      changes: { from, to, insert: text },
-      selection: { anchor: from + text.length },
-    });
-    closeContextMenu();
-    view.focus();
+  const handleCopy = useCallback(() => {
+    void (async () => {
+      const view = viewRef.current;
+      if (!view) return;
+
+      const { from, to } = view.state.selection.main;
+      if (from !== to) {
+        const selectedText = view.state.sliceDoc(from, to);
+        try {
+          await navigator.clipboard.writeText(selectedText);
+        } catch (err) {
+          logger.error('Failed to copy to clipboard:', err);
+        }
+      }
+      closeContextMenu();
+      view.focus();
+    })();
+  }, [closeContextMenu, viewRef]);
+
+  const handlePaste = useCallback(() => {
+    void (async () => {
+      const view = viewRef.current;
+      if (!view) return;
+
+      let text: string;
+      try {
+        text = await navigator.clipboard.readText();
+      } catch (err) {
+        logger.error('Failed to read from clipboard:', err);
+        closeContextMenu();
+        view.focus();
+        return;
+      }
+
+      const { from, to } = view.state.selection.main;
+      view.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + text.length },
+      });
+      closeContextMenu();
+      view.focus();
+    })();
   }, [closeContextMenu, viewRef]);
 
   const handlePasteLink = useCallback(() => {

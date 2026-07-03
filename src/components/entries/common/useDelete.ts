@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { api } from '../../../renderer/api';
 import type { DeleteState } from './types';
 import { deleteItems } from '../../../store';
+import { logger } from '../../../shared/logUtil';
 
 interface UseDeleteOptions {
   /** Full path of the entry to delete */
@@ -23,20 +24,28 @@ export function useDelete({ path, onDelete }: UseDeleteOptions): DeleteState {
     setShowDeleteConfirm(true);
   }, []);
 
-  const handleDeleteConfirm = useCallback(async () => {
+  // Fire-and-forget: bound directly to a ConfirmDialog's `onConfirm` (a
+  // `() => void` prop) and never awaited, so this uses the sync-signature +
+  // internal try/catch convention. A failed IPC delete is reported rather than
+  // surfacing as an unhandled promise rejection.
+  const handleDeleteConfirm = useCallback(() => {
     setShowDeleteConfirm(false);
     setDeleting(true);
-    try {
-      const success = await api.deleteFile(path);
-      if (success) {
-        // Remove the deleted item from the store so it no longer appears
-        // as selected or referenced in memory
-        deleteItems([path]);
-        onDelete();
+    void (async () => {
+      try {
+        const success = await api.deleteFile(path);
+        if (success) {
+          // Remove the deleted item from the store so it no longer appears
+          // as selected or referenced in memory
+          deleteItems([path]);
+          onDelete();
+        }
+      } catch (err) {
+        logger.error('Failed to delete file:', err);
+      } finally {
+        setDeleting(false);
       }
-    } finally {
-      setDeleting(false);
-    }
+    })();
   }, [path, onDelete]);
 
   const handleDeleteCancel = useCallback(() => {

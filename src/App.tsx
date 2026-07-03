@@ -292,25 +292,37 @@ function App() {
     }
   }, [loadDirectory]);
 
-  const handleSelectFolder = useCallback(async () => {
-    const folder = await api.selectFolder();
-    if (folder) {
-      await api.updateConfig({ browseFolder: folder, curSubFolder: undefined });
-      setRootPath(folder);
-      setCurrentPath(folder);
-    }
+  const handleSelectFolder = useCallback(() => {
+    void (async () => {
+      try {
+        const folder = await api.selectFolder();
+        if (folder) {
+          await api.updateConfig({ browseFolder: folder, curSubFolder: undefined });
+          setRootPath(folder);
+          setCurrentPath(folder);
+        }
+      } catch (err) {
+        setError('Failed to open folder: ' + (err instanceof Error ? err.message : String(err)));
+      }
+    })();
   }, []);
 
-  const handleOpenRecentFolder = useCallback(async (folder: string) => {
-    if (rootPath && isPathInside(rootPath, folder)) {
-      setCurrentPath(folder);
-      setCurrentView('browser');
-    } else {
-      await api.updateConfig({ browseFolder: folder, curSubFolder: undefined });
-      setRootPath(folder);
-      setCurrentPath(folder);
-      setCurrentView('browser');
-    }
+  const handleOpenRecentFolder = useCallback((folder: string) => {
+    void (async () => {
+      try {
+        if (rootPath && isPathInside(rootPath, folder)) {
+          setCurrentPath(folder);
+          setCurrentView('browser');
+        } else {
+          await api.updateConfig({ browseFolder: folder, curSubFolder: undefined });
+          setRootPath(folder);
+          setCurrentPath(folder);
+          setCurrentView('browser');
+        }
+      } catch (err) {
+        setError('Failed to open folder: ' + (err instanceof Error ? err.message : String(err)));
+      }
+    })();
   }, [rootPath]);
 
   const handleQuit = useCallback(() => {
@@ -321,26 +333,33 @@ function App() {
     navigateToBrowserPath(folderPath, resultPath);
   }, []);
 
-  const handleSearchHashtag = useCallback(async (hashtag: string, ctrlKey: boolean) => {
+  const handleSearchHashtag = useCallback((hashtag: string, ctrlKey: boolean) => {
     if (!currentPath) return;
-
-    if (ctrlKey) {
-      const advancedQuery = `$("${hashtag}")`;
-      const results = await api.searchFolder(currentPath, advancedQuery, 'advanced', 'content');
-      setSearchResults(results, advancedQuery, currentPath, 'modified-time', 'desc', '');
-    } else {
-      const results = await api.searchFolder(currentPath, hashtag, 'literal', 'content');
-      setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc', '');
-    }
-    setCurrentView('search-results');
+    void (async () => {
+      try {
+        if (ctrlKey) {
+          const advancedQuery = `$("${hashtag}")`;
+          const results = await api.searchFolder(currentPath, advancedQuery, 'advanced', 'content');
+          setSearchResults(results, advancedQuery, currentPath, 'modified-time', 'desc', '');
+        } else {
+          const results = await api.searchFolder(currentPath, hashtag, 'literal', 'content');
+          setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc', '');
+        }
+        setCurrentView('search-results');
+      } catch (err) {
+        setError('Search failed: ' + (err instanceof Error ? err.message : String(err)));
+      }
+    })();
   }, [currentPath]);
 
-  const handleSaveSettings = useCallback(async () => {
-    try {
-      await api.updateConfig({ settings: getSettings() });
-    } catch {
-      setError('Failed to save settings');
-    }
+  const handleSaveSettings = useCallback(() => {
+    void (async () => {
+      try {
+        await api.updateConfig({ settings: getSettings() });
+      } catch {
+        setError('Failed to save settings');
+      }
+    })();
   }, []);
 
   // Folder selection prompt (first run or no folder configured)

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { api } from '../../renderer/api';
+import { logger } from '../../shared/logUtil';
 import Dialog from './common/Dialog';
 import CheckboxField from './common/CheckboxField';
 import RadioField from './common/RadioField';
@@ -45,11 +46,17 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
   const fileNameHasExtension = /\.[a-zA-Z0-9]+$/.test(fileName.trim());
   const isValid = outputFolder.trim() && fileName.trim() && !fileNameHasExtension;
 
-  const handleSelectFolder = async () => {
-    const folder = await api.selectExportFolder();
-    if (folder) {
-      setOutputFolder(folder);
-    }
+  const handleSelectFolder = () => {
+    void (async () => {
+      try {
+        const folder = await api.selectExportFolder();
+        if (folder) {
+          setOutputFolder(folder);
+        }
+      } catch (err) {
+        logger.error('Failed to select export folder:', err);
+      }
+    })();
   };
 
   const handleExport = () => {

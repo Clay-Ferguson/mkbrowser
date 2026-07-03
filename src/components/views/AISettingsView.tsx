@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { clsx } from 'clsx';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
+import { logger } from '../../shared/logUtil';
 import { saveAiConfig } from '../../renderer/config';
 import { useAS, getAiConfig } from '../../store';
 import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../shared/shared';
@@ -211,43 +212,74 @@ function AISettingsView() {
     setShowDeleteConfirm(false);
   }, [aiModels, selectedAiModel, selectedModelKey, saveAiConfigField, normalizeModelKey]);
 
-  const handleResetUsage = useCallback(async () => {
-    await api.resetAiUsage();
-    const fresh = await api.getAiUsage();
-    setUsageData(fresh);
-    setShowResetConfirm(false);
+  // Fire-and-forget: wired directly to the reset-confirmation dialog's
+  // `onConfirm` (a `() => void` prop). Uses the sync-signature + internal
+  // try/catch convention so a failed IPC reset is surfaced instead of becoming
+  // an unhandled rejection.
+  const handleResetUsage = useCallback(() => {
+    void (async () => {
+      try {
+        await api.resetAiUsage();
+        const fresh = await api.getAiUsage();
+        setUsageData(fresh);
+        setShowResetConfirm(false);
+      } catch (err) {
+        alert('Failed to reset usage: ' + (err instanceof Error ? err.message : String(err)));
+      }
+    })();
   }, []);
 
   /** Starts the local llama.cpp server and updates the displayed status. */
-  const startLlama = async () => {
+  const startLlama = () => {
     setLlamaServerBusy(true);
     setLlamaServerStatus('loading');
-    const result = await api.startLlamaServer();
-    if (result.success) {
-      setLlamaServerStatus('running');
-    } else {
-      setLlamaServerStatus('stopped');
-      alert(result.error ?? 'Failed to start server');
-    }
-    setLlamaServerBusy(false);
+    void (async () => {
+      try {
+        const result = await api.startLlamaServer();
+        if (result.success) {
+          setLlamaServerStatus('running');
+        } else {
+          setLlamaServerStatus('stopped');
+          alert(result.error ?? 'Failed to start server');
+        }
+      } catch (err) {
+        setLlamaServerStatus('stopped');
+        alert('Failed to start server: ' + (err instanceof Error ? err.message : String(err)));
+      } finally {
+        setLlamaServerBusy(false);
+      }
+    })();
   };
 
   /** Stops the local llama.cpp server and updates the displayed status. */
-  const stopLlama = async () => {
+  const stopLlama = () => {
     setLlamaServerBusy(true);
-    const result = await api.stopLlamaServer();
-    if (result.success) {
-      setLlamaServerStatus('stopped');
-    } else {
-      alert(result.error ?? 'Failed to stop server');
-    }
-    setLlamaServerBusy(false);
+    void (async () => {
+      try {
+        const result = await api.stopLlamaServer();
+        if (result.success) {
+          setLlamaServerStatus('stopped');
+        } else {
+          alert(result.error ?? 'Failed to stop server');
+        }
+      } catch (err) {
+        alert('Failed to stop server: ' + (err instanceof Error ? err.message : String(err)));
+      } finally {
+        setLlamaServerBusy(false);
+      }
+    })();
   };
 
   /** Re-pings the llama.cpp health endpoint and refreshes the displayed status. */
-  const refreshLlama = async () => {
-    const status = await api.checkLlamaHealth();
-    setLlamaServerStatus(status);
+  const refreshLlama = () => {
+    void (async () => {
+      try {
+        const status = await api.checkLlamaHealth();
+        setLlamaServerStatus(status);
+      } catch (err) {
+        logger.error('Failed to refresh llama.cpp status:', err);
+      }
+    })();
   };
 
   return (
@@ -356,7 +388,7 @@ function AISettingsView() {
                       <textarea
                         value={agenticAllowedFolders}
                         onChange={(e) => setAgenticAllowedFolders(e.target.value)}
-                        onBlur={() => saveAiConfigField({ agenticAllowedFolders })}
+                        onBlur={() => void saveAiConfigField({ agenticAllowedFolders })}
                         placeholder={"/home/user/projects\n/home/user/documents"}
                         rows={4}
                         className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
@@ -531,7 +563,7 @@ function AISettingsView() {
                           type="text"
                           value={llamacppFolder}
                           onChange={(e) => setLlamacppFolder(e.target.value)}
-                          onBlur={() => saveAiConfigField({ llamacppFolder })}
+                          onBlur={() => void saveAiConfigField({ llamacppFolder })}
                           placeholder="/path/to/llamacpp"
                           className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
                           data-testid="llamacpp-folder-input"

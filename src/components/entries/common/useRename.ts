@@ -65,7 +65,10 @@ export function useRename({
     setItemRenaming(path, false);
   }, [name, path]);
 
-  const handleSave = useCallback(async () => {
+  // Fire-and-forget (`() => void`): bound to the rename input's onBlur and the
+  // Enter key, never awaited, so the async rename + its error handling live
+  // inside and callers can invoke it directly.
+  const handleSave = useCallback(() => {
     // Trim leading/trailing whitespace from the whole name, then also trim
     // the stem separately so spaces before the extension are removed too.
     const full = newName.trim();
@@ -79,30 +82,36 @@ export function useRename({
     }
 
     setSaving(true);
-    try {
-      const dirPath = getParentPath(path);
-      const newPath = joinPath(dirPath, trimmedName);
-      const success = await api.renameFile(path, newPath);
-      if (success) {
-        // Update bookmark if this item was bookmarked
-        if (updateBookmarkPath(path, newPath)) {
-          onSaveSettings();
+    void (async () => {
+      try {
+        const dirPath = getParentPath(path);
+        const newPath = joinPath(dirPath, trimmedName);
+        const success = await api.renameFile(path, newPath);
+        if (success) {
+          // Update bookmark if this item was bookmarked
+          if (updateBookmarkPath(path, newPath)) {
+            onSaveSettings();
+          }
+          // Move the item entry from old path to new path in the store,
+          // preserving selection and other state (prevents phantom selections)
+          renameItem(path, newPath, trimmedName);
+          setHighlightItem(newPath);
+          onRename();
         }
-        // Move the item entry from old path to new path in the store,
-        // preserving selection and other state (prevents phantom selections)
-        renameItem(path, newPath, trimmedName);
-        setHighlightItem(newPath);
-        onRename();
+      } catch (err) {
+        // A failed IPC rename is reported here rather than surfacing as an
+        // unhandled rejection.
+        logger.error('Rename failed:', err);
+      } finally {
+        setSaving(false);
       }
-    } finally {
-      setSaving(false);
-    }
+    })();
   }, [newName, name, path, handleCancel, onRename, onSaveSettings]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSave().catch((err: unknown) => logger.error('Rename failed:', err));
+      handleSave();
     } else if (e.key === 'Escape') {
       e.preventDefault();
       handleCancel();

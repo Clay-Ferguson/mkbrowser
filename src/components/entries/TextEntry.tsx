@@ -81,7 +81,7 @@ function TextEntry(props: TextEntryProps) {
       showSaveCancel={!item?.reviewing}
       saving={edit.saving}
       onCancel={edit.handleCancel}
-      onSave={edit.handleSave}
+      onSave={() => void edit.handleSave()}
     />
   ) : (
     <EntryActionBar
@@ -148,7 +148,7 @@ function TextEntry(props: TextEntryProps) {
                 onGoToLineComplete={() => clearItemGoToLine(entry.path)}
                 onEscape={handleEscape}
                 onForceCancel={edit.handleCancel}
-                onSave={edit.handleSave}
+                onSave={() => void edit.handleSave()}
                 onSelectionChange={setHasSelection}
               />
             )

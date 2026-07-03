@@ -59,8 +59,8 @@ export interface RenameState {
   handleRenameClick: (e?: React.MouseEvent) => void;
   /** Cancel renaming */
   handleCancel: () => void;
-  /** Save the new name */
-  handleSave: () => Promise<void>;
+  /** Save the new name (fire-and-forget; reports errors internally) */
+  handleSave: () => void;
   /** Handle keyboard events in rename input */
   handleKeyDown: (e: React.KeyboardEvent) => void;
 }
@@ -75,8 +75,8 @@ export interface DeleteState {
   showDeleteConfirm: boolean;
   /** Show delete confirmation dialog */
   handleDeleteClick: (e?: React.MouseEvent) => void;
-  /** Confirm and execute delete */
-  handleDeleteConfirm: () => Promise<void>;
+  /** Confirm and execute delete (fire-and-forget; reports errors internally) */
+  handleDeleteConfirm: () => void;
   /** Cancel delete */
   handleDeleteCancel: () => void;
 }

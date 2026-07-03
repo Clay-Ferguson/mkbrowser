@@ -88,20 +88,22 @@ function ImageEntry(props: ImageEntryProps) {
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
   /** Fetches EXIF metadata for the given image and opens the EXIF dialog. */
-  const handleExifClick = async (e: React.MouseEvent, imagePath: string, imageName: string) => {
+  const handleExifClick = (e: React.MouseEvent, imagePath: string, imageName: string) => {
     e.stopPropagation();
     setExifLoading(true);
     setExifFileName(imageName);
     setExifFilePath(imagePath);
-    try {
-      const data = await api.readExif(imagePath);
-      setExifData(data);
-      setShowExifDialog(true);
-    } catch (error) {
-      logger.error('[ImageEntry] Failed to read EXIF data:', error);
-    } finally {
-      setExifLoading(false);
-    }
+    void (async () => {
+      try {
+        const data = await api.readExif(imagePath);
+        setExifData(data);
+        setShowExifDialog(true);
+      } catch (error) {
+        logger.error('[ImageEntry] Failed to read EXIF data:', error);
+      } finally {
+        setExifLoading(false);
+      }
+    })();
   };
 
   // Convert file path to local-file:// URL for the image src

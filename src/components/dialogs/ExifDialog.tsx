@@ -153,27 +153,29 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
   };
 
   // Save handler
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!editData) return;
 
     setSaving(true);
-    try {
-      const ok = await api.writeExif(filePath, editData);
-      if (!ok) {
-        setAlertMessage('Failed to save EXIF data.');
-        setSaving(false);
-        return;
+    void (async () => {
+      try {
+        const ok = await api.writeExif(filePath, editData);
+        if (!ok) {
+          setAlertMessage('Failed to save EXIF data.');
+          setSaving(false);
+          return;
+        }
+        // Reload the EXIF data from the file to show the updated values
+        const freshData = await api.readExif(filePath);
+        setDisplayData(freshData);
+      } catch (err) {
+        logger.error('[ExifDialog] Error saving EXIF data:', err);
+        setAlertMessage('Error saving EXIF data.');
       }
-      // Reload the EXIF data from the file to show the updated values
-      const freshData = await api.readExif(filePath);
-      setDisplayData(freshData);
-    } catch (err) {
-      logger.error('[ExifDialog] Error saving EXIF data:', err);
-      setAlertMessage('Error saving EXIF data.');
-    }
-    setSaving(false);
-    setEditMode(false);
-    setEditData(null);
+      setSaving(false);
+      setEditMode(false);
+      setEditData(null);
+    })();
   };
 
   // Handle textarea change

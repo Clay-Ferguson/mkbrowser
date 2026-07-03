@@ -868,14 +868,20 @@ async function handleCommandLineArgs(): Promise<void> {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', async () => {
-  setupLocalFileProtocol();
-  await initConfig();    // Read config file once — all later access is in-memory
-  setupIpcHandlers();
-  await handleCommandLineArgs();
-  createWindow();
-  // Remove the default Electron menu bar entirely — all menus are now HTML popup menus
-  Menu.setApplicationMenu(null);
+app.on('ready', () => {
+  void (async () => {
+    try {
+      setupLocalFileProtocol();
+      await initConfig();    // Read config file once — all later access is in-memory
+      setupIpcHandlers();
+      await handleCommandLineArgs();
+      createWindow();
+      // Remove the default Electron menu bar entirely — all menus are now HTML popup menus
+      Menu.setApplicationMenu(null);
+    } catch (err) {
+      logger.error('Failed to initialize app on ready:', err);
+    }
+  })();
 });
 
 // Flush any in-flight/queued config write before the process exits, so the
@@ -893,11 +899,17 @@ app.on('before-quit', (event) => {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on('window-all-closed', async () => {
-  await stopCalendarWatcher();
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+app.on('window-all-closed', () => {
+  void (async () => {
+    try {
+      await stopCalendarWatcher();
+    } catch (err) {
+      logger.error('Failed to stop calendar watcher:', err);
+    }
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  })();
 });
 
 app.on('activate', () => {

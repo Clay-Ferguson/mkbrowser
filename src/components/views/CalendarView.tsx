@@ -99,7 +99,7 @@ export default function CalendarView() {
    * the configured calendar items folder, then navigates the browser to it and
    * opens it for editing.
    */
-  const handleCreateCalendarFile = async (fileName: string) => {
+  const handleCreateCalendarFile = (fileName: string) => {
     if (!pendingSlot) return;
     const { content } = pendingSlot;
     setPendingSlot(null);
@@ -111,23 +111,25 @@ export default function CalendarView() {
     }
     const normalizedName = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
     const filePath = joinPath(folder, normalizedName);
-    try {
-      const result = await api.createFile(filePath, content);
-      if (!result.success) {
-        logger.error('Failed to create calendar file:', result.error);
-        return;
+    void (async () => {
+      try {
+        const result = await api.createFile(filePath, content);
+        if (!result.success) {
+          logger.error('Failed to create calendar file:', result.error);
+          return;
+        }
+        setHighlightItem(filePath);
+        navigateToBrowserPath(folder, filePath);
+        setPendingEditFile(filePath, 'browser');
+        // Force BrowseView to re-read the directory so the new file is in entries
+        // before the pending-edit handler fires — otherwise, if currentPath was
+        // already the calendar folder, no reload would happen and the edit
+        // request would silently target a path that isn't rendered.
+        requestDirectoryRefresh();
+      } catch (err) {
+        logger.error('Failed to create calendar file:', err);
       }
-      setHighlightItem(filePath);
-      navigateToBrowserPath(folder, filePath);
-      setPendingEditFile(filePath, 'browser');
-      // Force BrowseView to re-read the directory so the new file is in entries
-      // before the pending-edit handler fires — otherwise, if currentPath was
-      // already the calendar folder, no reload would happen and the edit
-      // request would silently target a path that isn't rendered.
-      requestDirectoryRefresh();
-    } catch (err) {
-      logger.error('Failed to create calendar file:', err);
-    }
+    })();
   };
 
   const handleSelectEvent = (event: CalendarEvent) => {

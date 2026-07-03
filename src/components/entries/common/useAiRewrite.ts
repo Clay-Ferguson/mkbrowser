@@ -28,8 +28,12 @@ interface UseAiRewriteOptions {
 export interface AiRewrite {
   /** Whether a rewrite is currently in flight. */
   isRewriting: boolean;
-  /** Kick off a rewrite of the selection (if any) or the whole document. */
-  aiRewrite: () => Promise<void>;
+  /**
+   * Kick off a rewrite of the selection (if any) or the whole document.
+   * Fire-and-forget (`() => void`): the async work and error handling run
+   * internally.
+   */
+  aiRewrite: () => void;
 }
 
 /**
@@ -62,24 +66,29 @@ export function useAiRewrite({
       }
     });
 
-  const aiRewrite = async () => {
+  const aiRewrite = () => {
     const selection = editorRef.current?.getSelection();
     setIsRewriting(true);
-    try {
-      await run(async (defer) => {
-        const result = selection
-          ? await api.rewriteContentSelection(editContent, selection.from, selection.to, path, hasIndexFile)
-          : await api.rewriteContent(editContent, path, hasIndexFile);
-        if ('error' in result) {
-          logger.error('Rewrite failed:', result.error);
-          onError(result.error);
-        } else {
-          defer(() => setItemReviewing(path, true, result.rewrittenContent));
-        }
-      });
-    } finally {
-      setIsRewriting(false);
-    }
+    void (async () => {
+      try {
+        await run(async (defer) => {
+          const result = selection
+            ? await api.rewriteContentSelection(editContent, selection.from, selection.to, path, hasIndexFile)
+            : await api.rewriteContent(editContent, path, hasIndexFile);
+          if ('error' in result) {
+            logger.error('Rewrite failed:', result.error);
+            onError(result.error);
+          } else {
+            defer(() => setItemReviewing(path, true, result.rewrittenContent));
+          }
+        });
+      } catch (err) {
+        logger.error('Rewrite failed:', err);
+        onError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setIsRewriting(false);
+      }
+    })();
   };
 
   return { isRewriting, aiRewrite };

@@ -151,6 +151,21 @@ module.exports = {
       rules: {
         "@typescript-eslint/no-floating-promises": "error",
 
+        // Disallow passing an async function (Promise-returning) where a
+        // void-returning callback/prop is expected. Without this, an
+        // `async () => Promise<void>` handler can be wired to a `() => void`
+        // prop (onClick, ConfirmDialog onConfirm, a native-menu listener, …)
+        // and a rejection from an awaited IPC call becomes an unhandled
+        // rejection in devtools instead of surfacing through the app's error
+        // dialogs. `checksVoidReturn` is the part that catches those handoffs;
+        // the other checks are left off so ordinary `if (promise)` style
+        // misuse (rare here) doesn't add noise. Requires type-checked linting,
+        // hence its placement in this src/**-scoped override.
+        "@typescript-eslint/no-misused-promises": [
+          "error",
+          { checksVoidReturn: true, checksConditionals: false, checksSpreads: false },
+        ],
+
         // React Hooks rules are scoped to src/** so they don't misfire on
         // Playwright fixture callbacks (the `use` param) in e2e/ and fixtures/.
         //

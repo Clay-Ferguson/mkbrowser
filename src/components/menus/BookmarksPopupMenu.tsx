@@ -1,6 +1,7 @@
 import { useMemo, useState, type RefObject } from 'react';
 import { FolderIcon, DocumentIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
+import { logger } from '../../shared/logUtil';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import BookmarkDialog from '../dialogs/BookmarkDialog';
@@ -59,36 +60,58 @@ export default function BookmarksPopupMenu({
     await api.updateConfig({ settings: getSettings() });
   };
 
-  /** Removes a bookmark from the store and persists the change. */
-  const handleDelete = async (fullPath: string) => {
+  /**
+   * Removes a bookmark from the store and persists the change. Fire-and-forget
+   * (`() => void`) so it can be bound directly to onClick; the persist error is
+   * reported here rather than leaking an unhandled rejection.
+   */
+  const handleDelete = (fullPath: string) => {
     removeBookmark(fullPath);
-    await persistBookmarks();
+    void (async () => {
+      try {
+        await persistBookmarks();
+      } catch (err) {
+        logger.error('Failed to delete bookmark:', err);
+      }
+    })();
   };
 
   /** Saves a renamed bookmark label and closes the edit dialog. */
-  const handleEditSave = async (name: string) => {
+  const handleEditSave = (name: string) => {
     if (!editingBookmark) return;
     updateBookmarkName(editingBookmark.path, name);
-    await persistBookmarks();
-    setEditingBookmark(null);
+    void (async () => {
+      try {
+        await persistBookmarks();
+        setEditingBookmark(null);
+      } catch (err) {
+        logger.error('Failed to save bookmark name:', err);
+      }
+    })();
   };
 
   /**
    * Navigates to the bookmarked path. If the path no longer exists on disk,
    * the bookmark is automatically removed and an alert is shown instead.
    */
-  const handleClick = async (fullPath: string) => {
-    const exists = await api.pathExists(fullPath);
-    if (!exists) {
-      if (isBookmarked(fullPath)) {
-        toggleBookmark(fullPath);
-        await api.updateConfig({ settings: getSettings() });
+  const handleClick = (fullPath: string) => {
+    void (async () => {
+      try {
+        const exists = await api.pathExists(fullPath);
+        if (!exists) {
+          if (isBookmarked(fullPath)) {
+            toggleBookmark(fullPath);
+            await api.updateConfig({ settings: getSettings() });
+          }
+          setMissingPath(fullPath);
+          return;
+        }
+        onNavigate(fullPath);
+        onClose();
+      } catch (err) {
+        logger.error('Failed to open bookmark:', err);
       }
-      setMissingPath(fullPath);
-      return;
-    }
-    onNavigate(fullPath);
-    onClose();
+    })();
   };
 
   /** Heuristic: treats a path as a folder when its filename has no extension. */
@@ -116,7 +139,7 @@ export default function BookmarksPopupMenu({
                 <button
                   type="button"
                   className={MENU_ROW_LABEL}
-                  onClick={() => void handleClick(fullPath)}
+                  onClick={() => handleClick(fullPath)}
                   data-testid={`bookmark-item-${name}`}
                 >
                   <Icon className={`${MENU_ROW_ICON} ${iconColorClass}`} />
@@ -136,7 +159,7 @@ export default function BookmarksPopupMenu({
                     type="button"
                     className={`${MENU_ICON_BTN} hover:text-red-400`}
                     title="Delete bookmark"
-                    onClick={(e) => { e.stopPropagation(); void handleDelete(fullPath); }}
+                    onClick={(e) => { e.stopPropagation(); handleDelete(fullPath); }}
                     data-testid={`bookmark-delete-button-${name}`}
                   >
                     <TrashIcon className={MENU_ACTION_ICON} />
