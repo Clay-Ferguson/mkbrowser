@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { setAiConfig, useAS } from '../../../store';
 
 export interface AiConfigState {
@@ -34,9 +33,9 @@ export interface UseAiConfigResult extends AiConfigState {
 export function useAiConfig(): UseAiConfigResult {
   const { aiEnabled, aiRewriteMode, aiRewritePrompt, tagsPanelVisible } = useAS(s => s.aiConfig);
 
-  const setTagsVisible = useCallback((visible: boolean) => {
+  const setTagsVisible = (visible: boolean) => {
     setAiConfig({ tagsPanelVisible: visible });
-  }, []);
+  };
 
   return {
     aiEnabled,

@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { showTab, hideTab, setCurrentView, useAS, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, setSearchResults, type AppView } from '../store';
@@ -56,7 +56,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
   const [showSystemMenu, setShowSystemMenu] = useState(false);
 
   // Navigate to the parent directory and highlight the folder we came from.
-  const navigateUp = useCallback(() => {
+  const navigateUp = () => {
     if (!currentPath || currentPath === rootPath) return;
     const parent = getParentPath(currentPath);
     if (isPathInside(rootPath, parent)) {
@@ -64,7 +64,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
       setHighlightItem(currentPath);
       setPendingScrollToFile(currentPath);
     }
-  }, [currentPath, rootPath]);
+  };
 
   const visibleTabs = useAS(s => s.visibleTabs);
 

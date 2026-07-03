@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { AI_PROVIDERS } from '../../shared/shared';
 import type { AIModelConfig, AIProvider } from '../../shared/shared';
 import Dialog from './common/Dialog';
@@ -51,7 +51,7 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
     inputPer1M !== null &&
     outputPer1M !== null;
 
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     if (isReadonly) return;
     const trimmedName = name.trim();
     const trimmedModel = model.trim();
@@ -71,12 +71,12 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
       vision: initialModel?.vision ?? false,
       readonly: false,
     });
-  }, [isReadonly, name, provider, model, inputPer1MText, outputPer1MText, initialModel, onSave]);
+  };
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleSave();
-  }, [handleSave]);
+  };
 
   const title = initialModel ? 'Edit AI Model' : 'Create AI Model';
 

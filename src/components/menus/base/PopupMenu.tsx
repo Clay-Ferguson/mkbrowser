@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect, useEffect, useState, useCallback, type ReactNode, type RefObject, type ComponentType } from 'react';
+import { useRef, useLayoutEffect, useEffect, useState, type ReactNode, type RefObject, type ComponentType } from 'react';
 import { clsx } from 'clsx';
 import { CheckIcon } from '@heroicons/react/24/solid';
 import { MENU_CONTAINER, MENU_ITEM_BASE, MENU_ITEM_ENABLED, MENU_ITEM_DISABLED, MENU_DIVIDER } from '../../../renderer/styles';
@@ -40,58 +40,6 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
     onCloseRef.current = onClose;
   });
 
-  // Calculate position relative to anchor or mouse position, adjusting for viewport edges
-  const updatePosition = useCallback(() => {
-    const menu = menuRef.current;
-    if (!menu) return;
-
-    const menuRect = menu.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    let top: number;
-    let left: number;
-
-    if (mousePosition) {
-      top = mousePosition.y;
-      left = mousePosition.x;
-    } else {
-      const anchor = anchorRef?.current;
-      if (!anchor) return;
-      const anchorRect = anchor.getBoundingClientRect();
-      top = anchorRect.bottom + ANCHOR_GAP;
-      left = anchorRect.left;
-
-      // If menu overflows right edge, align menu's right edge with anchor's right edge
-      if (left + menuRect.width > viewportWidth - VIEWPORT_MARGIN) {
-        left = anchorRect.right - menuRect.width;
-      }
-    }
-
-    // Clamp right edge
-    if (left + menuRect.width > viewportWidth - VIEWPORT_MARGIN) {
-      left = viewportWidth - menuRect.width - VIEWPORT_MARGIN;
-    }
-
-    // If still overflowing left, clamp to left edge
-    if (left < VIEWPORT_MARGIN) {
-      left = VIEWPORT_MARGIN;
-    }
-
-    // If menu overflows bottom, flip above the cursor/anchor
-    if (top + menuRect.height > viewportHeight - VIEWPORT_MARGIN) {
-      const flipFrom = mousePosition ? mousePosition.y : (anchorRef?.current?.getBoundingClientRect().top ?? top);
-      top = flipFrom - menuRect.height - ANCHOR_GAP;
-    }
-
-    // If flipped above and still overflowing top, clamp to top edge
-    if (top < VIEWPORT_MARGIN) {
-      top = VIEWPORT_MARGIN;
-    }
-
-    setPosition({ top, left });
-  }, [anchorRef, mousePosition]);
-
   // Promote the menu into the browser's top layer via the Popover API, then
   // position it. Top-layer rendering sits above all page content regardless of
   // z-index/overflow/transform — the same benefit Dialog.tsx gets from
@@ -107,6 +55,58 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   // anchored instead of detaching/overflowing. Scroll uses capture to also catch
   // scrolling inside nested scrollable containers.
   useLayoutEffect(() => {
+    // Calculate position relative to anchor or mouse position, adjusting for viewport edges
+    const updatePosition = () => {
+      const menu = menuRef.current;
+      if (!menu) return;
+
+      const menuRect = menu.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      let top: number;
+      let left: number;
+
+      if (mousePosition) {
+        top = mousePosition.y;
+        left = mousePosition.x;
+      } else {
+        const anchor = anchorRef?.current;
+        if (!anchor) return;
+        const anchorRect = anchor.getBoundingClientRect();
+        top = anchorRect.bottom + ANCHOR_GAP;
+        left = anchorRect.left;
+
+        // If menu overflows right edge, align menu's right edge with anchor's right edge
+        if (left + menuRect.width > viewportWidth - VIEWPORT_MARGIN) {
+          left = anchorRect.right - menuRect.width;
+        }
+      }
+
+      // Clamp right edge
+      if (left + menuRect.width > viewportWidth - VIEWPORT_MARGIN) {
+        left = viewportWidth - menuRect.width - VIEWPORT_MARGIN;
+      }
+
+      // If still overflowing left, clamp to left edge
+      if (left < VIEWPORT_MARGIN) {
+        left = VIEWPORT_MARGIN;
+      }
+
+      // If menu overflows bottom, flip above the cursor/anchor
+      if (top + menuRect.height > viewportHeight - VIEWPORT_MARGIN) {
+        const flipFrom = mousePosition ? mousePosition.y : (anchorRef?.current?.getBoundingClientRect().top ?? top);
+        top = flipFrom - menuRect.height - ANCHOR_GAP;
+      }
+
+      // If flipped above and still overflowing top, clamp to top edge
+      if (top < VIEWPORT_MARGIN) {
+        top = VIEWPORT_MARGIN;
+      }
+
+      setPosition({ top, left });
+    };
+
     const menu = menuRef.current;
     if (menu && !menu.matches(':popover-open')) {
       try {
@@ -122,7 +122,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
     };
-  }, [updatePosition]);
+  }, [anchorRef, mousePosition]);
 
   // Click-outside and Escape dismiss
   useEffect(() => {

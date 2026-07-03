@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { EditorView } from '@codemirror/view';
 import Typo from 'typo-js';
 import { logger } from '../../shared/logUtil';
@@ -42,13 +42,13 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
   const [calendarAlreadyExists, setCalendarAlreadyExists] = useState(false);
   const selectedLinkItems = useAS(s => s.selectedLinkItems);
 
-  const closeContextMenu = useCallback(() => {
+  const closeContextMenu = () => {
     setContextMenu(prev => ({ ...prev, visible: false }));
-  }, []);
+  };
 
   // Converts the click coordinates to a document position, checks whether that position
   // falls inside a misspelled word, and opens the menu with spelling suggestions when it does.
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+  const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     const view = viewRef.current;
     const typo = typoRef.current;
@@ -79,12 +79,12 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
       y: e.clientY,
       spelling,
     });
-  }, [viewRef, typoRef]);
+  };
 
   // Fire-and-forget menu handlers: sync `() => void` signature with the async
   // clipboard work (and its error handling) contained inside, so call sites can
   // pass them directly without a `void` adapter.
-  const handleCut = useCallback(() => {
+  const handleCut = () => {
     void (async () => {
       const view = viewRef.current;
       if (!view) return;
@@ -104,9 +104,9 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
       closeContextMenu();
       view.focus();
     })();
-  }, [closeContextMenu, viewRef]);
+  };
 
-  const handleCopy = useCallback(() => {
+  const handleCopy = () => {
     void (async () => {
       const view = viewRef.current;
       if (!view) return;
@@ -123,9 +123,9 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
       closeContextMenu();
       view.focus();
     })();
-  }, [closeContextMenu, viewRef]);
+  };
 
-  const handlePaste = useCallback(() => {
+  const handlePaste = () => {
     void (async () => {
       const view = viewRef.current;
       if (!view) return;
@@ -148,9 +148,9 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
       closeContextMenu();
       view.focus();
     })();
-  }, [closeContextMenu, viewRef]);
+  };
 
-  const handlePasteLink = useCallback(() => {
+  const handlePasteLink = () => {
     const view = viewRef.current;
     if (!view || !filePath || selectedLinkItems.length === 0) return;
 
@@ -162,9 +162,9 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [filePath, selectedLinkItems, closeContextMenu, viewRef]);
+  };
 
-  const handleSelectAll = useCallback(() => {
+  const handleSelectAll = () => {
     const view = viewRef.current;
     if (!view) return;
 
@@ -173,9 +173,9 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [closeContextMenu, viewRef]);
+  };
 
-  const handleSpellingSuggestion = useCallback((suggestion: string) => {
+  const handleSpellingSuggestion = (suggestion: string) => {
     const view = viewRef.current;
     if (!view || !contextMenu.spelling) return;
 
@@ -186,9 +186,9 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [closeContextMenu, contextMenu.spelling, viewRef]);
+  };
 
-  const handleInsertTimestamp = useCallback(() => {
+  const handleInsertTimestamp = () => {
     const view = viewRef.current;
     if (!view) return;
 
@@ -200,9 +200,9 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [closeContextMenu, viewRef]);
+  };
 
-  const handleInsertDate = useCallback(() => {
+  const handleInsertDate = () => {
     const view = viewRef.current;
     if (!view) return;
 
@@ -214,12 +214,12 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     });
     closeContextMenu();
     view.focus();
-  }, [closeContextMenu, viewRef]);
+  };
 
   // Shared implementation for both calendar-item variants. Aborts with an alert if a
   // 'due' property already exists in the front matter; otherwise injects the calendar
   // front matter and invokes the parent callback (used to trigger a save).
-  const makeCalendarItem = useCallback((repeating: boolean, callback?: () => void) => {
+  const makeCalendarItem = (repeating: boolean, callback?: () => void) => {
     const view = viewRef.current;
     if (!view) return;
 
@@ -237,25 +237,28 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     closeContextMenu();
     view.focus();
     callback?.();
-  }, [closeContextMenu, viewRef]);
+  };
 
-  const handleMakeCalendarItem = useCallback(() => {
+  const handleMakeCalendarItem = () => {
     makeCalendarItem(false, onMakeCalendarItem);
-  }, [makeCalendarItem, onMakeCalendarItem]);
+  };
 
-  const handleMakeRepeatingCalendarItem = useCallback(() => {
+  const handleMakeRepeatingCalendarItem = () => {
     makeCalendarItem(true, onMakeRepeatingCalendarItem);
-  }, [makeCalendarItem, onMakeRepeatingCalendarItem]);
+  };
 
   // Close context menu when clicking elsewhere
   useEffect(() => {
     if (!contextMenu.visible) return;
 
-    const handleClick = () => closeContextMenu();
-    const handleScroll = () => closeContextMenu();
+    // Local equivalent of closeContextMenu, so the effect only depends on the
+    // (always-stable) state setter rather than an outer function.
+    const close = () => setContextMenu(prev => ({ ...prev, visible: false }));
+    const handleClick = () => close();
+    const handleScroll = () => close();
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        closeContextMenu();
+        close();
         viewRef.current?.focus();
       }
     };
@@ -269,7 +272,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
       document.removeEventListener('scroll', handleScroll, true);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [contextMenu.visible, closeContextMenu, viewRef]);
+  }, [contextMenu.visible, viewRef]);
 
   const isMarkdown = !!fileName && isMarkdownFile(fileName);
 

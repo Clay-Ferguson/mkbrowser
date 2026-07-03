@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { clsx } from 'clsx';
 import { api } from '../../renderer/api';
 import { serializeTagsToYaml } from '../../shared/tagUtil';
@@ -112,10 +112,10 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
 
   // --- Category operations ---
 
-  const startRename = useCallback((cat: EditorCategory) => {
+  const startRename = (cat: EditorCategory) => {
     setRenamingCatId(cat.id);
     setRenameValue(cat.name);
-  }, []);
+  };
 
   const commitRename = () => {
     if (!renamingCatId) return;
@@ -125,30 +125,30 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     setRenamingCatId(null);
   };
 
-  const cancelRename = useCallback(() => {
+  const cancelRename = () => {
     setRenamingCatId(null);
-  }, []);
+  };
 
-  const addCategory = useCallback(() => {
+  const addCategory = () => {
     const newCat: EditorCategory = { id: newId(), name: '', tags: [] };
     setCategories((prev) => [...prev, newCat]);
     setSelectedCatId(newCat.id);
     setRenamingCatId(newCat.id);
     setRenameValue('');
-  }, []);
+  };
 
-  const deleteCategory = useCallback((catId: string) => {
+  const deleteCategory = (catId: string) => {
     setCategories((prev) => prev.filter((c) => c.id !== catId));
     setSelectedCatId((prevSel) => {
       if (prevSel !== catId) return prevSel;
       const next = categories.filter((c) => c.id !== catId);
       return next.length > 0 ? next[0].id : null;
     });
-  }, [categories]);
+  };
 
   // --- Tag operations ---
 
-  const updateTag = useCallback((catId: string, tagId: string, field: 'name' | 'description', value: string) => {
+  const updateTag = (catId: string, tagId: string, field: 'name' | 'description', value: string) => {
     setCategories((prev) =>
       prev.map((c) =>
         c.id !== catId ? c : {
@@ -157,24 +157,24 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
         }
       )
     );
-  }, []);
+  };
 
-  const addTag = useCallback((catId: string) => {
+  const addTag = (catId: string) => {
     const newTag: EditorTag = { id: newId(), name: '', description: '' };
     setCategories((prev) =>
       prev.map((c) => c.id !== catId ? c : { ...c, tags: [...c.tags, newTag] })
     );
-  }, []);
+  };
 
-  const deleteTag = useCallback((catId: string, tagId: string) => {
+  const deleteTag = (catId: string, tagId: string) => {
     setCategories((prev) =>
       prev.map((c) => c.id !== catId ? c : { ...c, tags: c.tags.filter((t) => t.id !== tagId) })
     );
-  }, []);
+  };
 
   // --- Save ---
 
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     const error = validate(categories);
     if (error) { setSaveError(error); return; }
     setSaving(true);
@@ -189,7 +189,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
         setSaving(false);
       }
     })();
-  }, [categories, onClose]);
+  };
 
   const inputCls = DLG_INPUT_CLASS_ALT_COMPACT;
 
