@@ -54,7 +54,10 @@
       "Bash(npm --version)",
       "Bash(dpkg-deb --version)",
       "Bash(rm -rf out/mk-browser-linux-x64)",
-      "Bash(yarn make *)"
+      "Bash(yarn make *)",
+      "Bash(yarn eslint *)",
+      "Bash(yarn lint *)",
+      "Bash(yarn test *)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"
