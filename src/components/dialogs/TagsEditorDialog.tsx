@@ -120,13 +120,13 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     setRenameValue(cat.name);
   }, []);
 
-  const commitRename = useCallback(() => {
+  const commitRename = () => {
     if (!renamingCatId) return;
     setCategories((prev) =>
       prev.map((c) => c.id === renamingCatId ? { ...c, name: renameValue } : c)
     );
     setRenamingCatId(null);
-  }, [renamingCatId, renameValue]);
+  };
 
   const cancelRename = useCallback(() => {
     setRenamingCatId(null);

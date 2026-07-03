@@ -16,6 +16,9 @@ import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_GREEN, BUTTON_CLA
 
 const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
+/** Model names are matched case-insensitively and ignoring surrounding whitespace. */
+const normalizeModelKey = (name: string) => name.trim().toLowerCase();
+
 /**
  * Settings page for all AI-related configuration: enabling AI, selecting and
  * managing model configs, configuring the llama.cpp local server, editing
@@ -109,17 +112,12 @@ function AISettingsView() {
     void saveAiConfigField({ aiModel: modelName });
   }, [saveAiConfigField]);
 
-  const handleLlamacppBaseUrlChange = useCallback((url: string) => {
-    setLlamacppBaseUrl(url);
-  }, []);
-
-  const handleLlamacppBaseUrlBlur = useCallback(() => {
+  const handleLlamacppBaseUrlBlur = () => {
     void saveAiConfigField({ llamacppBaseUrl });
-  }, [llamacppBaseUrl, saveAiConfigField]);
+  };
 
   // --- AI Model CRUD handlers ---
 
-  const normalizeModelKey = useCallback((name: string) => name.trim().toLowerCase(), []);
   const selectedModelKey = normalizeModelKey(selectedAiModel);
 
   const selectedModel = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
@@ -136,7 +134,7 @@ function AISettingsView() {
       setEditingModel(current);
       setShowEditDialog(true);
     }
-  }, [aiModels, selectedModelKey, normalizeModelKey]);
+  }, [aiModels, selectedModelKey]);
 
   const applyModelSave = useCallback((model: AIModelConfig) => {
     const modelKey = normalizeModelKey(model.name);
@@ -147,7 +145,7 @@ function AISettingsView() {
     void saveAiConfigField({ aiModels: updated, aiModel: model.name });
     setShowEditDialog(false);
     setPendingSaveModel(null);
-  }, [aiModels, saveAiConfigField, normalizeModelKey]);
+  }, [aiModels, saveAiConfigField]);
 
   /**
    * Validates a model save from EditAIModelDialog and either applies it immediately
@@ -184,7 +182,7 @@ function AISettingsView() {
     }
 
     applyModelSave(model);
-  }, [editingModel, aiModels, applyModelSave, normalizeModelKey]);
+  }, [editingModel, aiModels, applyModelSave]);
 
   const handleOverwriteConfirm = useCallback(() => {
     if (pendingSaveModel) {
@@ -210,7 +208,7 @@ function AISettingsView() {
     const newSelected = updated.length > 0 ? updated[0].name : '';
     void saveAiConfigField({ aiModels: updated, aiModel: newSelected });
     setShowDeleteConfirm(false);
-  }, [aiModels, selectedAiModel, selectedModelKey, saveAiConfigField, normalizeModelKey]);
+  }, [aiModels, selectedAiModel, selectedModelKey, saveAiConfigField]);
 
   // Fire-and-forget: wired directly to the reset-confirmation dialog's
   // `onConfirm` (a `() => void` prop). Uses the sync-signature + internal
@@ -549,7 +547,7 @@ function AISettingsView() {
                         <input
                           type="text"
                           value={llamacppBaseUrl}
-                          onChange={(e) => handleLlamacppBaseUrlChange(e.target.value)}
+                          onChange={(e) => setLlamacppBaseUrl(e.target.value)}
                           onBlur={handleLlamacppBaseUrlBlur}
                           className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
                           data-testid="llamacpp-base-url-input"

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import {
   clearItemGoToLine,
@@ -49,14 +49,13 @@ function TextEntry(props: TextEntryProps) {
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const expandedEditor = useAS(s => s.expandedEditor);
 
-  const { editContent: editEditContent, handleCancel: editHandleCancel } = edit;
   // Only exit edit mode on Escape when the content is unmodified; if the user has typed
   // something, Escape is passed through to CodeMirror (e.g. to dismiss autocomplete).
-  const handleEscape = useCallback(() => {
-    if (editEditContent === content) {
-      editHandleCancel();
+  const handleEscape = () => {
+    if (edit.editContent === content) {
+      edit.handleCancel();
     }
-  }, [editEditContent, content, editHandleCancel]);
+  };
 
   const handleToggleExpanded = useToggleExpanded(entry.path);
 

@@ -82,15 +82,14 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const expandedEditor = useAS(s => s.expandedEditor);
 
-  const { editContent: editEditContent, handleCancel: editHandleCancel } = edit;
   // Only exit edit mode on Escape when the content is unmodified (comparing without TOC, since the
   // TOC block is stripped on edit entry). If the user has typed something, Escape falls through to
   // CodeMirror (e.g. to dismiss autocomplete).
-  const handleEscape = useCallback(() => {
-    if (editEditContent === removeTOC(content)) {
-      editHandleCancel();
+  const handleEscape = () => {
+    if (edit.editContent === removeTOC(content)) {
+      edit.handleCancel();
     }
-  }, [editEditContent, content, editHandleCancel]);
+  };
 
   const handleToggleExpanded = useToggleExpanded(entry.path);
 

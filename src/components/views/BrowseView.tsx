@@ -448,7 +448,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     })();
   }, [currentPath, hasIndexFile, onRefreshDirectory, onSetError]);
 
-  const handleMoveEntry = useCallback((name: string, direction: 'up' | 'down') => {
+  const handleMoveEntry = (name: string, direction: 'up' | 'down') => {
     if (!currentPath) return;
     void (async () => {
       try {
@@ -458,9 +458,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         onSetError('Failed to move item: ' + (err instanceof Error ? err.message : String(err)));
       }
     })();
-  }, [currentPath, onRefreshDirectory, onSetError]);
+  };
 
-  const handleMoveEntryToEdge = useCallback((name: string, edge: 'top' | 'bottom') => {
+  const handleMoveEntryToEdge = (name: string, edge: 'top' | 'bottom') => {
     if (!currentPath) return;
     void (async () => {
       try {
@@ -470,7 +470,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         onSetError('Failed to move item: ' + (err instanceof Error ? err.message : String(err)));
       }
     })();
-  }, [currentPath, onRefreshDirectory, onSetError]);
+  };
 
   const doPasteIntoFolder = useCallback((folderPath: string) => {
     void (async () => {
@@ -641,7 +641,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setShowCreateDialog(true);
   }, []);
 
-  const handleInsertFileAt = useCallback((insertIndex: number) => {
+  const handleInsertFileAt = (insertIndex: number) => {
     const fileName = generateTimestampFileName();
     void (async () => {
       try {
@@ -654,7 +654,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         onSetError('Failed to create file: ' + (err instanceof Error ? err.message : String(err)));
       }
     })();
-  }, [currentPath, onRefreshDirectory, onSetError, sortedEntries]);
+  };
 
   const handleCreateFile = useCallback((fileName: string) => {
     void (async () => {
@@ -682,11 +682,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setShowCreateFolderDialog(true);
   }, []);
 
-  const handleInsertFolderAt = useCallback((insertIndex: number) => {
+  const handleInsertFolderAt = (insertIndex: number) => {
     setInsertAtIndex(insertIndex);
     setCreateFolderDefaultName('');
     setShowCreateFolderDialog(true);
-  }, []);
+  };
 
   const handleCreateFolder = useCallback((folderName: string) => {
     void (async () => {
