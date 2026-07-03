@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { clsx } from 'clsx';
 import { ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import type { SearchDefinition } from '../../shared/types';
@@ -24,10 +23,7 @@ function SearchDefinitionsPanel({
   onSave,
   onRequestDelete,
 }: SearchDefinitionsPanelProps) {
-  const sortedDefinitions = useMemo(
-    () => [...definitions].sort((a, b) => a.name.localeCompare(b.name)),
-    [definitions]
-  );
+  const sortedDefinitions = [...definitions].sort((a, b) => a.name.localeCompare(b.name));
   const hasName = searchName.trim().length > 0;
 
   return (

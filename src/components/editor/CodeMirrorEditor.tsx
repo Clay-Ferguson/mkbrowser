@@ -149,6 +149,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
   // Stable handle object — its methods read viewRef lazily, so a single instance works for the
   // editor's whole lifetime. Shared by both the imperative ref and the onReady callback.
+  // NOTE: the React Compiler bails out on this component (exhaustive-deps suppression on the
+  // mount effect below), so this useMemo is still load-bearing — don't remove it.
   const editorHandle = useMemo<CodeMirrorEditorHandle>(() => ({
     getSelection() {
       const view = viewRef.current;

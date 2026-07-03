@@ -209,6 +209,10 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const showExpandAll = expansionCounts.totalCount > 0 && expansionCounts.expandedCount < expansionCounts.totalCount;
   const showCollapseAll = expansionCounts.totalCount > 0 && expansionCounts.collapsedCount < expansionCounts.totalCount;
 
+  // NOTE: the React Compiler currently bails out on this component (hooks-lint suppressions
+  // below, plus conditionals inside try/catch — unsupported by babel-plugin-react-compiler 1.0),
+  // so the useMemo calls in this file are still load-bearing. Don't remove them until the
+  // compiler actually compiles BrowseView.
   const sortedEntries = useMemo(() => {
     const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
     const entriesWithCurrentTimes = visibleEntries.map((entry) => {

@@ -1,4 +1,4 @@
-import { useMemo, useState, type RefObject } from 'react';
+import { useState, type RefObject } from 'react';
 import { FolderIcon, DocumentIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
@@ -46,14 +46,12 @@ export default function BookmarksPopupMenu({
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
 
   // Filter to bookmarks under rootPath, then sort alphabetically by name
-  const sorted = useMemo(() => {
-    const filtered = rootPath
-      ? bookmarks.filter(b => b.path === rootPath || b.path.startsWith(ensureTrailingSep(rootPath)))
-      : bookmarks;
-    return [...filtered].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    );
-  }, [bookmarks, rootPath]);
+  const filtered = rootPath
+    ? bookmarks.filter(b => b.path === rootPath || b.path.startsWith(ensureTrailingSep(rootPath)))
+    : bookmarks;
+  const sorted = [...filtered].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  );
 
   /** Writes the current settings (including bookmarks) to the config file. */
   const persistBookmarks = async () => {

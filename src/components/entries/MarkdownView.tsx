@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { clsx } from 'clsx';
 import Markdown from 'react-markdown';
 import type { Components } from 'react-markdown';
@@ -38,23 +38,21 @@ interface MarkdownViewProps {
  * the same plugin and component configuration so it lives in one place.
  */
 function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownViewProps) {
-  const columns = useMemo(() => {
-    const rawContent = showToc ? (content || '') : removeTOC(content || '');
-    const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
-    return splitOnColumnBreaks(processedContent);
-  }, [content, showToc]);
+  const rawContent = showToc ? (content || '') : removeTOC(content || '');
+  const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
+  const columns = splitOnColumnBreaks(processedContent);
 
-  // Stable components so react-markdown reconciles in place instead of remounting the whole
-  // block tree each render. The block-click components are module-stable and get onEditClick
-  // and the column line offset via BlockClickContext; only the path-dependent overrides
-  // (links, images) need to be rebuilt, and only when entryPath changes.
-  const markdownComponents = useMemo<Components>(() => ({
+  // Stable components (the React Compiler memoizes this object on entryPath) so react-markdown
+  // reconciles in place instead of remounting the whole block tree each render. The block-click
+  // components are module-stable and get onEditClick and the column line offset via
+  // BlockClickContext; only the path-dependent overrides (links, images) depend on entryPath.
+  const markdownComponents: Components = {
     ...blockClickComponents,
     a: (props) => <CustomAnchor entryPath={entryPath} {...props} />,
     img: createCustomImage(entryPath),
     code: CustomCode,
     pre: CustomPre,
-  }), [entryPath]);
+  };
 
   const renderColumn = (text: string, lineOffset: number) => (
     <BlockClickContext.Provider value={{ onEditClick, lineOffset }}>

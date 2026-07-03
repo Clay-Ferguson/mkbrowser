@@ -1,4 +1,4 @@
-import { useMemo, type RefObject } from 'react';
+import { type RefObject } from 'react';
 import type { SearchDefinition } from '../../store';
 import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 import { globalHighlightText, setGlobalHighlightText, applyGlobalHighlight } from '../../renderer/globalHighlight';
@@ -30,11 +30,8 @@ export default function SearchPopupMenu({
   onEditSearch,
 }: SearchPopupMenuProps) {
   // Sort definitions alphabetically by name
-  const sorted = useMemo(() =>
-    [...searchDefinitions].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    ),
-    [searchDefinitions]
+  const sorted = [...searchDefinitions].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
   );
 
   return (

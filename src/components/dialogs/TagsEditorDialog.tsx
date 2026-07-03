@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { clsx } from 'clsx';
 import { api } from '../../renderer/api';
 import { serializeTagsToYaml } from '../../shared/tagUtil';
@@ -108,10 +108,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
   }, [renamingCatId]);
 
   const selectedCat = categories.find((c) => c.id === selectedCatId) ?? null;
-  const sortedCategories = useMemo(
-    () => [...categories].sort((a, b) => a.name.localeCompare(b.name)),
-    [categories]
-  );
+  const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
 
   // --- Category operations ---
 
