@@ -141,14 +141,13 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
   }, []);
 
   const deleteCategory = useCallback((catId: string) => {
-    setCategories((prev) => {
-      const next = prev.filter((c) => c.id !== catId);
-      if (selectedCatId === catId) {
-        setSelectedCatId(next.length > 0 ? next[0].id : null);
-      }
-      return next;
+    setCategories((prev) => prev.filter((c) => c.id !== catId));
+    setSelectedCatId((prevSel) => {
+      if (prevSel !== catId) return prevSel;
+      const next = categories.filter((c) => c.id !== catId);
+      return next.length > 0 ? next[0].id : null;
     });
-  }, [selectedCatId]);
+  }, [categories]);
 
   // --- Tag operations ---
 
