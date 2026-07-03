@@ -422,31 +422,10 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     })();
   }, [currentPath, hasIndexFile, onRefreshDirectory, onSetError]);
 
-  const handleEntryRename = useCallback(() => {
-    void (async () => {
-      try {
-        if (currentPath && hasIndexFile) {
-          await api.reconcileIndexedFiles(currentPath, false);
-        }
-        onRefreshDirectory();
-      } catch (err) {
-        onSetError('Failed to refresh after rename: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [currentPath, hasIndexFile, onRefreshDirectory, onSetError]);
-
-  const handleEntryDelete = useCallback(() => {
-    void (async () => {
-      try {
-        if (currentPath && hasIndexFile) {
-          await api.reconcileIndexedFiles(currentPath, false);
-        }
-        onRefreshDirectory();
-      } catch (err) {
-        onSetError('Failed to refresh after delete: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [currentPath, hasIndexFile, onRefreshDirectory, onSetError]);
+  // Rename/delete completion needs the identical reconcile-then-refresh; keep the
+  // names for call-site readability.
+  const handleEntryRename = handleRefresh;
+  const handleEntryDelete = handleRefresh;
 
   const handleMoveEntry = (name: string, direction: 'up' | 'down') => {
     if (!currentPath) return;
