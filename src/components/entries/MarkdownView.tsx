@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { clsx } from 'clsx';
 import Markdown from 'react-markdown';
 import type { Components } from 'react-markdown';
@@ -11,7 +11,7 @@ import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import { removeTOC } from '../../shared/tocUtil';
 import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks, safeUrlTransform } from '../../shared/mkUtil';
-import { createBlockClickComponents } from '../blockClickComponents';
+import { BlockClickContext, blockClickComponents } from '../blockClickComponents';
 import { createCustomImage } from '../markdownImgResolver';
 import CustomAnchor from '../CustomAnchor';
 import CustomCode from '../CustomCode';
@@ -38,14 +38,18 @@ interface MarkdownViewProps {
  * the same plugin and component configuration so it lives in one place.
  */
 function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownViewProps) {
-  const rawContent = showToc ? (content || '') : removeTOC(content || '');
-  const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
-  const columns = splitOnColumnBreaks(processedContent);
+  const columns = useMemo(() => {
+    const rawContent = showToc ? (content || '') : removeTOC(content || '');
+    const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
+    return splitOnColumnBreaks(processedContent);
+  }, [content, showToc]);
 
-  // Stable per-path components so react-markdown can memoize across renders. The block-click
-  // components are spread first at the call site (they depend on column offsets), then these
-  // path-dependent overrides are applied.
+  // Stable components so react-markdown reconciles in place instead of remounting the whole
+  // block tree each render. The block-click components are module-stable and get onEditClick
+  // and the column line offset via BlockClickContext; only the path-dependent overrides
+  // (links, images) need to be rebuilt, and only when entryPath changes.
   const markdownComponents = useMemo<Components>(() => ({
+    ...blockClickComponents,
     a: (props) => <CustomAnchor entryPath={entryPath} {...props} />,
     img: createCustomImage(entryPath),
     code: CustomCode,
@@ -53,20 +57,19 @@ function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownView
   }), [entryPath]);
 
   const renderColumn = (text: string, lineOffset: number) => (
-    <Markdown
-      remarkPlugins={REMARK_PLUGINS}
-      rehypePlugins={REHYPE_PLUGINS}
-      // react-markdown strips any URL whose scheme isn't in its default whitelist, so file://
-      // links would be silently dropped. safeUrlTransform allow-lists the schemes we need
-      // (incl. file://) while still blocking dangerous ones like javascript:.
-      urlTransform={safeUrlTransform}
-      components={{
-        ...createBlockClickComponents(onEditClick, lineOffset),
-        ...markdownComponents,
-      }}
-    >
-      {text}
-    </Markdown>
+    <BlockClickContext.Provider value={{ onEditClick, lineOffset }}>
+      <Markdown
+        remarkPlugins={REMARK_PLUGINS}
+        rehypePlugins={REHYPE_PLUGINS}
+        // react-markdown strips any URL whose scheme isn't in its default whitelist, so file://
+        // links would be silently dropped. safeUrlTransform allow-lists the schemes we need
+        // (incl. file://) while still blocking dangerous ones like javascript:.
+        urlTransform={safeUrlTransform}
+        components={markdownComponents}
+      >
+        {text}
+      </Markdown>
+    </BlockClickContext.Provider>
   );
 
   if (columns.length > 1) {
@@ -91,4 +94,6 @@ function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownView
   );
 }
 
-export default MarkdownView;
+// Props are two strings, a boolean, and onEditClick (a useCallback that only changes when this
+// entry's item changes), so memo lets unrelated store updates skip the markdown re-parse entirely.
+export default memo(MarkdownView);

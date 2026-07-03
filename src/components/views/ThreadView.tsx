@@ -80,8 +80,14 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
     }
 
     setLoading(true);
+    // A slow gather can resolve after the user has navigated elsewhere, so
+    // every state write below (including the loading flip) is gated on the
+    // loaded path still being current — otherwise this run's results are
+    // stale and belong to a folder we've already left.
+    const isStale = () => useAS.getState().currentPath !== currentPath;
     try {
       const result = await api.gatherThreadEntries(currentPath);
+      if (isStale()) return;
       setIsThread(result.isThread);
       setThreadEntries(result.entries);
       setChildFolders(result.childFolders);
@@ -101,10 +107,13 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
       }
     } catch (err) {
       logger.error('Failed to load thread entries:', err);
+      if (isStale()) return;
       setIsThread(false);
       setChildFolders([]);
     } finally {
-      setLoading(false);
+      if (!isStale()) {
+        setLoading(false);
+      }
     }
   }, [currentPath]);
 

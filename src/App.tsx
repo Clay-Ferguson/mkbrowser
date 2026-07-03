@@ -191,8 +191,14 @@ function App() {
       setLoading(true);
     }
     setError(null);
+    // A slow read can resolve after the user has navigated elsewhere, so every
+    // state write below (including the loading flip) is gated on the loaded
+    // path still being current — otherwise this run's results are stale and
+    // belong to a folder we've already left.
+    const isStale = () => useAS.getState().currentPath !== currentPath;
     try {
       const files = await api.readDirectory(currentPath);
+      if (isStale()) return;
       setEntries(files);
 
       // Update global store with all items from this directory (including attachment sub-items)
@@ -220,6 +226,7 @@ function App() {
       });
       upsertItems(allItems);
     } catch (err) {
+      if (isStale()) return;
       const errorMessage = err instanceof Error ? err.message : 'Failed to read directory';
       if (errorMessage.includes('does not exist')) {
         setError('This folder no longer exists');
@@ -228,7 +235,9 @@ function App() {
       }
       setEntries([]);
     } finally {
-      setLoading(false);
+      if (!isStale()) {
+        setLoading(false);
+      }
     }
   }, [currentPath]);
 
