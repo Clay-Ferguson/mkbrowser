@@ -53,6 +53,28 @@ function mergeItem(existing: ItemData | undefined, item: IncomingItem): ItemData
 }
 
 /**
+ * Return a copy of `items` with every selection cleared, or null when nothing
+ * is selected (so callers can skip the state write). Pure — shared by
+ * clearAllSelections and the navigation actions in view.ts, which fold the
+ * selection reset into the same atomic update as the path change.
+ */
+export function withSelectionsCleared(items: Map<string, ItemData>): Map<string, ItemData> | null {
+  if (items.size === 0) return null;
+
+  const newItems = new Map(items);
+  let hasChanges = false;
+
+  for (const [path, item] of newItems) {
+    if (item.isSelected) {
+      newItems.set(path, { ...item, isSelected: false });
+      hasChanges = true;
+    }
+  }
+
+  return hasChanges ? newItems : null;
+}
+
+/**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
  */
@@ -185,20 +207,8 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
 
     /** Clear selection state for all items. */
     clearAllSelections: () => {
-      const state = get();
-      if (state.items.size === 0) return;
-
-      const newItems = new Map(state.items);
-      let hasChanges = false;
-
-      for (const [path, item] of newItems) {
-        if (item.isSelected) {
-          newItems.set(path, { ...item, isSelected: false });
-          hasChanges = true;
-        }
-      }
-
-      if (!hasChanges) return;
+      const newItems = withSelectionsCleared(get().items);
+      if (!newItems) return;
 
       set({ items: newItems });
     },

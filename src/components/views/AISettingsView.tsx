@@ -74,11 +74,21 @@ function AISettingsView() {
   const [modelTableExpanded, setModelTableExpanded] = useState(false);
 
   // AI config is read reactively from the store (seeded at startup by
-  // loadConfig); only the non-config stats/health need fetching on mount.
+  // loadConfig); only the non-config stats/health need fetching here. Views
+  // never unmount (App.tsx hides them with CSS), so a mount-only fetch would
+  // go stale — re-fetch each time this tab becomes the active view instead.
+  const currentView = useAS(s => s.currentView);
   useEffect(() => {
-    void api.getAiUsage().then(setUsageData);
-    void api.checkLlamaHealth().then(setLlamaServerStatus);
-  }, []);
+    if (currentView !== 'ai-settings') return;
+    let ignore = false;
+    void api.getAiUsage().then((data) => {
+      if (!ignore) setUsageData(data);
+    });
+    void api.checkLlamaHealth().then((status) => {
+      if (!ignore) setLlamaServerStatus(status);
+    });
+    return () => { ignore = true; };
+  }, [currentView]);
 
   const saveAiConfigField = useCallback(async (updates: Partial<AppConfig>) => {
     try {

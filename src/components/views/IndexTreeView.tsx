@@ -190,9 +190,11 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     if (!rootPath) return;
     if (treeRoot?.path === rootPath) return;
 
+    let ignore = false;
     const load = async () => {
       try {
         const entries = await api.readDirectory(rootPath);
+        if (ignore) return;
         setIndexTreeRoot({
           path: rootPath,
           name: rootPath,
@@ -206,6 +208,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       }
     };
     void load();
+    return () => { ignore = true; };
   }, [rootPath, treeRoot?.path]);
 
   /**

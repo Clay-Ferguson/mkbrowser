@@ -175,15 +175,23 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   // Detect whether the current folder uses index ordering, and load the yaml into the store
   useEffect(() => {
+    // A slow readIndexYaml can resolve after navigation (or after a newer run
+    // for the same folder), so its write is gated on this run still being the
+    // latest — otherwise a stale folder's yaml overwrites the current one.
+    let ignore = false;
     const hasIndex = entries.some((e) => e.indexOrder !== undefined);
     setHasIndexFile(hasIndex);
     if (hasIndex && currentPath) {
       void api.readIndexYaml(currentPath).then((yaml) => {
+        if (ignore) return;
         setIndexYaml(yaml);
       });
     } else {
       setIndexYaml(null);
     }
+    return () => {
+      ignore = true;
+    };
   }, [entries, currentPath]);
 
   // Reconcile on folder navigation only (not on every file-operation refresh)
@@ -250,71 +258,86 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   // Handle pending scroll after directory loads, or restore scroll position on folder navigation
   useEffect(() => {
-    if (!loading) {
-      // Skip browser scroll handling when not in browser view — ThreadView
-      // manages its own scrolling and we don't want to interfere.
-      if (currentView !== 'browser') {
-        previousPathRef.current = currentPath;
-        return;
-      }
+    if (loading) return;
 
-      // Detect folder navigation within the browser tab. BrowseView stays
-      // mounted across tab switches (visibility is toggled via CSS), so its
-      // scroll position is preserved natively when switching tabs — we only
-      // need to save/restore per folder when navigating between folders.
-      const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
-
-      // Save scroll position for the previous folder before switching
-      if (isNewFolder && previousPathRef.current && mainContainerRef.current) {
-        setBrowserScrollPosition(previousPathRef.current, mainContainerRef.current.scrollTop);
-      }
-
+    // Skip browser scroll handling when not in browser view — ThreadView
+    // manages its own scrolling and we don't want to interfere.
+    if (currentView !== 'browser') {
       previousPathRef.current = currentPath;
-
-      // Short timeout just for DOM to settle after React render
-      setTimeout(() => {
-        // logger.log('[BrowseView] scroll effect fired — pendingScrollToFile:', pendingScrollToFile, 'pendingScrollToHeadingSlug:', pendingScrollToHeadingSlug);
-        if (pendingScrollToFile) {
-          // Scroll to specific file (e.g., from search results or index tree heading).
-          // The target element only exists once the destination folder's entries
-          // have rendered. When navigating to a *different* folder this effect
-          // fires once prematurely (before the load starts), so only consume the
-          // pending request once the element is actually found and scrolled —
-          // otherwise the real attempt (after the load) never runs.
-          const scrolled = scrollItemIntoView(pendingScrollToFile, false);
-          if (scrolled) {
-            clearPendingScrollToFile();
-            if (pendingScrollToHeadingSlug) {
-              const slug = pendingScrollToHeadingSlug;
-              // logger.log('[BrowseView] scheduling heading scroll for slug:', slug);
-              // Wait for markdown content to finish rendering before scrolling to heading
-              setTimeout(() => {
-                // const el = document.getElementById(slug);
-                // logger.log('[BrowseView] heading scroll firing — slug:', slug, 'element found:', !!el, el);
-                scrollElementIntoView(slug, true);
-                clearPendingScrollToHeadingSlug();
-              }, 750);
-            }
-          }
-        } else if (isNewFolder) {
-          // Restore the saved scroll position for the folder we navigated to.
-          const savedPosition = getBrowserScrollPosition(currentPath);
-          const mainContainer = mainContainerRef.current;
-          if (mainContainer) {
-            mainContainer.scrollTo({ top: savedPosition, behavior: 'instant' });
-          }
-        }
-
-        // Handle pending edit (e.g., from search results edit button)
-        if (pendingEditFile && pendingEditView === 'browser') {
-          setTimeout(() => {
-            setItemExpanded(pendingEditFile, true);
-            setItemEditing(pendingEditFile, true);
-            clearPendingEditFile();
-          }, 100);
-        }
-      }, 100);
+      return;
     }
+
+    // Detect folder navigation within the browser tab. BrowseView stays
+    // mounted across tab switches (visibility is toggled via CSS), so its
+    // scroll position is preserved natively when switching tabs — we only
+    // need to save/restore per folder when navigating between folders.
+    const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
+
+    // Save scroll position for the previous folder before switching
+    if (isNewFolder && previousPathRef.current && mainContainerRef.current) {
+      setBrowserScrollPosition(previousPathRef.current, mainContainerRef.current.scrollTop);
+    }
+
+    previousPathRef.current = currentPath;
+
+    // All timers are cleared on re-run, so a superseded run's timer can't fire
+    // with values the user has since navigated away from. Each pending flag is
+    // cleared only by the timer that consumes it, so when a flag-clear re-runs
+    // this effect and the cleanup cancels a sibling timer, that sibling's flag
+    // is still set and the next run reschedules it — nothing is lost.
+    let headingScrollTimer: ReturnType<typeof setTimeout> | undefined;
+    let editTimer: ReturnType<typeof setTimeout> | undefined;
+
+    // Short timeout just for DOM to settle after React render
+    const settleTimer = setTimeout(() => {
+      // logger.log('[BrowseView] scroll effect fired — pendingScrollToFile:', pendingScrollToFile, 'pendingScrollToHeadingSlug:', pendingScrollToHeadingSlug);
+      if (pendingScrollToFile) {
+        // Scroll to specific file (e.g., from search results or index tree heading).
+        // The target element only exists once the destination folder's entries
+        // have rendered. When navigating to a *different* folder this effect
+        // fires once prematurely (before the load starts), so only consume the
+        // pending request once the element is actually found and scrolled —
+        // otherwise the real attempt (after the load) never runs.
+        const scrolled = scrollItemIntoView(pendingScrollToFile, false);
+        if (scrolled) {
+          // Leave pendingScrollToHeadingSlug set — this clear re-runs the
+          // effect, and the next run handles the heading scroll below.
+          clearPendingScrollToFile();
+        }
+      } else if (pendingScrollToHeadingSlug) {
+        // Set alongside pendingScrollToFile; reached once the file scroll above
+        // has succeeded and consumed its flag.
+        const slug = pendingScrollToHeadingSlug;
+        // Wait for markdown content to finish rendering before scrolling to heading
+        headingScrollTimer = setTimeout(() => {
+          scrollElementIntoView(slug, true);
+          clearPendingScrollToHeadingSlug();
+        }, 750);
+      } else if (isNewFolder) {
+        // Restore the saved scroll position for the folder we navigated to.
+        const savedPosition = getBrowserScrollPosition(currentPath);
+        const mainContainer = mainContainerRef.current;
+        if (mainContainer) {
+          mainContainer.scrollTo({ top: savedPosition, behavior: 'instant' });
+        }
+      }
+
+      // Handle pending edit (e.g., from search results edit button)
+      if (pendingEditFile && pendingEditView === 'browser') {
+        const editFile = pendingEditFile;
+        editTimer = setTimeout(() => {
+          setItemExpanded(editFile, true);
+          setItemEditing(editFile, true);
+          clearPendingEditFile();
+        }, 100);
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(settleTimer);
+      if (headingScrollTimer !== undefined) clearTimeout(headingScrollTimer);
+      if (editTimer !== undefined) clearTimeout(editTimer);
+    };
   }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, currentPath, currentView]);
 
   /** Derives a default export file name from the current folder name. */

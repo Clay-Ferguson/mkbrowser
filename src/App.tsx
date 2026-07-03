@@ -16,7 +16,6 @@ import IndexTreeView from './components/views/IndexTreeView';
 import AppTabButtons from './components/AppTabButtons';
 import {
   upsertItems,
-  clearAllSelections,
   setSearchResults,
   getSettings,
   setCurrentView,
@@ -259,13 +258,6 @@ function App() {
   if (prunedEntries.length !== entries.length) {
     setEntries(prunedEntries);
   }
-
-  // Clear selection whenever navigating to a different folder
-  useEffect(() => {
-    if (currentPath) {
-      clearAllSelections();
-    }
-  }, [currentPath]);
 
   // Keep the most-recently-visited folder at the head of the recents list.
   // Adjusting this during render (rather than in an effect) avoids a cascading

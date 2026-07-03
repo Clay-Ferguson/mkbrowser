@@ -1,6 +1,7 @@
 import type { AppState, AppView, FolderAnalysisState, FolderGraphState } from '../shared/types';
 import { getState } from './core';
 import type { StoreSet, StoreGet } from './core';
+import { withSelectionsCleared } from './items';
 
 // ============================================================================
 // View / navigation - current view & path, pending scroll/edit signals,
@@ -46,10 +47,16 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       set({ currentView: view });
     },
 
-    /** Set the current path being browsed. */
+    /** Set the current path being browsed. Navigating to a different folder
+     * also clears item selections, atomically with the path change. */
     setCurrentPath: (path) => {
       if (get().currentPath === path) return;
-      set({ currentPath: path });
+      const newState: Partial<AppState> = { currentPath: path };
+      const clearedItems = withSelectionsCleared(get().items);
+      if (clearedItems) {
+        newState.items = clearedItems;
+      }
+      set(newState);
     },
 
     /**
@@ -66,6 +73,14 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       };
       if (scrollToFile !== undefined) {
         newState.pendingScrollToFile = scrollToFile;
+      }
+      // Navigating to a different folder also clears item selections,
+      // atomically with the path change.
+      if (path !== get().currentPath) {
+        const clearedItems = withSelectionsCleared(get().items);
+        if (clearedItems) {
+          newState.items = clearedItems;
+        }
       }
       set(newState);
     },
