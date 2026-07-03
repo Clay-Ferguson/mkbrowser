@@ -209,6 +209,13 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     })();
   };
 
+  const onAskAI = () => {
+    void (async () => {
+      await edit.handleSave();
+      await handleAskAi(edit.editContent);
+    })();
+  };
+  
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
       expandedEditor={expandedEditor}
@@ -261,13 +268,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
           <button
             type="button"
             data-testid="ask-ai-button"
-            /* todo-0: this is ugly. define this as a function above */
-            onClick={() => {
-              void (async () => {
-                await edit.handleSave();
-                await handleAskAi(edit.editContent);
-              })();
-            }}
+            onClick={onAskAI}
             disabled={edit.saving || isAiLoading}
             className={`${BUTTON_CLASS_SM_PURPLE} flex-shrink-0`}
           >
@@ -332,6 +333,16 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       )}
     </>
   );
+
+  const clickOnProp = (key: string): void => {
+    void (async () => {
+      const propPrefix = `${key}:`;
+      const line = (content?.split('\n') ?? []).findIndex(l => l.startsWith(propPrefix)) + 1;
+      await edit.handleEditClick(line > 0 ? line : undefined);
+      setShowPropsInEditor(true);
+      onSaveSettings();
+    })();
+  };
 
   return (
     <>
@@ -416,16 +427,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                       setTagsVisible(true);
                     })();
                   }}
-                  onPropClick={(key) => {
-                    /* todo-0: this is ugly. define this as a function above */
-                    void (async () => {
-                      const propPrefix = `${key}:`;
-                      const line = (content?.split('\n') ?? []).findIndex(l => l.startsWith(propPrefix)) + 1;
-                      await edit.handleEditClick(line > 0 ? line : undefined);
-                      setShowPropsInEditor(true);
-                      onSaveSettings();
-                    })();
-                  }}
+                  onPropClick={clickOnProp}
                 />
               )}
               <MarkdownView
