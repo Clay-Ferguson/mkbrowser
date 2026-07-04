@@ -109,7 +109,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
         const segmentPath = buildPathForIndex(index);
         const isDragOver = dragOverPath === segmentPath;
         return (
-          <div key={`${part}-${index}`} className="flex items-center">
+          <div key={segmentPath} className="flex items-center">
             <span className="text-slate-200 mx-1">/</span>
             {isLast ? (
               <span

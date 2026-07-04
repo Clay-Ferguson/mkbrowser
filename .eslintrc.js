@@ -112,6 +112,12 @@ module.exports = {
     // helpers must use a braced body: `(resolve) => { setTimeout(resolve, ms); }`.
     "no-promise-executor-return": "error",
 
+    // Disallow using an array index as a React `key`. When a keyed-by-index list
+    // is reordered, filtered, or inserted into, React reconciles by index and
+    // leaks stale/duplicated component state into the wrong item. Keys must be
+    // derived from stable, unique data (e.g. a cumulative path prefix).
+    "react/no-array-index-key": "error",
+
     // ─── Import Rules ─────────────────────────────────────────────────────────
 
     // Enforce a consistent import ordering: built-ins → external → internal → relative.
@@ -147,9 +153,6 @@ module.exports = {
     // Require === and !== instead of == and !=.
     "eqeqeq": ["error", "always"],
 
-    // Prefer `??` (nullish coalescing) over `||` when testing for null/undefined.
-    "@typescript-eslint/prefer-nullish-coalescing": "off",
-
     // Prefer optional chaining `a?.b` over `a && a.b`. Requires typed linting.
     "@typescript-eslint/prefer-optional-chain": "off",
 
@@ -173,6 +176,13 @@ module.exports = {
       },
       rules: {
         "@typescript-eslint/no-floating-promises": "error",
+
+        // Prefer `??` over `||` when the intent is a null/undefined fallback.
+        // `||` also fires on `0`, `''`, and `false`, so a `|| fallback` on a
+        // value that can legitimately be one of those is a latent bug (the
+        // fallback fires on a valid value). Requires type-checked linting,
+        // hence its placement in this src/**-scoped override.
+        "@typescript-eslint/prefer-nullish-coalescing": "off",
 
         // Disallow passing an async function (Promise-returning) where a
         // void-returning callback/prop is expected. Without this, an
