@@ -94,7 +94,7 @@ export async function invokeDeepAgent(
   const scripted = consumeScriptedAnswer();
   if (scripted !== null) {
     debugLog('invokeDeepAgent → returning scripted answer');
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => { setTimeout(resolve, 2000); });
     return { content: scripted, usage: undefined };
   }
   debugLog('invokeDeepAgent → creating agent');
@@ -110,12 +110,12 @@ export async function invokeDeepAgent(
     const invokePromise = agent.invoke({
       messages: [...history, humanMsg],
     });
-    const timeoutPromise = new Promise<never>((_, reject) =>
+    const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(
         () => reject(new Error(`Deep Agent request timed out after ${MODEL_TIMEOUT_MS / 1000}s.`)),
         MODEL_TIMEOUT_MS,
-      ),
-    );
+      );
+    });
     const result = await Promise.race([invokePromise, timeoutPromise]);
 
     debugLog('invokeDeepAgent → agent finished successfully');
@@ -161,7 +161,7 @@ export async function streamDeepAgent(
   const scripted = consumeScriptedAnswer();
   if (scripted !== null) {
     debugLog('streamDeepAgent → returning scripted answer');
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => { setTimeout(resolve, 2000); });
     return { content: scripted, usage: undefined };
   }
   debugLog('streamDeepAgent → creating agent');

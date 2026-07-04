@@ -60,7 +60,7 @@ export function cloneDefaultSettings(): AppSettings {
  * that isn't an array at all falls back to an empty list. Same shape as the
  * `files` handling in `IndexYamlSchema`.
  */
-function tolerantArray<T extends z.ZodTypeAny>(elem: T) {
+function tolerantArray<T extends z.ZodType>(elem: T) {
   return z
     .array(z.unknown())
     .transform((arr) =>

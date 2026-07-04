@@ -32,7 +32,7 @@ describe('mapWithConcurrency', () => {
       active++;
       maxActive = Math.max(maxActive, active);
       // Yield so other workers get a chance to ramp up concurrency.
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      await new Promise((resolve) => { setTimeout(resolve, 1); });
       active--;
       return n;
     });
@@ -47,7 +47,7 @@ describe('mapWithConcurrency', () => {
     await mapWithConcurrency(items, 10, async (n) => {
       active++;
       maxActive = Math.max(maxActive, active);
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      await new Promise((resolve) => { setTimeout(resolve, 1); });
       active--;
       return n;
     });
@@ -71,7 +71,7 @@ describe('mapWithConcurrency', () => {
         started.push(n);
         // Fail early; surviving workers should stop taking new items.
         if (n === 1) throw new Error('boom');
-        await new Promise((resolve) => setTimeout(resolve, 1));
+        await new Promise((resolve) => { setTimeout(resolve, 1); });
         return n;
       }),
     ).rejects.toThrow('boom');

@@ -641,7 +641,7 @@ describe('reconcileIndexedFiles', () => {
   it('lets the oldest file keep a shared id and re-keys the newer copy', async () => {
     // a.md is created first (the original); b.md is created after (the paste).
     touchFile('a.md', '---\nid: DUP000001\n---\n# A');
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => { setTimeout(r, 20); });
     touchFile('b.md', '---\nid: DUP000001\n---\n# B');
     writeIndex({ files: [{ name: 'a.md', id: 'DUP000001' }] });
 
@@ -661,7 +661,7 @@ describe('reconcileIndexedFiles', () => {
 
   it('preserves other front-matter fields when re-keying a duplicate id', async () => {
     touchFile('a.md', '---\nid: DUP000001\ntitle: Original\n---\n# A');
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => { setTimeout(r, 20); });
     touchFile('b.md', '---\nid: DUP000001\ntitle: Copy\ntags:\n  - x\n---\n# B');
     writeIndex({ files: [{ name: 'a.md', id: 'DUP000001' }] });
 
@@ -676,9 +676,9 @@ describe('reconcileIndexedFiles', () => {
 
   it('re-keys all but the oldest when three files share an id', async () => {
     touchFile('a.md', '---\nid: DUP000001\n---\n# A');
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => { setTimeout(r, 20); });
     touchFile('b.md', '---\nid: DUP000001\n---\n# B');
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => { setTimeout(r, 20); });
     touchFile('c.md', '---\nid: DUP000001\n---\n# C');
     writeIndex({ files: [{ name: 'a.md', id: 'DUP000001' }] });
 
@@ -1012,7 +1012,7 @@ describe('injecting an id round-trips front matter without losing field values',
   it('replaces a colliding id without leaving a duplicate mapping key', async () => {
     // b.md is a paste of a.md: same id, plus extra fields and custom key order.
     touchFile('a.md', '---\nid: DUP000001\n---\n# A');
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => { setTimeout(r, 20); });
     touchFile('b.md', '---\nid: DUP000001\nbeta: 2\nalpha: 1\n---\n# B\n');
     writeIndex({ files: [{ name: 'a.md', id: 'DUP000001' }] });
 

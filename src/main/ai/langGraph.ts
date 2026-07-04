@@ -156,7 +156,7 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
   const scriptedAnswer = consumeScriptedAnswer();
   if (scriptedAnswer !== null) {
     debugLog('invokeAI → returning scripted answer (' + scriptedAnswer.length + ' chars), sleeping 2s');
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => { setTimeout(resolve, 2000); });
     return { content: scriptedAnswer, usage: undefined };
   }
 
@@ -179,12 +179,12 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
       '| useTools:', useTools, '| model type:', model.constructor?.name ?? '?');
     try {
       const invokePromise = boundModel.invoke(state.messages);
-      const timeoutPromise = new Promise<never>((_, reject) =>
+      const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(
           () => reject(new Error(`AI model request timed out after ${MODEL_TIMEOUT_MS / 1000}s. The model may still be loading — try again in a moment.`)),
           MODEL_TIMEOUT_MS
-        )
-      );
+        );
+      });
       const response = await Promise.race([invokePromise, timeoutPromise]);
       debugLog('invokeAI [graph:chat] → model responded, content type:', typeof response.content,
         'length:', typeof response.content === 'string' ? response.content.length : JSON.stringify(response.content).length);

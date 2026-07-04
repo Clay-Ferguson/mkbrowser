@@ -89,6 +89,29 @@ module.exports = {
     // Disallow empty interface declarations (e.g. `interface Foo {}`).
     "@typescript-eslint/no-empty-interface": "error",
 
+    // ─── Logic-Bug Catchers ───────────────────────────────────────────────────
+    // (Not part of eslint:recommended on ESLint 8 — no-constant-binary-expression
+    // only joined the recommended set in ESLint 9.)
+
+    // Expressions with a constant outcome, e.g. `a ?? b || c` precedence mistakes
+    // or comparisons like `x === undefined || null` that are always false.
+    "no-constant-binary-expression": "error",
+
+    // A .map/.filter/.some/.sort callback with a code path that forgets to
+    // `return` (checkForEach off: forEach callbacks legitimately return nothing).
+    "array-callback-return": ["error", { "checkForEach": false }],
+
+    // Comparing a value to itself — almost always a typo for another variable.
+    "no-self-compare": "error",
+
+    // A loop whose body guarantees it runs at most once (stray break/return).
+    "no-unreachable-loop": "error",
+
+    // Returning a value from a `new Promise((resolve) => …)` executor — the
+    // value is silently discarded, which usually means a lost promise. Sleep
+    // helpers must use a braced body: `(resolve) => { setTimeout(resolve, ms); }`.
+    "no-promise-executor-return": "error",
+
     // ─── Import Rules ─────────────────────────────────────────────────────────
 
     // Enforce a consistent import ordering: built-ins → external → internal → relative.
@@ -165,6 +188,26 @@ module.exports = {
           "error",
           { checksVoidReturn: true, checksConditionals: false, checksSpreads: false },
         ],
+
+        // Disallow `return somePromise()` inside a try/catch/finally — without
+        // an `await`, a rejection from that promise skips the surrounding catch
+        // entirely. The "error-handling-correctness-only" mode flags ONLY that
+        // bug-prone case and stays silent on the pure style question of
+        // `return await` elsewhere. Requires type-checked linting.
+        "@typescript-eslint/return-await": ["error", "error-handling-correctness-only"],
+
+        // A switch over a union type must handle every member (or have a
+        // `default`, per considerDefaultExhaustiveForUnions) — catches "added a
+        // union member, forgot a switch" bugs. Requires type-checked linting.
+        "@typescript-eslint/switch-exhaustiveness-check": [
+          "error",
+          { considerDefaultExhaustiveForUnions: true },
+        ],
+
+        // Flag any use of an API whose declaration carries a @deprecated JSDoc
+        // tag (e.g. React 19's FormEvent, Zod 4's ZodTypeAny). Requires
+        // type-checked linting.
+        "@typescript-eslint/no-deprecated": "error",
 
         // React Hooks rules are scoped to src/** so they don't misfire on
         // Playwright fixture callbacks (the `use` param) in e2e/ and fixtures/.

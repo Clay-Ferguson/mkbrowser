@@ -103,7 +103,7 @@ export async function ensureRunning(): Promise<void> {
   const start = Date.now();
 
   while (Date.now() - start < MAX_WAIT) {
-    await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+    await new Promise((r) => { setTimeout(r, POLL_INTERVAL); });
     const health = await checkHealth();
     if (health === 'running') return;
     // 'loading' means it's alive but still loading the model — keep waiting

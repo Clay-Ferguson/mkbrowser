@@ -21,7 +21,7 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
     onReplace(searchText, replaceText);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     handleReplace();
   };

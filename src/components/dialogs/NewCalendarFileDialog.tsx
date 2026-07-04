@@ -22,7 +22,7 @@ function NewCalendarFileDialog({ initialFileName, onCreate, onCancel }: NewCalen
     onCreate(trimmed);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     handleCreate();
   };

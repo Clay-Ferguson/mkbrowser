@@ -37,7 +37,7 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
     onSave(trimmed);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     handleSave();
   };

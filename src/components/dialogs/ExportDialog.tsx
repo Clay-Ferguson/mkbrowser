@@ -75,7 +75,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     handleExport();
   };

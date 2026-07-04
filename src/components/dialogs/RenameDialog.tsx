@@ -31,7 +31,7 @@ function RenameDialog({ currentName, isDirectory, onRename, onCancel }: RenameDi
     onRename(trimmedName);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
     handleRename();
   };

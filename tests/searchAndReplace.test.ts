@@ -64,7 +64,7 @@ describe('searchAndReplace', () => {
     const before = await fs.promises.stat(file);
 
     // Ensure any rewrite would produce a detectably different mtime.
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise((resolve) => { setTimeout(resolve, 10); });
 
     const results = await searchAndReplace(tmpDir, 'foo', 'foo', []);
 
