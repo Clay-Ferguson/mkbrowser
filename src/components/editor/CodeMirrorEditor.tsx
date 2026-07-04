@@ -1,4 +1,4 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef, type RefObject } from 'react';
+import { useEffect, useRef, useImperativeHandle, type Ref, type RefObject } from 'react';
 import { EditorView, placeholder as placeholderExt, keymap, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
@@ -53,6 +53,8 @@ const cursorOverrideTheme = EditorView.theme({
 });
 
 interface CodeMirrorEditorProps {
+  /** Imperative handle exposing editor commands (see CodeMirrorEditorHandle). */
+  ref?: Ref<CodeMirrorEditorHandle>;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -200,7 +202,7 @@ function applyPostMountFocus(
  * (value, fontSize, showPropsInEditor) are applied through separate effects or compartments
  * so that undo history, cursor position, and the async spell checker are preserved.
  */
-const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor({ value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady }, ref) {
+function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -562,6 +564,6 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       )}
     </div>
   );
-});
+}
 
 export default CodeMirrorEditor;
