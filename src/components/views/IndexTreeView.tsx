@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
@@ -136,6 +136,17 @@ function isParentOf(candidatePath: string, currentPath: string): boolean {
   return currentPath.startsWith(ensureTrailingSep(candidatePath));
 }
 
+/**
+ * Fire-and-forget runner for async context-menu / paste / drag-drop actions:
+ * invokes `op` and logs a failure instead of leaking an unhandled rejection.
+ * Module-level so the component's handlers don't need try/catch bodies — the
+ * React Compiler bails out on value blocks (`?.`, `||`, ternaries) inside a
+ * try/catch statement.
+ */
+function runAndLogFailure(message: string, op: () => Promise<void>): void {
+  op().catch((err: unknown) => logger.error(message, err));
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 /**
@@ -213,53 +224,56 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   }, [rootPath, treeRoot?.path]);
 
   /**
-   * Expands every ancestor folder from the root down to `targetPath`, loading
-   * directory contents on demand for any node that hasn't been opened yet, then
-   * scrolls the target node into the center of the tree panel.
+   * Expands every ancestor folder from the root down to the pending-reveal
+   * path, loading directory contents on demand for any node that hasn't been
+   * opened yet, then scrolls the target node into the center of the tree panel.
+   * `expandToPath` lives inside the effect (its only caller) so it doesn't need
+   * memoization to be a valid dependency.
    */
-  const expandToPath = useCallback(async (targetPath: string) => {
-    if (!rootPath || !isPathInside(rootPath, targetPath)) return;
-
-    const relative = targetPath.slice(rootPath.length).replace(/^[/\\]/, '');
-    const segments = splitPathSegments(relative);
-
-    // Expand each ancestor directory from root down to targetPath
-    let ancestorPath = rootPath;
-    for (const segment of segments) {
-      const root = getIndexTreeRoot();
-      if (!root) return;
-
-      const node = findNodeByPath(root, ancestorPath);
-      if (!node || !node.isDirectory) return;
-
-      if (!node.isExpanded || node.children === null) {
-        try {
-          const entries = await api.readDirectory(ancestorPath);
-          expandIndexTreeNode(ancestorPath, makeNodes(entries));
-        } catch {
-          return;
-        }
-      }
-
-      ancestorPath = joinPath(ancestorPath, segment);
-    }
-
-    // Scroll to the target node after React has rendered the expanded tree
-    setTimeout(() => {
-      const container = containerRef.current;
-      if (!container) return;
-      const el = container.querySelector(`[data-tree-path="${CSS.escape(targetPath)}"]`);
-      if (el) {
-        el.scrollIntoView({ block: 'center' });
-      }
-    }, 750);
-  }, [rootPath]);
-
   useEffect(() => {
     if (!pendingReveal) return;
     clearPendingIndexTreeReveal();
+
+    const expandToPath = async (targetPath: string) => {
+      if (!rootPath || !isPathInside(rootPath, targetPath)) return;
+
+      const relative = targetPath.slice(rootPath.length).replace(/^[/\\]/, '');
+      const segments = splitPathSegments(relative);
+
+      // Expand each ancestor directory from root down to targetPath
+      let ancestorPath = rootPath;
+      for (const segment of segments) {
+        const root = getIndexTreeRoot();
+        if (!root) return;
+
+        const node = findNodeByPath(root, ancestorPath);
+        if (!node || !node.isDirectory) return;
+
+        if (!node.isExpanded || node.children === null) {
+          try {
+            const entries = await api.readDirectory(ancestorPath);
+            expandIndexTreeNode(ancestorPath, makeNodes(entries));
+          } catch {
+            return;
+          }
+        }
+
+        ancestorPath = joinPath(ancestorPath, segment);
+      }
+
+      // Scroll to the target node after React has rendered the expanded tree
+      setTimeout(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const el = container.querySelector(`[data-tree-path="${CSS.escape(targetPath)}"]`);
+        if (el) {
+          el.scrollIntoView({ block: 'center' });
+        }
+      }, 750);
+    };
+
     void expandToPath(pendingReveal);
-  }, [pendingReveal, expandToPath]);
+  }, [pendingReveal, rootPath]);
 
   /**
    * Handles a click on any tree row. Behavior depends on node type:
@@ -269,7 +283,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    * - Directory: toggles expansion; reads directory contents on first expand.
    * - Other file types: no-op (non-expandable).
    */
-  const handleNodeClick = useCallback(async (node: TreeNode) => {
+  const handleNodeClick = async (node: TreeNode) => {
     if (isMarkdownHeadingNode(node)) {
       // Toggle heading expansion
       if (node.isExpanded) {
@@ -316,7 +330,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     } catch {
       // leave node collapsed on error
     }
-  }, []);
+  };
 
   /**
    * Moves all cut items into `node`'s folder via rename. Applied partially on
@@ -325,129 +339,114 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    * flag is cleared only when every item moved successfully.
    */
   // Fire-and-forget UI handler: sync signature so the click's synchronous work
-  // runs before the event is recycled, with the async body wrapped in a
-  // try/catch that reports failures instead of leaking an unhandled rejection.
-  const handlePasteIntoFolder = useCallback((node: FileNode, e: React.MouseEvent) => {
+  // runs before the event is recycled, with the async body run through
+  // runAndLogFailure so failures are reported instead of leaking an unhandled
+  // rejection.
+  const handlePasteIntoFolder = (node: FileNode, e: React.MouseEvent) => {
     e.stopPropagation();
     const cutItems = getCutItems();
     if (cutItems.length === 0) return;
 
-    void (async () => {
-      try {
-        const result = await pasteCutItems(
-          cutItems,
-          node.path,
-          api.pathExists,
-          api.renameFile
-        );
+    runAndLogFailure('Failed to paste items into folder:', async () => {
+      const result = await pasteCutItems(
+        cutItems,
+        node.path,
+        api.pathExists,
+        api.renameFile
+      );
 
-        // The move is not atomic: reconcile the store/index with whatever
-        // actually moved on disk (movedPaths), even on partial failure, so the
-        // UI never desyncs. Items that failed to move stay cut at their source.
-        const sourceFolder = getParentPath(cutItems[0].path);
-        if (result.movedPaths.length > 0) {
-          deleteItems(result.movedPaths);
-          await Promise.all([
-            api.reconcileIndexedFiles(sourceFolder, false),
-            api.reconcileIndexedFiles(node.path, false),
-          ]);
+      // The move is not atomic: reconcile the store/index with whatever
+      // actually moved on disk (movedPaths), even on partial failure, so the
+      // UI never desyncs. Items that failed to move stay cut at their source.
+      const sourceFolder = getParentPath(cutItems[0].path);
+      if (result.movedPaths.length > 0) {
+        deleteItems(result.movedPaths);
+        await Promise.all([
+          api.reconcileIndexedFiles(sourceFolder, false),
+          api.reconcileIndexedFiles(node.path, false),
+        ]);
 
-          // If the browse view is currently showing this folder, refresh it
-          if (node.path === currentPath) {
-            onRefreshDirectory?.();
-          }
-
-          // Refresh both the destination and source folders if they are expanded.
-          await reloadExpandedTreeFolder(node.path);
-          await reloadExpandedTreeFolder(sourceFolder);
-        }
-
-        if (result.success) {
-          clearAllCutItems();
-        }
-      } catch (err) {
-        logger.error('Failed to paste items into folder:', err);
-      }
-    })();
-  }, [currentPath, onRefreshDirectory]);
-
-  const handleCreateFolder = useCallback((folderName: string) => {
-    const parentPath = createFolderParent;
-    if (!parentPath) return;
-
-    void (async () => {
-      try {
-        const folderPath = joinPath(parentPath, folderName);
-        const result = await api.createFolder(folderPath);
-        setCreateFolderParent(null);
-        if (!result.success) return;
-
-        await api.reconcileIndexedFiles(parentPath, false);
-
-        // If the browse view is currently showing this folder, refresh it.
-        if (parentPath === currentPath) {
+        // If the browse view is currently showing this folder, refresh it
+        if (node.path === currentPath) {
           onRefreshDirectory?.();
         }
 
-        // Refresh the parent folder in the tree if it is expanded.
-        await reloadExpandedTreeFolder(parentPath);
-      } catch (err) {
-        logger.error('Failed to create folder:', err);
+        // Refresh both the destination and source folders if they are expanded.
+        await reloadExpandedTreeFolder(node.path);
+        await reloadExpandedTreeFolder(sourceFolder);
       }
-    })();
-  }, [createFolderParent, currentPath, onRefreshDirectory]);
 
-  const handleRename = useCallback((newName: string) => {
+      if (result.success) {
+        clearAllCutItems();
+      }
+    });
+  };
+
+  const handleCreateFolder = (folderName: string) => {
+    const parentPath = createFolderParent;
+    if (!parentPath) return;
+
+    runAndLogFailure('Failed to create folder:', async () => {
+      const folderPath = joinPath(parentPath, folderName);
+      const result = await api.createFolder(folderPath);
+      setCreateFolderParent(null);
+      if (!result.success) return;
+
+      await api.reconcileIndexedFiles(parentPath, false);
+
+      // If the browse view is currently showing this folder, refresh it.
+      if (parentPath === currentPath) {
+        onRefreshDirectory?.();
+      }
+
+      // Refresh the parent folder in the tree if it is expanded.
+      await reloadExpandedTreeFolder(parentPath);
+    });
+  };
+
+  const handleRename = (newName: string) => {
     const target = renameTarget;
     setRenameTarget(null);
     if (!target) return;
 
-    void (async () => {
-      try {
-        const parentPath = getParentPath(target.path);
-        const newPath = joinPath(parentPath, newName);
-        const success = await api.renameFile(target.path, newPath);
-        if (!success) return;
+    runAndLogFailure('Failed to rename item:', async () => {
+      const parentPath = getParentPath(target.path);
+      const newPath = joinPath(parentPath, newName);
+      const success = await api.renameFile(target.path, newPath);
+      if (!success) return;
 
-        // If the browse view is showing the renamed item or its parent, refresh it.
-        if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
-          onRefreshDirectory?.();
-        }
-
-        // Refresh the parent folder in the tree if it is expanded.
-        await reloadExpandedTreeFolder(parentPath);
-      } catch (err) {
-        logger.error('Failed to rename item:', err);
+      // If the browse view is showing the renamed item or its parent, refresh it.
+      if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
+        onRefreshDirectory?.();
       }
-    })();
-  }, [renameTarget, currentPath, onRefreshDirectory]);
 
-  const handleDelete = useCallback(() => {
+      // Refresh the parent folder in the tree if it is expanded.
+      await reloadExpandedTreeFolder(parentPath);
+    });
+  };
+
+  const handleDelete = () => {
     const target = deleteTarget;
     setDeleteTarget(null);
     if (!target) return;
 
-    void (async () => {
-      try {
-        const parentPath = getParentPath(target.path);
-        const success = await api.deleteFile(target.path);
-        if (!success) return;
+    runAndLogFailure('Failed to delete item:', async () => {
+      const parentPath = getParentPath(target.path);
+      const success = await api.deleteFile(target.path);
+      if (!success) return;
 
-        deleteItems([target.path]);
-        await api.reconcileIndexedFiles(parentPath, false);
+      deleteItems([target.path]);
+      await api.reconcileIndexedFiles(parentPath, false);
 
-        // If the browse view is showing the deleted item or its parent, refresh it.
-        if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
-          onRefreshDirectory?.();
-        }
-
-        // Refresh the parent folder in the tree if it is expanded.
-        await reloadExpandedTreeFolder(parentPath);
-      } catch (err) {
-        logger.error('Failed to delete item:', err);
+      // If the browse view is showing the deleted item or its parent, refresh it.
+      if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
+        onRefreshDirectory?.();
       }
-    })();
-  }, [deleteTarget, currentPath, onRefreshDirectory]);
+
+      // Refresh the parent folder in the tree if it is expanded.
+      await reloadExpandedTreeFolder(parentPath);
+    });
+  };
 
   /**
    * Handles a drag-and-drop of a file or folder entry onto a directory node.
@@ -455,7 +454,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    * store, and refreshes both the source and destination folders in the tree and
    * (if visible) in the browse view.
    */
-  const handleDropOnFolder = useCallback((node: FileNode, e: React.DragEvent) => {
+  const handleDropOnFolder = (node: FileNode, e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragOverPath(null);
@@ -466,41 +465,37 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     if (!payload || !node.isDirectory) return;
     if (!canDropInto(payload, node.path)) return;
 
-    void (async () => {
-      try {
-        const result = await moveEntryIntoFolder(payload, node.path);
-        if (!result.success) return;
+    runAndLogFailure('Failed to move item into folder:', async () => {
+      const result = await moveEntryIntoFolder(payload, node.path);
+      if (!result.success) return;
 
-        // Drop the moved item from the store so the browse view stops showing it.
-        deleteItems([payload.path]);
+      // Drop the moved item from the store so the browse view stops showing it.
+      deleteItems([payload.path]);
 
-        // Refresh the browse view if it is showing either affected folder.
-        if (node.path === currentPath || result.sourceFolder === currentPath) {
-          onRefreshDirectory?.();
-        }
-
-        await reloadExpandedTreeFolder(node.path);
-        await reloadExpandedTreeFolder(result.sourceFolder);
-      } catch (err) {
-        logger.error('Failed to move item into folder:', err);
+      // Refresh the browse view if it is showing either affected folder.
+      if (node.path === currentPath || result.sourceFolder === currentPath) {
+        onRefreshDirectory?.();
       }
-    })();
-  }, [currentPath, onRefreshDirectory]);
 
-  const handleDragOverFolder = useCallback((node: FileNode, e: React.DragEvent) => {
+      await reloadExpandedTreeFolder(node.path);
+      await reloadExpandedTreeFolder(result.sourceFolder);
+    });
+  };
+
+  const handleDragOverFolder = (node: FileNode, e: React.DragEvent) => {
     if (!node.isDirectory) return;
     if (!e.dataTransfer.types.includes(ENTRY_DND_MIME)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     if (dragOverPath !== node.path) setDragOverPath(node.path);
-  }, [dragOverPath]);
+  };
 
-  const handleRunScript = useCallback((node: FileNode) => {
+  const handleRunScript = (node: FileNode) => {
     if (runningScript) return;
     setRunningScript(node.path);
     void api.runShellScript(node.path);
     setTimeout(() => setRunningScript(null), 3000);
-  }, [runningScript]);
+  };
 
   const toggleBookmarksMenu = () => setShowBookmarksMenu(prev => !prev);
   const closeBookmarksMenu = () => setShowBookmarksMenu(false);

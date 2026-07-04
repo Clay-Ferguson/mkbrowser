@@ -92,6 +92,7 @@ function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownView
   );
 }
 
-// Props are two strings, a boolean, and onEditClick (a useCallback that only changes when this
-// entry's item changes), so memo lets unrelated store updates skip the markdown re-parse entirely.
+// Props are two strings, a boolean, and onEditClick (memoized by the React Compiler in
+// useEditMode, so it only changes when this entry's item changes), so memo lets unrelated
+// store updates skip the markdown re-parse entirely.
 export default memo(MarkdownView);

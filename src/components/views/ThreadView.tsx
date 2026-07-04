@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { clsx } from 'clsx';
 import { FolderIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
@@ -24,6 +24,21 @@ const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
 interface ThreadViewProps {
   onSaveSettings: () => void;
+}
+
+/**
+ * Fetches the ordered list of HUMAN.md / AI.md turn files for the given folder
+ * hierarchy via IPC. Module-level (not in the component) so its try/catch
+ * doesn't make the React Compiler bail out on ThreadView. Returns null when
+ * the gather fails (already logged here).
+ */
+async function gatherThread(path: string) {
+  try {
+    return await api.gatherThreadEntries(path);
+  } catch (err) {
+    logger.error('Failed to load thread entries:', err);
+    return null;
+  }
 }
 
 /**
@@ -57,81 +72,71 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
    * persists the new active persona via `saveAiConfig` so the editor's AI Rewrite
    * button (which reads the same store mirror) picks it up immediately.
    */
-  const handlePersonaSelect = useCallback((name: string) => {
+  const handlePersonaSelect = (name: string) => {
     setTypingDraft(null);
     void saveAiConfig({ aiRewritePrompt: name });
-  }, []);
+  };
 
   // Ref to the scrollable container (used for auto-scrolling to bottom / to an item)
   const mainContainerRef = useRef<HTMLElement | null>(null);
 
-  /**
-   * Fetches the ordered list of HUMAN.md / AI.md turn files for the current
-   * folder hierarchy via `gatherThreadEntries`, seeds the store with each
-   * entry's metadata so MarkdownEntry's content loader can warm its cache, and
-   * updates the `isThread` / `childFolders` state that drives the UI branches.
-   */
-  const loadThread = useCallback(async () => {
-    if (!currentPath) {
-      setIsThread(false);
-      setChildFolders([]);
-      setLoading(false);
-      return;
-    }
+  // Bumped by refreshThread to re-run the load effect without a path change.
+  const [refreshTick, setRefreshTick] = useState(0);
 
-    setLoading(true);
+  /**
+   * Loads the thread when the path changes (or refreshTick is bumped): fetches
+   * the ordered list of HUMAN.md / AI.md turn files for the current folder
+   * hierarchy via `gatherThread`, seeds the store with each entry's metadata
+   * so MarkdownEntry's content loader can warm its cache, and updates the
+   * `isThread` / `childFolders` state that drives the UI branches.
+   */
+  useEffect(() => {
     // A slow gather can resolve after the user has navigated elsewhere, so
     // every state write below (including the loading flip) is gated on the
     // loaded path still being current — otherwise this run's results are
     // stale and belong to a folder we've already left.
     const isStale = () => useAS.getState().currentPath !== currentPath;
-    try {
-      const result = await api.gatherThreadEntries(currentPath);
-      if (isStale()) return;
-      setIsThread(result.isThread);
-      setThreadEntries(result.entries);
-      setChildFolders(result.childFolders);
-
-      // Seed the store with item data for each entry so that useContentLoader
-      // inside MarkdownEntry can look them up and cache content.
-      if (result.entries.length > 0) {
-        upsertItems(
-          result.entries.map((e) => ({
-            path: e.filePath,
-            name: e.fileName,
-            isDirectory: false,
-            modifiedTime: e.modifiedTime,
-            createdTime: e.createdTime,
-          })),
-        );
-      }
-    } catch (err) {
-      logger.error('Failed to load thread entries:', err);
-      if (isStale()) return;
-      setIsThread(false);
-      setChildFolders([]);
-    } finally {
-      if (!isStale()) {
-        setLoading(false);
-      }
-    }
-  }, [currentPath]);
-
-  // Load the thread when the path changes.
-  //
-  // This is React's documented pattern for running async work in an effect:
-  // the async call is moved inside an inline async function (await as its first
-  // statement) rather than being invoked directly in the effect body.
-  useEffect(() => {
+    // React's documented pattern for async work in an effect: the body lives
+    // in an inline async function rather than the effect body itself.
     void (async () => {
-      await loadThread();
+      if (!currentPath) {
+        setIsThread(false);
+        setChildFolders([]);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      const result = await gatherThread(currentPath);
+      if (isStale()) return;
+      if (result) {
+        setIsThread(result.isThread);
+        setThreadEntries(result.entries);
+        setChildFolders(result.childFolders);
+
+        // Seed the store with item data for each entry so that useContentLoader
+        // inside MarkdownEntry can look them up and cache content.
+        if (result.entries.length > 0) {
+          upsertItems(
+            result.entries.map((e) => ({
+              path: e.filePath,
+              name: e.fileName,
+              isDirectory: false,
+              modifiedTime: e.modifiedTime,
+              createdTime: e.createdTime,
+            })),
+          );
+        }
+      } else {
+        setIsThread(false);
+        setChildFolders([]);
+      }
+      setLoading(false);
     })();
-  }, [loadThread]);
+  }, [currentPath, refreshTick]);
 
   // Callback for entry rename / delete — reload the thread
-  const refreshThread = useCallback(() => {
-    void loadThread();
-  }, [loadThread]);
+  const refreshThread = () => setRefreshTick((t) => t + 1);
 
   // When pendingScrollToBottom becomes true, remember the intent in a ref.
   // The actual scroll happens once loading finishes (content is rendered).
@@ -187,18 +192,18 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   }, [loading, pendingEditFile, pendingEditView, mainContainerRef]);
 
   // Navigate breadcrumb — switches to browser view at the given path
-  const handleBreadcrumbNavigate = useCallback((path: string) => {
+  const handleBreadcrumbNavigate = (path: string) => {
     navigateToBrowserPath(path);
-  }, []);
+  };
 
   /**
    * Navigates into a conversation branch folder while keeping the current view
    * set to 'thread', so the user drills deeper into the conversation tree
    * without switching to the browser tab.
    */
-  const handleChildFolderClick = useCallback((folderPath: string) => {
+  const handleChildFolderClick = (folderPath: string) => {
     navigateToBrowserPath(folderPath, undefined, 'thread');
-  }, []);
+  };
 
   const breadcrumbHeader = (
     <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">

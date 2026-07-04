@@ -57,7 +57,9 @@
       "Bash(yarn make *)",
       "Bash(yarn eslint *)",
       "Bash(yarn lint *)",
-      "Bash(yarn test *)"
+      "Bash(yarn test *)",
+      "Bash(yarn vitest *)",
+      "Bash(yarn package *)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

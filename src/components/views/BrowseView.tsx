@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
   ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
@@ -69,6 +69,18 @@ import { buildReplaceResultMessage } from '../../shared/searchHelpers';
 import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
 import { getFileName } from '../../renderer/pathUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
+
+/**
+ * Fire-and-forget runner for BrowseView's async handlers (bound to button
+ * clicks and entry onRename/onDelete props, all `() => void`): awaits `op` and
+ * reports a failure through `onError`, prefixed, instead of leaking an
+ * unhandled rejection. Module-level so the handlers need no try/catch bodies —
+ * the React Compiler bails out on try/finally and on value blocks (`?.`, `||`,
+ * ternaries) inside a try/catch statement.
+ */
+function runOp(op: () => Promise<void>, errorPrefix: string, onError: (msg: string | null) => void): void {
+  op().catch((err: unknown) => onError(errorPrefix + (err instanceof Error ? err.message : String(err))));
+}
 
 interface AttachFolderContentsProps {
   entries: FileEntry[];
@@ -209,40 +221,31 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const showExpandAll = expansionCounts.totalCount > 0 && expansionCounts.expandedCount < expansionCounts.totalCount;
   const showCollapseAll = expansionCounts.totalCount > 0 && expansionCounts.collapsedCount < expansionCounts.totalCount;
 
-  // NOTE: the React Compiler currently bails out on this component (hooks-lint suppressions
-  // below, plus conditionals inside try/catch — unsupported by babel-plugin-react-compiler 1.0),
-  // so the useMemo calls in this file are still load-bearing. Don't remove them until the
-  // compiler actually compiles BrowseView.
-  const sortedEntries = useMemo(() => {
-    const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
-    const entriesWithCurrentTimes = visibleEntries.map((entry) => {
-      const item = items.get(entry.path);
-      if (item && (item.modifiedTime !== entry.modifiedTime || item.createdTime !== entry.createdTime)) {
-        return { ...entry, modifiedTime: item.modifiedTime, createdTime: item.createdTime };
-      }
-      return entry;
-    });
-    if (hasIndexFile) {
-      return [...entriesWithCurrentTimes].sort((a, b) => {
+  const uncutEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
+  const entriesWithCurrentTimes = uncutEntries.map((entry) => {
+    const item = items.get(entry.path);
+    if (item && (item.modifiedTime !== entry.modifiedTime || item.createdTime !== entry.createdTime)) {
+      return { ...entry, modifiedTime: item.modifiedTime, createdTime: item.createdTime };
+    }
+    return entry;
+  });
+  const sortedEntries = hasIndexFile
+    ? [...entriesWithCurrentTimes].sort((a, b) => {
         const aOrder = a.indexOrder ?? Infinity;
         const bOrder = b.indexOrder ?? Infinity;
         if (aOrder !== bOrder) return aOrder - bOrder;
         return a.name.localeCompare(b.name);
-      });
-    }
-    return sortEntries(entriesWithCurrentTimes, settings.sortOrder, settings.foldersOnTop);
-  }, [entries, items, hasIndexFile, settings.sortOrder, settings.foldersOnTop]);
+      })
+    : sortEntries(entriesWithCurrentTimes, settings.sortOrder, settings.foldersOnTop);
 
-  const visibleEntries = useMemo(() => {
-    if (!expandedEditor) return sortedEntries;
-    const editing = sortedEntries.filter((entry) => !entry.isDirectory && items.get(entry.path)?.editing);
-    return editing.length > 0 ? editing : sortedEntries;
-  }, [expandedEditor, sortedEntries, items]);
+  // In expanded-editor mode, show only the entries being edited (fall back to
+  // everything when nothing is in edit mode yet).
+  const editingEntries = expandedEditor
+    ? sortedEntries.filter((entry) => !entry.isDirectory && items.get(entry.path)?.editing)
+    : [];
+  const visibleEntries = expandedEditor && editingEntries.length > 0 ? editingEntries : sortedEntries;
 
-  const allImages = useMemo(
-    () => sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name)),
-    [sortedEntries]
-  );
+  const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
 
   const hasSelectedItems = Array.from(items.values()).some((item) => item.isSelected);
   const hasCutItems = Array.from(items.values()).some((item) => item.isCut);
@@ -354,10 +357,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   // When expanded editor activates and a file starts editing, save scroll position
   // and scroll to top. When expanded editing ends, restore the saved position.
-  const anyItemEditing = useMemo(
-    () => Array.from(items.values()).some((item) => item.editing),
-    [items]
-  );
+  const anyItemEditing = Array.from(items.values()).some((item) => item.editing);
 
   // NOTE: when we're editing in expanded mode that will mean our scroll bar will be completely irrelevant 
   // when we re-render the page after the editing is completed, and so the logic related to 'preEditScrollPositionRef'
@@ -386,7 +386,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   }, [expandedEditor, anyItemEditing, currentPath]);
 
   // Handle scroll events on the main container (debounced save)
-  const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
+  const handleMainScroll = (e: React.UIEvent<HTMLElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
     if (scrollSaveTimerRef.current) {
       clearTimeout(scrollSaveTimerRef.current);
@@ -396,7 +396,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         setBrowserScrollPosition(currentPath, scrollTop);
       }
     }, 150);
-  }, [currentPath]);
+  };
 
   // Clear any pending debounced save on unmount (full app teardown / closing
   // the folder). BrowseView no longer unmounts on tab switches, so there is no
@@ -411,20 +411,16 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   // The reconcile-then-refresh handlers below are fire-and-forget (bound to a
   // button click and passed to entry onRename/onDelete props, all `() => void`),
-  // so they use the sync-signature + internal try/catch convention and report
-  // failures through onSetError rather than leaking an unhandled rejection.
-  const handleRefresh = useCallback(() => {
-    void (async () => {
-      try {
-        if (currentPath && hasIndexFile) {
-          await api.reconcileIndexedFiles(currentPath, false);
-        }
-        onRefreshDirectory();
-      } catch (err) {
-        onSetError('Failed to refresh folder: ' + (err instanceof Error ? err.message : String(err)));
+  // so they use the sync-signature convention and report failures through
+  // onSetError via runOp rather than leaking an unhandled rejection.
+  const handleRefresh = () => {
+    runOp(async () => {
+      if (currentPath && hasIndexFile) {
+        await api.reconcileIndexedFiles(currentPath, false);
       }
-    })();
-  }, [currentPath, hasIndexFile, onRefreshDirectory, onSetError]);
+      onRefreshDirectory();
+    }, 'Failed to refresh folder: ', onSetError);
+  };
 
   // Rename/delete completion needs the identical reconcile-then-refresh; keep the
   // names for call-site readability.
@@ -433,37 +429,25 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const handleMoveEntry = (name: string, direction: 'up' | 'down') => {
     if (!currentPath) return;
-    void (async () => {
-      try {
-        await api.moveInIndexYaml(currentPath, name, direction);
-        onRefreshDirectory();
-      } catch (err) {
-        onSetError('Failed to move item: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
+    runOp(async () => {
+      await api.moveInIndexYaml(currentPath, name, direction);
+      onRefreshDirectory();
+    }, 'Failed to move item: ', onSetError);
   };
 
   const handleMoveEntryToEdge = (name: string, edge: 'top' | 'bottom') => {
     if (!currentPath) return;
-    void (async () => {
-      try {
-        await api.moveToEdgeInIndexYaml(currentPath, name, edge);
-        onRefreshDirectory();
-      } catch (err) {
-        onSetError('Failed to move item: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
+    runOp(async () => {
+      await api.moveToEdgeInIndexYaml(currentPath, name, edge);
+      onRefreshDirectory();
+    }, 'Failed to move item: ', onSetError);
   };
 
-  const doPasteIntoFolder = useCallback((folderPath: string) => {
-    void (async () => {
-      try {
-        await pasteIntoFolder(folderPath, items, onSetError, onRefreshDirectory);
-      } catch (err) {
-        onSetError('Failed to paste into folder: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [items, onRefreshDirectory, onSetError]);
+  const doPasteIntoFolder = (folderPath: string) => {
+    runOp(async () => {
+      await pasteIntoFolder(folderPath, items, onSetError, onRefreshDirectory);
+    }, 'Failed to paste into folder: ', onSetError);
+  };
 
   /**
    * Returns the attachment folder path for `filePath`, creating it on disk if it
@@ -471,7 +455,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
    * folder is also inserted into .INDEX.yaml immediately after its parent file.
    * Returns null and reports an error if folder creation fails.
    */
-  const ensureAttachFolder = useCallback(async (filePath: string): Promise<string | null> => {
+  const ensureAttachFolder = async (filePath: string): Promise<string | null> => {
     const attachFolderPath = `${filePath}${ATTACH_SUFFIX}`;
     const exists = await api.pathExists(attachFolderPath);
     if (!exists) {
@@ -487,75 +471,52 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       }
     }
     return attachFolderPath;
-  }, [onSetError, hasIndexFile, currentPath]);
+  };
 
-  const doPasteAsAttachment = useCallback((filePath: string) => {
-    void (async () => {
-      try {
-        const attachFolderPath = await ensureAttachFolder(filePath);
-        if (!attachFolderPath) return;
-        await pasteIntoFolder(attachFolderPath, items, onSetError, onRefreshDirectory);
-      } catch (err) {
-        onSetError('Failed to paste as attachment: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [ensureAttachFolder, items, onRefreshDirectory, onSetError]);
+  const doPasteAsAttachment = (filePath: string) => {
+    runOp(async () => {
+      const attachFolderPath = await ensureAttachFolder(filePath);
+      if (!attachFolderPath) return;
+      await pasteIntoFolder(attachFolderPath, items, onSetError, onRefreshDirectory);
+    }, 'Failed to paste as attachment: ', onSetError);
+  };
 
-  const doPasteClipboardAsAttachment = useCallback((filePath: string) => {
-    void (async () => {
-      try {
-        const attachFolderPath = await ensureAttachFolder(filePath);
-        if (!attachFolderPath) return;
-        await pasteFromClipboardOp(attachFolderPath, onRefreshDirectory, onSetError);
-      } catch (err) {
-        onSetError('Failed to paste as attachment: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [ensureAttachFolder, onRefreshDirectory, onSetError]);
+  const doPasteClipboardAsAttachment = (filePath: string) => {
+    runOp(async () => {
+      const attachFolderPath = await ensureAttachFolder(filePath);
+      if (!attachFolderPath) return;
+      await pasteFromClipboardOp(attachFolderPath, onRefreshDirectory, onSetError);
+    }, 'Failed to paste as attachment: ', onSetError);
+  };
 
   const getSelectedItems = () => Array.from(items.values()).filter((item) => item.isSelected);
 
-  const performDelete = useCallback(() => {
-    void (async () => {
-      try {
-        await deleteSelected(getSelectedItems(), currentPath, hasIndexFile, onSetError, onRefreshDirectory, () => setShowDeleteConfirm(false));
-      } catch (err) {
-        onSetError('Failed to delete: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- false positive: getSelectedItems only reads items, which is already a dep. Listing the unmemoized helper would defeat this callback's memoization.
-  }, [currentPath, hasIndexFile, items, onRefreshDirectory, onSetError]);
+  const performDelete = () => {
+    runOp(async () => {
+      await deleteSelected(getSelectedItems(), currentPath, hasIndexFile, onSetError, onRefreshDirectory, () => setShowDeleteConfirm(false));
+    }, 'Failed to delete: ', onSetError);
+  };
 
-  const handleSplitFile = useCallback(() => {
+  const handleSplitFile = () => {
     if (!currentPath) return;
-    void (async () => {
-      try {
-        await splitSelectedFile(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
-      } catch (err) {
-        onSetError('Failed to split file: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- false positive: getSelectedItems only reads items, which is already a dep. Listing the unmemoized helper would defeat this callback's memoization.
-  }, [currentPath, items, onRefreshDirectory, onSetError]);
+    runOp(async () => {
+      await splitSelectedFile(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
+    }, 'Failed to split file: ', onSetError);
+  };
 
-  const handleJoinFiles = useCallback(() => {
+  const handleJoinFiles = () => {
     if (!currentPath) return;
-    void (async () => {
-      try {
-        await joinSelectedFiles(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
-      } catch (err) {
-        onSetError('Failed to join files: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- false positive: getSelectedItems only reads items, which is already a dep. Listing the unmemoized helper would defeat this callback's memoization.
-  }, [currentPath, items, onRefreshDirectory, onSetError]);
+    runOp(async () => {
+      await joinSelectedFiles(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
+    }, 'Failed to join files: ', onSetError);
+  };
 
   /**
    * Marks selected items as cut. If any selected file has a sibling attachment
    * folder that was not also selected, prompts the user to confirm cutting the
    * file without its attachments before proceeding.
    */
-  const handleCutClick = useCallback(() => {
+  const handleCutClick = () => {
     const hasOrphanedAttachment = visibleEntries.some((entry) => {
       if (entry.isDirectory || !items.get(entry.path)?.isSelected) return false;
       const attachName = `${entry.name}${ATTACH_SUFFIX}`;
@@ -567,103 +528,91 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     } else {
       cutSelectedItems();
     }
-  }, [visibleEntries, items]);
+  };
 
-  const handleExport = useCallback(({ outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers, exportToPdf }: ExportOptions) => {
+  const handleExport = ({ outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers, exportToPdf }: ExportOptions) => {
     if (!currentPath) return;
 
     setShowExportDialog(false);
     onSetError(null);
 
-    void (async () => {
-      try {
-        onSetLastExportFolder(outputFolder);
-        await api.updateConfig({ lastExportFolder: outputFolder });
+    runOp(async () => {
+      onSetLastExportFolder(outputFolder);
+      await api.updateConfig({ lastExportFolder: outputFolder });
 
-        const result = await api.exportFolderContents(currentPath, outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers);
+      const result = await api.exportFolderContents(currentPath, outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers);
 
-        if (!result.success) {
-          onSetError(result.error || 'Failed to export folder contents');
+      if (!result.success) {
+        onSetError(result.error || 'Failed to export folder contents');
+        return;
+      }
+
+      if (exportToPdf && result.outputPath) {
+        const pdfPath = result.outputPath.replace(/\.md$/i, '.pdf');
+        const pdfResult = await api.exportToPdf(result.outputPath, pdfPath, currentPath);
+
+        if (!pdfResult.success) {
+          onSetError(pdfResult.error || 'Failed to launch PDF export');
           return;
         }
-
-        if (exportToPdf && result.outputPath) {
-          const pdfPath = result.outputPath.replace(/\.md$/i, '.pdf');
-          const pdfResult = await api.exportToPdf(result.outputPath, pdfPath, currentPath);
-
-          if (!pdfResult.success) {
-            onSetError(pdfResult.error || 'Failed to launch PDF export');
-            return;
-          }
-        } else {
-          if (result.outputPath) {
-            await api.openExternal(result.outputPath);
-          }
+      } else {
+        if (result.outputPath) {
+          await api.openExternal(result.outputPath);
         }
-      } catch (err) {
-        onSetError('Failed to export folder contents: ' + (err instanceof Error ? err.message : String(err)));
       }
-    })();
-  }, [currentPath, onSetError, onSetLastExportFolder]);
+    }, 'Failed to export folder contents: ', onSetError);
+  };
 
-  const handleCancelExport = useCallback(() => {
+  const handleCancelExport = () => {
     setShowExportDialog(false);
-  }, []);
+  };
 
-  const handleOpenCreateDialog = useCallback(() => {
+  const handleOpenCreateDialog = () => {
     setInsertAtIndex(null);
     setCreateFileDefaultName('');
     setShowCreateDialog(true);
-  }, []);
+  };
 
   // No longer used — kept for reference in case we return to prompting users for a file name during document mode editing
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _handleInsertFileAt_legacy = useCallback((insertIndex: number) => {
+  const _handleInsertFileAt_legacy = (insertIndex: number) => {
     setInsertAtIndex(insertIndex);
     setCreateFileDefaultName('');
     setShowCreateDialog(true);
-  }, []);
+  };
 
   const handleInsertFileAt = (insertIndex: number) => {
     const fileName = generateTimestampFileName();
-    void (async () => {
-      try {
-        await createFileOp(fileName, currentPath, insertIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
-          setShowCreateDialog(false);
-          setCreateFileDefaultName('');
-          setInsertAtIndex(null);
-        });
-      } catch (err) {
-        onSetError('Failed to create file: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
+    runOp(async () => {
+      await createFileOp(fileName, currentPath, insertIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
+        setShowCreateDialog(false);
+        setCreateFileDefaultName('');
+        setInsertAtIndex(null);
+      });
+    }, 'Failed to create file: ', onSetError);
   };
 
-  const handleCreateFile = useCallback((fileName: string) => {
-    void (async () => {
-      try {
-        await createFileOp(fileName, currentPath, insertAtIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
-          setShowCreateDialog(false);
-          setCreateFileDefaultName('');
-          setInsertAtIndex(null);
-        });
-      } catch (err) {
-        onSetError('Failed to create file: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [currentPath, onRefreshDirectory, onSetError, insertAtIndex, sortedEntries]);
+  const handleCreateFile = (fileName: string) => {
+    runOp(async () => {
+      await createFileOp(fileName, currentPath, insertAtIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
+        setShowCreateDialog(false);
+        setCreateFileDefaultName('');
+        setInsertAtIndex(null);
+      });
+    }, 'Failed to create file: ', onSetError);
+  };
 
-  const handleCancelCreate = useCallback(() => {
+  const handleCancelCreate = () => {
     setShowCreateDialog(false);
     setCreateFileDefaultName('');
     setInsertAtIndex(null);
-  }, []);
+  };
 
-  const handleOpenCreateFolderDialog = useCallback(() => {
+  const handleOpenCreateFolderDialog = () => {
     setInsertAtIndex(null);
     setCreateFolderDefaultName('');
     setShowCreateFolderDialog(true);
-  }, []);
+  };
 
   const handleInsertFolderAt = (insertIndex: number) => {
     setInsertAtIndex(insertIndex);
@@ -671,93 +620,81 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setShowCreateFolderDialog(true);
   };
 
-  const handleCreateFolder = useCallback((folderName: string) => {
-    void (async () => {
-      try {
-        await createFolderOp(folderName, currentPath, insertAtIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
-          setShowCreateFolderDialog(false);
-          setCreateFolderDefaultName('');
-          setInsertAtIndex(null);
-        });
-      } catch (err) {
-        onSetError('Failed to create folder: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [currentPath, onRefreshDirectory, onSetError, insertAtIndex, sortedEntries]);
+  const handleCreateFolder = (folderName: string) => {
+    runOp(async () => {
+      await createFolderOp(folderName, currentPath, insertAtIndex, sortedEntries, onRefreshDirectory, onSetError, () => {
+        setShowCreateFolderDialog(false);
+        setCreateFolderDefaultName('');
+        setInsertAtIndex(null);
+      });
+    }, 'Failed to create folder: ', onSetError);
+  };
 
-  const handleCancelCreateFolder = useCallback(() => {
+  const handleCancelCreateFolder = () => {
     setShowCreateFolderDialog(false);
     setCreateFolderDefaultName('');
     setInsertAtIndex(null);
-  }, []);
+  };
 
-  const handleOpenSearchDialog = useCallback(() => {
+  const handleOpenSearchDialog = () => {
     setSearchDialogInitialValues(undefined);
     setShowSearchDialog(true);
-  }, []);
+  };
 
-  const handleSearch = useCallback((options: SearchOptions) => {
+  const handleSearch = (options: SearchOptions) => {
     if (!currentPath) return;
 
     setShowSearchDialog(false);
 
-    void (async () => {
-      try {
-        if (options.searchName) {
-          const definition: SearchDefinition = {
-            name: options.searchName,
-            searchText: options.query,
-            searchTarget: options.searchMode,
-            searchMode: options.searchType,
-            sortBy: options.sortBy,
-            sortDirection: options.sortDirection,
-            searchImageExif: options.searchImageExif,
-            mostRecent: options.mostRecent,
-          };
-          await saveSearchDefinitionToConfig(definition);
-        }
-
-        // Decode {{nl}} tokens back to spaces for actual search execution
-        const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
-
-        const results = await api.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchImageExif, options.mostRecent);
-        setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection, options.searchName || '');
-        setCurrentView('search-results');
-      } catch (err) {
-        onSetError('Search failed: ' + (err instanceof Error ? err.message : String(err)));
+    runOp(async () => {
+      if (options.searchName) {
+        const definition: SearchDefinition = {
+          name: options.searchName,
+          searchText: options.query,
+          searchTarget: options.searchMode,
+          searchMode: options.searchType,
+          sortBy: options.sortBy,
+          sortDirection: options.sortDirection,
+          searchImageExif: options.searchImageExif,
+          mostRecent: options.mostRecent,
+        };
+        await saveSearchDefinitionToConfig(definition);
       }
-    })();
-  }, [currentPath, onSetError]);
 
-  const handleCancelSearch = useCallback(() => {
+      // Decode {{nl}} tokens back to spaces for actual search execution
+      const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
+
+      const results = await api.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchImageExif, options.mostRecent);
+      setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection, options.searchName || '');
+      setCurrentView('search-results');
+    }, 'Search failed: ', onSetError);
+  };
+
+  const handleCancelSearch = () => {
     setShowSearchDialog(false);
     setSearchDialogInitialValues(undefined);
-  }, []);
+  };
 
-  const handleReplace = useCallback((searchText: string, replaceText: string) => {
+  const handleReplace = (searchText: string, replaceText: string) => {
     if (!currentPath) return;
 
     setShowReplaceDialog(false);
 
-    void (async () => {
-      try {
-        const results = await api.searchAndReplace(currentPath, searchText, replaceText);
-        setReplaceResultMessage(buildReplaceResultMessage(results));
-        const totalReplacements = results.filter((r) => r.success).reduce((sum, r) => sum + r.replacementCount, 0);
-        if (totalReplacements > 0) {
-          onRefreshDirectory();
-        }
-      } catch (err) {
-        setReplaceResultMessage(`Replace failed: ${err instanceof Error ? err.message : String(err)}`);
+    runOp(async () => {
+      const results = await api.searchAndReplace(currentPath, searchText, replaceText);
+      setReplaceResultMessage(buildReplaceResultMessage(results));
+      const totalReplacements = results.filter((r) => r.success).reduce((sum, r) => sum + r.replacementCount, 0);
+      if (totalReplacements > 0) {
+        onRefreshDirectory();
       }
-    })();
-  }, [currentPath, onRefreshDirectory]);
+    }, 'Replace failed: ', setReplaceResultMessage);
+  };
 
-  const handleCancelReplace = useCallback(() => {
+  const handleCancelReplace = () => {
     setShowReplaceDialog(false);
-  }, []);
+  };
 
-  const handleSaveSearchDefinition = useCallback((options: SearchOptions) => {
+  const handleSaveSearchDefinition = (options: SearchOptions) => {
     if (!options.searchName) return;
     const definition: SearchDefinition = {
       name: options.searchName,
@@ -769,74 +706,58 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       searchImageExif: options.searchImageExif,
       mostRecent: options.mostRecent,
     };
-    void (async () => {
-      try {
-        await saveSearchDefinitionToConfig(definition);
-      } catch (err) {
-        onSetError('Failed to save search: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [onSetError]);
+    runOp(async () => {
+      await saveSearchDefinitionToConfig(definition);
+    }, 'Failed to save search: ', onSetError);
+  };
 
-  const handleDeleteSearchDefinition = useCallback((name: string) => {
-    void (async () => {
-      try {
-        await deleteSearchDefinitionFromConfig(name);
-      } catch (err) {
-        onSetError('Failed to delete search: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [onSetError]);
+  const handleDeleteSearchDefinition = (name: string) => {
+    runOp(async () => {
+      await deleteSearchDefinitionFromConfig(name);
+    }, 'Failed to delete search: ', onSetError);
+  };
 
-  const handlePasteFromClipboard = useCallback(() => {
-    void (async () => {
-      try {
-        await pasteFromClipboardOp(currentPath, onRefreshDirectory, onSetError);
-      } catch (err) {
-        onSetError('Failed to paste from clipboard: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [currentPath, onRefreshDirectory, onSetError]);
+  const handlePasteFromClipboard = () => {
+    runOp(async () => {
+      await pasteFromClipboardOp(currentPath, onRefreshDirectory, onSetError);
+    }, 'Failed to paste from clipboard: ', onSetError);
+  };
 
-  const navigateTo = useCallback((path: string) => {
+  const navigateTo = (path: string) => {
     setCurrentPath(path);
-  }, []);
+  };
 
-  const handleRunOcr = useCallback(() => {
+  const handleRunOcr = () => {
     if (!currentPath) return;
     void runOcr(currentPath, settings.ocrToolsFolder, items, onSetError);
-  }, [currentPath, settings.ocrToolsFolder, items, onSetError]);
+  };
 
-  const handleCopyLink = useCallback(() => {
+  const handleCopyLink = () => {
     const paths = Array.from(items.values())
       .filter((item) => item.isSelected)
       .map((item) => item.path);
     setSelectedLinkItems(paths);
     clearAllSelections();
-  }, [items]);
+  };
 
-  const handleSelectSortOrder = useCallback((order: Parameters<typeof setSortOrder>[0]) => {
+  const handleSelectSortOrder = (order: Parameters<typeof setSortOrder>[0]) => {
     setSortOrder(order);
     void onSaveSettings();
-  }, [onSaveSettings]);
+  };
 
-  const handleEnableCustomOrdering = useCallback(() => {
+  const handleEnableCustomOrdering = () => {
     if (!currentPath) return;
-    void (async () => {
-      try {
-        const result = await api.reconcileIndexedFiles(currentPath, true);
-        if (!result.success) {
-          onSetError(result.error || 'Failed to enable custom ordering');
-          return;
-        }
-        onRefreshDirectory();
-      } catch (err) {
-        onSetError('Failed to enable custom ordering: ' + (err instanceof Error ? err.message : String(err)));
+    runOp(async () => {
+      const result = await api.reconcileIndexedFiles(currentPath, true);
+      if (!result.success) {
+        onSetError(result.error || 'Failed to enable custom ordering');
+        return;
       }
-    })();
-  }, [currentPath, onRefreshDirectory, onSetError]);
+      onRefreshDirectory();
+    }, 'Failed to enable custom ordering: ', onSetError);
+  };
 
-  const handleRunSearch = useCallback((definition: SearchDefinition) => {
+  const handleRunSearch = (definition: SearchDefinition) => {
     if (!currentPath) return;
     void (async () => {
       const searchQuery = definition.searchText.replace(/\{\{nl\}\}/g, ' ');
@@ -851,9 +772,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc', definition.name);
       setCurrentView('search-results');
     })();
-  }, [currentPath]);
+  };
 
-  const handleEditSearch = useCallback((definition: SearchDefinition) => {
+  const handleEditSearch = (definition: SearchDefinition) => {
     setCurrentView('browser');
     setSearchDialogInitialValues({
       searchQuery: definition.searchText,
@@ -865,73 +786,63 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       searchImageExif: definition.searchImageExif,
     });
     setShowSearchDialog(true);
-  }, []);
+  };
 
-  const handleSelectAll = useCallback(() => {
+  const handleSelectAll = () => {
     const currentFolderPaths = entries.map((entry) => entry.path);
     selectItemsByPaths(currentFolderPaths);
-  }, [entries]);
+  };
 
-  const handleFolderAnalysis = useCallback(() => {
+  const handleFolderAnalysis = () => {
     if (!currentPath) return;
-    void (async () => {
-      try {
-        const result = await api.analyzeFolderHashtags(currentPath);
-        setFolderAnalysis({
-          hashtags: result.hashtags,
-          folderPath: currentPath,
-          totalFiles: result.totalFiles,
-        });
-        setCurrentView('folder-analysis');
-      } catch (err) {
-        onSetError('Failed to analyze folder: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [currentPath, onSetError]);
+    runOp(async () => {
+      const result = await api.analyzeFolderHashtags(currentPath);
+      setFolderAnalysis({
+        hashtags: result.hashtags,
+        folderPath: currentPath,
+        totalFiles: result.totalFiles,
+      });
+      setCurrentView('folder-analysis');
+    }, 'Failed to analyze folder: ', onSetError);
+  };
 
-  const handleFolderGraph = useCallback(() => {
+  const handleFolderGraph = () => {
     if (!currentPath) return;
-    void (async () => {
-      try {
-        const result = await api.scanFolderTree(currentPath);
-        setFolderGraph({
-          folderPath: result.folderPath,
-          nodes: result.nodes.map(n => ({ ...n })),
-          links: result.links.map(l => ({ ...l })),
-          truncated: result.truncated,
-          foldersOnly: result.foldersOnly,
-        });
-        setCurrentView('folder-graph');
-      } catch (err) {
-        onSetError('Failed to scan folder graph: ' + (err instanceof Error ? err.message : String(err)));
-      }
-    })();
-  }, [currentPath, onSetError]);
+    runOp(async () => {
+      const result = await api.scanFolderTree(currentPath);
+      setFolderGraph({
+        folderPath: result.folderPath,
+        nodes: result.nodes.map(n => ({ ...n })),
+        links: result.links.map(l => ({ ...l })),
+        truncated: result.truncated,
+        foldersOnly: result.foldersOnly,
+      });
+      setCurrentView('folder-graph');
+    }, 'Failed to scan folder graph: ', onSetError);
+  };
 
-  const handleShowCalendar = useCallback(() => {
+  const handleShowCalendar = () => {
     if (!currentPath) return;
     showTab('calendar');
     setCurrentView('calendar');
     setCalendarFolder(currentPath);
     setActiveCalendarFolder(currentPath);
     setCalendarLoading(true);
-    void (async () => {
-      try {
-        const results = await api.loadCalendarEvents(currentPath);
-        setCalendarEvents(results.map(r => ({
-          id: r.id,
-          title: r.title,
-          start: new Date(r.start),
-          end: new Date(r.end),
-          filePath: r.filePath,
-          snippet: r.snippet,
-        })));
-      } catch (err) {
-        onSetError('Failed to load calendar: ' + (err instanceof Error ? err.message : String(err)));
-        setCalendarEvents([]);
-      }
-    })();
-  }, [currentPath, onSetError]);
+    runOp(async () => {
+      const results = await api.loadCalendarEvents(currentPath);
+      setCalendarEvents(results.map(r => ({
+        id: r.id,
+        title: r.title,
+        start: new Date(r.start),
+        end: new Date(r.end),
+        filePath: r.filePath,
+        snippet: r.snippet,
+      })));
+    }, 'Failed to load calendar: ', (msg) => {
+      onSetError(msg);
+      setCalendarEvents([]);
+    });
+  };
 
   /**
    * Starts a new AI conversation in the current folder by creating a HUMAN.md
@@ -945,25 +856,21 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       onSetError('This folder already contains an AI conversation. Please navigate to a different folder to start a new chat.');
       return;
     }
-    void (async () => {
-      try {
-        const result = await api.replyToAi(currentPath, false);
-        if ('error' in result) {
-          onSetError('Failed to create AI chat: ' + result.error);
-        } else {
-          const view = 'thread';
-          navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
-          setPendingEditFile(result.filePath, view);
-          // The new HUMAN.md is created directly in the current folder, so
-          // currentPath doesn't change and BrowseView's load effect won't
-          // re-fire on its own. Refresh explicitly so the file appears when
-          // the user switches back to the browse view.
-          onRefreshDirectory();
-        }
-      } catch (err) {
-        onSetError('Failed to create AI chat: ' + (err instanceof Error ? err.message : String(err)));
+    runOp(async () => {
+      const result = await api.replyToAi(currentPath, false);
+      if ('error' in result) {
+        onSetError('Failed to create AI chat: ' + result.error);
+      } else {
+        const view = 'thread';
+        navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
+        setPendingEditFile(result.filePath, view);
+        // The new HUMAN.md is created directly in the current folder, so
+        // currentPath doesn't change and BrowseView's load effect won't
+        // re-fire on its own. Refresh explicitly so the file appears when
+        // the user switches back to the browse view.
+        onRefreshDirectory();
       }
-    })();
+    }, 'Failed to create AI chat: ', onSetError);
   };
 
   return (

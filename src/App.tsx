@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { api } from './renderer/api';
@@ -71,6 +71,83 @@ async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
     return { ...node, children: refreshedChildren, isLoading: false };
   } catch {
     return node;
+  }
+}
+
+/**
+ * Formats an unknown thrown value for display. Also keeps ternaries out of
+ * App's catch blocks — the React Compiler bails out on value blocks
+ * (conditional/logical expressions) inside a try/catch statement.
+ */
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * Reads the given directory via IPC and pushes the results into App state and
+ * the item store. Module-level (not in the component) so its try/catch/finally
+ * doesn't make the React Compiler bail out on App.
+ */
+async function loadDirectoryContents(
+  currentPath: string,
+  showLoading: boolean,
+  setEntries: (entries: FileEntry[]) => void,
+  setLoading: (loading: boolean) => void,
+  setError: (error: string | null) => void,
+): Promise<void> {
+  if (!currentPath) return;
+
+  if (showLoading) {
+    setLoading(true);
+  }
+  setError(null);
+  // A slow read can resolve after the user has navigated elsewhere, so every
+  // state write below (including the loading flip) is gated on the loaded
+  // path still being current — otherwise this run's results are stale and
+  // belong to a folder we've already left.
+  const isStale = () => useAS.getState().currentPath !== currentPath;
+  try {
+    const files = await api.readDirectory(currentPath);
+    if (isStale()) return;
+    setEntries(files);
+
+    // Update global store with all items from this directory (including attachment sub-items)
+    const allItems = files.flatMap((file) => {
+      const base = [{
+        path: file.path,
+        name: file.name,
+        isDirectory: file.isDirectory,
+        modifiedTime: file.modifiedTime,
+        createdTime: file.createdTime,
+        aiHint: file.aiHint,
+      }];
+      if (file.attachments) {
+        const attachItems = file.attachments.map((a) => ({
+          path: a.path,
+          name: a.name,
+          isDirectory: a.isDirectory,
+          modifiedTime: a.modifiedTime,
+          createdTime: a.createdTime,
+          aiHint: a.aiHint,
+        }));
+        return [...base, ...attachItems];
+      }
+      return base;
+    });
+    upsertItems(allItems);
+  } catch (err) {
+    if (isStale()) return;
+    const errorMessage = err instanceof Error ? err.message : 'Failed to read directory';
+    if (errorMessage.includes('does not exist')) {
+      setError('This folder no longer exists');
+    } else {
+      setError('Failed to read directory');
+    }
+    setEntries([]);
+  } finally {
+    if (!isStale()) {
+      setLoading(false);
+    }
   }
 }
 
@@ -182,74 +259,10 @@ function App() {
     });
   }, []);
 
-  // Load directory contents
-  const loadDirectory = useCallback(async (showLoading = true) => {
-    if (!currentPath) return;
-
-    if (showLoading) {
-      setLoading(true);
-    }
-    setError(null);
-    // A slow read can resolve after the user has navigated elsewhere, so every
-    // state write below (including the loading flip) is gated on the loaded
-    // path still being current — otherwise this run's results are stale and
-    // belong to a folder we've already left.
-    const isStale = () => useAS.getState().currentPath !== currentPath;
-    try {
-      const files = await api.readDirectory(currentPath);
-      if (isStale()) return;
-      setEntries(files);
-
-      // Update global store with all items from this directory (including attachment sub-items)
-      const allItems = files.flatMap((file) => {
-        const base = [{
-          path: file.path,
-          name: file.name,
-          isDirectory: file.isDirectory,
-          modifiedTime: file.modifiedTime,
-          createdTime: file.createdTime,
-          aiHint: file.aiHint,
-        }];
-        if (file.attachments) {
-          const attachItems = file.attachments.map((a) => ({
-            path: a.path,
-            name: a.name,
-            isDirectory: a.isDirectory,
-            modifiedTime: a.modifiedTime,
-            createdTime: a.createdTime,
-            aiHint: a.aiHint,
-          }));
-          return [...base, ...attachItems];
-        }
-        return base;
-      });
-      upsertItems(allItems);
-    } catch (err) {
-      if (isStale()) return;
-      const errorMessage = err instanceof Error ? err.message : 'Failed to read directory';
-      if (errorMessage.includes('does not exist')) {
-        setError('This folder no longer exists');
-      } else {
-        setError('Failed to read directory');
-      }
-      setEntries([]);
-    } finally {
-      if (!isStale()) {
-        setLoading(false);
-      }
-    }
-  }, [currentPath]);
-
   // Load directory when path changes, or when an out-of-band refresh is requested
-  //
-  // This is React's documented pattern for running async work in an effect: 
-  // the async call is moved inside an inline async function (await as its first 
-  // statement) rather than being invoked directly in the effect body.
   useEffect(() => {
-    void (async () => {
-      await loadDirectory();
-    })();
-  }, [loadDirectory, directoryRefreshNonce]);
+    void loadDirectoryContents(currentPath, true, setEntries, setLoading, setError);
+  }, [currentPath, directoryRefreshNonce]);
 
   // Remove entries that were deleted from the store (e.g. via SearchResultsView).
   // Pruning during render (rather than in an effect) avoids a cascading re-render;
@@ -282,17 +295,17 @@ function App() {
     });
   }, [currentPath, rootPath, recentFolders]);
 
-  const refreshDirectory = useCallback(() => {
-    void loadDirectory(false);
+  const refreshDirectory = () => {
+    void loadDirectoryContents(currentPath, false, setEntries, setLoading, setError);
     const root = getIndexTreeRoot();
     if (root) {
       refreshExpandedNodes(root)
         .then(newRoot => setIndexTreeRoot(newRoot))
         .catch((err: unknown) => logger.error('Failed to refresh index tree:', err));
     }
-  }, [loadDirectory]);
+  };
 
-  const handleSelectFolder = useCallback(() => {
+  const handleSelectFolder = () => {
     void (async () => {
       try {
         const folder = await api.selectFolder();
@@ -302,15 +315,18 @@ function App() {
           setCurrentPath(folder);
         }
       } catch (err) {
-        setError('Failed to open folder: ' + (err instanceof Error ? err.message : String(err)));
+        setError('Failed to open folder: ' + errorMessage(err));
       }
     })();
-  }, []);
+  };
 
-  const handleOpenRecentFolder = useCallback((folder: string) => {
+  const handleOpenRecentFolder = (folder: string) => {
+    // Evaluated before the try block: the React Compiler bails out on logical
+    // expressions inside a try/catch statement.
+    const insideCurrentRoot = !!rootPath && isPathInside(rootPath, folder);
     void (async () => {
       try {
-        if (rootPath && isPathInside(rootPath, folder)) {
+        if (insideCurrentRoot) {
           setCurrentPath(folder);
           setCurrentView('browser');
         } else {
@@ -320,20 +336,20 @@ function App() {
           setCurrentView('browser');
         }
       } catch (err) {
-        setError('Failed to open folder: ' + (err instanceof Error ? err.message : String(err)));
+        setError('Failed to open folder: ' + errorMessage(err));
       }
     })();
-  }, [rootPath]);
+  };
 
-  const handleQuit = useCallback(() => {
+  const handleQuit = () => {
     void api.quit();
-  }, []);
+  };
 
-  const handleNavigateToSearchResult = useCallback((folderPath: string, resultPath: string) => {
+  const handleNavigateToSearchResult = (folderPath: string, resultPath: string) => {
     navigateToBrowserPath(folderPath, resultPath);
-  }, []);
+  };
 
-  const handleSearchHashtag = useCallback((hashtag: string, ctrlKey: boolean) => {
+  const handleSearchHashtag = (hashtag: string, ctrlKey: boolean) => {
     if (!currentPath) return;
     void (async () => {
       try {
@@ -347,12 +363,12 @@ function App() {
         }
         setCurrentView('search-results');
       } catch (err) {
-        setError('Search failed: ' + (err instanceof Error ? err.message : String(err)));
+        setError('Search failed: ' + errorMessage(err));
       }
     })();
-  }, [currentPath]);
+  };
 
-  const handleSaveSettings = useCallback(() => {
+  const handleSaveSettings = () => {
     void (async () => {
       try {
         await api.updateConfig({ settings: getSettings() });
@@ -360,7 +376,7 @@ function App() {
         setError('Failed to save settings');
       }
     })();
-  }, []);
+  };
 
   // Folder selection prompt (first run or no folder configured)
   if (!currentPath && !loading) {

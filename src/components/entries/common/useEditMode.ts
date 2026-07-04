@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { api } from '../../../renderer/api';
 import { useAS, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing, upsertItem } from '../../../store';
 import { applyGlobalHighlight, globalHighlightText } from '../../../renderer/globalHighlight';
@@ -11,6 +11,30 @@ interface UseEditModeOptions {
   path: string;
   /** Current file content (from useContentLoader) */
   content: string;
+}
+
+/**
+ * Writes the file via IPC and, on success, commits the saved content to the
+ * store and exits edit mode. Module-level (not in the hook) so its
+ * try/catch/finally doesn't make the React Compiler bail out on useEditMode.
+ * The catch keeps a failed IPC write from becoming an unhandled rejection at
+ * the fire-and-forget bindings (Ctrl+S, Save button, onBlur); callers that
+ * await it observe a resolved (no-op) result on failure, matching the
+ * pre-existing behavior when `result.ok` is false.
+ */
+async function writeFileAndExitEditMode(path: string, editContent: string): Promise<void> {
+  try {
+    const result = await api.writeFile(path, editContent);
+    if (result.ok) {
+      setItemContent(path, result.content, Date.now());
+      setItemEditing(path, false);
+      if (globalHighlightText) {
+        requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
+      }
+    }
+  } catch (err) {
+    logger.error('Failed to save file:', err);
+  }
 }
 
 /**
@@ -28,11 +52,7 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
   const isEditing = item?.editing ?? false;
   const editContent = item?.editContent ?? '';
 
-  // Stable callback for updating edit content in the store
-  const setEditContent = useCallback(
-    (newContent: string) => setItemEditContent(path, newContent),
-    [path]
-  );
+  const setEditContent = (newContent: string) => setItemEditContent(path, newContent);
 
   // Reset initialization flag when exiting edit mode
   useEffect(() => {
@@ -50,7 +70,7 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     }
   }, [isEditing, item?.content, path]);
 
-  const handleEditClick = useCallback(async (goToLine?: number) => {
+  const handleEditClick = async (goToLine?: number) => {
     // Check the file's current mtime on disk to detect external modifications
     const diskMtime = await api.getFileMtime(path);
     if (diskMtime > 0 && item && diskMtime > item.modifiedTime) {
@@ -71,38 +91,22 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     editInitialized.current = true;
     setItemExpanded(path, true);
     setItemEditing(path, true, goToLine);
-  }, [path, item, content]);
+  };
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     setItemReviewing(path, false);
     setItemEditing(path, false);
     if (globalHighlightText) {
       requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
     }
-  }, [path]);
+  };
 
   // Stays async because the "Ask AI" button awaits it before continuing
-  // (MarkdownEntry.tsx). The catch keeps a failed IPC write from becoming an
-  // unhandled rejection at the fire-and-forget bindings (Ctrl+S, Save button,
-  // onBlur); callers that await it observe a resolved (no-op) result on failure,
-  // matching the pre-existing behavior when `result.ok` is false.
-  const handleSave = useCallback(async () => {
+  // (MarkdownEntry.tsx). Error handling lives in writeFileAndExitEditMode.
+  const handleSave = async () => {
     setSaving(true);
-    try {
-      const result = await api.writeFile(path, editContent);
-      if (result.ok) {
-        setItemContent(path, result.content, Date.now());
-        setItemEditing(path, false);
-        if (globalHighlightText) {
-          requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
-        }
-      }
-    } catch (err) {
-      logger.error('Failed to save file:', err);
-    } finally {
-      setSaving(false);
-    }
-  }, [path, editContent]);
+    await writeFileAndExitEditMode(path, editContent).finally(() => setSaving(false));
+  };
 
   return {
     isEditing,

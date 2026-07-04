@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { api } from '../../../renderer/api';
 import { logger } from '../../../shared/logUtil';
 
@@ -46,69 +46,69 @@ export function useAiStreamingDialog({ onError }: UseAiStreamingDialogOptions): 
   const showStreamingDialogRef = useRef(false);
   const pendingNavigationRef = useRef<DeferrableAction | null>(null);
 
-  const handleStreamingDialogClose = useCallback(() => {
+  const handleStreamingDialogClose = () => {
     showStreamingDialogRef.current = false;
     setShowStreamingDialog(false);
     if (pendingNavigationRef.current) {
       pendingNavigationRef.current();
       pendingNavigationRef.current = null;
     }
-  }, []);
+  };
 
-  const handleCancelStream = useCallback(() => {
+  const handleCancelStream = () => {
     api.cancelAiStream();
-  }, []);
+  };
 
-  const runWithStreamingDialog = useCallback<StreamingRunner>(
-    async (operation) => {
-      // Show the streaming dialog as soon as the backend commits to the real
-      // streaming path (ai-stream-start), so it appears instantly in its
-      // "pending" state during the (potentially long) model warm-up — well
-      // before the first chunk arrives. Scripted answers (used in tests)
-      // resolve immediately and never emit this event, so the dialog stays
-      // hidden there.
-      const showDialog = () => {
-        if (!showStreamingDialogRef.current) {
-          showStreamingDialogRef.current = true;
-          setShowStreamingDialog(true);
-        }
-      };
-      const unsubStart = api.onAiStreamStart(() => {
-        showDialog();
-        unsubStart();
-      });
-      // Fallback: also show on the first chunk in case the start event is missed.
-      const unsubChunk = api.onAiStreamChunk(() => {
-        showDialog();
-        unsubChunk();
-      });
+  const runWithStreamingDialog: StreamingRunner = async (operation) => {
+    // Show the streaming dialog as soon as the backend commits to the real
+    // streaming path (ai-stream-start), so it appears instantly in its
+    // "pending" state during the (potentially long) model warm-up — well
+    // before the first chunk arrives. Scripted answers (used in tests)
+    // resolve immediately and never emit this event, so the dialog stays
+    // hidden there.
+    const showDialog = () => {
+      if (!showStreamingDialogRef.current) {
+        showStreamingDialogRef.current = true;
+        setShowStreamingDialog(true);
+      }
+    };
+    const unsubStart = api.onAiStreamStart(() => {
+      showDialog();
+      unsubStart();
+    });
+    // Fallback: also show on the first chunk in case the start event is missed.
+    const unsubChunk = api.onAiStreamChunk(() => {
+      showDialog();
+      unsubChunk();
+    });
 
-      // Use the ref (not state) for a synchronous check: if streaming started,
-      // defer the action until the user closes the dialog; otherwise run now.
-      const defer = (action: DeferrableAction) => {
-        if (showStreamingDialogRef.current) {
-          pendingNavigationRef.current = action;
-        } else {
-          action();
-        }
-      };
+    // Use the ref (not state) for a synchronous check: if streaming started,
+    // defer the action until the user closes the dialog; otherwise run now.
+    const defer = (action: DeferrableAction) => {
+      if (showStreamingDialogRef.current) {
+        pendingNavigationRef.current = action;
+      } else {
+        action();
+      }
+    };
 
-      try {
-        await operation(defer);
-      } catch (err) {
+    // Promise .catch/.finally instead of try/catch/finally: the React Compiler
+    // bails out on try statements with a finalizer, which would de-optimize
+    // every component using this hook.
+    await operation(defer)
+      .catch((err: unknown) => {
         logger.error('AI streaming operation failed:', err);
         onError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
+      })
+      .finally(() => {
         // Always clean up so the subscriptions never leak on throw. These are
         // no-ops if the events already fired (the handlers unsubscribe
         // themselves), and cancel the subscriptions for scripted answers that
         // never emit any events.
         unsubStart();
         unsubChunk();
-      }
-    },
-    [onError],
-  );
+      });
+  };
 
   return {
     showStreamingDialog,

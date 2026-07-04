@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
@@ -18,6 +18,50 @@ const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
 /** Model names are matched case-insensitively and ignoring surrounding whitespace. */
 const normalizeModelKey = (name: string) => name.trim().toLowerCase();
+
+/**
+ * Formats an unknown thrown value for display. Also keeps ternaries out of
+ * the component's catch blocks — the React Compiler bails out on value blocks
+ * (conditional/logical expressions) inside a try/catch statement.
+ */
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * Starts the local llama.cpp server via IPC and reports status through the
+ * given setter. Module-level (not in the component) so its try/catch — with
+ * the `??` fallback inside — doesn't make the React Compiler bail out on
+ * AISettingsView.
+ */
+async function startLlamaServerWithStatus(setStatus: (status: string) => void): Promise<void> {
+  try {
+    const result = await api.startLlamaServer();
+    if (result.success) {
+      setStatus('running');
+    } else {
+      setStatus('stopped');
+      alert(result.error ?? 'Failed to start server');
+    }
+  } catch (err) {
+    setStatus('stopped');
+    alert('Failed to start server: ' + errorMessage(err));
+  }
+}
+
+/** Stops the local llama.cpp server; see startLlamaServerWithStatus. */
+async function stopLlamaServerWithStatus(setStatus: (status: string) => void): Promise<void> {
+  try {
+    const result = await api.stopLlamaServer();
+    if (result.success) {
+      setStatus('stopped');
+    } else {
+      alert(result.error ?? 'Failed to stop server');
+    }
+  } catch (err) {
+    alert('Failed to stop server: ' + errorMessage(err));
+  }
+}
 
 /**
  * Settings page for all AI-related configuration: enabling AI, selecting and
@@ -94,7 +138,7 @@ function AISettingsView() {
     return () => { ignore = true; };
   }, [currentView]);
 
-  const saveAiConfigField = useCallback(async (updates: Partial<AppConfig>) => {
+  const saveAiConfigField = async (updates: Partial<AppConfig>) => {
     try {
       // saveAiConfig persists AND mirrors the reactive subset into the store, so
       // live consumers (e.g. the editor's AI Rewrite button) update immediately.
@@ -102,15 +146,15 @@ function AISettingsView() {
     } catch {
       // Silently fail — config will be stale until next save
     }
-  }, []);
+  };
 
-  const handleAiEnabledChange = useCallback((enabled: boolean) => {
+  const handleAiEnabledChange = (enabled: boolean) => {
     void saveAiConfigField({ aiEnabled: enabled });
-  }, [saveAiConfigField]);
+  };
 
-  const handleAiModelChange = useCallback((modelName: string) => {
+  const handleAiModelChange = (modelName: string) => {
     void saveAiConfigField({ aiModel: modelName });
-  }, [saveAiConfigField]);
+  };
 
   const handleLlamacppBaseUrlBlur = () => {
     void saveAiConfigField({ llamacppBaseUrl });
@@ -123,20 +167,20 @@ function AISettingsView() {
   const selectedModel = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
   const selectedModelIsReadonly = Boolean(selectedModel?.readonly);
 
-  const handleCreateModel = useCallback(() => {
+  const handleCreateModel = () => {
     setEditingModel(undefined);
     setShowEditDialog(true);
-  }, []);
+  };
 
-  const handleEditModel = useCallback(() => {
+  const handleEditModel = () => {
     const current = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
     if (current) {
       setEditingModel(current);
       setShowEditDialog(true);
     }
-  }, [aiModels, selectedModelKey]);
+  };
 
-  const applyModelSave = useCallback((model: AIModelConfig) => {
+  const applyModelSave = (model: AIModelConfig) => {
     const modelKey = normalizeModelKey(model.name);
     const idx = aiModels.findIndex((m) => normalizeModelKey(m.name) === modelKey);
     const updated = idx >= 0
@@ -145,14 +189,14 @@ function AISettingsView() {
     void saveAiConfigField({ aiModels: updated, aiModel: model.name });
     setShowEditDialog(false);
     setPendingSaveModel(null);
-  }, [aiModels, saveAiConfigField]);
+  };
 
   /**
    * Validates a model save from EditAIModelDialog and either applies it immediately
    * or routes through a confirmation dialog when the chosen name already exists.
    * Built-in (readonly) models can never be overwritten — an alert is shown instead.
    */
-  const handleDialogSave = useCallback((model: AIModelConfig) => {
+  const handleDialogSave = (model: AIModelConfig) => {
     // Check for name collision (only matters if it's a different entry than what we're editing)
     const isCreate = !editingModel;
     const nameChanged = editingModel && editingModel.name !== model.name;
@@ -182,23 +226,23 @@ function AISettingsView() {
     }
 
     applyModelSave(model);
-  }, [editingModel, aiModels, applyModelSave]);
+  };
 
-  const handleOverwriteConfirm = useCallback(() => {
+  const handleOverwriteConfirm = () => {
     if (pendingSaveModel) {
       applyModelSave(pendingSaveModel);
     }
     setShowOverwriteConfirm(false);
-  }, [pendingSaveModel, applyModelSave]);
+  };
 
-  const handleOverwriteCancel = useCallback(() => {
+  const handleOverwriteCancel = () => {
     setShowOverwriteConfirm(false);
     setPendingSaveModel(null);
     // Re-open the edit dialog so the user can change the name
     setShowEditDialog(true);
-  }, []);
+  };
 
-  const handleDeleteModel = useCallback(() => {
+  const handleDeleteModel = () => {
     const current = aiModels.find((m) => normalizeModelKey(m.name) === selectedModelKey);
     if (current?.readonly) {
       setShowDeleteConfirm(false);
@@ -208,13 +252,13 @@ function AISettingsView() {
     const newSelected = updated.length > 0 ? updated[0].name : '';
     void saveAiConfigField({ aiModels: updated, aiModel: newSelected });
     setShowDeleteConfirm(false);
-  }, [aiModels, selectedAiModel, selectedModelKey, saveAiConfigField]);
+  };
 
   // Fire-and-forget: wired directly to the reset-confirmation dialog's
   // `onConfirm` (a `() => void` prop). Uses the sync-signature + internal
   // try/catch convention so a failed IPC reset is surfaced instead of becoming
   // an unhandled rejection.
-  const handleResetUsage = useCallback(() => {
+  const handleResetUsage = () => {
     void (async () => {
       try {
         await api.resetAiUsage();
@@ -222,50 +266,22 @@ function AISettingsView() {
         setUsageData(fresh);
         setShowResetConfirm(false);
       } catch (err) {
-        alert('Failed to reset usage: ' + (err instanceof Error ? err.message : String(err)));
+        alert('Failed to reset usage: ' + errorMessage(err));
       }
     })();
-  }, []);
+  };
 
   /** Starts the local llama.cpp server and updates the displayed status. */
   const startLlama = () => {
     setLlamaServerBusy(true);
     setLlamaServerStatus('loading');
-    void (async () => {
-      try {
-        const result = await api.startLlamaServer();
-        if (result.success) {
-          setLlamaServerStatus('running');
-        } else {
-          setLlamaServerStatus('stopped');
-          alert(result.error ?? 'Failed to start server');
-        }
-      } catch (err) {
-        setLlamaServerStatus('stopped');
-        alert('Failed to start server: ' + (err instanceof Error ? err.message : String(err)));
-      } finally {
-        setLlamaServerBusy(false);
-      }
-    })();
+    void startLlamaServerWithStatus(setLlamaServerStatus).finally(() => setLlamaServerBusy(false));
   };
 
   /** Stops the local llama.cpp server and updates the displayed status. */
   const stopLlama = () => {
     setLlamaServerBusy(true);
-    void (async () => {
-      try {
-        const result = await api.stopLlamaServer();
-        if (result.success) {
-          setLlamaServerStatus('stopped');
-        } else {
-          alert(result.error ?? 'Failed to stop server');
-        }
-      } catch (err) {
-        alert('Failed to stop server: ' + (err instanceof Error ? err.message : String(err)));
-      } finally {
-        setLlamaServerBusy(false);
-      }
-    })();
+    void stopLlamaServerWithStatus(setLlamaServerStatus).finally(() => setLlamaServerBusy(false));
   };
 
   /** Re-pings the llama.cpp health endpoint and refreshes the displayed status. */

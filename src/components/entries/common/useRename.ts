@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { api } from '../../../renderer/api';
 import { setHighlightItem, setItemRenaming, renameItem, updateBookmarkPath } from '../../../store';
 import type { RenameState } from './types';
@@ -18,6 +18,39 @@ interface UseRenameOptions {
   onSaveSettings: () => void;
   /** Whether to select full name (folders) or name without extension (files) */
   selectFullName?: boolean;
+}
+
+/**
+ * Renames the file via IPC and, on success, updates the store (bookmarks,
+ * item entry, highlight). Module-level (not in the hook) so its
+ * try/catch/finally doesn't make the React Compiler bail out on useRename.
+ * A failed IPC rename is reported here rather than surfacing as an unhandled
+ * rejection.
+ */
+async function performRename(
+  path: string,
+  trimmedName: string,
+  onRename: () => void,
+  onSaveSettings: () => void,
+): Promise<void> {
+  try {
+    const dirPath = getParentPath(path);
+    const newPath = joinPath(dirPath, trimmedName);
+    const success = await api.renameFile(path, newPath);
+    if (success) {
+      // Update bookmark if this item was bookmarked
+      if (updateBookmarkPath(path, newPath)) {
+        onSaveSettings();
+      }
+      // Move the item entry from old path to new path in the store,
+      // preserving selection and other state (prevents phantom selections)
+      renameItem(path, newPath, trimmedName);
+      setHighlightItem(newPath);
+      onRename();
+    }
+  } catch (err) {
+    logger.error('Rename failed:', err);
+  }
 }
 
 /**
@@ -54,21 +87,21 @@ export function useRename({
     }
   }, [isRenaming, name, selectFullName]);
 
-  const handleRenameClick = useCallback((e?: React.MouseEvent) => {
+  const handleRenameClick = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     setNewName(name);
     setItemRenaming(path, true);
-  }, [name, path]);
+  };
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     setNewName(name);
     setItemRenaming(path, false);
-  }, [name, path]);
+  };
 
   // Fire-and-forget (`() => void`): bound to the rename input's onBlur and the
   // Enter key, never awaited, so the async rename + its error handling live
-  // inside and callers can invoke it directly.
-  const handleSave = useCallback(() => {
+  // in performRename and callers can invoke it directly.
+  const handleSave = () => {
     // Trim leading/trailing whitespace from the whole name, then also trim
     // the stem separately so spaces before the extension are removed too.
     const full = newName.trim();
@@ -82,33 +115,10 @@ export function useRename({
     }
 
     setSaving(true);
-    void (async () => {
-      try {
-        const dirPath = getParentPath(path);
-        const newPath = joinPath(dirPath, trimmedName);
-        const success = await api.renameFile(path, newPath);
-        if (success) {
-          // Update bookmark if this item was bookmarked
-          if (updateBookmarkPath(path, newPath)) {
-            onSaveSettings();
-          }
-          // Move the item entry from old path to new path in the store,
-          // preserving selection and other state (prevents phantom selections)
-          renameItem(path, newPath, trimmedName);
-          setHighlightItem(newPath);
-          onRename();
-        }
-      } catch (err) {
-        // A failed IPC rename is reported here rather than surfacing as an
-        // unhandled rejection.
-        logger.error('Rename failed:', err);
-      } finally {
-        setSaving(false);
-      }
-    })();
-  }, [newName, name, path, handleCancel, onRename, onSaveSettings]);
+    void performRename(path, trimmedName, onRename, onSaveSettings).finally(() => setSaving(false));
+  };
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSave();
@@ -116,7 +126,7 @@ export function useRename({
       e.preventDefault();
       handleCancel();
     }
-  }, [handleSave, handleCancel]);
+  };
 
   return {
     newName,

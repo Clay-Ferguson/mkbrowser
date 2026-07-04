@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { clsx } from 'clsx';
 import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
@@ -53,6 +53,32 @@ interface MarkdownEntryProps extends BaseEntryProps {
   onPasteAsAttachment?: (filePath: string) => void;
   onPasteClipboardAsAttachment?: (filePath: string) => void;
   isAttachment?: boolean;
+}
+
+
+/**
+ * Creates the reply HUMAN.md for the next conversation turn and navigates to it.
+ * Module-level (not in the component) so its try/catch/finally doesn't make the
+ * React Compiler bail out on MarkdownEntry.
+ */
+async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<void> {
+  try {
+    const parentFolder = getParentPath(entryPath);
+    const result = await api.replyToAi(parentFolder, true);
+    if ('error' in result) {
+      logger.error('Reply error:', result.error);
+    } else {
+      if (view === 'thread') {
+        navigateToBrowserPath(result.folderPath, undefined, 'thread');
+        setPendingThreadScrollToBottom();
+      } else {
+        navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
+      }
+      setPendingEditFile(result.filePath, view);
+    }
+  } catch (err) {
+    logger.error('Reply error:', err);
+  }
 }
 
 
@@ -130,9 +156,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // reach the live CodeMirror instance. Registration happens in the onReady callback rather than
   // an effect because effects can run before the imperative handle is attached on first mount.
   // The effect below handles unregistration when editing ends, the path changes, or the component unmounts.
-  const handleEditorReady = useCallback((handle: CodeMirrorEditorHandle) => {
+  const handleEditorReady = (handle: CodeMirrorEditorHandle) => {
     registerActiveMarkdownEditor(entry.path, handle);
-  }, [entry.path]);
+  };
 
   useEffect(() => {
     return () => {
@@ -149,30 +175,28 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     runWithStreamingDialog,
   } = useAiStreamingDialog({ onError: setAiErrorMessage });
 
+  // Promise .finally() instead of try/finally: the React Compiler bails out on
+  // any try statement with a finalizer, which would de-optimize this component.
   const handleAskAi = async (promptContent?: string) => {
     const textToSend = promptContent || content;
     if (!textToSend) return;
     setIsAiLoading(true);
-    try {
-      await runWithStreamingDialog(async (defer) => {
-        const parentFolder = getParentPath(entry.path);
-        const result = await api.askAi(textToSend, parentFolder);
-        if ('error' in result) {
-          setAiErrorMessage(result.error);
-        } else {
-          defer(() => {
-            if (view === 'thread') {
-              navigateToBrowserPath(result.responseFolder, undefined, 'thread');
-              setPendingThreadScrollToBottom();
-            } else {
-              navigateToBrowserPath(result.responseFolder);
-            }
-          });
-        }
-      });
-    } finally {
-      setIsAiLoading(false);
-    }
+    await runWithStreamingDialog(async (defer) => {
+      const parentFolder = getParentPath(entry.path);
+      const result = await api.askAi(textToSend, parentFolder);
+      if ('error' in result) {
+        setAiErrorMessage(result.error);
+      } else {
+        defer(() => {
+          if (view === 'thread') {
+            navigateToBrowserPath(result.responseFolder, undefined, 'thread');
+            setPendingThreadScrollToBottom();
+          } else {
+            navigateToBrowserPath(result.responseFolder);
+          }
+        });
+      }
+    }).finally(() => setIsAiLoading(false));
   };
 
   const { isRewriting, aiRewrite: handleAiRewrite } = useAiRewrite({
@@ -186,27 +210,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   const handleReply = () => {
     setIsReplyLoading(true);
-    void (async () => {
-      try {
-        const parentFolder = getParentPath(entry.path);
-        const result = await api.replyToAi(parentFolder, true);
-        if ('error' in result) {
-          logger.error('Reply error:', result.error);
-        } else {
-          if (view === 'thread') {
-            navigateToBrowserPath(result.folderPath, undefined, 'thread');
-            setPendingThreadScrollToBottom();
-          } else {
-            navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
-          }
-          setPendingEditFile(result.filePath, view);
-        }
-      } catch (err) {
-        logger.error('Reply error:', err);
-      } finally {
-        setIsReplyLoading(false);
-      }
-    })();
+    void replyToAiAndNavigate(entry.path, view).finally(() => setIsReplyLoading(false));
   };
 
   const onAskAI = () => {
