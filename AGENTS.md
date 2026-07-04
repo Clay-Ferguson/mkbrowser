@@ -63,6 +63,14 @@ Native menu actions (cut, paste, delete, etc.) flow as:
 2. `src/preload.ts` — exposes `onEventRequested(callback)` listener
 3. `src/App.tsx` — registers listener, calls store actions
 
+## React Compiler — no `useCallback` / `useMemo`
+
+The renderer uses the **React Compiler** (`babel-plugin-react-compiler` in `vite.renderer.config.mts`) for automatic memoization. All `useCallback`/`useMemo` calls were removed from `src/` — **never add them back**, and never add an `eslint-disable` for any `react-hooks/*` rule (a suppression makes the compiler silently skip the whole component, and it's the one bailout cause lint can't catch).
+
+The compiler **bails out** (silently skips a component/hook, leaving it fully de-memoized) on constructs it doesn't support — `try/finally`, conditionals/`?.` inside try/catch, ref writes during render, mutating module globals, `this` expressions. The fix is always to restructure: promise `.catch().finally()` chains, or **module-level helper functions** (the compiler doesn't compile plain functions, so anything goes there).
+
+Two guards enforce this: the `react-hooks/todo` + `react-hooks/syntax` ESLint rules (errors in `.eslintrc.js`), and **`compiler-coverage.mjs`** at the repo root — the source of truth, since it runs the exact compiler version the build uses. `node compiler-coverage.mjs` scans all of `src/` and exits 1 on any bailout (`build.sh` runs it as a build gate); `node compiler-coverage.mjs <file>` gives a verbose per-function report. After touching components/hooks, confirm the file still reports all `OK`. Full details, fix patterns, and the exhaustive-deps escape patterns: `docs/technical_notes/DEVELOPER_GUIDE.md` § React Compiler.
+
 ## Tech Stack
 
 - **Runtime**: Electron 40, React 19, TypeScript

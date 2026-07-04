@@ -93,17 +93,15 @@ function ImageEntry(props: ImageEntryProps) {
     setExifLoading(true);
     setExifFileName(imageName);
     setExifFilePath(imagePath);
-    void (async () => {
-      try {
-        const data = await api.readExif(imagePath);
+    void api.readExif(imagePath)
+      .then((data) => {
         setExifData(data);
         setShowExifDialog(true);
-      } catch (error) {
+      })
+      .catch((error: unknown) => {
         logger.error('[ImageEntry] Failed to read EXIF data:', error);
-      } finally {
-        setExifLoading(false);
-      }
-    })();
+      })
+      .finally(() => setExifLoading(false));
   };
 
   // Convert file path to local-file:// URL for the image src

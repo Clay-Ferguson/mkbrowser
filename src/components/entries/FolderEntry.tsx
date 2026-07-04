@@ -12,6 +12,7 @@ import {
   canDropInto,
   moveEntryIntoFolder,
   reloadExpandedTreeFolder,
+  type DragPayload,
 } from '../../renderer/dragAndDrop';
 import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -29,6 +30,34 @@ interface FolderEntryProps extends BaseEntryProps {
   onRefreshDirectory?: () => void;
   isAttachFolder?: boolean;
   indentFolder?: boolean;
+}
+
+/**
+ * Moves a dragged item into the given folder and refreshes the affected views.
+ * Module-level (not compiled by the React Compiler): the conditionals inside
+ * try/catch would make the compiler bail out on the whole component.
+ */
+async function dropIntoFolder(
+  payload: DragPayload,
+  folderPath: string,
+  onRefreshDirectory: (() => void) | undefined,
+): Promise<void> {
+  try {
+    const result = await moveEntryIntoFolder(payload, folderPath);
+    if (!result.success) return;
+
+    // Drop the moved item from the store so the browse view stops showing it.
+    deleteItems([payload.path]);
+
+    // Refresh the source folder in the tree if it is expanded (this folder is collapsed
+    // in the tree by definition while being browsed, so only the source can need a reload).
+    await reloadExpandedTreeFolder(result.sourceFolder);
+
+    // Refresh the browse view in case the moved item came from the folder being viewed.
+    onRefreshDirectory?.();
+  } catch (err) {
+    logger.error('Failed to move item into folder:', err);
+  }
 }
 
 /**
@@ -80,24 +109,7 @@ function FolderEntry(props: FolderEntryProps) {
     const payload = parseDragPayload(e.dataTransfer.getData(ENTRY_DND_MIME));
     if (!payload || !canDropInto(payload, entry.path)) return;
 
-    void (async () => {
-      try {
-        const result = await moveEntryIntoFolder(payload, entry.path);
-        if (!result.success) return;
-
-        // Drop the moved item from the store so the browse view stops showing it.
-        deleteItems([payload.path]);
-
-        // Refresh the source folder in the tree if it is expanded (this folder is collapsed
-        // in the tree by definition while being browsed, so only the source can need a reload).
-        await reloadExpandedTreeFolder(result.sourceFolder);
-
-        // Refresh the browse view in case the moved item came from the folder being viewed.
-        onRefreshDirectory?.();
-      } catch (err) {
-        logger.error('Failed to move item into folder:', err);
-      }
-    })();
+    void dropIntoFolder(payload, entry.path, onRefreshDirectory);
   };
 
   return (

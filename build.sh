@@ -34,6 +34,24 @@ echo ""
 echo "✅ Lint passed!"
 echo ""
 
+# Verify every component/hook compiles under the React Compiler, aborting on any
+# bailout. A bailed-out component is silently de-memoized at build time — a real
+# perf regression here, since the codebase has no manual useCallback/useMemo left.
+# This uses the exact compiler version the renderer build uses, catching bailouts
+# the react-hooks ESLint rules can't see (see the compiler-coverage.mjs header).
+echo "⚛️  Checking React Compiler coverage..."
+echo ""
+node compiler-coverage.mjs
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ React Compiler bailout(s) found! Build aborted."
+  echo "   Fix the constructs listed above (see REACT_COMPILER_PLAN.md for patterns)."
+  exit 1
+fi
+echo ""
+echo "✅ React Compiler coverage clean!"
+echo ""
+
 # Run the electron-forge make command to create distributables
 # This will create .deb and .rpm packages in the 'out' directory
 yarn make

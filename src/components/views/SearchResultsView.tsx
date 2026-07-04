@@ -123,24 +123,23 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     const target = deleteTarget;
     if (!target) return;
     setDeleting(true);
-    void (async () => {
-      try {
-        const success = await api.deleteFile(target.path);
-        if (success) {
-          // Remove the deleted item from the store so it no longer appears
-          // as selected or referenced in memory
-          deleteItems([target.path]);
-          // Remove the deleted file from search results
-          const updatedResults = searchResults.filter(r => r.path !== target.path);
-          setSearchResults(updatedResults, searchQuery, searchFolder);
-        }
-      } catch (err) {
+    void api.deleteFile(target.path)
+      .then((success) => {
+        if (!success) return;
+        // Remove the deleted item from the store so it no longer appears
+        // as selected or referenced in memory
+        deleteItems([target.path]);
+        // Remove the deleted file from search results
+        const updatedResults = searchResults.filter(r => r.path !== target.path);
+        setSearchResults(updatedResults, searchQuery, searchFolder);
+      })
+      .catch((err: unknown) => {
         logger.error('Failed to delete file:', err);
-      } finally {
+      })
+      .finally(() => {
         setDeleting(false);
         setDeleteTarget(null);
-      }
-    })();
+      });
   };
 
   const handleDeleteCancel = () => {

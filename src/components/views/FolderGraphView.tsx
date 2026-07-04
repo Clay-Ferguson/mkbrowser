@@ -176,6 +176,61 @@ async function getFilePreview(filePath: string, name: string): Promise<string> {
 }
 
 /**
+ * Loads (or reuses) a file node's hover preview and applies it via `setTitle`.
+ * The result is cached on the SimNode keyed by file mtime, so editing a file
+ * and coming back regenerates the preview while repeat hovers reuse the cache.
+ * On any read/stat error the default path tooltip is left in place. Module-level
+ * (not compiled by the React Compiler): the conditionals inside try/catch would
+ * make the compiler bail out on the whole component.
+ */
+async function loadPreviewIntoTooltip(d: SimNode, setTitle: (text: string) => void): Promise<void> {
+  try {
+    const mtime = await api.getFileMtime(d.id);
+    if (d.previewText !== undefined && d.previewTimestamp !== undefined && mtime <= d.previewTimestamp) {
+      setTitle(d.previewText);
+      return;
+    }
+    const preview = await getFilePreview(d.id, d.name);
+    d.previewText = preview;
+    d.previewTimestamp = mtime;
+    setTitle(preview);
+  } catch {
+    // On any read/stat error, leave the default path tooltip in place.
+  }
+}
+
+/**
+ * d3 `.each` callback that measures a node's rendered label and stores the
+ * combined circle+label footprint box on the datum, for forceLabelRect.
+ * getBBox gives exact metrics for the rendered text; we fall back to a
+ * character-count estimate if it's unavailable. Module-level (not compiled by
+ * the React Compiler): the `this` binding d3 uses would make the compiler bail
+ * out on the whole component.
+ */
+function measureLabelFootprint(this: SVGTextElement, d: SimNode): void {
+  const r = nodeRadius(d);
+  let tx = r + 4;
+  let ty = -6;
+  let tw = d.name.length * 6.2;
+  let th = 12;
+  try {
+    const bb = this.getBBox();
+    if (bb.width > 0) {
+      tx = bb.x;
+      ty = bb.y;
+      tw = bb.width;
+      th = bb.height;
+    }
+  } catch {
+    // Keep the estimate.
+  }
+  d.bx0 = -r - LABEL_BOX_PADDING;
+  d.bx1 = tx + tw + LABEL_BOX_PADDING;
+  d.by0 = Math.min(-r, ty) - LABEL_BOX_PADDING;
+  d.by1 = Math.max(r, ty + th) + LABEL_BOX_PADDING;
+}
+
+/**
  * Interactive D3 force-directed graph of a folder tree. Nodes represent files
  * and folders; links represent parent-child containment. Supports drag-to-reposition,
  * scroll-to-zoom, click-to-navigate, and hover highlighting (green for a folder's
@@ -299,32 +354,10 @@ function FolderGraphView() {
       .text(d => d.name);
 
     // Measure each label so forceLabelRect can treat the circle + its text as a
-    // single rectangular footprint. getBBox gives exact metrics for the rendered
-    // text (the SVG is laid out by now — this effect only runs once `ready`);
-    // we fall back to a character-count estimate if it's unavailable.
+    // single rectangular footprint (the SVG is laid out by now — this effect
+    // only runs once `ready`).
     if (USE_LABEL_PHYSICS) {
-      nodeSel.select<SVGTextElement>('text').each(function (d) {
-        const r = nodeRadius(d);
-        let tx = r + 4;
-        let ty = -6;
-        let tw = d.name.length * 6.2;
-        let th = 12;
-        try {
-          const bb = this.getBBox();
-          if (bb.width > 0) {
-            tx = bb.x;
-            ty = bb.y;
-            tw = bb.width;
-            th = bb.height;
-          }
-        } catch {
-          // Keep the estimate.
-        }
-        d.bx0 = -r - LABEL_BOX_PADDING;
-        d.bx1 = tx + tw + LABEL_BOX_PADDING;
-        d.by0 = Math.min(-r, ty) - LABEL_BOX_PADDING;
-        d.by1 = Math.max(r, ty + th) + LABEL_BOX_PADDING;
-      });
+      nodeSel.select<SVGTextElement>('text').each(measureLabelFootprint);
     }
 
     const applyHighlight = (): void => {
@@ -357,29 +390,16 @@ function FolderGraphView() {
     // Hover → load a content preview into the tooltip. The native <title>
     // starts as the full path; once the file is read we swap in a richer
     // preview (name + first body lines). We mutate the live <title> DOM node
-    // directly so it updates without rebuilding the graph, and cache the
-    // result on the SimNode keyed by file mtime so editing a file and coming
-    // back regenerates the preview, while repeat hovers reuse the cache.
+    // directly so it updates without rebuilding the graph (see
+    // loadPreviewIntoTooltip for the mtime-keyed caching).
     nodeSel.on('mouseenter', (event: MouseEvent, d) => {
       if (d.isDirectory) return; // only files have content to preview
       const ext = d.name.slice(d.name.lastIndexOf('.')).toLowerCase();
       if (ext !== '.md' && ext !== '.txt') return; // only preview markdown/text files
       const titleSel = select(event.currentTarget as SVGGElement).select<SVGTitleElement>('title');
-      void (async () => {
-        try {
-          const mtime = await api.getFileMtime(d.id);
-          if (d.previewText !== undefined && d.previewTimestamp !== undefined && mtime <= d.previewTimestamp) {
-            titleSel.text(d.previewText);
-            return;
-          }
-          const preview = await getFilePreview(d.id, d.name);
-          d.previewText = preview;
-          d.previewTimestamp = mtime;
-          titleSel.text(preview);
-        } catch {
-          // On any read/stat error, leave the default path tooltip in place.
-        }
-      })();
+      void loadPreviewIntoTooltip(d, (text) => {
+        titleSel.text(text);
+      });
     });
 
     // Hover highlighting, driven by the node under the cursor (null clears it):

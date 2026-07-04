@@ -296,3 +296,75 @@ For local inference we have 'llamacpp' folder setup to be able to run 'llama-ser
 
 1) In `deepAgents.ts` set `USE_DEEP_AGENTS` variable to false. There's currently no way to alter this without an app rebuild.
 2) In `start-server.sh` make sure you have `--reasoning off`, which makes the model run without reasoniong and so it's tryign to do less and can therefore complete inference in a shorter amount of time with less GPU/CPU power.
+
+## React Compiler
+
+On July 3, 2026 this codebase migrated to the **React Compiler** and removed **every `useCallback` and `useMemo`** from the renderer. The compiler (`babel-plugin-react-compiler`, wired into `vite.renderer.config.mts` — renderer only; main/preload have no React) analyzes each component and hook at build time and inserts memoization automatically, more thoroughly than hand-written `useCallback`/`useMemo` ever did: it memoizes intermediate values, JSX subtrees, and callbacks alike, keyed on precise dependency analysis rather than hand-maintained dep arrays.
+
+### The coding standard (the short list)
+
+- **Never add `useCallback` or `useMemo`.** The compiler provides memoization; manual memoization is dead code at best and a compiler-confuser at worst. `grep -rn "useCallback\|useMemo" src` should stay empty.
+- **Never add an `eslint-disable` for any `react-hooks/*` rule.** A suppression makes the *build* compiler skip the entire component (see "bailouts" below), and this is the one bailout cause our lint guard structurally cannot detect. Restructure the code so the rule passes honestly instead (patterns below).
+- **Put compiler-unsupported constructs in module-level helper functions.** The compiler only compiles components and hooks — a plain module-level function can freely use `try/finally`, `this`, mutation of module globals, etc. This is the universal escape hatch and the fix for almost every bailout.
+- **Write new components/hooks normally otherwise.** No special annotations, no wrapper patterns — just follow the rules of React (don't read/write refs during render, don't mutate props/state) and the compiler handles the rest.
+
+### What a "bailout" is and why we care
+
+The compiler compiles **per component/hook** (each function is a separate unit). When it encounters something it can't handle *anywhere* inside a unit — including deep inside a nested callback — it **bails out**: it silently skips that unit and emits the original code unchanged. Nothing fails; the app still works. But because this codebase has **no manual memoization left**, a bailed-out component is *fully de-memoized*: every render creates new function identities, `memo()` children stop skipping renders, and effects with function deps re-fire on every render. So here, a bailout is a real performance regression that would otherwise be invisible — which is why we run two layers of guards (below).
+
+### Known bailout causes and their fixes
+
+| Cause | Fix |
+|---|---|
+| `try { } finally { }` (or `try` without `catch`) anywhere in the unit | Convert async work to a promise chain — `.then().catch().finally()` (e.g. `setBusy(true); void op().catch(...).finally(() => setBusy(false))`) — or extract the try/finally into a module-level helper function. |
+| Conditionals / logical ops / optional chaining (`?:`, `\|\|`, `&&`, `?.`) inside a `try` or `catch` block | Hoist the value expressions out of the try, or extract the whole block to a module-level helper (e.g. an `errorMessage(err)` helper for the classic `err instanceof Error ? err.message : '...'` pattern in a catch). |
+| Writing a ref during render (`someRef.current = value` in the component body) | Move the sync into a no-deps `useEffect` declared before the other effects (see `CodeMirrorEditor.tsx` — its "latest callback" refs are synced this way). |
+| Mutating a module-level variable (e.g. `++idCounter`) | Wrap the mutation in a module-level function (`nextMermaidId()` in `MermaidDiagram.tsx`). |
+| `this` expressions (e.g. a d3 `.each(function () { this.getBBox() })` callback) | Extract the callback to a module-level function with a typed `this` parameter (`measureLabelFootprint` in `FolderGraphView.tsx`). |
+| `eslint-disable` of any `react-hooks` rule | Remove the suppression and restructure so the rule passes (patterns below). |
+
+### The exhaustive-deps escape patterns
+
+Removing a suppression usually means confronting `react-hooks/exhaustive-deps` honestly. The recurring situations and their proven fixes:
+
+1. **Function only used by one effect** → move the function *inside* the effect and depend on its real inputs.
+2. **Function used by an effect + other call sites** → give the effect its own local copy built on stable primitives (state setters, refs), or move the load logic into the effect keyed on a `refreshTick` state that other callers bump.
+3. **Mount-time configuration** (props intentionally read once, when an effect builds a long-lived object like a CodeMirror `EditorView`) → snapshot them into a ref at first render and read the snapshot inside the effect. Refs are exempt from dep arrays, so `[]` passes honestly:
+
+   ```ts
+   // Captured once; the mount effect intentionally uses first-render values.
+   const mountConfigRef = useRef({ value, language, autoFocus /* … */ });
+
+   useEffect(() => {
+     const cfg = mountConfigRef.current;
+     // build the long-lived object from cfg.*
+   }, []);   // honest: only refs and module-level helpers are referenced
+   ```
+
+   See `CodeMirrorEditor.tsx` and `DiffReviewEditor.tsx` for the full pattern. Props that *do* change during the object's lifetime get their own small sync effects instead.
+4. **"Latest callback" refs** (handlers inside a once-created object must call current props) → keep the refs, but sync them in a no-deps effect (runs after every render), never during render.
+
+One companion gotcha: **`react-hooks/set-state-in-effect`** flags *synchronous* `setState` in an effect body. When an effect kicks off async loading, keep the pre-await `setLoading(true)` inside the async function (module-level helper or async IIFE), not directly in the effect body.
+
+### Guard layer 1 — ESLint
+
+`.eslintrc.js` enables the full `eslint-plugin-react-hooks` v7 compiler-powered rule set as **errors** for `src/**` (scoped there because the typed rules need `parserOptions.project`). Beyond the recommended set (`rules-of-hooks`, `exhaustive-deps`, `refs`, `purity`, `set-state-in-effect`, `immutability`, …), two non-default rules act as bailout guards:
+
+- **`react-hooks/todo`** — flags constructs the compiler doesn't support *yet* (try/finally, `this`, global mutation, …). This is the rule that makes an innocent-looking `try/finally` fail lint instead of silently de-memoizing a component.
+- **`react-hooks/syntax`** — flags invalid JS the compiler rejects outright.
+
+Lint gives fast, in-editor feedback — but it is **advisory, not authoritative**, for two structural reasons:
+
+1. **Version skew.** The lint plugin bundles its *own* compiler snapshot, released independently of the `babel-plugin-react-compiler` version the build uses. They will essentially never be the same version, in either direction. (Concrete example from the migration: the newer lint compiler accepts conditionals inside try/catch, which the build's 1.0.0 still bails on — lint stayed green while the build silently de-memoized `FolderEntry`.)
+2. **Suppressions are invisible to lint.** In lint mode the compiler deliberately ignores `eslint-disable` comments (verified in the plugin source — `react-hooks/rule-suppression` never fires on them), so a suppression-caused bailout can never fail lint. Mitigation: a suppression requires a literal disable comment in the diff, so it can't slip in silently — treat any new `eslint-disable react-hooks/*` in review as a defect.
+
+### Guard layer 2 — `compiler-coverage.mjs` (the source of truth)
+
+The repo-root script **`compiler-coverage.mjs`** runs the *exact* compiler version the renderer build uses over the sources and reports, per component/hook, what compiled and what bailed (and why). It closes both lint gaps above, and it is a **permanent fixture**, not a workaround — no lint configuration can replicate "run the actual build plugin."
+
+- `node compiler-coverage.mjs` — **gate mode**: scans every non-`.d.ts` file under `src/`, prints only problems plus a summary, exits 1 on any bailout. `build.sh` runs this after lint and aborts the build on failure (~3 s for the whole tree).
+- `node compiler-coverage.mjs <files...>` — **verbose mode**: per-function report including `OK` lines. Use this while working on a specific file.
+
+**Workflow when a bailout appears** (locally or in the build): read the `BAIL` reason, apply the matching fix from the table above (usually: extract to a module-level helper), then re-run the script on the file until every unit reports `OK`. Verify with `yarn lint` and `yarn vitest run`.
+
+**Workflow when upgrading the compiler**: check `npm view babel-plugin-react-compiler dist-tags`, upgrade, and re-run the gate — version changes are exactly when new bailouts (or newly-compiling code) appear. Note from the migration: as of 2026-07 even the experimental compiler builds do **not** support try/finally, and the experimental compiler is *stricter* about leftover manual memoization — another reason the "no `useCallback`/`useMemo` at all" end state is the right one.

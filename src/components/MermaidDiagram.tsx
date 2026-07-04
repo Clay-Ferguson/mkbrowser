@@ -54,6 +54,12 @@ export function queueMermaidRender(task: () => Promise<void>) {
 
 let mermaidIdCounter = 0;
 
+// Module-level (not compiled by the React Compiler): mutating a module global
+// inside a component would make the compiler bail out on the whole component.
+function nextMermaidId(): number {
+  return ++mermaidIdCounter;
+}
+
 /**
  * Renders a Mermaid diagram from its source string.
  *
@@ -69,7 +75,7 @@ export function MermaidDiagram({ code }: { code: string }) {
   const idRef = useRef<number | null>(null);
 
   if (idRef.current === null) {
-    idRef.current = ++mermaidIdCounter;
+    idRef.current = nextMermaidId();
   }
 
   // Reset to the loading state when the diagram source changes. Doing this during

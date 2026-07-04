@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useRef, useImperativeHandle, forwardRef, type RefObject } from 'react';
 import { EditorView, placeholder as placeholderExt, keymap, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
@@ -109,6 +109,90 @@ export interface CodeMirrorEditorHandle {
 }
 
 /**
+ * Builds an imperative handle whose methods read `viewRef` lazily, so any instance works
+ * for the editor's whole lifetime regardless of when the view is (re)created.
+ */
+function createEditorHandle(viewRef: RefObject<EditorView | null>): CodeMirrorEditorHandle {
+  return {
+    getSelection() {
+      const view = viewRef.current;
+      if (!view) return null;
+      const { from, to } = view.state.selection.main;
+      if (from === to) return null;
+      return { from, to, text: view.state.sliceDoc(from, to) };
+    },
+    focusAtPosition(pos: number) {
+      const view = viewRef.current;
+      if (!view) return;
+      view.dispatch({ selection: { anchor: pos, head: pos } });
+      view.focus();
+    },
+    insertAtCursor(text: string) {
+      const view = viewRef.current;
+      if (!view) return;
+      const { from, to } = view.state.selection.main;
+      view.dispatch({
+        changes: { from, to, insert: text },
+        selection: { anchor: from + text.length },
+      });
+      view.focus();
+    },
+  };
+}
+
+/**
+ * Post-mount focus/scroll behavior, run once CodeMirror has finished its initial layout
+ * (see FOCUS_DELAY_MS). Module-level (not compiled by the React Compiler): the try/catch
+ * around the goToLine dispatch would make the compiler bail out on the whole component.
+ */
+function applyPostMountFocus(
+  view: EditorView,
+  cfg: { goToLine?: number; showPropsInEditor: boolean; autoFocus: boolean },
+  onGoToLineComplete: (() => void) | undefined,
+): void {
+  // If goToLine is specified, scroll to that line and position cursor
+  if (cfg.goToLine && cfg.goToLine > 0) {
+    try {
+      const doc = view.state.doc;
+      // Ensure line number is within bounds (1-based)
+      const targetLine = Math.min(cfg.goToLine, doc.lines);
+      const line = doc.line(targetLine);
+
+      view.dispatch({
+        selection: { anchor: line.from, head: line.from },
+        scrollIntoView: true,
+      });
+
+      // Notify parent that goToLine has been processed
+      onGoToLineComplete?.();
+    } catch (err) {
+      logger.error('Failed to scroll to line:', err);
+    }
+  } else if (!cfg.showPropsInEditor) {
+    // Transaction filters don't run on the initial state, so the cursor would
+    // otherwise default to position 0 (inside the hidden front matter). Nudge it
+    // down to the first visible line.
+    const end = frontMatterHiddenEnd(view.state.doc);
+    if (end > 0) {
+      view.dispatch({ selection: { anchor: end, head: end } });
+    }
+  }
+
+  // If there's a global search term active, open the search panel pre-populated
+  if (globalHighlightText) {
+    openSearchPanel(view);
+    view.dispatch({
+      effects: setSearchQuery.of(new SearchQuery({ search: globalHighlightText, caseSensitive: false })),
+    });
+  }
+
+  // Focus the editor
+  if (cfg.autoFocus) {
+    view.focus();
+  }
+}
+
+/**
  * Full-featured CodeMirror 6 editor with Markdown/code language support, spell checking,
  * front-matter hiding, hashtag/date decorations, and a custom context menu.
  *
@@ -137,47 +221,44 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   const onChangeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingDocRef = useRef<string | null>(null);
   const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
-  onEscapeRef.current = onEscape;
-  onForceCancelRef.current = onForceCancel;
-  onSaveRef.current = onSave;
-  onSelectionChangeRef.current = onSelectionChange;
-  onReadyRef.current = onReady;
-  onGoToLineCompleteRef.current = onGoToLineComplete;
-  onGoToPositionCompleteRef.current = onGoToPositionComplete;
   const settings = useAS(s => s.settings);
 
-  // Stable handle object — its methods read viewRef lazily, so a single instance works for the
-  // editor's whole lifetime. Shared by both the imperative ref and the onReady callback.
-  // NOTE: the React Compiler bails out on this component (exhaustive-deps suppression on the
-  // mount effect below), so this useMemo is still load-bearing — don't remove it.
-  const editorHandle = useMemo<CodeMirrorEditorHandle>(() => ({
-    getSelection() {
-      const view = viewRef.current;
-      if (!view) return null;
-      const { from, to } = view.state.selection.main;
-      if (from === to) return null;
-      return { from, to, text: view.state.sliceDoc(from, to) };
-    },
-    focusAtPosition(pos: number) {
-      const view = viewRef.current;
-      if (!view) return;
-      view.dispatch({ selection: { anchor: pos, head: pos } });
-      view.focus();
-    },
-    insertAtCursor(text: string) {
-      const view = viewRef.current;
-      if (!view) return;
-      const { from, to } = view.state.selection.main;
-      view.dispatch({
-        changes: { from, to, insert: text },
-        selection: { anchor: from + text.length },
-      });
-      view.focus();
-    },
-  }), []);
+  // Mount-time configuration, captured on first render. The mount effect below intentionally
+  // uses these initial values — a given editor instance is created fresh per file/mode rather
+  // than having them mutated on a live instance, so capturing them once is correct (not a
+  // stale-closure bug). The props that DO change during a session are re-synced by their own
+  // effects below: `value` (value-sync), `settings.fontSize` (font-size), and
+  // `showPropsInEditor` (front matter).
+  const mountConfigRef = useRef({
+    value,
+    placeholder,
+    language,
+    autoFocus,
+    goToLine,
+    readOnly,
+    showPropsInEditor,
+    fontSize: settings.fontSize,
+  });
 
-  useImperativeHandle(ref, () => editorHandle, [editorHandle]);
+  // Keep the "latest callback" refs in sync so handlers inside the once-created EditorView
+  // always call the current props. Synced in an effect rather than during render — mutating
+  // refs during render breaks the rules of React and makes the React Compiler bail out on
+  // the whole component. Declared before the other effects so it runs first on every commit.
+  useEffect(() => {
+    onChangeRef.current = onChange;
+    onEscapeRef.current = onEscape;
+    onForceCancelRef.current = onForceCancel;
+    onSaveRef.current = onSave;
+    onSelectionChangeRef.current = onSelectionChange;
+    onReadyRef.current = onReady;
+    onGoToLineCompleteRef.current = onGoToLineComplete;
+    onGoToPositionCompleteRef.current = onGoToPositionComplete;
+  });
+
+  // The handle methods read viewRef lazily, so any instance works for the editor's whole
+  // lifetime (see createEditorHandle); the onReady callback in the mount effect gets its
+  // own equivalent instance.
+  useImperativeHandle(ref, () => createEditorHandle(viewRef), []);
 
   const {
     contextMenu,
@@ -198,16 +279,13 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     setCalendarAlreadyExists,
   } = useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem });
 
-  // Build the EditorView exactly once, on mount. The empty dependency array is intentional:
-  // `placeholder`, `language`, `goToLine`, `autoFocus`, and `readOnly` are mount-time
-  // configuration — a given editor instance is created fresh per file/mode rather than having
-  // these mutated on a live instance, so capturing them once is correct (not a stale-closure bug).
-  // The props that DO change during a session are re-synced by their own effects below:
-  // `value` (value-sync), `settings.fontSize` (font-size), and `showPropsInEditor` (front matter).
-  // Rebuilding the whole view on a prop change would needlessly discard undo history, cursor,
-  // scroll position, and the async-loaded spell checker.
+  // Build the EditorView exactly once, on mount, from the mountConfigRef snapshot (see its
+  // comment above for why first-render values are correct here). Rebuilding the whole view
+  // on a prop change would needlessly discard undo history, cursor, scroll position, and
+  // the async-loaded spell checker.
   useEffect(() => {
     if (!editorRef.current) return;
+    const cfg = mountConfigRef.current;
 
     const extensions = [
 
@@ -218,34 +296,34 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       // lineNumbers(), <-- removed line numbers (add back with this line)
       highlightActiveLineGutter(),
       highlightSpecialChars(),
-      ...(readOnly ? [] : [history()]),
+      ...(cfg.readOnly ? [] : [history()]),
       drawSelection(),
       dropCursor(),
       EditorState.allowMultipleSelections.of(true),
-      ...(readOnly ? [] : [indentOnInput()]),
+      ...(cfg.readOnly ? [] : [indentOnInput()]),
       syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
       bracketMatching(),
-      ...(readOnly ? [] : [closeBrackets(), autocompletion()]),
+      ...(cfg.readOnly ? [] : [closeBrackets(), autocompletion()]),
       rectangularSelection(),
       crosshairCursor(),
       highlightActiveLine(),
       highlightSelectionMatches(),
       keymap.of(
-        readOnly
+        cfg.readOnly
           ? [...defaultKeymap, ...searchKeymap]
           : [...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...completionKeymap, ...searchKeymap]
       ),
-      ...(readOnly ? [EditorState.readOnly.of(true)] : []),
+      ...(cfg.readOnly ? [EditorState.readOnly.of(true)] : []),
       // END_basicSetupReplacement
       search({ top: true }),
       searchMatchTheme,
       oneDark,
       cursorOverrideTheme,
-      fontSizeCompartment.current.of(createFontSizeTheme(settings.fontSize)),
+      fontSizeCompartment.current.of(createFontSizeTheme(cfg.fontSize)),
       spellCheckCompartment.current.of([]),
       spellCheckTheme,
       frontMatterCompartment.current.of(
-        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
+        cfg.showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
       ),
       hashtagPlugin,
       hashtagTheme,
@@ -329,22 +407,22 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       }),
     ];
 
-    if (placeholder) {
-      extensions.push(placeholderExt(placeholder));
+    if (cfg.placeholder) {
+      extensions.push(placeholderExt(cfg.placeholder));
     }
 
-    if (language === 'markdown') {
+    if (cfg.language === 'markdown') {
       extensions.push(markdown());
-    } else if (language === 'javascript') {
+    } else if (cfg.language === 'javascript') {
       extensions.push(javascript());
-    } else if (language === 'typescript') {
+    } else if (cfg.language === 'typescript') {
       extensions.push(javascript({ typescript: true }));
-    } else if (language === 'python') {
+    } else if (cfg.language === 'python') {
       extensions.push(python());
     }
 
     const state = EditorState.create({
-      doc: value,
+      doc: cfg.value,
       extensions,
     });
 
@@ -357,51 +435,12 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
     // The view (and the imperative handle, attached during the preceding layout phase) is now
     // ready. Notify the parent so it can register this editor without racing a ref read.
-    onReadyRef.current?.(editorHandle);
+    onReadyRef.current?.(createEditorHandle(viewRef));
 
     // Auto-focus and scroll to line after a delay to ensure rendering is complete
     const focusTimer = setTimeout(() => {
       if (viewRef.current) {
-        // If goToLine is specified, scroll to that line and position cursor
-        if (goToLine && goToLine > 0) {
-          try {
-            const doc = viewRef.current.state.doc;
-            // Ensure line number is within bounds (1-based)
-            const targetLine = Math.min(goToLine, doc.lines);
-            const line = doc.line(targetLine);
-
-            viewRef.current.dispatch({
-              selection: { anchor: line.from, head: line.from },
-              scrollIntoView: true,
-            });
-
-            // Notify parent that goToLine has been processed
-            onGoToLineCompleteRef.current?.();
-          } catch (err) {
-            logger.error('Failed to scroll to line:', err);
-          }
-        } else if (!showPropsInEditor) {
-          // Transaction filters don't run on the initial state, so the cursor would
-          // otherwise default to position 0 (inside the hidden front matter). Nudge it
-          // down to the first visible line.
-          const end = frontMatterHiddenEnd(viewRef.current.state.doc);
-          if (end > 0) {
-            viewRef.current.dispatch({ selection: { anchor: end, head: end } });
-          }
-        }
-
-        // If there's a global search term active, open the search panel pre-populated
-        if (globalHighlightText && viewRef.current) {
-          openSearchPanel(viewRef.current);
-          viewRef.current.dispatch({
-            effects: setSearchQuery.of(new SearchQuery({ search: globalHighlightText, caseSensitive: false })),
-          });
-        }
-
-        // Focus the editor
-        if (autoFocus) {
-          viewRef.current.focus();
-        }
+        applyPostMountFocus(viewRef.current, cfg, onGoToLineCompleteRef.current);
       }
     }, FOCUS_DELAY_MS);
 
@@ -414,8 +453,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     };
 
     // Skip spell checking for code languages or read-only views
-    const isCodeLanguage = language === 'javascript' || language === 'typescript' || language === 'python';
-    if (isCodeLanguage || readOnly) {
+    const isCodeLanguage = cfg.language === 'javascript' || cfg.language === 'typescript' || cfg.language === 'python';
+    if (isCodeLanguage || cfg.readOnly) {
       return cleanup;
     }
 
@@ -433,7 +472,6 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       .catch((err: unknown) => logger.error('Failed to load spell checker:', err));
 
     return cleanup;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Sync external value changes to editor (but not when editor itself changed)

@@ -70,6 +70,7 @@ open_videos_folder() {
 read -p "Build app before running tests? [Y/n]: " do_build
 if [[ ! "$do_build" =~ ^[Nn]$ ]]; then
     echo "Building app with electron-forge..."
+    # todo-0: Need to be calling ./build.sh here, for a more robust set of linting.
     yarn package
     if [ $? -ne 0 ]; then
         echo "Build failed. Exiting."

@@ -36,6 +36,14 @@ export interface AiRewrite {
   aiRewrite: () => void;
 }
 
+// Module-level (not compiled by the React Compiler): the ternary lives in a
+// rejection handler, which inside the hook's own try/catch would make the
+// compiler bail out.
+function reportRewriteError(err: unknown, onError: (message: string) => void): void {
+  logger.error('Rewrite failed:', err);
+  onError(err instanceof Error ? err.message : 'Unknown error');
+}
+
 /**
  * Shared selection-vs-whole-document rewrite logic used by both TextEntry and
  * MarkdownEntry. On success it enters review mode for the file; markdown passes
@@ -57,38 +65,27 @@ export function useAiRewrite({
   // wrapped path. `defer` runs its action immediately.
   const run: StreamingRunner =
     runner ??
-    (async (operation) => {
-      try {
-        await operation((action: DeferrableAction) => action());
-      } catch (err) {
-        logger.error('Rewrite failed:', err);
-        onError(err instanceof Error ? err.message : 'Unknown error');
-      }
-    });
+    ((operation) =>
+      operation((action: DeferrableAction) => action()).catch((err: unknown) =>
+        reportRewriteError(err, onError)
+      ));
 
   const aiRewrite = () => {
     const selection = editorRef.current?.getSelection();
     setIsRewriting(true);
-    void (async () => {
-      try {
-        await run(async (defer) => {
-          const result = selection
-            ? await api.rewriteContentSelection(editContent, selection.from, selection.to, path, hasIndexFile)
-            : await api.rewriteContent(editContent, path, hasIndexFile);
-          if ('error' in result) {
-            logger.error('Rewrite failed:', result.error);
-            onError(result.error);
-          } else {
-            defer(() => setItemReviewing(path, true, result.rewrittenContent));
-          }
-        });
-      } catch (err) {
-        logger.error('Rewrite failed:', err);
-        onError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setIsRewriting(false);
+    void run(async (defer) => {
+      const result = selection
+        ? await api.rewriteContentSelection(editContent, selection.from, selection.to, path, hasIndexFile)
+        : await api.rewriteContent(editContent, path, hasIndexFile);
+      if ('error' in result) {
+        logger.error('Rewrite failed:', result.error);
+        onError(result.error);
+      } else {
+        defer(() => setItemReviewing(path, true, result.rewrittenContent));
       }
-    })();
+    })
+      .catch((err: unknown) => reportRewriteError(err, onError))
+      .finally(() => setIsRewriting(false));
   };
 
   return { isRewriting, aiRewrite };

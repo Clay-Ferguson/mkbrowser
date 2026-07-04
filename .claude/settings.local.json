@@ -59,7 +59,13 @@
       "Bash(yarn lint *)",
       "Bash(yarn test *)",
       "Bash(yarn vitest *)",
-      "Bash(yarn package *)"
+      "Bash(yarn package *)",
+      "Bash(echo \"---exit:$?---\")",
+      "Bash(grep -v '^$')",
+      "Bash(echo \"exit:$?\")",
+      "Bash(echo \"exit=$?\")",
+      "Bash(grep -v '\\\\.d\\\\.ts$')",
+      "Bash(echo \"gate-exit=$?\")"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

@@ -15,6 +15,29 @@ interface UseContentLoaderOptions {
   errorMessage?: string;
 }
 
+// Module-level (not compiled by the React Compiler): the try/finally would make
+// the compiler bail out on the hook if it lived inside it.
+async function loadFileContent(
+  path: string,
+  errorMessage: string,
+  isIgnored: () => boolean,
+  setLoading: (loading: boolean) => void,
+): Promise<void> {
+  setLoading(true);
+  try {
+    const content = await api.readFile(path);
+    if (isIgnored()) return;
+    setItemContent(path, content);
+    if (globalHighlightText) {
+      requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
+    }
+  } catch {
+    if (!isIgnored()) setItemContent(path, errorMessage);
+  } finally {
+    if (!isIgnored()) setLoading(false);
+  }
+}
+
 /**
  * Hook that handles content loading for file Entry components.
  * Manages loading state and caches content in the store.
@@ -38,32 +61,10 @@ export function useContentLoader({
     // and that flood of store updates trips React's "Maximum update depth".
     let ignore = false;
 
-    const loadContent = async () => {
-      if (!isExpanded) {
-        return;
-      }
-
-      // Check if we have valid cached content
-      if (isCacheValid(path)) {
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const content = await api.readFile(path);
-        if (ignore) return;
-        setItemContent(path, content);
-        if (globalHighlightText) {
-          requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
-        }
-      } catch {
-        if (!ignore) setItemContent(path, errorMessage);
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
-
-    void loadContent();
+    // Only load when expanded and there is no valid cached content.
+    if (isExpanded && !isCacheValid(path)) {
+      void loadFileContent(path, errorMessage, () => ignore, setLoading);
+    }
 
     return () => {
       ignore = true;

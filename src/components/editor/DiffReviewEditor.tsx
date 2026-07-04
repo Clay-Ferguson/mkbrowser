@@ -34,35 +34,46 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
   const viewRef = useRef<EditorView | null>(null);
   const settings = useAS(s => s.settings);
 
+  // Mount-time configuration, captured on first render. The mount effect below intentionally
+  // uses these initial values — a review session is created fresh per rewrite rather than
+  // having its texts mutated on a live instance, so capturing them once is correct.
+  const mountConfigRef = useRef({
+    originalText,
+    modifiedText,
+    language,
+    fontSize: settings.fontSize,
+  });
+
   useEffect(() => {
     if (!editorRef.current) return;
+    const cfg = mountConfigRef.current;
 
     const extensions = [
       basicSetup,
       oneDark,
-      createFontSizeTheme(settings.fontSize),
+      createFontSizeTheme(cfg.fontSize),
       EditorView.lineWrapping,
       EditorState.readOnly.of(true),
       unifiedMergeView({
-        original: originalText,
+        original: cfg.originalText,
         mergeControls: true,
         highlightChanges: true,
         gutter: true,
       }),
     ];
 
-    if (language === 'markdown') {
+    if (cfg.language === 'markdown') {
       extensions.push(markdown());
-    } else if (language === 'javascript') {
+    } else if (cfg.language === 'javascript') {
       extensions.push(javascript());
-    } else if (language === 'typescript') {
+    } else if (cfg.language === 'typescript') {
       extensions.push(javascript({ typescript: true }));
-    } else if (language === 'python') {
+    } else if (cfg.language === 'python') {
       extensions.push(python());
     }
 
     const state = EditorState.create({
-      doc: modifiedText,
+      doc: cfg.modifiedText,
       extensions,
     });
 
@@ -77,7 +88,6 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
       view.destroy();
       viewRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resolveAllChunks = (action: 'accept' | 'reject') => {

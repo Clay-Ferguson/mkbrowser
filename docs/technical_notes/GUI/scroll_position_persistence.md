@@ -69,13 +69,13 @@ export function useScrollPersistence(
   }, [getPosition]);
 
   // SAVE: debounced 150ms after each scroll event
-  const handleScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     if (scrollSaveTimerRef.current) clearTimeout(scrollSaveTimerRef.current);
     const scrollTop = e.currentTarget.scrollTop;
     scrollSaveTimerRef.current = setTimeout(() => {
       setPosition(scrollTop);
     }, 150);
-  }, [setPosition]);
+  }
 
   // CLEANUP: prevent stale timer after unmount
   useEffect(() => {

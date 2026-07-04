@@ -177,11 +177,9 @@ module.exports = {
         // reactive value referenced in the hook body. Catches stale-closure bugs.
         "react-hooks/exhaustive-deps": "error",
 
-        // The remaining v7 recommended rules (React-19 / React-Compiler era checks)
-        // are introduced as warnings so they surface in lint output without failing
-        // `prebuild`. Promote individual rules to "error" once their findings are
-        // addressed. Current hit counts noted where non-trivial.
-        "react-hooks/set-state-in-effect": "error",        // ~7 hits — setState inside an effect (extra render passes)
+        // The remaining v7 recommended rules (React-19 / React-Compiler era checks),
+        // all promoted to "error" — the codebase passes them clean.
+        "react-hooks/set-state-in-effect": "error",        // setState inside an effect (extra render passes)
         "react-hooks/refs": "error",                        // ~16 hits — reading/mutating a ref during render
         "react-hooks/set-state-in-render": "error",         // setState during render (infinite-loop risk)
         "react-hooks/purity": "error",                      // render must be a pure function of props/state
@@ -195,6 +193,22 @@ module.exports = {
         "react-hooks/unsupported-syntax": "error",          // syntax the React Compiler can't optimize
         "react-hooks/config": "error",                      // validity of React Compiler config
         "react-hooks/gating": "error",                      // correct feature-gating of compiled output
+
+        // ── React Compiler bailout guards (not in the recommended set) ──
+        // The build compiler (babel-plugin-react-compiler in
+        // vite.renderer.config.mts) bails out SILENTLY on components it can't
+        // compile, de-memoizing them — and since this codebase removed all
+        // manual useCallback/useMemo in favor of the compiler, a bailout is a
+        // real perf regression, not a no-op. These rules make bailout-introducing
+        // code (e.g. a try/finally inside a component or hook) fail lint instead.
+        // Compiler-unsupported constructs belong in module-level helper functions,
+        // which the compiler doesn't compile (see REACT_COMPILER_PLAN.md).
+        // Caveat: bailouts caused by an eslint-disable of a react-hooks rule
+        // cannot be linted (in lint mode the compiler deliberately ignores those
+        // comments and validates the code itself) — but those require a visible
+        // disable comment in the diff, so they can't slip in silently.
+        "react-hooks/todo": "error",                        // constructs the compiler doesn't support YET (try/finally, mutating globals, `this`, …)
+        "react-hooks/syntax": "error",                      // invalid JS the compiler rejects outright
       },
     },
   ],
