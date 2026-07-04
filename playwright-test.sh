@@ -69,8 +69,16 @@ open_videos_folder() {
 # Optionally build the app so the Playwright fixture loads the latest code
 read -p "Build app before running tests? [Y/n]: " do_build
 if [[ ! "$do_build" =~ ^[Nn]$ ]]; then
+    # Run the same quality gate (tests, lint, React Compiler coverage) that
+    # build.sh runs, so the packaged bundle the e2e tests load is fully checked.
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    "$SCRIPT_DIR/pre-package.sh"
+    if [ $? -ne 0 ]; then
+        echo "Pre-package checks failed. Exiting."
+        exit 1
+    fi
+
     echo "Building app with electron-forge..."
-    # todo-0: Need to be calling ./build.sh here, for a more robust set of linting.
     yarn package
     if [ $? -ne 0 ]; then
         echo "Build failed. Exiting."

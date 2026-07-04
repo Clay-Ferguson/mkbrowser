@@ -65,7 +65,11 @@
       "Bash(echo \"exit:$?\")",
       "Bash(echo \"exit=$?\")",
       "Bash(grep -v '\\\\.d\\\\.ts$')",
-      "Bash(echo \"gate-exit=$?\")"
+      "Bash(echo \"gate-exit=$?\")",
+      "Bash(chmod +x pre-package.sh)",
+      "Bash(bash -n pre-package.sh)",
+      "Bash(bash -n build.sh)",
+      "Bash(bash -n playwright-test.sh)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"
