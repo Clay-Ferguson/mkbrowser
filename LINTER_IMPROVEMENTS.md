@@ -11,11 +11,12 @@ Hit counts below are as of the audit date. To re-measure any candidate rule with
 touching config:
 
 ```bash
-npx eslint --ext .ts,.tsx src --rule '{"<rule-name>": "error"}'
+npx eslint src --rule '{"<rule-name>": "error"}'
 ```
 
-(Typed `@typescript-eslint/*` rules only work under `src/**`, where the eslintrc override
-supplies `parserOptions.project`.)
+(Typed `@typescript-eslint/*` rules only work under `src/**`, where the `eslint.config.mjs`
+override supplies a TypeScript program via `parserOptions.projectService`. The flat config
+derives file extensions from its `files` globs, so `--ext` is gone.)
 
 ---
 
@@ -23,15 +24,15 @@ supplies `parserOptions.project`.)
 
 - [x] `src/components/PathBreadcrumb.tsx:112` — replaced `key={`${part}-${index}`}` with
   `key={segmentPath}` (the cumulative path prefix, already computed and unique per segment).
-- [x] Enabled `"react/no-array-index-key": "error"` in `.eslintrc.js` (global `rules` block).
-- [x] `npx eslint --ext .ts,.tsx src` passes clean.
+- [x] Enabled `"react/no-array-index-key": "error"` in the config (global `rules` block).
+- [x] `npx eslint src` passes clean.
 
 Catches: stale/duplicated component state when a keyed-by-index list is reordered,
 inserted into, or filtered.
 
 ## 2. `@typescript-eslint/prefer-nullish-coalescing` — 39 hits
 
-Currently `"off"` in `.eslintrc.js`. Each `a || b` where `a` can legitimately be `0`, `''`,
+Currently `"off"` in `eslint.config.mjs`. Each `a || b` where `a` can legitimately be `0`, `''`,
 or `false` is a latent bug (the fallback fires on valid values); the rest are stylistic.
 This needs a **one-time human triage** of all 39 sites — decide per site whether `||` is
 intended — then flip the rule to `"error"` in the `src/**` override (it requires typed
@@ -69,14 +70,26 @@ non-nullable when runtime says otherwise). Too noisy as a permanent `error`, but
 it interacts with item 4 — adopting `noUncheckedIndexedAccess` first will change (and
 legitimize) many of these hits, so do the sweep **after** item 4.
 
-## 6. ESLint 9 / flat-config migration — housekeeping
+## 6. ESLint 9 / flat-config migration — housekeeping ✅ DONE (2026-07-04)
 
-ESLint 8 has been EOL since late 2024. Migrating to ESLint 9 + flat config
-(`eslint.config.js`) keeps the toolchain supported, picks up `eslint:recommended`
-improvements (e.g. `no-constant-binary-expression` becomes built-in), and matches how
-`eslint-plugin-react-hooks` v7 and `typescript-eslint` v8 are primarily documented and
-tested. No new bug-catching by itself — schedule as pure maintenance. Mind the Yarn 1
-constraint in AGENTS.md when touching devDependencies.
+ESLint 8 had been EOL since late 2024. Migrated to ESLint 9 + flat config — done ahead
+of items 2–5 on purpose, so those config changes are authored once against the modern
+format instead of being written into the legacy `.eslintrc.js` and then re-translated.
+
+- [x] Bumped `eslint` to `^9`; added `@eslint/js`, `globals`, and the `typescript-eslint`
+  v8 meta-package (Yarn 1, `yarn add -D`). Kept `eslint-plugin-import` v2.32 (it already
+  ships `flatConfigs.recommended/.electron/.typescript`), `eslint-plugin-react` v7.37,
+  and `eslint-plugin-react-hooks` v7 — no plugin swaps needed.
+- [x] Rewrote config as `eslint.config.mjs` (`tseslint.config(...)`), a 1:1 translation of
+  every rule + option + comment. Typed rules stay scoped to `src/**` via a `files` entry
+  using `parserOptions.projectService` (v8's replacement for `project`). Deleted `.eslintrc.js`.
+- [x] `lint` script: dropped the removed `--ext` flag → `tsc --noEmit && eslint .`.
+- [x] Removed two now-flagged dead `eslint-disable` directives (ESLint 9 reports unused
+  ones by default): a redundant `no-unused-vars` disable in `BrowseView.tsx` (the `_`
+  prefix already exempts it) and a stale `no-var-requires` disable in `search.test.ts`.
+- [x] Parity verified: `yarn lint` clean; typed linting confirmed live on `src/**`
+  (the audit's 39 `prefer-nullish-coalescing` hits still reproduce); `pre-package.sh`
+  (tests + lint + compiler coverage) passes. Docs updated (`AGENTS.md`, `DEVELOPER_GUIDE.md`).
 
 ## 7. Optional / nice-to-have
 
@@ -89,7 +102,7 @@ constraint in AGENTS.md when touching devDependencies.
   can spot *new* accidental cycles outside the store:
 
   ```bash
-  npx eslint --ext .ts,.tsx src --rule '{"import/no-cycle": ["error", {"maxDepth": 4}]}'
+  npx eslint src --rule '{"import/no-cycle": ["error", {"maxDepth": 4}]}'
   ```
 
 ---

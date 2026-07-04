@@ -348,7 +348,7 @@ One companion gotcha: **`react-hooks/set-state-in-effect`** flags *synchronous* 
 
 ### Guard layer 1 — ESLint
 
-`.eslintrc.js` enables the full `eslint-plugin-react-hooks` v7 compiler-powered rule set as **errors** for `src/**` (scoped there because the typed rules need `parserOptions.project`). Beyond the recommended set (`rules-of-hooks`, `exhaustive-deps`, `refs`, `purity`, `set-state-in-effect`, `immutability`, …), two non-default rules act as bailout guards:
+`eslint.config.mjs` enables the full `eslint-plugin-react-hooks` v7 compiler-powered rule set as **errors** for `src/**` (scoped there because the typed rules need a TypeScript program, supplied by `parserOptions.projectService`). Beyond the recommended set (`rules-of-hooks`, `exhaustive-deps`, `refs`, `purity`, `set-state-in-effect`, `immutability`, …), two non-default rules act as bailout guards:
 
 - **`react-hooks/todo`** — flags constructs the compiler doesn't support *yet* (try/finally, `this`, global mutation, …). This is the rule that makes an innocent-looking `try/finally` fail lint instead of silently de-memoizing a component.
 - **`react-hooks/syntax`** — flags invalid JS the compiler rejects outright.

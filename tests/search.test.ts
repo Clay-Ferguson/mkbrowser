@@ -244,7 +244,6 @@ describe('advanced content search', () => {
       const results = await searchFolder(TEST_DATA_DIR, "$('search') && !$('wildcard')", 'advanced');
       for (const r of results) {
         // none of the returned files should contain "wildcard"
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const content = fs.readFileSync(r.path, 'utf-8');
         expect(content.toLowerCase()).toContain('search');
         expect(content.toLowerCase()).not.toContain('wildcard');

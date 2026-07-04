@@ -574,7 +574,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   };
 
   // No longer used — kept for reference in case we return to prompting users for a file name during document mode editing
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _handleInsertFileAt_legacy = (insertIndex: number) => {
     setInsertAtIndex(insertIndex);
     setCreateFileDefaultName('');
