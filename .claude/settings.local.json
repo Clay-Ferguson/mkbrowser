@@ -69,7 +69,8 @@
       "Bash(chmod +x pre-package.sh)",
       "Bash(bash -n pre-package.sh)",
       "Bash(bash -n build.sh)",
-      "Bash(bash -n playwright-test.sh)"
+      "Bash(bash -n playwright-test.sh)",
+      "Bash(echo \"---exit: $?---\")"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

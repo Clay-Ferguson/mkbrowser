@@ -69,7 +69,7 @@ The renderer uses the **React Compiler** (`babel-plugin-react-compiler` in `vite
 
 The compiler **bails out** (silently skips a component/hook, leaving it fully de-memoized) on constructs it doesn't support — `try/finally`, conditionals/`?.` inside try/catch, ref writes during render, mutating module globals, `this` expressions. The fix is always to restructure: promise `.catch().finally()` chains, or **module-level helper functions** (the compiler doesn't compile plain functions, so anything goes there).
 
-Two guards enforce this: the `react-hooks/todo` + `react-hooks/syntax` ESLint rules (errors in `.eslintrc.js`), and **`compiler-coverage.mjs`** at the repo root — the source of truth, since it runs the exact compiler version the build uses. `node compiler-coverage.mjs` scans all of `src/` and exits 1 on any bailout (`build.sh` runs it as a build gate); `node compiler-coverage.mjs <file>` gives a verbose per-function report. After touching components/hooks, confirm the file still reports all `OK`. Full details, fix patterns, and the exhaustive-deps escape patterns: `docs/technical_notes/DEVELOPER_GUIDE.md` § React Compiler.
+Two guards enforce this: the `react-hooks/todo` + `react-hooks/syntax` ESLint rules (errors in `.eslintrc.js`), and **`compiler-coverage.mjs`** at the repo root — the source of truth, since it runs the exact compiler version the build uses. `node compiler-coverage.mjs` scans all of `src/` and exits 1 on any bailout (`pre-package.sh` runs it as a build gate — shared by `build.sh` and `playwright-test.sh`); `node compiler-coverage.mjs <file>` gives a verbose per-function report. After touching components/hooks, confirm the file still reports all `OK`. Full details, fix patterns, and the exhaustive-deps escape patterns: `docs/technical_notes/DEVELOPER_GUIDE.md` § React Compiler.
 
 ## Tech Stack
 
@@ -97,6 +97,10 @@ yarn package    # rebuilds .vite/build/ + .vite/renderer/
 Forgetting this produces baffling failures where a fix (or a test selector that depends on a renderer change) appears not to work even though the source is correct. Test-only changes under `tests/` do **not** need a rebuild.
 
 Never run m Playwright tests yourself. If you need me to run a Playwright test to check something, stop what you're doing, and ask me to run it for you. You're free to run any other unit tests however, just not the Playright ones.
+
+## Grepping (UTF-8)
+
+Some source files (e.g. `FolderGraphView.tsx`) contain valid UTF-8 punctuation (`—`, `→`, `…`, `•`, `·`). In a single-byte locale (`LC_ALL=C`/POSIX) `grep` mislabels these files "binary" and silently skips them. Always search with `grep -a` (a.k.a. `--text`) so matches in those files aren't dropped.
 
 ## Git Commits
 
