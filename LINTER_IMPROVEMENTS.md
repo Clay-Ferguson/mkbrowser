@@ -39,14 +39,24 @@ intended — then flip the rule to `"error"` in the `src/**` override (it requir
 linting) so new code gets checked. Options like `ignorePrimitives: { string: true }` can
 cut noise if string-`||` turns out to be always-intentional here.
 
-## 3. The four `no-unsafe-*` rules — untested
+## 3. The four `no-unsafe-*` rules ✅ DONE (2026-07-04)
 
 `no-unsafe-assignment`, `no-unsafe-call`, `no-unsafe-member-access`, `no-unsafe-return`
-are `"off"` with a comment saying they need type-checked linting — but the `src/**`
-override **has** typed linting now, so they can be enabled there. They catch `any` leaking
-out of loosely-typed libraries (with `no-explicit-any` already banning first-party `any`,
-this closes the third-party gap). Expect the noise to concentrate in the LangChain-facing
-code (`src/main/ai/`); if it's unmanageable, consider enabling them for renderer code only.
+were `"off"` — enabled all four as `"error"` in the `src/**` typed override (they close
+the third-party-`any` gap left by `no-explicit-any`, which only bans first-party `any`).
+Only **14 hits** total (the LangChain code was already tightly typed); each was a genuine
+untyped-`any` escape, all fixed at the source rather than suppressed:
+
+- [x] `FolderGraphView.tsx` — the d3 `'drag'`/`'end'` `.on()` callbacks had untyped
+  `event`; added the explicit `D3DragEvent<SVGGElement, SimNode, SimNode>` annotation the
+  `'start'` handler already carried.
+- [x] `IndexTreeView.tsx`, `linkUtil.ts` — `Array(ups).fill('..')` is `any[]`; typed as
+  `Array<string>(ups)` so the spread is safe.
+- [x] `exportUtil.ts` — the `String.replace` `<img>` callback's `attrs` param defaulted to
+  `any`; typed the callback params `(fullMatch: string, attrs: string)`.
+- [x] `asyncUtil.ts` — `new Array(items.length)` is `any[]` assigned to `R[]`; typed
+  `new Array<R>(...)`.
+- [x] Enabled all four as `"error"` in the `src/**` override; `yarn lint` clean.
 
 ## 4. `noUncheckedIndexedAccess` (tsconfig) — 98 errors
 

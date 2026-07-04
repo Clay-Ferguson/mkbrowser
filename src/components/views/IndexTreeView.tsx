@@ -60,7 +60,7 @@ function computeRelativePath(fromDir: string, toFile: string): string {
   while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) i++;
   const ups = fromParts.length - i;
   const downs = toParts.slice(i);
-  const rel = [...Array(ups).fill('..'), ...downs].join('/');
+  const rel = [...Array<string>(ups).fill('..'), ...downs].join('/');
   return rel || './';
 }
 

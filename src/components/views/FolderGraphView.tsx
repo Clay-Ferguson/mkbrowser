@@ -562,11 +562,11 @@ function FolderGraphView() {
         d.fx = d.x;
         d.fy = d.y;
       })
-      .on('drag', (event, d) => {
+      .on('drag', (event: D3DragEvent<SVGGElement, SimNode, SimNode>, d) => {
         d.fx = event.x;
         d.fy = event.y;
       })
-      .on('end', (event, d) => {
+      .on('end', (event: D3DragEvent<SVGGElement, SimNode, SimNode>, d) => {
         if (!event.active) sim.alphaTarget(0);
         d.fx = undefined;
         d.fy = undefined;

@@ -37,7 +37,7 @@ function relativePathFromParts(fromParts: string[], toPath: string): string {
   }
 
   const ups = fromParts.length - i;
-  const segments = [...Array(ups).fill('..'), ...toParts.slice(i)];
+  const segments = [...Array<string>(ups).fill('..'), ...toParts.slice(i)];
   return segments.join('/');
 }
 

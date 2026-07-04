@@ -64,12 +64,11 @@ export default tseslint.config(
       // Disallow the non-null assertion operator (!). "error" to ban it outright.
       "@typescript-eslint/no-non-null-assertion": "error",
 
-      // The four rules below require type-checked linting. To enable them, add
-      // parserOptions.project = "./tsconfig.json" above, then set to "error" or "warn".
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-call": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
-      "@typescript-eslint/no-unsafe-return": "off",
+      // The four no-unsafe-* rules require type-checked linting, so they are
+      // enabled as "error" for src/** in the overrides block below (root configs
+      // and tests/ are outside tsconfig). They catch `any` leaking out of
+      // loosely-typed third-party libraries — closing the gap left by
+      // no-explicit-any, which only bans first-party `any`.
 
       // Disallow async functions whose returned Promise is never awaited or handled.
       // Requires type-checked linting, so it is enabled as "error" for src/** in
@@ -198,6 +197,16 @@ export default tseslint.config(
     },
     rules: {
       "@typescript-eslint/no-floating-promises": "error",
+
+      // The four no-unsafe-* rules catch an `any` value (typically escaping from
+      // a loosely-typed third-party library) being assigned, called, member-
+      // accessed, or returned — where it silently defeats type checking
+      // downstream. no-explicit-any already bans first-party `any`; these close
+      // the third-party gap. All require type-checked linting, hence src/**.
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
 
       // Prefer `??` over `||` when the intent is a null/undefined fallback.
       // `||` also fires on `0`, `''`, and `false`, so a `|| fallback` on a

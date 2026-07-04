@@ -47,7 +47,7 @@ function rewriteImagePathsToAbsolute(content: string, sourceFilePath: string): s
   });
 
   // Rewrite HTML img tags: <img ... src="..." ...>
-  result = result.replace(/<img([^>]+)>/gi, (fullMatch, attrs) => {
+  result = result.replace(/<img([^>]+)>/gi, (fullMatch: string, attrs: string) => {
     let replaced = attrs.replace(/(\bsrc=")([^"]+)(")/i, (_m: string, pre: string, rawPath: string, post: string) => {
       if (shouldSkip(rawPath)) return _m;
       return pre + resolveIfExists(rawPath) + post;
