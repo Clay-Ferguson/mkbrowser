@@ -27,16 +27,17 @@ function getExtension(fileName: string): string {
 export function isImageFile(fileName: string): boolean {
   return IMAGE_EXTENSIONS.has(getExtension(fileName));
 }
-export type TextFileLanguage = 'javascript' | 'typescript' | 'python' | 'text';
+export type TextFileLanguage = 'javascript' | 'typescript' | 'python' | 'shell' | 'text';
 
 const TEXT_FILE_LANGUAGES: Record<string, TextFileLanguage> = {
   '.txt': 'text',
   '.js': 'javascript',
   '.ts': 'typescript',
   '.py': 'python',
+  '.sh': 'shell',
 };
 
-/** Returns true if the file's extension maps to a known text language (js/ts/py/txt). */
+/** Returns true if the file's extension maps to a known text language (js/ts/py/sh/txt). */
 export function isTextFile(fileName: string): boolean {
   return getExtension(fileName) in TEXT_FILE_LANGUAGES;
 }

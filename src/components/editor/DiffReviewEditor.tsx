@@ -6,6 +6,8 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { markdown } from '@codemirror/lang-markdown';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
+import { StreamLanguage } from '@codemirror/language';
+import { shell } from '@codemirror/legacy-modes/mode/shell';
 import { unifiedMergeView, acceptChunk, rejectChunk, getChunks } from '@codemirror/merge';
 import { useAS } from '../../store';
 import { createFontSizeTheme } from './editorTheme';
@@ -16,7 +18,7 @@ interface DiffReviewEditorProps {
   originalText: string;
   /** The post-edit content (the current document), shown as the "modified" side. */
   modifiedText: string;
-  language?: 'markdown' | 'text' | 'javascript' | 'typescript' | 'python';
+  language?: 'markdown' | 'text' | 'javascript' | 'typescript' | 'python' | 'shell';
   /** Reports the final document after the user resolves every chunk (accepting or rejecting all). */
   onComplete: (finalText: string) => void;
   /** Called when the user cancels the review without saving. */
@@ -70,6 +72,8 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
       extensions.push(javascript({ typescript: true }));
     } else if (cfg.language === 'python') {
       extensions.push(python());
+    } else if (cfg.language === 'shell') {
+      extensions.push(StreamLanguage.define(shell));
     }
 
     const state = EditorState.create({

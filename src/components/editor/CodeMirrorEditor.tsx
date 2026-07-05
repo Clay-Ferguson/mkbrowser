@@ -3,12 +3,13 @@ import { EditorView, placeholder as placeholderExt, keymap, highlightActiveLineG
 import { EditorState, Compartment } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
 import { highlightSelectionMatches, search, searchKeymap, openSearchPanel, setSearchQuery, SearchQuery } from '@codemirror/search';
-import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching } from '@codemirror/language';
+import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching, StreamLanguage } from '@codemirror/language';
 import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { markdown } from '@codemirror/lang-markdown';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
+import { shell } from '@codemirror/legacy-modes/mode/shell';
 import Typo from 'typo-js';
 import { globalHighlightText } from '../../renderer/globalHighlight';
 import AlertDialog from '../dialogs/AlertDialog';
@@ -58,7 +59,7 @@ interface CodeMirrorEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  language?: 'markdown' | 'text' | 'javascript' | 'typescript' | 'python';
+  language?: 'markdown' | 'text' | 'javascript' | 'typescript' | 'python' | 'shell';
   /** If true, automatically focus the editor after mounting (with a small delay for rendering) */
   autoFocus?: boolean;
   /** 1-based line number to scroll to and position cursor at after initialization */
@@ -421,6 +422,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       extensions.push(javascript({ typescript: true }));
     } else if (cfg.language === 'python') {
       extensions.push(python());
+    } else if (cfg.language === 'shell') {
+      extensions.push(StreamLanguage.define(shell));
     }
 
     const state = EditorState.create({
@@ -455,7 +458,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     };
 
     // Skip spell checking for code languages or read-only views
-    const isCodeLanguage = cfg.language === 'javascript' || cfg.language === 'typescript' || cfg.language === 'python';
+    const isCodeLanguage = cfg.language === 'javascript' || cfg.language === 'typescript' || cfg.language === 'python' || cfg.language === 'shell';
     if (isCodeLanguage || cfg.readOnly) {
       return cleanup;
     }
