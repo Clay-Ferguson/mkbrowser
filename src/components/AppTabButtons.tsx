@@ -98,7 +98,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
   const tabs = allTabs.filter((tab) => visibleIds.has(tab.id));
 
   return (
-    <nav data-testid="app-tab-buttons" className="flex items-center gap-3 px-4 bg-slate-800 border-b border-slate-600">
+    <nav data-testid="app-tab-buttons" className="flex items-center gap-3 px-2 bg-slate-800 border-b border-slate-600">
       <button
         ref={logoRef}
         type="button"
@@ -186,7 +186,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
           <button
             type="button"
             onClick={navigateUp}
-            className="px-3 py-1 mb-1 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 border border-gray-400 rounded-lg transition-colors cursor-pointer"
+            className="px-3 py-1 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 border border-gray-400 rounded-lg transition-colors cursor-pointer"
             title="Go up one level"
             data-testid="navigate-up-button"
           >
