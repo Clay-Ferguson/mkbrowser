@@ -208,6 +208,7 @@ export function createCustomImage(entryPath: string) {
 
       void resolve();
 
+      // Returns the useEffect cleanup (an unsubscribe-style teardown): flips the isMounted flag so the async resolve() can't set state after unmount.
       return () => {
         isMounted = false;
       };

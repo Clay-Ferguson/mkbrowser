@@ -161,6 +161,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
         el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
       }
     }, 50);
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending scroll-to-bottom timeout on unmount / before re-run.
     return () => clearTimeout(timer);
   }, [loading, mainContainerRef]);
 
@@ -185,6 +186,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
         }
       }, 300);
     }, 100);
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending edit/scroll timeouts on unmount / before re-run.
     return () => {
       clearTimeout(timer);
       if (scrollTimer !== undefined) clearTimeout(scrollTimer);

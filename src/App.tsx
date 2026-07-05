@@ -182,6 +182,7 @@ function App() {
   // Listen for calendar file changes from the main process (chokidar) — lives here so
   // it's always active regardless of which view is currently displayed.
   useEffect(() => {
+    // Returns the useEffect cleanup: the unsubscribe fn from onCalendarFileChanged, which removes the 'calendar-file-changed' IPC listener on unmount.
     return api.onCalendarFileChanged((results: CalendarEventResult[], filePath: string) => {
       // console.log('[App] onCalendarFileChanged fired', { filePath, count: results.length });
       const updated: CalendarEvent[] = results.map(r => ({
@@ -192,6 +193,7 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // Returns the useEffect cleanup: the unsubscribe fn from onCalendarFileDeleted, which removes the 'calendar-file-deleted' IPC listener on unmount.
     return api.onCalendarFileDeleted((deletedPath: string, isFolder: boolean) => {
       // console.log('[App] onCalendarFileDeleted fired', { deletedPath, isFolder });
       if (isFolder) {
@@ -210,6 +212,7 @@ function App() {
   // Apply global text highlight after each navigation/load cycle
   useEffect(() => {
     const id = requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): cancels the pending animation frame on unmount / before re-run.
     return () => cancelAnimationFrame(id);
   }, [currentPath, currentView, loading]);
 
@@ -225,6 +228,7 @@ function App() {
       }
     };
     document.addEventListener('keydown', handleKeyDown);
+    // Returns the useEffect cleanup (an unsubscribe): removes the document 'keydown' listener on unmount.
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 

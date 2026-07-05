@@ -101,6 +101,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
       setErrorMessage(message);
     }));
 
+    // Returns the useEffect cleanup (an unsubscribe): invokes each collected AI-stream unsubscribe fn to remove its IPC listener on unmount.
     return () => {
       cleanups.forEach((cleanup) => cleanup());
     };

@@ -124,6 +124,7 @@ export function MermaidDiagram({ code }: { code: string }) {
       }
     });
 
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): flips the isMounted flag so the async render can't set state after unmount.
     return () => {
       isMounted = false;
     };

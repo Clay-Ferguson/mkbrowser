@@ -267,6 +267,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     document.addEventListener('scroll', handleScroll, true);
     document.addEventListener('keydown', handleKeyDown);
 
+    // Returns the useEffect cleanup (an unsubscribe): removes the document 'click', 'scroll', and 'keydown' listeners on unmount / before re-run.
     return () => {
       document.removeEventListener('click', handleClick);
       document.removeEventListener('scroll', handleScroll, true);

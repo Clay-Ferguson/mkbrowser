@@ -259,6 +259,7 @@ function FolderGraphView() {
       if (el.clientWidth > 0 && el.clientHeight > 0) setReady(true);
     });
     ro.observe(el);
+    // Returns the useEffect cleanup (an unsubscribe): disconnects the ResizeObserver on unmount.
     return () => ro.disconnect();
   }, []);
 
@@ -583,6 +584,7 @@ function FolderGraphView() {
       zoomToFit(true);
     });
 
+    // Returns the useEffect cleanup (an unsubscribe): stops the D3 force simulation and detaches its tick/end and zoom listeners on unmount / before re-run.
     return () => {
       sim.stop();
       sim.on('tick', null);

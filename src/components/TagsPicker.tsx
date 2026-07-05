@@ -46,6 +46,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
         if (!cancelled) setLoadState({ status: 'loaded', categories: [] });
       });
 
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the cancelled flag so the pending fetchTags() promise can't set state after unmount.
     return () => { cancelled = true; };
   }, []);
 

@@ -160,6 +160,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   };
 
   useEffect(() => {
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): unregisters this active Markdown editor when editing ends, the path changes, or on unmount.
     return () => {
       unregisterActiveMarkdownEditor(entry.path);
     };

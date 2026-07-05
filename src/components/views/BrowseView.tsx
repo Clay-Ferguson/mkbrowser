@@ -201,6 +201,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     } else {
       setIndexYaml(null);
     }
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the ignore flag so the pending readIndexYaml() promise can't set state after unmount/re-run.
     return () => {
       ignore = true;
     };
@@ -339,6 +340,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       }
     }, 100);
 
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending settle/edit timeouts on unmount / before re-run.
     return () => {
       clearTimeout(settleTimer);
       if (editTimer !== undefined) clearTimeout(editTimer);
@@ -400,6 +402,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   // the folder). BrowseView no longer unmounts on tab switches, so there is no
   // view-switch scroll position to flush here.
   useEffect(() => {
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending debounced scroll-save timeout on unmount.
     return () => {
       if (scrollSaveTimerRef.current) {
         clearTimeout(scrollSaveTimerRef.current);

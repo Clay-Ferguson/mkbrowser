@@ -78,6 +78,7 @@ function Dialog({
     }
     // Close the native dialog on unmount so the element leaves the top layer
     // even if the parent removes us without an onClose round-trip.
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): closes the native <dialog> on unmount so it leaves the top layer.
     return () => {
       if (dlg?.open) dlg.close();
     };

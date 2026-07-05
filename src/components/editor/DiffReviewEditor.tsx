@@ -88,6 +88,7 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
 
     viewRef.current = view;
 
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): destroys the CodeMirror EditorView and clears its ref on unmount.
     return () => {
       view.destroy();
       viewRef.current = null;

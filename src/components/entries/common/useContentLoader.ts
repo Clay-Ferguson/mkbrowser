@@ -66,6 +66,7 @@ export function useContentLoader({
       void loadFileContent(path, errorMessage, () => ignore, setLoading);
     }
 
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the ignore flag so the pending loadFileContent() promise can't set state after unmount/re-run.
     return () => {
       ignore = true;
     };

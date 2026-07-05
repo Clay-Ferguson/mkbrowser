@@ -60,6 +60,7 @@ function EditableCombobox({
     };
 
     document.addEventListener('mousedown', handleClickOutside);
+    // Returns the useEffect cleanup (an unsubscribe): removes the document 'mousedown' listener on unmount.
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 

@@ -74,6 +74,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => handleKeyDownRef.current(e);
     document.addEventListener('keydown', handleKeyDown);
+    // Returns the useEffect cleanup (an unsubscribe): removes the document 'keydown' listener on unmount.
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 

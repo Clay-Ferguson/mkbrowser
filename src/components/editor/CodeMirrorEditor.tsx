@@ -449,7 +449,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       }
     }, FOCUS_DELAY_MS);
 
-    // Single cleanup for every return path: clear pending timers and tear down the view.
+    // The useEffect cleanup (an unsubscribe-style teardown) returned by every return path below:
+    // clears pending timers and destroys the CodeMirror view on unmount.
     const cleanup = () => {
       clearTimeout(focusTimer);
       if (onChangeDebounceRef.current) clearTimeout(onChangeDebounceRef.current);
@@ -460,6 +461,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     // Skip spell checking for code languages or read-only views
     const isCodeLanguage = cfg.language === 'javascript' || cfg.language === 'typescript' || cfg.language === 'python' || cfg.language === 'shell';
     if (isCodeLanguage || cfg.readOnly) {
+      // Returns the useEffect cleanup (unsubscribe) defined above.
       return cleanup;
     }
 
@@ -476,6 +478,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       })
       .catch((err: unknown) => logger.error('Failed to load spell checker:', err));
 
+    // Returns the useEffect cleanup (unsubscribe) defined above.
     return cleanup;
   }, []);
 

@@ -220,6 +220,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       }
     };
     void load();
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the ignore flag so the pending load() promise can't set state after unmount/re-run.
     return () => { ignore = true; };
   }, [rootPath, treeRoot?.path]);
 

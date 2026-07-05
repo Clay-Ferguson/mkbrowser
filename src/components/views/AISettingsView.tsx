@@ -135,6 +135,7 @@ function AISettingsView() {
     void api.checkLlamaHealth().then((status) => {
       if (!ignore) setLlamaServerStatus(status);
     });
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the ignore flag so the pending getAiUsage()/checkLlamaHealth() promises can't set state after unmount/re-run.
     return () => { ignore = true; };
   }, [currentView]);
 

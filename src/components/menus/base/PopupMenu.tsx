@@ -141,6 +141,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
     };
     document.addEventListener('mousedown', handleMouseDown);
     document.addEventListener('keydown', handleKeyDown);
+    // Returns the useEffect cleanup (an unsubscribe): removes the document 'mousedown' and 'keydown' listeners on unmount.
     return () => {
       document.removeEventListener('mousedown', handleMouseDown);
       document.removeEventListener('keydown', handleKeyDown);
