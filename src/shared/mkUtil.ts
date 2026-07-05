@@ -25,7 +25,9 @@ export function safeUrlTransform(url: string): string {
   // since the disallowed chars before the colon break the match.
   const match = /^([a-z][a-z0-9+.-]*):/i.exec(url);
   if (!match) return url;
-  return ALLOWED_URL_SCHEMES.has(match[1].toLowerCase()) ? url : '';
+  const scheme = match[1];
+  if (!scheme) return url;
+  return ALLOWED_URL_SCHEMES.has(scheme.toLowerCase()) ? url : '';
 }
 
 /** Removes all HTML comments (`<!-- … -->`) from content, including multi-line ones. */
@@ -80,7 +82,7 @@ export function splitOnColumnBreaks(content: string): ColumnChunk[] {
   let inFence = false;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i] ?? '';
     const trimmed = line.trimEnd();
     if (/^(`{3,}|~{3,})/.test(trimmed)) {
       inFence = !inFence;

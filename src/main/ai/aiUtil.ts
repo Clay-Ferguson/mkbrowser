@@ -334,9 +334,9 @@ async function buildDocumentContext(
 
   for (let i = 0; i < indexYaml.files.length; i++) {
     const entry = indexYaml.files[i];
-    if (entry.name === currentFileName) continue;
-    if (!supportedExts.has(path.extname(entry.name).toLowerCase())) continue;
-    const text = await readFile(entry.name);
+    if (entry!.name === currentFileName) continue;
+    if (!supportedExts.has(path.extname(entry!.name).toLowerCase())) continue; 
+    const text = await readFile(entry!.name); 
     if (!text) continue;
     if (i < currentIndex) aboveParts.push(text);
     else belowParts.push(text);
@@ -683,7 +683,7 @@ export async function gatherThreadEntries(
   // returning whatever branch folders remain as clickable choices.
   let childFolders = await gatherThreadChildFolders(folderPath);
   while (childFolders.length === 1) {
-    const childPath = childFolders[0].path;
+    const childPath = childFolders[0]!.path; 
 
     const childAiFile = path.join(childPath, AI_FILENAME);
     const childIsAI = await fs.access(childAiFile).then(() => true).catch(() => false);

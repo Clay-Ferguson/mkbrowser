@@ -63,7 +63,7 @@ export async function pasteIntoFolder(
   // moved on disk so the UI never desyncs, regardless of success.
   const moved = result.movedPaths.length > 0;
   if (moved) {
-    const sourceFolder = getParentPath(cutItems[0].path);
+    const sourceFolder = getParentPath(cutItems[0]!.path); 
     deleteItems(result.movedPaths);
     try {
       await Promise.all([

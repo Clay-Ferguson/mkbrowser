@@ -104,7 +104,7 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
       const result = getChunks(view.state);
       if (!result || result.chunks.length === 0) break;
       const lastChunk = result.chunks[result.chunks.length - 1];
-      resolved = resolveChunk(view, lastChunk.fromB);
+      resolved = resolveChunk(view, lastChunk!.fromB); 
     }
 
     onComplete(view.state.doc.toString());

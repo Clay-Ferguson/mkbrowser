@@ -39,8 +39,8 @@ function sanitizeForTOC(content: string): string {
   const firstI = i;
   // Process remaining lines, blanking fenced code blocks
   for (; i < lines.length; i++) {
-    const line = lines[i];
-    
+    const line = lines[i] ?? '';
+
     // table of contents always looks best when the first heading is skipped 
     // because it would be a repeat of what is already right at the top of the page 
     // and will normally be the title for the entire document also, which makes no 
@@ -49,15 +49,15 @@ function sanitizeForTOC(content: string): string {
 
     const fenceMatch = line.match(/^(`{3,}|~{3,})/);
     if (fenceMatch) {
-      const fence = fenceMatch[1];
+      const fence = fenceMatch[1] ?? '';
       const char = fence[0];
       const len = fence.length;
       out.push('');
       i++;
       while (i < lines.length) {
-        const inner = lines[i];
+        const inner = lines[i] ?? '';
         const closing = inner.match(/^(`+|~+)/);
-        if (closing && closing[1][0] === char && closing[1].length >= len) {
+        if (closing && closing[1] && closing[1][0] === char && closing[1].length >= len) {
           out.push('');
           break;
         }
@@ -171,16 +171,17 @@ export function extractHeadingTree(filePath: string, content: string): MarkdownH
 
   for (const node of nodes) {
     // Pop stack until top has a lower depth than current node
-    while (stack.length > 0 && stack[stack.length - 1].depth >= node.depth) {
+    let top = stack[stack.length - 1];
+    while (top && top.depth >= node.depth) {
       stack.pop();
+      top = stack[stack.length - 1];
     }
 
-    if (stack.length === 0) {
+    if (!top) {
       roots.push(node);
     } else {
-      const parent = stack[stack.length - 1];
-      if (!parent.children) parent.children = [];
-      parent.children.push(node);
+      if (!top.children) top.children = [];
+      top.children.push(node);
     }
 
     stack.push(node);

@@ -174,7 +174,7 @@ function setupIpcHandlers(): void {
       title: 'Select a folder to browse',
     });
     if (!result.canceled && result.filePaths.length > 0) {
-      return result.filePaths[0];
+      return result.filePaths[0]!; 
     }
     return null;
   });
@@ -563,7 +563,7 @@ function setupIpcHandlers(): void {
       title: 'Select export output folder',
     });
     if (!result.canceled && result.filePaths.length > 0) {
-      return result.filePaths[0];
+      return result.filePaths[0]!;
     }
     return null;
   });

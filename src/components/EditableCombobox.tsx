@@ -117,7 +117,7 @@ function EditableCombobox({
       case 'Enter':
         if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
           e.preventDefault();
-          handleOptionClick(filteredOptions[highlightedIndex]);
+          handleOptionClick(filteredOptions[highlightedIndex]!);
         }
         break;
       case 'Escape':

@@ -82,11 +82,12 @@ export function insertTagIntoText(text: string, tag: string): string {
 export function serializeTagsToYaml(categories: TagCategory[]): string {
   const hashtags: Record<string, Record<string, { description: string }>> = {};
   for (const cat of categories) {
-    hashtags[cat.name] = {};
+    const catMap: Record<string, { description: string }> = {};
+    hashtags[cat.name] = catMap;
     for (const tag of cat.tags) {
       const name = tagName(tag.tag);
       const desc = tag.description.trim();
-      hashtags[cat.name][name] = { description: desc ? desc + '\n' : '\n' };
+      catMap[name] = { description: desc ? desc + '\n' : '\n' };
     }
   }
   return dump({ hashtags }, { lineWidth: -1 });

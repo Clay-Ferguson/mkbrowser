@@ -50,12 +50,12 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
         if (allImages.length === 0) return;
         const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
         const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % allImages.length;
-        setFullscreenImagePath(allImages[nextIndex].path);
+        setFullscreenImagePath(allImages[nextIndex]!.path); 
       } else if (e.key === 'ArrowLeft') {
         if (allImages.length === 0) return;
         const currentIndex = allImages.findIndex(img => img.path === fullscreenImagePath);
         const prevIndex = currentIndex <= 0 ? allImages.length - 1 : currentIndex - 1;
-        setFullscreenImagePath(allImages[prevIndex].path);
+        setFullscreenImagePath(allImages[prevIndex]!.path); 
       } else if (e.key === 'Delete') {
         setShowDeleteConfirm(true);
       } else if (e.key === ' ') {
@@ -90,10 +90,10 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
     if (allImages.length > 1) {
       if (currentIndex < allImages.length - 1) {
         // There's a next image, switch to it
-        nextImagePath = allImages[currentIndex + 1].path;
+        nextImagePath = allImages[currentIndex + 1]!.path; 
       } else if (currentIndex > 0) {
         // No next image but there's a previous one
-        nextImagePath = allImages[currentIndex - 1].path;
+        nextImagePath = allImages[currentIndex - 1]!.path; 
       }
     }
 

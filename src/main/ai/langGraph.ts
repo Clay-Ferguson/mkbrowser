@@ -206,6 +206,9 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
 
     debugLog('invokeAI → graph finished successfully');
     const lastMessage = result.messages[result.messages.length - 1];
+    if (!lastMessage) {
+      throw new Error('AI model returned no messages');
+    }
 
     let content = typeof lastMessage.content === 'string'
       ? lastMessage.content
@@ -220,7 +223,7 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
       // Check for <think>...</think> tags in content (llama.cpp thinking models)
       const thinkMatch = content.match(/^<think>([\s\S]*?)<\/think>\s*/);
       if (thinkMatch) {
-        thinking = thinkMatch[1].trim();
+        thinking = (thinkMatch[1] ?? '').trim();
         content = content.slice(thinkMatch[0].length);
       }
     }

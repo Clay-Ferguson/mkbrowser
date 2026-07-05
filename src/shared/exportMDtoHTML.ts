@@ -192,7 +192,7 @@ export async function convertMDtoHTML(content: string): Promise<string> {
   let bodyHTML: string;
 
   if (chunks.length === 1) {
-    const inner = await renderChunk(chunks[0]);
+    const inner = await renderChunk(chunks[0]!); 
     bodyHTML = `<main>\n${inner}\n</main>`;
   } else {
     const rendered = await Promise.all(chunks.map(renderChunk));

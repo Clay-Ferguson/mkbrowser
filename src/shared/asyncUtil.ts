@@ -17,7 +17,7 @@ export async function mapWithConcurrency<T, R>(
     while (next < items.length && !failed) {
       const i = next++;
       try {
-        results[i] = await fn(items[i], i);
+        results[i] = await fn(items[i]!, i);
       } catch (err) {
         failed = true;
         throw err;

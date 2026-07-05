@@ -31,7 +31,7 @@ function rewriteImagePathsToAbsolute(content: string, sourceFilePath: string): s
 
   function resolveIfExists(rawPath: string): string {
     const match = rawPath.match(/^([^?#]+)([?#].*)?$/);
-    if (!match) return rawPath;
+    if (!match || match[1] === undefined) return rawPath;
     const filePart = match[1];
     const suffix = match[2] ?? '';
     const resolved = path.resolve(sourceDir, filePart);

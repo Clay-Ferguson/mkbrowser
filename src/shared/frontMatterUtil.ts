@@ -76,7 +76,7 @@ const FRONT_MATTER_RE = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
 export function splitFrontMatter(content: string): FrontMatterSplit | null {
   const m = FRONT_MATTER_RE.exec(content);
   if (!m) return null;
-  return { yamlStr: m[1], body: content.slice(m[0].length) };
+  return { yamlStr: m[1] ?? '', body: content.slice(m[0].length) };
 }
 
 /** Wrap a YAML string and body back into a front-matter document. Empty YAML yields just the body. */

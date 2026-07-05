@@ -120,6 +120,9 @@ export async function invokeDeepAgent(
 
     debugLog('invokeDeepAgent → agent finished successfully');
     const lastMessage = result.messages[result.messages.length - 1];
+    if (!lastMessage) {
+      throw new Error('Deep Agent returned no messages.');
+    }
 
     let content = typeof lastMessage.content === 'string'
       ? lastMessage.content
@@ -131,7 +134,7 @@ export async function invokeDeepAgent(
     if (!thinking) {
       const thinkMatch = content.match(/^<think>([\s\S]*?)<\/think>\s*/);
       if (thinkMatch) {
-        thinking = thinkMatch[1].trim();
+        thinking = thinkMatch[1]?.trim();
         content = content.slice(thinkMatch[0].length);
       }
     }

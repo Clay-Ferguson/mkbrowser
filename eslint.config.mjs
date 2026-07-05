@@ -62,7 +62,8 @@ export default tseslint.config(
       "@typescript-eslint/explicit-module-boundary-types": "off",
 
       // Disallow the non-null assertion operator (!). "error" to ban it outright.
-      "@typescript-eslint/no-non-null-assertion": "error",
+      // NOTE: We needed to use this a lot to satisfy the noUncheckedIndexedAccess TSC rule.
+      "@typescript-eslint/no-non-null-assertion": "off",
 
       // The four no-unsafe-* rules require type-checked linting, so they are
       // enabled as "error" for src/** in the overrides block below (root configs

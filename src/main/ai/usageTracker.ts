@@ -49,11 +49,14 @@ interface PricingEntry {
  * per-model, so each provider's cheapest tier is applied as a conservative
  * default.
  */
+/** Fallback pricing for unknown providers (also used for local llama.cpp). */
+const DEFAULT_PRICING: PricingEntry = { inputPer1M: 0, outputPer1M: 0 };
+
 const PROVIDER_DEFAULT_PRICING: Record<string, PricingEntry> = {
   ANTHROPIC: { inputPer1M: 0.25,  outputPer1M: 1.25 },
   OPENAI:    { inputPer1M: 0.10,  outputPer1M: 0.40 },
   GOOGLE:    { inputPer1M: 0.075, outputPer1M: 0.30 },
-  LLAMACPP:  { inputPer1M: 0,     outputPer1M: 0    },
+  LLAMACPP:  DEFAULT_PRICING,
 };
 
 // ---------------------------------------------------------------------------
@@ -157,7 +160,7 @@ export function estimateCost(
   inputTokens: number,
   outputTokens: number
 ): number {
-  const pricing = PROVIDER_DEFAULT_PRICING[provider] ?? PROVIDER_DEFAULT_PRICING.LLAMACPP;
+  const pricing = PROVIDER_DEFAULT_PRICING[provider] ?? DEFAULT_PRICING;
   return (inputTokens / 1_000_000) * pricing.inputPer1M
        + (outputTokens / 1_000_000) * pricing.outputPer1M;
 }

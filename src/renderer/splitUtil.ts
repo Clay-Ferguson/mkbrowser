@@ -85,20 +85,27 @@ export async function splitFile(
     };
   }
 
-  // Derive every target path up front: -00 (the renamed original) through -NN.
-  const targetPaths = parts.map((_, i) => {
+  // Pair every part with its target path up front: -00 (the renamed original)
+  // through -NN.
+  const targets = parts.map((content, i) => {
     const paddedNumber = String(i).padStart(2, '0');
-    return joinPath(directory, `${baseName}-${paddedNumber}${extension}`);
+    return { content, path: joinPath(directory, `${baseName}-${paddedNumber}${extension}`) };
   });
-  const renamedFilePath = targetPaths[0];
+  const [firstTarget, ...newPartTargets] = targets;
+  // The earlier `parts.length <= 1` guard proves firstTarget exists; this check
+  // narrows it for `noUncheckedIndexedAccess` (which widens destructured
+  // elements to `| undefined`).
+  if (!firstTarget) {
+    return { success: false, error: 'Nothing to split: no parts were produced.' };
+  }
 
   // Collision check: fail early with zero side effects if any target exists.
-  for (const target of targetPaths) {
+  for (const target of targets) {
     try {
-      if (await pathExists(target)) {
+      if (await pathExists(target.path)) {
         return {
           success: false,
-          error: `Cannot split: a file named "${getFileName(target)}" already exists.`,
+          error: `Cannot split: a file named "${getFileName(target.path)}" already exists.`,
         };
       }
     } catch (err) {
@@ -122,7 +129,7 @@ export async function splitFile(
     let fullyRolledBack = true;
     if (renamed) {
       try {
-        if (!(await renameFile(renamedFilePath, filePath))) fullyRolledBack = false;
+        if (!(await renameFile(firstTarget.path, filePath))) fullyRolledBack = false;
       } catch {
         fullyRolledBack = false;
       }
@@ -151,9 +158,8 @@ export async function splitFile(
   try {
     // Create the new parts (-01 … -NN) first, so the original is untouched until
     // the very end.
-    for (let i = 1; i < parts.length; i++) {
-      const newFilePath = targetPaths[i];
-      const result = await createFile(newFilePath, parts[i]);
+    for (const { content, path: newFilePath } of newPartTargets) {
+      const result = await createFile(newFilePath, content);
       if (!result.success) {
         return await fail(result.error || `Failed to create file: ${getFileName(newFilePath)}`);
       }
@@ -162,13 +168,13 @@ export async function splitFile(
 
     // Rename the original to the -00 name. After this, rename preserves the full
     // original bytes, so a later failure can be fully undone.
-    if (!(await renameFile(filePath, renamedFilePath))) {
+    if (!(await renameFile(filePath, firstTarget.path))) {
       return await fail('Failed to rename the original file with -00 suffix.');
     }
     renamed = true;
 
     // Write the first part into the renamed file (the last mutation).
-    const writeSuccess = await writeFile(renamedFilePath, parts[0]);
+    const writeSuccess = await writeFile(firstTarget.path, firstTarget.content);
     if (!writeSuccess.ok) {
       return await fail('Failed to write the first part to the renamed file.');
     }
@@ -176,7 +182,7 @@ export async function splitFile(
     return {
       success: true,
       fileCount: parts.length,
-      filePaths: targetPaths,
+      filePaths: targets.map((t) => t.path),
     };
   } catch (err) {
     return await fail(

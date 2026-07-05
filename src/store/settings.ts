@@ -114,8 +114,11 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
         return false;
       }
 
+      const existing = currentBookmarks[index];
+      if (!existing) return false;
+
       const newBookmarks = [...currentBookmarks];
-      newBookmarks[index] = { ...newBookmarks[index], path: newPath };
+      newBookmarks[index] = { ...existing, path: newPath };
 
       set({ settings: { ...settings, bookmarks: newBookmarks } });
 
@@ -128,8 +131,11 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
       const index = currentBookmarks.findIndex(b => b.path === filePath);
       if (index === -1) return;
 
+      const existing = currentBookmarks[index];
+      if (!existing) return;
+
       const newBookmarks = [...currentBookmarks];
-      newBookmarks[index] = { ...newBookmarks[index], name };
+      newBookmarks[index] = { ...existing, name };
 
       set({ settings: { ...settings, bookmarks: newBookmarks } });
     },

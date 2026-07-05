@@ -28,9 +28,9 @@ export const NO_TIMESTAMP = Number.NaN;
  * 6=seconds, 7=AM/PM. Two-digit years are interpreted as 2000+YY.
  */
 function timestampFromMatch(match: RegExpMatchArray): number {
-  const month = parseInt(match[1], 10);
-  const day = parseInt(match[2], 10);
-  let year = parseInt(match[3], 10);
+  const month = parseInt(match[1] ?? '', 10);
+  const day = parseInt(match[2] ?? '', 10);
+  let year = parseInt(match[3] ?? '', 10);
 
   // Convert 2-digit year to 4-digit (assumes 2000s)
   if (year < 100) {
@@ -44,7 +44,7 @@ function timestampFromMatch(match: RegExpMatchArray): number {
   if (match[4]) {
     // Time part exists
     hours = parseInt(match[4], 10);
-    minutes = parseInt(match[5], 10);
+    minutes = parseInt(match[5] ?? '', 10);
     seconds = match[6] ? parseInt(match[6], 10) : 0; // Default to 0 if seconds not provided
     const ampm = match[7]?.toUpperCase();
 

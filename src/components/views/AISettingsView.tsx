@@ -249,7 +249,7 @@ function AISettingsView() {
       return;
     }
     const updated = aiModels.filter((m) => m.name !== selectedAiModel);
-    const newSelected = updated.length > 0 ? updated[0].name : '';
+    const newSelected = updated.length > 0 ? updated[0]!.name : ''; 
     void saveAiConfigField({ aiModels: updated, aiModel: newSelected });
     setShowDeleteConfirm(false);
   };

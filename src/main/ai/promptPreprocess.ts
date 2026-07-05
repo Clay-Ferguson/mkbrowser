@@ -118,9 +118,9 @@ export async function preprocessPrompt(
 
   // Separate directive lines from prompt lines
   for (const line of lines) {
-    const match = FILE_DIRECTIVE_REGEX.exec(line);
-    if (match) {
-      patterns.push(match[1]);
+    const pattern = FILE_DIRECTIVE_REGEX.exec(line)?.[1];
+    if (pattern !== undefined) {
+      patterns.push(pattern);
     } else {
       promptLines.push(line);
     }

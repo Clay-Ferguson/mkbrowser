@@ -111,7 +111,7 @@ function flattenVisible(
   depth = 0
 ): Array<{ node: TreeNode; depth: number }> {
   // Heading nodes and Document Mode (indexed) nodes must preserve their existing order.
-  const isHeadings = nodes.length > 0 && isMarkdownHeadingNode(nodes[0]);
+  const isHeadings = nodes.length > 0 && isMarkdownHeadingNode(nodes[0]!); 
   const hasIndexOrder = !isHeadings && nodes.some(n => isFileNode(n) && (n as FileNode).indexOrder !== undefined);
   const sorted = (isHeadings || hasIndexOrder) ? nodes : [...nodes].sort((a, b) => {
     const aIsDir = isFileNode(a) && a.isDirectory;
@@ -358,7 +358,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       // The move is not atomic: reconcile the store/index with whatever
       // actually moved on disk (movedPaths), even on partial failure, so the
       // UI never desyncs. Items that failed to move stay cut at their source.
-      const sourceFolder = getParentPath(cutItems[0].path);
+      const sourceFolder = getParentPath(cutItems[0]!.path); 
       if (result.movedPaths.length > 0) {
         deleteItems(result.movedPaths);
         await Promise.all([

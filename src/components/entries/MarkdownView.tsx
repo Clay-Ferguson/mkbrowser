@@ -85,9 +85,18 @@ function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownView
     );
   }
 
+  const firstColumn = columns[0];
+  if (!firstColumn) {
+    return (
+      <article className={ARTICLE_CLASS}>
+        <div className="text-red-500">Error: no content to render.</div>
+      </article>
+    );
+  }
+
   return (
     <article className={ARTICLE_CLASS}>
-      {renderColumn(columns[0].text, columns[0].lineOffset)}
+      {renderColumn(firstColumn.text, firstColumn.lineOffset)}
     </article>
   );
 }

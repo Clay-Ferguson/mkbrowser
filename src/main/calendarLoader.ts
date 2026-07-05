@@ -27,9 +27,11 @@ export interface CalendarEventResult {
 function parseStartTime(timeStr: string): { hours: number; minutes: number } | null {
   const match = /^\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*$/i.exec(timeStr.trim());
   if (!match) return null;
-  let hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  const meridiem = match[3].toUpperCase();
+  const [, hourStr, minStr, meridiemStr] = match;
+  if (!hourStr || !minStr || !meridiemStr) return null;
+  let hours = parseInt(hourStr, 10);
+  const minutes = parseInt(minStr, 10);
+  const meridiem = meridiemStr.toUpperCase();
   if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) return null;
   if (meridiem === 'AM') {
     if (hours === 12) hours = 0;
@@ -130,7 +132,10 @@ function expandRRule(
   if (freq === undefined) return [];
 
   const byweekday = rruleYaml.byday
-    ? rruleYaml.byday.split(',').map(s => BYDAY_MAP[s.trim().toUpperCase()]).filter(Boolean)
+    ? rruleYaml.byday
+        .split(',')
+        .map(s => BYDAY_MAP[s.trim().toUpperCase()])
+        .filter((w): w is Weekday => w !== undefined)
     : undefined;
 
   const isAllDay = startMs === dueDate.getTime() && endMs === dueDate.getTime();

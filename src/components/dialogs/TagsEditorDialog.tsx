@@ -94,7 +94,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
       .then((cats) => {
         const editor = fromLoaded(cats);
         setCategories(editor);
-        if (editor.length > 0) setSelectedCatId([...editor].sort((a, b) => a.name.localeCompare(b.name))[0].id);
+        if (editor.length > 0) setSelectedCatId([...editor].sort((a, b) => a.name.localeCompare(b.name))[0]!.id);
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -142,7 +142,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     setSelectedCatId((prevSel) => {
       if (prevSel !== catId) return prevSel;
       const next = categories.filter((c) => c.id !== catId);
-      return next.length > 0 ? next[0].id : null;
+      return next.length > 0 ? next[0]!.id : null;
     });
   };
 

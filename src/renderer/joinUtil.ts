@@ -67,8 +67,8 @@ export async function joinFiles(
     const contents: string[] = [];
     for (let i = 0; i < sortedPaths.length; i++) {
       const filePath = sortedPaths[i];
-      const raw = await readFile(filePath);
-      const content = i === 0 ? raw : prepareMarkdownForAppend(filePath, raw);
+      const raw = await readFile(filePath!); 
+      const content = i === 0 ? raw : prepareMarkdownForAppend(filePath!, raw); 
       contents.push(content);
     }
     
@@ -81,7 +81,7 @@ export async function joinFiles(
     // back in `content`. We verify against that authoritative result, not
     // against joinedContent.
     const targetPath = sortedPaths[0];
-    const writeSuccess = await writeFile(targetPath, joinedContent);
+    const writeSuccess = await writeFile(targetPath!, joinedContent); 
     if (!writeSuccess.ok) {
       return {
         success: false,
@@ -92,7 +92,7 @@ export async function joinFiles(
     // Verify the write landed by reading the file back and comparing it to the
     // content the writer reported writing. (readFile returns '' on error, which
     // safely fails this comparison and preserves the source files.)
-    const readBack = await readFile(targetPath);
+    const readBack = await readFile(targetPath!); 
     if (readBack !== writeSuccess.content) {
       return {
         success: false,
@@ -102,7 +102,7 @@ export async function joinFiles(
 
     // Delete the other files (all except the first one)
     for (let i = 1; i < sortedPaths.length; i++) {
-      const deleteSuccess = await deleteFile(sortedPaths[i]);
+      const deleteSuccess = await deleteFile(sortedPaths[i]!); 
       if (!deleteSuccess) {
         return {
           success: false,

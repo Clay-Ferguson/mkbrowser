@@ -57,7 +57,7 @@ function getScalarProperty(content: string, key: string, stripQuotes = false): s
   if (!parsed) return null;
   const pattern = stripQuotes ? `^${key}\\s*:\\s*"?(.+?)"?\\s*$` : `^${key}\\s*:\\s*(.+)$`;
   const match = parsed.yamlStr.match(new RegExp(pattern, 'm'));
-  return match ? match[1].trim() : null;
+  return match?.[1]?.trim() ?? null;
 }
 
 /** Extracts the 'due' property value from front matter, or null if not present. */
@@ -150,10 +150,10 @@ export function getRRuleProperty(content: string): RRuleProps | null {
   if (!parsed) return null;
   const match = parsed.yamlStr.match(/^rrule:\n((?:[ \t]+.+\n?)*)/m);
   if (!match) return null;
-  const block = match[1];
+  const block = match[1] ?? '';
   const extract = (key: string) => {
     const m = block.match(new RegExp(`^[ \\t]+${key}\\s*:\\s*(.+)$`, 'm'));
-    return m ? m[1].trim() : undefined;
+    return m?.[1]?.trim();
   };
   return {
     freq: extract('freq'),

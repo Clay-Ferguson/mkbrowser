@@ -85,7 +85,9 @@ export function EditorContextMenu({
     else if (e.key === 'ArrowDown') next = current < items.length - 1 ? current + 1 : 0;
     else next = current > 0 ? current - 1 : items.length - 1;
 
-    items[next].focus();
+    const target = items[next];
+    if (!target) return;
+    target.focus();
   };
 
   if (!contextMenu.visible) return null;

@@ -21,7 +21,7 @@ export function buildFolderGraphFromSearchResults(
 
   nodesById.set(rootId, {
     id: rootId,
-    name: rootSegments.length === 0 ? '/' : rootSegments[rootSegments.length - 1],
+    name: rootSegments.length === 0 ? '/' : rootSegments[rootSegments.length - 1] ?? '/',
     isDirectory: true,
     depth: 0,
   });
@@ -35,7 +35,7 @@ export function buildFolderGraphFromSearchResults(
       if (!nodesById.has(currentId)) {
         nodesById.set(currentId, {
           id: currentId,
-          name: segments[i],
+          name: segments[i] ?? '',
           isDirectory: !isLast,
           depth: i - rootSegments.length + 1,
         });
@@ -84,9 +84,11 @@ function longestCommonPrefix(lists: string[][]): string[] {
   // at parentSegments.length - 1 of each path (exclude the file basename).
   const max = Math.min(...lists.map(l => Math.max(0, l.length - 1)));
   const prefix: string[] = [];
+  const first = lists[0];
+  if (!first) return prefix;
   for (let i = 0; i < max; i++) {
-    const seg = lists[0][i];
-    if (lists.every(l => l[i] === seg)) {
+    const seg = first[i];
+    if (seg !== undefined && lists.every(l => l[i] === seg)) {
       prefix.push(seg);
     } else {
       break;

@@ -106,7 +106,7 @@ export function enforceDefaultAIModels<T extends AIModelConfigLike>(args: {
     changed = true;
   } else {
     for (let i = 0; i < enforcedModels.length; i++) {
-      if (!modelsEqual(existingModels[i], enforcedModels[i])) {
+      if (!modelsEqual(existingModels[i]!, enforcedModels[i]!)) { 
         changed = true;
         break;
       }

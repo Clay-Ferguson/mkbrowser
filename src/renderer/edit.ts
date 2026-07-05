@@ -41,7 +41,7 @@ type CutItem = Pick<ItemData, 'path' | 'name' | 'isDirectory'>;
 export function findCutItemsFromDifferentFolders(cutItems: Pick<ItemData, 'path' | 'name'>[]): string[] {
   if (cutItems.length === 0) return [];
 
-  const baseFolder = getParentPath(cutItems[0].path);
+  const baseFolder = getParentPath(cutItems[0]!.path); 
 
   return cutItems
     .filter((item) => getParentPath(item.path) !== baseFolder)
@@ -185,7 +185,7 @@ export async function pasteCutItems(
 
   // Now that uniqueness is guaranteed, cutItems[0] safely represents the shared
   // source folder. Check if pasting back into that same folder.
-  const sourceFolder = getParentPath(cutItems[0].path);
+  const sourceFolder = getParentPath(cutItems[0]!.path); 
   if (sourceFolder === destinationPath) {
     return { success: false, error: 'Cannot paste. Cut items are already in this folder.', movedPaths: [] };
   }
@@ -246,14 +246,14 @@ export async function pasteCutItems(
     const first = failures[0];
     const error =
       failures.length === 1
-        ? `Failed to move ${first.error ? `${first.item.name}: ${first.error}` : first.item.name}`
+        ? `Failed to move ${first!.error ? `${first!.item.name}: ${first!.error}` : first!.item.name}` 
         : `Failed to move ${failures.length} items: ${failures.map((f) => f.item.name).join(', ')}`;
     return { success: false, error, movedPaths };
   }
 
   return {
     success: true,
-    pastedItemName: cutItems.length === 1 ? cutItems[0].name : undefined,
+    pastedItemName: cutItems.length === 1 ? cutItems[0]!.name : undefined, 
     movedPaths,
   };
 }
@@ -327,17 +327,17 @@ export async function performSplitFile(
   const selectedItem = selectedItems[0];
 
   // Check that the selected item is a file, not a folder
-  if (selectedItem.isDirectory) {
+  if (selectedItem!.isDirectory) { 
     return { success: false, error: 'Cannot split a folder. Please select a text or markdown file.' };
   }
 
   // Check that the file is a text or markdown file
-  if (!isSplittableJoinable(selectedItem.name)) {
+  if (!isSplittableJoinable(selectedItem!.name)) { 
     return { success: false, error: 'Split is only available for text and markdown files.' };
   }
 
   // Perform the split operation
-  const result = await splitFileUtil(selectedItem.path, ops);
+  const result = await splitFileUtil(selectedItem!.path, ops);
 
   if (!result.success) {
     return { success: false, error: result.error || 'Failed to split file.' };

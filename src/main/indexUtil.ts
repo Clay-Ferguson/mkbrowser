@@ -472,7 +472,7 @@ export function reconcileEntries(
       const diskNames = fingerprintToVisibleNames.get(fp);
       if (diskNames?.length === 1 && indexFingerprintCounts.get(fp) === 1) {
         // Unambiguous 1:1 fingerprint → confident rename detection.
-        entry.name = diskNames[0];
+        entry.name = diskNames[0]!; 
         handledNames.add(entry.name);
       } else if (visibleNames.has(entry.name)) {
         // Ambiguous fingerprint (collision) — match by name only, never re-point.
@@ -740,7 +740,6 @@ export async function moveInIndexYaml(
   // function's single write (via reorderAttachFolders) rather than a second
   // read-modify-write through validateAttachFolderLocation — fewer disk ops and,
   // since validateAttachFolderLocation also takes the lock, no self-deadlock.
-  // See issue 013.
   return withIndexLock(dirPath, async () => {
     const indexFilePath = indexPathFor(dirPath);
     try {
@@ -752,16 +751,21 @@ export async function moveInIndexYaml(
       if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
 
       let swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-      if (swapIdx < 0 || swapIdx >= files.length) return { success: true };
+      let swapEntry = files[swapIdx];
+      if (!swapEntry) return { success: true };
 
       // Skip over any attach folder at the swap target — landing on one would be
       // immediately undone by the attach reorder below.
-      if (files[swapIdx].name.endsWith(ATTACH_SUFFIX)) {
+      if (swapEntry.name.endsWith(ATTACH_SUFFIX)) {
         swapIdx = direction === 'up' ? swapIdx - 1 : swapIdx + 1;
-        if (swapIdx < 0 || swapIdx >= files.length) return { success: true };
+        swapEntry = files[swapIdx];
+        if (!swapEntry) return { success: true };
       }
 
-      [files[idx], files[swapIdx]] = [files[swapIdx], files[idx]];
+      const movedEntry = files[idx];
+      if (!movedEntry) return { success: true };
+      files[idx] = swapEntry;
+      files[swapIdx] = movedEntry;
 
       const reordered = reorderAttachFolders(files);
       const newContent = dump({ ...indexYaml, files: reordered }, YAML_DUMP_OPTS);
@@ -795,6 +799,7 @@ export async function moveToEdgeInIndexYaml(
       if (idx === -1) return { success: false, error: `Entry "${name}" not found in index` };
 
       const [entry] = files.splice(idx, 1);
+      if (!entry) return { success: false, error: `Entry "${name}" not found in index` };
       if (edge === 'top') {
         files.unshift(entry);
       } else {
