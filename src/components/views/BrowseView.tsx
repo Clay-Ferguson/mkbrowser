@@ -292,7 +292,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     // cleared only by the timer that consumes it, so when a flag-clear re-runs
     // this effect and the cleanup cancels a sibling timer, that sibling's flag
     // is still set and the next run reschedules it — nothing is lost.
-    let headingScrollTimer: ReturnType<typeof setTimeout> | undefined;
     let editTimer: ReturnType<typeof setTimeout> | undefined;
 
     // Short timeout just for DOM to settle after React render
@@ -313,13 +312,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         }
       } else if (pendingScrollToHeadingSlug) {
         // Set alongside pendingScrollToFile; reached once the file scroll above
-        // has succeeded and consumed its flag.
-        const slug = pendingScrollToHeadingSlug;
-        // Wait for markdown content to finish rendering before scrolling to heading
-        headingScrollTimer = setTimeout(() => {
-          scrollElementIntoView(slug, true);
-          clearPendingScrollToHeadingSlug();
-        }, 750);
+        // has succeeded and consumed its flag. Fire-and-forget: the scroller
+        // itself polls for the heading to render (no fixed delay) and keeps it
+        // centered while late-loading content reflows the page, self-cancelling
+        // on user input / element removal / timeout — so it deliberately isn't
+        // tied to this effect's cleanup, and the flag is consumed immediately.
+        scrollElementIntoView(pendingScrollToHeadingSlug, true);
+        clearPendingScrollToHeadingSlug();
       } else if (isNewFolder) {
         // Restore the saved scroll position for the folder we navigated to.
         const savedPosition = getBrowserScrollPosition(currentPath);
@@ -342,7 +341,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
     return () => {
       clearTimeout(settleTimer);
-      if (headingScrollTimer !== undefined) clearTimeout(headingScrollTimer);
       if (editTimer !== undefined) clearTimeout(editTimer);
     };
   }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, currentPath, currentView]);
