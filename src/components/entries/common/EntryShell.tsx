@@ -38,8 +38,6 @@ interface EntryShellProps {
   onToggleExpanded: () => void;
 
   // Slots
-  /** Inner content of the name span (defaults to entry.name) */
-  nameContent?: ReactNode;
   /** Class for the name span (defaults to ENTRY_NAME_SPAN) */
   nameClassName?: string;
   /** Title/flyover for the name span (defaults to formatFlyoverInfo(entry)) */
@@ -82,7 +80,6 @@ export function EntryShell({
   rename,
   del,
   onToggleExpanded,
-  nameContent,
   nameClassName = ENTRY_NAME_SPAN,
   nameTitle,
   renameClassName,
@@ -136,7 +133,7 @@ export function EntryShell({
             className={nameClassName}
             title={nameTitle ?? formatFlyoverInfo(entry)}
           >
-            {nameContent ?? entry.name}
+            {entry.name}
           </span>
         )}
         {!isRenaming && headerRight}

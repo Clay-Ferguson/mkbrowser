@@ -32,7 +32,6 @@ import { logger } from '../../shared/logUtil';
 import { getParentPath } from '../../renderer/pathUtil';
 import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
 import { HUMAN_FILENAME, AI_FILENAME } from '../../shared/specialFiles';
-import { TIMESTAMP_FILENAME_RE } from '../../shared/timeUtil';
 import {
   useEditableEntry,
   useToggleExpanded,
@@ -94,7 +93,7 @@ async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<v
  * In document mode, timestamp-based file names are hidden from the header row.
  */
 function MarkdownEntry(props: MarkdownEntryProps) {
-  const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, documentMode = false } = props;
+  const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false } = props;
   const item = useAS(s => s.items.get(entry.path));
   const hasCutItems = useAS(s => hasAnyCutItems(s.items));
 
@@ -363,7 +362,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         del={del}
         onToggleExpanded={handleToggleExpanded}
         renameClassName="font-medium"
-        nameContent={!isExpanded || !(documentMode && TIMESTAMP_FILENAME_RE.test(entry.name)) ? entry.name : ''}
         headerRight={headerRight}
       >
         <div
