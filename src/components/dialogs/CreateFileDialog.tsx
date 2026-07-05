@@ -22,7 +22,7 @@ function CreateFileDialog({ defaultName = '', onCreate, onCancel }: CreateFileDi
     <NameInputDialog
       title="Create new file"
       label="File name"
-      placeholder="Leave blank for YYYY-MM-DD--HH-MM-SS.md"
+      placeholder={generateTimestampFileName()}
       defaultName={defaultName}
       normalizeName={normalizeFileName}
       onCreate={onCreate}

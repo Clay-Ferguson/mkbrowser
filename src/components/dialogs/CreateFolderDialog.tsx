@@ -19,7 +19,7 @@ function CreateFolderDialog({ defaultName = '', onCreate, onCancel }: CreateFold
     <NameInputDialog
       title="Create new folder"
       label="Folder name"
-      placeholder="Leave blank for YYYY-MM-DD--HH-MM-SS"
+      placeholder={generateTimestampFolderName()}
       defaultName={defaultName}
       normalizeName={normalizeFolderName}
       onCreate={onCreate}
