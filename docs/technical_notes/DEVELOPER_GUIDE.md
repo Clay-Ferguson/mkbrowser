@@ -27,6 +27,13 @@
   * [Adding a new piece of state — checklist](#adding-a-new-piece-of-state--checklist)
   * [Rules of thumb (the short list)](#rules-of-thumb-the-short-list)
   * [Local AI Model Inference Troubleshooting](#local-ai-model-inference-troubleshooting)
+* [React Compiler](#react-compiler)
+  * [The coding standard (the short list)](#the-coding-standard-the-short-list)
+  * [What a "bailout" is and why we care](#what-a-bailout-is-and-why-we-care)
+  * [Known bailout causes and their fixes](#known-bailout-causes-and-their-fixes)
+  * [The exhaustive-deps escape patterns](#the-exhaustive-deps-escape-patterns)
+  * [Guard layer 1 — ESLint](#guard-layer-1--eslint)
+  * [Guard layer 2 — `compiler-coverage.mjs` (the source of truth)](#guard-layer-2--compiler-coveragemjs-the-source-of-truth)
 <!-- /TOC -->
 
 ## Overview
