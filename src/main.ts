@@ -24,7 +24,7 @@ import { hasScriptedAnswer, queueScriptedAnswer } from './main/ai/langGraph';
 import type { StreamCallbacks } from './main/ai/langGraph';
 import { getUsageWithCosts, resetUsage } from './main/ai/usageTracker';
 import { checkHealth, ensureRunning, stopServer } from './main/ai/llamaServer';
-import { readExifMetadata, writeExifMetadata } from './main/exifUtil';
+import { readExifMetadata, readImageDimensions, writeExifMetadata } from './main/exifUtil';
 import { logger } from './shared/logUtil';
 import { exportFolderContents, exportToPdf } from './main/exportUtil';
 import { runShellScript, runOcrInTerminal } from './main/launcherUtil';
@@ -201,6 +201,17 @@ function setupIpcHandlers(): void {
     } catch (error) {
       logger.error('Error reading EXIF data:', error);
       return {};
+    }
+  });
+
+  // Read an image's intrinsic dimensions from its file header (used by the
+  // renderer to reserve layout space before lazy-loaded images arrive)
+  ipcMain.handle('get-image-dimensions', async (_event, filePath: string): Promise<{ width: number; height: number } | null> => {
+    try {
+      return await readImageDimensions(filePath);
+    } catch (error) {
+      logger.error('Error reading image dimensions:', error);
+      return null;
     }
   });
 

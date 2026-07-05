@@ -5,14 +5,28 @@ import { logger } from '../shared/logUtil';
 import { decodeMarkdownUrl } from '../renderer/linkUtil';
 import { getParentPath, pathSep, splitPathSegments } from '../renderer/pathUtil';
 
-// Cache for resolved image paths to avoid repeated file system lookups.
-// Key format: `${markdownFilePath}|${imageSrc}` -> resolved absolute path.
+/**
+ * A successfully resolved local image: its absolute filesystem path plus its
+ * intrinsic pixel dimensions when they could be read from the file header.
+ * The dimensions are set as width/height attributes on the <img> so the
+ * browser reserves the correct layout space before the (lazy-loaded) bytes
+ * arrive — otherwise every image that loads shifts all content below it,
+ * which breaks scroll-to-heading and scroll-position restore. 
+ */
+interface ResolvedImage {
+  path: string;
+  width?: number;
+  height?: number;
+}
+
+// Cache for resolved images to avoid repeated file system lookups.
+// Key format: `${markdownFilePath}|${imageSrc}` -> resolved path + dimensions.
 //
 // Only successful resolutions are cached. Negative (not-found) results are
 // deliberately NOT stored, so an image created after a failed lookup renders
 // without restarting the app. The cache is bounded with simple LRU eviction so
 // it cannot grow without bound during a long-lived session.
-const imagePathCache = new Map<string, string>();
+const imagePathCache = new Map<string, ResolvedImage>();
 
 // Cap on cached resolutions; once exceeded, the least-recently-used entry is evicted.
 const MAX_IMAGE_PATH_CACHE_ENTRIES = 500;
@@ -22,7 +36,7 @@ const MAX_IMAGE_SEARCH_DEPTH = 10;
 
 // Read a cached resolution, refreshing its recency (Map preserves insertion
 // order, so re-inserting moves the key to the most-recently-used position).
-function getCachedImagePath(cacheKey: string): string | undefined {
+function getCachedImage(cacheKey: string): ResolvedImage | undefined {
   const cached = imagePathCache.get(cacheKey);
   if (cached !== undefined) {
     imagePathCache.delete(cacheKey);
@@ -32,8 +46,8 @@ function getCachedImagePath(cacheKey: string): string | undefined {
 }
 
 // Store a successful resolution, evicting the oldest entry if we exceed the cap.
-function setCachedImagePath(cacheKey: string, resolvedPath: string): void {
-  imagePathCache.set(cacheKey, resolvedPath);
+function setCachedImage(cacheKey: string, resolved: ResolvedImage): void {
+  imagePathCache.set(cacheKey, resolved);
   if (imagePathCache.size > MAX_IMAGE_PATH_CACHE_ENTRIES) {
     const oldestKey = imagePathCache.keys().next().value;
     if (oldestKey !== undefined) {
@@ -42,20 +56,36 @@ function setCachedImagePath(cacheKey: string, resolvedPath: string): void {
   }
 }
 
+// Finalize a successful path resolution: read the image's intrinsic dimensions
+// (cheap header parse in the main process; null for formats it can't size,
+// e.g. SVG — those simply render without reserved space, as before) and cache
+// the combined result.
+async function finishResolve(cacheKey: string, resolvedPath: string): Promise<ResolvedImage> {
+  let dims: { width: number; height: number } | null = null;
+  try {
+    dims = await api.getImageDimensions(resolvedPath);
+  } catch (err) {
+    logger.error('Error reading image dimensions:', err);
+  }
+  const resolved: ResolvedImage = { path: resolvedPath, width: dims?.width, height: dims?.height };
+  setCachedImage(cacheKey, resolved);
+  return resolved;
+}
+
 /**
  * Resolve a relative image path by walking up the directory tree.
  * First tries to resolve relative to the markdown file's directory,
  * then walks up parent directories until the image is found or we reach the limit.
- * 
+ *
  * @param entryPath - Absolute path to the markdown file
  * @param imageSrc - The image src attribute (relative path)
- * @returns The resolved absolute path, or null if not found
+ * @returns The resolved path with intrinsic dimensions, or null if not found
  */
-async function resolveImagePath(entryPath: string, imageSrc: string): Promise<string | null> {
+async function resolveImagePath(entryPath: string, imageSrc: string): Promise<ResolvedImage | null> {
   const cacheKey = `${entryPath}|${imageSrc}`;
 
   // Check cache first (only successful resolutions are ever cached)
-  const cached = getCachedImagePath(cacheKey);
+  const cached = getCachedImage(cacheKey);
   if (cached !== undefined) {
     return cached;
   }
@@ -90,8 +120,7 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<st
   // First, try resolving relative to the markdown file's directory (standard behavior)
   const standardPath = resolveRelativePath(currentDir, imageSrc);
   if (await api.pathExists(standardPath)) {
-    setCachedImagePath(cacheKey, standardPath);
-    return standardPath;
+    return await finishResolve(cacheKey, standardPath);
   }
 
   // If standard resolution failed, walk up directories trying to find the image
@@ -105,8 +134,7 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<st
     const normalizedPath = resolveRelativePath(ancestorDir, imageSrc);
 
     if (await api.pathExists(normalizedPath)) {
-      setCachedImagePath(cacheKey, normalizedPath);
-      return normalizedPath;
+      return await finishResolve(cacheKey, normalizedPath);
     }
 
     // Move up one directory
@@ -127,13 +155,13 @@ export function createCustomImage(entryPath: string) {
   // `node` is react-markdown's internal hast node; destructure it out so it isn't
   // spread onto the DOM <img> element (React warns on unknown DOM props).
   return function CustomImage({ src, alt, node, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & ExtraProps) {
-    const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
+    const [resolvedImg, setResolvedImg] = useState<{ src: string; width?: number; height?: number } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
-    
+
     useEffect(() => {
       let isMounted = true;
-      
+
       async function resolve() {
         if (!src) {
           if (isMounted) {
@@ -142,22 +170,27 @@ export function createCustomImage(entryPath: string) {
           }
           return;
         }
-        
-        // Pass through absolute URLs unchanged
+
+        // Pass through absolute URLs unchanged (no local file to read
+        // dimensions from, so these render without reserved space)
         if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
           if (isMounted) {
-            setResolvedSrc(src);
+            setResolvedImg({ src });
             setIsLoading(false);
           }
           return;
         }
-        
+
         // For local paths, resolve and use local-file:// protocol
         try {
           const resolved = await resolveImagePath(entryPath, src);
           if (isMounted) {
             if (resolved) {
-              setResolvedSrc(`local-file://${resolved}`);
+              setResolvedImg({
+                src: `local-file://${resolved.path}`,
+                width: resolved.width,
+                height: resolved.height,
+              });
               setHasError(false);
             } else {
               setHasError(true);
@@ -172,7 +205,7 @@ export function createCustomImage(entryPath: string) {
           }
         }
       }
-      
+
       void resolve();
 
       return () => {
@@ -188,7 +221,7 @@ export function createCustomImage(entryPath: string) {
       );
     }
     
-    if (hasError || !resolvedSrc) {
+    if (hasError || !resolvedImg) {
       return (
         <span className="inline-flex items-center gap-1 bg-red-900/30 border border-red-500/50 rounded px-2 py-1 text-red-300 text-sm">
           <span>⚠️</span>
@@ -196,11 +229,18 @@ export function createCustomImage(entryPath: string) {
         </span>
       );
     }
-    
+
+    // width/height are the intrinsic dimensions; combined with the
+    // `max-w-full h-auto` classes the browser derives the aspect ratio and
+    // reserves the final layout box before the lazy-loaded bytes arrive,
+    // so later loads don't shift the content below (which would invalidate
+    // scroll-to-heading positions).
     return (
       <img
-        src={resolvedSrc}
+        src={resolvedImg.src}
         alt={alt}
+        width={resolvedImg.width}
+        height={resolvedImg.height}
         {...props}
         loading="lazy"
         onError={() => setHasError(true)}

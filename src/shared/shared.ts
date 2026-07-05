@@ -49,6 +49,12 @@ export type ExifSection = Record<string, string>;
 /** EXIF metadata grouped by section (e.g. 'exif', 'gps'), keyed by group name. */
 export type ExifData = Record<string, ExifSection>;
 
+/** An image's intrinsic pixel dimensions, as displayed (EXIF orientation already applied). */
+export interface ImageDimensions {
+  width: number;
+  height: number;
+}
+
 export interface SearchDefinition {
   name: string;
   searchText: string;
@@ -227,6 +233,7 @@ export interface ElectronAPI {
   readFile: (filePath: string) => Promise<string>;
   readExif: (filePath: string) => Promise<ExifData>;
   writeExif: (filePath: string, data: ExifData) => Promise<boolean>;
+  getImageDimensions: (filePath: string) => Promise<ImageDimensions | null>;
   pathExists: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<{ ok: boolean; content: string }>;
   getFileSize: (filePath: string) => Promise<number>;

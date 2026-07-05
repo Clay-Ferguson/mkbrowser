@@ -1,7 +1,7 @@
 import { exiftool } from 'exiftool-vendored';
 import * as ExifReader from 'exifreader';
 import { logger } from '../shared/logUtil';
-import type { ExifData } from '../shared/shared';
+import type { ExifData, ImageDimensions } from '../shared/shared';
 /**
  * Write EXIF metadata to an image file. Accepts a grouped tag object (same as readExifMetadata output).
  * Only string values are supported. Returns true on success, false on error.
@@ -32,6 +32,51 @@ export async function writeExifMetadata(filePath: string, data: ExifData): Promi
     logger.error('Error writing EXIF:', err);
     return false;
   }
+}
+
+/**
+ * EXIF orientations 5-8 display the image rotated 90°/270°, so the stored
+ * width/height are swapped to match what the browser actually renders.
+ */
+function orientedDimensions(width: number, height: number, orientation: unknown): ImageDimensions {
+  const isRotated90 = typeof orientation === 'number' && orientation >= 5 && orientation <= 8;
+  return isRotated90 ? { width: height, height: width } : { width, height };
+}
+
+/**
+ * Read an image's intrinsic pixel dimensions (as displayed, i.e. with EXIF
+ * orientation applied) without decoding the pixel data. ExifReader parses
+ * them straight from the file header into a per-format group: `file` (JPEG),
+ * `pngFile` (PNG), `gif` (GIF), `riff` (WebP extended format only, with tag
+ * names lacking the space). For anything it can't size (e.g. simple
+ * lossy/lossless WebP) we fall back to exiftool, which is already bundled
+ * for EXIF writes and covers essentially every format via a cheap stay-open
+ * process. Returns null when dimensions can't be determined; rejects on
+ * files that aren't a recognized image format at all.
+ */
+export async function readImageDimensions(filePath: string): Promise<ImageDimensions | null> {
+  const tags = await ExifReader.load(filePath, { expanded: true, length: 128 * 1024 });
+
+  const dimensionCandidates: Array<[unknown, unknown]> = [
+    [tags.file?.['Image Width']?.value, tags.file?.['Image Height']?.value],
+    [tags.pngFile?.['Image Width']?.value, tags.pngFile?.['Image Height']?.value],
+    [tags.gif?.['Image Width']?.value, tags.gif?.['Image Height']?.value],
+    [tags.riff?.ImageWidth?.value, tags.riff?.ImageHeight?.value],
+  ];
+  for (const [width, height] of dimensionCandidates) {
+    if (typeof width === 'number' && typeof height === 'number' && width > 0 && height > 0) {
+      return orientedDimensions(width, height, tags.exif?.Orientation?.value);
+    }
+  }
+
+  const fallbackTags = await exiftool.read(filePath);
+  const { ImageWidth: width, ImageHeight: height } = fallbackTags;
+  if (typeof width === 'number' && typeof height === 'number' && width > 0 && height > 0) {
+    // Orientation is in exiftool-vendored's default numericTags, so it
+    // arrives as the raw 1-8 EXIF value rather than a description string.
+    return orientedDimensions(width, height, fallbackTags.Orientation);
+  }
+  return null;
 }
 
 /**
