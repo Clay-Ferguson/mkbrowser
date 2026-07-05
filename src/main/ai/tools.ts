@@ -12,7 +12,7 @@ import { getConfig } from '../configMgr';
 import { logger } from '../../shared/logUtil';
 
 /** When true, log file-access tool invocations (file names read / listed) to the console. */
-const DEBUG = true;
+const DEBUG = true as boolean;
 
 /** When false, all tool invocations throw immediately — an extra safeguard on top of AGENTIC_MODE. */
 let toolsEnabled = true;

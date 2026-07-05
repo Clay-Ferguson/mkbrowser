@@ -162,7 +162,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               <div className="flex items-center gap-2">
                 <label className="text-slate-300 text-sm">Folder Tree:</label>
                 <select
-                  value={settings.indexTreeWidth ?? 'narrow'}
+                  value={settings.indexTreeWidth}
                   onChange={(e) => handleIndexTreeWidthChange(e.target.value as IndexTreeWidth)}
                   className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                 >

@@ -94,8 +94,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     setSearchQuery(def.searchText.replace(/\{\{nl\}\}/g, '\n'));
     setSearchType(def.searchMode);
     setSearchMode(def.searchTarget);
-    setSortBy(def.sortBy || 'modified-time');
-    setSortDirection(def.sortDirection || 'desc');
+    setSortBy(def.sortBy);
+    setSortDirection(def.sortDirection);
     setSearchImageExif(def.searchImageExif ?? false);
     setMostRecent(def.mostRecent ?? false);
   };

@@ -133,7 +133,8 @@ export class StreamProcessor {
           continue;
         }
         // No complete closing tag yet — emit all but a possible partial tag.
-        if (this.emitAllButPartial(CLOSE_TAG, isFinal, (t) => this.emitThinking(t))) break;
+        this.emitAllButPartial(CLOSE_TAG, isFinal, (t) => this.emitThinking(t));
+        break;
       } else {
         const openIdx = this.pendingContent.indexOf(OPEN_TAG);
         if (openIdx !== -1) {
@@ -144,7 +145,8 @@ export class StreamProcessor {
           continue;
         }
         // No complete opening tag — emit all but a possible partial tag.
-        if (this.emitAllButPartial(OPEN_TAG, isFinal, (t) => this.emitContent(t))) break;
+        this.emitAllButPartial(OPEN_TAG, isFinal, (t) => this.emitContent(t));
+        break;
       }
     }
   }

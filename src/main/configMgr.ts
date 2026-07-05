@@ -132,19 +132,17 @@ export function withDefaultAISettings(config: AppConfig): { config: AppConfig; c
 
   // Ensure pricing fields exist and are valid numbers for all models.
   // Older configs won't have these fields; we normalize and persist once.
-  if (next.aiModels) {
-    next.aiModels = next.aiModels.map((m) => {
-      const inputPer1M = coerceNonNegativeNumber(m.inputPer1M) ?? 0;
-      const outputPer1M = coerceNonNegativeNumber(m.outputPer1M) ?? 0;
+  next.aiModels = next.aiModels.map((m) => {
+    const inputPer1M = coerceNonNegativeNumber(m.inputPer1M) ?? 0;
+    const outputPer1M = coerceNonNegativeNumber(m.outputPer1M) ?? 0;
 
-      if (m.inputPer1M !== inputPer1M || m.outputPer1M !== outputPer1M) {
-        changed = true;
-        return { ...m, inputPer1M, outputPer1M };
-      }
+    if (m.inputPer1M !== inputPer1M || m.outputPer1M !== outputPer1M) {
+      changed = true;
+      return { ...m, inputPer1M, outputPer1M };
+    }
 
-      return m;
-    });
-  }
+    return m;
+  });
 
   if (next.aiEnabled === undefined) {
     next.aiEnabled = false;

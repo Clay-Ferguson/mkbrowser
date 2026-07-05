@@ -47,10 +47,10 @@ import { checkHealth } from './llamaServer';
  * I don't consider this important enough to make it a user configurable setting at runtime.
  * 
  */
-export const ALLOW_DEEP_AGENTS = true;
+export const ALLOW_DEEP_AGENTS: boolean = true;
 
 // Set to true to enable verbose debug logging for Deep Agent invocations.
-const DEBUG = true;
+const DEBUG: boolean = true;
 
 function debugLog(...args: unknown[]) {
   if (DEBUG) logger.log('[deepAgent DEBUG]', ...args);
@@ -196,7 +196,7 @@ export async function streamDeepAgent(
       for await (const event of eventStream) {
         eventCount++;
         if (eventCount <= 10 || event.event === 'on_chat_model_start' || event.event === 'on_chain_end') {
-          debugLog(`streamDeepAgent → event[${eventCount}]: ${event.event} name=${event.name ?? '(none)'}`);
+          debugLog(`streamDeepAgent → event[${eventCount}]: ${event.event} name=${event.name}`);
         }
         processor.handleEvent(event);
       }

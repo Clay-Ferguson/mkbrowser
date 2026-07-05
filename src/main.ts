@@ -30,7 +30,7 @@ import { exportFolderContents, exportToPdf } from './main/exportUtil';
 import { runShellScript, runOcrInTerminal } from './main/launcherUtil';
 
 // Feature flag: set to false to revert to non-streaming AI responses (no popup).
-const ENABLE_STREAM_RESPONSE = true;
+const ENABLE_STREAM_RESPONSE: boolean = true;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -115,7 +115,7 @@ const createWindow = () => {
   }
 
   // Open the DevTools in development
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL && mainWindow) {
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.webContents.openDevTools();
   }
 };

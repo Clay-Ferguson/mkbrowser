@@ -72,7 +72,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
     if (duration.trim()) {
       newContent = setDurationProperty(newContent, duration.trim());
     }
-    if (freq && freq !== 'none') {
+    if (freq !== 'none') {
       const rrule: RRuleProps = { freq };
       const iv = repeatInterval.trim();
       if (iv && iv !== '1') rrule.interval = iv;

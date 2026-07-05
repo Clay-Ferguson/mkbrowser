@@ -16,7 +16,6 @@ import type { Root, Element, Nodes } from 'hast';
 function rehypeTargetBlank() {
   return (tree: Root) => {
     visitLinks(tree, node => {
-      node.properties = node.properties || {};
       node.properties.target = '_blank';
       // Security best practice: add rel="noopener"
       if (typeof node.properties.rel === 'string') {
@@ -32,7 +31,6 @@ function rehypeTargetBlank() {
 }
 
 function visitLinks(tree: Nodes, cb: (node: Element) => void) {
-  if (!tree || typeof tree !== 'object') return;
   if ('children' in tree && Array.isArray(tree.children)) {
     for (const child of tree.children) {
       visitLinks(child, cb);

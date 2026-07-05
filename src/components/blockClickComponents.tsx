@@ -19,7 +19,7 @@ function block<Tag extends keyof React.JSX.IntrinsicElements>(Tag: Tag) {
   const Component = Tag as React.ElementType;
   const BlockComponent = ({ node, children, ...props }: React.JSX.IntrinsicElements[Tag] & ExtraProps) => {
     const { onEditClick, lineOffset } = useContext(BlockClickContext);
-    const line: number = node?.position?.start?.line ?? 0;
+    const line: number = node?.position?.start.line ?? 0;
 
     const handleMouseUp = (e: React.MouseEvent) => {
       // Only the left button initiates editing; right-click must fall through

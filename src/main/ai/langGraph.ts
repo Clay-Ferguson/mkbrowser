@@ -175,8 +175,8 @@ export async function invokeAI(prompt: PreprocessResult, history: BaseMessage[] 
   debugLog('invokeAI → building StateGraph (timeout:', MODEL_TIMEOUT_MS / 1000, 's, useTools:', useTools, ')');
   const graph = buildChatGraph(useTools, async (state) => {
     debugLog('invokeAI [graph:chat] → invoking model with', state.messages.length, 'messages');
-    debugLog('invokeAI [graph:chat] → first message role:', state.messages[0]?.constructor?.name ?? '?',
-      '| useTools:', useTools, '| model type:', model.constructor?.name ?? '?');
+    debugLog('invokeAI [graph:chat] → first message role:', state.messages[0]?.constructor.name ?? '?',
+      '| useTools:', useTools, '| model type:', model.constructor.name);
     try {
       const invokePromise = boundModel.invoke(state.messages);
       const timeoutPromise = new Promise<never>((_, reject) => {

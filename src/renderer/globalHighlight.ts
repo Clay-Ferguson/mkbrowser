@@ -76,7 +76,7 @@ export function applyGlobalHighlight(searchText: string | null): void {
   let node: Text | null;
   while ((node = walker.nextNode() as Text | null)) {
     nodeCount++;
-    const text = node.textContent ?? '';
+    const text = node.textContent;
     const lowerText = text.toLowerCase();
     let idx = 0;
     while ((idx = lowerText.indexOf(lower, idx)) !== -1) {

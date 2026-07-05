@@ -67,7 +67,7 @@ function EditableCombobox({
   useEffect(() => {
     if (highlightedIndex >= 0 && listRef.current) {
       const highlightedElement = listRef.current.children[highlightedIndex] as HTMLElement;
-      if (highlightedElement) {
+      if (highlightedElement) { 
         highlightedElement.scrollIntoView({ block: 'nearest' });
       }
     }

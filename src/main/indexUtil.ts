@@ -147,7 +147,7 @@ function injectFrontMatterId(
  * treat ENOENT as expected (and silent) while logging any other errno.
  */
 function isENOENT(err: unknown): boolean {
-  return (err as NodeJS.ErrnoException)?.code === 'ENOENT';
+  return (err as NodeJS.ErrnoException)?.code === 'ENOENT'; 
 }
 
 /**
@@ -876,7 +876,7 @@ export async function getSortedDirEntries(
   const items = visible.map(toItem);
 
   const indexYaml = await readIndexYaml(dirPath);
-  if (!indexYaml?.files?.length) {
+  if (!indexYaml?.files.length) {
     // No document mode — natural-name (numeric-aware) fallback, files and folders
     // sorted together so ordinal-prefixed names control order.
     return items.sort((a, b) => compareNames(a.name, b.name));

@@ -678,8 +678,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         <BookmarksPopupMenu
           anchorRef={bookmarksButtonRef}
           onClose={closeBookmarksMenu}
-          bookmarks={settings.bookmarks || []}
-          rootPath={rootPath ?? ''}
+          bookmarks={settings.bookmarks}
+          rootPath={rootPath}
           onNavigate={handleBookmarkNavigate}
         />
       )}

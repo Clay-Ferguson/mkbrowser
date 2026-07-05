@@ -18,7 +18,7 @@ interface MessageExtras {
 
 /** Return the `additional_kwargs` map from a message, or an empty object when absent. */
 export function getAdditionalKwargs(msg: unknown): Record<string, unknown> {
-  return (msg as MessageExtras)?.additional_kwargs ?? {};
+  return (msg as MessageExtras)?.additional_kwargs ?? {}; 
 }
 
 /**
@@ -32,7 +32,7 @@ export function getReasoningContent(msg: unknown): string | undefined {
 
 /** True when the message carries at least one tool call. */
 export function hasToolCalls(msg: unknown): boolean {
-  const calls = (msg as MessageExtras)?.tool_calls;
+  const calls = (msg as MessageExtras)?.tool_calls; 
   return Array.isArray(calls) && calls.length > 0;
 }
 
@@ -44,7 +44,7 @@ export interface UsageMetadata {
 
 /** usage_metadata when present with numeric input_tokens, else undefined. */
 export function getUsageMetadata(msg: unknown): UsageMetadata | undefined {
-  const meta = (msg as MessageExtras)?.usage_metadata;
+  const meta = (msg as MessageExtras)?.usage_metadata; 
   if (meta && typeof meta.input_tokens === 'number') {
     return {
       input_tokens: meta.input_tokens,

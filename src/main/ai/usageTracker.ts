@@ -83,10 +83,10 @@ export async function loadUsage(): Promise<AIUsageData> {
     const parsed = JSON.parse(raw) as AIUsageData;
     // Ensure all expected fields exist (forward-compatible with older files)
     return {
-      totalInputTokens: parsed.totalInputTokens ?? 0,
-      totalOutputTokens: parsed.totalOutputTokens ?? 0,
-      totalRequests: parsed.totalRequests ?? 0,
-      byProvider: parsed.byProvider ?? {},
+      totalInputTokens: parsed.totalInputTokens ?? 0, 
+      totalOutputTokens: parsed.totalOutputTokens ?? 0, 
+      totalRequests: parsed.totalRequests ?? 0, 
+      byProvider: parsed.byProvider ?? {}, 
     };
   } catch {
     // Missing or corrupt file — fall through to defaults

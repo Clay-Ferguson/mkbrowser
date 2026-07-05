@@ -11,7 +11,7 @@ import { logger } from '../../shared/logUtil';
 import { wildcardToAnchoredRegex } from '../../shared/pathPattern';
 import { HUMAN_FILENAME } from '../../shared/specialFiles';
 
-const debug = false;
+const debug: boolean = false;
 
 /** Matches a #file: directive on its own line. Captures the pattern after the colon. */
 export const FILE_DIRECTIVE_REGEX = /^\s*#file:(.+?)\s*$/;

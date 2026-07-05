@@ -23,7 +23,7 @@ export function useEntryCore({ path, defaultExpanded = false }: UseEntryCoreOpti
   const isExpanded = item?.isExpanded ?? defaultExpanded;
   const isSelected = item?.isSelected ?? false;
   const isHighlighted = highlightItem === path;
-  const isBookmarked = (settings.bookmarks || []).some(b => b.path === path);
+  const isBookmarked = settings.bookmarks.some(b => b.path === path);
 
   return {
     isRenaming,

@@ -21,7 +21,7 @@ function updateNodeByPath<T extends TreeNode>(
 ): T {
   if (node.path === targetPath) return updater(node) as T;
   if (!node.children) return node;
-  let changed = false;
+  let changed = false as boolean;
   const newChildren = node.children.map(child => {
     const updated = updateNodeByPath(child, targetPath, updater);
     if (updated !== child) changed = true;

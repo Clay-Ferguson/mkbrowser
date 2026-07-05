@@ -768,7 +768,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         definition.searchImageExif,
         definition.mostRecent
       );
-      setSearchResults(results, definition.searchText, currentPath, definition.sortBy || 'modified-time', definition.sortDirection || 'desc', definition.name);
+      setSearchResults(results, definition.searchText, currentPath, definition.sortBy, definition.sortDirection, definition.name);
       setCurrentView('search-results');
     })();
   };
@@ -1094,7 +1094,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 const prevEntry = visibleEntries[idx - 1];
                 const isAttach = entry.name.endsWith(ATTACH_SUFFIX);
                 const indentFolder = isAttach && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
-                const parentExpanded = !indentFolder || (!!prevEntry && (items.get(prevEntry.path)?.isExpanded ?? false));
+                const parentExpanded = !indentFolder || (!!prevEntry && (items.get(prevEntry.path)?.isExpanded ?? false)); 
                 // Folders are shown whenever their parent is expanded (attach folders included).
                 const showFolder = parentExpanded;
                 return (
@@ -1192,7 +1192,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         <SearchPopupMenu
           anchorRef={searchButtonRef}
           onClose={() => setShowSearchMenu(false)}
-          searchDefinitions={settings.searchDefinitions || []}
+          searchDefinitions={settings.searchDefinitions}
           onNewSearch={handleOpenSearchDialog}
           onRunSearch={handleRunSearch}
           onEditSearch={handleEditSearch}

@@ -19,7 +19,7 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
   const [copied, setCopied] = useState(false);
 
   const codeElement = children as React.ReactElement;
-  const codeClassName = (codeElement?.props as { className?: string })?.className || '';
+  const codeClassName = (codeElement?.props as { className?: string })?.className || ''; 
   const languageMatch = /language-(\w+)/.exec(codeClassName);
   const hasLanguage = !!languageMatch;
   const isMermaid = languageMatch?.[1] === 'mermaid';
@@ -27,7 +27,7 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
   // Extracts plain text from the child <code> element and writes it to the clipboard.
   const handleCopy = () => {
     void (async () => {
-      const codeContent = (codeElement?.props as { children?: React.ReactNode })?.children;
+      const codeContent = (codeElement?.props as { children?: React.ReactNode })?.children; 
       const textToCopy = nodeToString(codeContent).replace(/\n$/, '');
 
       try {

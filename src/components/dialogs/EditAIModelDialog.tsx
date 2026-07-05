@@ -27,10 +27,10 @@ function EditAIModelDialog({ initialModel, onSave, onCancel }: EditAIModelDialog
   const [provider, setProvider] = useState<AIProvider>(initialModel?.provider ?? 'ANTHROPIC');
   const [model, setModel] = useState(initialModel?.model ?? '');
   const [inputPer1MText, setInputPer1MText] = useState(
-    initialModel ? String(initialModel.inputPer1M ?? 0) : '0'
+    initialModel ? String(initialModel.inputPer1M) : '0'
   );
   const [outputPer1MText, setOutputPer1MText] = useState(
-    initialModel ? String(initialModel.outputPer1M ?? 0) : '0'
+    initialModel ? String(initialModel.outputPer1M) : '0'
   );
   const isReadonly = Boolean(initialModel?.readonly);
 

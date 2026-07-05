@@ -66,7 +66,7 @@ const NODE_RADIUS_BASE = 5;
 //           and whole nodes spread apart). See forceLabelRect.ts.
 //   false → original circle-only collision (labels can overlap when circles are
 //           close). Flip this one constant to revert to the previous physics.
-const USE_LABEL_PHYSICS = true;
+const USE_LABEL_PHYSICS: boolean = true;
 // Breathing room (px) added around each label box before collisions are resolved.
 const LABEL_BOX_PADDING = 2;
 // Label-collision resolution passes per tick. One pass at strength 0.7 leaves
@@ -86,7 +86,7 @@ const CHARGE_DISTANCE_MAX = 180;
 // repulsion of a same-folder pair, keeping the two folders' file clusters from
 // intermingling and obscuring their connector lines. See forceCrossGroupRepel.ts.
 // Flip to false to remove the effect (folders then rely on the baseline charge).
-const USE_CROSS_FOLDER_REPULSION = true;
+const USE_CROSS_FOLDER_REPULSION: boolean = true;
 // Magnitude of the *extra* cross-folder repulsion. Equal to |CHARGE_STRENGTH|
 // makes the total exactly double for cross-folder file pairs.
 const CROSS_FOLDER_EXTRA_STRENGTH = 440; // try 220, 330, or 440
@@ -97,7 +97,7 @@ const CROSS_FOLDER_EXTRA_STRENGTH = 440; // try 220, 330, or 440
 // link stays the only attraction/spacing between them. Stronger than the
 // file-vs-file extra above because folder hubs anchor whole clumps and need
 // more clearance.
-const USE_FILE_FOLDER_REPULSION = true;
+const USE_FILE_FOLDER_REPULSION: boolean = true;
 const FILE_FOLDER_REPEL_STRENGTH = 500;
 
 // Long-range repulsion between folder hubs. The baseline charge is capped at
@@ -107,7 +107,7 @@ const FILE_FOLDER_REPEL_STRENGTH = 500;
 // it (files have zero strength here, keeping their charge local), but every
 // node feels it, which is what carries whole clumps away from each other.
 // Strength scales with direct child count so bigger clusters claim more room.
-const USE_FOLDER_HUB_REPULSION = true;
+const USE_FOLDER_HUB_REPULSION: boolean = true;
 const FOLDER_HUB_STRENGTH_BASE = -200;
 const FOLDER_HUB_STRENGTH_PER_CHILD = -40;
 // Most-negative strength a single hub can reach, so huge folders don't blast
