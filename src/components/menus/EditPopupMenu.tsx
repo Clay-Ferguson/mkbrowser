@@ -3,14 +3,13 @@ import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
 /**
  * Popup menu for the Edit toolbar button. Exposes file-level editing operations:
- * undo cut, selection management, split/join, find-and-replace, and copy link.
+ * selection management, split/join, find-and-replace, and copy link.
  * Each action callback is responsible for the actual operation; the menu only
  * wires up the items and closes itself after a selection.
  */
 interface EditPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
-  onUndoCut: () => void;
   onSelectAll: () => void;
   onUnselectAll: () => void;
   onSplit: () => void;
@@ -18,7 +17,6 @@ interface EditPopupMenuProps {
   onReplaceInFiles: () => void;
   onCopyLink: () => void;
   // Disable conditions
-  undoCutDisabled: boolean;
   unselectAllDisabled: boolean;
   splitDisabled: boolean;
   joinDisabled: boolean;
@@ -30,14 +28,12 @@ interface EditPopupMenuProps {
 export default function EditPopupMenu({
   anchorRef,
   onClose,
-  onUndoCut,
   onSelectAll,
   onUnselectAll,
   onSplit,
   onJoin,
   onReplaceInFiles,
   onCopyLink,
-  undoCutDisabled,
   unselectAllDisabled,
   splitDisabled,
   joinDisabled,
@@ -46,12 +42,6 @@ export default function EditPopupMenu({
 }: EditPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
-      <PopupMenuItem
-        label="Undo Cut"
-        onClick={() => { onUndoCut(); onClose(); }}
-        disabled={undoCutDisabled}
-      />
-      <PopupMenuDivider />
       <PopupMenuItem
         label="Select All"
         onClick={() => { onSelectAll(); onClose(); }}

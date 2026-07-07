@@ -67,7 +67,7 @@ Key points:
 
 ## Enabling Custom Ordering
 
-Custom ordering is enabled via the **Edit menu**, accessible from the edit button in the BrowseView toolbar. When no `.INDEX.yaml` exists in the current folder, the menu shows its standard items (Undo Cut, Select All, Split, Join, etc.) plus an additional item at the very bottom:
+Custom ordering is enabled via the **Edit menu**, accessible from the edit button in the BrowseView toolbar. When no `.INDEX.yaml` exists in the current folder, the menu shows its standard items (Select All, Split, Join, etc.) plus an additional item at the very bottom:
 
 > **Enable Document Mode**
 

@@ -405,7 +405,7 @@ Hover over any bookmark in the menu to reveal two icon buttons on the right:
 The **Edit** menu provides a set of tools for managing and manipulating your files and selections. Below are the main features available:
 
 ## Undo Cut
-Restores items that were previously marked as "cut" (for moving) back to their original state, cancelling the pending move operation. Use this if you change your mind after cutting items but before pasting them.
+Restores items that were previously marked as "cut" (for moving) back to their original state, cancelling the pending move operation. Use this if you change your mind after cutting items but before pasting them. The **Undo Cut** button appears in the toolbar whenever you have items marked as cut.
 
 ## Select All
 Selects all files and folders in the current directory, making it easy to perform batch operations like cut, copy, or delete.
@@ -458,7 +458,7 @@ The **Cut** operation allows you to move files and folders to a new location. To
 **Notes:**
 - You can only paste into folders where the operation is valid (e.g., not into the same folder the items came from, and not if it would create duplicates).
 - After pasting, the items are moved to the new location and removed from their original folder.
-- If you change your mind after cutting but before pasting, use **Undo Cut** from the Edit menu to cancel the operation.
+- If you change your mind after cutting but before pasting, use the **Undo Cut** toolbar button to cancel the operation.
 
 ## Delete
 

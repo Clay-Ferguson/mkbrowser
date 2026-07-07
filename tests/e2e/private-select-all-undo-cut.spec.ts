@@ -15,11 +15,11 @@ import {
 /**
  * Private E2E Test: Select All, Unselect All, and Undo Cut
  *
- * Exercises the selection-management items in the Edit popup menu, plus the
- * cut-cancellation safety net:
+ * Exercises the Select All / Unselect All items in the Edit popup menu, plus
+ * the header Undo Cut button that cancels a pending move:
  *   1. Seeds a dedicated subfolder with three markdown files and an empty
  *      destination folder on disk.
- *   2. Confirms Undo Cut starts disabled (nothing has been cut yet).
+ *   2. Confirms the Undo Cut button is hidden (nothing has been cut yet).
  *   3. Select All — every file checkbox and the destination folder checkbox
  *      become checked, and the header Cut/Delete buttons appear.
  *   4. Unselect All — every checkbox clears and the header buttons disappear.
@@ -27,7 +27,7 @@ import {
  *      button), then uses Undo Cut to bring them back.
  *   6. Proves the negative: after cut + undo, nothing moved on disk — all three
  *      files are still in the source folder and the destination folder is empty.
- *   7. Confirms Undo Cut is disabled again once the cut has been undone.
+ *   7. Confirms the Undo Cut button is hidden again once the cut has been undone.
  *
  * This test is private (not part of the demo video set) — it still writes
  * screenshots/narration to follow the shared conventions, but its primary
@@ -87,39 +87,25 @@ test.describe('Private: Select All, Unselect All, and Undo Cut', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Welcome to MkBrowser. Today we'll explore the selection tools in the Edit menu — Select All and Unselect All — and the Undo Cut safety net that cancels a pending move.
+      `Welcome to MkBrowser. Today we'll explore the selection tools in the Edit menu — Select All and Unselect All — and the Undo Cut button that cancels a pending move.
 Here is our folder, holding three markdown files and an empty destination folder called "dest".`
     );
 
     const editMenuButton = mainWindow.getByTestId('edit-menu-button');
 
-    // --- Step: Undo Cut starts disabled ---------------------------------
-    await takeScreenshot(mainWindow, editMenuButton, screenshotDir, step++, 'about-to-open-edit-menu-initial');
+    // --- Step: Undo Cut button hidden initially -------------------------
+    // The Undo Cut button lives in the header toolbar and only renders while
+    // items are cut, so with nothing cut yet it should not be present at all.
+    const undoCutButton = mainWindow.getByTestId('undo-cut-button');
+    await expect(undoCutButton).toHaveCount(0);
+
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'undo-cut-hidden-initially');
     writeNarration(
       screenshotDir,
       step++,
-      `Let's open the Edit menu to take a look.`
+      `Notice there is no Undo Cut button in the header yet. Because nothing has been cut, the button stays hidden.
+It only appears once we've cut something and might want to change our minds.`
     );
-
-    await demoClick(editMenuButton);
-
-    // Disabled menu items render as a real <button disabled> (PopupMenuItem),
-    // so toBeDisabled() is the right assertion.
-    const undoCutItem = mainWindow.getByRole('button', { name: 'Undo Cut', exact: true });
-    await expect(undoCutItem).toBeVisible();
-    await expect(undoCutItem).toBeDisabled();
-
-    await takeScreenshot(mainWindow, undoCutItem, screenshotDir, step++, 'undo-cut-disabled-initially');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `At the top of the menu is Undo Cut. Because nothing has been cut yet, it is grayed out and can't be clicked.
-It only comes to life once we've cut something and might want to change our minds.`
-    );
-
-    // Close the menu without triggering an action (Escape is handled by PopupMenu).
-    await mainWindow.keyboard.press('Escape');
-    await expect(undoCutItem).toHaveCount(0);
 
     // --- Step: Select All ------------------------------------------------
     await takeScreenshot(mainWindow, editMenuButton, screenshotDir, step++, 'about-to-open-edit-menu-select-all');
@@ -240,27 +226,17 @@ The "dest" folder now shows a paste button — this is the point where we would 
     );
 
     // --- Step: Undo Cut --------------------------------------------------
-    await takeScreenshot(mainWindow, editMenuButton, screenshotDir, step++, 'about-to-open-edit-menu-undo-cut');
+    // Now that items are cut, the Undo Cut button appears in the header toolbar.
+    await expect(undoCutButton).toBeVisible();
+
+    await takeScreenshot(mainWindow, undoCutButton, screenshotDir, step++, 'about-to-click-undo-cut');
     writeNarration(
       screenshotDir,
       step++,
-      `We reopen the Edit menu — and this time Undo Cut is available.`
+      `Now that two files are cut, the Undo Cut button has appeared in the header. Clicking it cancels the pending move and brings the hidden files right back.`
     );
 
-    await demoClick(editMenuButton);
-
-    const undoCutItemEnabled = mainWindow.getByRole('button', { name: 'Undo Cut', exact: true });
-    await expect(undoCutItemEnabled).toBeVisible();
-    await expect(undoCutItemEnabled).toBeEnabled();
-
-    await takeScreenshot(mainWindow, undoCutItemEnabled, screenshotDir, step++, 'about-to-click-undo-cut');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Now that two files are cut, Undo Cut is enabled. Clicking it cancels the pending move and brings the hidden files right back.`
-    );
-
-    await demoClick(undoCutItemEnabled);
+    await demoClick(undoCutButton);
 
     // The cut files reappear and the paste buttons are gone.
     for (const file of cutFiles) {
@@ -298,29 +274,16 @@ The "dest" folder now shows a paste button — this is the point where we would 
 Crucially, nothing ever moved on disk: all three files are still right here, and the "dest" folder is still completely empty. Undo Cut is a true safety net.`
     );
 
-    // --- Step: Undo Cut disabled again ----------------------------------
-    await takeScreenshot(mainWindow, editMenuButton, screenshotDir, step++, 'about-to-open-edit-menu-final');
+    // --- Step: Undo Cut button hidden again -----------------------------
+    // With nothing cut anymore, the header button unmounts again.
+    await expect(undoCutButton).toHaveCount(0);
+
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'undo-cut-hidden-again');
     writeNarration(
       screenshotDir,
       step++,
-      `One last look at the Edit menu to confirm the state has reset.`
+      `With nothing cut anymore, the Undo Cut button has disappeared from the header once again — exactly where we started.`
     );
-
-    await demoClick(editMenuButton);
-
-    const undoCutItemFinal = mainWindow.getByRole('button', { name: 'Undo Cut', exact: true });
-    await expect(undoCutItemFinal).toBeVisible();
-    await expect(undoCutItemFinal).toBeDisabled();
-
-    await takeScreenshot(mainWindow, undoCutItemFinal, screenshotDir, step++, 'undo-cut-disabled-again');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `With nothing cut anymore, Undo Cut is grayed out once again — exactly where we started.`
-    );
-
-    await mainWindow.keyboard.press('Escape');
-    await expect(undoCutItemFinal).toHaveCount(0);
 
     // Cleanup: remove the demo folder so nothing this test created lingers.
     fs.rmSync(demoFolderPath, { recursive: true, force: true });

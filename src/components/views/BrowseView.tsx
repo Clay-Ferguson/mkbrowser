@@ -922,6 +922,19 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             </button>
           )}
 
+          {/* Undo Cut button - shown whenever items are cut */}
+          {hasCutItems && (
+            <button
+              type="button"
+              onClick={() => clearAllCutItems()}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
+              title="Undo cut (cancel pending move)"
+              data-testid="undo-cut-button"
+            >
+              Undo Cut
+            </button>
+          )}
+
           {/* Create file/folder buttons — hidden in index-ordered mode (inline insert bars replace them) */}
           {!hasIndexFile && (
             <>
@@ -1204,14 +1217,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         <EditPopupMenu
           anchorRef={editButtonRef}
           onClose={() => setShowEditMenu(false)}
-          onUndoCut={() => clearAllCutItems()}
           onSelectAll={handleSelectAll}
           onUnselectAll={() => clearAllSelections()}
           onSplit={handleSplitFile}
           onJoin={handleJoinFiles}
           onReplaceInFiles={() => setShowReplaceDialog(true)}
           onCopyLink={handleCopyLink}
-          undoCutDisabled={!hasCutItems}
           unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
           splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
           joinDisabled={selectedFileCount < 2 || hasSelectedFolders}
