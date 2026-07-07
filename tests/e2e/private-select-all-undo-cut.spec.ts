@@ -87,8 +87,8 @@ test.describe('Private: Select All, Unselect All, and Undo Cut', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Here is our folder, holding three markdown files and an empty destination folder called "dest".
-Today we'll explore the selection tools in the Edit menu — Select All and Unselect All — and the Undo Cut safety net that cancels a pending move.`
+      `Welcome to MkBrowser. Today we'll explore the selection tools in the Edit menu — Select All and Unselect All — and the Undo Cut safety net that cancels a pending move.
+Here is our folder, holding three markdown files and an empty destination folder called "dest".`
     );
 
     const editMenuButton = mainWindow.getByTestId('edit-menu-button');

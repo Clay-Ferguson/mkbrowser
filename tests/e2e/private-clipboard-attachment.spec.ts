@@ -100,9 +100,8 @@ test.describe('Private: Paste Clipboard as Attachment', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Here is a single markdown file with no attachments yet.
-Every markdown file has a shortcut to paste whatever is on your clipboard as an attachment stored right next to it.
-Let's use it to attach some clipboard text.`
+      `Welcome to MkBrowser. Today we're looking at clipboard attachments — every markdown file has a shortcut to paste whatever is on your clipboard as an attachment stored right next to it.
+Here is a single markdown file with no attachments yet; let's use it to attach some clipboard text.`
     );
 
     // Seed the OS clipboard with the first payload via Electron's main-process

@@ -126,9 +126,8 @@ test.describe('Private: Paste Clipboard Image as Attachment', () => {
     writeNarration(
       screenshotDir,
       step++,
-      `Here is a single markdown file with no attachments yet.
-Imagine you've just taken a screenshot — every markdown file has a shortcut to paste whatever image is on your clipboard as an attachment stored right next to it.
-Let's attach a picture straight from the clipboard.`
+      `Welcome to MkBrowser. Today we're looking at pasting images from your clipboard — every markdown file can attach whatever image you've copied, stored right next to the file.
+Here is a single markdown file with no attachments yet; imagine you've just taken a screenshot, and let's attach it straight from the clipboard.`
     );
 
     // Seed the OS clipboard with a real PNG image via Electron's main-process
