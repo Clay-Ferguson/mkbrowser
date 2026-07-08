@@ -6,7 +6,6 @@ This is the pattern for writing Playwright E2E tests. Every test walks through a
 There are two flavors, and they share the same helpers, screenshot/narration cadence, and file layout:
 
 - **Demo tests** (`<name>-demo.spec.ts`, e.g. `create-file-demo.spec.ts`) — primarily for the tutorial videos. Read `create-file-demo.spec.ts` as the canonical example.
-- **Private tests** (`private-<name>.spec.ts`, e.g. `private-cut-and-paste.spec.ts`) — verification-first. They still emit screenshots/narration to follow the shared conventions, but their real job is to prove a feature works, including **byte-level assertions on disk**. Read `private-cut-and-paste.spec.ts` as the canonical example.
 
 When asked to create a test, decide which flavor fits (a "demonstrate feature X" request → demo; a "verify/prove feature X works" request → private), then follow the matching conventions below. **Study the named reference tests before writing** and copy their structure exactly — do not invent new patterns.
 
@@ -224,12 +223,15 @@ Each entry has an action bar (`entry-action-bar`) whose buttons are **revealed o
 ```typescript
 const bar = findActionBarByFileName(mainContent, 'my-host-note.md');
 await bar.hover();
+await mainWindow.waitForTimeout(700);   // icons fade in on a delay — wait or screenshots capture them invisible
 const button = bar.getByTestId('entry-...-button');
 await takeScreenshot(mainWindow, button, screenshotDir, step++, 'label');   // highlight it
 await demoClick(button, { force: true });                                   // force past the hover gate
 ```
 
-`findActionBarByFileName(scope, fileName)` scopes to one entry's bar. Always `hover()` then `demoClick(..., { force: true })` — this is the same pattern as the entry-delete flow at the end of `private-cut-and-paste.spec.ts`. Common per-entry buttons (verify test IDs against source before hardcoding): `entry-bookmark-button` (title toggles `Add bookmark`/`Remove bookmark`), `entry-paste-clipboard-attachment-button`, `entry-save-button`.
+`findActionBarByFileName(scope, fileName)` scopes to one entry's bar. Always `hover()` then `demoClick(..., { force: true })` — this is the same pattern as the entry-delete flow at the end of `private-cut-and-paste.spec.ts`.
+
+**The icons are not instantly visible on hover.** `EntryActionBar.tsx` reveals them with a CSS opacity transition that has a ~400 ms delay plus a ~200 ms fade, so wait ~700 ms after `hover()` before any screenshot that should show them. Playwright's `toBeVisible()` does **not** wait for this — an `opacity: 0` element counts as "visible" — so only a timeout works. And the reveal is lost as soon as the mouse moves elsewhere (e.g. after clicking a dialog button): **re-hover + re-wait before any later screenshot** that narrates the icon's state. Common per-entry buttons (verify test IDs against source before hardcoding): `entry-bookmark-button` (title toggles `Add bookmark`/`Remove bookmark`), `entry-paste-clipboard-attachment-button`, `entry-save-button`.
 
 ### Views are hidden, not unmounted (`activeView`)
 `App.tsx` switches views with `display:none` rather than unmounting them, so **the DOM of hidden views (Browse, Search, Analysis, …) is still present**. A page-wide `getByText` can match a hidden view. Scope assertions to the currently displayed view with `activeView(mainWindow)` when a feature switches views. In particular, hashtags in seeded markdown render as clickable links in the Browse view too — keep Browse-view assertions to file names and scope Analysis/Search assertions to `activeView`.

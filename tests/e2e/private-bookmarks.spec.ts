@@ -88,11 +88,17 @@ test.describe('Private: Bookmarks', () => {
 Here we have a folder and a markdown file in our workspace — let's create a couple of bookmarks.`
     );
 
+    // The action-bar icons fade in on hover with a delay (EntryActionBar.tsx:
+    // 400ms delay + 200ms opacity transition), so after every hover we must
+    // wait for the fade to finish or screenshots capture invisible icons.
+    const hoverRevealMs = 700;
+
     // --- Bookmark the folder ---
     // The folder entry is a hover-revealed action bar; find its row, hover to
     // reveal the icons, then use the bookmark toggle.
     const folderRow = mainContent.locator('div.group').filter({ hasText: folderName }).first();
     await folderRow.hover();
+    await mainWindow.waitForTimeout(hoverRevealMs);
     const folderBookmarkButton = folderRow.getByTestId('entry-action-bar').getByTestId('entry-bookmark-button');
     await expect(folderBookmarkButton).toHaveAttribute('title', 'Add bookmark');
 
@@ -124,6 +130,10 @@ We can accept the default name or type our own. For the folder, we'll keep the d
     // The entry's bookmark icon turns solid; its title flips to "Remove bookmark".
     await expect(folderBookmarkButton).toHaveAttribute('title', 'Remove bookmark');
 
+    // The mouse moved to the dialog's Save button, so the action bar has faded
+    // out again — re-hover so the now-solid icon is visible in the screenshot.
+    await folderRow.hover();
+    await mainWindow.waitForTimeout(hoverRevealMs);
     await takeScreenshot(mainWindow, folderBookmarkButton, screenshotDir, step++, 'folder-bookmarked');
     writeNarration(
       screenshotDir,
@@ -135,6 +145,7 @@ That solid icon is your at-a-glance indicator that an item is already bookmarked
     // --- Bookmark the file, with a custom name ---
     const fileActionBar = findActionBarByFileName(mainContent, fileName);
     await fileActionBar.hover();
+    await mainWindow.waitForTimeout(hoverRevealMs);
     const fileBookmarkButton = fileActionBar.getByTestId('entry-bookmark-button');
     await expect(fileBookmarkButton).toHaveAttribute('title', 'Add bookmark');
 
@@ -162,6 +173,9 @@ We've typed "${fileBookmarkName}" — a bookmark's name is just a friendly label
     await demoClick(mainWindow.getByTestId('bookmark-dialog-save-button'));
     await expect(fileBookmarkButton).toHaveAttribute('title', 'Remove bookmark');
 
+    // Re-hover after the dialog click so the solid icon is visible again.
+    await fileActionBar.hover();
+    await mainWindow.waitForTimeout(hoverRevealMs);
     await takeScreenshot(mainWindow, fileBookmarkButton, screenshotDir, step++, 'file-bookmarked');
     writeNarration(
       screenshotDir,
@@ -222,7 +236,10 @@ Bookmarks are a fast way to teleport around your workspace.`
 
     // --- Rename the folder bookmark from the menu ---
     await demoClick(bookmarksMenuButton);
+    // The row's pencil/trash icons are hover-revealed too (a quick opacity
+    // fade, no delay) — a short settle keeps them visible in the screenshot.
     await folderBookmarkItem.hover();
+    await mainWindow.waitForTimeout(300);
     const folderEditButton = mainWindow.getByTestId(`bookmark-edit-button-${folderName}`);
     await takeScreenshot(mainWindow, folderEditButton, screenshotDir, step++, 'about-to-rename-bookmark');
     writeNarration(
@@ -263,6 +280,7 @@ The folder on disk is untouched — only the bookmark's label changed.`
     // --- Delete the renamed bookmark from the menu ---
     const renamedBookmarkItem = mainWindow.getByTestId(`bookmark-item-${renamedFolderBookmark}`);
     await renamedBookmarkItem.hover();
+    await mainWindow.waitForTimeout(300);
     const renamedDeleteButton = mainWindow.getByTestId(`bookmark-delete-button-${renamedFolderBookmark}`);
     await takeScreenshot(mainWindow, renamedDeleteButton, screenshotDir, step++, 'about-to-delete-bookmark');
     writeNarration(
@@ -291,6 +309,7 @@ Deleting a bookmark never touches the underlying file or folder — it only remo
 
     // --- Remove the last bookmark from the entry itself (no dialog) ---
     await fileActionBar.hover();
+    await mainWindow.waitForTimeout(hoverRevealMs);
     await expect(fileBookmarkButton).toHaveAttribute('title', 'Remove bookmark');
     await takeScreenshot(mainWindow, fileBookmarkButton, screenshotDir, step++, 'about-to-unbookmark-file');
     writeNarration(

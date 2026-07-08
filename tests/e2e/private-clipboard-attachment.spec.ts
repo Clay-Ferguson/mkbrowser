@@ -117,8 +117,12 @@ Now we'll paste it as an attachment under our file.`
     );
 
     // Locate the file's hover-revealed action bar and its paste-clipboard button.
+    // The icons fade in on hover with a delay (EntryActionBar.tsx: 400ms delay +
+    // 200ms opacity transition), so wait for the fade or screenshots capture
+    // invisible icons (toBeVisible() passes even at opacity 0).
     let actionBar = findActionBarByFileName(mainContent, hostFileName);
     await actionBar.hover();
+    await mainWindow.waitForTimeout(700);
     let pasteButton = actionBar.getByTestId('entry-paste-clipboard-attachment-button');
     await expect(pasteButton).toBeVisible();
 
@@ -195,6 +199,7 @@ Its markdown renders just like any other file — here's the "Pasted Note One" h
 
     actionBar = findActionBarByFileName(mainContent, hostFileName);
     await actionBar.hover();
+    await mainWindow.waitForTimeout(700);   // wait out the action-bar fade-in
     pasteButton = actionBar.getByTestId('entry-paste-clipboard-attachment-button');
     await expect(pasteButton).toBeVisible();
 

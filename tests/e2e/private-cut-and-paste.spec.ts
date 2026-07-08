@@ -255,10 +255,12 @@ This time, instead of using the selection checkboxes, we'll delete it with the t
     );
 
     // Delete the leftover file via the delete icon on its entry header. The
-    // action bar is revealed on hover, so hover the entry first and force the
-    // click in case the reveal transition hasn't finished.
+    // action bar is revealed on hover with a fade-in delay (EntryActionBar.tsx:
+    // 400ms delay + 200ms opacity transition), so hover the entry first and
+    // wait out the fade so the icons are visible in the screenshot.
     const stayFileActionBar = findActionBarByFileName(mainContent, stayFile);
     await stayFileActionBar.hover();
+    await mainWindow.waitForTimeout(700);
     const entryDeleteButton = stayFileActionBar.getByTestId('entry-delete-button');
     await takeScreenshot(mainWindow, entryDeleteButton, screenshotDir, step++, 'about-to-delete-via-header');
     writeNarration(
