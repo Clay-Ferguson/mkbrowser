@@ -1,11 +1,12 @@
 import type { RefObject } from 'react';
+import type { ImageSize } from '../../shared/shared';
 import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
 /**
  * Popup menu for the Edit toolbar button. Exposes file-level editing operations:
- * selection management, split/join, find-and-replace, and copy link.
- * Each action callback is responsible for the actual operation; the menu only
- * wires up the items and closes itself after a selection.
+ * selection management, split/join, find-and-replace, copy link, and the global
+ * inline image size toggle. Each action callback is responsible for the actual
+ * operation; the menu only wires up the items and closes itself after a selection.
  */
 interface EditPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
@@ -16,6 +17,9 @@ interface EditPopupMenuProps {
   onJoin: () => void;
   onReplaceInFiles: () => void;
   onCopyLink: () => void;
+  /** Current global inline image size — decides which direction the toggle item offers. */
+  imageSize: ImageSize;
+  onToggleImageSize: () => void;
   // Disable conditions
   unselectAllDisabled: boolean;
   splitDisabled: boolean;
@@ -34,6 +38,8 @@ export default function EditPopupMenu({
   onJoin,
   onReplaceInFiles,
   onCopyLink,
+  imageSize,
+  onToggleImageSize,
   unselectAllDisabled,
   splitDisabled,
   joinDisabled,
@@ -81,6 +87,12 @@ export default function EditPopupMenu({
           />
         </>
       )}
+      <PopupMenuDivider />
+      <PopupMenuItem
+        label={imageSize === 'small' ? 'Switch to large image size' : 'Switch to small image size'}
+        data-testid="menu-toggle-image-size"
+        onClick={() => { onToggleImageSize(); onClose(); }}
+      />
     </PopupMenu>
   );
 }

@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { clsx } from 'clsx';
-import { PhotoIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon } from '@heroicons/react/24/outline';
+import { PhotoIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import type { ExifData } from '../../shared/shared';
-import { useAS, setImageSizeTransitioning, setImageSizeWithTransition } from '../../store';
+import { useAS } from '../../store';
 import ExifDialog from '../dialogs/ExifDialog';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import {
@@ -23,9 +23,9 @@ interface ImageEntryProps extends BaseEntryProps {
 
 /**
  * Entry component for image files. Expands inline to show a thumbnail at the current global
- * image size (small/large, persisted to config). Clicking the image opens a fullscreen overlay
- * (FullscreenImageViewer). Overlaid buttons let the user toggle image size and view EXIF metadata.
- * The EXIF dialog state is shared with the fullscreen viewer so only one dialog instance exists.
+ * image size (small/large, persisted to config, toggled from the Edit menu). Clicking the image
+ * opens a fullscreen overlay (FullscreenImageViewer). An overlaid button shows EXIF metadata;
+ * its dialog state is shared with the fullscreen viewer so only one dialog instance exists.
  */
 function ImageEntry(props: ImageEntryProps) {
   const { entry, allImages, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
@@ -36,43 +36,6 @@ function ImageEntry(props: ImageEntryProps) {
 
   // Image size from global store (shared across all ImageEntry instances)
   const imageSize = useAS(s => s.imageSize);
-
-  // Ref to this entry's expanded image, used to re-center it after a size toggle.
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  const handleToggleImageSize = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newSize = imageSize === 'small' ? 'large' : 'small';
-
-    // Phase 1: hide the view instantly (opacity 0) AND apply the new size in a
-    // single render, so the larger images are laid out while invisible.
-    setImageSizeWithTransition(newSize);
-
-    // This rAF ensures that we can set the size option on our images
-    // which makes them all render at a different size, and have the page
-    // render (where all images may have changed size and therefore the
-    // scroll position has completely changed) in a way where the user sees
-    // the screen update but the image they were previously looking at is still
-    // right at the center of the screen, even though the scrolling and positioning
-    // of everything will have completely changed.
-    //
-    // After the new (larger) layout has painted at opacity 0, jump the
-    // scroll to center the clicked image while it's still invisible, then drop
-    // the transitioning flag to fade the view back in at the correct position.
-    // Two rAFs guarantee the opacity:0 frame is painted first so the CSS
-    // opacity transition actually fires (0 -> 1) instead of snapping.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        imgRef.current?.scrollIntoView({ behavior: 'instant', block: 'center' });
-        setImageSizeTransitioning(false);
-      });
-    });
-
-    // Persist the choice independently — it must not gate the animation timing.
-    api.updateConfig({ imageSize: newSize }).catch((err) => {
-      logger.error('[ImageEntry] Failed to persist image size:', err);
-    });
-  };
 
   // Fullscreen state — the overlay itself (navigation, view state, keyboard handling)
   // lives in FullscreenImageViewer, mounted only while open.
@@ -145,7 +108,7 @@ function ImageEntry(props: ImageEntryProps) {
           <div className="bg-slate-900 rounded-lg p-4 flex items-center justify-center">
             <div className="relative inline-block">
               <img
-                ref={imgRef}
+                data-inline-image=""
                 src={imageUrl}
                 alt={entry.name}
                 className={clsx(
@@ -158,14 +121,6 @@ function ImageEntry(props: ImageEntryProps) {
                 // onLoad={() => {logger.log('[ImageEntry] Image loaded successfully:', imageUrl)}}
                 onError={(e) => logger.error('[ImageEntry] Image failed to load:', imageUrl, 'Error:', e)}
               />
-              <button
-                type="button"
-                onClick={handleToggleImageSize}
-                className="absolute top-2 right-9 p-1 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors"
-                title={imageSize === 'small' ? 'Switch to large image size' : 'Switch to small image size'}
-              >
-                {imageSize === 'small' ? <MagnifyingGlassPlusIcon className="w-5 h-5" /> : <MagnifyingGlassMinusIcon className="w-5 h-5" />}
-              </button>
               <button
                 type="button"
                 onClick={(e) => handleExifClick(e, entry.path, entry.name)}
