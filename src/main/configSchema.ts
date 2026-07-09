@@ -190,7 +190,9 @@ const AppConfigSchema = z
     aiRewriteMode: z.boolean().optional().catch(undefined),
     calendarViewType: z.enum(['month', 'week', 'work_week', 'day', 'agenda']).optional().catch(undefined),
     recentFolders: tolerantArray(z.string()).optional(),
-    imageSize: z.enum(['small', 'large']).optional().catch(undefined),
+    // An unrecognized value (e.g. a pre-existing yaml) falls through to
+    // undefined, which the renderer reads as DEFAULT_IMAGE_SIZE.
+    imageSize: z.enum(['small', 'medium', 'large']).optional().catch(undefined),
   })
   .loose();
 

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { AppState, AppSettings, AiConfigState } from '../shared/types';
+import { DEFAULT_IMAGE_SIZE } from '../shared/shared';
 import { createImageSlice } from './image';
 import type { ImageSlice } from './image';
 import { createAiConfigSlice } from './aiConfig';
@@ -111,7 +112,7 @@ const initialState: AppState = {
   calendarLoading: false,
   calendarViewType: 'month',
   calendarViewTime: new Date(),
-  imageSize: 'small',
+  imageSize: DEFAULT_IMAGE_SIZE,
   imageSizeTransitioning: false,
   aiConfig: defaultAiConfig,
 };

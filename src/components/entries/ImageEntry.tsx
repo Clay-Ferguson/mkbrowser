@@ -4,7 +4,7 @@ import { PhotoIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
-import type { ExifData } from '../../shared/shared';
+import type { ExifData, ImageSize } from '../../shared/shared';
 import { useAS } from '../../store';
 import ExifDialog from '../dialogs/ExifDialog';
 import FullscreenImageViewer from './FullscreenImageViewer';
@@ -21,10 +21,17 @@ interface ImageEntryProps extends BaseEntryProps {
   isAttachment?: boolean;
 }
 
+/** Max height of an expanded inline image, per global image size setting. */
+const IMAGE_SIZE_CLASSES: Record<ImageSize, string> = {
+  small: 'max-h-48',
+  medium: 'max-h-96',
+  large: 'max-h-[48rem]',
+};
+
 /**
  * Entry component for image files. Expands inline to show a thumbnail at the current global
- * image size (small/large, persisted to config, toggled from the Edit menu). Clicking the image
- * opens a fullscreen overlay (FullscreenImageViewer). An overlaid button shows EXIF metadata;
+ * image size (small/medium/large, persisted to config, chosen from the Edit menu). Clicking the
+ * image opens a fullscreen overlay (FullscreenImageViewer). An overlaid button shows EXIF metadata;
  * its dialog state is shared with the fullscreen viewer so only one dialog instance exists.
  */
 function ImageEntry(props: ImageEntryProps) {
@@ -113,7 +120,7 @@ function ImageEntry(props: ImageEntryProps) {
                 alt={entry.name}
                 className={clsx(
                   'max-w-full object-contain rounded cursor-pointer hover:opacity-90 transition-opacity',
-                  imageSize === 'large' ? 'max-h-[48rem]' : 'max-h-96',
+                  IMAGE_SIZE_CLASSES[imageSize],
                 )}
                 loading="lazy"
                 onClick={() => setIsFullscreen(true)}

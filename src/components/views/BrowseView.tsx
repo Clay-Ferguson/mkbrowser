@@ -108,7 +108,7 @@ function findCenteredInlineImage(): HTMLImageElement | null {
 }
 
 /**
- * Toggles the global inline image size (small <-> large) and persists it.
+ * Applies a new global inline image size and persists it.
  *
  * Phase 1: hide the view instantly (opacity 0) AND apply the new size in a
  * single render, so the resized images are laid out while invisible.
@@ -128,8 +128,8 @@ function findCenteredInlineImage(): HTMLImageElement | null {
  *
  * Module-level so the React Compiler leaves it alone.
  */
-function toggleImageSize(currentSize: ImageSize): void {
-  const newSize: ImageSize = currentSize === 'small' ? 'large' : 'small';
+function changeImageSize(currentSize: ImageSize, newSize: ImageSize): void {
+  if (newSize === currentSize) return;
   const anchor = findCenteredInlineImage();
 
   setImageSizeWithTransition(newSize);
@@ -1290,7 +1290,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onReplaceInFiles={() => setShowReplaceDialog(true)}
           onCopyLink={handleCopyLink}
           imageSize={imageSize}
-          onToggleImageSize={() => toggleImageSize(imageSize)}
+          onChangeImageSize={(size) => changeImageSize(imageSize, size)}
           unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
           splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
           joinDisabled={selectedFileCount < 2 || hasSelectedFolders}

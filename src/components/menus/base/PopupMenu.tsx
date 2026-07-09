@@ -222,3 +222,57 @@ export function PopupMenuItem({
 export function PopupMenuDivider() {
   return <div className={MENU_DIVIDER} />;
 }
+
+export interface PopupMenuComboBoxOption<T extends string> {
+  value: T;
+  label: string;
+}
+
+export interface PopupMenuComboBoxProps<T extends string> {
+  /** Optional caption rendered above the select. Omit when the option labels speak for themselves. */
+  label?: string;
+  value: T;
+  options: readonly PopupMenuComboBoxOption<T>[];
+  onChange: (value: T) => void;
+  disabled?: boolean;
+  'data-testid'?: string;
+}
+
+/**
+ * A menu row holding a native `<select>`, for settings that pick one of several
+ * values rather than firing an action. The native select is deliberate: Chromium
+ * renders its dropdown as an OS-level widget above the popover top layer that
+ * PopupMenu lives in, and clicking an option raises no document `mousedown`, so
+ * PopupMenu's click-outside dismissal never sees it. The row itself is not a
+ * button — clicks inside it must not close the menu, so callers close (or not)
+ * from `onChange`.
+ */
+export function PopupMenuComboBox<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  disabled = false,
+  'data-testid': dataTestId,
+}: PopupMenuComboBoxProps<T>) {
+  return (
+    <div className="px-4 py-2 flex flex-col gap-1">
+      {label && <span className="text-xs text-slate-400">{label}</span>}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        disabled={disabled}
+        data-testid={dataTestId}
+        className={clsx(
+          'w-full text-sm rounded px-2 py-1 bg-slate-700 border border-slate-500 transition-colors',
+          'focus:outline-none focus:ring-1 focus:ring-blue-500',
+          disabled ? 'text-slate-500 cursor-not-allowed' : 'text-slate-200 cursor-pointer hover:bg-slate-600',
+        )}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}

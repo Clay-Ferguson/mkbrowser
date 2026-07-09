@@ -1,11 +1,18 @@
 import type { RefObject } from 'react';
 import type { ImageSize } from '../../shared/shared';
-import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
+import PopupMenu, { PopupMenuItem, PopupMenuDivider, PopupMenuComboBox, type PopupMenuComboBoxOption } from './base/PopupMenu';
+
+/** The global inline image size choices, as offered by the menu's combo box. */
+const IMAGE_SIZE_OPTIONS: readonly PopupMenuComboBoxOption<ImageSize>[] = [
+  { value: 'small', label: 'Small Images' },
+  { value: 'medium', label: 'Medium Images' },
+  { value: 'large', label: 'Large Images' },
+];
 
 /**
  * Popup menu for the Edit toolbar button. Exposes file-level editing operations:
  * selection management, split/join, find-and-replace, copy link, and the global
- * inline image size toggle. Each action callback is responsible for the actual
+ * inline image size. Each action callback is responsible for the actual
  * operation; the menu only wires up the items and closes itself after a selection.
  */
 interface EditPopupMenuProps {
@@ -17,9 +24,9 @@ interface EditPopupMenuProps {
   onJoin: () => void;
   onReplaceInFiles: () => void;
   onCopyLink: () => void;
-  /** Current global inline image size — decides which direction the toggle item offers. */
+  /** Current global inline image size, shown as the combo box's selection. */
   imageSize: ImageSize;
-  onToggleImageSize: () => void;
+  onChangeImageSize: (size: ImageSize) => void;
   // Disable conditions
   unselectAllDisabled: boolean;
   splitDisabled: boolean;
@@ -39,7 +46,7 @@ export default function EditPopupMenu({
   onReplaceInFiles,
   onCopyLink,
   imageSize,
-  onToggleImageSize,
+  onChangeImageSize,
   unselectAllDisabled,
   splitDisabled,
   joinDisabled,
@@ -88,10 +95,11 @@ export default function EditPopupMenu({
         </>
       )}
       <PopupMenuDivider />
-      <PopupMenuItem
-        label={imageSize === 'small' ? 'Switch to large image size' : 'Switch to small image size'}
-        data-testid="menu-toggle-image-size"
-        onClick={() => { onToggleImageSize(); onClose(); }}
+      <PopupMenuComboBox
+        value={imageSize}
+        options={IMAGE_SIZE_OPTIONS}
+        data-testid="menu-image-size"
+        onChange={(size) => { onChangeImageSize(size); onClose(); }}
       />
     </PopupMenu>
   );

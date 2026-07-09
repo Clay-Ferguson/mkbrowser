@@ -3,7 +3,9 @@ import type { HashtagDefinition, TagCategory } from './tagUtil';
 export type { HashtagDefinition, TagCategory };
 
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
-export type ImageSize = 'small' | 'large';
+export type ImageSize = 'small' | 'medium' | 'large';
+/** Fallback when the config carries no image size (or an unrecognized one). */
+export const DEFAULT_IMAGE_SIZE: ImageSize = 'medium';
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 export type SearchMode = 'content' | 'filenames';
