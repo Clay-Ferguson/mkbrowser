@@ -24,7 +24,7 @@
  */
 
 import { z } from 'zod';
-import { AI_PROVIDERS } from '../shared/shared';
+import { AI_PROVIDERS, DEFAULT_IMAGE_SIZE } from '../shared/shared';
 import type { AppConfig, AppSettings } from '../shared/shared';
 
 // ---------------------------------------------------------------------------
@@ -43,6 +43,7 @@ export const defaultSettings: AppSettings = {
   ocrToolsFolder: '',
   calendarItemsFolder: '',
   showPropsInEditor: true,
+  imageSize: DEFAULT_IMAGE_SIZE,
 };
 
 /** Returns a fresh `AppSettings` with independent copies of all mutable arrays. */
@@ -167,6 +168,9 @@ const AppSettingsSchema = z
     ocrToolsFolder: z.string().catch(defaultSettings.ocrToolsFolder),
     calendarItemsFolder: z.string().catch(defaultSettings.calendarItemsFolder),
     showPropsInEditor: z.boolean().catch(defaultSettings.showPropsInEditor),
+    // An unrecognized value (including the abandoned top-level imageSize's old
+    // 'small'/'large' meaning) falls back to the default rather than erroring.
+    imageSize: z.enum(['small', 'medium', 'large']).catch(defaultSettings.imageSize),
   })
   .loose();
 
@@ -190,9 +194,6 @@ const AppConfigSchema = z
     aiRewriteMode: z.boolean().optional().catch(undefined),
     calendarViewType: z.enum(['month', 'week', 'work_week', 'day', 'agenda']).optional().catch(undefined),
     recentFolders: tolerantArray(z.string()).optional(),
-    // An unrecognized value (e.g. a pre-existing yaml) falls through to
-    // undefined, which the renderer reads as DEFAULT_IMAGE_SIZE.
-    imageSize: z.enum(['small', 'medium', 'large']).optional().catch(undefined),
   })
   .loose();
 

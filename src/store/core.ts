@@ -1,8 +1,6 @@
 import { create } from 'zustand';
 import type { AppState, AppSettings, AiConfigState } from '../shared/types';
 import { DEFAULT_IMAGE_SIZE } from '../shared/shared';
-import { createImageSlice } from './image';
-import type { ImageSlice } from './image';
 import { createAiConfigSlice } from './aiConfig';
 import type { AiConfigSlice } from './aiConfig';
 import { createSearchSlice } from './search';
@@ -22,7 +20,7 @@ import type { ItemsSlice } from './items';
  * Full store state: the plain `AppState` fields plus the actions contributed
  * by each slice.
  */
-export type StoreState = AppState & ImageSlice & AiConfigSlice & SearchSlice & CalendarSlice &
+export type StoreState = AppState & AiConfigSlice & SearchSlice & CalendarSlice &
   IndexTreeSlice & SettingsSlice & ViewSlice & ItemsSlice;
 
 /**
@@ -52,6 +50,7 @@ export const defaultSettings: AppSettings = {
   calendarItemsFolder: '',
   indexTreeWidth: 'narrow',
   showPropsInEditor: true,
+  imageSize: DEFAULT_IMAGE_SIZE,
 };
 
 /**
@@ -112,8 +111,6 @@ const initialState: AppState = {
   calendarLoading: false,
   calendarViewType: 'month',
   calendarViewTime: new Date(),
-  imageSize: DEFAULT_IMAGE_SIZE,
-  imageSizeTransitioning: false,
   aiConfig: defaultAiConfig,
 };
 
@@ -131,7 +128,6 @@ const initialState: AppState = {
  */
 export const useAS = create<StoreState>()((set, get) => ({
   ...initialState,
-  ...createImageSlice(set),
   ...createAiConfigSlice(set, get),
   ...createSearchSlice(set),
   ...createCalendarSlice(set, get),

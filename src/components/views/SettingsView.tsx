@@ -2,6 +2,7 @@ import { useState } from 'react';
 import TagsEditorDialog from '../dialogs/TagsEditorDialog';
 import CheckboxField from '../dialogs/common/CheckboxField';
 import { SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
+import type { ImageSize } from '../../shared/shared';
 import {
   setFontSize,
   setFoldersOnTop,
@@ -11,6 +12,7 @@ import {
   setOcrToolsFolder,
   setCalendarItemsFolder,
   setIndexTreeWidth,
+  setImageSize,
   useAS,
   type FontSize,
   type ContentWidth,
@@ -52,16 +54,27 @@ const indexTreeWidthOptions: IndexTreeWidthOption[] = [
   { value: 'wide', label: 'Wide' },
 ];
 
+interface ImageSizeOption {
+  value: ImageSize;
+  label: string;
+}
+
+const imageSizeOptions: ImageSizeOption[] = [
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+];
+
 interface SettingsViewProps {
   onSaveSettings: () => void;
 }
 
 /**
  * General application settings page. Covers appearance (font size, content
- * width, folder tree width, folders-on-top, table of contents), files to ignore
- * in searches, OCR tools folder path, calendar items folder path, and hashtag
- * management. Each field writes to the store immediately and triggers
- * `onSaveSettings` to persist to disk.
+ * width, folder tree width, image size, folders-on-top, table of contents),
+ * files to ignore in searches, OCR tools folder path, calendar items folder
+ * path, and hashtag management. Each field writes to the store immediately and
+ * triggers `onSaveSettings` to persist to disk.
  */
 function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const settings = useAS(s => s.settings);
@@ -100,6 +113,11 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
 
   const handleIndexTreeWidthChange = (indexTreeWidth: IndexTreeWidth) => {
     setIndexTreeWidth(indexTreeWidth);
+    onSaveSettings();
+  };
+
+  const handleImageSizeChange = (imageSize: ImageSize) => {
+    setImageSize(imageSize);
     onSaveSettings();
   };
 
@@ -167,6 +185,22 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
                   className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                 >
                   {indexTreeWidthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-slate-300 text-sm">Image Size:</label>
+                <select
+                  data-testid="settings-image-size"
+                  value={settings.imageSize}
+                  onChange={(e) => handleImageSizeChange(e.target.value as ImageSize)}
+                  className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
+                >
+                  {imageSizeOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>

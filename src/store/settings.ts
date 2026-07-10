@@ -1,4 +1,5 @@
 import type { AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth } from '../shared/types';
+import type { ImageSize } from '../shared/shared';
 import { getState, defaultSettings } from './core';
 import type { StoreSet, StoreGet } from './core';
 
@@ -24,6 +25,7 @@ export interface SettingsSlice {
   setOcrToolsFolder: (ocrToolsFolder: string) => void;
   setCalendarItemsFolder: (calendarItemsFolder: string) => void;
   setIndexTreeWidth: (indexTreeWidth: IndexTreeWidth) => void;
+  setImageSize: (imageSize: ImageSize) => void;
   toggleBookmark: (filePath: string) => boolean;
   addBookmark: (filePath: string, name: string) => void;
   updateBookmarkPath: (oldPath: string, newPath: string) => boolean;
@@ -72,6 +74,9 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
     /** Update the index tree width setting. */
     setIndexTreeWidth: (indexTreeWidth) =>
       set({ settings: { ...get().settings, indexTreeWidth } }),
+
+    /** Update the inline image display size setting. */
+    setImageSize: (imageSize) => set({ settings: { ...get().settings, imageSize } }),
 
     /**
      * Toggle bookmark for a file path.
@@ -193,6 +198,10 @@ export function setCalendarItemsFolder(calendarItemsFolder: string): void {
 
 export function setIndexTreeWidth(indexTreeWidth: IndexTreeWidth): void {
   getState().setIndexTreeWidth(indexTreeWidth);
+}
+
+export function setImageSize(imageSize: ImageSize): void {
+  getState().setImageSize(imageSize);
 }
 
 export function toggleBookmark(filePath: string): boolean {

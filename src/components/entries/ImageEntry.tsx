@@ -30,8 +30,8 @@ const IMAGE_SIZE_CLASSES: Record<ImageSize, string> = {
 
 /**
  * Entry component for image files. Expands inline to show a thumbnail at the current global
- * image size (small/medium/large, persisted to config, chosen from the Edit menu). Clicking the
- * image opens a fullscreen overlay (FullscreenImageViewer). An overlaid button shows EXIF metadata;
+ * image size setting (small/medium/large, chosen in Settings > Appearance). Clicking the image
+ * opens a fullscreen overlay (FullscreenImageViewer). An overlaid button shows EXIF metadata;
  * its dialog state is shared with the fullscreen viewer so only one dialog instance exists.
  */
 function ImageEntry(props: ImageEntryProps) {
@@ -41,8 +41,8 @@ function ImageEntry(props: ImageEntryProps) {
   const { core, rename, del } = useEntry(props, { defaultExpanded: true });
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
-  // Image size from global store (shared across all ImageEntry instances)
-  const imageSize = useAS(s => s.imageSize);
+  // Image size from global settings (shared across all ImageEntry instances)
+  const imageSize = useAS(s => s.settings.imageSize);
 
   // Fullscreen state — the overlay itself (navigation, view state, keyboard handling)
   // lives in FullscreenImageViewer, mounted only while open.
@@ -115,7 +115,6 @@ function ImageEntry(props: ImageEntryProps) {
           <div className="bg-slate-900 rounded-lg p-4 flex items-center justify-center">
             <div className="relative inline-block">
               <img
-                data-inline-image=""
                 src={imageUrl}
                 alt={entry.name}
                 className={clsx(

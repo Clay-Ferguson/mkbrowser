@@ -1,19 +1,31 @@
 import type { RefObject } from 'react';
-import type { ImageSize } from '../../shared/shared';
-import PopupMenu, { PopupMenuItem, PopupMenuDivider, PopupMenuComboBox, type PopupMenuComboBoxOption } from './base/PopupMenu';
+import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
-/** The global inline image size choices, as offered by the menu's combo box. */
-const IMAGE_SIZE_OPTIONS: readonly PopupMenuComboBoxOption<ImageSize>[] = [
-  { value: 'small', label: 'Small Images' },
-  { value: 'medium', label: 'Medium Images' },
-  { value: 'large', label: 'Large Images' },
-];
+// ---------------------------------------------------------------------------
+// Reference: embedding a combo box in a popup menu.
+//
+// The image size setting lives on SettingsView (Appearance) rather than here,
+// but PopupMenuComboBox and this wiring are kept — commented out — as the
+// worked example for any future menu that needs to offer a choice of values
+// instead of firing an action. Restoring it means uncommenting these four
+// blocks and having the parent pass `imageSize` / `onChangeImageSize`.
+//
+// import type { ImageSize } from '../../shared/shared';
+// import { PopupMenuComboBox, type PopupMenuComboBoxOption } from './base/PopupMenu';
+//
+// /** The global inline image size choices, as offered by the menu's combo box. */
+// const IMAGE_SIZE_OPTIONS: readonly PopupMenuComboBoxOption<ImageSize>[] = [
+//   { value: 'small', label: 'Small Images' },
+//   { value: 'medium', label: 'Medium Images' },
+//   { value: 'large', label: 'Large Images' },
+// ];
+// ---------------------------------------------------------------------------
 
 /**
  * Popup menu for the Edit toolbar button. Exposes file-level editing operations:
- * selection management, split/join, find-and-replace, copy link, and the global
- * inline image size. Each action callback is responsible for the actual
- * operation; the menu only wires up the items and closes itself after a selection.
+ * selection management, split/join, find-and-replace, and copy link.
+ * Each action callback is responsible for the actual operation; the menu only
+ * wires up the items and closes itself after a selection.
  */
 interface EditPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
@@ -24,9 +36,9 @@ interface EditPopupMenuProps {
   onJoin: () => void;
   onReplaceInFiles: () => void;
   onCopyLink: () => void;
-  /** Current global inline image size, shown as the combo box's selection. */
-  imageSize: ImageSize;
-  onChangeImageSize: (size: ImageSize) => void;
+  // /** Current global inline image size, shown as the combo box's selection. */
+  // imageSize: ImageSize;
+  // onChangeImageSize: (size: ImageSize) => void;
   // Disable conditions
   unselectAllDisabled: boolean;
   splitDisabled: boolean;
@@ -45,8 +57,8 @@ export default function EditPopupMenu({
   onJoin,
   onReplaceInFiles,
   onCopyLink,
-  imageSize,
-  onChangeImageSize,
+  // imageSize,
+  // onChangeImageSize,
   unselectAllDisabled,
   splitDisabled,
   joinDisabled,
@@ -94,13 +106,19 @@ export default function EditPopupMenu({
           />
         </>
       )}
-      <PopupMenuDivider />
-      <PopupMenuComboBox
-        value={imageSize}
-        options={IMAGE_SIZE_OPTIONS}
-        data-testid="menu-image-size"
-        onChange={(size) => { onChangeImageSize(size); onClose(); }}
-      />
+      {/*
+        Reference: a combo box embedded in the menu (see the note at the top of
+        this file). The row is not a button, so clicking it must not dismiss the
+        menu — the caller closes from onChange after applying the value.
+
+        <PopupMenuDivider />
+        <PopupMenuComboBox
+          value={imageSize}
+          options={IMAGE_SIZE_OPTIONS}
+          data-testid="menu-image-size"
+          onChange={(size) => { onChangeImageSize(size); onClose(); }}
+        />
+      */}
     </PopupMenu>
   );
 }

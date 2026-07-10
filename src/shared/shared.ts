@@ -4,7 +4,7 @@ export type { HashtagDefinition, TagCategory };
 
 export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
 export type ImageSize = 'small' | 'medium' | 'large';
-/** Fallback when the config carries no image size (or an unrecognized one). */
+/** Default `AppSettings.imageSize`, also the fallback for an unrecognized persisted value. */
 export const DEFAULT_IMAGE_SIZE: ImageSize = 'medium';
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
@@ -84,6 +84,7 @@ export interface AppSettings {
   ocrToolsFolder: string;
   calendarItemsFolder: string;
   showPropsInEditor: boolean;
+  imageSize: ImageSize;
 }
 
 /** Supported AI providers. Single source of truth for both the {@link AIProvider}
@@ -136,8 +137,6 @@ export interface AppConfig {
   calendarViewType?: 'month' | 'week' | 'work_week' | 'day' | 'agenda';
   /** Recently browsed folders, most recent first, max 10. */
   recentFolders?: string[];
-  /** Image display size: 'small' (default, max-h-96) or 'large' (max-h-[48rem]). */
-  imageSize?: ImageSize;
 }
 
 export interface FileEntry {

@@ -1,4 +1,4 @@
-import { setSettings, setCurrentPath, setCalendarViewType, setImageSize, setAiConfig, defaultAiConfig, defaultSettings } from '../store';
+import { setSettings, setCurrentPath, setCalendarViewType, setAiConfig, defaultAiConfig, defaultSettings } from '../store';
 import { api } from './api';
 import { isPathInside } from './pathUtil';
 import { logger } from '../shared/logUtil';
@@ -55,9 +55,6 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     }
     if (config.calendarViewType) {
       setCalendarViewType(config.calendarViewType);
-    }
-    if (config.imageSize) {
-      setImageSize(config.imageSize);
     }
     // Seed the renderer-reactive AI config mirror (see store/aiConfig.ts).
     setAiConfig({ ...defaultAiConfig, ...pickAiConfig(config) });

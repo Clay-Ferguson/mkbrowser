@@ -278,6 +278,11 @@ export interface AppSettings {
   indexTreeWidth: IndexTreeWidth;
   /** Whether to show front matter (Properties) in the editor */
   showPropsInEditor: boolean;
+  /**
+   * Display size of expanded inline images: 'small', 'medium' (the default) or
+   * 'large'. See IMAGE_SIZE_CLASSES in ImageEntry for the pixel heights.
+   */
+  imageSize: import('./shared').ImageSize;
 }
 
 /**
@@ -527,19 +532,6 @@ export interface AppState {
    * tab switches within a session.
    */
   calendarViewTime: Date;
-
-  /**
-   * Image display size: 'small' (max-h-48), 'medium' (the default) or 'large'.
-   * Chosen from the Edit menu's combo box; see IMAGE_SIZE_CLASSES in ImageEntry.
-   * Persisted to AppConfig. Changing this triggers a re-render of all ImageEntry components.
-   */
-  imageSize: import('./shared').ImageSize;
-
-  /**
-   * True while the image-size change animation is running (fade-in over 750ms).
-   * BrowseView reads this to apply the fade-in CSS animation.
-   */
-  imageSizeTransitioning: boolean;
 
   /**
    * Renderer-reactive mirror of the AI-related slice of AppConfig. The source of

@@ -12,5 +12,4 @@ export * from './aiConfig';
 export * from './calendar';
 export * from './indexTree';
 export * from './scroll';
-export * from './image';
 export * from './view';

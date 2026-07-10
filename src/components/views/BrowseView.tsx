@@ -56,13 +56,9 @@ import {
   useExpansionCounts,
   setIndexYaml,
   setSelectedLinkItems,
-  setImageSizeTransitioning,
-  setImageSizeWithTransition,
   useAS,
   type SearchDefinition,
 } from '../../store';
-import { logger } from '../../shared/logUtil';
-import type { ImageSize } from '../../shared/shared';
 import { scrollItemIntoView, scrollElementIntoView } from '../../renderer/entryDom';
 import { isImageFile, isTextFile, sortEntries } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
@@ -84,67 +80,6 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
  */
 function runOp(op: () => Promise<void>, errorPrefix: string, onError: (msg: string | null) => void): void {
   op().catch((err: unknown) => onError(errorPrefix + (err instanceof Error ? err.message : String(err))));
-}
-
-/**
- * Returns the expanded inline image nearest the vertical center of the viewport,
- * or null when none is on screen. Used as the scroll anchor across an image size
- * change, so the image the user was looking at stays put.
- */
-function findCenteredInlineImage(): HTMLImageElement | null {
-  const viewportCenter = window.innerHeight / 2;
-  let closest: HTMLImageElement | null = null;
-  let closestDistance = Infinity;
-  for (const img of document.querySelectorAll<HTMLImageElement>('img[data-inline-image]')) {
-    const rect = img.getBoundingClientRect();
-    if (rect.bottom <= 0 || rect.top >= window.innerHeight) continue;
-    const distance = Math.abs((rect.top + rect.bottom) / 2 - viewportCenter);
-    if (distance < closestDistance) {
-      closestDistance = distance;
-      closest = img;
-    }
-  }
-  return closest;
-}
-
-/**
- * Applies a new global inline image size and persists it.
- *
- * Phase 1: hide the view instantly (opacity 0) AND apply the new size in a
- * single render, so the resized images are laid out while invisible.
- *
- * The rAFs then let us set the size option on our images — which makes them all
- * render at a different size — and have the page render (where all images may
- * have changed size and therefore the scroll position has completely changed)
- * in a way where the user sees the screen update but the image they were
- * previously looking at is still right at the center of the screen, even though
- * the scrolling and positioning of everything will have completely changed.
- *
- * After the new layout has painted at opacity 0, jump the scroll to re-center
- * that anchor image while it's still invisible, then drop the transitioning flag
- * to fade the view back in at the correct position. Two rAFs guarantee the
- * opacity:0 frame is painted first so the CSS opacity transition actually fires
- * (0 -> 1) instead of snapping.
- *
- * Module-level so the React Compiler leaves it alone.
- */
-function changeImageSize(currentSize: ImageSize, newSize: ImageSize): void {
-  if (newSize === currentSize) return;
-  const anchor = findCenteredInlineImage();
-
-  setImageSizeWithTransition(newSize);
-
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      anchor?.scrollIntoView({ behavior: 'instant', block: 'center' });
-      setImageSizeTransitioning(false);
-    });
-  });
-
-  // Persist the choice independently — it must not gate the animation timing.
-  api.updateConfig({ imageSize: newSize }).catch((err: unknown) => {
-    logger.error('[BrowseView] Failed to persist image size:', err);
-  });
 }
 
 interface AttachFolderContentsProps {
@@ -244,8 +179,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const expandedEditor = useAS(s => s.expandedEditor);
-  const imageSizeTransitioning = useAS(s => s.imageSizeTransitioning);
-  const imageSize = useAS(s => s.imageSize);
 
   const items = useAS(s => s.items);
   const currentView = useAS(s => s.currentView);
@@ -940,14 +873,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   };
 
   return (
-    <div
-      className="flex-1 flex flex-col min-h-0"
-      style={{
-        opacity: imageSizeTransitioning ? 0 : 1,
-        // While hidden, no transition (instant). On reveal, fade 0 -> 1 over 1s.
-        transition: imageSizeTransitioning ? 'none' : 'opacity 1000ms ease-out',
-      }}
-    >
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Combined header: breadcrumbs left, actions right, wraps responsively */}
 
       <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
@@ -1289,8 +1215,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onJoin={handleJoinFiles}
           onReplaceInFiles={() => setShowReplaceDialog(true)}
           onCopyLink={handleCopyLink}
-          imageSize={imageSize}
-          onChangeImageSize={(size) => changeImageSize(imageSize, size)}
           unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
           splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
           joinDisabled={selectedFileCount < 2 || hasSelectedFolders}
