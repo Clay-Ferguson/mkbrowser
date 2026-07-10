@@ -44,6 +44,38 @@ BACKEND="${BACKEND:-gpu}"
 # Layers to offload to the GPU in "gpu" mode. 99 = offload all layers.
 NGL="${NGL:-99}"
 
+# ── Speculative Decoding (optional) ──────────────────────────────────────
+# SPEC selects a llama.cpp speculative-decoding type (--spec-type). Default
+# "off" changes nothing. The ngram-* types are self-speculative (no draft
+# model, no extra download) and mainly help rewrite/edit-style tasks where
+# the output repeats long runs of the input. See README § Speculative
+# Decoding for what applies (and doesn't) on this hardware.
+#   SPEC=ngram-simple ./start-server.sh   # rewriting-oriented defaults
+#   SPEC=ngram-mod ./start-server.sh      # constant-memory variant
+# Any other --spec-type value is passed through as-is.
+# NOTE: For the hardware mentioned in README (Dell XPS Laptop) 
+#       speculative decoding is actually harmful to performance
+#       so leaving it off is the correct and the default option here
+#       for that particular hardware.
+SPEC="${SPEC:-off}"
+
+SPEC_ARGS=()
+case "$SPEC" in
+  off) ;;
+  ngram-simple)
+    SPEC_ARGS=(--spec-type ngram-simple --spec-draft-n-max 64)
+    ;;
+  ngram-mod)
+    SPEC_ARGS=(--spec-type ngram-mod
+               --spec-ngram-mod-n-match 24
+               --spec-ngram-mod-n-min 48
+               --spec-ngram-mod-n-max 64)
+    ;;
+  *)
+    SPEC_ARGS=(--spec-type "$SPEC")
+    ;;
+esac
+
 case "$BACKEND" in
   cpu)
     LIB_DIR="$HOME/.local/lib/llama.cpp"
@@ -155,6 +187,7 @@ echo "  Model:        $MODEL_FILE"
 echo "  Context size: $CTX_SIZE"
 echo "  Flash-attn:   $FA"
 echo "  Prefill batch: ${BATCH:-default}"
+echo "  Spec decoding: $SPEC"
 echo "  Endpoint:     http://${HOST}:${PORT}"
 echo "  API (OpenAI): http://${HOST}:${PORT}/v1"
 echo ""
@@ -193,5 +226,6 @@ exec "$SERVER_BIN" \
   --threads 4 \
   --threads-batch 8 \
   "${GPU_ARGS[@]}" \
+  "${SPEC_ARGS[@]}" \
   --reasoning "$REASONING" \
   "${EXTRA_ARGS[@]}"

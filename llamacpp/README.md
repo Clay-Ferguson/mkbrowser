@@ -3,7 +3,7 @@
 Run local LLM models using [llama.cpp](https://github.com/ggml-org/llama.cpp). llama.cpp provides an OpenAI-compatible HTTP API, which
 MkBrowser connects to via the `LLAMACPP` provider. The scripts in this project can be used to run any `LLAMA.CPP` model locally on your own hardware 
 the actual models that are listed (inactive ones commented out) are the ones selected because they run on the machine the developer of this project
-uses which is a **Dell XPS laptop with an Intel Core Ultra 9 288V (Lunar Lake)**, which pairs 8 CPU cores with an **Intel Arc 140V integrated GPU** and 
+uses which is a **Dell XPS laptop with an Intel Core Ultra 9 288V (Lunar Lake) running Ubuntu Linux**, which pairs 8 CPU cores with an **Intel Arc 140V integrated GPU** and 
 **32 GB of on-package "unified" LPDDR5X memory**. So as long as you have a hardware equal to or better than this you can easily run all
 the models listed in this project. Also the Vulkan script in this project is specific to my hardware Intel Chipset, and so it may not be applicable
 to your specific hardware.
@@ -71,6 +71,7 @@ setting the **llama.cpp Base URL** to `http://localhost:9090/v1`.
 | `setup-with-vulkan.sh` | Download and install a **Vulkan (GPU)** llama.cpp build side-by-side (see [Vulkan Driver](#vulkan-driver)) |
 | `download-model.sh` | Download a quantized GGUF model to `~/.local/share/llama.cpp/models/` |
 | `start-server.sh` | Launch the server on `localhost:8080`; selects CPU or GPU via the `BACKEND` env var |
+| `benchmark.sh` | Measure tokens-per-second: restarts the server, runs one timed inference, prints the metrics, shuts down (see [Speculative Decoding](#speculative-decoding)) |
 
 ## Verifying the Server
 
