@@ -121,10 +121,7 @@ function TextEntry(props: TextEntryProps) {
         headerRight={headerRight}
         className={maximized ? 'flex-1 min-h-0 flex flex-col' : undefined}
       >
-        <div
-          className={clsx(ENTRY_CONTENT_AREA, maximized && 'flex-1 min-h-0 flex flex-col')}
-          onMouseUp={!edit.isEditing ? () => { if (!window.getSelection()?.toString()) void edit.handleEditClick(); } : undefined}
-        >
+        <div className={clsx(ENTRY_CONTENT_AREA, maximized && 'flex-1 min-h-0 flex flex-col')}>
           {loading && !content ? (
             <div className={ENTRY_LOADING}>Loading...</div>
           ) : edit.isEditing ? (
@@ -164,6 +161,7 @@ function TextEntry(props: TextEntryProps) {
               onChange={() => {}}
               language={fileLanguage}
               readOnly
+              onViewModeClick={(line) => void edit.handleEditClick(line)}
             />
           )}
         </div>

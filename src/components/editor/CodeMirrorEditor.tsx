@@ -107,6 +107,12 @@ interface CodeMirrorEditorProps {
    * the entry is maximized within the browse area and only the editor itself scrolls.
    */
   fillHeight?: boolean;
+  /**
+   * Called when the user plainly clicks the text of a read-only view — i.e. a left click inside
+   * the content DOM (so scrollbar clicks never fire it) that was not a drag and left no text
+   * selected. Receives the 1-based line number clicked, so the caller can open the editor there.
+   */
+  onViewModeClick?: (line: number) => void;
 }
 
 export interface CodeMirrorEditorHandle {
@@ -210,7 +216,7 @@ function applyPostMountFocus(
  * (value, fontSize, showPropsInEditor) are applied through separate effects or compartments
  * so that undo history, cursor position, and the async spell checker are preserved.
  */
-function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady, fillHeight = false }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady, fillHeight = false, onViewModeClick }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -225,6 +231,10 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   const onReadyRef = useRef(onReady);
   const onGoToLineCompleteRef = useRef(onGoToLineComplete);
   const onGoToPositionCompleteRef = useRef(onGoToPositionComplete);
+  const onViewModeClickRef = useRef(onViewModeClick);
+  // Where the last left-button mousedown landed, used by the view-mode click handler to
+  // distinguish a plain click from a drag-to-select gesture.
+  const viewClickStartRef = useRef<{ x: number; y: number } | null>(null);
   // Prevents onChange feedback loop when the sync effect dispatches an external value into the editor
   const suppressOnChangeRef = useRef(false);
   // Debounce timer for onChange — collapses rapid keystroke bursts (e.g. speech-to-text) into one store update
@@ -266,6 +276,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     onReadyRef.current = onReady;
     onGoToLineCompleteRef.current = onGoToLineComplete;
     onGoToPositionCompleteRef.current = onGoToPositionComplete;
+    onViewModeClickRef.current = onViewModeClick;
   });
 
   // The handle methods read viewRef lazily, so any instance works for the editor's whole
@@ -402,6 +413,26 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           },
         },
       ]),
+      // Click-to-edit for read-only views. Registered on the editor's content DOM, so clicks
+      // on the .cm-scroller scrollbar never reach it; drags and clicks that leave a text
+      // selection are filtered out so the user can highlight text without entering edit mode.
+      EditorView.domEventHandlers({
+        mousedown: (event) => {
+          viewClickStartRef.current = event.button === 0 ? { x: event.clientX, y: event.clientY } : null;
+          return false;
+        },
+        mouseup: (event, view) => {
+          const start = viewClickStartRef.current;
+          viewClickStartRef.current = null;
+          if (!onViewModeClickRef.current || !start) return false;
+          const dragged = Math.abs(event.clientX - start.x) > 4 || Math.abs(event.clientY - start.y) > 4;
+          if (dragged || !view.state.selection.main.empty) return false;
+          const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+          const line = pos !== null ? view.state.doc.lineAt(pos).number : 1;
+          onViewModeClickRef.current(line);
+          return false;
+        },
+      }),
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !suppressOnChangeRef.current) {
           pendingDocRef.current = update.state.doc.toString();
