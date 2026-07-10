@@ -143,7 +143,7 @@ export default function BookmarksPopupMenu({
                   <Icon className={`${MENU_ROW_ICON} ${iconColorClass}`} />
                   <span className="truncate">{name}</span>
                 </button>
-                <div className={MENU_ROW_ACTIONS}>
+                <div className={`${MENU_ROW_ACTIONS} ml-4`}>
                   <button
                     type="button"
                     className={`${MENU_ICON_BTN} hover:text-slate-100`}
