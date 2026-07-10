@@ -18,6 +18,7 @@ import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../renderer/editor/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../renderer/editor/editorDateUtil';
 import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../renderer/editor/editorFrontMatterUtil';
+import { headingSizeExtensions } from '../../renderer/editor/editorHeadingUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
@@ -415,7 +416,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     }
 
     if (cfg.language === 'markdown') {
-      extensions.push(markdown());
+      extensions.push(markdown(), ...headingSizeExtensions);
     } else if (cfg.language === 'javascript') {
       extensions.push(javascript());
     } else if (cfg.language === 'typescript') {
