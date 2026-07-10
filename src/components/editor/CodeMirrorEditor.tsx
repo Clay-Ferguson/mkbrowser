@@ -1,4 +1,4 @@
-import { useEffect, useRef, useImperativeHandle, type Ref, type RefObject } from 'react';
+import { useEffect, useRef, useState, useImperativeHandle, type Ref, type RefObject, type CSSProperties } from 'react';
 import { EditorView, placeholder as placeholderExt, keymap, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
@@ -101,6 +101,12 @@ interface CodeMirrorEditorProps {
    * effect, which can run before the imperative handle is attached.
    */
   onReady?: (handle: CodeMirrorEditorHandle) => void;
+  /**
+   * If true, the editor flexes to fill all available height in its (flex-column) parent instead
+   * of being capped at a fraction of the scroll area — used by the expanded-editor mode, where
+   * the entry is maximized within the browse area and only the editor itself scrolls.
+   */
+  fillHeight?: boolean;
 }
 
 export interface CodeMirrorEditorHandle {
@@ -204,7 +210,7 @@ function applyPostMountFocus(
  * (value, fontSize, showPropsInEditor) are applied through separate effects or compartments
  * so that undo history, cursor position, and the async spell checker are preserved.
  */
-function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady, fillHeight = false }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -225,6 +231,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   const onChangeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingDocRef = useRef<string | null>(null);
   const onChangeRef = useRef(onChange);
+  // Pixel cap for the editor height (some % of the surrounding scroll area). undefined means
+  // no cap (no <main> ancestor, e.g. in unit tests) and the editor grows with its content.
+  const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
   const settings = useAS(s => s.settings);
 
   // Mount-time configuration, captured on first render. The mount effect below intentionally
@@ -483,6 +492,23 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     return cleanup;
   }, []);
 
+  // Cap the editor at ~60% of the BrowseView scroll area (`<main>`, the app's one scroll
+  // container — same discovery pattern as renderer/entryDom.ts) so CodeMirror's own
+  // .cm-scroller scrolls and its viewport rendering stays cheap on large documents. The
+  // ResizeObserver keeps the cap in sync with window/panel resizes. In fillHeight mode the
+  // editor is sized by the flex chain instead, so no measurement is needed.
+  useEffect(() => {
+    if (fillHeight) return;
+    const scrollContainer = containerRef.current?.closest('main');
+    if (!scrollContainer) return;
+    const update = () => setMaxHeight(Math.round(scrollContainer.clientHeight * 0.60));
+    update();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(update);
+    observer.observe(scrollContainer);
+    return () => observer.disconnect();
+  }, [fillHeight]);
+
   // Sync external value changes to editor (but not when editor itself changed)
   useEffect(() => {
     const view = viewRef.current;
@@ -539,10 +565,18 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   return (
     <div
       ref={containerRef}
-      className="w-full border border-slate-600 focus-within:border-blue-500 overflow-hidden flex flex-col"
+      className={`w-full border border-slate-600 focus-within:border-blue-500 overflow-hidden flex flex-col${fillHeight ? ' flex-1 min-h-0' : ''}`}
+      style={
+        fillHeight
+          ? ({ '--cm-max-height': '100%', '--cm-height': '100%' } as CSSProperties)
+          : maxHeight !== undefined
+            ? ({ '--cm-max-height': `${maxHeight}px` } as CSSProperties)
+            : undefined
+      }
     >
       <div
         ref={editorRef}
+        className={fillHeight ? 'flex-1 min-h-0' : undefined}
         onContextMenu={handleContextMenu}
       />
 

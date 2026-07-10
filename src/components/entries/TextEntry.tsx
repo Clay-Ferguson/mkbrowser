@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { clsx } from 'clsx';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import {
   clearItemGoToLine,
@@ -48,6 +49,9 @@ function TextEntry(props: TextEntryProps) {
 
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const expandedEditor = useAS(s => s.expandedEditor);
+  // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
+  // content area, and editor all become nested flex columns (BrowseView flexes the outer chain).
+  const maximized = expandedEditor && edit.isEditing;
 
   // Only exit edit mode on Escape when the content is unmodified; if the user has typed
   // something, Escape is passed through to CodeMirror (e.g. to dismiss autocomplete).
@@ -115,9 +119,10 @@ function TextEntry(props: TextEntryProps) {
         onToggleExpanded={handleToggleExpanded}
         renameClassName="font-medium"
         headerRight={headerRight}
+        className={maximized ? 'flex-1 min-h-0 flex flex-col' : undefined}
       >
         <div
-          className={ENTRY_CONTENT_AREA}
+          className={clsx(ENTRY_CONTENT_AREA, maximized && 'flex-1 min-h-0 flex flex-col')}
           onMouseUp={!edit.isEditing ? () => { if (!window.getSelection()?.toString()) void edit.handleEditClick(); } : undefined}
         >
           {loading && !content ? (
@@ -149,6 +154,7 @@ function TextEntry(props: TextEntryProps) {
                 onForceCancel={edit.handleCancel}
                 onSave={() => void edit.handleSave()}
                 onSelectionChange={setHasSelection}
+                fillHeight={maximized}
               />
             )
           ) : (

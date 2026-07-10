@@ -106,6 +106,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const { showToc, showPropsInEditor } = useAS(s => s.settings);
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const expandedEditor = useAS(s => s.expandedEditor);
+  // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
+  // content area, and editor all become nested flex columns (BrowseView flexes the outer chain).
+  const maximized = expandedEditor && edit.isEditing;
 
   // Only exit edit mode on Escape when the content is unmodified (comparing without TOC, since the
   // TOC block is stripped on edit entry). If the user has typed something, Escape falls through to
@@ -364,9 +367,10 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         onToggleExpanded={handleToggleExpanded}
         renameClassName="font-medium"
         headerRight={headerRight}
+        className={maximized ? 'flex-1 min-h-0 flex flex-col' : undefined}
       >
         <div
-          className={ENTRY_CONTENT_AREA}
+          className={clsx(ENTRY_CONTENT_AREA, maximized && 'flex-1 min-h-0 flex flex-col')}
           onMouseUp={!edit.isEditing ? (e) => { if (e.button === 0 && !window.getSelection()?.toString()) void edit.handleEditClick(); } : undefined}
         >
           {loading && !content ? (
@@ -404,6 +408,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                     onSave={() => void edit.handleSave()}
                     onSelectionChange={setHasSelection}
                     showPropsInEditor={showPropsInEditor}
+                    fillHeight={maximized}
                     fileName={entry.name}
                     filePath={entry.path}
                     onMakeCalendarItem={() => {

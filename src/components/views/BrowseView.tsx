@@ -357,6 +357,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   // When expanded editor activates and a file starts editing, save scroll position
   // and scroll to top. When expanded editing ends, restore the saved position.
   const anyItemEditing = Array.from(items.values()).some((item) => item.editing);
+  // Expanded-editor mode with an active edit: the editing entry is maximized to fill the whole
+  // browse area (100% width/height), the outer scrollbar goes away, and only the CodeMirror
+  // editor itself scrolls. Achieved by turning the main > content > list > entry chain into
+  // nested flex columns (see the className conditionals below and fillHeight in the entries).
+  const expandedEditing = expandedEditor && anyItemEditing;
 
   // NOTE: when we're editing in expanded mode that will mean our scroll bar will be completely irrelevant 
   // when we re-render the page after the editing is completed, and so the logic related to 'preEditScrollPositionRef'
@@ -1066,9 +1071,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         data-testid="browser-main-content"
         ref={mainContainerRef}
         onScroll={handleMainScroll}
-        className="flex-1 min-h-0 overflow-y-auto pb-4 pt-1 pr-3 pl-3 relative"
+        className={`flex-1 min-h-0 pb-4 pt-1 pr-3 pl-3 relative ${expandedEditing ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}
       >
-        <div className={`${getContentWidthClasses(settings.contentWidth)}`}>
+        <div className={expandedEditing ? 'w-full px-4 flex-1 min-h-0 flex flex-col' : `${getContentWidthClasses(settings.contentWidth)}`}>
           {loading && (
             <div className="flex items-center justify-center py-12">
               <div className="text-slate-400">Loading...</div>
@@ -1088,8 +1093,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               the whole entry list (the remount storm was tripping React's max-update-depth). Index-only bits (move handlers,
               IndexInsertBars, attach-folder gating) are computed conditionally inside the map. */}
           {!loading && sortedEntries.length > 0 && (
-            <div className={hasIndexFile ? 'pr-12' : '[&>div+div]:-mt-px'}>
-              {hasIndexFile && !(expandedEditor && anyItemEditing) && !visibleEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
+            <div className={expandedEditing ? 'flex-1 min-h-0 flex flex-col' : hasIndexFile ? 'pr-12' : '[&>div+div]:-mt-px'}>
+              {hasIndexFile && !expandedEditing && !visibleEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
                 <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />
               )}
               {visibleEntries.map((entry, idx) => {
@@ -1104,7 +1109,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                 // Folders are shown whenever their parent is expanded (attach folders included).
                 const showFolder = parentExpanded;
                 return (
-                  <div key={entry.path}>
+                  <div key={entry.path} className={expandedEditing ? 'flex-1 min-h-0 flex flex-col' : undefined}>
                     {entry.isDirectory ? (
                       <>
                         {showFolder && (
@@ -1131,7 +1136,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                     ) : (
                       <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                     )}
-                    {hasIndexFile && !(expandedEditor && anyItemEditing) && !visibleEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
+                    {hasIndexFile && !expandedEditing && !visibleEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
                       <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
                     )}
                   </div>
