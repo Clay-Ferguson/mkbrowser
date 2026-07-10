@@ -8,6 +8,11 @@ const frontMatterDelimMark = Decoration.mark({ class: 'cm-front-matter-delim' })
 const frontMatterIdMark = Decoration.mark({ class: 'cm-front-matter-id' });
 const hrLineDeco = Decoration.line({ class: 'cm-hr-line' });
 
+// A line that is only `---` or `|||` (allowing surrounding whitespace). Precompiled and
+// tested directly against line.text so we avoid the two `.trim()` string allocations per
+// line — this runs for every visible line on every keystroke.
+const HR_DELIM_RE = /^\s*(?:---|\|\|\|)\s*$/;
+
 export interface FrontMatterRange {
   /** 1-based line number of the opening `---` (always 1 when present). */
   openLine: number;
@@ -67,7 +72,7 @@ function buildHrLineDecorations(view: EditorView): DecorationSet {
   // Only decorate the visible viewport; the plugin re-runs on viewportChanged.
   // Line 1 is skipped so the opening front-matter delimiter is not drawn as an <hr>.
   eachVisibleLine(view, (line) => {
-    if (line.number > 1 && line.text.trim() === '---') {
+    if (line.number > 1 && HR_DELIM_RE.test(line.text)) {
       builder.add(line.from, line.from, hrLineDeco);
     }
   });
