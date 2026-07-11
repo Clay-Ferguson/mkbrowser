@@ -1155,3 +1155,73 @@ describe('save flow leaves file and index consistent for a new file (issue 014)'
     expect(indexEntry?.id).toBe(addedId);
   });
 });
+
+describe('reconcile does not clobber a concurrent write (MAIN_ISSUES.md issue 1)', () => {
+  // Simulates a save landing inside reconcile's read-to-write window: the spy
+  // lets reconcile read the old content, then rewrites the file on disk (with a
+  // bumped mtime) before reconcile's Phase 4 write. The mtime compare-and-swap
+  // must skip the stale write, leaving the newer content intact.
+  function interceptReadToRewrite(fileName: string, newerContent: string) {
+    const filePath = path.join(tmpDir, fileName);
+    const realReadFile = fs.promises.readFile.bind(fs.promises);
+    vi.spyOn(fs.promises, 'readFile').mockImplementation(async (target, ...args) => {
+      const result = await realReadFile(target as never, ...(args as never[]));
+      if (typeof target === 'string' && path.resolve(target) === path.resolve(filePath)) {
+        vi.mocked(fs.promises.readFile).mockRestore();
+        fs.writeFileSync(filePath, newerContent, 'utf8');
+        // Force a distinct mtime even on filesystems with coarse timestamps.
+        const future = (Date.now() + 5000) / 1000;
+        fs.utimesSync(filePath, future, future);
+      }
+      return result;
+    });
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('reconcileIndexedFiles skips the id write when the file changed after Phase 2 read', async () => {
+    touchFile('note.md', '# old content, no id');
+    interceptReadToRewrite('note.md', '# NEWER content saved mid-reconcile');
+
+    const result = await reconcileIndexedFiles(tmpDir, true);
+    expect(result.success).toBe(true);
+
+    // The user's newer content survives — reconcile must not write the stale
+    // read-plus-injected-id copy over it.
+    expect(fs.readFileSync(path.join(tmpDir, 'note.md'), 'utf8')).toBe(
+      '# NEWER content saved mid-reconcile',
+    );
+    // The skipped file is dropped from the id maps, so its index entry is
+    // name-only this round (the next reconcile heals the id).
+    const entry = readIndex().files.find((f: IndexEntry) => f.name === 'note.md');
+    expect(entry).toBeDefined();
+    expect(entry?.id).toBeUndefined();
+  });
+
+  it('reconcileIndexedFiles still injects ids when nothing changes mid-flight', async () => {
+    touchFile('note.md', '# plain content, no id');
+    await reconcileIndexedFiles(tmpDir, true);
+    const fileId = parseFrontMatter(fs.readFileSync(path.join(tmpDir, 'note.md'), 'utf8')).yaml?.id;
+    expect(fileId).toBeTruthy();
+    expect(readIndex().files.find((f: IndexEntry) => f.name === 'note.md')?.id).toBe(fileId);
+  });
+
+  it('insertIntoIndexYaml skips the id write when the file changed after it was read', async () => {
+    writeIndex({ files: [] });
+    touchFile('pasted.md', '# old content, no id');
+    interceptReadToRewrite('pasted.md', '# NEWER content saved mid-insert');
+
+    const result = await insertIntoIndexYaml(tmpDir, 'pasted.md', null);
+    expect(result.success).toBe(true);
+
+    expect(fs.readFileSync(path.join(tmpDir, 'pasted.md'), 'utf8')).toBe(
+      '# NEWER content saved mid-insert',
+    );
+    // Degrades to a name-only entry rather than clobbering the file.
+    const entry = readIndex().files.find((f: IndexEntry) => f.name === 'pasted.md');
+    expect(entry).toBeDefined();
+    expect(entry?.id).toBeUndefined();
+  });
+});

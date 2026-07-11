@@ -7,7 +7,7 @@ import type { AppConfig, OcrTarget } from './shared/shared';
 
 import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml } from './main/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml, withIndexLock } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
 import { processTOC } from './shared/tocUtil';
 import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
@@ -246,9 +246,19 @@ function setupIpcHandlers(): void {
         const ensured = await ensureFrontMatterIdIfIndexed(filePath, finalContent);
         finalContent = ensured.content;
         addedIndexId = ensured.addedId;
+        // Take the per-directory index lock for the write itself: reconcile's
+        // read → write-ids cycle for .md files runs entirely inside this lock,
+        // so serializing the save's write against it means reconcile can never
+        // overwrite this save with stale content read before it landed
+        // (MAIN_ISSUES.md issue 1). Only the writeFile is inside the lock —
+        // recordFrontMatterIdInIndex below takes the (non-reentrant) lock itself.
+        const contentToWrite = finalContent;
+        await withIndexLock(path.dirname(filePath), () =>
+          fs.promises.writeFile(filePath, contentToWrite, 'utf-8'),
+        );
+      } else {
+        await fs.promises.writeFile(filePath, finalContent, 'utf-8');
       }
-
-      await fs.promises.writeFile(filePath, finalContent, 'utf-8');
 
       // Record a freshly-injected Document Mode id in .INDEX.yaml only AFTER the
       // file content (which now carries that id) is on disk, so the index can

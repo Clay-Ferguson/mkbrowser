@@ -87,10 +87,17 @@ function indexPathFor(dirPath: string): string {
  * result/rejection — so one failed mutation can't break the chain for the next.
  * The map entry is deleted once its chain drains, so the map can't grow without
  * bound.
+ *
+ * Exported for the write-file IPC handler: reconcileIndexedFiles runs its whole
+ * read → decide → write-ids cycle inside this lock, so an editor save of a .md
+ * file that also takes the lock for its write can never land inside reconcile's
+ * read-to-write window and get clobbered by a stale rewrite (MAIN_ISSUES.md
+ * issue 1). NOT reentrant — never call it from inside a section already holding
+ * the same directory's lock (that deadlocks the chain).
  */
 const indexLocks = new Map<string, Promise<void>>();
 
-function withIndexLock<T>(dirPath: string, fn: () => Promise<T>): Promise<T> {
+export function withIndexLock<T>(dirPath: string, fn: () => Promise<T>): Promise<T> {
   const key = path.resolve(dirPath);
   const prev = indexLocks.get(key) ?? Promise.resolve();
   const run = prev.then(fn);
@@ -345,16 +352,23 @@ async function ensureMarkdownIds(
   // oldest-first order (mapWithConcurrency returns results in input order). A read
   // failure yields null content and is skipped below (no id → excluded from rename
   // detection), matching the previous per-file skip.
+  //
+  // The mtime is captured *before* the read so Phase 4 can compare-and-swap: if a
+  // concurrent write lands between the stat and the read, we hold the old mtime
+  // with the new content and Phase 4 conservatively skips (a harmless no-op);
+  // stat-after-read would invert that into old content passing the guard.
   const contents = await mapWithConcurrency(
     markdownFiles,
     RECONCILE_FILE_CONCURRENCY,
     async ({ name }) => {
       const filePath = path.join(dirPath, name);
       try {
-        return { name, rawContent: await fs.promises.readFile(filePath, 'utf8') as string | null };
+        const mtimeMs = (await fs.promises.stat(filePath)).mtimeMs;
+        const rawContent = (await fs.promises.readFile(filePath, 'utf8')) as string | null;
+        return { name, rawContent, mtimeMs };
       } catch (err) {
         logger.debug(`reconcileIndexedFiles: cannot read "${filePath}": ${err}`);
-        return { name, rawContent: null };
+        return { name, rawContent: null, mtimeMs: 0 };
       }
     },
   );
@@ -363,8 +377,13 @@ async function ensureMarkdownIds(
   // synchronous (no awaits), so the cross-file collision logic that mutates and
   // reads idToName/nameToId runs without interleaving — exactly as the old serial
   // loop did. Files needing a (re)written id are collected for a batched write.
-  const pendingWrites: Array<{ name: string; filePath: string; content: string }> = [];
-  for (const { name, rawContent } of contents) {
+  const pendingWrites: Array<{
+    name: string;
+    filePath: string;
+    content: string;
+    mtimeMs: number;
+  }> = [];
+  for (const { name, rawContent, mtimeMs } of contents) {
     if (rawContent === null) continue; // unreadable — skip (no id assigned)
     const { yaml: fm } = parseFrontMatter(rawContent);
 
@@ -385,7 +404,12 @@ async function ensureMarkdownIds(
       // existing front-matter formatting (see injectFrontMatterId).
       const injected = injectFrontMatterId(rawContent, (id) => idToName.has(id));
       fileId = injected.id;
-      pendingWrites.push({ name, filePath: path.join(dirPath, name), content: injected.content });
+      pendingWrites.push({
+        name,
+        filePath: path.join(dirPath, name),
+        content: injected.content,
+        mtimeMs,
+      });
     }
     nameToId.set(name, fileId);
     idToName.set(fileId, name);
@@ -395,17 +419,34 @@ async function ensureMarkdownIds(
   // distinct paths, so they're independent. If a write fails the file couldn't be
   // persisted, so drop it from the maps (no id → excluded from rename detection),
   // matching the original per-file skip on a failed read/write.
+  //
+  // Each write is a guarded compare-and-swap: the content being written is the
+  // content Phase 2 read, so if the file's mtime moved since (a save from a path
+  // that doesn't hold the index lock, or an external editor), writing would
+  // clobber those newer edits with stale content. Skip instead — the file is
+  // dropped from the maps exactly like a failed write, and the next reconcile
+  // assigns/heals its id from the fresh content.
   await mapWithConcurrency(
     pendingWrites,
     RECONCILE_FILE_CONCURRENCY,
-    async ({ name, filePath, content }) => {
-      try {
-        await writeFileAtomic(filePath, content);
-      } catch (err) {
-        logger.debug(`reconcileIndexedFiles: cannot update "${filePath}": ${err}`);
+    async ({ name, filePath, content, mtimeMs }) => {
+      const dropFromMaps = () => {
         const id = nameToId.get(name);
         nameToId.delete(name);
         if (id) idToName.delete(id);
+      };
+      try {
+        if ((await fs.promises.stat(filePath)).mtimeMs !== mtimeMs) {
+          logger.warn(
+            `reconcileIndexedFiles: "${filePath}" changed since it was read; skipping id write to avoid clobbering the newer content`,
+          );
+          dropFromMaps();
+          return;
+        }
+        await writeFileAtomic(filePath, content);
+      } catch (err) {
+        logger.debug(`reconcileIndexedFiles: cannot update "${filePath}": ${err}`);
+        dropFromMaps();
       }
     },
   );
@@ -1034,10 +1075,23 @@ export async function renameInIndexYaml(
  */
 async function ensureFileFrontMatterId(filePath: string): Promise<string | null> {
   try {
+    // Stat before read so the pre-write guard below errs toward skipping (see
+    // the same pattern in ensureMarkdownIds Phase 2/4).
+    const mtimeMs = (await fs.promises.stat(filePath)).mtimeMs;
     const content = await fs.promises.readFile(filePath, 'utf8');
     const { yaml: fm } = parseFrontMatter(content);
     if (fm?.id) return String(fm.id);
     const { content: updated, id } = injectFrontMatterId(content);
+    // Guarded compare-and-swap: if the file changed since we read it (e.g. an
+    // editor save landed in between), writing `updated` — derived from the old
+    // content — would clobber those edits. Degrade to a name-only entry; the
+    // next reconcile assigns the id from the fresh content.
+    if ((await fs.promises.stat(filePath)).mtimeMs !== mtimeMs) {
+      logger.warn(
+        `ensureFileFrontMatterId: "${filePath}" changed since it was read; skipping id write to avoid clobbering the newer content`,
+      );
+      return null;
+    }
     await writeFileAtomic(filePath, updated);
     return id;
   } catch (err) {
