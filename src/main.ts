@@ -7,7 +7,7 @@ import type { AppConfig, OcrTarget } from './shared/shared';
 
 import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml, withIndexLock } from './main/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml, withIndexLock, type IndexMutationResult } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
 import { processTOC } from './shared/tocUtil';
 import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
@@ -43,7 +43,7 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 import type { FileEntry } from './global';
-import { ATTACH_SUFFIX } from './shared/specialFiles';
+import { ATTACH_SUFFIX, INDEX_FILENAME } from './shared/specialFiles';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -121,6 +121,38 @@ const createWindow = () => {
 };
 
 // IPC Handlers
+/**
+ * Directories whose corrupt-index error dialog has already been shown, so one
+ * broken .INDEX.yaml doesn't stack a dialog on every browse/reconcile. An entry
+ * is cleared as soon as an index operation on that directory succeeds again
+ * (i.e. the user fixed or removed the file), so a later re-corruption alerts anew.
+ */
+const corruptIndexAlerted = new Set<string>();
+
+/**
+ * Surfaces the mutators' `corruptIndex` failure (an .INDEX.yaml that exists but
+ * cannot be loaded — see IndexMutationResult in indexUtil.ts) as a native,
+ * impossible-to-miss error dialog. The renderer largely fires these operations
+ * without checking results, so main is the one place this can be made loud.
+ * Passes the result through unchanged for the IPC reply.
+ */
+function alertIfCorruptIndex(dirPath: string, result: IndexMutationResult): IndexMutationResult {
+  if (result.corruptIndex) {
+    if (!corruptIndexAlerted.has(dirPath)) {
+      corruptIndexAlerted.add(dirPath);
+      dialog.showErrorBox(
+        `Problem with ${INDEX_FILENAME}`,
+        `MkBrowser cannot read this index file:\n\n${path.join(dirPath, INDEX_FILENAME)}\n\n${result.error ?? 'Unknown error'}\n\n` +
+          `To protect your custom file ordering, MkBrowser will NOT modify this file, and ordering operations in this folder will fail until it is fixed. ` +
+          `Please inspect the file — it may have been hand-edited or corrupted (e.g. by a sync conflict). Repair it, or delete it to start over.`,
+      );
+    }
+  } else if (result.success) {
+    corruptIndexAlerted.delete(dirPath);
+  }
+  return result;
+}
+
 function setupIpcHandlers(): void {
   // Quit the application
   ipcMain.handle('quit', () => {
@@ -432,22 +464,22 @@ function setupIpcHandlers(): void {
 
   // Insert a new entry into .INDEX.yaml at the specified position
   ipcMain.handle('insert-into-index-yaml', async (_event, dirPath: string, newName: string, insertAfterName: string | null): Promise<{ success: boolean; error?: string }> => {
-    return insertIntoIndexYaml(dirPath, newName, insertAfterName);
+    return alertIfCorruptIndex(dirPath, await insertIntoIndexYaml(dirPath, newName, insertAfterName));
   });
 
   // Move an entry up or down one position in .INDEX.yaml
   ipcMain.handle('move-in-index-yaml', async (_event, dirPath: string, name: string, direction: 'up' | 'down'): Promise<{ success: boolean; error?: string }> => {
-    return moveInIndexYaml(dirPath, name, direction);
+    return alertIfCorruptIndex(dirPath, await moveInIndexYaml(dirPath, name, direction));
   });
 
   // Move an entry to the top or bottom of .INDEX.yaml
   ipcMain.handle('move-to-edge-in-index-yaml', async (_event, dirPath: string, name: string, edge: 'top' | 'bottom'): Promise<{ success: boolean; error?: string }> => {
-    return moveToEdgeInIndexYaml(dirPath, name, edge);
+    return alertIfCorruptIndex(dirPath, await moveToEdgeInIndexYaml(dirPath, name, edge));
   });
 
   // Reconcile .INDEX.yaml with the filesystem (phase 1: ensure all markdown files have a front-matter id)
   ipcMain.handle('reconcile-indexed-files', async (_event, dirPath: string, createIfMissing = false): Promise<{ success: boolean; error?: string }> => {
-    return reconcileIndexedFiles(dirPath, createIfMissing);
+    return alertIfCorruptIndex(dirPath, await reconcileIndexedFiles(dirPath, createIfMissing));
   });
 
   // Read .INDEX.yaml for a directory
@@ -457,7 +489,7 @@ function setupIpcHandlers(): void {
 
   // Write options section of .INDEX.yaml
   ipcMain.handle('write-index-options', async (_event, dirPath: string, options: Record<string, unknown>): Promise<{ success: boolean; error?: string }> => {
-    return writeIndexOptions(dirPath, options);
+    return alertIfCorruptIndex(dirPath, await writeIndexOptions(dirPath, options));
   });
 
   // Search and replace in files recursively

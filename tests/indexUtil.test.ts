@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as yaml from 'js-yaml';
 import {
   readIndexYaml,
+  readIndexYamlChecked,
   reconcileIndexedFiles,
   reconcileEntries,
   appendNewEntries,
@@ -114,6 +115,107 @@ describe('readIndexYaml', () => {
     } finally {
       warn.mockRestore();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// readIndexYamlChecked — distinguishes "no index" from "index exists but can't
+// be loaded", which is what lets the mutators refuse to clobber a corrupt file.
+// ---------------------------------------------------------------------------
+
+describe('readIndexYamlChecked', () => {
+  it('reports absent when no .INDEX.yaml exists', async () => {
+    expect(await readIndexYamlChecked(tmpDir)).toEqual({ status: 'absent' });
+  });
+
+  it('reports ok with the parsed data for a valid index', async () => {
+    writeIndex({ files: [{ name: 'a.md' }] });
+    const result = await readIndexYamlChecked(tmpDir);
+    expect(result.status).toBe('ok');
+    if (result.status === 'ok') expect(result.data.files).toEqual([{ name: 'a.md' }]);
+  });
+
+  it('reports error (not absent) for malformed YAML', async () => {
+    fs.writeFileSync(indexPath(), ': : invalid: yaml: [[[', 'utf8');
+    const result = await readIndexYamlChecked(tmpDir);
+    expect(result.status).toBe('error');
+    if (result.status === 'error') expect(result.error).toBeTruthy();
+  });
+
+  it('reports error for a top-level scalar, list, or empty document', async () => {
+    for (const content of ['just a string\n', '- a\n- b\n', '']) {
+      fs.writeFileSync(indexPath(), content, 'utf8');
+      expect((await readIndexYamlChecked(tmpDir)).status).toBe('error');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Corrupt .INDEX.yaml is never overwritten
+//
+// The files list holds user ordering that cannot be reconstructed, and a
+// corrupt index may still be recoverable by hand. Every mutator that would
+// otherwise create/rebuild an index must instead fail with `corruptIndex: true`
+// (surfaced by main.ts as a blocking error dialog) and leave the file's bytes
+// untouched.
+// ---------------------------------------------------------------------------
+
+describe('corrupt .INDEX.yaml is never overwritten', () => {
+  const CORRUPT = ': : invalid: yaml: [[[';
+
+  beforeEach(() => {
+    fs.writeFileSync(indexPath(), CORRUPT, 'utf8');
+    touchFile('a.md');
+  });
+
+  function indexBytes() {
+    return fs.readFileSync(indexPath(), 'utf8');
+  }
+
+  it('writeIndexOptions refuses and leaves the file untouched', async () => {
+    const result = await writeIndexOptions(tmpDir, { pinned: true });
+    expect(result).toMatchObject({ success: false, corruptIndex: true });
+    expect(indexBytes()).toBe(CORRUPT);
+  });
+
+  it('insertIntoIndexYaml refuses and leaves the file untouched', async () => {
+    const result = await insertIntoIndexYaml(tmpDir, 'a.md', null);
+    expect(result).toMatchObject({ success: false, corruptIndex: true });
+    expect(indexBytes()).toBe(CORRUPT);
+  });
+
+  it('reconcileIndexedFiles refuses (no rebuild) and leaves the file untouched', async () => {
+    for (const createIfMissing of [false, true]) {
+      const result = await reconcileIndexedFiles(tmpDir, createIfMissing);
+      expect(result).toMatchObject({ success: false, corruptIndex: true });
+      expect(indexBytes()).toBe(CORRUPT);
+    }
+  });
+
+  it('reconcileIndexedFiles also refuses a structurally invalid (non-object) document', async () => {
+    fs.writeFileSync(indexPath(), '- a\n- b\n', 'utf8');
+    const result = await reconcileIndexedFiles(tmpDir, true);
+    expect(result).toMatchObject({ success: false, corruptIndex: true });
+    expect(indexBytes()).toBe('- a\n- b\n');
+  });
+
+  it('move operations refuse with corruptIndex', async () => {
+    expect(await moveInIndexYaml(tmpDir, 'a.md', 'up')).toMatchObject({
+      success: false,
+      corruptIndex: true,
+    });
+    expect(await moveToEdgeInIndexYaml(tmpDir, 'a.md', 'top')).toMatchObject({
+      success: false,
+      corruptIndex: true,
+    });
+    expect(indexBytes()).toBe(CORRUPT);
+  });
+
+  it('a truly absent index still fails moves without the corruptIndex flag', async () => {
+    fs.rmSync(indexPath());
+    const result = await moveInIndexYaml(tmpDir, 'a.md', 'up');
+    expect(result.success).toBe(false);
+    expect(result.corruptIndex).toBeUndefined();
   });
 });
 
