@@ -87,6 +87,20 @@ describe('writeFileAtomic', () => {
     expect(tmpName.endsWith('.tmp')).toBe(true);
   });
 
+  it('preserves the target file permission bits across a rewrite', async () => {
+    // rename() replaces the target inode, so without copying the old mode onto
+    // the temp file a restricted file would silently widen to the default 0644.
+    const target = path.join(tmpDir, 'private.md');
+    await fs.promises.writeFile(target, 'secret', 'utf8');
+    await fs.promises.chmod(target, 0o600);
+
+    await writeFileAtomic(target, 'new secret');
+
+    expect(await fs.promises.readFile(target, 'utf8')).toBe('new secret');
+    expect((await fs.promises.stat(target)).mode & 0o777).toBe(0o600);
+    expect(await listDir()).toEqual(['private.md']);
+  });
+
   it('fsyncs the temp file before renaming it into place', async () => {
     // Durability guarantee: the bytes must hit disk (handle.sync) BEFORE the
     // rename, otherwise a power loss could make the rename durable while the
@@ -121,5 +135,62 @@ describe('writeFileAtomic', () => {
     expect(await fs.promises.readFile(target, 'utf8')).toBe('durable data');
     // fsync happened, and it happened before the rename.
     expect(order).toEqual(['sync', 'rename']);
+  });
+
+  describe('symlinks', () => {
+    it('writes through a symlink, preserving the link and updating the real target', async () => {
+      // The temp-file+rename path would replace the link with a regular file and
+      // fork the document from its real target. Instead we write through the link.
+      const real = path.join(tmpDir, 'real.md');
+      const link = path.join(tmpDir, 'link.md');
+      await fs.promises.writeFile(real, 'old', 'utf8');
+      await fs.promises.symlink(real, link);
+
+      await writeFileAtomic(link, 'new');
+
+      // The link is still a link (not clobbered into a regular file)...
+      expect((await fs.promises.lstat(link)).isSymbolicLink()).toBe(true);
+      // ...pointing at the same real target...
+      expect(await fs.promises.readlink(link)).toBe(real);
+      // ...whose bytes were updated (so the two never fork).
+      expect(await fs.promises.readFile(real, 'utf8')).toBe('new');
+      expect(await fs.promises.readFile(link, 'utf8')).toBe('new');
+    });
+
+    it('preserves the real target inode, mode and ownership when writing through a symlink', async () => {
+      // Writing through the link keeps the existing inode (a plain rewrite), so
+      // restrictive permissions survive without any explicit mode-copy.
+      const real = path.join(tmpDir, 'real.md');
+      const link = path.join(tmpDir, 'link.md');
+      await fs.promises.writeFile(real, 'old', 'utf8');
+      await fs.promises.chmod(real, 0o600);
+      const inoBefore = (await fs.promises.stat(real)).ino;
+
+      await writeFileAtomic(link, 'new');
+
+      const statAfter = await fs.promises.stat(real);
+      expect(statAfter.ino).toBe(inoBefore);
+      expect(statAfter.mode & 0o777).toBe(0o600);
+    });
+
+    it('does not create a temp file or call rename when writing through a symlink', async () => {
+      // Proves the write-through path was taken rather than the atomic path: no
+      // rename, and no stray temp file left in the directory.
+      const real = path.join(tmpDir, 'real.md');
+      const link = path.join(tmpDir, 'link.md');
+      await fs.promises.writeFile(real, 'old', 'utf8');
+      await fs.promises.symlink(real, link);
+
+      const renameSpy = vi.spyOn(fs.promises, 'rename');
+      try {
+        await writeFileAtomic(link, 'new');
+      } finally {
+        renameSpy.mockRestore();
+      }
+
+      expect(renameSpy).not.toHaveBeenCalled();
+      // Only the real file and the link remain — no leftover .tmp file.
+      expect(await listDir()).toEqual(['link.md', 'real.md']);
+    });
   });
 });
