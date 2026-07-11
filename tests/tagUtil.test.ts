@@ -3,6 +3,7 @@ import { load } from 'js-yaml';
 import {
   tagName,
   getTagsFromYaml,
+  isYamlParseable,
   setTagsInYaml,
   removeTagFromText,
   insertTagIntoText,
@@ -70,6 +71,24 @@ describe('getTagsFromYaml', () => {
   });
 });
 
+describe('isYamlParseable', () => {
+  it('returns true for valid YAML', () => {
+    expect(isYamlParseable('title: hello\ntags:\n  - foo')).toBe(true);
+  });
+
+  it('returns true for empty input', () => {
+    expect(isYamlParseable('')).toBe(true);
+  });
+
+  it('returns false for malformed YAML', () => {
+    expect(isYamlParseable('this: : : not valid')).toBe(false);
+  });
+
+  it('returns false for duplicate mapping keys', () => {
+    expect(isYamlParseable('due: 1/1/25\ndue: 2/2/25')).toBe(false);
+  });
+});
+
 describe('setTagsInYaml', () => {
   it('writes a sorted tags list', () => {
     expect(setTagsInYaml('', ['banana', 'apple', 'cherry'])).toBe(
@@ -109,9 +128,16 @@ describe('setTagsInYaml', () => {
     expect(setTagsInYaml('', [])).toBe('');
   });
 
-  it('treats malformed existing YAML as an empty object', () => {
-    const result = setTagsInYaml('this: : : not valid', ['foo']);
-    expect(load(result)).toEqual({ tags: ['foo'] });
+  it('returns unparseable YAML unchanged rather than discarding it', () => {
+    // Refusing to edit protects front matter js-yaml can't parse (e.g. malformed
+    // syntax or duplicate keys) from being silently wiped.
+    const input = 'this: : : not valid';
+    expect(setTagsInYaml(input, ['foo'])).toBe(input);
+  });
+
+  it('returns YAML with duplicate keys unchanged (js-yaml rejects duplicates)', () => {
+    const input = 'due: 1/1/25\ndue: 2/2/25\nimportant: stuff';
+    expect(setTagsInYaml(input, ['work'])).toBe(input);
   });
 
   it('overwrites an existing tags list', () => {
@@ -161,6 +187,11 @@ describe('removeTagFromText', () => {
     expect(result).toContain('title: Doc');
     expect(result.endsWith('body')).toBe(true);
   });
+
+  it('does not wipe front matter js-yaml cannot parse (duplicate keys)', () => {
+    const text = '---\ndue: 1/1/25\ndue: 2/2/25\nimportant: stuff\n---\nbody\n';
+    expect(removeTagFromText(text, '#work')).toBe(text);
+  });
 });
 
 describe('insertTagIntoText', () => {
@@ -207,6 +238,11 @@ describe('insertTagIntoText', () => {
     const original = '---\ntags:\n  - foo\n---\nbody';
     const removed = removeTagFromText(original, '#foo');
     expect(insertTagIntoText(removed, '#foo')).toBe(original);
+  });
+
+  it('does not wipe front matter js-yaml cannot parse (duplicate keys)', () => {
+    const text = '---\ndue: 1/1/25\ndue: 2/2/25\nimportant: stuff\n---\nbody\n';
+    expect(insertTagIntoText(text, '#work')).toBe(text);
   });
 });
 

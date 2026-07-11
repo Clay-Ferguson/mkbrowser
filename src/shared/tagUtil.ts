@@ -23,6 +23,21 @@ export function tagName(tag: string): string {
   return tag.startsWith('#') ? tag.slice(1) : tag;
 }
 
+/**
+ * Reports whether a raw YAML string can be parsed by js-yaml. Empty/whitespace
+ * front matter counts as parseable. Callers use this to refuse a tag edit (and
+ * warn the user) rather than silently discarding front matter js-yaml rejects —
+ * js-yaml 4.x throws on more than malformed syntax (e.g. duplicated mapping keys).
+ */
+export function isYamlParseable(yamlStr: string): boolean {
+  try {
+    load(yamlStr);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Parses the `tags` array from a raw YAML string, returning bare tag names (no `#`). Returns `[]` on parse error or missing tags. */
 export function getTagsFromYaml(yamlStr: string): string[] {
   try {
@@ -44,7 +59,10 @@ export function setTagsInYaml(yamlStr: string, tags: string[]): string {
   try {
     parsed = (load(yamlStr) as Record<string, unknown> | null) ?? {};
   } catch {
-    parsed = {};
+    // Refuse to edit: return the original string untouched rather than
+    // proceeding with `{}`, which would wipe every existing front-matter
+    // property. Callers should guard with isYamlParseable() to warn the user.
+    return yamlStr;
   }
   if (tags.length > 0) {
     parsed.tags = [...tags].sort((a, b) => a.localeCompare(b));

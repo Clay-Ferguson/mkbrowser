@@ -4,11 +4,12 @@ import { useAS, getItemEditContent, setItemEditContent } from '../store';
 import { CHECKBOX_CLASS, MONO_FONT_STACK } from '../renderer/styles';
 import {
   type TagsLoadState, type TagCategory, type HashtagDefinition,
-  tagName, getTagsFromYaml,
+  tagName, getTagsFromYaml, isYamlParseable,
   removeTagFromText, insertTagIntoText,
 } from '../shared/tagUtil';
 import { fetchTags } from '../renderer/tagApi';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
+import AlertDialog from './dialogs/AlertDialog';
 
 interface TagsPickerProps {
   /** Full path of the file being edited */
@@ -29,6 +30,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   const editContent = item?.editContent ?? '';
 
   const [loadState, setLoadState] = useState<TagsLoadState>({ status: 'loading' });
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +62,19 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   // already-active sibling tag before inserting the new one.
   const handleToggle = (category: TagCategory, def: HashtagDefinition) => {
     let currentContent = getItemEditContent(filePath);
+
+    // Guard: if the file already has a front-matter block whose YAML js-yaml
+    // can't parse (e.g. duplicate keys), editing tags would discard the rest of
+    // it. Refuse and warn the user instead of silently corrupting the file.
+    const parts = splitFrontMatter(currentContent);
+    if (parts && !isYamlParseable(parts.yamlStr)) {
+      setAlertMessage(
+        "This file's front matter couldn't be parsed, so its tags can't be edited safely. " +
+        'Please fix the YAML front matter (for example, remove any duplicate keys) and try again.',
+      );
+      return;
+    }
+
     const isChecked = activeTags.includes(tagName(def.tag));
 
     if (!isChecked) {
@@ -120,6 +135,13 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
           </div>
         ))}
       </div>
+      {alertMessage && (
+        <AlertDialog
+          title="Cannot Edit Tags"
+          message={alertMessage}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
     </div>
   );
 }
