@@ -17,41 +17,6 @@ interface DirentLike {
 }
 
 /**
- * Auto-fix filenames with leading whitespace by renaming them on disk.
- * Mutates the entry.name in place so callers see the corrected name.
- * Skips entries where the trimmed name already exists to avoid collisions.
- */
-export async function trimLeadingWhitespaceFromNames(
-  dirPath: string,
-  entries: DirentLike[],
-  joinPath: (...segments: string[]) => string,
-  fsOps: FsOperations,
-): Promise<void> {
-  for (const entry of entries) {
-    if (/^\s/.test(entry.name)) {
-      const trimmedName = entry.name.replace(/^\s+/, '');
-      if (trimmedName.length > 0) {
-        const oldPath = joinPath(dirPath, entry.name);
-        const newPath = joinPath(dirPath, trimmedName);
-        try {
-          // Only rename if the trimmed name doesn't already exist
-          await fsOps.stat(newPath);
-          logger.warn(`Cannot auto-trim "${entry.name}": "${trimmedName}" already exists`);
-        } catch {
-          // Target doesn't exist, safe to rename
-          try {
-            await fsOps.rename(oldPath, newPath);
-            entry.name = trimmedName;
-          } catch (renameErr) {
-            logger.warn(`Failed to auto-trim "${entry.name}": ${renameErr}`);
-          }
-        }
-      }
-    }
-  }
-}
-
-/**
  * Read directory contents and return FileEntry[] for the renderer.
  * Pure file-system logic — no Electron APIs.
  */
@@ -69,9 +34,6 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
 
   const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
   const fileEntries: FileEntry[] = [];
-
-  // Auto-fix any filenames with leading whitespace by renaming them on disk
-  await trimLeadingWhitespaceFromNames(dirPath, entries, path.join, fs.promises);
 
   // Build each entry independently and resolve in parallel; the per-entry I/O
   // (stat, recursive reads, AI hints) is independent, so serial awaits here
