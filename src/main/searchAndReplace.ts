@@ -114,7 +114,26 @@ export async function searchAndReplace(
           };
         }
 
-        const content = await fs.promises.readFile(filePath, 'utf-8');
+        // Read raw bytes, not a decoded string. Decoding with 'utf-8'
+        // eagerly is lossy for a legacy-encoded (e.g. Latin-1/Windows-1252)
+        // .md/.txt file: every non-ASCII byte becomes U+FFFD. If the ASCII
+        // search text then matched anywhere, we'd write the mangled string
+        // back and permanently replace every accented character with `�` —
+        // even in regions far from any match. Guard by requiring the bytes to
+        // round-trip through UTF-8 losslessly; anything that doesn't is not a
+        // UTF-8 text file we can safely rewrite, so report it as failed and
+        // leave it untouched.
+        const buf = await fs.promises.readFile(filePath);
+        const content = buf.toString('utf8');
+        if (!Buffer.from(content, 'utf8').equals(buf)) {
+          return {
+            path: filePath,
+            relativePath: path.relative(folderPath, filePath),
+            replacementCount: 0,
+            success: false,
+            error: 'File is not valid UTF-8 (possibly a legacy encoding); skipped to avoid corrupting its contents',
+          };
+        }
 
         // Replace and count in a SINGLE pass: the replacer function runs once
         // per match, so incrementing here yields the match count without a
