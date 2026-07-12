@@ -49,7 +49,18 @@ export function setGlobalHighlightText(text: string | null) {
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'INPUT', 'TEXTAREA']);
 
 /**
- * Walks every visible text node in the document body and registers CSS Custom Highlight
+ * The subtree a highlight pass should scan. App.tsx keeps every visited view mounted and
+ * merely toggles `display`, marking the visible one with `data-active-view`; scanning all of
+ * document.body would therefore build ranges for text in views the user cannot see. App.tsx
+ * re-runs the highlight pass whenever `currentView` changes, so scoping to the active view is
+ * safe. Falls back to document.body before any view wrapper exists (initial load / error screen).
+ */
+function highlightRoot(): HTMLElement {
+  return document.querySelector<HTMLElement>('[data-active-view]') ?? document.body;
+}
+
+/**
+ * Walks every visible text node in the active view and registers CSS Custom Highlight
  * ranges for all case-insensitive matches of `searchText`. Replaces any previously
  * registered 'global-search' highlight. Script, style, input, and textarea nodes are
  * skipped so that highlight markers never appear inside editable or code-execution
@@ -65,7 +76,7 @@ export function applyGlobalHighlight(searchText: string | null): void {
   const ranges: Range[] = [];
   const lower = searchText.toLowerCase();
   let nodeCount = 0;
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+  const walker = document.createTreeWalker(highlightRoot(), NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       const parent = node.parentElement;
       if (!parent || SKIP_TAGS.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
