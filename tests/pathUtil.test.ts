@@ -39,8 +39,12 @@ describe('getParentPath', () => {
     expect(getParentPath('file.md')).toBe('');
   });
 
-  it('returns empty string for a file directly under the root', () => {
-    expect(getParentPath('/file.md')).toBe('');
+  it('returns the root for a file directly under the unix root', () => {
+    expect(getParentPath('/file.md')).toBe('/');
+  });
+
+  it('returns the drive root for a file directly under a windows drive', () => {
+    expect(getParentPath('C:\\file.md')).toBe('C:\\');
   });
 
   it('returns empty string for an empty path', () => {

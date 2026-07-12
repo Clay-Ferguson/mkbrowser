@@ -34,10 +34,17 @@ export function endsWithSep(path: string): boolean {
 /**
  * The parent folder of a path, without the trailing separator.
  * Returns '' when the path contains no separator (e.g. a bare file name).
+ * Root-level parents keep their separator, so the result stays an absolute
+ * path: '/foo' -> '/', 'C:\foo' -> 'C:\'.
  */
 export function getParentPath(path: string): string {
   const idx = lastSepIndex(path);
-  return idx === -1 ? '' : path.substring(0, idx);
+  if (idx === -1) return '';
+  const parent = path.substring(0, idx);
+  // The separator IS the root ('/foo'), or it follows a drive letter ('C:\foo'):
+  // dropping it would turn an absolute path into a relative one.
+  if (parent === '' || /^[A-Za-z]:$/.test(parent)) return parent + path.charAt(idx);
+  return parent;
 }
 
 /** The last segment of a path (file or folder name). */
