@@ -627,6 +627,17 @@ describe('performJoinFiles (validation)', () => {
     expect(result.error).toMatch(/not supported/i);
   });
 
+  it('returns error when the selected files live in different folders', async () => {
+    const items = [
+      makeItem('/docs/a.md', 'a.md'),
+      makeItem('/notes/b.md', 'b.md'),
+    ];
+    const result = await performJoinFiles(items, noopOps);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/different folders/i);
+    expect(result.error).toContain('b.md');
+  });
+
   it('accepts mixed-case and code-file extensions the app treats as text', async () => {
     // .MD (uppercase markdown), .txt, and .ts (a code type fileTypes.ts counts
     // as text) must all pass validation and reach the join op, which succeeds.
@@ -830,6 +841,18 @@ describe('joinFiles (delete + error paths)', () => {
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/failed to delete/i);
     expect(result.error).toContain('/docs/b.txt');
+  });
+
+  it('refuses to join files from different folders, writing and deleting nothing', async () => {
+    const fs = makeJoinFs({ '/docs/a.txt': 'alpha', '/notes/b.txt': 'beta' });
+
+    const result = await joinFiles(['/docs/a.txt', '/notes/b.txt'], fs);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/different folders/i);
+    expect(fs.deleted).toEqual([]);
+    expect(fs.store['/docs/a.txt']).toBe('alpha');
+    expect(fs.store['/notes/b.txt']).toBe('beta');
   });
 
   it('joins a single file and deletes nothing', async () => {

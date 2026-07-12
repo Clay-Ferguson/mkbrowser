@@ -9,7 +9,7 @@
 import { dump } from 'js-yaml';
 import { parseFrontMatter } from '../shared/frontMatterUtil';
 import { isMarkdownFile } from '../shared/fileTypes';
-import { getFileName } from './pathUtil';
+import { getFileName, getParentPath } from './pathUtil';
 import type { FileOps } from '../shared/shared';
 
 /**
@@ -56,6 +56,22 @@ export async function joinFiles(
 ): Promise<JoinFilesResult> {
   const { readFile, writeFile, deleteFile } = ops;
   try {
+    if (filePaths.length === 0) {
+      return { success: false, error: 'No files were provided to join.' };
+    }
+
+    // All files must share a parent folder. The join writes into the
+    // alphabetically-first *name* and deletes the rest, so a cross-folder set
+    // would merge files out of (and delete them from) unrelated folders.
+    const baseFolder = getParentPath(filePaths[0]!);
+    const outsiders = filePaths.filter((p) => getParentPath(p) !== baseFolder);
+    if (outsiders.length > 0) {
+      return {
+        success: false,
+        error: 'Cannot join files from different folders. All selected files must be in the same folder.',
+      };
+    }
+
     // Sort file paths alphabetically by filename
     const sortedPaths = [...filePaths].sort((a, b) => {
       const nameA = getFileName(a);

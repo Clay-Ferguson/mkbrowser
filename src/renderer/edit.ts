@@ -380,6 +380,17 @@ export async function performJoinFiles(
     }
   }
 
+  // All files must live in the same folder: `joinFiles` writes the joined content
+  // into the alphabetically-first *name* and deletes the rest, so a cross-folder
+  // selection would silently merge files out of their own folders.
+  const otherFolderItems = findCutItemsFromDifferentFolders(selectedItems);
+  if (otherFolderItems.length > 0) {
+    return {
+      success: false,
+      error: `Cannot join files from different folders. Select files from a single folder. (${otherFolderItems.join(', ')})`,
+    };
+  }
+
   // Get the file paths
   const filePaths = selectedItems.map(item => item.path);
 
