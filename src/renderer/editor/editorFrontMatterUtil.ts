@@ -20,13 +20,34 @@ export interface FrontMatterRange {
   closeLine: number;
 }
 
+// Upper bound on how far past the opening `---` we look for the closing one. Real YAML
+// front matter is a handful of lines; without a cap, a document that merely *starts* with
+// an `---` horizontal rule (no front matter at all) would scan to EOF on every keystroke.
+const MAX_FRONT_MATTER_LINES = 200;
+
+// Memo of the last result, keyed on the doc. CodeMirror's `Text` is immutable, so identity
+// is a sound cache key: each keystroke produces a new `Text`, and the several callers below
+// (the two plugins, the hide field, the cursor guard) all run against that same instance,
+// so they share one scan instead of repeating it.
+let cachedDoc: Text | null = null;
+let cachedRange: FrontMatterRange | null = null;
+
 // Single source of truth for "does this document start with `---`, and where is the
 // matching closing `---`?". Front matter is always top-anchored, so the scan starts at
-// line 2. Returns null when line 1 is not `---`; returns closeLine 0 when there is an
-// opening delimiter but no closing one (common while the user is typing front matter).
+// line 2 and gives up after MAX_FRONT_MATTER_LINES. Returns null when line 1 is not `---`;
+// returns closeLine 0 when there is an opening delimiter but no closing one within the cap
+// (common while the user is typing front matter, and for a leading `---` horizontal rule).
 export function findFrontMatterRange(doc: Text): FrontMatterRange | null {
+  if (doc === cachedDoc) return cachedRange;
+  cachedDoc = doc;
+  cachedRange = scanFrontMatterRange(doc);
+  return cachedRange;
+}
+
+function scanFrontMatterRange(doc: Text): FrontMatterRange | null {
   if (doc.line(1).text.trim() !== '---') return null;
-  for (let i = 2; i <= doc.lines; i++) {
+  const lastLine = Math.min(doc.lines, MAX_FRONT_MATTER_LINES);
+  for (let i = 2; i <= lastLine; i++) {
     if (doc.line(i).text.trim() === '---') return { openLine: 1, closeLine: i };
   }
   return { openLine: 1, closeLine: 0 };
