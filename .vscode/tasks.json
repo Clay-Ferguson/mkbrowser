@@ -2,9 +2,23 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Start MkBrowser",
+      "label": "TEST+LINT+Start MkBrowser",
       "type": "shell",
       "command": "yarn test && yarn lint && yarn start:linux",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Start MkBrowser",
+      "type": "shell",
+      "command": "yarn start:linux",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
