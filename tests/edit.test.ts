@@ -811,6 +811,21 @@ describe('joinFiles (markdown front-matter handling)', () => {
     expect(joined).not.toContain('```yaml');
   });
 
+  it('emits no yaml block when the appended file has only an id (the Document Mode case)', async () => {
+    // Document Mode gives every markdown file an `id`, usually its only front-matter
+    // property. Stripping it leaves nothing to preserve, so no fence should be emitted.
+    const fs = makeJoinFs({
+      '/docs/a.md': '---\nid: AAA111BBB\n---\npart 1',
+      '/docs/b.md': '---\nid: CCC222DDD\n---\npart 2',
+      '/docs/c.md': '---\nid: EEE333FFF\n---\npart 3',
+    });
+
+    const result = await joinFiles(['/docs/a.md', '/docs/b.md', '/docs/c.md'], fs);
+
+    expect(result.success).toBe(true);
+    expect(fs.store['/docs/a.md']).toBe('---\nid: AAA111BBB\n---\npart 1\n\n\npart 2\n\n\npart 3');
+  });
+
   it('leaves an appended markdown file with no front matter unchanged', async () => {
     const fs = makeJoinFs({ '/docs/a.md': 'lead', '/docs/b.md': 'no front matter here' });
 

@@ -25,6 +25,12 @@ function prepareMarkdownForAppend(filePath: string, rawContent: string): string 
 
   // Remove the id property — it's no longer valid after the file is deleted
   const { id: _id, ...rest } = frontMatter as Record<string, unknown>;
+
+  // In Document Mode `id` is often the only front-matter property, so once it's
+  // dropped there's nothing left to preserve. Emitting a block here would put a
+  // useless ```yaml {} ``` fence between every joined part.
+  if (Object.keys(rest).length === 0) return content;
+
   const yamlStr = dump(rest, { lineWidth: -1 }).trimEnd();
   const fencedBlock = '```yaml\n' + yamlStr + '\n```\n';
   return fencedBlock + content;
