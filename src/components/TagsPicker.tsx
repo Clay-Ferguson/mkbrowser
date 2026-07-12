@@ -62,6 +62,9 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   // already-active sibling tag before inserting the new one.
   const handleToggle = (category: TagCategory, def: HashtagDefinition) => {
     let currentContent = getItemEditContent(filePath);
+    // No edit content means the item is gone or no longer in edit mode
+    // (undefined, not an empty document) — there is nothing to toggle tags in.
+    if (currentContent === undefined) return;
 
     // Guard: if the file already has a front-matter block whose YAML js-yaml
     // can't parse (e.g. duplicate keys), editing tags would discard the rest of

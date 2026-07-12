@@ -753,9 +753,14 @@ export function isCacheValid(path: string): boolean {
 /**
  * Get the current edit content for a file synchronously (not a hook).
  * Useful for reading the latest value in event handlers without render lag.
+ *
+ * Returns `undefined` when the item is missing or has no edit content (e.g.
+ * edit mode was exited, or the entry was re-keyed/removed). Callers must not
+ * treat that as an empty document — writing `''` to disk would truncate the
+ * file.
  */
-export function getItemEditContent(path: string): string {
-  return getState().items.get(path)?.editContent ?? '';
+export function getItemEditContent(path: string): string | undefined {
+  return getState().items.get(path)?.editContent;
 }
 
 // ============================================================================
