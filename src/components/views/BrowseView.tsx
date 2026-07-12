@@ -516,14 +516,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const handleSplitFile = () => {
     if (!currentPath) return;
     runOp(async () => {
-      await splitSelectedFile(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
+      await splitSelectedFile(currentPath, getSelectedItems(), hasIndexFile, onSetError, onRefreshDirectory);
     }, 'Failed to split file: ', onSetError);
   };
 
   const handleJoinFiles = () => {
     if (!currentPath) return;
     runOp(async () => {
-      await joinSelectedFiles(currentPath, getSelectedItems(), onSetError, onRefreshDirectory);
+      await joinSelectedFiles(currentPath, getSelectedItems(), hasIndexFile, onSetError, onRefreshDirectory);
     }, 'Failed to join files: ', onSetError);
   };
 

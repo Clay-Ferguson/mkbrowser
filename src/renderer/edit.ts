@@ -309,6 +309,12 @@ export async function deleteSelectedItems(
 export interface SplitFileValidationResult {
   success: boolean;
   error?: string;
+  /**
+   * Paths of every file produced by a successful split (the renamed `-00`
+   * original first, then the new `-01` … `-NN` parts, in document order).
+   * Callers use this to splice the new parts into the folder's .INDEX.yaml.
+   */
+  filePaths?: string[];
 }
 
 /**
@@ -346,7 +352,7 @@ export async function performSplitFile(
     return { success: false, error: result.error || 'Failed to split file.' };
   }
 
-  return { success: true };
+  return { success: true, filePaths: result.filePaths };
 }
 
 /**

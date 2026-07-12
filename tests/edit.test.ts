@@ -579,6 +579,13 @@ describe('performSplitFile (validation)', () => {
     expect(result.success).toBe(true);
   });
 
+  it('returns the produced file paths (-00 first) so the caller can splice them into .INDEX.yaml', async () => {
+    const items = [makeItem('/docs/notes.md', 'notes.md')];
+    const result = await performSplitFile(items, splittableOps);
+    expect(result.success).toBe(true);
+    expect(result.filePaths).toEqual(['/docs/notes-00.md', '/docs/notes-01.md']);
+  });
+
   it('propagates the split op error when validation passes but the file has no split points', async () => {
     // A valid markdown file whose content lacks the blank-line delimiter passes
     // validation but fails inside splitFile; that error must reach the caller.

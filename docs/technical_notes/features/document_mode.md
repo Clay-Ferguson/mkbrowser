@@ -111,7 +111,7 @@ Reconciliation is triggered in two situations:
 | **Folder navigation** (`currentPath` changes) | `false` | Reconciles existing index; does nothing if no `.INDEX.yaml` |
 | **Enable Document Mode** clicked | `true` | Creates `.INDEX.yaml` if absent, then reconciles |
 
-Importantly, reconciliation does **not** run on every file-operation refresh (create, rename, delete, paste) — for performance, not safety. The insert bars call `insertIntoIndexYaml` directly and do not trigger reconciliation. (Concurrency safety is handled separately by the per-directory lock described below, so even if two index operations do overlap they can no longer corrupt the index.)
+Importantly, reconciliation does **not** run on every file-operation refresh (create, rename) — for performance, not safety. The insert bars call `insertIntoIndexYaml` directly and do not trigger reconciliation. Operations that remove or add files, however, do keep the index in sync themselves rather than waiting for the next navigation: delete, paste (both folders), clipboard paste, and **Join** call `reconcileIndexedFiles` explicitly after they mutate the disk (for Join, that drops the merged-away sources' entries while the surviving target keeps its entry and position), and **Split** splices its new `-01` … `-NN` parts into the index directly after the renamed `-00` entry via `insertIntoIndexYaml` (falling back to a reconcile if the `-00` entry isn't in the index), so the parts keep the original file's document position instead of being appended at the end. (Concurrency safety is handled separately by the per-directory lock described below, so even if two index operations do overlap they can no longer corrupt the index.)
 
 ### Algorithm (`reconcileIndexedFiles`, and other helpers)
 

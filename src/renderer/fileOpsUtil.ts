@@ -14,8 +14,9 @@ import {
 } from '../store';
 import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
 import { pasteFromClipboard } from './clipboard';
-import { getParentPath, joinPath } from './pathUtil';
+import { getFileName, getParentPath, joinPath } from './pathUtil';
 import { toErrorMessage } from '../shared/logUtil';
+import { ATTACH_SUFFIX } from '../shared/specialFiles';
 
 /**
  * Error-callback signature shared by every file operation in this module.
@@ -137,15 +138,55 @@ export async function deleteSelected(
 
 
 /**
+ * Splices the files created by a split into the folder's .INDEX.yaml so they sit
+ * directly after the renamed `-00` original, preserving the split file's position
+ * in the document. The rename IPC handler has already re-pointed the original's
+ * index entry to the `-00` name; without this step the new parts would only be
+ * appended to the *end* of the index by the next reconcile, scattering the split
+ * content to the bottom of the document.
+ *
+ * The parts are inserted after the `-00` entry's attach folder when one is listed
+ * (an attach folder must stay immediately behind its file). If the `-00` entry is
+ * missing from the index (e.g. the rename's best-effort index update failed),
+ * falls back to a full reconcile, which appends the parts at the end.
+ *
+ * @param currentPath - Absolute path of the folder that was split into.
+ * @param filePaths - All files produced by the split, `-00` first (document order).
+ */
+async function insertSplitPartsIntoIndex(currentPath: string, filePaths: string[]): Promise<void> {
+  const names = filePaths.map((p) => getFileName(p));
+  const firstName = names[0]!;
+
+  const indexYaml = await api.readIndexYaml(currentPath);
+  const entryNames = (indexYaml?.files ?? []).map((f) => f.name);
+  const anchorIdx = entryNames.indexOf(firstName);
+  if (anchorIdx === -1) {
+    await api.reconcileIndexedFiles(currentPath, false);
+    return;
+  }
+
+  const attachName = `${firstName}${ATTACH_SUFFIX}`;
+  let insertAfter = entryNames[anchorIdx + 1] === attachName ? attachName : firstName;
+  for (const name of names.slice(1)) {
+    const result = await api.insertIntoIndexYaml(currentPath, name, insertAfter);
+    if (!result.success) {
+      throw new Error(result.error || `Failed to insert "${name}" into the index`);
+    }
+    insertAfter = name;
+  }
+}
+
+/**
  * Splits the single selected text/Markdown file into numbered parts on blank-line boundaries
  * (a run of 3 or more newlines). The original file is renamed to a `-00` suffix and keeps the
  * first part; the remaining parts become new `-01`, `-02`, … files alongside it. See
- * `splitUtil.ts` for the transactional details. Clears all selections and refreshes the
- * directory view on success.
+ * `splitUtil.ts` for the transactional details. In a Document Mode folder, the new parts are
+ * spliced into .INDEX.yaml right after the `-00` entry so the document order is preserved.
+ * Clears all selections and refreshes the directory view on success.
  *
- * @param currentPath - Absolute path of the folder containing the file (unused directly but
- *   kept for API symmetry with other ops).
+ * @param currentPath - Absolute path of the folder containing the file.
  * @param selectedItems - The selected items; exactly one text or Markdown file is expected.
+ * @param hasIndexFile - Whether the current folder has an .INDEX.yaml file to update.
  * @param onSetError - Callback invoked with an error message if the selection is invalid, the
  *   file contains no split points, or the split fails.
  * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after the split.
@@ -153,6 +194,7 @@ export async function deleteSelected(
 export async function splitSelectedFile(
   currentPath: string,
   selectedItems: ItemData[],
+  hasIndexFile: boolean,
   onSetError: SetError,
   onRefreshDirectory: () => void
 ): Promise<void> {
@@ -161,6 +203,17 @@ export async function splitSelectedFile(
   if (!result.success) {
     onSetError(result.error || 'Failed to split file.');
     return;
+  }
+
+  // The files changed on disk; keep .INDEX.yaml in sync before the refresh. An
+  // index failure is surfaced but doesn't suppress the refresh — the split
+  // itself succeeded, and the next reconcile heals the index.
+  if (hasIndexFile && result.filePaths) {
+    try {
+      await insertSplitPartsIntoIndex(currentPath, result.filePaths);
+    } catch (err: unknown) {
+      onSetError('Failed to update index after split: ' + toErrorMessage(err));
+    }
   }
 
   clearAllSelections();
@@ -172,11 +225,13 @@ export async function splitSelectedFile(
  * alphabetically first of them, separated by a blank-line delimiter (`\n\n\n`) — the inverse of
  * `splitSelectedFile`. Front matter on the appended files is converted to a fenced YAML block,
  * and those source files are deleted only after the write is verified. See `joinUtil.ts` for the
- * details. Clears all selections and refreshes the directory view on success.
+ * details. In a Document Mode folder, .INDEX.yaml is reconciled afterwards so the deleted
+ * sources' entries are dropped (the surviving target keeps its entry and position). Clears all
+ * selections and refreshes the directory view on success.
  *
- * @param currentPath - Absolute path of the folder containing the files (unused directly but
- *   kept for API symmetry with other ops).
+ * @param currentPath - Absolute path of the folder containing the files.
  * @param selectedItems - The selected items; two or more text or Markdown files are expected.
+ * @param hasIndexFile - Whether the current folder has an .INDEX.yaml file to reconcile.
  * @param onSetError - Callback invoked with an error message if the selection is invalid or the
  *   join fails.
  * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after the join.
@@ -184,6 +239,7 @@ export async function splitSelectedFile(
 export async function joinSelectedFiles(
   currentPath: string,
   selectedItems: ItemData[],
+  hasIndexFile: boolean,
   onSetError: SetError,
   onRefreshDirectory: () => void
 ): Promise<void> {
@@ -192,6 +248,18 @@ export async function joinSelectedFiles(
   if (!result.success) {
     onSetError(result.error || 'Failed to join files.');
     return;
+  }
+
+  // The joined-away source files are gone from disk; reconcile drops their
+  // stale index entries while the surviving target keeps its entry and
+  // position. An index failure is surfaced but doesn't suppress the refresh —
+  // the join itself succeeded, and the next reconcile heals the index.
+  if (hasIndexFile) {
+    try {
+      await api.reconcileIndexedFiles(currentPath, false);
+    } catch (err: unknown) {
+      onSetError('Failed to update index after join: ' + toErrorMessage(err));
+    }
   }
 
   clearAllSelections();
