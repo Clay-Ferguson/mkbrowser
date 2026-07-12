@@ -36,8 +36,8 @@ import {
  */
 
 // Matches the timestamp filename produced by generateTimestampFilename('.md'):
-// YYYY-MM-DD--HH-MM-SS.md
-const TIMESTAMP_MD_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}\.md$/;
+// YYYY-MM-DD--HH-MM-SS-mmm.md
+const TIMESTAMP_MD_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-\d{3}\.md$/;
 
 test.describe('Private: Paste Clipboard as Attachment', () => {
   test('paste clipboard text as an attachment under a markdown file', async ({
@@ -188,10 +188,6 @@ Its markdown renders just like any other file — here's the "Pasted Note One" h
     // Back up to the folder containing the host file.
     await demoClick(mainWindow.getByTestId('navigate-up-button'));
     await expect(mainContent.getByText(hostFileName).first()).toBeVisible({ timeout: 10000 });
-
-    // Guard against a timestamp collision: if both pastes land in the same
-    // second, the second file would overwrite the first with the same name.
-    await mainWindow.waitForTimeout(1500);
 
     // Seed the clipboard with the second payload and paste again onto the same
     // file — it should reuse the existing attachments folder.

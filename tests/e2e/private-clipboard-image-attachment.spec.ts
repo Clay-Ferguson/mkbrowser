@@ -42,8 +42,8 @@ import {
  */
 
 // Matches the timestamp filename produced by generateTimestampFilename('.png'):
-// YYYY-MM-DD--HH-MM-SS.png
-const TIMESTAMP_PNG_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}\.png$/;
+// YYYY-MM-DD--HH-MM-SS-mmm.png
+const TIMESTAMP_PNG_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-\d{3}\.png$/;
 
 // PNG magic bytes: 89 50 4E 47 0D 0A 1A 0A
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -222,10 +222,6 @@ It renders inline just like any other image in MkBrowser — here's the picture 
     // Back up to the folder containing the host file.
     await demoClick(mainWindow.getByTestId('navigate-up-button'));
     await expect(mainContent.getByText(hostFileName).first()).toBeVisible({ timeout: 10000 });
-
-    // Guard against a timestamp collision: if both pastes land in the same
-    // second, the second file would overwrite the first with the same name.
-    await mainWindow.waitForTimeout(1500);
 
     // Seed the clipboard with the second (different) fixture image and paste
     // again onto the same file — it should reuse the existing attachments folder.

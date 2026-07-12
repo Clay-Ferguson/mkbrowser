@@ -281,13 +281,13 @@ await electronApp.evaluate(({ clipboard, nativeImage }, base64) => {
 
 ## Time-Dependent (Timestamp) Filenames
 
-Attachments are named by `generateTimestampFilename(ext)` → `YYYY-MM-DD--HH-MM-SS.<ext>`. **Never hardcode or assert an exact timestamp filename.** Discover the file after the operation:
+Attachments are named by `generateTimestampFilename(ext)` → `YYYY-MM-DD--HH-MM-SS-mmm.<ext>` (milliseconds included). **Never hardcode or assert an exact timestamp filename.** Discover the file after the operation:
 
 ```typescript
-const files = fs.readdirSync(attachDir).filter(f => /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}\.png$/.test(f));
+const files = fs.readdirSync(attachDir).filter(f => /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-\d{3}\.png$/.test(f));
 ```
 
-When a test performs two such operations, guard against a **same-second collision** (identical name → the second overwrites the first) with `await mainWindow.waitForTimeout(1500)` between them, and identify the newly-created file by diffing the directory listing before/after.
+The millisecond component makes two pastes in the same second produce distinct names, so no delay is needed between them. Still identify the newly-created file by diffing the directory listing before/after rather than assuming a single match.
 
 ## Image / Binary Assertions
 

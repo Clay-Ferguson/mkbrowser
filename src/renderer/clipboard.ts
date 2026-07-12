@@ -1,13 +1,16 @@
 import { joinPath } from './pathUtil';
 
 /**
- * Generates a timestamp-based filename in the format `YYYY-MM-DD--HH-MM-SS<extension>`,
+ * Generates a timestamp-based filename in the format `YYYY-MM-DD--HH-MM-SS-mmm<extension>`,
  * used for pasted clipboard items where no meaningful name is available.
+ * Milliseconds are included so two pastes in the same second don't collide (the
+ * main-process write handlers overwrite existing files without warning).
  */
 export function generateTimestampFilename(extension: string): string {
   const now = new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
-  const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}--${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+  const millis = now.getMilliseconds().toString().padStart(3, '0');
+  const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}--${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}-${millis}`;
   return `${timestamp}${extension}`;
 }
 
