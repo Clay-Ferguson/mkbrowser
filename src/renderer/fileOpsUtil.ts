@@ -139,50 +139,58 @@ export async function deleteSelected(
 
 /**
  * Splices the files created by a split into the folder's .INDEX.yaml so they sit
- * directly after the renamed `-00` original, preserving the split file's position
- * in the document. The rename IPC handler has already re-pointed the original's
- * index entry to the `-00` name; without this step the new parts would only be
- * appended to the *end* of the index by the next reconcile, scattering the split
- * content to the bottom of the document.
+ * directly after the original file's entry, preserving the split file's position
+ * in the document. Without this step the new parts would only be appended to the
+ * *end* of the index by the next reconcile, scattering the split content to the
+ * bottom of the document.
  *
- * The parts are inserted after the `-00` entry's attach folder when one is listed
- * (an attach folder must stay immediately behind its file). If the `-00` entry is
- * missing from the index (e.g. the rename's best-effort index update failed),
- * falls back to a full reconcile, which appends the parts at the end.
+ * splitFile creates every part (including `-00`) as a new file and deletes the
+ * original, so the index still lists the original name when this runs. The parts
+ * `-01` … `-NN` are inserted after that entry (or after its attach folder, which
+ * must stay immediately behind its file), and the closing reconcile re-points the
+ * original's entry to the new `-00` file in place via its front-matter id — the
+ * id travels with part 0's content. If the original has no entry at all, the
+ * inserts are skipped and the reconcile appends every part at the end.
  *
  * @param currentPath - Absolute path of the folder that was split into.
+ * @param originalName - Filename of the file that was split (now deleted).
  * @param filePaths - All files produced by the split, `-00` first (document order).
  */
-async function insertSplitPartsIntoIndex(currentPath: string, filePaths: string[]): Promise<void> {
+async function insertSplitPartsIntoIndex(
+  currentPath: string,
+  originalName: string,
+  filePaths: string[]
+): Promise<void> {
   const names = filePaths.map((p) => getFileName(p));
-  const firstName = names[0]!;
 
   const indexYaml = await api.readIndexYaml(currentPath);
   const entryNames = (indexYaml?.files ?? []).map((f) => f.name);
-  const anchorIdx = entryNames.indexOf(firstName);
-  if (anchorIdx === -1) {
-    await api.reconcileIndexedFiles(currentPath, false);
-    return;
+  const anchorIdx = entryNames.indexOf(originalName);
+  if (anchorIdx !== -1) {
+    const attachName = `${originalName}${ATTACH_SUFFIX}`;
+    let insertAfter = entryNames[anchorIdx + 1] === attachName ? attachName : originalName;
+    for (const name of names.slice(1)) {
+      const result = await api.insertIntoIndexYaml(currentPath, name, insertAfter);
+      if (!result.success) {
+        throw new Error(result.error || `Failed to insert "${name}" into the index`);
+      }
+      insertAfter = name;
+    }
   }
 
-  const attachName = `${firstName}${ATTACH_SUFFIX}`;
-  let insertAfter = entryNames[anchorIdx + 1] === attachName ? attachName : firstName;
-  for (const name of names.slice(1)) {
-    const result = await api.insertIntoIndexYaml(currentPath, name, insertAfter);
-    if (!result.success) {
-      throw new Error(result.error || `Failed to insert "${name}" into the index`);
-    }
-    insertAfter = name;
+  const result = await api.reconcileIndexedFiles(currentPath, false);
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to reconcile the index');
   }
 }
 
 /**
  * Splits the single selected text/Markdown file into numbered parts on blank-line boundaries
- * (a run of 3 or more newlines). The original file is renamed to a `-00` suffix and keeps the
- * first part; the remaining parts become new `-01`, `-02`, … files alongside it. See
- * `splitUtil.ts` for the transactional details. In a Document Mode folder, the new parts are
- * spliced into .INDEX.yaml right after the `-00` entry so the document order is preserved.
- * Clears all selections and refreshes the directory view on success.
+ * (a run of 3 or more newlines). Every part is written to a new numbered file (`-00`, `-01`,
+ * `-02`, …) and the original file is deleted once they all exist. See `splitUtil.ts` for the
+ * transactional details. In a Document Mode folder, the parts are spliced into .INDEX.yaml at
+ * the original file's position so the document order is preserved. Clears all selections and
+ * refreshes the directory view on success.
  *
  * @param currentPath - Absolute path of the folder containing the file.
  * @param selectedItems - The selected items; exactly one text or Markdown file is expected.
@@ -207,10 +215,12 @@ export async function splitSelectedFile(
 
   // The files changed on disk; keep .INDEX.yaml in sync before the refresh. An
   // index failure is surfaced but doesn't suppress the refresh — the split
-  // itself succeeded, and the next reconcile heals the index.
+  // itself succeeded, and the next reconcile heals the index. performSplitFile
+  // guarantees exactly one selected item on success, so its name is the name of
+  // the (now deleted) file that was split.
   if (hasIndexFile && result.filePaths) {
     try {
-      await insertSplitPartsIntoIndex(currentPath, result.filePaths);
+      await insertSplitPartsIntoIndex(currentPath, selectedItems[0]!.name, result.filePaths);
     } catch (err: unknown) {
       onSetError('Failed to update index after split: ' + toErrorMessage(err));
     }

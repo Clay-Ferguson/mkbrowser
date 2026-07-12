@@ -99,12 +99,13 @@ describe('splitSelectedFile (Document Mode index sync)', () => {
   const splitContent = 'alpha\n\n\nbeta\n\n\ngamma';
   const selected = [makeItem('/docs/notes.md', 'notes.md')];
 
-  it('splices the new parts into the index directly after the -00 entry, in order', async () => {
+  it("splices the new parts into the index directly after the original's entry, then reconciles", async () => {
     const { store } = seedFs({ '/docs/notes.md': splitContent });
-    // Simulates the post-rename index state: the rename IPC handler has already
-    // re-pointed the original's entry to the -00 name by the time the splice runs.
+    // splitFile deletes the original rather than renaming it, so the index still
+    // lists the original name when the splice runs; the closing reconcile is what
+    // re-points that entry to the new -00 file (via its front-matter id).
     vi.mocked(api.readIndexYaml).mockResolvedValue({
-      files: [{ name: 'intro.md', id: 'A' }, { name: 'notes-00.md', id: 'B' }, { name: 'outro.md', id: 'C' }],
+      files: [{ name: 'intro.md', id: 'A' }, { name: 'notes.md', id: 'B' }, { name: 'outro.md', id: 'C' }],
     });
     const onSetError = vi.fn();
     const onRefreshDirectory = vi.fn();
@@ -118,34 +119,39 @@ describe('splitSelectedFile (Document Mode index sync)', () => {
     expect(store['/docs/notes-02.md']).toBe('gamma');
     // Each part chains off the previous one so document order is preserved.
     expect(vi.mocked(api.insertIntoIndexYaml).mock.calls).toEqual([
-      ['/docs', 'notes-01.md', 'notes-00.md'],
+      ['/docs', 'notes-01.md', 'notes.md'],
       ['/docs', 'notes-02.md', 'notes-01.md'],
     ]);
-    // The splice path must not fall back to a reconcile (which would append at the end).
-    expect(api.reconcileIndexedFiles).not.toHaveBeenCalled();
+    // The reconcile that re-points the original's entry to -00 must run after
+    // the inserts, or it would drop the original's entry (its file is gone)
+    // before the inserts could anchor on it.
+    expect(api.reconcileIndexedFiles).toHaveBeenCalledWith('/docs', false);
+    expect(vi.mocked(api.reconcileIndexedFiles).mock.invocationCallOrder[0]).toBeGreaterThan(
+      vi.mocked(api.insertIntoIndexYaml).mock.invocationCallOrder[1]!
+    );
     expect(onSetError).not.toHaveBeenCalled();
     expect(clearAllSelections).toHaveBeenCalled();
     expect(onRefreshDirectory).toHaveBeenCalled();
   });
 
-  it("anchors after the -00 entry's attach folder when one directly follows it", async () => {
+  it("anchors after the original entry's attach folder when one directly follows it", async () => {
     seedFs({ '/docs/notes.md': splitContent });
     vi.mocked(api.readIndexYaml).mockResolvedValue({
-      files: [{ name: 'notes-00.md', id: 'B' }, { name: 'notes-00.md.attach' }, { name: 'outro.md' }],
+      files: [{ name: 'notes.md', id: 'B' }, { name: 'notes.md.attach' }, { name: 'outro.md' }],
     });
 
     await splitSelectedFile('/docs', selected, true, vi.fn(), vi.fn());
 
     // An attach folder must stay glued to its file, so the first part goes after it.
     expect(vi.mocked(api.insertIntoIndexYaml).mock.calls).toEqual([
-      ['/docs', 'notes-01.md', 'notes-00.md.attach'],
+      ['/docs', 'notes-01.md', 'notes.md.attach'],
       ['/docs', 'notes-02.md', 'notes-01.md'],
     ]);
   });
 
-  it('falls back to a full reconcile when the -00 entry is missing from the index', async () => {
+  it('skips the splice and just reconciles when the original has no index entry', async () => {
     seedFs({ '/docs/notes.md': splitContent });
-    // e.g. the rename's best-effort index update failed, or the file was never indexed.
+    // e.g. the file was created but never reconciled into the index.
     vi.mocked(api.readIndexYaml).mockResolvedValue({ files: [{ name: 'other.md' }] });
     const onSetError = vi.fn();
     const onRefreshDirectory = vi.fn();
@@ -173,7 +179,7 @@ describe('splitSelectedFile (Document Mode index sync)', () => {
 
   it('surfaces an index-splice failure without suppressing the refresh', async () => {
     seedFs({ '/docs/notes.md': splitContent });
-    vi.mocked(api.readIndexYaml).mockResolvedValue({ files: [{ name: 'notes-00.md', id: 'B' }] });
+    vi.mocked(api.readIndexYaml).mockResolvedValue({ files: [{ name: 'notes.md', id: 'B' }] });
     vi.mocked(api.insertIntoIndexYaml).mockResolvedValue({ success: false, error: 'disk full' });
     const onSetError = vi.fn();
     const onRefreshDirectory = vi.fn();
