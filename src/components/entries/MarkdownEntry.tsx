@@ -7,6 +7,7 @@ import { saveAiConfig } from '../../renderer/config';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../shared/types';
 import { removeTOC } from '../../shared/tocUtil';
+import { splitFrontMatter } from '../../shared/frontMatterUtil';
 import {
   useAS,
   hasAnyCutItems,
@@ -138,7 +139,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // prepend an empty YAML block so the editor starts inside the delimiters.
   const handleToggleShowProps = () => {
     const turningOn = !showPropsInEditor;
-    if (turningOn && !edit.editContent.startsWith('---')) {
+    if (turningOn && !splitFrontMatter(edit.editContent)) {
       edit.setEditContent('---\n\n---\n' + edit.editContent);
       // Position cursor on the blank line between the two '---' delimiters (offset 4). Applied via
       // goToPosition so it runs deterministically after the editor syncs the new content.

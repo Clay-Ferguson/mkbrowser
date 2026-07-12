@@ -8,51 +8,6 @@ export interface FrontMatterResult {
   content: string;
 }
 
-/** Length of the opening front-matter delimiter (`---`). */
-const OPEN_DELIM_LEN = 3;
-
-/**
- * Parses YAML front matter from the beginning of a file's content.
- *
- * Front matter is a block delimited by `---` on its own line at the very start
- * of the content and a closing `---` (or `...`) on its own line. Everything
- * after the closing delimiter is returned as `content`.
- *
- * Returns `yaml: null` when no valid front matter block is detected.
- */
-export function parseFrontMatter(rawContent: string): FrontMatterResult {
-  // Front matter must start at the very beginning of the file
-  if (!rawContent.startsWith('---')) {
-    return { yaml: null, content: rawContent };
-  }
-
-  // Find the closing delimiter (--- or ...) on its own line.
-  // Allow only spaces/tabs (not newlines) after the delimiter so a blank line
-  // following the front matter is preserved as part of the body rather than
-  // being silently swallowed — Markdown is whitespace-sensitive.
-  const afterOpen = rawContent.slice(OPEN_DELIM_LEN);
-  const closingMatch = afterOpen.match(/\n(---|\.\.\.)[^\S\n]*(\n|$)/);
-  if (!closingMatch || closingMatch.index === undefined) {
-    return { yaml: null, content: rawContent };
-  }
-
-  const yamlSource = afterOpen.slice(0, closingMatch.index);
-  const bodyStart = closingMatch.index + closingMatch[0].length + OPEN_DELIM_LEN;
-  const body = rawContent.slice(bodyStart);
-
-  try {
-    const parsed = load(yamlSource);
-    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return { yaml: parsed as Record<string, unknown>, content: body };
-    }
-  } catch (err) {
-    // Malformed YAML — treat as no front matter
-    logger.debug(`parseFrontMatter: ignoring malformed YAML front matter: ${err}`);
-  }
-
-  return { yaml: null, content: rawContent };
-}
-
 export interface FrontMatterSplit {
   /** Raw YAML text between the fences — no fences, no surrounding newlines, no stray `\r`. */
   yamlStr: string;
@@ -77,6 +32,32 @@ export function splitFrontMatter(content: string): FrontMatterSplit | null {
   const m = FRONT_MATTER_RE.exec(content);
   if (!m) return null;
   return { yamlStr: m[1] ?? '', body: content.slice(m[0].length) };
+}
+
+/**
+ * Parses YAML front matter from the beginning of a file's content, using the same fence
+ * grammar as {@link splitFrontMatter} so the read and write paths can never disagree about
+ * what counts as front matter. Everything after the closing fence is returned as `content`.
+ *
+ * Returns `yaml: null` when no valid front matter block is detected.
+ */
+export function parseFrontMatter(rawContent: string): FrontMatterResult {
+  const parts = splitFrontMatter(rawContent);
+  if (!parts) {
+    return { yaml: null, content: rawContent };
+  }
+
+  try {
+    const parsed = load(parts.yamlStr);
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return { yaml: parsed as Record<string, unknown>, content: parts.body };
+    }
+  } catch (err) {
+    // Malformed YAML — treat as no front matter
+    logger.debug(`parseFrontMatter: ignoring malformed YAML front matter: ${err}`);
+  }
+
+  return { yaml: null, content: rawContent };
 }
 
 /** Wrap a YAML string and body back into a front-matter document. Empty YAML yields just the body. */

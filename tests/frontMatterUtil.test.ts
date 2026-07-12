@@ -112,10 +112,37 @@ describe('parseFrontMatter', () => {
     expect(result.yaml).toEqual({ n: 42, flag: true, tags: ['a', 'b'] });
   });
 
-  it('recognizes a closing ... delimiter', () => {
-    const result = parseFrontMatter('---\ntitle: x\n...\nbody');
-    expect(result.yaml).toEqual({ title: 'x' });
-    expect(result.content).toBe('body');
+  it('does not accept a closing ... delimiter (only --- is supported)', () => {
+    const raw = '---\ntitle: x\n...\nbody';
+    const result = parseFrontMatter(raw);
+    expect(result.yaml).toBeNull();
+    expect(result.content).toBe(raw);
+  });
+
+  it('requires the opening delimiter to be alone on its line', () => {
+    const raw = '---something\ntitle: x\n---\nbody';
+    const result = parseFrontMatter(raw);
+    expect(result.yaml).toBeNull();
+    expect(result.content).toBe(raw);
+  });
+
+  it('requires the closing delimiter to be alone on its line', () => {
+    const raw = '---\ntitle: x\n---something\nbody';
+    const result = parseFrontMatter(raw);
+    expect(result.yaml).toBeNull();
+    expect(result.content).toBe(raw);
+  });
+
+  it('agrees with splitFrontMatter about what counts as front matter', () => {
+    for (const raw of [
+      '---\ntitle: x\n---\nbody',
+      '---\ntitle: x\n...\nbody',
+      '---something\ntitle: x\n---\nbody',
+      '---\ntitle: x\nno closing fence',
+      'no front matter at all',
+    ]) {
+      expect(parseFrontMatter(raw).yaml !== null).toBe(splitFrontMatter(raw) !== null);
+    }
   });
 
   it('handles a closing delimiter at end of file with no trailing newline', () => {
