@@ -45,6 +45,7 @@ import {
   clearPendingScrollToFile,
   clearPendingEditFile,
   setPendingEditFile,
+  clearPendingExpandFile,
   setSearchResults,
   setSortOrder,
   setBrowserScrollPosition,
@@ -215,6 +216,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const pendingScrollToHeadingSlug = useAS(s => s.pendingScrollToHeadingSlug);
   const pendingEditFile = useAS(s => s.pendingEditFile);
   const pendingEditView = useAS(s => s.pendingEditView);
+  const pendingExpandFile = useAS(s => s.pendingExpandFile);
   const settings = useAS(s => s.settings);
   const expansionCounts = useExpansionCounts();
 
@@ -337,6 +339,15 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           clearPendingEditFile();
         }, 100);
       }
+
+      // Handle pending expand (e.g., a file pasted from the clipboard). The item
+      // only enters the store once the refresh that created it has loaded, so —
+      // like the pending scroll above — consume the request only when it's there,
+      // and let a later run of this effect handle it otherwise.
+      if (pendingExpandFile && useAS.getState().items.has(pendingExpandFile)) {
+        setItemExpanded(pendingExpandFile, true);
+        clearPendingExpandFile();
+      }
     }, 100);
 
     // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending settle/edit timeouts on unmount / before re-run.
@@ -344,7 +355,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       clearTimeout(settleTimer);
       if (editTimer !== undefined) clearTimeout(editTimer);
     };
-  }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, currentPath, currentView]);
+  }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, pendingExpandFile, currentPath, currentView]);
 
   /** Derives a default export file name from the current folder name. */
   const generateExportFileName = (currentPath: string | null): string => {

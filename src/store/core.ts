@@ -92,6 +92,7 @@ const initialState: AppState = {
   highlightItem: null,
   pendingEditFile: null,
   pendingEditView: null,
+  pendingExpandFile: null,
   directoryRefreshNonce: 0,
   highlightedSearchResult: null,
   folderAnalysis: null,

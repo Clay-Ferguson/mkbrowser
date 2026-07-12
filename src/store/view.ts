@@ -22,6 +22,8 @@ export interface ViewSlice {
   clearPendingScrollToHeadingSlug: () => void;
   setPendingEditFile: (filePath: string, view?: AppView) => void;
   clearPendingEditFile: () => void;
+  setPendingExpandFile: (filePath: string) => void;
+  clearPendingExpandFile: () => void;
   requestDirectoryRefresh: () => void;
   setPendingThreadScrollToBottom: () => void;
   clearPendingThreadScrollToBottom: () => void;
@@ -114,6 +116,18 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       const state = get();
       if (state.pendingEditFile === null && state.pendingEditView === null) return;
       set({ pendingEditFile: null, pendingEditView: null });
+    },
+
+    /**
+     * Set a file to expand once the directory refresh that creates it has rendered it.
+     * @param filePath - The full path of the file to expand
+     */
+    setPendingExpandFile: (filePath) => set({ pendingExpandFile: filePath }),
+
+    /** Clear the pending expand file (call after the item has been expanded). */
+    clearPendingExpandFile: () => {
+      if (get().pendingExpandFile === null) return;
+      set({ pendingExpandFile: null });
     },
 
     /** Ask BrowseView to reload the current directory even if currentPath hasn't changed. */
@@ -210,6 +224,14 @@ export function setPendingEditFile(filePath: string, view?: AppView): void {
 
 export function clearPendingEditFile(): void {
   getState().clearPendingEditFile();
+}
+
+export function setPendingExpandFile(filePath: string): void {
+  getState().setPendingExpandFile(filePath);
+}
+
+export function clearPendingExpandFile(): void {
+  getState().clearPendingExpandFile();
 }
 
 export function requestDirectoryRefresh(): void {

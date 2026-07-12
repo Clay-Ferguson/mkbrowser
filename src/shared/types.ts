@@ -433,6 +433,13 @@ export interface AppState {
   pendingEditView: AppView | null;
 
   /**
+   * Full file path to expand once the directory refresh that creates it has
+   * finished rendering (e.g. a file pasted from the clipboard). Consumed and
+   * cleared by BrowseView when the item actually exists.
+   */
+  pendingExpandFile: string | null;
+
+  /**
    * Path of the highlighted search result.
    * Used to highlight the result when returning to search results view.
    */

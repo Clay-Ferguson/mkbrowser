@@ -10,7 +10,7 @@ import {
   setHighlightItem,
   setPendingScrollToFile,
   setPendingEditFile,
-  setItemExpanded,
+  setPendingExpandFile,
 } from '../store';
 import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
 import { pasteFromClipboard } from './clipboard';
@@ -22,9 +22,6 @@ import { toErrorMessage } from '../shared/logUtil';
  * Called with a message on failure, or null to clear a previously shown error.
  */
 type SetError = (e: string | null) => void;
-
-/** Delay before expanding a freshly pasted item, giving the refresh time to render it. */
-const EXPAND_AFTER_PASTE_DELAY_MS = 200;
 
 /**
  * Moves all cut items in the store into the given folder, then reconciles the index
@@ -425,10 +422,10 @@ export async function pasteFromClipboardOp(
       onSetError('Failed to update index after paste: ' + toErrorMessage(err));
       return;
     }
+    // Drive the expand off the refresh-completion effect in BrowseView (which acts
+    // once the pasted item is actually rendered) rather than a fixed timing assumption.
+    setPendingExpandFile(filePath);
     onRefreshDirectory();
-    setTimeout(() => {
-      setItemExpanded(filePath, true);
-    }, EXPAND_AFTER_PASTE_DELAY_MS);
   } else if (result.error) {
     onSetError(result.error);
   }
