@@ -415,13 +415,13 @@ export async function pasteFromClipboardOp(
 
   if (result.success && result.fileName) {
     const filePath = joinPath(currentPath, result.fileName);
-    setPendingScrollToFile(filePath);
     try {
       await api.reconcileIndexedFiles(currentPath, false);
     } catch (err: unknown) {
       onSetError('Failed to update index after paste: ' + toErrorMessage(err));
       return;
     }
+    setPendingScrollToFile(filePath);
     // Drive the expand off the refresh-completion effect in BrowseView (which acts
     // once the pasted item is actually rendered) rather than a fixed timing assumption.
     setPendingExpandFile(filePath);
