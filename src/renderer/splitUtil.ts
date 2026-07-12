@@ -4,8 +4,10 @@
  * `splitFile` divides a file on a blank-line delimiter into numbered parts
  * (`name-00.ext`, `name-01.ext`, …). Because it manipulates real user files, it
  * is written to be fail-safe: it validates and detects collisions before
- * touching the filesystem, and on any mid-operation failure it attempts a
- * best-effort rollback so the user's files are left as they were.
+ * touching the filesystem, only ever *adds* files until every part is safely on
+ * disk (the original is deleted last, never written through), and on any
+ * mid-operation failure it attempts a best-effort rollback so the user's files
+ * are left as they were.
  */
 
 import { getFileName, getParentPath, joinPath } from './pathUtil';
@@ -30,27 +32,27 @@ export interface SplitFileResult {
 
 /**
  * Split a file into multiple files based on a blank-line delimiter (a run of 3+
- * newlines). The original file is renamed to include a "-00" suffix and the
- * remaining parts are written to new numbered files (e.g. my-file-00.md,
- * my-file-01.md, …).
+ * newlines). Every part — including the first — is written to a new numbered
+ * file (e.g. my-file-00.md, my-file-01.md, …) and the original file is deleted
+ * once they all exist.
  *
  * The operation is transactional in spirit: all targets are computed and checked
- * for collisions before any mutation, the new parts are created before the
- * original is renamed (so the original is the last thing touched), and any
- * failure triggers a best-effort rollback that deletes created parts and
- * restores the original filename.
+ * for collisions before any mutation, every part is created as a *new* file (the
+ * original is never written through, so its bytes stay intact on disk until the
+ * very last step), and any failure triggers a best-effort rollback that deletes
+ * the parts created so far, leaving the original as it was.
  *
  * @param filePath - Full path to the file to split
- * @param ops - Injected file operations: `readFile`/`writeFile`/`createFile`/
- *   `renameFile` to mutate, `pathExists` for the collision check, and
- *   `deleteFile` for rollback.
+ * @param ops - Injected file operations: `readFile` to load the original,
+ *   `createFile` to write each part, `pathExists` for the collision check, and
+ *   `deleteFile` to remove the original (and to roll back on failure).
  * @returns Result object with success status and file info
  */
 export async function splitFile(
   filePath: string,
-  ops: FileOps
+  ops: Pick<FileOps, 'readFile' | 'createFile' | 'pathExists' | 'deleteFile'>
 ): Promise<SplitFileResult> {
-  const { readFile, writeFile, createFile, renameFile, pathExists, deleteFile } = ops;
+  const { readFile, createFile, pathExists, deleteFile } = ops;
 
   // ---- Phase 1: validate and compute everything before mutating anything ----
 
@@ -91,14 +93,6 @@ export async function splitFile(
     const paddedNumber = String(i).padStart(2, '0');
     return { content, path: joinPath(directory, `${baseName}-${paddedNumber}${extension}`) };
   });
-  const [firstTarget, ...newPartTargets] = targets;
-  // The earlier `parts.length <= 1` guard proves firstTarget exists; this check
-  // narrows it for `noUncheckedIndexedAccess` (which widens destructured
-  // elements to `| undefined`).
-  if (!firstTarget) {
-    return { success: false, error: 'Nothing to split: no parts were produced.' };
-  }
-
   // Collision check: fail early with zero side effects if any target exists.
   for (const target of targets) {
     try {
@@ -119,21 +113,14 @@ export async function splitFile(
   // ---- Phase 2: mutate, tracking what was done so it can be undone ----
 
   const createdPaths: string[] = [];
-  let renamed = false;
 
   /**
-   * Best-effort rollback: delete any parts we created and restore the original
-   * filename. Returns true only if every undo step succeeded.
+   * Best-effort rollback: delete any parts we created. The original is never
+   * modified before the final delete, so undoing the parts restores the starting
+   * state. Returns true only if every undo step succeeded.
    */
   const rollback = async (): Promise<boolean> => {
     let fullyRolledBack = true;
-    if (renamed) {
-      try {
-        if (!(await renameFile(firstTarget.path, filePath))) fullyRolledBack = false;
-      } catch {
-        fullyRolledBack = false;
-      }
-    }
     for (const created of createdPaths) {
       try {
         if (!(await deleteFile(created))) fullyRolledBack = false;
@@ -156,9 +143,10 @@ export async function splitFile(
   };
 
   try {
-    // Create the new parts (-01 … -NN) first, so the original is untouched until
-    // the very end.
-    for (const { content, path: newFilePath } of newPartTargets) {
+    // Create every part (-00 … -NN) as a brand new file. The original is never
+    // written through, so the full original bytes remain on disk — recoverable
+    // by rollback — until every part has been created successfully.
+    for (const { content, path: newFilePath } of targets) {
       const result = await createFile(newFilePath, content);
       if (!result.success) {
         return await fail(result.error || `Failed to create file: ${getFileName(newFilePath)}`);
@@ -166,17 +154,10 @@ export async function splitFile(
       createdPaths.push(newFilePath);
     }
 
-    // Rename the original to the -00 name. After this, rename preserves the full
-    // original bytes, so a later failure can be fully undone.
-    if (!(await renameFile(filePath, firstTarget.path))) {
-      return await fail('Failed to rename the original file with -00 suffix.');
-    }
-    renamed = true;
-
-    // Write the first part into the renamed file (the last mutation).
-    const writeSuccess = await writeFile(firstTarget.path, firstTarget.content);
-    if (!writeSuccess.ok) {
-      return await fail('Failed to write the first part to the renamed file.');
+    // All parts exist; the original is now redundant. Deleting it is the last
+    // and only destructive mutation.
+    if (!(await deleteFile(filePath))) {
+      return await fail('Failed to delete the original file after creating the parts.');
     }
 
     return {
