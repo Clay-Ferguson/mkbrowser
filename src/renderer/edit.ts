@@ -2,7 +2,7 @@ import type { ItemData } from '../shared/types';
 import { joinFiles as joinFilesUtil } from './joinUtil';
 import { splitFile as splitFileUtil } from './splitUtil';
 import type { FileOps } from '../shared/shared';
-import { getParentPath, joinPath, isPathInside } from './pathUtil';
+import { getParentPath, joinPath, isPathInside, isSamePath } from './pathUtil';
 import { toErrorMessage } from '../shared/logUtil';
 import { isTextFile, isMarkdownFile } from '../shared/fileTypes';
 import { mapWithConcurrency } from '../shared/asyncUtil';
@@ -184,9 +184,12 @@ export async function pasteCutItems(
   }
 
   // Now that uniqueness is guaranteed, cutItems[0] safely represents the shared
-  // source folder. Check if pasting back into that same folder.
-  const sourceFolder = getParentPath(cutItems[0]!.path); 
-  if (sourceFolder === destinationPath) {
+  // source folder. Check if pasting back into that same folder. isSamePath (not
+  // string equality) so a trailing separator or a '\'-vs-'/' spelling of the same
+  // folder still hits this guard and yields the honest message, instead of falling
+  // through to the duplicate check and reporting the items as "already existing".
+  const sourceFolder = getParentPath(cutItems[0]!.path);
+  if (isSamePath(sourceFolder, destinationPath)) {
     return { success: false, error: 'Cannot paste. Cut items are already in this folder.', movedPaths: [] };
   }
 

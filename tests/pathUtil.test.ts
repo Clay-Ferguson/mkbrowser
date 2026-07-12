@@ -10,6 +10,7 @@ import {
   ensureTrailingSep,
   isAbsolutePath,
   isPathInside,
+  isSamePath,
 } from '../src/renderer/pathUtil';
 
 // Outside the renderer there is no window.electronAPI, so pathSep() falls
@@ -198,6 +199,29 @@ describe('isAbsolutePath', () => {
 
   it('treats a multi-character drive prefix as relative', () => {
     expect(isAbsolutePath('CD:\\Users')).toBe(false);
+  });
+});
+
+describe('isSamePath', () => {
+  it('matches identical paths', () => {
+    expect(isSamePath('/home/user/notes', '/home/user/notes')).toBe(true);
+  });
+
+  it('ignores trailing separators', () => {
+    expect(isSamePath('/home/user/notes/', '/home/user/notes')).toBe(true);
+    expect(isSamePath('/home/user/notes', '/home/user/notes//')).toBe(true);
+  });
+
+  it('ignores separator spelling and repeated separators', () => {
+    expect(isSamePath('/home/user/notes', '\\home\\user\\notes')).toBe(true);
+    expect(isSamePath('/home//user/notes', '/home/user/notes')).toBe(true);
+    expect(isSamePath('C:\\Users\\notes', 'C:/Users/notes')).toBe(true);
+  });
+
+  it('does NOT match different folders', () => {
+    expect(isSamePath('/home/user/notes', '/home/user/notes-archive')).toBe(false);
+    expect(isSamePath('/home/user/notes', '/home/user/notes/2024')).toBe(false);
+    expect(isSamePath('/home/user/notes', 'home/user/notes')).toBe(false);
   });
 });
 

@@ -3,7 +3,7 @@ import { api } from './api';
 import type { FileNode } from '../shared/types';
 import { pasteCutItems } from './edit';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
-import { getParentPath, isPathInside } from './pathUtil';
+import { getParentPath, isPathInside, isSamePath } from './pathUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { logger } from '../shared/logUtil';
 
@@ -70,9 +70,12 @@ export function makeEntryDragStartHandler(payload: DragPayload) {
  * of its own descendants.
  */
 export function canDropInto(payload: DragPayload, destFolder: string): boolean {
-  if (payload.path === destFolder) return false;
+  // isSamePath rather than string equality: the payload path and the destination
+  // reach here from different sources and may differ only in trailing separator or
+  // separator spelling while naming the same folder.
+  if (isSamePath(payload.path, destFolder)) return false;
   const sourceFolder = getParentPath(payload.path);
-  if (sourceFolder === destFolder) return false;
+  if (isSamePath(sourceFolder, destFolder)) return false;
   // Boundary-correct, separator-aware descendant check (shared with pasteCutItems);
   // avoids the startsWith bug where '.../projects-archive' looks "inside" '.../projects'.
   if (payload.isDirectory && isPathInside(payload.path, destFolder)) return false;

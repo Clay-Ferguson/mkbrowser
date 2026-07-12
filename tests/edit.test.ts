@@ -173,6 +173,18 @@ describe('pasteCutItems', () => {
     expect(result.error).toMatch(/already in this folder/i);
   });
 
+  it('recognizes the source folder even when the destination is spelled differently', async () => {
+    // The guard must survive a trailing separator or a '\'-vs-'/' spelling of the
+    // same folder; otherwise the paste falls through to the duplicate check and the
+    // user is told the items "already exist" (they are themselves).
+    const items = [makeItem('/docs/a.md', 'a.md')];
+    for (const dest of ['/docs/', '/docs//', '\\docs']) {
+      const result = await pasteCutItems(items, dest, async () => true, async () => true);
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/already in this folder/i);
+    }
+  });
+
   it('rejects moving a folder into itself', async () => {
     const items = [makeItem('/notes/projects', 'projects', true)];
     let renameCalled = false;

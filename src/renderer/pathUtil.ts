@@ -98,6 +98,24 @@ export function remapMovedPath(path: string, oldRoot: string, newRoot: string): 
 }
 
 /**
+ * True if two paths denote the same location. Separator spelling ('/' vs '\'),
+ * repeated separators and trailing separators are all ignored, so '/a/b',
+ * '/a/b/' and '\a\b' compare equal. Raw string equality is not enough: paths
+ * reach the renderer from several sources (the store, drag payloads, the main
+ * process) that do not agree on those details.
+ */
+export function isSamePath(a: string, b: string): boolean {
+  return normalizePathForCompare(a) === normalizePathForCompare(b);
+}
+
+/** Strips trailing separators and collapses/normalizes the rest to the platform separator. */
+function normalizePathForCompare(path: string): string {
+  const sep = pathSep();
+  const rooted = isAbsolutePath(path) && !/^[A-Za-z]:/.test(path) ? sep : '';
+  return rooted + splitPathSegments(path).join(sep);
+}
+
+/**
  * True if `child` is `root` itself or nested inside it, comparing on path-segment
  * boundaries so a sibling like '.../notes-archive' is NOT considered inside
  * '.../notes'. Trailing separators are ignored and either separator is accepted.
