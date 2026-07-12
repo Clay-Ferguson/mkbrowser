@@ -13,15 +13,26 @@ const DYNAMIC_SCROLL_TO_ELEMENT = true;
 // Brighter purple for dark backgrounds
 const HIGHLIGHT_BOX_SHADOW = '0 0 0 2px #c084fc'; // Tailwind purple-400
 
+const HIGHLIGHT_DURATION_MS = 7000;
+
+// Pending clear-timers, keyed by element, so re-highlighting an element that is
+// already highlighted restarts its timer instead of letting the earlier one
+// clear the box-shadow out from under the newer highlight.
+const highlightTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+
 /**
  * Adds a temporary highlight to a DOM element (2px bright purple border).
  * Removes the highlight after a few seconds.
  */
 export function temporaryHighlightItem(element: HTMLElement) {
+  const pending = highlightTimers.get(element);
+  if (pending !== undefined) clearTimeout(pending);
+
   element.style.boxShadow = HIGHLIGHT_BOX_SHADOW;
-  setTimeout(() => {
+  highlightTimers.set(element, setTimeout(() => {
+    highlightTimers.delete(element);
     element.style.boxShadow = '';
-  }, 7000);
+  }, HIGHLIGHT_DURATION_MS));
 }
 /** Builds the DOM element ID for a file-entry header row, used by scrollItemIntoView and temporaryHighlightItem. */
 export const buildEntryHeaderId = (filePath: string) => `entry-${encodeURIComponent(filePath)}`;
