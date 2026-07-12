@@ -202,6 +202,21 @@ const beginSettledScroll = (element: HTMLElement, highlight: boolean): void => {
     observer.observe(child);
   }
 
+  // Content that arrives late as a *new* direct child of the container (rather
+  // than growing an existing one) would otherwise reflow the page unobserved,
+  // so pick up new children as they mount. Observing a child also delivers an
+  // immediate ResizeObserver callback, which doubles as the correction for the
+  // reflow the insertion caused.
+  const childWatcher = new MutationObserver(mutations => {
+    for (const mutation of mutations) {
+      for (const node of Array.from(mutation.addedNodes)) {
+        if (node instanceof Element) observer.observe(node);
+      }
+    }
+  });
+  signal.addEventListener('abort', () => childWatcher.disconnect(), { once: true });
+  childWatcher.observe(scrollContainer, { childList: true });
+
   const stopTimer = setTimeout(cancel, SETTLE_WINDOW_MS);
   signal.addEventListener('abort', () => clearTimeout(stopTimer), { once: true });
 };
