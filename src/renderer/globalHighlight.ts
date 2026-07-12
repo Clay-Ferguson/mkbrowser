@@ -48,6 +48,10 @@ export function setGlobalHighlightText(text: string | null) {
 
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'INPUT', 'TEXTAREA']);
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * The subtree a highlight pass should scan. App.tsx keeps every visited view mounted and
  * merely toggles `display`, marking the visible one with `data-active-view`; scanning all of
@@ -74,7 +78,11 @@ export function applyGlobalHighlight(searchText: string | null): void {
   if (!searchText) return;
 
   const ranges: Range[] = [];
-  const lower = searchText.toLowerCase();
+  // Matching on the original text (rather than a lowercased copy) keeps match offsets and
+  // lengths valid as range offsets: case folding is not length-preserving for every character
+  // (e.g. 'İ'.toLowerCase() is two code units), so indices taken from a lowercased string can
+  // drift and land mid-character or past the end of the node.
+  const pattern = new RegExp(escapeRegExp(searchText), 'giu');
   let nodeCount = 0;
   const walker = document.createTreeWalker(highlightRoot(), NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
@@ -88,14 +96,16 @@ export function applyGlobalHighlight(searchText: string | null): void {
   while ((node = walker.nextNode() as Text | null)) {
     nodeCount++;
     const text = node.textContent;
-    const lowerText = text.toLowerCase();
-    let idx = 0;
-    while ((idx = lowerText.indexOf(lower, idx)) !== -1) {
+    pattern.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = pattern.exec(text)) !== null) {
       const range = document.createRange();
-      range.setStart(node, idx);
-      range.setEnd(node, idx + searchText.length);
+      range.setStart(node, m.index);
+      range.setEnd(node, m.index + m[0].length);
       ranges.push(range);
-      idx += searchText.length;
+      // A zero-length match can only arise from an empty searchText, which is rejected above,
+      // but guard anyway so a pathological pattern cannot spin here.
+      if (m[0].length === 0) pattern.lastIndex++;
     }
   }
 
