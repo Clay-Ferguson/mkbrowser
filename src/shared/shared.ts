@@ -148,6 +148,8 @@ export interface FileEntry {
   modifiedTime: number;
   /** Created timestamp in milliseconds since epoch */
   createdTime: number;
+  /** File size in bytes (from the same stat as modifiedTime); undefined when stat failed */
+  size?: number;
   content?: string;
   /** Preview text from HUMAN.md or AI.md for AI conversation folders */
   aiHint?: string;
@@ -157,6 +159,30 @@ export interface FileEntry {
   attachments?: FileEntry[];
   /** True when a sibling .attach folder exists for this file */
   hasAttachFolder?: boolean;
+}
+
+/**
+ * Result of readFileWithMtime: file content plus the mtime/size captured from
+ * the same open file handle, so cache stamps always describe the content that
+ * was actually read (never a wall-clock guess or a stale store value).
+ */
+export interface FileReadResult {
+  content: string;
+  /** mtimeMs of the file at the moment the content was read */
+  mtime: number;
+  /** Size in bytes of the file at the moment the content was read */
+  size: number;
+}
+
+/** Result of writeFile: the content actually written plus its on-disk mtime/size. */
+export interface FileWriteResult {
+  ok: boolean;
+  /** The content actually written (after TOC/front-matter processing) */
+  content: string;
+  /** mtimeMs of the file after the write; 0 when ok is false */
+  mtime: number;
+  /** Size in bytes of the file after the write; undefined when the post-write stat failed */
+  size?: number;
 }
 
 export interface SearchResult {
@@ -232,11 +258,12 @@ export interface ElectronAPI {
   selectFolder: () => Promise<string | null>;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<string>;
+  readFileWithMtime: (filePath: string) => Promise<FileReadResult>;
   readExif: (filePath: string) => Promise<ExifData>;
   writeExif: (filePath: string, data: ExifData) => Promise<boolean>;
   getImageDimensions: (filePath: string) => Promise<ImageDimensions | null>;
   pathExists: (checkPath: string) => Promise<boolean>;
-  writeFile: (filePath: string, content: string) => Promise<{ ok: boolean; content: string }>;
+  writeFile: (filePath: string, content: string) => Promise<FileWriteResult>;
   getFileSize: (filePath: string) => Promise<number>;
   getFileMtime: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;

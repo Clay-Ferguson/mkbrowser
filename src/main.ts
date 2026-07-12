@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, OcrTarget } from './shared/shared';
+import type { AppConfig, OcrTarget, FileReadResult, FileWriteResult } from './shared/shared';
 
 import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
@@ -226,6 +226,24 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Read a file's content together with the mtime/size captured from the same
+  // open file handle, so the renderer can stamp its content cache with the
+  // mtime the bytes actually correspond to. The fstat happens BEFORE the read:
+  // if a write lands between the two, the content is newer than the recorded
+  // mtime, which at worst causes one redundant re-read later — it can never
+  // validate stale content. Unlike read-file this rejects on failure, so the
+  // caller can distinguish an unreadable file from an empty one.
+  ipcMain.handle('read-file-with-mtime', async (_event, filePath: string): Promise<FileReadResult> => {
+    const handle = await fs.promises.open(filePath, 'r');
+    try {
+      const stats = await handle.stat();
+      const content = await handle.readFile({ encoding: 'utf-8' });
+      return { content, mtime: stats.mtimeMs, size: stats.size };
+    } finally {
+      await handle.close();
+    }
+  });
+
   // Read EXIF metadata from an image file
   ipcMain.handle('read-exif', async (_event, filePath: string): Promise<Record<string, Record<string, string>>> => {
     try {
@@ -267,11 +285,16 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Write content to a file
-  ipcMain.handle('write-file', async (_event, filePath: string, content: string): Promise<{ ok: boolean; content: string }> => {
+  // Write content to a file. Returns the file's post-write mtime so the
+  // renderer can stamp its content cache with the real on-disk timestamp —
+  // a renderer-side Date.now() is generally at or ahead of the disk mtime,
+  // which would blind the external-modification checks to any later edit
+  // landing in the same mtime window.
+  ipcMain.handle('write-file', async (_event, filePath: string, content: string): Promise<FileWriteResult> => {
     try {
       let finalContent = content;
       let addedIndexId: string | null = null;
+      let savedStats: fs.Stats | null;
 
       if (filePath.toLowerCase().endsWith('.md')) {
         finalContent = await processTOC(content);
@@ -282,14 +305,18 @@ function setupIpcHandlers(): void {
         // read → write-ids cycle for .md files runs entirely inside this lock,
         // so serializing the save's write against it means reconcile can never
         // overwrite this save with stale content read before it landed
-        // (MAIN_ISSUES.md issue 1). Only the writeFile is inside the lock —
-        // recordFrontMatterIdInIndex below takes the (non-reentrant) lock itself.
+        // (MAIN_ISSUES.md issue 1). Only the writeFile (and the stat capturing
+        // its resulting mtime, which must not observe a later write) is inside
+        // the lock — recordFrontMatterIdInIndex below takes the (non-reentrant)
+        // lock itself.
         const contentToWrite = finalContent;
-        await withIndexLock(path.dirname(filePath), () =>
-          fs.promises.writeFile(filePath, contentToWrite, 'utf-8'),
-        );
+        savedStats = await withIndexLock(path.dirname(filePath), async () => {
+          await fs.promises.writeFile(filePath, contentToWrite, 'utf-8');
+          return fs.promises.stat(filePath).catch(() => null);
+        });
       } else {
         await fs.promises.writeFile(filePath, finalContent, 'utf-8');
+        savedStats = await fs.promises.stat(filePath).catch(() => null);
       }
 
       // Record a freshly-injected Document Mode id in .INDEX.yaml only AFTER the
@@ -309,10 +336,12 @@ function setupIpcHandlers(): void {
         }
       }
 
-      return { ok: true, content: finalContent };
+      // If the post-write stat somehow failed (file deleted in between), fall
+      // back to Date.now() rather than failing a save that actually landed.
+      return { ok: true, content: finalContent, mtime: savedStats?.mtimeMs ?? Date.now(), size: savedStats?.size };
     } catch (error) {
       logger.error('Error writing file:', error);
-      return { ok: false, content };
+      return { ok: false, content, mtime: 0 };
     }
   });
 

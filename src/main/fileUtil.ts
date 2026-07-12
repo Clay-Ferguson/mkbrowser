@@ -39,11 +39,13 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     // Dirent.isDirectory() does NOT follow symlinks on Linux.
     let modifiedTime = 0;
     let createdTime = 0;
+    let size: number | undefined;
     let isDirectory = entry.isDirectory();
     try {
       const stat = await fs.promises.stat(fullPath);
       modifiedTime = stat.mtimeMs;
       createdTime = stat.birthtimeMs;
+      size = stat.size;
       if (entry.isSymbolicLink()) {
         isDirectory = stat.isDirectory();
       }
@@ -67,6 +69,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
       isMarkdown,
       modifiedTime,
       createdTime,
+      size,
     };
 
     // Pre-load contents of .attach folders so the renderer needs no extra I/O

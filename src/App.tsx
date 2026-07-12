@@ -15,7 +15,7 @@ import BrowseView from './components/views/BrowseView';
 import IndexTreeView from './components/views/IndexTreeView';
 import AppTabButtons from './components/AppTabButtons';
 import {
-  upsertItems,
+  syncDirectoryItems,
   setSearchResults,
   getSettings,
   setCurrentView,
@@ -119,6 +119,7 @@ async function loadDirectoryContents(
         isDirectory: file.isDirectory,
         modifiedTime: file.modifiedTime,
         createdTime: file.createdTime,
+        size: file.size,
         aiHint: file.aiHint,
       }];
       if (file.attachments) {
@@ -128,13 +129,18 @@ async function loadDirectoryContents(
           isDirectory: a.isDirectory,
           modifiedTime: a.modifiedTime,
           createdTime: a.createdTime,
+          size: a.size,
           aiHint: a.aiHint,
         }));
         return [...base, ...attachItems];
       }
       return base;
     });
-    upsertItems(allItems);
+    // A full listing of currentPath, so this also prunes the cached entries of
+    // files that vanished from it (deleted or moved outside the app). Leaving
+    // them behind would let a later paste/delete act on a stale isCut/isSelected
+    // flag — see syncDirectoryItems.
+    syncDirectoryItems(currentPath, allItems);
   } catch (err) {
     if (isStale()) return;
     const errorMessage = err instanceof Error ? err.message : 'Failed to read directory';

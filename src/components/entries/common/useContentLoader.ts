@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../../renderer/api';
-import { useAS, setItemContent, isCacheValid } from '../../../store';
+import { useAS, setItemContent, isCacheValid, getItem } from '../../../store';
 import { applyGlobalHighlight, globalHighlightText } from '../../../renderer/globalHighlight';
 import type { ContentLoaderState } from './types';
 
@@ -25,14 +25,19 @@ async function loadFileContent(
 ): Promise<void> {
   setLoading(true);
   try {
-    const content = await api.readFile(path);
+    // mtime/size come from the same file handle as the content, so the cache
+    // stamp describes exactly the bytes that were read — a separate stat (or a
+    // store-supplied mtime) could describe a different version of the file.
+    const { content, mtime, size } = await api.readFileWithMtime(path);
     if (isIgnored()) return;
-    setItemContent(path, content);
+    setItemContent(path, content, mtime, size);
     if (globalHighlightText) {
       requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
     }
   } catch {
-    if (!isIgnored()) setItemContent(path, errorMessage);
+    // Stamp the error message with the last known mtime: it stays cache-valid
+    // (no re-read loop) until the file's mtime actually changes.
+    if (!isIgnored()) setItemContent(path, errorMessage, getItem(path)?.modifiedTime ?? 0);
   } finally {
     if (!isIgnored()) setLoading(false);
   }

@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
+  readFileWithMtime: (filePath: string) => ipcRenderer.invoke('read-file-with-mtime', filePath),
   readExif: (filePath: string) => ipcRenderer.invoke('read-exif', filePath),
   writeExif: (filePath: string, data: Record<string, Record<string, string>>) => ipcRenderer.invoke('write-exif', filePath, data),
   getImageDimensions: (filePath: string) => ipcRenderer.invoke('get-image-dimensions', filePath),

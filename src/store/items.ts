@@ -3,7 +3,7 @@ import type { ItemData } from '../shared/types';
 import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
-import { getParentPath } from '../renderer/pathUtil';
+import { getParentPath, isPathInside } from '../renderer/pathUtil';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
 
@@ -17,7 +17,24 @@ interface IncomingItem {
   isDirectory: boolean;
   modifiedTime: number;
   createdTime?: number;
+  /** File size in bytes from the same stat as modifiedTime, when the caller has it */
+  size?: number;
   aiHint?: string;
+}
+
+/**
+ * True when the incoming item is a *different* file than the one already cached
+ * at that path — i.e. the original was deleted and something else was created in
+ * its place behind our back (git checkout, sync client, terminal). A changed
+ * createdTime (birth time, which a plain edit never touches) or a file/folder
+ * flip both mean identity changed, not just content.
+ *
+ * `createdTime` is only trusted when the caller actually supplies one; the
+ * modifiedTime fallback is not an identity signal.
+ */
+function isReplacedFile(existing: ItemData, item: IncomingItem): boolean {
+  if (existing.isDirectory !== item.isDirectory) return true;
+  return item.createdTime !== undefined && item.createdTime !== existing.createdTime;
 }
 
 /**
@@ -25,12 +42,16 @@ interface IncomingItem {
  * item to store. Shared merge rules for both upsertItem and upsertItems:
  * - Existing item: refresh metadata, invalidate cached content if the file has
  *   changed since it was cached, and replace aiHint only when one is supplied.
+ * - Existing item that is really a *different* file at the same path: start over
+ *   from a fresh entry, so no volatile flag survives the swap. A carried-over
+ *   `isCut` would make the next paste move a file nobody cut, and a carried-over
+ *   `isSelected` would make the next delete remove a file nobody selected.
  * - No existing item: create a fresh entry.
  */
 function mergeItem(existing: ItemData | undefined, item: IncomingItem): ItemData {
   const createdTime = item.createdTime ?? item.modifiedTime;
 
-  if (!existing) {
+  if (!existing || isReplacedFile(existing, item)) {
     return createItemData(item.path, item.name, item.isDirectory, item.modifiedTime, createdTime, item.aiHint);
   }
 
@@ -43,10 +64,18 @@ function mergeItem(existing: ItemData | undefined, item: IncomingItem): ItemData
     aiHint: item.aiHint ?? existing.aiHint,
   };
 
-  // If the file has been modified since we cached content, invalidate cache
-  if (existing.contentCachedAt && item.modifiedTime > existing.contentCachedAt) {
+  // Invalidate cached content when the file on disk no longer matches the
+  // state the content was read at: a *different* mtime (newer, or older after
+  // a restore-from-backup — hence `!==`, not `>`), or a different size even
+  // with an equal mtime (coarse-mtime filesystems can hide a same-timestamp
+  // external edit; the size comparison catches most of those).
+  if (existing.contentCachedAt !== undefined && (
+    item.modifiedTime !== existing.contentCachedAt ||
+    (item.size !== undefined && existing.contentCachedSize !== undefined && item.size !== existing.contentCachedSize)
+  )) {
     updatedItem.content = undefined;
     updatedItem.contentCachedAt = undefined;
+    updatedItem.contentCachedSize = undefined;
   }
 
   return updatedItem;
@@ -74,13 +103,30 @@ export function withSelectionsCleared(items: Map<string, ItemData>): Map<string,
   return hasChanges ? newItems : null;
 }
 
+/** Strip any trailing separators so prefix math lands on a segment boundary. */
+function stripTrailingSep(path: string): string {
+  return path.replace(/[/\\]+$/, '');
+}
+
+/**
+ * If `path` sits strictly inside `oldRoot`, return the equivalent path under
+ * `newRoot`; otherwise null. Matching is segment-aware (via isPathInside), so a
+ * sibling like '.../notes-archive' is not treated as a descendant of '.../notes'.
+ * The tail is carried over verbatim, keeping whichever separator it already used.
+ */
+function remapDescendantPath(path: string, oldRoot: string, newRoot: string): string | null {
+  if (path === oldRoot || !isPathInside(oldRoot, path)) return null;
+  return newRoot + path.substring(oldRoot.length);
+}
+
 /**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
  */
 export interface ItemsSlice {
   upsertItems: (items: IncomingItem[]) => void;
-  setItemContent: (path: string, content: string, modifiedTime?: number) => void;
+  syncDirectoryItems: (dirPath: string, items: IncomingItem[]) => void;
+  setItemContent: (path: string, content: string, modifiedTime: number, size?: number) => void;
   toggleItemSelected: (path: string) => void;
   toggleItemExpanded: (path: string) => void;
   setItemExpanded: (path: string, isExpanded: boolean) => void;
@@ -109,7 +155,13 @@ export interface ItemsSlice {
  */
 export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
   return {
-    /** Batch upsert multiple items at once (more efficient for directory loads). */
+    /**
+     * Batch upsert multiple items at once. Purely additive: entries already in
+     * the store are merged, never removed. Use it when the incoming items are
+     * *not* a complete listing of one folder (ThreadView gathers entries from a
+     * whole subtree, useEditMode refreshes a single file); for a directory load,
+     * use syncDirectoryItems so vanished files get pruned.
+     */
     upsertItems: (items) => {
       // Create new Map to ensure React detects the change
       const newItems = new Map(get().items);
@@ -121,13 +173,69 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       set({ items: newItems });
     },
 
-    /** Set the cached content for a markdown file. */
-    setItemContent: (path, content, modifiedTime) => {
+    /**
+     * Apply a complete directory listing: upsert everything in it, then drop the
+     * cached entries for direct children of `dirPath` that the listing no longer
+     * contains (deleted or moved outside the app, or from another view).
+     *
+     * Without this the items Map only ever grows, and a ghost entry keeps its
+     * volatile flags forever — a paste would try to move a file that no longer
+     * exists, and delete-selected would act on paths the user can't even see.
+     * A pruned folder takes its cached subtree with it, since none of those
+     * descendants exist any more either.
+     *
+     * `items` may legitimately contain non-children (App passes each markdown
+     * file's attachments alongside it); those are upserted but never considered
+     * for pruning, which only ever looks at direct children of `dirPath`.
+     */
+    syncDirectoryItems: (dirPath, items) => {
+      const newItems = new Map(get().items);
+      let hasChanges = items.length > 0;
+
+      for (const item of items) {
+        newItems.set(item.path, mergeItem(newItems.get(item.path), item));
+      }
+
+      const listed = new Set(items.map(item => item.path));
+      const parent = stripTrailingSep(dirPath);
+
+      // Two passes: collect the vanished children first, then delete each one
+      // together with anything cached beneath it.
+      const vanished: string[] = [];
+      for (const path of newItems.keys()) {
+        if (!listed.has(path) && getParentPath(path) === parent) {
+          vanished.push(path);
+        }
+      }
+
+      for (const path of newItems.keys()) {
+        if (vanished.some(root => isPathInside(root, path))) {
+          newItems.delete(path);
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) return;
+
+      set({ items: newItems });
+    },
+
+    /**
+     * Set the cached content for a markdown file. `modifiedTime` must be the
+     * file's on-disk mtime captured atomically with the content (fstat with the
+     * read, or the post-write stat on save) — never a wall-clock guess.
+     *
+     * The item's modifiedTime only moves forward: if a directory refresh has
+     * already recorded a newer mtime than the content being committed (the read
+     * started before an external change landed), the newer mtime is kept, so
+     * contentCachedAt < modifiedTime and the stale content is immediately
+     * cache-invalid instead of being poisoned as valid-at-the-newer-mtime.
+     */
+    setItemContent: (path, content, modifiedTime, size) => {
       const state = get();
       const existing = state.items.get(path);
       if (!existing) return;
 
-      const now = modifiedTime ?? existing.modifiedTime;
       const fmParts = splitFrontMatter(content);
       const tags = fmParts ? getTagsFromYaml(fmParts.yamlStr).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })) : [];
       const props = fmParts ? getPropsFromYaml(fmParts.yamlStr) : {};
@@ -136,8 +244,9 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       newItems.set(path, {
         ...existing,
         content,
-        modifiedTime: now,
-        contentCachedAt: now,
+        modifiedTime: Math.max(existing.modifiedTime, modifiedTime),
+        contentCachedAt: modifiedTime,
+        contentCachedSize: size,
         tags,
         props,
       });
@@ -321,33 +430,58 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * Rename an item in the store: move its entry from oldPath to newPath,
      * preserving all state (isSelected, isCut, isExpanded, content, etc.).
      * This prevents phantom entries when a selected item is renamed.
+     *
+     * The items Map is global and long-lived — it holds entries from every
+     * folder visited this session — so renaming a folder must also re-key every
+     * cached descendant. Otherwise those entries keep pointing at a path that no
+     * longer exists while their state (editing, editContent, isCut, ...) stays
+     * live, and a later save would write to the dead path.
      */
     renameItem: (oldPath, newPath, newName) => {
       const state = get();
       const existing = state.items.get(oldPath);
       if (!existing) return;
 
-      const newItems = new Map(state.items);
-      newItems.delete(oldPath);
-      newItems.set(newPath, {
-        ...existing,
-        path: newPath,
-        name: newName,
-        renaming: false,
-      });
+      const oldRoot = stripTrailingSep(oldPath);
+      const newRoot = stripTrailingSep(newPath);
+
+      // Rebuilt in iteration order (rather than copy-then-mutate) so the renamed
+      // entry keeps its position among its siblings.
+      const newItems = new Map<string, ItemData>();
+
+      for (const [path, item] of state.items) {
+        if (path === oldPath) {
+          newItems.set(newPath, { ...item, path: newPath, name: newName, renaming: false });
+          continue;
+        }
+
+        const movedPath = remapDescendantPath(path, oldRoot, newRoot);
+        if (movedPath) {
+          newItems.set(movedPath, { ...item, path: movedPath });
+        } else {
+          newItems.set(path, item);
+        }
+      }
 
       set({ items: newItems });
     },
 
-    /** Delete multiple items from the store by their paths. */
+    /**
+     * Delete items from the store by their paths, along with every cached
+     * descendant of each path (a deleted folder takes its whole subtree with it,
+     * so leaving descendants behind would strand their editing/isCut state).
+     */
     deleteItems: (paths) => {
       if (paths.length === 0) return;
+
+      const roots = paths.map(stripTrailingSep).filter(Boolean);
+      if (roots.length === 0) return;
 
       const newItems = new Map(get().items);
       let hasChanges = false;
 
-      for (const path of paths) {
-        if (newItems.has(path)) {
+      for (const path of newItems.keys()) {
+        if (roots.some(root => isPathInside(root, path))) {
           newItems.delete(path);
           hasChanges = true;
         }
@@ -482,8 +616,16 @@ export function upsertItems(items: IncomingItem[]): void {
   getState().upsertItems(items);
 }
 
-export function setItemContent(path: string, content: string, modifiedTime?: number): void {
-  getState().setItemContent(path, content, modifiedTime);
+/**
+ * Upsert a complete directory listing and prune the entries for children of
+ * `dirPath` that are no longer there. Only for callers holding a full listing.
+ */
+export function syncDirectoryItems(dirPath: string, items: IncomingItem[]): void {
+  getState().syncDirectoryItems(dirPath, items);
+}
+
+export function setItemContent(path: string, content: string, modifiedTime: number, size?: number): void {
+  getState().setItemContent(path, content, modifiedTime, size);
 }
 
 export function toggleItemSelected(path: string): void {
@@ -601,8 +743,11 @@ export function isCacheValid(path: string): boolean {
   if (!item || item.content === undefined || !item.contentCachedAt) {
     return false;
   }
-  // Cache is valid if the file hasn't been modified since we cached it
-  return item.contentCachedAt >= item.modifiedTime;
+  // Valid only when the content was captured at exactly the latest known mtime.
+  // `>=` would let a cache stamped ahead of the real disk mtime (clock skew,
+  // coarse filesystem timestamps) validate content an external edit has since
+  // replaced — and a save over that stale content destroys the external edit.
+  return item.contentCachedAt === item.modifiedTime;
 }
 
 /**

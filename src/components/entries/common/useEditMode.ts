@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../../../renderer/api';
-import { useAS, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing, upsertItem } from '../../../store';
+import { useAS, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing } from '../../../store';
 import { applyGlobalHighlight, globalHighlightText } from '../../../renderer/globalHighlight';
 import { removeTOC } from '../../../shared/tocUtil';
 import { logger } from '../../../shared/logUtil';
@@ -26,7 +26,11 @@ async function writeFileAndExitEditMode(path: string, editContent: string): Prom
   try {
     const result = await api.writeFile(path, editContent);
     if (result.ok) {
-      setItemContent(path, result.content, Date.now());
+      // Stamp the cache with the file's real post-write mtime from the main
+      // process — a renderer Date.now() is generally at or ahead of the disk
+      // mtime, which would blind the pre-edit external-modification check to
+      // any later edit landing in the same mtime window.
+      setItemContent(path, result.content, result.mtime, result.size);
       setItemEditing(path, false);
       if (globalHighlightText) {
         requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
@@ -71,16 +75,17 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
   }, [isEditing, item?.content, path]);
 
   const handleEditClick = async (goToLine?: number) => {
-    // Check the file's current mtime on disk to detect external modifications
+    // Check the file's current mtime on disk to detect external modifications.
+    // `!==` rather than `>`: an external tool can leave an *older* mtime
+    // (restore from backup) or one equal to a stale wall-clock cache stamp.
     const diskMtime = await api.getFileMtime(path);
-    if (diskMtime > 0 && item && diskMtime > item.modifiedTime) {
+    if (diskMtime > 0 && item && diskMtime !== item.modifiedTime) {
       // File was modified externally — re-read from disk before editing
       try {
-        const freshContent = await api.readFile(path);
-        // Update the store with the new modifiedTime and content
-        upsertItem(path, item.name, item.isDirectory, diskMtime, item.createdTime);
-        setItemContent(path, freshContent);
-        setItemEditContent(path, removeTOC(freshContent));
+        const fresh = await api.readFileWithMtime(path);
+        // Cache the fresh content stamped with the mtime it was read at
+        setItemContent(path, fresh.content, fresh.mtime, fresh.size);
+        setItemEditContent(path, removeTOC(fresh.content));
       } catch {
         // If re-read fails, fall back to cached content
         setItemEditContent(path, removeTOC(content));

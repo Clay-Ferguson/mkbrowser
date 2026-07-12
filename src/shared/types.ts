@@ -35,10 +35,20 @@ export interface ItemData {
   content?: string;
 
   /**
-   * The modifiedTime at which the content was cached.
-   * Used to determine if the cached content is still valid.
+   * The file's on-disk mtime at the moment `content` was read (captured from
+   * the same file handle as the read, or from the post-write stat on save).
+   * The cache is valid only while this exactly equals `modifiedTime` — see
+   * isCacheValid in store/items.ts.
    */
   contentCachedAt?: number;
+
+  /**
+   * The file's size in bytes at the moment `content` was read. Lets a listing
+   * refresh detect an external overwrite that landed within the same mtime
+   * (coarse-mtime filesystems, sub-granularity writes) — equal mtime but a
+   * different size still invalidates the cache.
+   */
+  contentCachedSize?: number;
 
   /**
    * Whether the file is currently being edited.
