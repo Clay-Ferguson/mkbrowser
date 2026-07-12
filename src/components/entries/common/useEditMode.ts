@@ -69,10 +69,15 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
   // This handles external triggers (e.g., from search results edit button)
   useEffect(() => {
     if (isEditing && !editInitialized.current && item?.content !== undefined) {
-      setItemEditContent(path, removeTOC(item.content));
+      // An already-populated editContent is live edit state (setItemEditing(false)
+      // clears it), e.g. unsaved edits migrated by renameItem to the new path.
+      // Adopt it instead of re-seeding from the last-saved content.
+      if (item.editContent === undefined) {
+        setItemEditContent(path, removeTOC(item.content));
+      }
       editInitialized.current = true;
     }
-  }, [isEditing, item?.content, path]);
+  }, [isEditing, item?.content, item?.editContent, path]);
 
   const handleEditClick = async (goToLine?: number) => {
     // Check the file's current mtime on disk to detect external modifications.

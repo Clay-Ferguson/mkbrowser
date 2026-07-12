@@ -1,9 +1,9 @@
 import { useShallow } from 'zustand/react/shallow';
-import type { ItemData } from '../shared/types';
+import type { AppState, ItemData } from '../shared/types';
 import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
-import { getParentPath, isPathInside } from '../renderer/pathUtil';
+import { getParentPath, isPathInside, remapMovedPath } from '../renderer/pathUtil';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
 
@@ -109,17 +109,6 @@ function stripTrailingSep(path: string): string {
 }
 
 /**
- * If `path` sits strictly inside `oldRoot`, return the equivalent path under
- * `newRoot`; otherwise null. Matching is segment-aware (via isPathInside), so a
- * sibling like '.../notes-archive' is not treated as a descendant of '.../notes'.
- * The tail is carried over verbatim, keeping whichever separator it already used.
- */
-function remapDescendantPath(path: string, oldRoot: string, newRoot: string): string | null {
-  if (path === oldRoot || !isPathInside(oldRoot, path)) return null;
-  return newRoot + path.substring(oldRoot.length);
-}
-
-/**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
  */
@@ -137,7 +126,7 @@ export interface ItemsSlice {
   collapseAllItems: () => void;
   cutSelectedItems: () => void;
   clearAllCutItems: () => void;
-  renameItem: (oldPath: string, newPath: string, newName: string) => void;
+  renameItem: (oldPath: string, newPath: string, newName: string) => boolean;
   deleteItems: (paths: string[]) => void;
   clearCache: () => void;
   setItemEditing: (path: string, editing: boolean, goToLine?: number) => void;
@@ -427,49 +416,111 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
     },
 
     /**
-     * Rename an item in the store: move its entry from oldPath to newPath,
-     * preserving all state (isSelected, isCut, isExpanded, content, etc.).
-     * This prevents phantom entries when a selected item is renamed.
+     * Central "path moved" handler for a rename: moves the item's entry from
+     * oldPath to newPath, preserving all state (isSelected, isCut, isExpanded,
+     * content, etc.) to prevent phantom entries when a selected item is
+     * renamed — and, atomically in the same update, remaps every other slice
+     * that holds file paths. Leaving any of those stale dangles bookmarks,
+     * points calendar events at files that no longer exist, and lets "Paste
+     * Link" write dead links into document content:
+     * - bookmarks (settings slice), including bookmarks to descendants of a
+     *   renamed folder
+     * - calendar events keyed by `filePath` (calendar slice)
+     * - "Copy Link" paths awaiting "Paste Link" (view slice)
      *
      * The items Map is global and long-lived — it holds entries from every
      * folder visited this session — so renaming a folder must also re-key every
      * cached descendant. Otherwise those entries keep pointing at a path that no
      * longer exists while their state (editing, editContent, isCut, ...) stays
      * live, and a later save would write to the dead path.
+     *
+     * Returns true when a bookmark path changed, so the caller knows the
+     * settings must be persisted to disk.
      */
     renameItem: (oldPath, newPath, newName) => {
       const state = get();
-      const existing = state.items.get(oldPath);
-      if (!existing) return;
-
       const oldRoot = stripTrailingSep(oldPath);
       const newRoot = stripTrailingSep(newPath);
+      const patch: Partial<AppState> = {};
 
       // Rebuilt in iteration order (rather than copy-then-mutate) so the renamed
-      // entry keeps its position among its siblings.
+      // entry keeps its position among its siblings. The renamed path itself may
+      // not be cached (e.g. a rename from the index tree of a folder never
+      // browsed) while descendants of it are — so the scan always runs and the
+      // map is only patched when an entry actually moved.
       const newItems = new Map<string, ItemData>();
+      let itemsChanged = false;
 
       for (const [path, item] of state.items) {
         if (path === oldPath) {
           newItems.set(newPath, { ...item, path: newPath, name: newName, renaming: false });
+          itemsChanged = true;
           continue;
         }
 
-        const movedPath = remapDescendantPath(path, oldRoot, newRoot);
+        const movedPath = remapMovedPath(path, oldRoot, newRoot);
         if (movedPath) {
           newItems.set(movedPath, { ...item, path: movedPath });
+          itemsChanged = true;
         } else {
           newItems.set(path, item);
         }
       }
 
-      set({ items: newItems });
+      if (itemsChanged) {
+        patch.items = newItems;
+      }
+
+      let bookmarksChanged = false;
+      const bookmarks = state.settings.bookmarks.map(b => {
+        const moved = remapMovedPath(b.path, oldRoot, newRoot);
+        if (moved === null) return b;
+        bookmarksChanged = true;
+        return { ...b, path: moved };
+      });
+      if (bookmarksChanged) {
+        patch.settings = { ...state.settings, bookmarks };
+      }
+
+      if (state.calendarEvents) {
+        let eventsChanged = false;
+        const calendarEvents = state.calendarEvents.map(e => {
+          const moved = e.filePath ? remapMovedPath(e.filePath, oldRoot, newRoot) : null;
+          if (moved === null) return e;
+          eventsChanged = true;
+          return { ...e, filePath: moved };
+        });
+        if (eventsChanged) {
+          patch.calendarEvents = calendarEvents;
+        }
+      }
+
+      let linksChanged = false;
+      const selectedLinkItems = state.selectedLinkItems.map(p => {
+        const moved = remapMovedPath(p, oldRoot, newRoot);
+        if (moved === null) return p;
+        linksChanged = true;
+        return moved;
+      });
+      if (linksChanged) {
+        patch.selectedLinkItems = selectedLinkItems;
+      }
+
+      if (Object.keys(patch).length > 0) {
+        set(patch);
+      }
+
+      return bookmarksChanged;
     },
 
     /**
      * Delete items from the store by their paths, along with every cached
      * descendant of each path (a deleted folder takes its whole subtree with it,
      * so leaving descendants behind would strand their editing/isCut state).
+     *
+     * Also drops any "Copy Link" paths pointing at (or under) a deleted path,
+     * atomically in the same update — a later "Paste Link" would otherwise
+     * write dead links into document content.
      */
     deleteItems: (paths) => {
       if (paths.length === 0) return;
@@ -477,7 +528,10 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       const roots = paths.map(stripTrailingSep).filter(Boolean);
       if (roots.length === 0) return;
 
-      const newItems = new Map(get().items);
+      const state = get();
+      const patch: Partial<AppState> = {};
+
+      const newItems = new Map(state.items);
       let hasChanges = false;
 
       for (const path of newItems.keys()) {
@@ -487,9 +541,20 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
         }
       }
 
-      if (!hasChanges) return;
+      if (hasChanges) {
+        patch.items = newItems;
+      }
 
-      set({ items: newItems });
+      const remainingLinks = state.selectedLinkItems.filter(
+        p => !roots.some(root => isPathInside(root, p)),
+      );
+      if (remainingLinks.length !== state.selectedLinkItems.length) {
+        patch.selectedLinkItems = remainingLinks;
+      }
+
+      if (Object.keys(patch).length === 0) return;
+
+      set(patch);
     },
 
     /**
@@ -668,8 +733,8 @@ export function clearAllCutItems(): void {
   getState().clearAllCutItems();
 }
 
-export function renameItem(oldPath: string, newPath: string, newName: string): void {
-  getState().renameItem(oldPath, newPath, newName);
+export function renameItem(oldPath: string, newPath: string, newName: string): boolean {
+  return getState().renameItem(oldPath, newPath, newName);
 }
 
 export function deleteItems(paths: string[]): void {

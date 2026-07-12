@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useAS } from '../src/store/core';
 import {
   clearCache,
+  deleteItems,
   getCutItems,
   getItem,
   isCacheValid,
+  renameItem,
   setItemContent,
   setItemSelected,
   syncDirectoryItems,
@@ -212,6 +214,122 @@ describe('items store — stale entry reconciliation', () => {
       // The newer metadata survives and the stale content is not cache-valid.
       expect(getItem(NOTE)?.modifiedTime).toBe(2000);
       expect(isCacheValid(NOTE)).toBe(false);
+    });
+  });
+});
+
+describe('renameItem / deleteItems — path-holding slices stay in sync', () => {
+  /** A calendar event originating from `filePath`. */
+  function event(id: string, filePath?: string) {
+    return { id, title: id, start: new Date(0), end: new Date(0), filePath };
+  }
+
+  beforeEach(() => {
+    clearCache();
+    useAS.setState({
+      settings: { ...useAS.getState().settings, bookmarks: [] },
+      calendarEvents: null,
+      selectedLinkItems: [],
+    });
+  });
+
+  describe('renameItem: bookmarks', () => {
+    it('remaps a bookmark to the renamed path itself and reports the change', () => {
+      useAS.setState({
+        settings: { ...useAS.getState().settings, bookmarks: [{ path: NOTE, name: 'note' }] },
+      });
+
+      expect(renameItem(NOTE, '/notes/renamed.md', 'renamed.md')).toBe(true);
+
+      expect(useAS.getState().settings.bookmarks).toEqual([{ path: '/notes/renamed.md', name: 'note' }]);
+    });
+
+    it('remaps bookmarks to descendants of a renamed folder', () => {
+      useAS.setState({
+        settings: {
+          ...useAS.getState().settings,
+          bookmarks: [
+            { path: '/notes/deep/a.md', name: 'a' },
+            { path: '/notes-archive/b.md', name: 'sibling with the old name as a prefix' },
+            { path: '/other/c.md', name: 'unrelated' },
+          ],
+        },
+      });
+
+      expect(renameItem(DIR, '/journal', 'journal')).toBe(true);
+
+      expect(useAS.getState().settings.bookmarks).toEqual([
+        { path: '/journal/deep/a.md', name: 'a' },
+        { path: '/notes-archive/b.md', name: 'sibling with the old name as a prefix' },
+        { path: '/other/c.md', name: 'unrelated' },
+      ]);
+    });
+
+    it('returns false and leaves settings untouched when no bookmark matches', () => {
+      const before = useAS.getState().settings;
+
+      expect(renameItem(NOTE, '/notes/renamed.md', 'renamed.md')).toBe(false);
+
+      expect(useAS.getState().settings).toBe(before);
+    });
+  });
+
+  describe('renameItem: calendar events', () => {
+    it('remaps events whose files live under a renamed folder', () => {
+      useAS.setState({
+        calendarEvents: [event('in', '/notes/cal/meet.md'), event('out', '/other/x.md'), event('none')],
+      });
+
+      renameItem(DIR, '/journal', 'journal');
+
+      expect(useAS.getState().calendarEvents?.map(e => e.filePath)).toEqual([
+        '/journal/cal/meet.md',
+        '/other/x.md',
+        undefined,
+      ]);
+    });
+  });
+
+  describe('renameItem: copied link paths', () => {
+    it('remaps "Copy Link" paths under a renamed folder', () => {
+      useAS.setState({ selectedLinkItems: [NOTE, '/other/x.md'] });
+
+      renameItem(DIR, '/journal', 'journal');
+
+      expect(useAS.getState().selectedLinkItems).toEqual(['/journal/note.md', '/other/x.md']);
+    });
+  });
+
+  describe('renameItem: items map', () => {
+    it('still re-keys the entry and its cached descendants, preserving state', () => {
+      syncDirectoryItems(DIR, [entry(NOTE)]);
+      setItemContent(NOTE, 'body', 1000);
+      setItemSelected(NOTE, true);
+
+      renameItem(DIR, '/journal', 'journal');
+
+      expect(getItem(NOTE)).toBeUndefined();
+      const moved = getItem('/journal/note.md');
+      expect(moved?.content).toBe('body');
+      expect(moved?.isSelected).toBe(true);
+    });
+
+    it('remaps the other slices even when the renamed path is not cached', () => {
+      useAS.setState({ selectedLinkItems: ['/uncached/a.md'] });
+
+      renameItem('/uncached', '/moved', 'moved');
+
+      expect(useAS.getState().selectedLinkItems).toEqual(['/moved/a.md']);
+    });
+  });
+
+  describe('deleteItems: copied link paths', () => {
+    it('drops "Copy Link" paths at or under a deleted path, keeping the rest', () => {
+      useAS.setState({ selectedLinkItems: [NOTE, '/notes/deep/a.md', '/other/x.md'] });
+
+      deleteItems([DIR]);
+
+      expect(useAS.getState().selectedLinkItems).toEqual(['/other/x.md']);
     });
   });
 });

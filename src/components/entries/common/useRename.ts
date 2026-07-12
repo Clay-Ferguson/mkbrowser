@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../../../renderer/api';
-import { setHighlightItem, setItemRenaming, renameItem, updateBookmarkPath } from '../../../store';
+import { setHighlightItem, setItemRenaming, renameItem } from '../../../store';
 import type { RenameState } from './types';
 import { getParentPath, joinPath } from '../../../renderer/pathUtil';
 import { logger } from '../../../shared/logUtil';
@@ -38,13 +38,14 @@ async function performRename(
     const newPath = joinPath(dirPath, trimmedName);
     const success = await api.renameFile(path, newPath);
     if (success) {
-      // Update bookmark if this item was bookmarked
-      if (updateBookmarkPath(path, newPath)) {
+      // Move the item entry from old path to new path in the store, preserving
+      // selection and other state (prevents phantom selections). This also
+      // remaps every other slice holding paths (bookmarks, calendar events,
+      // copied links) and returns true when a bookmark changed, in which case
+      // the settings must be persisted.
+      if (renameItem(path, newPath, trimmedName)) {
         onSaveSettings();
       }
-      // Move the item entry from old path to new path in the store,
-      // preserving selection and other state (prevents phantom selections)
-      renameItem(path, newPath, trimmedName);
       setHighlightItem(newPath);
       onRename();
     }

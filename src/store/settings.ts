@@ -28,7 +28,6 @@ export interface SettingsSlice {
   setImageSize: (imageSize: ImageSize) => void;
   toggleBookmark: (filePath: string) => boolean;
   addBookmark: (filePath: string, name: string) => void;
-  updateBookmarkPath: (oldPath: string, newPath: string) => boolean;
   updateBookmarkName: (filePath: string, name: string) => void;
   removeBookmark: (filePath: string) => void;
 }
@@ -105,30 +104,9 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
       set({ settings: { ...settings, bookmarks: [...currentBookmarks, { path: filePath, name }] } });
     },
 
-    /**
-     * Update a bookmark path when a file/folder is renamed.
-     * If the oldPath is bookmarked, updates it to the newPath.
-     * Returns true if a bookmark was updated.
-     */
-    updateBookmarkPath: (oldPath, newPath) => {
-      const settings = get().settings;
-      const currentBookmarks = settings.bookmarks;
-      const index = currentBookmarks.findIndex(b => b.path === oldPath);
-
-      if (index === -1) {
-        return false;
-      }
-
-      const existing = currentBookmarks[index];
-      if (!existing) return false;
-
-      const newBookmarks = [...currentBookmarks];
-      newBookmarks[index] = { ...existing, path: newPath };
-
-      set({ settings: { ...settings, bookmarks: newBookmarks } });
-
-      return true;
-    },
+    // Bookmark paths are remapped on rename by the cross-slice renameItem
+    // action in items.ts, which handles bookmarks to descendants of a renamed
+    // folder as well as exact matches.
 
     updateBookmarkName: (filePath, name) => {
       const settings = get().settings;
@@ -210,10 +188,6 @@ export function toggleBookmark(filePath: string): boolean {
 
 export function addBookmark(filePath: string, name: string): void {
   getState().addBookmark(filePath, name);
-}
-
-export function updateBookmarkPath(oldPath: string, newPath: string): boolean {
-  return getState().updateBookmarkPath(oldPath, newPath);
 }
 
 export function updateBookmarkName(filePath: string, name: string): void {

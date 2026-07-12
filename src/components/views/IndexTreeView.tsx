@@ -22,6 +22,7 @@ import {
   getIndexTreeRoot,
   getCutItems,
   deleteItems,
+  renameItem,
   clearAllCutItems,
   navigateToBrowserPath,
   setHighlightItem,
@@ -415,6 +416,13 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       const newPath = joinPath(parentPath, newName);
       const success = await api.renameFile(target.path, newPath);
       if (!success) return;
+
+      // Re-key the cached item (and descendants) and remap the other slices
+      // holding paths (bookmarks, calendar events, copied links); persist the
+      // settings when a bookmark path changed.
+      if (renameItem(target.path, newPath, newName)) {
+        await api.updateConfig({ settings: getSettings() });
+      }
 
       // If the browse view is showing the renamed item or its parent, refresh it.
       if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {

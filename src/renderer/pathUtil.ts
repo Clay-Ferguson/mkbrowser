@@ -86,6 +86,18 @@ export function ensureTrailingSep(path: string): string {
 }
 
 /**
+ * If `path` is `oldRoot` itself or nested inside it (segment-aware, so a
+ * sibling like '.../notes-archive' is not affected by moving '.../notes'),
+ * return the equivalent path under `newRoot`; otherwise null. The tail is
+ * carried over verbatim, keeping whichever separator it already used.
+ */
+export function remapMovedPath(path: string, oldRoot: string, newRoot: string): string | null {
+  const from = oldRoot.replace(/[/\\]+$/, '');
+  if (!isPathInside(from, path)) return null;
+  return newRoot.replace(/[/\\]+$/, '') + path.substring(from.length);
+}
+
+/**
  * True if `child` is `root` itself or nested inside it, comparing on path-segment
  * boundaries so a sibling like '.../notes-archive' is NOT considered inside
  * '.../notes'. Trailing separators are ignored and either separator is accepted.
