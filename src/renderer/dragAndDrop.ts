@@ -5,6 +5,7 @@ import { pasteCutItems } from './edit';
 import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
 import { getParentPath, isPathInside } from './pathUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
+import { logger } from '../shared/logUtil';
 
 /**
  * Custom drag-and-drop MIME type used to carry a single dragged file/folder between
@@ -99,12 +100,15 @@ export async function moveEntryIntoFolder(payload: DragPayload, destFolder: stri
   );
 
   // Only reconcile when the item actually moved on disk (movedPaths is empty on
-  // a failed rename), keeping the indexes in step with the filesystem.
+  // a failed rename), keeping the indexes in step with the filesystem. A reconcile
+  // failure must not reject: the rename already happened, so the caller still has to
+  // update the store (a stale .INDEX.yaml is recoverable; a store that still lists a
+  // file that is no longer there is not).
   if (result.movedPaths.length > 0) {
     await Promise.all([
       api.reconcileIndexedFiles(sourceFolder, false),
       api.reconcileIndexedFiles(destFolder, false),
-    ]);
+    ]).catch(err => logger.error('Failed to reconcile indexes after move:', err));
   }
 
   if (!result.success) {

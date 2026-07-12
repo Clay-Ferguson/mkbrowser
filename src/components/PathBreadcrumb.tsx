@@ -10,6 +10,7 @@ import {
   reloadExpandedTreeFolder,
 } from '../renderer/dragAndDrop';
 import { joinPath, splitPathSegments, isPathInside } from '../renderer/pathUtil';
+import { logger } from '../shared/logUtil';
 
 export type PathBreadcrumbProps = {
   rootPath: string;
@@ -76,7 +77,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
       if (folderPath === normalizedCurrent || result.sourceFolder === normalizedCurrent) {
         onRefreshDirectory?.();
       }
-    })(),
+    })().catch(err => logger.error('Failed to move item into folder:', err)),
   });
 
   return (
