@@ -166,7 +166,8 @@ export async function reloadExpandedTreeFolder(folderPath: string): Promise<void
   try {
     const entries = await api.readDirectory(folderPath);
     expandIndexTreeNode(folderPath, makeTreeNodes(entries));
-  } catch {
-    // leave tree as-is
+  } catch (err) {
+    // Leave the tree as-is; a stale node is better than tearing down the expanded view.
+    logger.error(`Failed to reload tree folder ${folderPath}:`, err);
   }
 }
