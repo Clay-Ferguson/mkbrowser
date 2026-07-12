@@ -16,17 +16,14 @@ function makeFs(
   initial: Record<string, string>,
   opts: {
     createFailOn?: string;        // path whose createFile returns { success: false }
-    writeFail?: boolean;          // writeFile returns { ok: false }
-    renameFail?: boolean;         // renameFile returns false (every call)
-    renameFailOnCall?: number;    // renameFile returns false only on the Nth call (1-based)
-    deleteFailOn?: string;        // path whose deleteFile returns false
+    deleteFailOn?: string[];      // paths whose deleteFile returns false
     readThrow?: boolean;          // readFile throws
     existsThrowOn?: string;       // path whose pathExists throws
     existsOverride?: (path: string) => boolean | undefined; // override pathExists
   } = {}
 ) {
   const fs = new Map<string, string>(Object.entries(initial));
-  const calls = { read: 0, write: 0, create: 0, rename: 0, exists: 0, delete: 0 };
+  const calls = { read: 0, create: 0, exists: 0, delete: 0 };
 
   const readFile = async (path: string) => {
     calls.read++;
@@ -36,28 +33,11 @@ function makeFs(
     return content;
   };
 
-  const writeFile = async (path: string, content: string) => {
-    calls.write++;
-    if (opts.writeFail) return { ok: false, content: '' };
-    fs.set(path, content);
-    return { ok: true, content };
-  };
-
   const createFile = async (path: string, content: string) => {
     calls.create++;
     if (opts.createFailOn === path) return { success: false, error: `create failed: ${path}` };
     fs.set(path, content);
     return { success: true };
-  };
-
-  const renameFile = async (oldPath: string, newPath: string) => {
-    calls.rename++;
-    if (opts.renameFail) return false;
-    if (opts.renameFailOnCall === calls.rename) return false;
-    const content = fs.get(oldPath) ?? '';
-    fs.set(newPath, content);
-    fs.delete(oldPath);
-    return true;
   };
 
   const pathExists = async (path: string) => {
@@ -70,12 +50,12 @@ function makeFs(
 
   const deleteFile = async (path: string) => {
     calls.delete++;
-    if (opts.deleteFailOn === path) return false;
+    if (opts.deleteFailOn?.includes(path)) return false;
     fs.delete(path);
     return true;
   };
 
-  return { fs, calls, readFile, writeFile, createFile, renameFile, pathExists, deleteFile };
+  return { fs, calls, readFile, createFile, pathExists, deleteFile };
 }
 
 function run(filePath: string, m: ReturnType<typeof makeFs>) {
@@ -143,7 +123,7 @@ describe('splitFile — input/IO errors before mutation', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/read failed/i);
-    expect(m.calls.create + m.calls.rename + m.calls.write + m.calls.delete).toBe(0);
+    expect(m.calls.create + m.calls.delete).toBe(0);
   });
 
   it('returns an error (no mutation) when the collision check throws', async () => {
@@ -155,7 +135,7 @@ describe('splitFile — input/IO errors before mutation', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/existing files|exists failed/i);
-    expect(m.calls.create + m.calls.rename + m.calls.write + m.calls.delete).toBe(0);
+    expect(m.calls.create + m.calls.delete).toBe(0);
     expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB');
   });
 });
@@ -188,7 +168,7 @@ describe('splitFile — delimiter and empty-part semantics', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/split points/i);
-    expect(m.calls.create + m.calls.rename + m.calls.write + m.calls.delete).toBe(0);
+    expect(m.calls.create + m.calls.delete).toBe(0);
     expect(m.fs.get('/docs/note.md')).toBe('just one part\n\n\n   \n\n\n');
   });
 });
@@ -204,7 +184,7 @@ describe('splitFile — collision detection', () => {
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/already exists/i);
     // No mutating op should have run.
-    expect(m.calls.create + m.calls.rename + m.calls.write + m.calls.delete).toBe(0);
+    expect(m.calls.create + m.calls.delete).toBe(0);
     expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB');
     expect(m.fs.get('/docs/note-01.md')).toBe('pre-existing');
     expect(m.fs.has('/docs/note-00.md')).toBe(false);
@@ -212,18 +192,28 @@ describe('splitFile — collision detection', () => {
 });
 
 describe('splitFile — rollback on failure', () => {
-  it('write-fails-after-rename: restores the original filename + content and deletes created parts', async () => {
-    const m = makeFs({ '/docs/note.md': 'AAA\n\n\nBBB\n\n\nCCC' }, { writeFail: true });
+  it('creates every part as a new file and only deletes the original once they all exist', async () => {
+    const m = makeFs({ '/docs/note.md': 'AAA\n\n\nBBB\n\n\nCCC' });
+    const result = await run('/docs/note.md', m);
+
+    expect(result.success).toBe(true);
+    // One create per part (including -00), and exactly one delete: the original.
+    expect(m.calls.create).toBe(3);
+    expect(m.calls.delete).toBe(1);
+  });
+
+  it('create-fails-on-the-first-part: leaves the original fully intact', async () => {
+    const m = makeFs(
+      { '/docs/note.md': 'AAA\n\n\nBBB\n\n\nCCC' },
+      { createFailOn: '/docs/note-00.md' }
+    );
     const result = await run('/docs/note.md', m);
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/rolled back/i);
-    // Original restored exactly.
+    // The original is never written through, so its bytes are still all there.
     expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB\n\n\nCCC');
-    // All created/renamed targets cleaned up.
     expect(m.fs.has('/docs/note-00.md')).toBe(false);
-    expect(m.fs.has('/docs/note-01.md')).toBe(false);
-    expect(m.fs.has('/docs/note-02.md')).toBe(false);
   });
 
   it('create-fails-mid-loop: deletes already-created parts and leaves the original untouched', async () => {
@@ -235,51 +225,41 @@ describe('splitFile — rollback on failure', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/rolled back/i);
-    // Original never renamed.
+    // Original still holds every byte of the source content.
     expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB\n\n\nCCC');
-    expect(m.calls.rename).toBe(0);
-    // The one part created before the failure was deleted.
-    expect(m.fs.has('/docs/note-01.md')).toBe(false);
+    // The parts created before the failure were deleted.
     expect(m.fs.has('/docs/note-00.md')).toBe(false);
+    expect(m.fs.has('/docs/note-01.md')).toBe(false);
   });
 
-  it('rename-fails-at-main-step: deletes created parts and leaves the original in place', async () => {
-    const m = makeFs({ '/docs/note.md': 'AAA\n\n\nBBB\n\n\nCCC' }, { renameFail: true });
+  it('delete-of-original-fails: rolls the parts back, leaving the original as the only copy', async () => {
+    const m = makeFs(
+      { '/docs/note.md': 'AAA\n\n\nBBB\n\n\nCCC' },
+      { deleteFailOn: ['/docs/note.md'] }
+    );
     const result = await run('/docs/note.md', m);
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/rename.*-00|rolled back/i);
-    // Original was never renamed away, so it remains untouched.
+    expect(result.error).toMatch(/rolled back/i);
     expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB\n\n\nCCC');
-    // The parts created before the rename were rolled back.
+    expect(m.fs.has('/docs/note-00.md')).toBe(false);
     expect(m.fs.has('/docs/note-01.md')).toBe(false);
     expect(m.fs.has('/docs/note-02.md')).toBe(false);
   });
 
   it('reports incomplete rollback when an undo step itself fails', async () => {
+    // The final delete of the original fails, and the rollback then fails to
+    // remove one of the created parts.
     const m = makeFs(
       { '/docs/note.md': 'AAA\n\n\nBBB' },
-      { writeFail: true, renameFail: false, deleteFailOn: '/docs/note-01.md' }
+      { deleteFailOn: ['/docs/note.md', '/docs/note-01.md'] }
     );
     const result = await run('/docs/note.md', m);
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/rollback incomplete/i);
-  });
-
-  it('reports incomplete rollback when restoring the original filename fails', async () => {
-    // Forward rename (call #1) succeeds so the original is renamed to -00; the
-    // write then fails, and the rollback's restore rename (call #2) fails.
-    const m = makeFs(
-      { '/docs/note.md': 'AAA\n\n\nBBB' },
-      { writeFail: true, renameFailOnCall: 2 }
-    );
-    const result = await run('/docs/note.md', m);
-
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/rollback incomplete/i);
-    // Restore failed, so the renamed -00 file is still what holds the content.
-    expect(m.fs.has('/docs/note.md')).toBe(false);
-    expect(m.fs.has('/docs/note-00.md')).toBe(true);
+    // Even so, the original — the only copy of the full content — survives.
+    expect(m.fs.get('/docs/note.md')).toBe('AAA\n\n\nBBB');
+    expect(m.fs.has('/docs/note-01.md')).toBe(true);
   });
 });
