@@ -32,6 +32,35 @@ describe('removeTOC', () => {
     const input = '<!-- TOC -->\n<!-- /TOC -->';
     expect(removeTOC(input)).toBe('<!-- TOC -->');
   });
+
+  it('leaves TOC tags inside a fenced code block untouched', () => {
+    const input = '# Title\n\n```md\n<!-- TOC -->\nexample\n<!-- /TOC -->\n```\n\nReal user prose here.\n';
+    expect(removeTOC(input)).toBe(input);
+  });
+
+  it('does not swallow prose between a fenced start tag and a real end tag', () => {
+    const input =
+      '# Title\n\n```md\n<!-- TOC -->\n```\n\nReal user prose here.\n\n<!-- /TOC -->\n\nMore prose.\n';
+    expect(removeTOC(input)).toBe(input);
+  });
+
+  it('ignores an inline TOC tag sharing a line with prose', () => {
+    const input = 'The <!-- TOC --> tag expands to a list.\n\nDone. <!-- /TOC -->\n';
+    expect(removeTOC(input)).toBe(input);
+  });
+
+  it('leaves an unmatched opening tag as written', () => {
+    const input = '# Title\n\n<!-- TOC -->\n\n## Alpha\n';
+    expect(removeTOC(input)).toBe(input);
+  });
+
+  it('collapses a real TOC block that follows a documented one in a fence', () => {
+    const input =
+      '# Title\n\n```md\n<!-- TOC -->\n<!-- /TOC -->\n```\n\n<!-- TOC -->\n- [Alpha](#alpha)\n<!-- /TOC -->\n\n## Alpha\n';
+    expect(removeTOC(input)).toBe(
+      '# Title\n\n```md\n<!-- TOC -->\n<!-- /TOC -->\n```\n\n<!-- TOC -->\n\n## Alpha\n'
+    );
+  });
 });
 
 describe('processTOC', () => {
@@ -117,6 +146,61 @@ describe('processTOC', () => {
     const tocSection = result.slice(result.indexOf('<!-- TOC -->'), result.indexOf('<!-- /TOC -->'));
     expect(tocSection).toContain('Real Section');
     expect(tocSection).not.toContain('Fake Heading');
+  });
+
+  it('does not treat a fenced end tag as the closing tag (would eat user content)', async () => {
+    const content =
+      '# Title\n\n<!-- TOC -->\n\n## Alpha\n\nHere is how the block ends:\n\n```md\n<!-- /TOC -->\n```\n\n## Beta\n';
+    const result = await processTOC(content);
+    // Everything after the placeholder must survive: the fence, its contents, and Beta.
+    expect(result).toContain('Here is how the block ends:');
+    expect(result).toContain('```md\n<!-- /TOC -->\n```');
+    expect(result).toContain('## Beta');
+    // The generated block is closed with its own end tag right after the list.
+    const tocSection = result.slice(result.indexOf('<!-- TOC -->'), result.indexOf('<!-- /TOC -->'));
+    expect(tocSection).toContain('](#alpha)');
+    expect(tocSection).toContain('](#beta)');
+  });
+
+  it('ignores TOC placeholders inside code fences', async () => {
+    const content = '# Title\n\n```md\n<!-- TOC -->\n<!-- /TOC -->\n```\n\n## Alpha\n';
+    expect(await processTOC(content)).toBe(content);
+  });
+
+  it('locates the real placeholder when a fenced one appears first', async () => {
+    const content =
+      '# Title\n\n```md\n<!-- TOC -->\n```\n\n<!-- TOC -->\n\n## Alpha\n\n## Beta\n';
+    const result = await processTOC(content);
+    // The fenced sample is untouched and stays an empty placeholder line.
+    expect(result).toContain('```md\n<!-- TOC -->\n```');
+    // The real placeholder (the one after the fence) got the generated list.
+    const realStart = result.indexOf('<!-- TOC -->', result.indexOf('```md'));
+    const tocSection = result.slice(realStart, result.indexOf('<!-- /TOC -->'));
+    expect(tocSection).toContain('](#alpha)');
+    expect(tocSection).toContain('](#beta)');
+  });
+
+  it('does not treat an end tag before the placeholder as the closing tag', async () => {
+    const content = '# Title\n\n<!-- /TOC -->\n\n<!-- TOC -->\n\n## Alpha\n';
+    const result = await processTOC(content);
+    const startIdx = result.indexOf('<!-- TOC -->');
+    expect(result.indexOf('](#alpha)')).toBeGreaterThan(startIdx);
+    expect(result.split('<!-- /TOC -->').length - 1).toBe(2); // the stray one, plus the new closing tag
+  });
+
+  it('regenerates a TOC written with spacing variants in the tags', async () => {
+    const content = '# Title\n\n<!--  TOC  -->\n- [Old](#old)\n<!--  /TOC  -->\n\n## Alpha\n';
+    const result = await processTOC(content);
+    expect(result).not.toContain('[Old]');
+    expect(result).toContain('](#alpha)');
+  });
+
+  it('round-trips with removeTOC: editor load then save restores the TOC', async () => {
+    // `*` is the bullet remark-stringify emits, so this is a fixed point of processTOC.
+    const original = '# Title\n\n<!-- TOC -->\n* [Alpha](#alpha)\n<!-- /TOC -->\n\n## Alpha\n';
+    const edited = removeTOC(original);
+    expect(edited).toBe('# Title\n\n<!-- TOC -->\n\n## Alpha\n');
+    expect(await processTOC(edited)).toBe(original);
   });
 });
 
