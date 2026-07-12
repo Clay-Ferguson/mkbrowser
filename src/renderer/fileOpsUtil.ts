@@ -140,14 +140,17 @@ export async function deleteSelected(
 
 
 /**
- * Splits the single selected Markdown file into multiple files by H1 headings: each top-level
- * `# Heading` becomes the first line of a new file, and the original file is replaced by the
- * content before the first H1. Clears all selections and refreshes the directory view on success.
+ * Splits the single selected text/Markdown file into numbered parts on blank-line boundaries
+ * (a run of 3 or more newlines). The original file is renamed to a `-00` suffix and keeps the
+ * first part; the remaining parts become new `-01`, `-02`, … files alongside it. See
+ * `splitUtil.ts` for the transactional details. Clears all selections and refreshes the
+ * directory view on success.
  *
  * @param currentPath - Absolute path of the folder containing the file (unused directly but
  *   kept for API symmetry with other ops).
- * @param selectedItems - The selected items; exactly one Markdown file is expected.
- * @param onSetError - Callback invoked with an error message if the split fails or no H1s are found.
+ * @param selectedItems - The selected items; exactly one text or Markdown file is expected.
+ * @param onSetError - Callback invoked with an error message if the selection is invalid, the
+ *   file contains no split points, or the split fails.
  * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after the split.
  */
 export async function splitSelectedFile(
@@ -168,14 +171,17 @@ export async function splitSelectedFile(
 }
 
 /**
- * Concatenates two or more selected Markdown files into the largest file by byte size, appending
- * the others in selection order. The merged source files are deleted after a successful join.
- * Clears all selections and refreshes the directory view on success.
+ * Concatenates two or more selected text/Markdown files, in filename order, into the
+ * alphabetically first of them, separated by a blank-line delimiter (`\n\n\n`) — the inverse of
+ * `splitSelectedFile`. Front matter on the appended files is converted to a fenced YAML block,
+ * and those source files are deleted only after the write is verified. See `joinUtil.ts` for the
+ * details. Clears all selections and refreshes the directory view on success.
  *
  * @param currentPath - Absolute path of the folder containing the files (unused directly but
  *   kept for API symmetry with other ops).
- * @param selectedItems - The selected items; two or more Markdown files are expected.
- * @param onSetError - Callback invoked with an error message if the join fails.
+ * @param selectedItems - The selected items; two or more text or Markdown files are expected.
+ * @param onSetError - Callback invoked with an error message if the selection is invalid or the
+ *   join fails.
  * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after the join.
  */
 export async function joinSelectedFiles(
