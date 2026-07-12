@@ -43,7 +43,12 @@ export function getTagsFromYaml(yamlStr: string): string[] {
   try {
     const parsed = load(yamlStr) as Record<string, unknown> | null;
     if (!parsed || !Array.isArray(parsed.tags)) return [];
-    return parsed.tags.filter((t): t is string => typeof t === 'string');
+    // Coerce scalar entries (numbers/booleans a user typed unquoted, e.g. `- 2024`)
+    // to strings so a tag toggle doesn't silently drop them from the rewritten list.
+    // Non-scalar entries (maps/sequences/null) are not meaningful tags and are skipped.
+    return parsed.tags
+      .filter(t => typeof t === 'string' || typeof t === 'number' || typeof t === 'boolean')
+      .map(t => String(t));
   } catch {
     return [];
   }
@@ -69,7 +74,7 @@ export function setTagsInYaml(yamlStr: string, tags: string[]): string {
   } else {
     delete parsed.tags;
   }
-  return Object.keys(parsed).length > 0 ? dump(parsed) : '';
+  return Object.keys(parsed).length > 0 ? dump(parsed, { lineWidth: -1 }) : '';
 }
 
 /** Removes a tag from a markdown document's front matter, leaving the rest unchanged. */

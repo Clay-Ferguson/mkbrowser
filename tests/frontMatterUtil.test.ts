@@ -4,6 +4,7 @@ import {
   parseFrontMatter,
   assembleFrontMatter,
   getPropsFromYaml,
+  setFrontMatterProperty,
 } from '../src/shared/frontMatterUtil';
 
 describe('splitFrontMatter', () => {
@@ -219,5 +220,43 @@ describe('getPropsFromYaml', () => {
 
   it('returns an empty object when yaml parses to null', () => {
     expect(getPropsFromYaml('null')).toEqual({});
+  });
+});
+
+describe('setFrontMatterProperty', () => {
+  it('replaces an existing property', () => {
+    const result = setFrontMatterProperty('---\ndue: 5/1/2026\ntitle: hi\n---\nBody.', 'due', '12/25/2026');
+    expect(result).toBe('---\ndue: 12/25/2026\ntitle: hi\n---\nBody.');
+  });
+
+  it('adds a new property to existing front matter', () => {
+    const result = setFrontMatterProperty('---\ntitle: hi\n---\nBody.', 'duration', 2);
+    expect(result).toBe('---\ntitle: hi\nduration: 2\n---\nBody.');
+  });
+
+  it('creates a front matter block when none exists', () => {
+    const result = setFrontMatterProperty('Just body text.', 'due', '1/1/2027');
+    expect(result).toBe('---\ndue: 1/1/2027\n---\nJust body text.');
+  });
+
+  it('canonicalizes the rest of the block (quotes dropped, comments removed)', () => {
+    const result = setFrontMatterProperty('---\n# a comment\nstart: "9:30 AM"\n---\nBody.', 'due', '5/5/2026');
+    expect(result).toBe('---\nstart: 9:30 AM\ndue: 5/5/2026\n---\nBody.');
+  });
+
+  it('returns content unchanged when the existing YAML cannot be parsed', () => {
+    const content = '---\ndup: 1\ndup: 2\n---\nBody.';
+    expect(setFrontMatterProperty(content, 'due', '1/1/2027')).toBe(content);
+  });
+
+  it('returns content unchanged when the YAML is not a mapping', () => {
+    const content = '---\n- just\n- a list\n---\nBody.';
+    expect(setFrontMatterProperty(content, 'due', '1/1/2027')).toBe(content);
+  });
+
+  it('does not fold long string values onto multiple lines', () => {
+    const long = 'x'.repeat(120) + ' ' + 'y'.repeat(120);
+    const result = setFrontMatterProperty('---\ntitle: hi\n---\nBody.', 'note', long);
+    expect(result).toContain(`note: ${long}\n`);
   });
 });

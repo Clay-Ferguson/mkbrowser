@@ -62,8 +62,9 @@ describe('getTagsFromYaml', () => {
     expect(getTagsFromYaml('null')).toEqual([]);
   });
 
-  it('filters out non-string entries in the tags array', () => {
-    expect(getTagsFromYaml('tags:\n  - foo\n  - 42\n  - true\n  - bar')).toEqual(['foo', 'bar']);
+  it('coerces scalar non-string entries to strings and drops non-scalars', () => {
+    expect(getTagsFromYaml('tags:\n  - foo\n  - 42\n  - true\n  - bar')).toEqual(['foo', '42', 'true', 'bar']);
+    expect(getTagsFromYaml('tags:\n  - foo\n  - {a: 1}\n  - [x]\n  - null')).toEqual(['foo']);
   });
 
   it('returns an empty array for an empty tags list', () => {

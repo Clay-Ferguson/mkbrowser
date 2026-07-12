@@ -1,4 +1,4 @@
-import { load } from 'js-yaml';
+import { load, dump } from 'js-yaml';
 import { logger } from './logUtil';
 
 export interface FrontMatterResult {
@@ -83,6 +83,30 @@ export function splitFrontMatter(content: string): FrontMatterSplit | null {
 export function assembleFrontMatter(yamlContent: string, body: string): string {
   const trimmed = yamlContent.trim();
   return trimmed ? `---\n${trimmed}\n---\n${body}` : body;
+}
+
+/**
+ * Sets or replaces a single property in a markdown document's front matter using a
+ * real YAML parse/dump. The whole block is re-serialized in canonical form — comments
+ * and hand formatting are not preserved (accepted app-wide, same as tag edits). If no
+ * front matter exists, a block is created. If the existing YAML can't be parsed (or
+ * isn't a mapping), the content is returned unchanged rather than risking data loss.
+ */
+export function setFrontMatterProperty(content: string, key: string, value: unknown): string {
+  const parts = splitFrontMatter(content);
+  if (!parts) {
+    return assembleFrontMatter(dump({ [key]: value }, { lineWidth: -1 }), content);
+  }
+  let parsed: unknown;
+  try {
+    parsed = load(parts.yamlStr) ?? {};
+  } catch {
+    return content;
+  }
+  if (typeof parsed !== 'object' || Array.isArray(parsed)) return content;
+  const yaml = parsed as Record<string, unknown>;
+  yaml[key] = value;
+  return assembleFrontMatter(dump(yaml, { lineWidth: -1 }), parts.body);
 }
 
 /** Returns all front matter properties except 'tags', preserving their parsed types. */

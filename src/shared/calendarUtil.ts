@@ -2,7 +2,7 @@
  * Utilities for turning a markdown file into a calendar item via front matter injection.
  */
 
-import { splitFrontMatter } from '../shared/frontMatterUtil';
+import { splitFrontMatter, setFrontMatterProperty } from '../shared/frontMatterUtil';
 
 function getCurrentDateStr(): string {
   const now = new Date();
@@ -75,35 +75,27 @@ export function getDurationProperty(content: string): string | null {
   return getScalarProperty(content, 'duration');
 }
 
-/**
- * Sets or updates a simple string property in front matter.
- * If the property exists it is replaced; if not, it is inserted after the opening ---.
- */
-function setFrontMatterProperty(content: string, key: string, value: string): string {
-  const parsed = splitFrontMatter(content);
-  if (parsed) {
-    const re = new RegExp(`^${key}\\s*:.*$`, 'm');
-    const yaml = re.test(parsed.yamlStr)
-      ? parsed.yamlStr.replace(re, `${key}: ${value}`)
-      : `${key}: ${value}\n${parsed.yamlStr}`;
-    return `---\n${yaml}\n---\n${parsed.body}`;
-  }
-  return `---\n${key}: ${value}\n---\n${content}`;
-}
-
-/** Sets or updates the `start` property in front matter, quoting the value. */
+/** Sets or updates the `start` property in front matter. */
 export function setStartProperty(content: string, startValue: string): string {
-  return setFrontMatterProperty(content, 'start', `"${startValue}"`);
+  return setFrontMatterProperty(content, 'start', startValue);
 }
 
-/** Sets or updates the `duration` property in front matter. */
+/**
+ * Sets or updates the `duration` property in front matter. Numeric values are
+ * stored as YAML numbers (matching the injected `duration: 1`) — dump() would
+ * quote a numeric-looking string, and the regex-based getter would then return
+ * the quote characters as part of the value.
+ */
 export function setDurationProperty(content: string, durationValue: string): string {
-  return setFrontMatterProperty(content, 'duration', durationValue);
+  const n = Number(durationValue);
+  const value = durationValue.trim() !== '' && Number.isFinite(n) ? n : durationValue;
+  return setFrontMatterProperty(content, 'duration', value);
 }
 
 /**
  * Sets or updates the 'due' property in front matter.
  * If no front matter exists, one is created. If 'due' already exists, it is replaced.
+ * (The `M/D/YYYY` due format is never mistaken for a YAML date, so it stays a plain string.)
  */
 export function setDueProperty(content: string, dueValue: string): string {
   return setFrontMatterProperty(content, 'due', dueValue);

@@ -7,15 +7,6 @@ import { readIndexYaml, compareByIndexOrder } from './indexUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { compareNames } from '../shared/fileTypes';
 
-interface FsOperations {
-  stat: (path: string) => Promise<unknown>;
-  rename: (oldPath: string, newPath: string) => Promise<void>;
-}
-
-interface DirentLike {
-  name: string;
-}
-
 /**
  * Read directory contents and return FileEntry[] for the renderer.
  * Pure file-system logic — no Electron APIs.
