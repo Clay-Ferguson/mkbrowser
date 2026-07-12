@@ -17,6 +17,39 @@ export function decodeMarkdownUrl(url: string): string {
 }
 
 /**
+ * The filesystem root a path is anchored to, normalized for comparison: a Windows
+ * drive ('c:'), a UNC share ('//server/share'), the POSIX root ('/'), or '' for a
+ * relative path. Two paths with different roots have no common ancestor, so no
+ * number of '../' segments can get from one to the other.
+ */
+function pathRoot(path: string): string {
+  const driveLetter = /^([A-Za-z]):[/\\]/.exec(path)?.[1];
+  if (driveLetter) return `${driveLetter.toLowerCase()}:`;
+  if (/^[/\\]{2}/.test(path)) {
+    const [server = '', share = ''] = splitPathSegments(path);
+    return `//${server.toLowerCase()}/${share.toLowerCase()}`;
+  }
+  if (/^[/\\]/.test(path)) return '/';
+  return '';
+}
+
+/** Windows roots (drives, UNC shares) are case-insensitive; POSIX paths are not. */
+function isCaseInsensitiveRoot(root: string): boolean {
+  return root !== '' && root !== '/';
+}
+
+/** The source directory of a relative-path computation, prepared once per source file. */
+interface FromDir {
+  parts: string[];
+  root: string;
+}
+
+function toFromDir(fromFilePath: string): FromDir {
+  const dir = getParentPath(fromFilePath);
+  return { parts: splitPathSegments(dir), root: pathRoot(dir) };
+}
+
+/**
  * Compute the path of `toPath` relative to the directory containing `fromFilePath`.
  * Both arguments are absolute paths using either separator. The result always
  * uses forward slashes (markdown URL convention) with `../` segments to climb
@@ -24,15 +57,22 @@ export function decodeMarkdownUrl(url: string): string {
  */
 /**
  * Core of {@link getRelativePath}, taking the source directory already split into
- * segments so a caller looping over many `toPath`s can split the (constant) source
+ * segments so a caller looping over many `toPath`s can prepare the (constant) source
  * directory once instead of on every call.
  */
-function relativePathFromParts(fromParts: string[], toPath: string): string {
+function relativePathFromParts(from: FromDir, toPath: string): string {
+  // Different roots (e.g. another Windows drive or UNC share) share no common
+  // ancestor, so a relative path is impossible — emit the absolute path instead.
+  if (pathRoot(toPath) !== from.root) return toPath.replace(/\\/g, '/');
+
   const toParts = splitPathSegments(toPath);
+  const fromParts = from.parts;
+  const ignoreCase = isCaseInsensitiveRoot(from.root);
+  const key = (segment = '') => (ignoreCase ? segment.toLowerCase() : segment);
 
   // Skip the shared leading path segments.
   let i = 0;
-  while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) {
+  while (i < fromParts.length && i < toParts.length && key(fromParts[i]) === key(toParts[i])) {
     i++;
   }
 
@@ -42,7 +82,7 @@ function relativePathFromParts(fromParts: string[], toPath: string): string {
 }
 
 export function getRelativePath(fromFilePath: string, toPath: string): string {
-  return relativePathFromParts(splitPathSegments(getParentPath(fromFilePath)), toPath);
+  return relativePathFromParts(toFromDir(fromFilePath), toPath);
 }
 
 /**
@@ -64,11 +104,11 @@ function encodePathSegment(segment: string): string {
 }
 
 export function buildMarkdownLinks(currentFilePath: string, linkPaths: string[]): string {
-  const fromParts = splitPathSegments(getParentPath(currentFilePath));
+  const from = toFromDir(currentFilePath);
   return linkPaths
     .map((fullPath) => {
       const name = getFileName(fullPath);
-      const relPath = relativePathFromParts(fromParts, fullPath);
+      const relPath = relativePathFromParts(from, fullPath);
       // Percent-encode each path segment so spaces and other special characters
       // don't break the markdown link, while preserving the path separators.
       const url = relPath.split('/').map(encodePathSegment).join('/');

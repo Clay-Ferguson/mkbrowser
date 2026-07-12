@@ -17,6 +17,32 @@ describe('getRelativePath', () => {
   it('climbs multiple levels', () => {
     expect(getRelativePath('/a/b/c/note.md', '/a/x/pic.png')).toBe('../../x/pic.png');
   });
+
+  it('falls back to the absolute path when the target is on another Windows drive', () => {
+    // No sequence of '../' can climb from C: to D:, so a relative path is impossible.
+    expect(getRelativePath('C:\\a\\b\\note.md', 'D:\\x\\pic.png')).toBe('D:/x/pic.png');
+  });
+
+  it('falls back to the absolute path when the target is on another UNC share', () => {
+    expect(getRelativePath('\\\\srv\\one\\note.md', '\\\\srv\\two\\pic.png')).toBe(
+      '//srv/two/pic.png'
+    );
+  });
+
+  it('stays relative within the same Windows drive', () => {
+    expect(getRelativePath('C:\\a\\b\\note.md', 'C:\\a\\c\\pic.png')).toBe('../c/pic.png');
+  });
+
+  it('treats Windows path segments case-insensitively', () => {
+    // 'Notes' and 'notes' are the same folder on Windows, so no '../' round trip.
+    expect(getRelativePath('c:\\Users\\Notes\\note.md', 'C:\\users\\notes\\pic.png')).toBe(
+      'pic.png'
+    );
+  });
+
+  it('keeps POSIX path segments case-sensitive', () => {
+    expect(getRelativePath('/a/Notes/note.md', '/a/notes/pic.png')).toBe('../notes/pic.png');
+  });
 });
 
 describe('buildMarkdownLinks', () => {
