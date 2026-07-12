@@ -17,6 +17,7 @@ import {
   parseDueStr,
   formatDueDate,
 } from '../src/shared/calendarUtil';
+import { parseFrontMatter } from '../src/shared/frontMatterUtil';
 
 let tmpDir: string;
 
@@ -677,6 +678,39 @@ describe('setRRuleProperty', () => {
 });
 
 // ---------------------------------------------------------------------------
+// rrule helpers on CRLF documents (Windows-authored / pasted files)
+// ---------------------------------------------------------------------------
+
+describe('rrule helpers — CRLF documents', () => {
+  const CRLF_RRULE = '---\r\ndue: 1/5/2026\r\nrrule:\r\n  freq: weekly\r\n  interval: 2\r\n---\r\nBody.\r\n';
+
+  it('sees an rrule block written with CRLF line endings', () => {
+    const r = getRRuleProperty(CRLF_RRULE);
+    expect(r?.freq).toBe('weekly');
+    expect(r?.interval).toBe('2');
+  });
+
+  it('replaces the existing block instead of appending a duplicate rrule key', () => {
+    const result = setRRuleProperty(CRLF_RRULE, { freq: 'daily' });
+    expect(result.match(/rrule:/g)).toHaveLength(1);
+    expect(getRRuleProperty(result)?.freq).toBe('daily');
+    // A duplicate key would make js-yaml throw, and the front matter would read back as null.
+    expect(parseFrontMatter(result).yaml?.due).toBe('1/5/2026');
+  });
+
+  it('removes the rrule block from a CRLF document', () => {
+    const result = setRRuleProperty(CRLF_RRULE, null);
+    expect(getRRuleProperty(result)).toBeNull();
+    expect(parseFrontMatter(result).yaml?.due).toBe('1/5/2026');
+  });
+
+  it('leaves the CRLF body intact', () => {
+    const result = setRRuleProperty(CRLF_RRULE, { freq: 'daily' });
+    expect(result.endsWith('Body.\r\n')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // injectCalendarFrontMatter
 // ---------------------------------------------------------------------------
 
@@ -715,6 +749,44 @@ describe('injectCalendarFrontMatter', () => {
   it('writes the rrule until date with a 4-digit year (issue 015)', () => {
     const result = injectCalendarFrontMatter('Body.', true);
     expect(result).toMatch(/^ {2}until: 12\/31\/\d{4}$/m);
+  });
+
+  it('keeps an existing start/duration instead of duplicating the keys', () => {
+    const content = `---\ntitle: Note\nstart: "2:00 PM"\nduration: 3\n---\nBody text.\n`;
+    const result = injectCalendarFrontMatter(content, false);
+
+    expect(result.match(/^start:/gm)).toHaveLength(1);
+    expect(result.match(/^duration:/gm)).toHaveLength(1);
+    expect(getStartProperty(result)).toBe('2:00 PM');
+    expect(getDurationProperty(result)).toBe('3');
+    expect(getDueProperty(result)).toMatch(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
+    // Must still be parseable — duplicate keys make js-yaml throw.
+    expect(parseFrontMatter(result).yaml).toMatchObject({ title: 'Note', duration: 3 });
+  });
+
+  it('keeps an existing rrule block instead of duplicating the key', () => {
+    const content = `---\nrrule:\n  freq: monthly\n  interval: 2\n---\nBody text.\n`;
+    const result = injectCalendarFrontMatter(content, true);
+
+    expect(result.match(/^rrule:/gm)).toHaveLength(1);
+    expect(getRRuleProperty(result)).toMatchObject({ freq: 'monthly', interval: '2' });
+    expect(parseFrontMatter(result).yaml).not.toBeNull();
+  });
+
+  it('does not treat rrule child keys as top-level duplicates', () => {
+    // `until:` is indented under rrule — the top-level due/start/duration must still be added.
+    const content = `---\nrrule:\n  freq: weekly\n  until: 12/31/2030\n---\nBody text.\n`;
+    const result = injectCalendarFrontMatter(content, false);
+
+    expect(getDueProperty(result)).toMatch(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
+    expect(getStartProperty(result)).toBeTruthy();
+    expect(getDurationProperty(result)).toBe('1');
+    expect(parseFrontMatter(result).yaml).not.toBeNull();
+  });
+
+  it('leaves content unchanged when every calendar field already exists', () => {
+    const content = `---\ndue: 6/15/2026\nstart: "2:00 PM"\nduration: 1\n---\nBody text.\n`;
+    expect(injectCalendarFrontMatter(content, false)).toBe(content);
   });
 });
 

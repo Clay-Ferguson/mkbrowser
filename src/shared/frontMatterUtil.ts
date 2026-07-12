@@ -9,9 +9,14 @@ export interface FrontMatterResult {
 }
 
 export interface FrontMatterSplit {
-  /** Raw YAML text between the fences — no fences, no surrounding newlines, no stray `\r`. */
+  /**
+   * Raw YAML text between the fences — no fences, no surrounding newlines, and LF-only:
+   * a CRLF document's interior `\r` are stripped here so the regex-based property editors
+   * downstream can match on a bare `\n`. The write helpers emit LF fences regardless, so
+   * front matter is LF-only either way.
+   */
   yamlStr: string;
-  /** Document body after the closing fence and its trailing newline. */
+  /** Document body after the closing fence and its trailing newline, verbatim (CRLF preserved). */
   body: string;
 }
 
@@ -31,7 +36,7 @@ const FRONT_MATTER_RE = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
 export function splitFrontMatter(content: string): FrontMatterSplit | null {
   const m = FRONT_MATTER_RE.exec(content);
   if (!m) return null;
-  return { yamlStr: m[1] ?? '', body: content.slice(m[0].length) };
+  return { yamlStr: (m[1] ?? '').replace(/\r\n/g, '\n'), body: content.slice(m[0].length) };
 }
 
 /**

@@ -44,12 +44,19 @@ describe('splitFrontMatter', () => {
     expect(result?.body).toBe('');
   });
 
-  it('handles CRLF line endings', () => {
+  it('handles CRLF line endings, normalizing interior \\r out of yamlStr', () => {
     const text = '---\r\ntags:\r\n  - bar\r\n---\r\nbody';
     const result = splitFrontMatter(text);
     expect(result).not.toBeNull();
-    expect(result?.yamlStr).toBe('tags:\r\n  - bar');
+    expect(result?.yamlStr).toBe('tags:\n  - bar');
     expect(result?.body).toBe('body');
+  });
+
+  it('leaves CRLF in the body untouched', () => {
+    const text = '---\r\ntitle: x\r\n---\r\nline one\r\nline two\r\n';
+    const result = splitFrontMatter(text);
+    expect(result?.yamlStr).toBe('title: x');
+    expect(result?.body).toBe('line one\r\nline two\r\n');
   });
 
   it('does not match --- block not at the start of the string', () => {

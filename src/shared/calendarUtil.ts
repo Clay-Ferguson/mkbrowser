@@ -26,23 +26,30 @@ function getUntilDateStr(): string {
   return `12/31/${year}`;
 }
 
+/** True if the raw front matter YAML declares `key` at the top level (not nested/indented). */
+function hasTopLevelKey(yamlStr: string, key: string): boolean {
+  return new RegExp(`^${key}[ \\t]*:`, 'm').test(yamlStr);
+}
+
 /**
  * Checks whether the given markdown content already has a 'due' property in front matter.
  */
 export function hasDueProperty(content: string): boolean {
   const parsed = splitFrontMatter(content);
-  return !!parsed && /^due\s*:/m.test(parsed.yamlStr);
+  return !!parsed && hasTopLevelKey(parsed.yamlStr, 'due');
 }
 
-function buildCalendarBlock(repeating: boolean): string {
-  const due = getCurrentDateStr();
-  const start = getCurrentTimeStr();
-  const lines = [
-    `due: ${due}`,
-    `start: "${start}"`,
-    `duration: 1`,
-  ];
-  if (repeating) {
+/**
+ * Builds the calendar lines to prepend, omitting any key already present in `existingYaml`.
+ * Prepending a key that already exists would produce a duplicate mapping key, which js-yaml
+ * rejects — permanently breaking every front matter read for that file. Existing values win.
+ */
+function buildCalendarBlock(repeating: boolean, existingYaml = ''): string {
+  const lines: string[] = [];
+  if (!hasTopLevelKey(existingYaml, 'due')) lines.push(`due: ${getCurrentDateStr()}`);
+  if (!hasTopLevelKey(existingYaml, 'start')) lines.push(`start: "${getCurrentTimeStr()}"`);
+  if (!hasTopLevelKey(existingYaml, 'duration')) lines.push(`duration: 1`);
+  if (repeating && !hasTopLevelKey(existingYaml, 'rrule')) {
     lines.push(`rrule:`, `  freq: weekly`, `  interval: 1`, `  until: ${getUntilDateStr()}`);
   }
   return lines.join('\n');
@@ -190,17 +197,22 @@ export function setRRuleProperty(content: string, rrule: RRuleProps | null): str
 /**
  * Injects calendar front matter into the given markdown content.
  * Pass repeating=true to include the rrule block.
- * If there is already a front matter block, merges the calendar fields at the top.
- * If there is no front matter block, prepends one.
- * Returns the modified content.
+ * If there is already a front matter block, merges the calendar fields at the top,
+ * keeping any of `due`/`start`/`duration`/`rrule` the file already defines rather than
+ * duplicating the key. If there is no front matter block, prepends one.
+ * Returns the modified content (unchanged if every calendar field is already present).
  */
 export function injectCalendarFrontMatter(content: string, repeating: boolean): string {
-  const calendarBlock = buildCalendarBlock(repeating);
   const parsed = splitFrontMatter(content);
 
-  if (parsed) {
-    return `---\n${calendarBlock}\n${parsed.yamlStr}\n---\n${parsed.body}`;
+  if (!parsed) {
+    return `---\n${buildCalendarBlock(repeating)}\n---\n${content}`;
   }
 
-  return `---\n${calendarBlock}\n---\n${content}`;
+  const calendarBlock = buildCalendarBlock(repeating, parsed.yamlStr);
+  if (!calendarBlock) return content;
+
+  const existing = parsed.yamlStr.trim();
+  const merged = existing ? `${calendarBlock}\n${existing}` : calendarBlock;
+  return `---\n${merged}\n---\n${parsed.body}`;
 }
