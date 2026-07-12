@@ -50,6 +50,19 @@ export function getRelativePath(fromFilePath: string, toPath: string): string {
  * being edited. Image files become inline image embeds (`![]()`), everything
  * else becomes a standard link (`[]()`). Items are separated by a blank line.
  */
+/**
+ * Percent-encode one path segment for use inside a markdown link destination.
+ * `encodeURIComponent` leaves parentheses literal, and an unbalanced `)` in a
+ * file name would terminate the `(...)` destination early, so those are encoded
+ * too (`decodeMarkdownUrl` restores them).
+ */
+function encodePathSegment(segment: string): string {
+  return encodeURIComponent(segment).replace(
+    /[()]/g,
+    (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase()
+  );
+}
+
 export function buildMarkdownLinks(currentFilePath: string, linkPaths: string[]): string {
   const fromParts = splitPathSegments(getParentPath(currentFilePath));
   return linkPaths
@@ -58,7 +71,7 @@ export function buildMarkdownLinks(currentFilePath: string, linkPaths: string[])
       const relPath = relativePathFromParts(fromParts, fullPath);
       // Percent-encode each path segment so spaces and other special characters
       // don't break the markdown link, while preserving the path separators.
-      const url = relPath.split('/').map(encodeURIComponent).join('/');
+      const url = relPath.split('/').map(encodePathSegment).join('/');
       return isImageFile(name) ? `![${name}](${url})` : `[${name}](${url})`;
     })
     .join('\n\n');

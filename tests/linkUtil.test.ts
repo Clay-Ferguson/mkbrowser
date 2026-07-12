@@ -35,6 +35,11 @@ describe('buildMarkdownLinks', () => {
     expect(result).toBe('![my pic.png](my%20sub/my%20pic.png)');
   });
 
+  it('percent-encodes parentheses so they cannot terminate the link destination', () => {
+    const result = buildMarkdownLinks('/a/b/note.md', ['/a/b/screenshot 1).png']);
+    expect(result).toBe('![screenshot 1).png](screenshot%201%29.png)');
+  });
+
   it('builds relative paths across directories', () => {
     const result = buildMarkdownLinks('/a/b/note.md', ['/a/c/img.jpg']);
     expect(result).toBe('![img.jpg](../c/img.jpg)');
