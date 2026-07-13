@@ -5,7 +5,7 @@ import { logger } from '../../shared/logUtil';
 import Dialog from './common/Dialog';
 import AlertDialog from './AlertDialog';
 import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../renderer/styles';
-import type { ExifData, ExifSection } from '../../shared/shared';
+import type { ExifData, ExifSection, ExifWriteResult } from '../../shared/shared';
 
 /**
  * Where a human-readable "Description" should be embedded for a given image type.
@@ -60,6 +60,42 @@ const GROUP_LABELS: Record<string, string> = {
   mpf: 'Multi-Picture Format',
   photoshop: 'Photoshop',
 };
+
+/**
+ * The tags the user actually added or changed, as a sparse ExifData.
+ *
+ * The dialog edits a copy of everything it read, but most of that is derived
+ * and unwritable (image dimensions, bit depth, colour type…). Sending the whole
+ * blob back makes ExifTool reject tags it never should have been asked to
+ * write, so only the user's edits are sent.
+ */
+function changedExifTags(original: ExifData, edited: ExifData): ExifData {
+  const diff: ExifData = {};
+  for (const [group, tags] of Object.entries(edited)) {
+    for (const [tag, value] of Object.entries(tags)) {
+      const before = original[group]?.[tag];
+      if (before !== value) {
+        diff[group] = { ...diff[group], [tag]: value };
+      }
+    }
+  }
+  return diff;
+}
+
+/**
+ * The alert to show for a write result, or null when the write was clean.
+ * ExifTool can apply some tags and reject others, so a successful write still
+ * needs its warnings surfaced.
+ */
+function exifWriteAlert(res: ExifWriteResult): string | null {
+  if (res.warnings.length === 0) {
+    return res.ok ? null : 'Failed to save EXIF data.';
+  }
+  const detail = `ExifTool reported:\n\n${res.warnings.join('\n')}`;
+  return res.ok
+    ? `Some EXIF tags were not saved. ${detail}`
+    : `Failed to save EXIF data. ${detail}`;
+}
 
 /**
  * Viewer/editor for an image's EXIF (and related) metadata, shown grouped by
@@ -155,15 +191,23 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
     setSaving(true);
     void (async () => {
       try {
-        const ok = await api.writeExif(filePath, editData);
-        if (!ok) {
-          setAlertMessage('Failed to save EXIF data.');
-          setSaving(false);
-          return;
+        // Only the user's edits go to ExifTool — the rest of what we read is
+        // derived and unwritable, and would fail the write.
+        const changes = changedExifTags(displayData, editData);
+        if (Object.keys(changes).length > 0) {
+          const res = await api.writeExif(filePath, changes);
+          const alert = exifWriteAlert(res);
+          if (alert) {
+            setAlertMessage(alert);
+          }
+          if (!res.ok) {
+            setSaving(false);
+            return;
+          }
+          // Reload the EXIF data from the file to show the updated values
+          const freshData = await api.readExif(filePath);
+          setDisplayData(freshData);
         }
-        // Reload the EXIF data from the file to show the updated values
-        const freshData = await api.readExif(filePath);
-        setDisplayData(freshData);
       } catch (err) {
         logger.error('[ExifDialog] Error saving EXIF data:', err);
         setAlertMessage('Error saving EXIF data.');
@@ -297,7 +341,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
       </div>
     </Dialog>
     {alertMessage && (
-      <AlertDialog message={alertMessage} onClose={() => setAlertMessage(null)} />
+      <AlertDialog message={alertMessage} onClose={() => setAlertMessage(null)} preserveWhitespace scrollable />
     )}
     </>
   );

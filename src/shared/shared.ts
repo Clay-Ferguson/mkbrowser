@@ -51,6 +51,18 @@ export type ExifSection = Record<string, string>;
 /** EXIF metadata grouped by section (e.g. 'exif', 'gps'), keyed by group name. */
 export type ExifData = Record<string, ExifSection>;
 
+/**
+ * Result of writeExif. ExifTool does not throw when it rejects a tag — it
+ * reports the rejection as a warning and writes nothing — so `ok` reflects
+ * whether ExifTool actually touched the file, and `warnings` carries any tags
+ * it declined (a write can be partial: some tags applied, others warned).
+ */
+export interface ExifWriteResult {
+  ok: boolean;
+  /** Non-exceptional ExifTool warnings, e.g. "Can't convert IFD0:Orientation (not in PrintConv)". */
+  warnings: string[];
+}
+
 /** An image's intrinsic pixel dimensions, as displayed (EXIF orientation already applied). */
 export interface ImageDimensions {
   width: number;
@@ -261,7 +273,7 @@ export interface ElectronAPI {
   readFile: (filePath: string) => Promise<string>;
   readFileWithMtime: (filePath: string) => Promise<FileReadResult>;
   readExif: (filePath: string) => Promise<ExifData>;
-  writeExif: (filePath: string, data: ExifData) => Promise<boolean>;
+  writeExif: (filePath: string, data: ExifData) => Promise<ExifWriteResult>;
   getImageDimensions: (filePath: string) => Promise<ImageDimensions | null>;
   pathExists: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<FileWriteResult>;

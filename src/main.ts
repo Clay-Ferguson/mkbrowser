@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, OcrTarget, FileReadResult, FileWriteResult } from './shared/shared';
+import type { AppConfig, OcrTarget, FileReadResult, FileWriteResult, ExifWriteResult } from './shared/shared';
 
 import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
@@ -266,12 +266,12 @@ function setupIpcHandlers(): void {
   });
 
   // Write EXIF metadata to an image file
-  ipcMain.handle('write-exif', async (_event, filePath: string, data: Record<string, Record<string, string>>): Promise<boolean> => {
+  ipcMain.handle('write-exif', async (_event, filePath: string, data: Record<string, Record<string, string>>): Promise<ExifWriteResult> => {
     try {
       return await writeExifMetadata(filePath, data);
     } catch (error) {
       logger.error('Error writing EXIF data:', error);
-      return false;
+      return { ok: false, warnings: [String(error)] };
     }
   });
 

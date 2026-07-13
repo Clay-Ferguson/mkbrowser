@@ -1,18 +1,33 @@
 import { exiftool } from 'exiftool-vendored';
 import * as ExifReader from 'exifreader';
 import { logger } from '../shared/logUtil';
-import type { ExifData, ImageDimensions } from '../shared/shared';
+import type { ExifData, ExifWriteResult, ImageDimensions } from '../shared/shared';
 /**
  * Write EXIF metadata to an image file. Accepts a grouped tag object (same as readExifMetadata output).
- * Only string values are supported. Returns true on success, false on error.
+ * Only string values are supported.
+ *
+ * ExifTool reports a rejected tag as a warning rather than throwing, so a bad
+ * value (or a tag unsupported by the file's format) silently writes nothing.
+ * We therefore treat the write as successful only when ExifTool reports it
+ * touched the file, and pass any warnings back to the caller.
  */
 // Read-only groups that cannot be written to
 const READ_ONLY_GROUPS = new Set(['file', 'composite', 'pngFile']);
 
-export async function writeExifMetadata(filePath: string, data: ExifData): Promise<boolean> {
+/**
+ * ExifTool's own tag-name grammar. Some of what we read back is a *display*
+ * name rather than a tag name — PNG's IHDR fields arrive as "Image Width",
+ * "Bit Depth", etc. ExifTool rejects the whole write if any single name is
+ * malformed, so we drop those rather than let one derived field sink the
+ * entire save.
+ */
+const VALID_TAG_NAME = /^[A-Za-z0-9_:*?+#^][A-Za-z0-9_:\-*?+#^]*$/;
+
+export async function writeExifMetadata(filePath: string, data: ExifData): Promise<ExifWriteResult> {
   // Flatten grouped tags with group prefixes: { "EXIF:TagName": value, ... }
   // This preserves which metadata section each tag belongs to
   const tags: Record<string, string> = {};
+  const skipped: string[] = [];
 
   for (const [groupName, groupTags] of Object.entries(data)) {
     // Skip read-only groups
@@ -21,16 +36,37 @@ export async function writeExifMetadata(filePath: string, data: ExifData): Promi
     }
     for (const [tag, value] of Object.entries(groupTags)) {
       // Use group:tag format for exiftool (e.g., "EXIF:ImageDescription")
-      tags[`${groupName}:${tag}`] = value;
+      const name = `${groupName}:${tag}`;
+      if (!VALID_TAG_NAME.test(name)) {
+        skipped.push(`Skipped "${name}" — not a writable ExifTool tag name.`);
+        continue;
+      }
+      tags[name] = value;
     }
   }
 
+  if (Object.keys(tags).length === 0) {
+    // Nothing writable to send. Handing ExifTool an empty tag set just earns a
+    // "Nothing to do." warning, so report the skips directly instead.
+    logger.warn('EXIF write had no writable tags:', filePath, skipped);
+    return { ok: skipped.length === 0, warnings: skipped };
+  }
+
   try {
-    await exiftool.write(filePath, tags);
-    return true;
+    const res = await exiftool.write(filePath, tags);
+    const warnings = [...skipped, ...(res.warnings ?? [])];
+    // `unchanged` counts files ExifTool knew it needn't rewrite, which is still
+    // a successful outcome; all three at zero means nothing was applied.
+    const ok = res.created + res.updated + res.unchanged > 0;
+    if (!ok) {
+      logger.error('EXIF write applied no changes:', filePath, warnings);
+    } else if (warnings.length > 0) {
+      logger.warn('EXIF write completed with warnings:', filePath, warnings);
+    }
+    return { ok, warnings };
   } catch (err) {
     logger.error('Error writing EXIF:', err);
-    return false;
+    return { ok: false, warnings: [String(err)] };
   }
 }
 
