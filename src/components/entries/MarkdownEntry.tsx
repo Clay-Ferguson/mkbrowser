@@ -17,6 +17,7 @@ import {
   setPendingEditFile,
   setPendingThreadScrollToBottom,
   setItemReviewing,
+  setItemContent,
   setExpandedEditor,
   setShowPropsInEditor,
 } from '../../store';
@@ -78,6 +79,27 @@ async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<v
     }
   } catch (err) {
     logger.error('Reply error:', err);
+  }
+}
+
+
+/** Front-matter properties that EditCalendarDialog owns — clicking any of them opens that dialog. */
+const CALENDAR_PROPS = new Set(['due', 'start', 'duration', 'rrule']);
+
+
+/**
+ * Writes calendar front matter straight to disk. Used when the calendar dialog was opened from a
+ * props click while the entry is *not* in edit mode, so there is no editor buffer to route through.
+ * Module-level so its try/catch doesn't make the React Compiler bail out on MarkdownEntry.
+ */
+async function saveCalendarProps(path: string, newContent: string): Promise<void> {
+  try {
+    const result = await api.writeFile(path, newContent);
+    if (result.ok) {
+      setItemContent(path, result.content, result.mtime, result.size);
+    }
+  } catch (err) {
+    logger.error('Failed to save calendar properties:', err);
   }
 }
 
@@ -347,6 +369,12 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   );
 
   const clickOnProp = (key: string): void => {
+    // Calendar properties get the calendar dialog instead of the raw front-matter editor. The dialog
+    // works fine outside edit mode: it only needs the file content, and its save routes to disk.
+    if (CALENDAR_PROPS.has(key)) {
+      setShowCalendarDialog(true);
+      return;
+    }
     void (async () => {
       const propPrefix = `${key}:`;
       const line = content.split('\n').findIndex(l => l.startsWith(propPrefix)) + 1;
@@ -455,12 +483,16 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       </EntryShell>
       {showCalendarDialog && (
         <EditCalendarDialog
-          content={edit.editContent}
+          content={edit.isEditing ? edit.editContent : content}
           onSave={(newContent) => {
-            edit.setEditContent(newContent);
+            if (edit.isEditing) {
+              // In the editor the change stays in the buffer; the user's Save writes it.
+              edit.setEditContent(newContent);
+              onSaveSettings();
+            } else {
+              void saveCalendarProps(entry.path, newContent);
+            }
             setShowCalendarDialog(false);
-            // setShowPropsInEditor(true);
-            onSaveSettings();
           }}
           onCancel={() => setShowCalendarDialog(false)}
         />

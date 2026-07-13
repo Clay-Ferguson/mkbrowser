@@ -44,6 +44,9 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
       <span
         key={key}
         onClick={() => onPropClick?.(key)}
+        // The entry's content area opens the editor on mouseup, which would fire before this pill's
+        // click. onPropClick decides what a pill click does, so keep the mouseup from reaching it.
+        onMouseUp={onPropClick ? (e) => e.stopPropagation() : undefined}
         className={clsx(
           'inline-flex items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden',
           onPropClick && 'cursor-pointer hover:brightness-125',
