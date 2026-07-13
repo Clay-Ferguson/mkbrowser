@@ -2,8 +2,10 @@
 // same options, same scoping. The two config objects below mirror the old file's
 // global `rules` block and its single `src/**` typed-linting `overrides` entry.
 //
-// Only *.ts / *.tsx are linted (the old `eslint --ext .ts,.tsx .`): every config
-// object is constrained to those globs, so root .mjs/.js files are left untouched.
+// Only *.ts / *.tsx / *.mts are linted: every config object is constrained to
+// those globs, so root .mjs/.js files are left untouched. The .mts glob exists
+// because the Vite configs are .mts (Vite 8 is ESM-only) — without it they would
+// match no config object at all and be silently skipped by lint entirely.
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import importPlugin from "eslint-plugin-import";
@@ -16,7 +18,7 @@ export default tseslint.config(
   { ignores: [".vite/", "out/", "dist/", "node_modules/"] },
 
   {
-    files: ["**/*.ts", "**/*.tsx"],
+    files: ["**/*.ts", "**/*.tsx", "**/*.mts"],
     // Base rule sets, formerly the string `extends` array. `extends` inside a
     // tseslint.config object applies each set constrained to this `files` glob.
     extends: [
@@ -46,6 +48,18 @@ export default tseslint.config(
     settings: {
       react: {
         version: "detect",
+      },
+
+      // Add eslint-import-resolver-typescript alongside the plain-node resolver
+      // that importPlugin.flatConfigs.typescript installs above (an import is
+      // considered resolved if EITHER resolver finds it). The node resolver
+      // predates `exports` maps and can't see through them, so on its own it
+      // fails on modern ESM-only packages — it could not resolve `vite` itself,
+      // whose exports is a bare string with no CJS entry, and that is precisely
+      // why the .mts configs were unlintable — and on subpath exports, which is
+      // what the old @langchain/langgraph ignore was working around.
+      "import/resolver": {
+        typescript: true,
       },
     },
 
@@ -151,9 +165,12 @@ export default tseslint.config(
         },
       ],
 
-      // Subpath exports from some packages (e.g. @langchain/langgraph/prebuilt) are not
-      // resolved by eslint-import-resolver-node; ignore them to avoid false positives.
-      "import/no-unresolved": ["error", { "ignore": ["@langchain/langgraph/.*"] }],
+      // Imports must point at something that actually resolves. The TypeScript
+      // resolver (settings above) follows `exports` maps, so the subpath exports
+      // that the old node resolver choked on (@langchain/langgraph/prebuilt,
+      // vitest/config, react-day-picker/style.css) now resolve for real rather
+      // than being ignored or suppressed.
+      "import/no-unresolved": "error",
 
       // Disallow importing the same module more than once in a file.
       "import/no-duplicates": "error",

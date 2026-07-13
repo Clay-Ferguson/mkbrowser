@@ -30,14 +30,21 @@ export default defineConfig({
         // "require" condition — its CJS build, which contains no `import.meta` at
         // all. `resolve.conditions` cannot fix this: condition order is decided by
         // the package's own exports map, not by the consumer.
-        'fdir',
+        //
+        // The regex (rather than the bare string 'fdir') also covers deep imports:
+        // a bare string matches the exact specifier only, so `fdir/dist/...` would
+        // slip past and get bundled. No such import exists today — this keeps it so.
+        /^fdir(\/|$)/,
 
-        // rrule, for the same underlying reason: Rolldown's ESM→CJS interop hands
-        // it `undefined` for tslib's default export, so its `const { __extends, … }
-        // = tslib.default` throws "Cannot destructure property '__extends'" at
-        // startup. Required at runtime, Node does the interop correctly. (npm pulls
-        // tslib in as rrule's own dependency, so it needs no entry of its own.)
-        'rrule',
+        // rrule, for a related reason: the bundler again picks its ESM build (rrule
+        // has no `exports` map at all, so Forge's main config wins via its
+        // `resolve.mainFields: ['module', …]` default), and Rolldown's ESM→CJS
+        // interop hands that build `undefined` for tslib's default export, so its
+        // `const { __extends, … } = tslib.default` throws "Cannot destructure
+        // property '__extends'" at startup. Required at runtime, Node does the
+        // interop correctly. (npm pulls tslib in as rrule's own dependency, so it
+        // needs no entry of its own.) Same deep-import reasoning for the regex.
+        /^rrule(\/|$)/,
       ],
     },
   },
