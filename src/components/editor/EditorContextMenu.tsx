@@ -48,7 +48,8 @@ export function EditorContextMenu({
 
   // Clamp the menu inside the viewport once it has been measured, so a click
   // near the right/bottom edge does not push the menu off-screen. Runs before
-  // paint to avoid a visible jump from the raw click position.
+  // paint to avoid a visible jump from the raw click position. Re-runs when the
+  // spelling suggestions arrive, since they change the menu's height.
   useLayoutEffect(() => {
     if (!contextMenu.visible || !menuRef.current) return;
     const { width, height } = menuRef.current.getBoundingClientRect();
@@ -58,7 +59,7 @@ export function EditorContextMenu({
       left: Math.max(VIEWPORT_MARGIN, Math.min(contextMenu.x, maxLeft)),
       top: Math.max(VIEWPORT_MARGIN, Math.min(contextMenu.y, maxTop)),
     });
-  }, [contextMenu.visible, contextMenu.x, contextMenu.y]);
+  }, [contextMenu.visible, contextMenu.x, contextMenu.y, contextMenu.spelling?.suggestions]);
 
   // Focus the menu container (not an item) when it opens, so it is keyboard-
   // operable without visually highlighting the first item for mouse users.
@@ -108,7 +109,11 @@ export function EditorContextMenu({
           <div className="px-4 py-1 text-xs text-red-400 font-medium">
             Misspelled: &quot;{contextMenu.spelling.word}&quot;
           </div>
-          {contextMenu.spelling.suggestions.length > 0 ? (
+          {contextMenu.spelling.suggestions === null ? (
+            <div className="px-4 py-2 text-sm text-slate-500 italic">
+              Finding suggestions…
+            </div>
+          ) : contextMenu.spelling.suggestions.length > 0 ? (
             contextMenu.spelling.suggestions.map((suggestion) => (
               <button
                 type="button"

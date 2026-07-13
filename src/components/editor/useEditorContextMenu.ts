@@ -48,6 +48,14 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
 
   // Converts the click coordinates to a document position, checks whether that position
   // falls inside a misspelled word, and opens the menu with spelling suggestions when it does.
+  //
+  // Only the misspelling *check* runs before the menu opens — it's a hash lookup and costs
+  // nothing. `typo.suggest()` is an edit-distance-2 search that blocks for ~70-400ms on a
+  // word it hasn't seen before (it memoizes per word, which is why only the first click on
+  // a word ever felt slow). Running it here would hold up the menu's first paint, so the
+  // menu opens immediately with `suggestions: null` and the search is deferred to after
+  // paint: rAF fires just before the frame that shows the menu, and the zero-delay timeout
+  // queued inside it runs right after that frame is on screen.
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     const view = viewRef.current;
@@ -67,7 +75,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
             word: found.word,
             from: line.from + found.from,
             to: line.from + found.to,
-            suggestions: typo.suggest(found.word, 5), // Get up to 5 suggestions
+            suggestions: null,
           };
         }
       }
@@ -79,6 +87,22 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
       y: e.clientY,
       spelling,
     });
+
+    if (spelling && typo) {
+      const { word } = spelling;
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const suggestions = typo.suggest(word, 5); // Get up to 5 suggestions
+          // Fill the suggestions in, unless the menu has since closed or moved to
+          // a different word.
+          setContextMenu(prev =>
+            prev.visible && prev.spelling?.word === word && prev.spelling.suggestions === null
+              ? { ...prev, spelling: { ...prev.spelling, suggestions } }
+              : prev
+          );
+        }, 0);
+      });
+    }
   };
 
   // Fire-and-forget menu handlers: sync `() => void` signature with the async

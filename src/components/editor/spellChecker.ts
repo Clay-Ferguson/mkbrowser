@@ -147,5 +147,6 @@ export interface SpellingSuggestion {
   word: string;
   from: number;
   to: number;
-  suggestions: string[];
+  /** `null` while the suggestion search is still running (the menu opens before it finishes). */
+  suggestions: string[] | null;
 }
