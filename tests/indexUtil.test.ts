@@ -991,6 +991,70 @@ describe('reconcileEntries', () => {
     // Name-only entries are always added to handledNames before the filter runs.
     expect(handledNames.has('ghost')).toBe(true);
   });
+
+  // ── Re-binding an entry whose file's id changed under it ──────────────────
+  // The file is still on disk under the same name, but its front-matter id no
+  // longer matches the entry (hand-edited or removed). The entry must be re-bound
+  // to it — NOT left orphaned, which would both keep the stale entry (its name is
+  // visible) and leave the file unhandled, so the caller appends it a second time.
+
+  it('re-binds an id entry to its still-present file when the file\'s id changed', () => {
+    const maps = emptyMaps();
+    maps.visibleNames.add('note.md');
+    maps.nameToId.set('note.md', 'NEWID');
+    maps.idToName.set('NEWID', 'note.md');
+
+    const { files, handledNames } = reconcileEntries([{ name: 'note.md', id: 'OLDID' }], maps);
+
+    // One entry, adopting the file's current id — and handled, so the caller
+    // won't append a duplicate.
+    expect(files).toEqual([{ name: 'note.md', id: 'NEWID' }]);
+    expect(handledNames.has('note.md')).toBe(true);
+  });
+
+  it('re-binds without clobbering the id when the file could not be read', () => {
+    // The file exists but was unreadable, so no id could be extracted for it
+    // (absent from nameToId/idToName). Keep the entry and its existing id rather
+    // than blanking it or duplicating it; the next reconcile heals.
+    const maps = emptyMaps();
+    maps.visibleNames.add('locked.md');
+
+    const { files, handledNames } = reconcileEntries([{ name: 'locked.md', id: 'OLDID' }], maps);
+
+    expect(files).toEqual([{ name: 'locked.md', id: 'OLDID' }]);
+    expect(handledNames.has('locked.md')).toBe(true);
+  });
+
+  it('lets the entry that owns a file by id win over a stale entry with the same name', () => {
+    // b.md was renamed to a.md, and the file formerly at a.md is gone. The stale
+    // a.md entry must not adopt the file that the b.md entry owns by id — the id
+    // match wins, and the stale entry is dropped rather than duplicating the name.
+    const maps = emptyMaps();
+    maps.visibleNames.add('a.md');
+    maps.nameToId.set('a.md', 'BBB');
+    maps.idToName.set('BBB', 'a.md');
+
+    const { files, handledNames } = reconcileEntries(
+      [
+        { name: 'a.md', id: 'AAA' }, // stale: its file is gone, its name reused
+        { name: 'b.md', id: 'BBB' }, // owns the file on disk, by id
+      ],
+      maps,
+    );
+
+    expect(files).toEqual([{ name: 'a.md', id: 'BBB' }]);
+    expect(handledNames.has('a.md')).toBe(true);
+  });
+
+  it('still drops an id entry whose file is genuinely gone (name not on disk)', () => {
+    // Guards the re-bind above from over-reaching: no file by that name, no adopt.
+    const maps = emptyMaps();
+    maps.visibleNames.add('other.md');
+
+    const { files } = reconcileEntries([{ name: 'deleted.md', id: 'GONE' }], maps);
+
+    expect(files).toEqual([]);
+  });
 });
 
 describe('appendNewEntries', () => {
@@ -1181,6 +1245,32 @@ describe('injecting an id round-trips front matter without losing field values',
     // The id survived: the file was not re-keyed, and the index still points at it.
     expect(parseFrontMatter(readRaw('numeric.md')).yaml?.id).toBe(926986244);
     expect(readIndex().files).toEqual([{ name: 'numeric.md', id: '926986244' }]);
+  });
+
+  // A file whose front-matter id no longer matches its index entry (hand-edited,
+  // or removed) must stay ONE entry: the entry is re-bound to the file and adopts
+  // its current id, keeping its position in the ordering. Before this was fixed
+  // the stale entry survived (its name is still on disk) while the file also
+  // looked new, so the index grew a second entry for the same name — which the UI
+  // then shows twice.
+  it('re-binds the index entry when a file\'s id was hand-edited, without duplicating it', async () => {
+    touchFile('first.md', '---\nid: AAAAAAAAA\n---\n# A\n');
+    touchFile('edited.md', '---\nid: NEWNEWNEW\n---\n# B\n'); // id changed by hand
+    writeIndex({
+      files: [
+        { name: 'first.md', id: 'AAAAAAAAA' },
+        { name: 'edited.md', id: 'OLDOLDOLD' }, // index still holds the old id
+      ],
+    });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    // Exactly one entry per file, the edited one re-bound to its new id and still
+    // in its original position.
+    expect(readIndex().files).toEqual([
+      { name: 'first.md', id: 'AAAAAAAAA' },
+      { name: 'edited.md', id: 'NEWNEWNEW' },
+    ]);
   });
 
   // The other half of that rule: the coercion is honored only when it's lossless.

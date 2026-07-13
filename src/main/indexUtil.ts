@@ -604,6 +604,16 @@ export function reconcileEntries(
     }
   }
 
+  // Id entries that matched a file by id, and those that didn't (the latter are
+  // deferred to the name-match pass below). Membership is recorded as the loop
+  // runs rather than re-derived from `entry.id` afterwards, because the loop
+  // *mutates* entries — a name-only entry gets its file's id back-filled — so an
+  // id-based test after the fact would misclassify them.
+  const idMatched = new Set<IndexEntry>();
+  // A Set (not an array): it is both iterated in order below and membership-tested
+  // in the keep filter, which an array would make O(n²) on a large directory.
+  const unmatchedIdEntries = new Set<IndexEntry>();
+
   for (const entry of files) {
     if (entry.id) {
       // Markdown entry: match by id to detect renames
@@ -611,8 +621,13 @@ export function reconcileEntries(
       if (actualName) {
         entry.name = actualName;
         handledNames.add(actualName);
+        idMatched.add(entry);
+      } else {
+        // The id matched nothing on disk. The file may still be deleted — but it
+        // may also be sitting right there under the same name with a different id
+        // (a hand-edited/removed front-matter id). Deferred to the pass below.
+        unmatchedIdEntries.add(entry);
       }
-      // If no actualName: file was deleted — will be filtered out below
     } else if (entry.create_time !== undefined && entry.size !== undefined) {
       // Fingerprinted non-markdown entry: match by (create_time, size, ext).
       const fp = fingerprintOf(entry.create_time, entry.size, entry.name);
@@ -635,12 +650,45 @@ export function reconcileEntries(
     }
   }
 
-  // Remove entries for files/folders that no longer exist on disk. After the loop
-  // above, a non-id entry's `name` is correct iff its file still exists on disk
-  // (a confident rename updated it; a name-only match left it; a deletion leaves a
-  // name no longer present), so visibility-by-name is the single keep test.
+  // An id entry that matched nothing by id, but whose *name* is still on disk and
+  // unclaimed, is that same file with a changed id — the front-matter id was hand-
+  // edited, removed, or (before this was tightened) mangled by a YAML round-trip.
+  // Re-bind the entry to the file and adopt the file's current id.
+  //
+  // Without this the entry is orphaned but still survives the keep filter (its
+  // name is visible), while the file also looks brand new to appendNewEntries
+  // (nothing marked it handled) — so the index ends up holding TWO entries for one
+  // file, which then shows up twice in the UI. Re-binding also preserves the
+  // entry's position, which a drop-and-append would lose.
+  //
+  // Order matters: only names not already claimed above are adopted, so an entry
+  // that legitimately owns the file by id always wins over a stale one, and the
+  // stale entry is dropped by the filter below rather than duplicating the name.
+  const adopted = new Set<IndexEntry>();
+  for (const entry of unmatchedIdEntries) {
+    if (!visibleNames.has(entry.name) || handledNames.has(entry.name)) continue;
+    handledNames.add(entry.name);
+    adopted.add(entry);
+    // Unreadable files are absent from nameToId (no id could be read); keep the
+    // entry's existing id rather than blanking it, and let the next reconcile heal.
+    const id = nameToId.get(entry.name);
+    if (id) entry.id = id;
+  }
+
+  // Remove entries for files/folders that no longer exist on disk.
+  //
+  //  - An entry that matched a file — by id, or by the name adoption above — is
+  //    kept: it is bound to a file that is on disk right now.
+  //  - An id entry that matched *neither* is gone: its file was deleted, or its
+  //    name is already owned by the entry holding that file's id. It must be
+  //    dropped. Keeping it just because its name is still visible is precisely
+  //    what used to leave a stale entry sitting alongside the real one.
+  //  - Everything else (fingerprinted and name-only entries) is judged on whether
+  //    its name is still on disk; the loops above already corrected `name` for any
+  //    rename they were confident about.
   const kept = files.filter((entry) => {
-    if (entry.id) return idToName.has(entry.id) || visibleNames.has(entry.name);
+    if (idMatched.has(entry) || adopted.has(entry)) return true;
+    if (unmatchedIdEntries.has(entry)) return false;
     return visibleNames.has(entry.name);
   });
 
