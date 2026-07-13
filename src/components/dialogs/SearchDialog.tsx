@@ -65,7 +65,7 @@ interface SearchDialogProps {
  */
 function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, initialValues, searchDefinitions }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState(
-    initialValues?.searchQuery ? initialValues.searchQuery.replace(/\{\{nl\}\}/g, '\n') : (globalHighlight.globalHighlightText || '')
+    initialValues?.searchQuery ? initialValues.searchQuery.replace(/\{\{nl\}\}/g, '\n') : (globalHighlight.getGlobalHighlightText() || '')
   );
   const [searchName, setSearchName] = useState(initialValues?.searchName || '');
   const [searchType, setSearchType] = useState<SearchType>(initialValues?.searchType || 'literal');

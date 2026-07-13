@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../../../renderer/api';
 import { useAS, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing } from '../../../store';
-import { applyGlobalHighlight, globalHighlightText } from '../../../renderer/globalHighlight';
+import { applyGlobalHighlight, getGlobalHighlightText } from '../../../renderer/globalHighlight';
 import { removeTOC } from '../../../shared/tocUtil';
 import { logger } from '../../../shared/logUtil';
 import type { EditModeState } from './types';
@@ -32,8 +32,8 @@ async function writeFileAndExitEditMode(path: string, editContent: string): Prom
       // any later edit landing in the same mtime window.
       setItemContent(path, result.content, result.mtime, result.size);
       setItemEditing(path, false);
-      if (globalHighlightText) {
-        requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
+      if (getGlobalHighlightText()) {
+        requestAnimationFrame(() => applyGlobalHighlight(getGlobalHighlightText()));
       }
     }
   } catch (err) {
@@ -106,8 +106,8 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
   const handleCancel = () => {
     setItemReviewing(path, false);
     setItemEditing(path, false);
-    if (globalHighlightText) {
-      requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
+    if (getGlobalHighlightText()) {
+      requestAnimationFrame(() => applyGlobalHighlight(getGlobalHighlightText()));
     }
   };
 

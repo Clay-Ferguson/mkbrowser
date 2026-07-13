@@ -16,10 +16,11 @@ const headingLineDecos = [1, 2, 3, 4, 5, 6].map((level) =>
   Decoration.line({ class: `cm-md-heading cm-md-heading-${level}` })
 );
 
-// ATX heading: 1-6 `#` chars at line start followed by a space (or tab). No leading
-// whitespace allowed — indented `#` is code/quote content, not a heading. Precompiled
-// and tested directly against line.text; this runs per visible line per keystroke.
-const HEADING_RE = /^(#{1,6})[ \t]/;
+// ATX heading: 1-6 `#` chars at line start followed by a space, a tab, or end of line
+// (CommonMark allows an empty heading such as a bare `##`). No leading whitespace allowed
+// — indented `#` is code/quote content, not a heading. Precompiled and tested directly
+// against line.text; this runs per visible line per keystroke.
+const HEADING_RE = /^(#{1,6})(?:[ \t]|$)/;
 
 function buildHeadingDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();

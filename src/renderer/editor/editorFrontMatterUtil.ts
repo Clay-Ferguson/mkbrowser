@@ -209,7 +209,7 @@ export const frontMatterCursorGuard = EditorState.transactionFilter.of((tr) => {
   if (end <= 0) return tr;
 
   const sel = tr.newSelection;
-  let changed = false as boolean;
+  let changed: boolean = false;
   const ranges = sel.ranges.map((r) => {
     if (r.anchor < end || r.head < end) {
       changed = true;

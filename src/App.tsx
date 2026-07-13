@@ -35,7 +35,7 @@ import type { CalendarEventResult, AppConfig } from './shared/shared';
 import type { FileNode } from './store';
 import { loadConfig } from './renderer/config';
 import { isPathInside } from './renderer/pathUtil';
-import { applyGlobalHighlight, globalHighlightText } from './renderer/globalHighlight';
+import { applyGlobalHighlight, getGlobalHighlightText } from './renderer/globalHighlight';
 import { logger } from './shared/logUtil';
 
 async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
@@ -217,7 +217,7 @@ function App() {
 
   // Apply global text highlight after each navigation/load cycle
   useEffect(() => {
-    const id = requestAnimationFrame(() => applyGlobalHighlight(globalHighlightText));
+    const id = requestAnimationFrame(() => applyGlobalHighlight(getGlobalHighlightText()));
     // Returns the useEffect cleanup (an unsubscribe-style teardown): cancels the pending animation frame on unmount / before re-run.
     return () => cancelAnimationFrame(id);
   }, [currentPath, currentView, loading]);

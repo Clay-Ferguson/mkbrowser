@@ -10,7 +10,7 @@ export const EDITOR_COLORS = {
   yellow400: '#facc15',
   sky400: '#38bdf8',
   // date hover tooltip
-  tooltipBg: '#166534', // green-700
+  tooltipBg: '#166534', // green-800
   tooltipFg: '#f0fdf4', // green-50
   tooltipBorder: '#22c55e', // green-500
 } as const;

@@ -11,7 +11,7 @@ import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { shell } from '@codemirror/legacy-modes/mode/shell';
 import Typo from 'typo-js';
-import { globalHighlightText } from '../../renderer/globalHighlight';
+import { getGlobalHighlightText } from '../../renderer/globalHighlight';
 import AlertDialog from '../dialogs/AlertDialog';
 import { useAS } from '../../store';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
@@ -195,10 +195,11 @@ function applyPostMountFocus(
   }
 
   // If there's a global search term active, open the search panel pre-populated
-  if (globalHighlightText) {
+  const highlightText = getGlobalHighlightText();
+  if (highlightText) {
     openSearchPanel(view);
     view.dispatch({
-      effects: setSearchQuery.of(new SearchQuery({ search: globalHighlightText, caseSensitive: false })),
+      effects: setSearchQuery.of(new SearchQuery({ search: highlightText, caseSensitive: false })),
     });
   }
 
