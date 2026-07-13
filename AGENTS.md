@@ -106,5 +106,9 @@ Some source files (e.g. `FolderGraphView.tsx`) contain valid UTF-8 punctuation (
 
 Never commit changes to the 'git' repository yourself, unless you're asked to.
 
+## TypeScript Language Version
+
+Note: We're not yet on the latest vesion of TypeScript, and the file named `TypeScript7-Conversion-Blocker.md` describes why we aren't
+
 
 
