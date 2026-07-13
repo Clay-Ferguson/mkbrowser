@@ -8,7 +8,7 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 /**
- * Packages listed in vite.main.config.ts `external` are NOT bundled by Vite —
+ * Packages listed in vite.main.config.mts `external` are NOT bundled by Vite —
  * they stay as bare `require()` calls in the built main.js.  The Forge Vite
  * plugin strips node_modules from the asar (it assumes everything is bundled),
  * so we must re-install these external deps inside the build directory before
@@ -18,7 +18,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
  * way to handle this.  It works, but it feels a bit hacky.  Maybe there's a better way to
  * tell Forge "hey, these deps aren't bundled, make sure they get included in the final package"?
  */
-const EXTERNAL_DEPENDENCY_PREFIXES = ['@langchain/', '@anthropic-ai/', 'langsmith', 'exifreader'];
+const EXTERNAL_DEPENDENCY_PREFIXES = ['@langchain/', '@anthropic-ai/', 'langsmith', 'exifreader', 'fdir', 'rrule'];
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -71,12 +71,12 @@ const config: ForgeConfig = {
         {
           // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
           entry: 'src/main.ts',
-          config: 'vite.main.config.ts',
+          config: 'vite.main.config.mts',
           target: 'main',
         },
         {
           entry: 'src/preload.ts',
-          config: 'vite.preload.config.ts',
+          config: 'vite.preload.config.mts',
           target: 'preload',
         },
       ],

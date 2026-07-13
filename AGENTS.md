@@ -74,7 +74,7 @@ Two guards enforce this: the `react-hooks/todo` + `react-hooks/syntax` ESLint ru
 ## Tech Stack
 
 - **Runtime**: Electron 40, React 19, TypeScript
-- **Build**: Electron Forge + Vite (configs: `vite.main.config.ts`, `vite.preload.config.ts`, `vite.renderer.config.mts`)
+- **Build**: Electron Forge + Vite (configs: `vite.main.config.mts`, `vite.preload.config.mts`, `vite.renderer.config.mts`)
 - **Styling**: Tailwind CSS 4 (CSS-first config in `src/index.css`, Typography plugin for Markdown)
 - **Markdown**: react-markdown + remark-gfm + remark-math + rehype-katex + mermaid
 - **Editor**: CodeMirror 6 (`src/components/CodeMirrorEditor.tsx`)
