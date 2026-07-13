@@ -19,6 +19,8 @@
 #
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
 # ── Reasoning Mode ───────────────────────────────────────────────────────
 # Optional first argument: "on" or "off" (controls --reasoning). Defaults
 # to "off". MkBrowser passes "on" when Agentic Mode is enabled.
@@ -155,6 +157,14 @@ MODEL_PATH="$MODELS_DIR/$MODEL_FILE"
 # Allow CLI overrides (e.g., --port 9090)
 EXTRA_ARGS=("$@")
 
+# A --port override in EXTRA_ARGS wins over the PORT set above; track the
+# effective port so the bind check and the banner report where we'll really be.
+for ((i = 0; i < ${#EXTRA_ARGS[@]}; i++)); do
+  if [[ "${EXTRA_ARGS[i]}" == "--port" && -n "${EXTRA_ARGS[i + 1]:-}" ]]; then
+    PORT="${EXTRA_ARGS[i + 1]}"
+  fi
+done
+
 # Verify prerequisites
 if [[ ! -x "$SERVER_BIN" ]]; then
   if [[ "$BACKEND" == "gpu" ]]; then
@@ -172,6 +182,43 @@ if [[ ! -f "$MODEL_PATH" ]]; then
   echo "Run ./download-model.sh first."
   exit 1
 fi
+
+# ── Port Pre-flight Check ────────────────────────────────────────────────
+# llama-server only discovers a taken port *after* it has loaded the model and
+# printed a startup banner, so a duplicate launch looks like a mysterious crash
+# ("couldn't bind HTTP server socket") rather than "it's already running".
+# Catch it here instead, before we print anything that looks like success — and
+# crucially before the PID file is written, so a rejected launch cannot clobber
+# the PID of the server that is already running.
+#
+# Unlike status.sh / stop-server.sh, this check is a convenience rather than a
+# safety guard: if `ss` is unavailable (non-Linux), skip it and let llama.cpp
+# report the bind failure itself rather than refusing to start at all.
+# shellcheck source=server-lib.sh
+source "$SCRIPT_DIR/server-lib.sh"
+
+if command -v ss >/dev/null 2>&1 && llama_port_listening "$HOST" "$PORT"; then
+  echo "ERROR: ${HOST}:${PORT} is already in use — not starting a second server."
+  echo ""
+
+  if curl -sf -m 5 "http://${HOST}:${PORT}/health" >/dev/null 2>&1; then
+    echo "  A healthy llama-server is already listening there. To use it, set the"
+    echo "  llama.cpp Base URL in MkBrowser Settings to:"
+    echo "    http://localhost:${PORT}/v1"
+    echo ""
+    echo "  ./status.sh      # model, slots, and a test inference"
+    echo "  ./stop-server.sh # stop it, then re-run this script to restart"
+  else
+    echo "  Something is listening on that port but it is not answering /health,"
+    echo "  so it may be a different program or a wedged server:"
+    ss -tlnp 2>/dev/null | grep -E "[[:space:]]${HOST}:${PORT}[[:space:]]" | sed 's/^/    /'
+    echo ""
+    echo "  Stop it (./stop-server.sh if it is llama-server), or start this one on"
+    echo "  another port:  ./start-server.sh --port 8081"
+  fi
+  exit 1
+fi
+# ─────────────────────────────────────────────────────────────────────────
 
 # Ensure shared libraries are findable
 export LD_LIBRARY_PATH="$LIB_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
@@ -199,8 +246,10 @@ echo ""
 
 # Write PID file so stop-server.sh (and MkBrowser) can find us.
 # exec replaces this shell, so $$ will be the llama-server PID.
-PID_FILE="$HOME/.local/share/llama.cpp/llama-server.pid"
-echo $$ > "$PID_FILE"
+#
+# This is a hint, not the source of truth: stop-server.sh prefers the listening
+# socket's owning PID and only falls back to this file. See server-lib.sh.
+echo $$ > "$LLAMA_PID_FILE"
 
 # Thread tuning for the Intel Core Ultra 9 288V (Lunar Lake): 8 cores, no
 # hyperthreading = 4 fast P-cores + 4 low-power E-cores.

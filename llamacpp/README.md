@@ -19,6 +19,10 @@ to your specific hardware.
 
 # 3. Start the server
 ./start-server.sh
+
+# 4. In another terminal: confirm it's up and inference works
+#    (a large model takes ~2 min to load; until then this reports LOADING)
+./status.sh
 ```
 
 Then in MkBrowser **Settings → AI**:
@@ -62,6 +66,10 @@ setting the **llama.cpp Base URL** to `http://localhost:9090/v1`.
 - **Linux x86_64** (Ubuntu or similar)
 - **32 GB RAM** recommended (model sizes range from ~3.1 GB to ~24 GB)
 - `curl`, `unzip`, `bc` (standard on most Ubuntu installs)
+- `ss` (from `iproute2`) and `jq` — used by `status.sh` / `stop-server.sh` to
+  identify the running server. Both are standard on Ubuntu. These two scripts are
+  **Linux-only** by design and will say so plainly on other platforms, rather
+  than guessing (see [How the scripts find the server](#how-the-scripts-find-the-server)).
 
 ## Files
 
@@ -71,11 +79,55 @@ setting the **llama.cpp Base URL** to `http://localhost:9090/v1`.
 | `setup-with-vulkan.sh` | Download and install a **Vulkan (GPU)** llama.cpp build side-by-side (see [Vulkan Driver](#vulkan-driver)) |
 | `download-model.sh` | Download a quantized GGUF model to `~/.local/share/llama.cpp/models/` |
 | `start-server.sh` | Launch the server on `localhost:8080`; selects CPU or GPU via the `BACKEND` env var |
+| `status.sh` | Report whether the server is up, what it's serving, and run a test inference (see [Verifying the Server](#verifying-the-server)) |
+| `stop-server.sh` | Stop the running server |
+| `server-lib.sh` | Shared helper *sourced* by the scripts above (not run directly) — locates and verifies the server process |
 | `benchmark.sh` | Measure tokens-per-second: restarts the server, runs one timed inference, prints the metrics, shuts down (see [Speculative Decoding](#speculative-decoding)) |
 
 ## Verifying the Server
 
-Once `start-server.sh` is running, test with:
+The quickest check is **`./status.sh`**, which answers "is it up, what is it
+serving, and does inference actually work?" in one shot — port and PID, health,
+the loaded model, slot usage, and a real test inference with token rates:
+
+```bash
+./status.sh              # full report + test inference
+./status.sh --no-test    # just the report; generates no tokens
+./status.sh --port 9090  # check a server on a non-default port
+```
+
+```
+=== llama.cpp Server Status ===
+
+  UP — healthy and accepting requests
+
+  Endpoint:        http://127.0.0.1:8080
+  ...
+  Model:           Qwen3.6-35B-A3B-UD-IQ4_XS.gguf
+  Quant:           IQ4_XS - 4.25 bpw
+  Context:         16384 tokens (trained: 262144)
+  Slots:           4 total, 0 busy, 4 idle
+
+=== Test Inference ===
+  Prompt eval:     26 tokens @ 22.2 tok/s
+  Generation:      37 tokens @ 10.4 tok/s
+```
+
+Its exit codes are scriptable: **0** up, **1** down, **2** something is on the
+port but it isn't a healthy llama-server, **3** still loading.
+
+> **A cold start is not instant.** Loading a large MoE model off disk takes a
+> couple of minutes (~2m10s for Qwen3.6-35B on this laptop). During that window
+> the server is *already listening* but answers every request with **HTTP 503
+> "Loading model"** — this is normal, and `status.sh` reports it as `LOADING`
+> rather than an error. Don't kill and restart a server that is merely loading;
+> you'll just start the wait over. To block until it's ready:
+>
+> ```bash
+> until curl -sf http://localhost:8080/health >/dev/null; do sleep 2; done; echo READY
+> ```
+
+To poke at the API directly instead:
 
 ```bash
 # List available models
@@ -90,6 +142,64 @@ curl http://localhost:8080/v1/chat/completions \
     "max_tokens": 100
   }'
 ```
+
+## Stopping the Server
+
+```bash
+./stop-server.sh              # stop the server on the default port
+./stop-server.sh --port 9090  # stop the server on a specific port, and nothing else
+```
+
+`stop-server.sh` sends `SIGTERM`, waits up to 10s for a graceful exit, then
+escalates to `SIGKILL`. Two behaviors are worth knowing:
+
+- **With an explicit `--port`, it only ever touches a server on that port.** It
+  will not "helpfully" fall back to some other llama-server it happens to find.
+- **If the port is held by a process that isn't llama-server, it leaves it
+  alone** and reports what's there (exit code 2). Stopping unrelated programs is
+  not its job.
+
+### How the scripts find the server
+
+`start-server.sh` writes a PID file (`~/.local/share/llama.cpp/llama-server.pid`),
+but that file is treated as a **hint, not the source of truth**. A PID file
+records a claim made at launch, and the claim can rot: the process may be
+`SIGKILL`ed, crash, or be started outside the script. The real danger is that
+PIDs get **recycled** — a stale file can end up naming a completely unrelated
+process, and blindly signalling it would kill the wrong thing, silently.
+
+So `status.sh` and `stop-server.sh` instead ask the kernel *who currently holds
+the listening port* (via `ss`), fall back to the PID file only if that fails, and
+in **either** case verify the process really is llama-server (via
+`/proc/<pid>/comm`) before sending any signal. That verification is what makes
+the operation safe against PID reuse. This is also why these two scripts are
+Linux-only: `ss` and `/proc` don't exist on macOS or the BSDs, and the scripts
+refuse to run rather than degrade into trusting a PID file. (On macOS the
+equivalent lookup is `lsof -nP -iTCP:8080 -sTCP:LISTEN`.)
+
+## Troubleshooting
+
+### "couldn't bind HTTP server socket" on startup
+
+```
+E srv start: couldn't bind HTTP server socket, hostname: 127.0.0.1, port: 8080
+E srv llama_server: exiting due to HTTP server error
+```
+
+This almost always means **the server is already running** — something else is
+holding port 8080, so the new instance can't bind it and exits. It is not a
+crash, and nothing is wrong with your model or install.
+
+`start-server.sh` now checks the port *before* it starts, so you'll get a clear
+message instead of this error. Run `./status.sh` to see what's there. If it's a
+healthy server, you can just use it (point MkBrowser at
+`http://localhost:8080/v1`); otherwise `./stop-server.sh` and start again, or run
+the new one on another port with `./start-server.sh --port 9090`.
+
+> Note the misleading detail that makes this error confusing: `start-server.sh`
+> prints its whole "=== Starting llama.cpp Server ===" banner *before*
+> llama-server ever attempts the bind. Seeing the banner does **not** mean the
+> server started.
 
 ## Switching Models
 
