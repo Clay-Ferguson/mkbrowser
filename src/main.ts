@@ -153,6 +153,22 @@ function alertIfCorruptIndex(dirPath: string, result: IndexMutationResult): Inde
   return result;
 }
 
+/**
+ * Where a folder picker should open.
+ *
+ * Electron 43 changed `showOpenDialog` to default `defaultPath` to the user's
+ * Downloads folder when it is omitted, which also stops the OS from restoring
+ * the directory the user last picked. For a folder browser, Downloads is almost
+ * never the right place to land, so we open on the folder currently being
+ * browsed. Returns undefined — deferring to the OS default — when there is no
+ * such folder yet (first run) or it has since been deleted or unmounted, since
+ * pointing a dialog at a missing path is worse than not pointing it anywhere.
+ */
+function folderPickerDefaultPath(): string | undefined {
+  const { browseFolder } = getConfig();
+  return browseFolder && fs.existsSync(browseFolder) ? browseFolder : undefined;
+}
+
 function setupIpcHandlers(): void {
   // Quit the application
   ipcMain.handle('quit', () => {
@@ -204,6 +220,7 @@ function setupIpcHandlers(): void {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
       title: 'Select a folder to browse',
+      defaultPath: folderPickerDefaultPath(),
     });
     if (!result.canceled && result.filePaths.length > 0) {
       return result.filePaths[0]!; 
@@ -643,6 +660,7 @@ function setupIpcHandlers(): void {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory', 'createDirectory'],
       title: 'Select export output folder',
+      defaultPath: folderPickerDefaultPath(),
     });
     if (!result.canceled && result.filePaths.length > 0) {
       return result.filePaths[0]!;
