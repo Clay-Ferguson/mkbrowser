@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { load } from 'js-yaml';
+import { loadYaml } from '../shared/yamlUtil';
 import type { TagCategory } from '../shared/tagUtil';
 
 /**
@@ -32,7 +32,7 @@ export async function loadTags(configDir: string): Promise<TagCategory[]> {
 
   type RawTags = Record<string, { description?: string } | null>;
   type RawFile = { hashtags?: Record<string, RawTags | null> };
-  const parsed = load(content) as RawFile | null;
+  const parsed = loadYaml(content) as RawFile | null;
   const hashtags = parsed?.hashtags;
   if (!hashtags || typeof hashtags !== 'object') return [];
 

@@ -187,11 +187,20 @@ describe('parseFrontMatter', () => {
     expect(result.content).toBe(raw);
   });
 
-  it('returns null yaml for an empty front matter block (parses to undefined)', () => {
-    const raw = '---\n\n---\nbody';
+  // An empty block yields `yaml: null` like the malformed cases above, but unlike them
+  // its fences ARE consumed: it's a real (if dataless) front matter block, not something
+  // we failed to understand. Callers rebuild documents as `---\n<dump>---\n<content>`, so
+  // handing back the raw text here made them wrap a second block around the first — see
+  // the injectFrontMatterId tests in indexUtil.test.ts.
+  it.each([
+    ['blank', '---\n\n---\nbody'],
+    ['no lines between the fences', '---\n---\nbody'],
+    ['whitespace only', '---\n   \n---\nbody'],
+    ['comments only', '---\n# nothing yet\n---\nbody'],
+  ])('returns null yaml and strips the fences for a %s front matter block', (_label, raw) => {
     const result = parseFrontMatter(raw);
     expect(result.yaml).toBeNull();
-    expect(result.content).toBe(raw);
+    expect(result.content).toBe('body');
   });
 
   it('preserves a blank line at the start of the body', () => {
@@ -271,6 +280,20 @@ describe('setFrontMatterProperty', () => {
   it('creates a front matter block when none exists', () => {
     const result = setFrontMatterProperty('Just body text.', 'due', '1/1/2027');
     expect(result).toBe('---\ndue: 1/1/2027\n---\nJust body text.');
+  });
+
+  // A front-matter block with nothing in it is a document with no YAML, not a
+  // corrupt one. js-yaml 5 throws on empty input where v4 returned undefined,
+  // and that throw lands in the "can't parse — return content unchanged" path,
+  // silently dropping the write. The loadYaml() wrapper is what keeps these
+  // writing. (A bare `---\n---\n` has no line between the fences and so isn't
+  // front matter at all per FRONT_MATTER_RE — it never reaches the YAML parser.)
+  it.each([
+    ['blank', '---\n\n---\nBody.'],
+    ['whitespace-only', '---\n   \n---\nBody.'],
+    ['comment-only', '---\n# nothing here yet\n---\nBody.'],
+  ])('adds a property to a %s front matter block', (_label, content) => {
+    expect(setFrontMatterProperty(content, 'due', '1/1/2027')).toBe('---\ndue: 1/1/2027\n---\nBody.');
   });
 
   it('canonicalizes the rest of the block (quotes dropped, comments removed)', () => {

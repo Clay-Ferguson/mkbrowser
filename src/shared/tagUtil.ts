@@ -1,4 +1,5 @@
-import { load, dump } from 'js-yaml';
+import { dump } from 'js-yaml';
+import { loadYaml } from './yamlUtil';
 import { splitFrontMatter, assembleFrontMatter } from './frontMatterUtil';
 
 /** A single hashtag definition. `tag` always includes the `#` prefix (e.g. `"#cooking"`). */
@@ -25,13 +26,14 @@ export function tagName(tag: string): string {
 
 /**
  * Reports whether a raw YAML string can be parsed by js-yaml. Empty/whitespace
- * front matter counts as parseable. Callers use this to refuse a tag edit (and
- * warn the user) rather than silently discarding front matter js-yaml rejects —
- * js-yaml 4.x throws on more than malformed syntax (e.g. duplicated mapping keys).
+ * front matter counts as parseable (see {@link loadYaml}). Callers use this to
+ * refuse a tag edit (and warn the user) rather than silently discarding front
+ * matter js-yaml rejects — js-yaml throws on more than malformed syntax (e.g.
+ * duplicated mapping keys).
  */
 export function isYamlParseable(yamlStr: string): boolean {
   try {
-    load(yamlStr);
+    loadYaml(yamlStr);
     return true;
   } catch {
     return false;
@@ -41,7 +43,7 @@ export function isYamlParseable(yamlStr: string): boolean {
 /** Parses the `tags` array from a raw YAML string, returning bare tag names (no `#`). Returns `[]` on parse error or missing tags. */
 export function getTagsFromYaml(yamlStr: string): string[] {
   try {
-    const parsed = load(yamlStr) as Record<string, unknown> | null;
+    const parsed = loadYaml(yamlStr) as Record<string, unknown> | null;
     if (!parsed || !Array.isArray(parsed.tags)) return [];
     // Coerce scalar entries (numbers/booleans a user typed unquoted, e.g. `- 2024`)
     // to strings so a tag toggle doesn't silently drop them from the rewritten list.
@@ -62,7 +64,7 @@ export function getTagsFromYaml(yamlStr: string): string[] {
 export function setTagsInYaml(yamlStr: string, tags: string[]): string {
   let parsed: Record<string, unknown>;
   try {
-    parsed = (load(yamlStr) as Record<string, unknown> | null) ?? {};
+    parsed = (loadYaml(yamlStr) as Record<string, unknown> | null) ?? {};
   } catch {
     // Refuse to edit: return the original string untouched rather than
     // proceeding with `{}`, which would wipe every existing front-matter

@@ -1111,6 +1111,29 @@ describe('injecting an id round-trips front matter without losing field values',
     expect(parsed.yaml?.apple).toBe(1);
   });
 
+  // An empty front-matter block is a real block that holds no data. It must be
+  // reused, not wrapped: the injector rebuilds the document as
+  // `---\n<dump(yaml)>---\n<body>`, so if parseFrontMatter hands back the raw text
+  // (fences included) as the body, the result is a double-fenced
+  // `---\nid: X\n---\n---\n\n---\n# Body` that no longer parses as front matter at all.
+  it.each([
+    ['blank', '---\n\n---\n# Body\n'],
+    ['no lines between the fences', '---\n---\n# Body\n'],
+    ['whitespace only', '---\n   \n---\n# Body\n'],
+    ['comments only', '---\n# nothing yet\n---\n# Body\n'],
+  ])('adds an id to a %s front matter block without duplicating the fences', async (_label, content) => {
+    touchFile('empty.md', content);
+    writeIndex({ files: [] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    const raw = readRaw('empty.md');
+    expect(raw).toMatch(/^---\nid: [0-9A-F]{9}\n---\n# Body\n$/);
+    const parsed = parseFrontMatter(raw);
+    expect(parsed.yaml?.id).toMatch(/^[0-9A-F]{9}$/);
+    expect(parsed.content).toBe('# Body\n');
+  });
+
   it('replaces a colliding id without leaving a duplicate mapping key', async () => {
     // b.md is a paste of a.md: same id, plus extra fields and custom key order.
     touchFile('a.md', '---\nid: DUP000001\n---\n# A');

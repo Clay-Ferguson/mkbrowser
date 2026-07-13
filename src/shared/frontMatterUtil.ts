@@ -1,4 +1,5 @@
-import { load, dump } from 'js-yaml';
+import { dump } from 'js-yaml';
+import { loadYaml } from './yamlUtil';
 import { logger } from './logUtil';
 
 export interface FrontMatterResult {
@@ -25,8 +26,15 @@ export interface FrontMatterSplit {
  * trailing whitespace) on its own line; lazy body; closing `---` (optional trailing
  * whitespace) anchored to its own line or end-of-file. CRLF-tolerant so reads and writes
  * never disagree on line endings.
+ *
+ * The body (and the newline ending it) is optional, so the degenerate `---\n---\n` — a
+ * block with no lines at all between the fences — is recognized as *empty* front matter
+ * rather than as no front matter. Requiring at least one line there meant the writers
+ * fell through to their "no front matter" branch and wrapped a fresh block around the
+ * old fences, producing `---\nkey: v\n---\n---\n---\nBody.`. When the body is absent the
+ * capture group is undefined, which the `?? ''` in splitFrontMatter already handles.
  */
-const FRONT_MATTER_RE = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+const FRONT_MATTER_RE = /^---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;
 
 /**
  * Split markdown into its raw front-matter YAML text and body, or null if there is no
@@ -44,7 +52,17 @@ export function splitFrontMatter(content: string): FrontMatterSplit | null {
  * grammar as {@link splitFrontMatter} so the read and write paths can never disagree about
  * what counts as front matter. Everything after the closing fence is returned as `content`.
  *
- * Returns `yaml: null` when no valid front matter block is detected.
+ * Returns `yaml: null` when no front matter block yielded a mapping. `content` then depends
+ * on *why*, and the distinction matters because callers rebuild the document as
+ * `---\n<dump(yaml)>---\n<content>`:
+ *
+ *  - An **empty** block (blank, whitespace, or comments only) is a real block that simply
+ *    holds no data, so its fences are consumed and `content` is the body. Returning the raw
+ *    text here would make those callers wrap a fresh block around the old one and emit
+ *    `---\nid: x\n---\n---\n\n---\nBody.`
+ *  - **Malformed** YAML, or a block whose top level is a scalar or list rather than a
+ *    mapping, returns the content untouched — we can't represent it, so we refuse to
+ *    consume the fences and risk destroying data the user can still recover by hand.
  */
 export function parseFrontMatter(rawContent: string): FrontMatterResult {
   const parts = splitFrontMatter(rawContent);
@@ -53,9 +71,13 @@ export function parseFrontMatter(rawContent: string): FrontMatterResult {
   }
 
   try {
-    const parsed = load(parts.yamlStr);
-    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const parsed = loadYaml(parts.yamlStr);
+    if (parsed !== null && parsed !== undefined && typeof parsed === 'object' && !Array.isArray(parsed)) {
       return { yaml: parsed as Record<string, unknown>, content: parts.body };
+    }
+    if (parsed === null || parsed === undefined) {
+      // An empty block: no data, but the fences are still front matter and are consumed.
+      return { yaml: null, content: parts.body };
     }
   } catch (err) {
     // Malformed YAML — treat as no front matter
@@ -85,7 +107,7 @@ export function setFrontMatterProperty(content: string, key: string, value: unkn
   }
   let parsed: unknown;
   try {
-    parsed = load(parts.yamlStr) ?? {};
+    parsed = loadYaml(parts.yamlStr) ?? {};
   } catch {
     return content;
   }
@@ -98,7 +120,7 @@ export function setFrontMatterProperty(content: string, key: string, value: unkn
 /** Returns all front matter properties except 'tags', preserving their parsed types. */
 export function getPropsFromYaml(yamlStr: string): Record<string, unknown> {
   try {
-    const parsed = load(yamlStr) as Record<string, unknown> | null;
+    const parsed = loadYaml(yamlStr) as Record<string, unknown> | null;
     if (!parsed) return {};
     const { tags: _tags, ...rest } = parsed;
     return rest;

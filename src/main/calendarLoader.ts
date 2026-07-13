@@ -1,8 +1,8 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
-import { load } from 'js-yaml';
 import { RRule, Weekday } from 'rrule';
+import { loadYaml } from '../shared/yamlUtil';
 import { logger } from '../shared/logUtil';
 import { buildExcludePredicate } from '../shared/pathPattern';
 import { mapWithConcurrency } from '../shared/asyncUtil';
@@ -212,7 +212,7 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
     const fm = splitFrontMatter(content);
     if (!fm) return [];
 
-    const parsed = load(fm.yamlStr) as Record<string, unknown> | null;
+    const parsed = loadYaml(fm.yamlStr) as Record<string, unknown> | null;
     if (!parsed || typeof parsed.due !== 'string') return [];
 
     const dueDate = parseDueStr(parsed.due);

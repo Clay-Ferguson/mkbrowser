@@ -11,6 +11,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { app } from 'electron';
 import * as yaml from 'js-yaml';
+import { loadYaml } from '../shared/yamlUtil';
 import { enforceDefaultAIModels } from './ai/aiModel';
 import { defaultSettings, cloneDefaultSettings, parseConfigYaml, coerceNonNegativeNumber } from './configSchema';
 import type { AppConfig, AIModelConfig } from '../shared/shared';
@@ -282,7 +283,7 @@ export async function initConfig(): Promise<void> {
     // The config file is untrusted (hand-editable, syncable, corruptible), so
     // validate it through the zod schema rather than casting. Malformed fields
     // degrade to defaults; a non-object top level returns null.
-    const parsed = parseConfigYaml(yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')));
+    const parsed = parseConfigYaml(loadYaml(fs.readFileSync(CONFIG_FILE, 'utf-8')));
     if (parsed) {
       const base = { ...parsed, settings: { ...cloneDefaultSettings(), ...parsed.settings } };
       const { config: withAI, changed } = withDefaultAISettings(base);

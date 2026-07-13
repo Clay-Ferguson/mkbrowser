@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { load, dump } from 'js-yaml';
+import { dump } from 'js-yaml';
 import { z } from 'zod';
 import { customAlphabet } from 'nanoid';
 import { parseFrontMatter } from '../shared/frontMatterUtil';
+import { loadYaml } from '../shared/yamlUtil';
 import { compareNames } from '../shared/fileTypes';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from '../shared/specialFiles';
 import { writeFileAtomic } from './atomicWrite';
@@ -268,7 +269,7 @@ export async function readIndexYamlChecked(dirPath: string): Promise<IndexReadRe
   }
   let loaded: unknown;
   try {
-    loaded = load(content);
+    loaded = loadYaml(content);
   } catch (err) {
     logger.warn(`readIndexYamlChecked: cannot parse "${indexFilePath}": ${err}`);
     return { status: 'error', error: err instanceof Error ? err.message : String(err) };
@@ -710,7 +711,7 @@ export async function reconcileIndexedFiles(
       if (existingIndexContent !== null) {
         let parsed: IndexYaml | null = null;
         try {
-          parsed = parseIndexYaml(load(existingIndexContent));
+          parsed = parseIndexYaml(loadYaml(existingIndexContent));
         } catch (err) {
           logger.warn(`reconcileIndexedFiles: malformed "${indexFilePath}", refusing to touch it: ${err}`);
           return corruptIndexFailure(err instanceof Error ? err.message : String(err));
@@ -1057,7 +1058,7 @@ export async function ensureFrontMatterIdIfIndexed(
   let indexYaml: IndexYaml | null = null;
   try {
     const raw = await fs.promises.readFile(indexFilePath, 'utf8');
-    indexYaml = parseIndexYaml(load(raw));
+    indexYaml = parseIndexYaml(loadYaml(raw));
   } catch (err) {
     // A missing index is the normal "not Document Mode" case; surface anything else.
     if (!isENOENT(err)) {

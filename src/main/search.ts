@@ -8,7 +8,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fdir } from 'fdir';
 import * as ExifReader from 'exifreader';
-import { load } from 'js-yaml';
+import { loadYaml } from '../shared/yamlUtil';
 import { parseDateString, past, future, today } from '../shared/timeUtil';
 import { createContentSearcher } from '../shared/searchHelpers';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
@@ -49,7 +49,7 @@ function getYaml(cache: YamlCache, content: string, filePath?: string): Record<s
   let parsed: Record<string, unknown> | null = null;
   if (parts) {
     try {
-      parsed = load(parts.yamlStr) as Record<string, unknown> | null ?? null;
+      parsed = loadYaml(parts.yamlStr) as Record<string, unknown> | null ?? null;
     } catch (err) {
       // Malformed front-matter YAML is an expected, file-specific condition (not a
       // bug). Treat as "no front-matter" but log so it's distinguishable in a trace.
