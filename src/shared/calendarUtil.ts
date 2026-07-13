@@ -2,7 +2,7 @@
  * Utilities for turning a markdown file into a calendar item via front matter injection.
  */
 
-import { splitFrontMatter, setFrontMatterProperty } from '../shared/frontMatterUtil';
+import { splitFrontMatter, setFrontMatterProperty, assembleFrontMatter } from '../shared/frontMatterUtil';
 
 function getCurrentDateStr(): string {
   const now = new Date();
@@ -188,7 +188,9 @@ export function setRRuleProperty(content: string, rrule: RRuleProps | null): str
   // drop trailing blank lines it left behind.
   const yaml = parsed.yamlStr.replace(/^rrule:\n(?:[ \t]+.+\n?)*/m, '').replace(/\n+$/, '');
   if (!rrule?.freq) {
-    return `---\n${yaml}\n---\n${parsed.body}`;
+    // The rrule may have been the only key — assembleFrontMatter drops the fences entirely
+    // rather than leaving an empty `---\n---` block behind.
+    return assembleFrontMatter(yaml, parsed.body);
   }
   const merged = yaml ? `${yaml}\n${buildRRuleBlock(rrule)}` : buildRRuleBlock(rrule);
   return `---\n${merged}\n---\n${parsed.body}`;
