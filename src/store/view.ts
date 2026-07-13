@@ -32,7 +32,6 @@ export interface ViewSlice {
   setRootPath: (path: string) => void;
   showTab: (tab: AppView) => void;
   hideTab: (tab: AppView) => void;
-  setExpandedEditor: (expandedEditor: boolean) => void;
   setSelectedLinkItems: (paths: string[]) => void;
 }
 
@@ -179,9 +178,6 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       set({ visibleTabs: next });
     },
 
-    /** Toggle the editor between its normal and expanded (full-width) layout. */
-    setExpandedEditor: (expandedEditor) => set({ expandedEditor }),
-
     /** Store the full paths captured by "Copy Link" for later "Paste Link". */
     setSelectedLinkItems: (paths) => set({ selectedLinkItems: paths }),
   };
@@ -271,10 +267,6 @@ export function showTab(tab: AppView): void {
 
 export function hideTab(tab: AppView): void {
   getState().hideTab(tab);
-}
-
-export function setExpandedEditor(expandedEditor: boolean): void {
-  getState().setExpandedEditor(expandedEditor);
 }
 
 export function setSelectedLinkItems(paths: string[]): void {

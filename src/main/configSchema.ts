@@ -43,6 +43,7 @@ export const defaultSettings: AppSettings = {
   ocrToolsFolder: '',
   calendarItemsFolder: '',
   showPropsInEditor: true,
+  expandedEditor: false,
   imageSize: DEFAULT_IMAGE_SIZE,
 };
 
@@ -168,6 +169,7 @@ const AppSettingsSchema = z
     ocrToolsFolder: z.string().catch(defaultSettings.ocrToolsFolder),
     calendarItemsFolder: z.string().catch(defaultSettings.calendarItemsFolder),
     showPropsInEditor: z.boolean().catch(defaultSettings.showPropsInEditor),
+    expandedEditor: z.boolean().catch(defaultSettings.expandedEditor),
     // An unrecognized value (including the abandoned top-level imageSize's old
     // 'small'/'large' meaning) falls back to the default rather than erroring.
     imageSize: z.enum(['small', 'medium', 'large']).catch(defaultSettings.imageSize),

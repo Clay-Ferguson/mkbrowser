@@ -289,6 +289,11 @@ export interface AppSettings {
   /** Whether to show front matter (Properties) in the editor */
   showPropsInEditor: boolean;
   /**
+   * When true, BrowseView hides all entries except the one being edited,
+   * giving the CodeMirror editor the full scrollable area.
+   */
+  expandedEditor: boolean;
+  /**
    * Display size of expanded inline images: 'small', 'medium' (the default) or
    * 'large'. See IMAGE_SIZE_CLASSES in ImageEntry for the pixel heights.
    */
@@ -498,13 +503,6 @@ export interface AppState {
    * Null when no index file exists or has not yet been loaded.
    */
   indexYaml: { files?: { name: string; id?: string }[]; options?: Record<string, unknown> } | null;
-
-  /**
-   * When true, BrowseView hides all entries except the one being edited,
-   * giving the CodeMirror editor the full scrollable area.
-   * Not persisted — defaults to false on restart.
-   */
-  expandedEditor: boolean;
 
   /**
    * Full paths of files/folders captured by the "Copy Link" action, used to

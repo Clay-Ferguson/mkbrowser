@@ -84,6 +84,7 @@ export interface AppSettings {
   ocrToolsFolder: string;
   calendarItemsFolder: string;
   showPropsInEditor: boolean;
+  expandedEditor: boolean;
   imageSize: ImageSize;
 }
 

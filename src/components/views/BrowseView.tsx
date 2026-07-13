@@ -179,7 +179,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const [showCutOrphanAttachConfirm, setShowCutOrphanAttachConfirm] = useState<boolean>(false);
 
   const hasIndexFile = useAS(s => s.hasIndexFile);
-  const expandedEditor = useAS(s => s.expandedEditor);
+  const expandedEditor = useAS(s => s.settings.expandedEditor);
 
   const items = useAS(s => s.items);
   const currentView = useAS(s => s.currentView);

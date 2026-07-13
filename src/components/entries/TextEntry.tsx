@@ -48,7 +48,7 @@ function TextEntry(props: TextEntryProps) {
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
   const hasIndexFile = useAS(s => s.hasIndexFile);
-  const expandedEditor = useAS(s => s.expandedEditor);
+  const expandedEditor = useAS(s => s.settings.expandedEditor);
   // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
   // content area, and editor all become nested flex columns (BrowseView flexes the outer chain).
   const maximized = expandedEditor && edit.isEditing;
@@ -63,6 +63,11 @@ function TextEntry(props: TextEntryProps) {
 
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
+  const handleToggleExpandedEditor = () => {
+    setExpandedEditor(!expandedEditor);
+    onSaveSettings();
+  };
+
   const { isRewriting, aiRewrite } = useAiRewrite({
     path: entry.path,
     hasIndexFile,
@@ -74,7 +79,7 @@ function TextEntry(props: TextEntryProps) {
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
       expandedEditor={expandedEditor}
-      onToggleExpandedEditor={() => setExpandedEditor(!expandedEditor)}
+      onToggleExpandedEditor={handleToggleExpandedEditor}
       showRewrite={!item?.reviewing && aiRewriteMode}
       onAiRewrite={aiRewrite}
       rewriteDisabled={edit.saving || isRewriting}

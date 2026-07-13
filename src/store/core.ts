@@ -50,6 +50,7 @@ export const defaultSettings: AppSettings = {
   calendarItemsFolder: '',
   indexTreeWidth: 'narrow',
   showPropsInEditor: true,
+  expandedEditor: false,
   imageSize: DEFAULT_IMAGE_SIZE,
 };
 
@@ -104,7 +105,6 @@ const initialState: AppState = {
   pendingIndexTreeReveal: null,
   hasIndexFile: false,
   indexYaml: null,
-  expandedEditor: false,
   selectedLinkItems: [],
   calendarFolder: null,
   activeCalendarFolder: null,

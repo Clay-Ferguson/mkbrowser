@@ -104,9 +104,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   });
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
-  const { showToc, showPropsInEditor } = useAS(s => s.settings);
+  const { showToc, showPropsInEditor, expandedEditor } = useAS(s => s.settings);
   const hasIndexFile = useAS(s => s.hasIndexFile);
-  const expandedEditor = useAS(s => s.expandedEditor);
   // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
   // content area, and editor all become nested flex columns (BrowseView flexes the outer chain).
   const maximized = expandedEditor && edit.isEditing;
@@ -146,6 +145,11 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       setPendingCursorPos(4);
     }
     setShowPropsInEditor(turningOn);
+    onSaveSettings();
+  };
+
+  const handleToggleExpandedEditor = () => {
+    setExpandedEditor(!expandedEditor);
     onSaveSettings();
   };
 
@@ -227,7 +231,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
       expandedEditor={expandedEditor}
-      onToggleExpandedEditor={() => setExpandedEditor(!expandedEditor)}
+      onToggleExpandedEditor={handleToggleExpandedEditor}
       showRewrite={!item?.reviewing && aiRewriteMode}
       onAiRewrite={handleAiRewrite}
       rewriteDisabled={edit.saving || isRewriting}
