@@ -903,6 +903,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           />
         </div>
 
+        {/* Hidden while an entry is being edited in expanded mode — these buttons don't
+            apply to the maximized editor and would only steal space from it. */}
+        {!expandedEditing && (
         <div data-testid="browser-header-actions" className="flex-1 flex items-center justify-end gap-2">
           {/* Cut button - shown when items are selected and no items are cut */}
           {hasSelectedItems && !hasCutItems && (
@@ -1075,6 +1078,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           </button>
 
         </div>
+        )}
       </header>
 
       {/* Main content */}
