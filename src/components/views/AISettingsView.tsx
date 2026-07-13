@@ -49,6 +49,13 @@ async function startLlamaServerWithStatus(setStatus: (status: string) => void): 
   }
 }
 
+/** Formats an elapsed-seconds count as "m:ss" for the server-starting message. */
+function formatElapsed(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins)}:${secs.toString().padStart(2, '0')}`;
+}
+
 /** Stops the local llama.cpp server; see startLlamaServerWithStatus. */
 async function stopLlamaServerWithStatus(setStatus: (status: string) => void): Promise<void> {
   try {
@@ -93,6 +100,10 @@ function AISettingsView() {
   const [llamacppFolder, setLlamacppFolder] = useState<string>(() => getAiConfig().llamacppFolder);
   const [llamaServerStatus, setLlamaServerStatus] = useState<string>('stopped');
   const [llamaServerBusy, setLlamaServerBusy] = useState(false);
+  // Starting the server can take several minutes (the model has to load), so
+  // while a start is in flight we show a reassuring message with elapsed time.
+  const [llamaStarting, setLlamaStarting] = useState(false);
+  const [llamaStartSeconds, setLlamaStartSeconds] = useState(0);
 
   // Persona editor working state: which persona is being edited + the textarea
   // buffer. Seeded lazily from the store's active persona.
@@ -132,12 +143,24 @@ function AISettingsView() {
     void api.getAiUsage().then((data) => {
       if (!ignore) setUsageData(data);
     });
-    void api.checkLlamaHealth().then((status) => {
-      if (!ignore) setLlamaServerStatus(status);
-    });
+    // While a start is in flight the health endpoint still reports 'stopped'
+    // until the model finishes loading — don't let that overwrite our
+    // optimistic 'loading' status.
+    if (!llamaStarting) {
+      void api.checkLlamaHealth().then((status) => {
+        if (!ignore) setLlamaServerStatus(status);
+      });
+    }
     // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the ignore flag so the pending getAiUsage()/checkLlamaHealth() promises can't set state after unmount/re-run.
     return () => { ignore = true; };
-  }, [currentView]);
+  }, [currentView, llamaStarting]);
+
+  // Tick the elapsed-time counter shown in the "server is starting" message.
+  useEffect(() => {
+    if (!llamaStarting) return;
+    const id = setInterval(() => { setLlamaStartSeconds((s) => s + 1); }, 1000);
+    return () => { clearInterval(id); };
+  }, [llamaStarting]);
 
   const saveAiConfigField = async (updates: Partial<AppConfig>) => {
     try {
@@ -275,8 +298,13 @@ function AISettingsView() {
   /** Starts the local llama.cpp server and updates the displayed status. */
   const startLlama = () => {
     setLlamaServerBusy(true);
+    setLlamaStarting(true);
+    setLlamaStartSeconds(0);
     setLlamaServerStatus('loading');
-    void startLlamaServerWithStatus(setLlamaServerStatus).finally(() => setLlamaServerBusy(false));
+    void startLlamaServerWithStatus(setLlamaServerStatus).finally(() => {
+      setLlamaServerBusy(false);
+      setLlamaStarting(false);
+    });
   };
 
   /** Stops the local llama.cpp server and updates the displayed status. */
@@ -557,6 +585,22 @@ function AISettingsView() {
                           Refresh
                         </button>
                       </div>
+
+                      {llamaStarting && (
+                        <p
+                          className="text-xs text-yellow-400/90 leading-relaxed"
+                          data-testid="llama-server-starting-message"
+                        >
+                          Starting the server and loading the model into memory — this can take
+                          several minutes, especially on the first start after booting. You can keep
+                          using the rest of the app while you wait; this page will show
+                          &ldquo;Running&rdquo; as soon as the server is ready.
+                          {' '}
+                          <span className="font-mono text-yellow-300">
+                            ({formatElapsed(llamaStartSeconds)} elapsed)
+                          </span>
+                        </p>
+                      )}
 
                       {/* Base URL */}
                       <div className="flex items-center gap-2">

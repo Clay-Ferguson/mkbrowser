@@ -11,6 +11,7 @@
  */
 
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { getConfig } from '../configMgr';
 
@@ -18,6 +19,13 @@ export type LlamaServerStatus = 'running' | 'stopped' | 'loading';
 
 const START_SCRIPT = 'start-server.sh';
 const STOP_SCRIPT = 'stop-server.sh';
+
+/**
+ * How long to wait for the server to answer /health after starting it.
+ * Loading a large model into (V)RAM routinely takes several minutes on the
+ * first start — a short timeout would abandon a server that is still coming up.
+ */
+const START_TIMEOUT_MS = 15 * 60_000;
 
 // ---------------------------------------------------------------------------
 // Health check
@@ -66,7 +74,12 @@ export async function checkHealth(): Promise<LlamaServerStatus> {
  * immediately. Otherwise spawns the configured start script as a detached
  * process and polls the health endpoint until the server is ready.
  *
- * Throws on failure (missing config, script not found, timeout).
+ * Model load can take several minutes, so this polls for up to
+ * START_TIMEOUT_MS. Every step is awaited (no synchronous waiting), so the
+ * main process event loop — and therefore the renderer's IPC — stays free
+ * for the whole wait.
+ *
+ * Throws on failure (missing config, script not found, spawn error, timeout).
  */
 export async function ensureRunning(): Promise<void> {
   // Quick check — already running?
@@ -82,6 +95,9 @@ export async function ensureRunning(): Promise<void> {
   }
 
   const scriptPath = path.join(folder, START_SCRIPT);
+  if (!fs.existsSync(scriptPath)) {
+    throw new Error(`Start script not found: ${scriptPath}`);
+  }
 
   // Pass reasoning mode to the start script: "on" when Agentic Mode is
   // enabled, otherwise "off". The user must restart the server for a
@@ -95,23 +111,31 @@ export async function ensureRunning(): Promise<void> {
     stdio: 'ignore',
     env: { ...process.env },
   });
+
+  // An unhandled 'error' event on a ChildProcess is thrown as an uncaught
+  // exception, which would take down the main process. Record it instead and
+  // let the poll loop below surface it.
+  let spawnError: Error | undefined;
+  child.on('error', (err) => { spawnError = err; });
   child.unref();
 
-  // Poll health until the server is ready (up to 60 seconds)
-  const POLL_INTERVAL = 500;
-  const MAX_WAIT = 60_000;
+  const POLL_INTERVAL = 1000;
   const start = Date.now();
 
-  while (Date.now() - start < MAX_WAIT) {
+  while (Date.now() - start < START_TIMEOUT_MS) {
     await new Promise((r) => { setTimeout(r, POLL_INTERVAL); });
+    if (spawnError) {
+      throw new Error(`Failed to run start script: ${spawnError.message}`);
+    }
     const health = await checkHealth();
     if (health === 'running') return;
     // 'loading' means it's alive but still loading the model — keep waiting
   }
 
+  const minutes = Math.round(START_TIMEOUT_MS / 60_000);
   throw new Error(
-    'llama.cpp server did not become ready within 60 seconds. ' +
-    'Try running the start script manually to see error output.'
+    `llama.cpp server did not become ready within ${minutes} minutes. ` +
+    'It may still be loading — use the `status.sh` script in llamacpp to check status or troubleshoot. '
   );
 }
 
