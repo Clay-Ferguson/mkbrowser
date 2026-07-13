@@ -7,7 +7,8 @@ import { saveAiConfig } from '../../renderer/config';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../shared/types';
 import { removeTOC } from '../../shared/tocUtil';
-import { splitFrontMatter } from '../../shared/frontMatterUtil';
+import { splitFrontMatter, getPropsFromYaml } from '../../shared/frontMatterUtil';
+import { getTagsFromYaml } from '../../shared/tagUtil';
 import {
   useAS,
   hasAnyCutItems,
@@ -88,6 +89,22 @@ const CALENDAR_PROPS = new Set(['due', 'start', 'duration', 'rrule']);
 
 
 /**
+ * Parses the tags/props that PropsDisplay renders out of raw markdown. Called only when the calendar
+ * dialog saves during an edit: setItemEditContent just stores the text, so the store's
+ * item.tags/item.props would otherwise keep showing the last *saved* front matter. Deliberately not
+ * run per keystroke — pills stay stale against hand-typed front matter until the file is saved.
+ */
+function parseFrontMatterMeta(markdown: string): { tags: string[]; props: Record<string, unknown> } {
+  const fmParts = splitFrontMatter(markdown);
+  if (!fmParts) return { tags: [], props: {} };
+  return {
+    tags: getTagsFromYaml(fmParts.yamlStr).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })),
+    props: getPropsFromYaml(fmParts.yamlStr),
+  };
+}
+
+
+/**
  * Writes calendar front matter straight to disk. Used when the calendar dialog was opened from a
  * props click while the entry is *not* in edit mode, so there is no editor buffer to route through.
  * Module-level so its try/catch doesn't make the React Compiler bail out on MarkdownEntry.
@@ -132,18 +149,34 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // content area, and editor all become nested flex columns (BrowseView flexes the outer chain).
   const maximized = expandedEditor && edit.isEditing;
 
+  // The two ways an edit session ends. Both drop editedMeta, so the next session starts out
+  // showing the store's saved front matter rather than a leftover override (see below).
+  const handleCancelEdit = () => {
+    setEditedMeta(null);
+    edit.handleCancel();
+  };
+
+  const handleSaveEdit = () => {
+    setEditedMeta(null);
+    void edit.handleSave();
+  };
+
   // Only exit edit mode on Escape when the content is unmodified (comparing without TOC, since the
   // TOC block is stripped on edit entry). If the user has typed something, Escape falls through to
   // CodeMirror (e.g. to dismiss autocomplete).
   const handleEscape = () => {
     if (edit.editContent === removeTOC(content)) {
-      edit.handleCancel();
+      handleCancelEdit();
     }
   };
 
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
+  // Front matter of the unsaved edit buffer, populated only by a calendar-dialog save during an
+  // edit (see the meta/propsDisplay block below). Cleared when edit mode ends, at which point the
+  // store's saved tags/props are authoritative again.
+  const [editedMeta, setEditedMeta] = useState<{ tags: string[]; props: Record<string, unknown> } | null>(null);
   // Pending cursor offset to apply once the editor reflects a content change (see handleToggleShowProps)
   const [pendingCursorPos, setPendingCursorPos] = useState<number | null>(null);
   const { aiEnabled, aiRewriteMode, selectedPromptName, tagsVisible, setTagsVisible } = useAiConfig();
@@ -195,6 +228,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       unregisterActiveMarkdownEditor(entry.path);
     };
   }, [edit.isEditing, entry.path]);
+
   const [isReplyLoading, setIsReplyLoading] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
 
@@ -262,8 +296,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       hasSelection={hasSelection}
       showSaveCancel={!item?.reviewing}
       saving={edit.saving}
-      onCancel={edit.handleCancel}
-      onSave={() => void edit.handleSave()}
+      onCancel={handleCancelEdit}
+      onSave={handleSaveEdit}
       leftExtras={
         <>
           <button
@@ -375,6 +409,13 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       setShowCalendarDialog(true);
       return;
     }
+    if (edit.isEditing) {
+      // Already in the editor — just reveal the front matter. Calling handleEditClick here would
+      // re-seed the edit buffer from disk and throw away any unsaved changes.
+      setShowPropsInEditor(true);
+      onSaveSettings();
+      return;
+    }
     void (async () => {
       const propPrefix = `${key}:`;
       const line = content.split('\n').findIndex(l => l.startsWith(propPrefix)) + 1;
@@ -383,6 +424,30 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       onSaveSettings();
     })();
   };
+
+  const clickOnTag = (): void => {
+    if (edit.isEditing) {
+      setTagsVisible(true);
+      return;
+    }
+    void (async () => {
+      await edit.handleEditClick();
+      setTagsVisible(true);
+    })();
+  };
+
+  // Pills come from the store (the last-saved front matter), shown above the rendered Markdown and
+  // above the editor alike. editedMeta overrides that while editing, so a calendar-dialog save is
+  // reflected immediately even though the edit buffer hasn't been written to disk yet.
+  const meta = (edit.isEditing && editedMeta) ? editedMeta : { tags: item?.tags ?? [], props: item?.props ?? {} };
+  const propsDisplay = (meta.tags.length > 0 || Object.keys(meta.props).filter(k => k !== 'id').length > 0) ? (
+    <PropsDisplay
+      tags={meta.tags}
+      props={meta.props}
+      onTagClick={clickOnTag}
+      onPropClick={clickOnProp}
+    />
+  ) : null;
 
   return (
     <>
@@ -423,6 +488,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                 />
               ) : (
                 <>
+                  {propsDisplay}
                   {tagsVisible && <TagsPicker filePath={entry.path} />}
                   <CodeMirrorEditor
                     ref={editorRef}
@@ -437,8 +503,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                     goToPosition={pendingCursorPos}
                     onGoToPositionComplete={() => setPendingCursorPos(null)}
                     onEscape={handleEscape}
-                    onForceCancel={edit.handleCancel}
-                    onSave={() => void edit.handleSave()}
+                    onForceCancel={handleCancelEdit}
+                    onSave={handleSaveEdit}
                     onSelectionChange={setHasSelection}
                     showPropsInEditor={showPropsInEditor}
                     fillHeight={maximized}
@@ -486,8 +552,10 @@ function MarkdownEntry(props: MarkdownEntryProps) {
           content={edit.isEditing ? edit.editContent : content}
           onSave={(newContent) => {
             if (edit.isEditing) {
-              // In the editor the change stays in the buffer; the user's Save writes it.
+              // In the editor the change stays in the buffer; the user's Save writes it. Re-parse
+              // here so the pills above the editor show the new dates right away.
               edit.setEditContent(newContent);
+              setEditedMeta(parseFrontMatterMeta(newContent));
               onSaveSettings();
             } else {
               void saveCalendarProps(entry.path, newContent);
