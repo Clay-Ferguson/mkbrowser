@@ -6,6 +6,7 @@ import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
 import rehypeKatex from 'rehype-katex';
 import rehypeStringify from 'rehype-stringify';
+import { splitOnColumnBreaks } from './mkUtil';
 
 // ---------------------------------------------------------------------------
 // Rehype plugin: add target="_blank" to all <a> tags
@@ -159,11 +160,8 @@ const DEFAULT_CSS = `
 `.trim();
 
 // ---------------------------------------------------------------------------
-// Column-split delimiter  |||
+// Rendering
 // ---------------------------------------------------------------------------
-
-/** A line containing only  |||  (optional surrounding whitespace). */
-const COLUMN_DELIMITER = /^[|]{3}\s*$/m;
 
 async function renderChunk(md: string): Promise<string> {
   const file = await processor.process(md);
@@ -179,18 +177,19 @@ async function renderChunk(md: string): Promise<string> {
  *
  * - GFM (tables, task lists, strikethrough) is enabled.
  * - LaTeX math ($…$ and $$…$$) is rendered as MathML (no external CSS needed).
- * - Lines containing only `|||` split the content into equal-width CSS flex columns.
+ * - Lines containing only `|||` split the content into equal-width CSS flex columns
+ *   (delimiters inside fenced code blocks are ignored, matching the in-app renderer).
  * - Front-matter YAML blocks are silently stripped.
  * - The returned string includes `<!DOCTYPE html>` and an embedded stylesheet;
  *   no external resources are referenced.
  */
 export async function convertMDtoHTML(content: string): Promise<string> {
-  const chunks = content.split(COLUMN_DELIMITER);
+  const chunks = splitOnColumnBreaks(content).map(c => c.text);
 
   let bodyHTML: string;
 
   if (chunks.length === 1) {
-    const inner = await renderChunk(chunks[0]!); 
+    const inner = await renderChunk(chunks[0]!);
     bodyHTML = `<main>\n${inner}\n</main>`;
   } else {
     const rendered = await Promise.all(chunks.map(renderChunk));
