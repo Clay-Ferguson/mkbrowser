@@ -124,6 +124,43 @@ export function withIndexLock<T>(dirPath: string, fn: () => Promise<T>): Promise
 }
 
 /**
+ * The front-matter id of a parsed block as a string, or undefined when there
+ * isn't a usable one. The single reader of `fm.id`, mirroring injectFrontMatterId
+ * as the single writer.
+ *
+ * Front matter is hand-editable YAML, so `id` arrives as `unknown` and is not
+ * necessarily a string. An id is nine chars of `0-9A-F`, so ~1.5% of them come
+ * out all digits — and one *hand-written without quotes* (`id: 926986244`) loads
+ * as a YAML **number**. That is still the file's identity, so we coerce it back
+ * rather than discarding it (discarding would re-key the file and orphan its
+ * index entry). Our own writes never rely on this: js-yaml quotes an all-digit
+ * id on dump — `id: '926986244'` — precisely so it reloads as a string.
+ *
+ * The coercion is only honored when it is **lossless**, i.e. the number spells
+ * a whole id (`/^[0-9A-F]{9}$/`, which for a number means nine digits). A
+ * leading zero is destroyed by YAML before we ever see it — `id: 012345678`
+ * arrives as the number 12345678, and `String()`-ing that would fabricate the
+ * 8-char id "12345678", one the user never wrote and that matches nothing in
+ * the index. Such a value is treated as no id at all, so the caller assigns a
+ * real one and the file is healed. Same for a blank id (`id:`, `id: ''`).
+ *
+ * Strings are taken as-is (any non-blank one), so a hand-chosen custom id keeps
+ * working — only non-strings have to justify themselves.
+ */
+function frontMatterId(fm: Record<string, unknown> | null): string | undefined {
+  const raw = fm?.id;
+  if (raw === null || raw === undefined) return undefined;
+
+  if (typeof raw === 'string') {
+    const id = raw.trim();
+    return id === '' ? undefined : id;
+  }
+
+  const coerced = String(raw);
+  return /^[0-9A-F]{9}$/.test(coerced) ? coerced : undefined;
+}
+
+/**
  * Returns `content` with a front-matter `id` field, plus the id that was used.
  *
  * The front matter is round-tripped through js-yaml: parse → set `id` → `dump`.
@@ -461,7 +498,7 @@ async function ensureMarkdownIds(
     // hit in idToName here means a true duplicate id — e.g. a copy/paste that
     // carried the source file's front-matter id. Re-key the (newer) duplicate
     // so the per-directory uniqueness invariant rename detection relies on holds.
-    let fileId = fm?.id ? String(fm.id) : undefined;
+    let fileId = frontMatterId(fm);
     const collidingName = fileId ? idToName.get(fileId) : undefined;
     if (!fileId || collidingName !== undefined) {
       if (fileId && collidingName !== undefined) {
@@ -1069,7 +1106,7 @@ export async function ensureFrontMatterIdIfIndexed(
   if (!indexYaml) return { content, addedId: null };
 
   const { yaml: fm } = parseFrontMatter(content);
-  if (fm?.id) return { content, addedId: null }; // already has an id
+  if (frontMatterId(fm) !== undefined) return { content, addedId: null }; // already has an id
 
   // Inject a new id, preserving any existing front-matter formatting
   // (see injectFrontMatterId). The index is updated separately, post-write.
@@ -1168,7 +1205,8 @@ async function ensureFileFrontMatterId(filePath: string): Promise<string | null>
     const mtimeMs = (await fs.promises.stat(filePath)).mtimeMs;
     const content = await fs.promises.readFile(filePath, 'utf8');
     const { yaml: fm } = parseFrontMatter(content);
-    if (fm?.id) return String(fm.id);
+    const existingId = frontMatterId(fm);
+    if (existingId !== undefined) return existingId;
     const { content: updated, id } = injectFrontMatterId(content);
     // Guarded compare-and-swap: if the file changed since we read it (e.g. an
     // editor save landed in between), writing `updated` — derived from the old

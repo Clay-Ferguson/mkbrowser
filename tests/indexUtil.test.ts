@@ -1091,6 +1091,19 @@ describe('injecting an id round-trips front matter without losing field values',
     return fs.readFileSync(path.join(tmpDir, name), 'utf8');
   }
 
+  // An id is nine chars of 0-9A-F, so ~1.5% of them come out all digits — and
+  // js-yaml quotes those on dump (`id: '926986244'`) so they reload as a string
+  // rather than a YAML number. Both spellings are correct output, so the raw-text
+  // assertions below accept either; asserting only the bare form made this suite
+  // fail about one run in twenty. What actually matters is checked separately:
+  // the id must parse back as a *string* (expectParsedId).
+  const RAW_ID = String.raw`id: (?:[0-9A-F]{9}|'[0-9A-F]{9}')`;
+
+  function expectParsedId(id: unknown) {
+    expect(typeof id).toBe('string');
+    expect(id).toMatch(/^[0-9A-F]{9}$/);
+  }
+
   it('adds a leading id while preserving other field values and the body', async () => {
     touchFile(
       'note.md',
@@ -1102,10 +1115,10 @@ describe('injecting an id round-trips front matter without losing field values',
 
     const raw = readRaw('note.md');
     // The id is added at the top of the block, then the original body follows.
-    expect(raw).toMatch(/^---\nid: [0-9A-F]{9}\n/);
+    expect(raw).toMatch(new RegExp(String.raw`^---\n${RAW_ID}\n`));
     const parsed = parseFrontMatter(raw);
     expect(parsed.content).toBe('# Body text\n');
-    expect(parsed.yaml?.id).toMatch(/^[0-9A-F]{9}$/);
+    expectParsedId(parsed.yaml?.id);
     expect(parsed.yaml?.zebra).toBe('keep this value');
     expect(parsed.yaml?.title).toBe('My Title');
     expect(parsed.yaml?.apple).toBe(1);
@@ -1128,9 +1141,9 @@ describe('injecting an id round-trips front matter without losing field values',
     await reconcileIndexedFiles(tmpDir);
 
     const raw = readRaw('empty.md');
-    expect(raw).toMatch(/^---\nid: [0-9A-F]{9}\n---\n# Body\n$/);
+    expect(raw).toMatch(new RegExp(String.raw`^---\n${RAW_ID}\n---\n# Body\n$`));
     const parsed = parseFrontMatter(raw);
-    expect(parsed.yaml?.id).toMatch(/^[0-9A-F]{9}$/);
+    expectParsedId(parsed.yaml?.id);
     expect(parsed.content).toBe('# Body\n');
   });
 
@@ -1152,6 +1165,46 @@ describe('injecting an id round-trips front matter without losing field values',
     expect(parsed.yaml?.id).not.toBe('DUP000001');
     expect(parsed.yaml?.beta).toBe(2);
     expect(parsed.yaml?.alpha).toBe(1);
+  });
+
+  // An id of all digits is a legal id (~1.5% of them are), and a user who hand-
+  // writes or hand-edits one without quotes gets `id: 926986244` — which YAML
+  // loads as a *number*, not a string. That id is still the file's identity, so
+  // it must be kept as-is and recorded in the index, not treated as "no id" and
+  // silently re-keyed (which would orphan the file's existing index entry).
+  it('keeps an unquoted all-digit id, which YAML loads as a number', async () => {
+    touchFile('numeric.md', '---\nid: 926986244\ntitle: Kept\n---\n# Body\n');
+    writeIndex({ files: [{ name: 'numeric.md', id: '926986244' }] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    // The id survived: the file was not re-keyed, and the index still points at it.
+    expect(parseFrontMatter(readRaw('numeric.md')).yaml?.id).toBe(926986244);
+    expect(readIndex().files).toEqual([{ name: 'numeric.md', id: '926986244' }]);
+  });
+
+  // The other half of that rule: the coercion is honored only when it's lossless.
+  // YAML destroys a leading zero before we ever see it — `id: 012345678` arrives
+  // as the number 12345678 — so String()-ing it would fabricate the 8-char id
+  // "12345678", which the user never wrote and which matches nothing in the
+  // index. It must be rejected and the file given a real id instead.
+  //
+  // A blank id is rejected for the same reason (it isn't an id), which also
+  // guards the coercion from over-accepting.
+  it.each([
+    ['a lossy leading-zero numeric id', '---\nid: 012345678\ntitle: Kept\n---\n# Body\n'],
+    ['a blank id', '---\nid:\ntitle: Kept\n---\n# Body\n'],
+  ])('assigns a real id when the front matter carries %s', async (_label, content) => {
+    touchFile('bad.md', content);
+    writeIndex({ files: [] });
+
+    await reconcileIndexedFiles(tmpDir);
+
+    const parsed = parseFrontMatter(readRaw('bad.md'));
+    expectParsedId(parsed.yaml?.id);
+    expect(parsed.yaml?.title).toBe('Kept');
+    // The fabricated id must never be what got written.
+    expect(parsed.yaml?.id).not.toBe('12345678');
   });
 });
 
