@@ -6,13 +6,12 @@ import remarkMath from 'remark-math';
 import remarkRehype from 'remark-rehype';
 import rehypeKatex from 'rehype-katex';
 import rehypeStringify from 'rehype-stringify';
+import type { Root, Element, Nodes } from 'hast';
 import { splitOnColumnBreaks } from './mkUtil';
 
 // ---------------------------------------------------------------------------
 // Rehype plugin: add target="_blank" to all <a> tags
 // ---------------------------------------------------------------------------
-
-import type { Root, Element, Nodes } from 'hast';
 
 function rehypeTargetBlank() {
   return (tree: Root) => {
