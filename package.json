@@ -96,7 +96,7 @@
     "deepagents": "^1.10.2",
     "electron-squirrel-startup": "^1.0.1",
     "exifreader": "^4.38.1",
-    "exiftool-vendored": "^35.18.0",
+    "exiftool-vendored": "^36.0.0",
     "fdir": "^6.5.0",
     "js-yaml": "^4.1.1",
     "katex": "^0.16.28",
