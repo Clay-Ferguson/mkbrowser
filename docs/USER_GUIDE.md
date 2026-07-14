@@ -143,6 +143,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Calendar Items Folder](#calendar-items-folder)
 * [Image Viewer and EXIF Metadata](#image-viewer-and-exif-metadata)
   * * [Editing EXIF Data](#editing-exif-data)
+  * * [ExifTool Requirement](#exiftool-requirement)
 * [Automatic Markdown-to-HTML Export (Front Matter Autogen)](#automatic-markdown-to-html-export-front-matter-autogen)
   * [How It Works](#how-it-works)
   * [Use Case: Browser Landing Page](#use-case-browser-landing-page)
@@ -1414,6 +1415,16 @@ Clicking any image file in the Browse view expands it and shows an inline previe
 ### Editing EXIF Data
 
 The EXIF dialog is not read-only. Click the **Edit** button in the dialog to switch into edit mode, where every metadata value becomes an editable text field. After making changes, click **Save** to write the updated metadata back to the image file on disk. Click **Cancel** to discard changes.
+
+### ExifTool Requirement
+
+Saving EXIF edits requires the [ExifTool](https://exiftool.org/) command-line utility to be installed on your machine — MkBrowser runs the `exiftool` command to write metadata to image files. (Simply *viewing* metadata in the EXIF dialog does not require it.) On Debian/Ubuntu Linux, install it with:
+
+```bash
+sudo apt install libimage-exiftool-perl
+```
+
+If ExifTool is not installed, the rest of MkBrowser works normally; only saving EXIF changes (and image-size detection for a few uncommon formats) will fail.
 
 # Automatic Markdown-to-HTML Export (Front Matter Autogen)
 
