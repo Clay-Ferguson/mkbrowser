@@ -39,6 +39,24 @@ const PACKAGED_PATHS = ['/.vite', '/package.json', '/node_modules'];
  */
 const EXCLUDED_MODULES = ['exiftool-vendored.pl'];
 
+/**
+ * Dead-weight files stripped from the packaged node_modules via `ignore`. We shave
+ * about 6MB off the final build size by removing these.
+ *
+ * While `ignore` is never consulted for module ROOT directories (packager routes
+ * those straight to the pruner — that's why exiftool-vendored.pl needs the
+ * afterPrune hook above), it IS applied to ordinary files and subdirectories
+ * *inside* a module, so file-level exclusions are the supported way to strip these.
+ *
+ * Everything listed here is unreachable by Node's runtime module resolution:
+ *  - *.map source maps: only consulted for stack-trace mapping; a missing map
+ *    just means unmapped traces, never a load failure.
+ *  - *.d.ts / *.d.mts / *.d.cts: TypeScript declarations, compile-time only.
+ * Deliberately NOT stripped: *.json (js-tiktoken's BPE rank data and every
+ * package.json are load-bearing), *.wasm, fonts, and any binary asset.
+ */
+const STRIPPED_FILE_PATTERNS = [/\.map$/, /\.d\.ts$/, /\.d\.mts$/, /\.d\.cts$/];
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
@@ -46,7 +64,13 @@ const config: ForgeConfig = {
     extraResource: ['./icon-256.png', './resources/pdf-export', './resources/dictionaries'],
     ignore: (file: string) => {
       if (!file) return false; // the app root itself
-      return !PACKAGED_PATHS.some((prefix) => file === prefix || file.startsWith(`${prefix}/`));
+      if (!PACKAGED_PATHS.some((prefix) => file === prefix || file.startsWith(`${prefix}/`))) {
+        return true;
+      }
+      if (file.startsWith('/node_modules/')) {
+        if (STRIPPED_FILE_PATTERNS.some((re) => re.test(file))) return true;
+      }
+      return false;
     },
     afterPrune: [
       (buildPath, _electronVersion, _platform, _arch, done) => {
