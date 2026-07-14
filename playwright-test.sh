@@ -84,6 +84,14 @@ if [[ ! "$do_build" =~ ^[Nn]$ ]]; then
         echo "Build failed. Exiting."
         exit 1
     fi
+
+    # Post-package gate: verify the React Compiler's output actually shipped in
+    # the renderer bundle the e2e tests are about to load (see bundle-fingerprint.mjs).
+    node bundle-fingerprint.mjs
+    if [ $? -ne 0 ]; then
+        echo "Bundle fingerprint check failed. Exiting."
+        exit 1
+    fi
     echo ""
 else
     echo "Skipping build, using existing build output."

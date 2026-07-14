@@ -25,9 +25,16 @@
 //      this script happily compiles, but that fails that filter, is compiled HERE and
 //      not in the real build — the gate would be green while the app ships de-memoized.
 //      See the filter check below.
+//
+// Neither failure mode covers the compiler being configured out of the Vite pipeline
+// entirely (this script bypasses Vite by design). That case is caught downstream:
+// a clean gate-mode run records the compiled-function count in
+// .compiler-coverage-count.json, and bundle-fingerprint.mjs (run by build.sh and
+// playwright-test.sh AFTER packaging) asserts the built renderer bundle contains at
+// least that much compiler output.
 import { transformAsync } from '@babel/core';
 import { reactCompilerPreset } from '@vitejs/plugin-react';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const root = process.cwd();
@@ -108,9 +115,19 @@ for (const { file, fns } of skippedByVite) {
   console.log('  declares a capitalized or use-prefixed binding), rather than, say, a barrel.');
 }
 
-console.log(bailouts === 0 && skippedByVite.length === 0
+const clean = bailouts === 0 && skippedByVite.length === 0;
+console.log(clean
   ? `\nReact Compiler coverage: ${compiled} components/hooks compiled across ${files.length} files, zero bailouts.`
   : `\nReact Compiler coverage: ${bailouts} bailout(s)/problem(s)` +
     `${skippedByVite.length > 0 ? ` and ${skippedByVite.length} file(s) skipped by Vite's filter` : ''}` +
     ` found (${compiled} compiled OK).`);
-process.exit(bailouts > 0 || skippedByVite.length > 0 ? 1 : 0);
+
+// On a clean full-scan run, record the compiled count for bundle-fingerprint.mjs,
+// which uses it as the floor for how much compiler output the packaged renderer
+// bundle must contain (see the header). Verbose runs scan a subset, so their count
+// would be a meaninglessly low floor.
+if (clean && !verbose) {
+  writeFileSync(`${root}/.compiler-coverage-count.json`,
+    JSON.stringify({ compiled, generatedAt: new Date().toISOString() }) + '\n');
+}
+process.exit(clean ? 0 : 1);

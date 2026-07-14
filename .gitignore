@@ -94,6 +94,10 @@ typings/
 # Vite
 .vite/
 
+# Compiled-function count recorded by compiler-coverage.mjs, consumed by
+# bundle-fingerprint.mjs as the floor for its post-package check
+.compiler-coverage-count.json
+
 # Electron-Forge
 out/
 

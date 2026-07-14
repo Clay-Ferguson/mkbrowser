@@ -16,8 +16,10 @@ export default defineConfig({
     // does not error under the new plugin — it is silently ignored, which would
     // de-memoize the whole app while every gate stayed green. tsc can't catch it
     // either (tsconfig only includes src/), and compiler-coverage.mjs can't, since
-    // it runs the compiler standalone rather than through Vite. If you touch this,
-    // verify the built bundle still contains `memo_cache_sentinel` references.
+    // it runs the compiler standalone rather than through Vite. The gate for this
+    // line is bundle-fingerprint.mjs, run by build.sh and playwright-test.sh after
+    // packaging: it fails the build if the built renderer bundle no longer contains
+    // the compiler's `memo_cache_sentinel` output.
     babel({ presets: [reactCompilerPreset()] }),
     tailwindcss(),
   ],
