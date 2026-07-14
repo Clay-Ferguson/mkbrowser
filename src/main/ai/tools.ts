@@ -213,10 +213,10 @@ export const readFileTool = tool(
 export const listDirectoryTool = tool(
   async ({ directoryPath }) => {
     if (!toolsEnabled) {
-      throw new Error('AI tools are disabled (AGENTIC_MODE is off). list_directory cannot be called.');
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). mk_list_directory cannot be called.');
     }
     const safe = await validatePath(directoryPath);
-    if (DEBUG) logger.log(`[ai/tools] list_directory: ${path.basename(safe)}  (${safe})`);
+    if (DEBUG) logger.log(`[ai/tools] mk_list_directory: ${path.basename(safe)}  (${safe})`);
     const stat = await fs.stat(safe);
 
     if (!stat.isDirectory()) {
@@ -239,7 +239,7 @@ export const listDirectoryTool = tool(
     return lines.join('\n');
   },
   {
-    name: 'list_directory',
+    name: 'mk_list_directory',
     description:
       'List the files and subdirectories in a directory on the local file system. ' +
       'Provide an absolute path or a path starting with `~/`. ' +
@@ -311,7 +311,7 @@ export const writeFileTool = tool(
 export const createFileTool = tool(
   async ({ filePath, content }) => {
     if (!toolsEnabled) {
-      throw new Error('AI tools are disabled (AGENTIC_MODE is off). create_file cannot be called.');
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). mk_create_file cannot be called.');
     }
     const resolved = path.resolve(filePath);
 
@@ -319,7 +319,7 @@ export const createFileTool = tool(
     const parentDir = path.dirname(resolved);
     await validatePath(parentDir);
 
-    if (DEBUG) logger.log(`[ai/tools] create_file: ${path.basename(resolved)}  (${resolved})`);
+    if (DEBUG) logger.log(`[ai/tools] mk_create_file: ${path.basename(resolved)}  (${resolved})`);
 
     // Ensure the file does NOT already exist. A failed stat means it's absent,
     // which is exactly what we want.
@@ -346,7 +346,7 @@ export const createFileTool = tool(
     return `Successfully created ${filePath} (${content.length} characters)`;
   },
   {
-    name: 'create_file',
+    name: 'mk_create_file',
     description:
       'Create a new file on the local file system with the provided content. ' +
       'The file must NOT already exist — this tool cannot overwrite existing files. ' +
@@ -374,17 +374,17 @@ export const createFileTool = tool(
 export const deleteFileTool = tool(
   async ({ filePath }) => {
     if (!toolsEnabled) {
-      throw new Error('AI tools are disabled (AGENTIC_MODE is off). delete_file cannot be called.');
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). mk_delete_file cannot be called.');
     }
     const validated = await validatePath(filePath);
-    if (DEBUG) logger.log(`[ai/tools] delete_file: ${filePath}  (validated: ${validated})`);
+    if (DEBUG) logger.log(`[ai/tools] mk_delete_file: ${filePath}  (validated: ${validated})`);
 
     const count = await globDelete(validated);
     const dir = path.dirname(validated);
     return `Deleted ${count} file${count === 1 ? '' : 's'} from ${dir}`;
   },
   {
-    name: 'delete_file',
+    name: 'mk_delete_file',
     description:
       'Delete one or more files from the local file system. ' +
       'Supports simple `*` wildcards in the filename portion of the path ' +
@@ -411,21 +411,21 @@ export const deleteFileTool = tool(
 export const deleteFolderTool = tool(
   async ({ folderPath }) => {
     if (!toolsEnabled) {
-      throw new Error('AI tools are disabled (AGENTIC_MODE is off). delete_folder cannot be called.');
+      throw new Error('AI tools are disabled (AGENTIC_MODE is off). mk_delete_folder cannot be called.');
     }
     const safe = await validatePath(folderPath);
-    if (DEBUG) logger.log(`[ai/tools] delete_folder: ${folderPath}  (validated: ${safe})`);
+    if (DEBUG) logger.log(`[ai/tools] mk_delete_folder: ${folderPath}  (validated: ${safe})`);
 
     const stat = await fs.stat(safe);
     if (!stat.isDirectory()) {
-      throw new Error(`"${folderPath}" is not a directory. Use delete_file to remove regular files.`);
+      throw new Error(`"${folderPath}" is not a directory. Use mk_delete_file to remove regular files.`);
     }
 
     await fs.rm(safe, { recursive: true, force: true });
     return `Successfully deleted folder ${folderPath} and all of its contents.`;
   },
   {
-    name: 'delete_folder',
+    name: 'mk_delete_folder',
     description:
       'Delete a folder and all of its contents (files and subdirectories) from the local file system. ' +
       'The folder does NOT need to be empty — all contents are removed recursively. ' +
