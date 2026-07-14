@@ -8,17 +8,51 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 /**
- * Packages listed in vite.main.config.mts `external` are NOT bundled by Vite —
- * they stay as bare `require()` calls in the built main.js.  The Forge Vite
- * plugin strips node_modules from the asar (it assumes everything is bundled),
- * so we must re-install these external deps inside the build directory before
+ * vite.main.config.mts externalizes ALL of node_modules from the main-process
+ * bundle — main.js contains only our own code, and every package is loaded by
+ * Node at runtime via bare `require()` calls.  The Forge Vite plugin strips
+ * node_modules from the asar (it assumes everything is bundled), so we must
+ * re-install the main process's dependencies inside the build directory before
  * the asar is created.
- * 
+ *
+ * This list is every npm package imported directly by src/main.ts or src/main/
+ * (their transitive deps are pulled in automatically by the npm install).
+ * When the main process starts importing a new package, add it here — a stale
+ * list fails loudly with "Cannot find module" on first launch of the packaged
+ * app.  'electron' itself is provided by the runtime and must not be listed.
+ *
  * TODO: Need to check to see if this entire 'packageAfterCopy' stuff is really the best
  * way to handle this.  It works, but it feels a bit hacky.  Maybe there's a better way to
  * tell Forge "hey, these deps aren't bundled, make sure they get included in the final package"?
  */
-const EXTERNAL_DEPENDENCY_PREFIXES = ['@langchain/', '@anthropic-ai/', 'langsmith', 'exifreader', 'fdir', 'rrule'];
+const MAIN_PROCESS_DEPENDENCIES = [
+  '@langchain/anthropic',
+  '@langchain/core',
+  '@langchain/google-genai',
+  '@langchain/langgraph',
+  '@langchain/openai',
+  'chokidar',
+  'deepagents',
+  'electron-squirrel-startup',
+  'exifreader',
+  'exiftool-vendored',
+  'fdir',
+  'github-slugger',
+  'js-yaml',
+  'mdast-util-toc',
+  'nanoid',
+  'rehype-katex',
+  'rehype-stringify',
+  'remark-frontmatter',
+  'remark-gfm',
+  'remark-math',
+  'remark-parse',
+  'remark-rehype',
+  'remark-stringify',
+  'rrule',
+  'unified',
+  'zod',
+];
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -32,12 +66,14 @@ const config: ForgeConfig = {
       // Read the source package.json to get dependency versions
       const srcPkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'));
 
-      // Collect only the externalized dependencies
+      // Collect the main-process dependencies (all externalized from main.js)
       const externalDeps: Record<string, string> = {};
-      for (const [name, version] of Object.entries(srcPkg.dependencies as Record<string, string>)) {
-        if (EXTERNAL_DEPENDENCY_PREFIXES.some(prefix => name.startsWith(prefix))) {
-          externalDeps[name] = version;
+      for (const name of MAIN_PROCESS_DEPENDENCIES) {
+        const version = (srcPkg.dependencies as Record<string, string>)[name];
+        if (!version) {
+          throw new Error(`forge.config.ts: '${name}' is in MAIN_PROCESS_DEPENDENCIES but not in package.json dependencies`);
         }
+        externalDeps[name] = version;
       }
 
       if (Object.keys(externalDeps).length === 0) return;

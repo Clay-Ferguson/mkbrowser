@@ -110,5 +110,9 @@ Never commit changes to the 'git' repository yourself, unless you're asked to.
 
 Note: We're not yet on the latest vesion of TypeScript, and the file named `TypeScript7-Conversion-Blocker.md` describes why we aren't
 
+## Adding new NPM Packages
+
+*NEVER* add a new package/dependency without first asking the human to authorize it.
+
 
 
