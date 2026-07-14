@@ -1,7 +1,19 @@
-import { exiftool } from 'exiftool-vendored';
+import { ExifTool } from 'exiftool-vendored';
 import * as ExifReader from 'exifreader';
 import { logger } from '../shared/logUtil';
 import type { ExifData, ExifWriteResult, ImageDimensions } from '../shared/shared';
+
+/**
+ * We deliberately run the system-installed exiftool from the PATH rather than
+ * the perl script vendored in exiftool-vendored.pl: perl cannot read files
+ * inside the packaged app.asar archive, so the vendored copy only works when
+ * unpacked from the asar — machinery we've chosen not to maintain. exiftool
+ * must be installed on the machine (e.g. `apt install libimage-exiftool-perl`);
+ * if it isn't, EXIF reads/writes fail with a clear spawn error at first use
+ * and the rest of the app is unaffected. No process is spawned until the
+ * first EXIF operation.
+ */
+const exiftool = new ExifTool({ exiftoolPath: 'exiftool' });
 /**
  * Write EXIF metadata to an image file. Accepts a grouped tag object (same as readExifMetadata output).
  * Only string values are supported.
@@ -85,7 +97,7 @@ function orientedDimensions(width: number, height: number, orientation: unknown)
  * them straight from the file header into a per-format group: `file` (JPEG),
  * `pngFile` (PNG), `gif` (GIF), `riff` (WebP extended format only, with tag
  * names lacking the space). For anything it can't size (e.g. simple
- * lossy/lossless WebP) we fall back to exiftool, which is already bundled
+ * lossy/lossless WebP) we fall back to exiftool, which is already required
  * for EXIF writes and covers essentially every format via a cheap stay-open
  * process. Returns null when dimensions can't be determined; rejects on
  * files that aren't a recognized image format at all.

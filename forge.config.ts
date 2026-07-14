@@ -89,7 +89,10 @@ const config: ForgeConfig = {
 
       // eslint-disable-next-line no-console
       console.log('[forge hook] Installing external dependencies in build path:', Object.keys(externalDeps).join(', '));
-      execSync('npm install --omit=dev', { cwd: buildPath, stdio: 'inherit' });
+      // --omit=optional keeps exiftool-vendored's vendored perl distribution
+      // (exiftool-vendored.pl, ~25 MB) out of the package: we run the system
+      // exiftool from the PATH instead (see src/main/exifUtil.ts).
+      execSync('npm install --omit=dev --omit=optional', { cwd: buildPath, stdio: 'inherit' });
     },
   },
   makers: [
