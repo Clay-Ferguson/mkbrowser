@@ -1,3 +1,17 @@
+import type {
+  FontSize,
+  SortOrder,
+  ContentWidth,
+  IndexTreeWidth,
+  SearchMode,
+  SearchType,
+  SearchSortBy,
+  SearchSortDirection,
+  SearchDefinition,
+  Bookmark,
+  AppSettings,
+} from './shared';
+
 /**
  * Represents a file or folder item that has been encountered during browsing.
  * Items are stored in a Map keyed by their full file path.
@@ -184,44 +198,27 @@ export interface SearchResultItem {
 }
 
 /**
- * Available font size options for the application
+ * Settings-related types live in `shared/shared.ts` — the module the main process,
+ * the preload bridge and the renderer all share — because they describe the config
+ * that crosses the IPC boundary. They are re-exported here (rather than redeclared)
+ * so there is exactly one definition of each: a second, same-named declaration was
+ * how `AppSettings` and `SearchDefinition` previously drifted apart, which silently
+ * drops persisted fields whenever a settings object is rebuilt against the narrower
+ * shape. Import them from either module — they are the same types.
  */
-export type FontSize = 'small' | 'medium' | 'large' | 'xlarge';
-
-/**
- * Available sort order options for file/folder listing
- */
-export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
-
-/**
- * Available content width options for the main content area
- */
-export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
-
-/**
- * Folder tree sidebar visibility and width options
- */
-export type IndexTreeWidth = 'hidden' | 'narrow' | 'medium' | 'wide';
-
-/**
- * Search mode: content or filenames
- */
-export type SearchMode = 'content' | 'filenames';
-
-/**
- * Search type: literal, wildcard, or advanced
- */
-export type SearchType = 'literal' | 'wildcard' | 'advanced';
-
-/**
- * Sort order for search results
- */
-export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
-
-/**
- * Sort direction for search results (chronological ordering)
- */
-export type SearchSortDirection = 'asc' | 'desc';
+export type {
+  FontSize,
+  SortOrder,
+  ContentWidth,
+  IndexTreeWidth,
+  SearchMode,
+  SearchType,
+  SearchSortBy,
+  SearchSortDirection,
+  SearchDefinition,
+  Bookmark,
+  AppSettings,
+};
 
 /**
  * A search result marked for persistent highlighting (path + optional line).
@@ -232,73 +229,6 @@ export type HighlightedSearchResult = { path: string };
  * The selectable calendar views (month/week/work-week/day/agenda).
  */
 export type CalendarViewType = 'month' | 'week' | 'work_week' | 'day' | 'agenda';
-
-/**
- * Saved search definition
- */
-export interface SearchDefinition {
-  /** Name of the search definition */
-  name: string;
-  /** The search query text */
-  searchText: string;
-  /** Search target: content or filenames */
-  searchTarget: SearchMode;
-  /** Search type: literal, wildcard, or advanced */
-  searchMode: SearchType;
-  /** Sort order for search results */
-  sortBy: SearchSortBy;
-  /** Sort direction: ascending (oldest first) or descending (newest first) */
-  sortDirection: SearchSortDirection;
-  /** Whether to include image EXIF metadata in content search */
-  searchImageExif?: boolean;
-  /** Whether to limit search to the 500 most recently modified files */
-  mostRecent?: boolean;
-}
-
-export interface Bookmark {
-  path: string;
-  name: string;
-}
-
-/**
- * Application settings that are persisted to config file
- */
-export interface AppSettings {
-  /** Font size for the application UI */
-  fontSize: FontSize;
-  /** Sort order for file/folder listing */
-  sortOrder: SortOrder;
-  /** Whether to display folders above files */
-  foldersOnTop: boolean;
-  /** Whether to show the table of contents panel */
-  showToc: boolean;
-  /** Newline-separated list of folder/file names to ignore in search */
-  ignoredPaths: string;
-  /** Saved search definitions */
-  searchDefinitions: SearchDefinition[];
-  /** Content width for the main content area */
-  contentWidth: ContentWidth;
-  /** Array of bookmarks */
-  bookmarks: Bookmark[];
-  /** Folder path where OCR tool utilities are stored */
-  ocrToolsFolder: string;
-  /** Folder path where new calendar item files are created */
-  calendarItemsFolder: string;
-  /** Folder tree sidebar visibility and width */
-  indexTreeWidth: IndexTreeWidth;
-  /** Whether to show front matter (Properties) in the editor */
-  showPropsInEditor: boolean;
-  /**
-   * When true, BrowseView hides all entries except the one being edited,
-   * giving the CodeMirror editor the full scrollable area.
-   */
-  expandedEditor: boolean;
-  /**
-   * Display size of expanded inline images: 'small', 'medium' (the default) or
-   * 'large'. See IMAGE_SIZE_CLASSES in ImageEntry for the pixel heights.
-   */
-  imageSize: import('./shared').ImageSize;
-}
 
 /**
  * Base node in the IndexTree hierarchy. Holds the path key (used by the store's

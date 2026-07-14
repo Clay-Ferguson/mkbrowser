@@ -8,6 +8,8 @@ export type ImageSize = 'small' | 'medium' | 'large';
 export const DEFAULT_IMAGE_SIZE: ImageSize = 'medium';
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
+/** Folder tree sidebar visibility and width options. */
+export type IndexTreeWidth = 'hidden' | 'narrow' | 'medium' | 'wide';
 export type SearchMode = 'content' | 'filenames';
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
@@ -69,13 +71,19 @@ export interface ImageDimensions {
   height: number;
 }
 
+/** A saved search definition (persisted in `AppSettings.searchDefinitions`). */
 export interface SearchDefinition {
   name: string;
   searchText: string;
+  /** Search target: content or filenames. */
   searchTarget: SearchMode;
   searchMode: SearchType;
   sortBy: SearchSortBy;
+  /** Ascending (oldest first) or descending (newest first). */
   sortDirection: SearchSortDirection;
+  /** Whether to include image EXIF metadata in a content search. */
+  searchImageExif?: boolean;
+  /** Whether to limit the search to the 500 most recently modified files. */
   mostRecent?: boolean;
 }
 
@@ -84,19 +92,40 @@ export interface Bookmark {
   name: string;
 }
 
+/**
+ * Application settings, persisted to `config.yaml` under `settings`. This is the
+ * single definition — the renderer store's `settings` slice and `types.ts` both
+ * use this exact type (types.ts re-exports it), so a field added here cannot be
+ * silently dropped by code that rebuilds a settings object against an older,
+ * narrower shape.
+ */
 export interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
   foldersOnTop: boolean;
   showToc: boolean;
+  /** Newline-separated list of folder/file names to ignore in search. */
   ignoredPaths: string;
   searchDefinitions: SearchDefinition[];
   contentWidth: ContentWidth;
   bookmarks: Bookmark[];
+  /** Folder path where OCR tool utilities are stored. */
   ocrToolsFolder: string;
+  /** Folder path where new calendar item files are created. */
   calendarItemsFolder: string;
+  /** Folder tree sidebar visibility and width. */
+  indexTreeWidth: IndexTreeWidth;
+  /** Whether to show front matter (Properties) in the editor. */
   showPropsInEditor: boolean;
+  /**
+   * When true, BrowseView hides all entries except the one being edited,
+   * giving the CodeMirror editor the full scrollable area.
+   */
   expandedEditor: boolean;
+  /**
+   * Display size of expanded inline images. See IMAGE_SIZE_CLASSES in ImageEntry
+   * for the pixel heights.
+   */
   imageSize: ImageSize;
 }
 

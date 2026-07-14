@@ -8,7 +8,7 @@
  * (`IndexYamlSchema` / `parseIndexYaml`).
  *
  * Unlike the index schema, the public `AppConfig` / `AppSettings` types in
- * `types/shared.ts` are imported by renderer code, so we do NOT derive them via
+ * `shared/shared.ts` are imported by renderer code, so we do NOT derive them via
  * `z.infer` here (that would pull `zod` into the renderer bundle). Instead the
  * hand-written interfaces stay canonical and this schema is cross-checked against
  * them at compile time (see `_SchemaMatchesAppConfig` below), so the two can't
@@ -42,6 +42,7 @@ export const defaultSettings: AppSettings = {
   bookmarks: [],
   ocrToolsFolder: '',
   calendarItemsFolder: '',
+  indexTreeWidth: 'narrow',
   showPropsInEditor: true,
   expandedEditor: false,
   imageSize: DEFAULT_IMAGE_SIZE,
@@ -168,6 +169,7 @@ const AppSettingsSchema = z
     bookmarks: tolerantArray(BookmarkSchema),
     ocrToolsFolder: z.string().catch(defaultSettings.ocrToolsFolder),
     calendarItemsFolder: z.string().catch(defaultSettings.calendarItemsFolder),
+    indexTreeWidth: z.enum(['hidden', 'narrow', 'medium', 'wide']).catch(defaultSettings.indexTreeWidth),
     showPropsInEditor: z.boolean().catch(defaultSettings.showPropsInEditor),
     expandedEditor: z.boolean().catch(defaultSettings.expandedEditor),
     // An unrecognized value (including the abandoned top-level imageSize's old
