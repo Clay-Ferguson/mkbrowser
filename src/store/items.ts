@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import type { AppState, ItemData } from '../shared/types';
+import type { AppState, Bookmark, ItemData } from '../shared/types';
 import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
@@ -472,14 +472,23 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       }
 
       let bookmarksChanged = false;
-      const bookmarks = state.settings.bookmarks.map(b => {
+      const remapped = state.settings.bookmarks.map(b => {
         const moved = remapMovedPath(b.path, oldRoot, newRoot);
-        if (moved === null) return b;
+        if (moved === null) return { bookmark: b, moved: false };
         bookmarksChanged = true;
-        return { ...b, path: moved };
+        return { bookmark: { ...b, path: moved }, moved: true };
       });
       if (bookmarksChanged) {
-        patch.settings = { ...state.settings, bookmarks };
+        // A rename can land on a path that already carries a bookmark — nothing
+        // clears bookmarks when a file is deleted, so a stale one can be sitting
+        // on newPath. Collapse any collision to a single entry (the remapped one
+        // wins) since bookmarks are looked up by path: duplicates make
+        // removeBookmark drop both and updateBookmarkName only reach the first.
+        const byPath = new Map<string, Bookmark>();
+        for (const { bookmark, moved } of remapped) {
+          if (moved || !byPath.has(bookmark.path)) byPath.set(bookmark.path, bookmark);
+        }
+        patch.settings = { ...state.settings, bookmarks: [...byPath.values()] };
       }
 
       if (state.calendarEvents) {

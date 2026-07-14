@@ -265,6 +265,22 @@ describe('renameItem / deleteItems — path-holding slices stay in sync', () => 
       ]);
     });
 
+    it('collapses a collision when the renamed path already carries a stale bookmark', () => {
+      useAS.setState({
+        settings: {
+          ...useAS.getState().settings,
+          bookmarks: [
+            { path: '/notes/renamed.md', name: 'stale, left behind by a delete' },
+            { path: NOTE, name: 'note' },
+          ],
+        },
+      });
+
+      expect(renameItem(NOTE, '/notes/renamed.md', 'renamed.md')).toBe(true);
+
+      expect(useAS.getState().settings.bookmarks).toEqual([{ path: '/notes/renamed.md', name: 'note' }]);
+    });
+
     it('returns false and leaves settings untouched when no bookmark matches', () => {
       const before = useAS.getState().settings;
 
