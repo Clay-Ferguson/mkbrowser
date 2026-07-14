@@ -615,18 +615,23 @@ function AISettingsView() {
                         />
                       </div>
 
-                      {/* Llama.cpp folder path */}
-                      <div className="flex items-center gap-2">
-                        <label className="text-slate-300 text-sm whitespace-nowrap">Llama.cpp folder:</label>
-                        <input
-                          type="text"
-                          value={llamacppFolder}
-                          onChange={(e) => setLlamacppFolder(e.target.value)}
-                          onBlur={() => void saveAiConfigField({ llamacppFolder })}
-                          placeholder="/path/to/llamacpp"
-                          className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
-                          data-testid="llamacpp-folder-input"
-                        />
+                      {/* llama-deck folder path (separate project the user installs) */}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <label className="text-slate-300 text-sm whitespace-nowrap">llama-deck folder:</label>
+                          <input
+                            type="text"
+                            value={llamacppFolder}
+                            onChange={(e) => setLlamacppFolder(e.target.value)}
+                            onBlur={() => void saveAiConfigField({ llamacppFolder })}
+                            placeholder="/path/to/llama-deck"
+                            className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
+                            data-testid="llamacpp-folder-input"
+                          />
+                        </div>
+                        <p className="text-xs italic text-slate-400">
+                          Location where llama-deck (https://github.com/Clay-Ferguson/llama-deck) files are located
+                        </p>
                       </div>
                     </div>
                   )}

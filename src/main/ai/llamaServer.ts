@@ -5,6 +5,10 @@
  * MkBrowser. The server is started lazily on first LLAMACPP inference
  * and survives app restarts.
  *
+ * The start/stop/status scripts live in the separate llama-deck project
+ * (https://github.com/Clay-Ferguson/llama-deck), which the user installs
+ * separately; its location is configured in AI Settings.
+ *
  * - ensureRunning(): health-check first; if unreachable, spawn start script
  * - stopServer():    run the stop script
  * - checkHealth():   single health ping → 'running' | 'stopped' | 'loading'
@@ -90,7 +94,7 @@ export async function ensureRunning(): Promise<void> {
   const folder = config.llamacppFolder;
   if (!folder) {
     throw new Error(
-      'No llama.cpp folder configured. Set the path in AI Settings.'
+      'No llama-deck folder configured. Set the path in AI Settings.'
     );
   }
 
@@ -135,7 +139,7 @@ export async function ensureRunning(): Promise<void> {
   const minutes = Math.round(START_TIMEOUT_MS / 60_000);
   throw new Error(
     `llama.cpp server did not become ready within ${minutes} minutes. ` +
-    'It may still be loading — use the `status.sh` script in llamacpp to check status or troubleshoot. '
+    'It may still be loading — use the `status.sh` script in your llama-deck folder to check status or troubleshoot. '
   );
 }
 
@@ -152,7 +156,7 @@ export async function stopServer(): Promise<void> {
   const folder = config.llamacppFolder;
   if (!folder) {
     throw new Error(
-      'No llama.cpp folder configured. Set the path in AI Settings.'
+      'No llama-deck folder configured. Set the path in AI Settings.'
     );
   }
 

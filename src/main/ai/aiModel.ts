@@ -125,7 +125,9 @@ export function enforceDefaultAIModels<T extends AIModelConfigLike>(args: {
   return { models: enforcedModels, selectedModel, changed };
 }
 
-// NOTE: See 'llamacpp' folder for instructions on setting up llama.cpp for local inference.
+// NOTE: Local inference is served by the separate 'llama-deck' project
+// (https://github.com/Clay-Ferguson/llama-deck), which users download and install
+// on their own; see its README for llama.cpp setup instructions.
 
 /**
  * Resolve the active AI provider and model name from the config.

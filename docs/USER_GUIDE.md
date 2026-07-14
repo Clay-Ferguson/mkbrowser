@@ -1152,13 +1152,13 @@ This setting is saved when the field loses focus (click away / tab out).
 
 When the selected model's **Provider** is `LLAMACPP`, an additional server control panel appears in AI Settings with the following buttons:
 
-- **Start** — launches the llama-server process using the configured **Llama.cpp folder** path.
+- **Start** — launches the llama-server process using the configured **llama-deck folder** path.
 - **Stop** — shuts down the running server.
 - **Refresh** — checks the current server status without restarting it.
 
 The status indicator shows **Running**, **Loading model…**, or **Stopped**. The **Start** and **Stop** buttons are disabled when they would have no effect (e.g. Start is disabled while the server is already running or loading).
 
-You must also set the **Llama.cpp folder** field to the directory that contains the `llama-server` executable. This is separate from the Base URL — the folder is used to *launch* the server, while the URL is used to *talk* to it.
+These controls drive **llama-deck**, a separate project you download and install yourself: https://github.com/Clay-Ferguson/llama-deck. It contains the `start-server.sh`, `stop-server.sh`, and `status.sh` scripts (and the model configuration) that MkBrowser runs on your behalf; it is not bundled with MkBrowser. After installing it, set the **llama-deck folder** field to the directory where you cloned it. This is separate from the Base URL — the folder is used to *launch* the server, while the URL is used to *talk* to it.
 
 ### AI Settings View
 
