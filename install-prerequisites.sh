@@ -13,6 +13,7 @@ echo ""
 echo "This script will install:"
 echo "  • ffmpeg (video encoding for test captures)"
 echo "  • xdotool (window manipulation for test automation)"
+echo "  • exiftool (reading/writing image EXIF metadata)"
 echo ""
 echo "Note: For Node.js and Yarn, run install-node.sh instead."
 echo ""
@@ -48,8 +49,9 @@ get_version() {
 }
 
 echo "📋 Current status:"
-echo "  ffmpeg:  $(get_version ffmpeg)"
-echo "  xdotool: $(get_version xdotool)"
+echo "  ffmpeg:   $(get_version ffmpeg)"
+echo "  xdotool:  $(get_version xdotool)"
+echo "  exiftool: $(get_version exiftool)"
 echo ""
 
 # Ask if user wants to proceed
@@ -68,15 +70,20 @@ echo ""
 echo "📦 Installing system prerequisites..."
 echo "  • Build tools (curl, ca-certificates, gnupg)"
 echo "  • Test automation tools (ffmpeg, xdotool)"
-sudo apt-get install -y curl ca-certificates gnupg ffmpeg xdotool
+echo "  • ExifTool (libimage-exiftool-perl)"
+# MkBrowser runs the system `exiftool` from the PATH to write image metadata — it
+# does not ship the perl distribution vendored in exiftool-vendored (see the comment
+# in src/main/exifUtil.ts). Without it, only EXIF saving fails; the app still runs.
+sudo apt-get install -y curl ca-certificates gnupg ffmpeg xdotool libimage-exiftool-perl
 
 # Final status
 echo ""
 echo "🎉 All prerequisites installed successfully!"
 echo ""
 echo "📋 Final versions:"
-echo "  ffmpeg:  $(ffmpeg -version | head -n 1)"
-echo "  xdotool: $(xdotool --version 2>&1 | head -n 1)"
+echo "  ffmpeg:   $(ffmpeg -version | head -n 1)"
+echo "  xdotool:  $(xdotool --version 2>&1 | head -n 1)"
+echo "  exiftool: $(exiftool -ver 2>&1 | head -n 1)"
 echo ""
 echo "✨ Next steps:"
 echo "  1. Run './install-node.sh' to install Node.js and Yarn"

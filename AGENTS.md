@@ -73,8 +73,8 @@ Three guards enforce this: the `react-hooks/todo` + `react-hooks/syntax` ESLint 
 
 ## Tech Stack
 
-- **Runtime**: Electron 40, React 19, TypeScript
-- **Build**: Electron Forge + Vite (configs: `vite.main.config.mts`, `vite.preload.config.mts`, `vite.renderer.config.mts`)
+- **Runtime**: Electron 43, React 19, TypeScript
+- **Build**: Electron Forge + Vite 8 / Rolldown (configs: `vite.main.config.mts`, `vite.preload.config.mts`, `vite.renderer.config.mts`)
 - **Styling**: Tailwind CSS 4 (CSS-first config in `src/index.css`, Typography plugin for Markdown)
 - **Markdown**: react-markdown + remark-gfm + remark-math + rehype-katex + mermaid
 - **Editor**: CodeMirror 6 (`src/components/CodeMirrorEditor.tsx`)
@@ -83,6 +83,14 @@ Three guards enforce this: the `react-hooks/todo` + `react-hooks/syntax` ESLint 
 ## Building and Package Management
 
 We use **Yarn Classic (Yarn 1.x)** to manage packages — the `yarn.lock` is in the `# yarn lockfile v1` format. Use Yarn commands (`yarn add`, `yarn install`, etc.) rather than direct npm commands, and do **not** upgrade to Yarn Berry (Yarn 2+): it uses an incompatible lockfile format and config layout, and a partial migration once left stray `.yarnrc.yml` / `.yarn/` artifacts in this repo (since removed).
+
+### Main-process dependencies are never bundled
+
+`vite.main.config.mts` externalizes **all** of `node_modules` from `main.js` — the bundle contains only our own source, and Node resolves every package at runtime. (Rolldown's ESM→CJS interop silently broke `fdir` and `rrule` when they *were* bundled; letting Node's own loader do the resolution makes that entire class of bug impossible.) The Forge Vite plugin strips `node_modules` from the asar, so the `packageAfterCopy` hook in `forge.config.ts` re-installs the main process's packages into the build directory — and it installs exactly what's listed in **`MAIN_PROCESS_DEPENDENCIES`**.
+
+**So: any package imported by `src/main.ts` or `src/main/**` must be added to `MAIN_PROCESS_DEPENDENCIES` in `forge.config.ts`.** Miss one and nothing complains — dev works, `yarn package` succeeds — but the packaged app throws `Cannot find module` the first time that code path runs, which for a lazily-used feature can be long after launch. **`main-deps-check.mjs`** guards this: it walks the main-process module graph from `src/main.ts`, and fails if any runtime import is missing from the list (`pre-package.sh` runs it as a build gate). `node main-deps-check.mjs --list` prints the resolved package set and who imports it. Type-only imports are correctly ignored, since they're erased at compile time.
+
+`exiftool-vendored` is a deliberate exception to the "everything gets installed" rule: the hook installs it with `--omit=optional` so its ~25 MB vendored perl distribution stays out of the package. MkBrowser runs the **system** `exiftool` from the PATH instead (see `src/main/exifUtil.ts`) — perl cannot read files inside the asar. It is a documented user prerequisite; without it only EXIF saving fails.
 
 ## End-to-End (Playwright) Tests
 
