@@ -13,7 +13,13 @@ import type { ExifData, ExifWriteResult, ImageDimensions } from '../shared/share
  * and the rest of the app is unaffected. No process is spawned until the
  * first EXIF operation.
  */
-const exiftool = new ExifTool({ exiftoolPath: 'exiftool' });
+const exiftool = new ExifTool({
+  exiftoolPath: 'exiftool',
+  // exiftool's default is to preserve the pre-write file as `<name>.jpg_original`.
+  // Those backups have no leading dot, so they show up in the folder listing and get
+  // reconciled into `.INDEX.yaml` as new entries. We want the write to be in-place.
+  writeArgs: ['-overwrite_original'],
+});
 /**
  * Write EXIF metadata to an image file. Accepts a grouped tag object (same as readExifMetadata output).
  * Only string values are supported.
