@@ -84,13 +84,24 @@ Three guards enforce this: the `react-hooks/todo` + `react-hooks/syntax` ESLint 
 
 We use **Yarn Classic (Yarn 1.x)** to manage packages — the `yarn.lock` is in the `# yarn lockfile v1` format. Use Yarn commands (`yarn add`, `yarn install`, etc.) rather than direct npm commands, and do **not** upgrade to Yarn Berry (Yarn 2+): it uses an incompatible lockfile format and config layout, and a partial migration once left stray `.yarnrc.yml` / `.yarn/` artifacts in this repo (since removed).
 
-### Main-process dependencies are never bundled
+### `dependencies` vs `devDependencies` — this distinction decides what ships
 
-`vite.main.config.mts` externalizes **all** of `node_modules` from `main.js` — the bundle contains only our own source, and Node resolves every package at runtime. (Rolldown's ESM→CJS interop silently broke `fdir` and `rrule` when they *were* bundled; letting Node's own loader do the resolution makes that entire class of bug impossible.) The Forge Vite plugin strips `node_modules` from the asar, so the `packageAfterCopy` hook in `forge.config.ts` re-installs the main process's packages into the build directory — and it installs exactly what's listed in **`MAIN_PROCESS_DEPENDENCIES`**.
+The renderer and preload bundles inline everything they import, so their packages are **build-time inputs**: they belong in `devDependencies`. The main process is the opposite — `vite.main.config.mts` externalizes **all** of `node_modules` from `main.js` (Rolldown's ESM→CJS interop silently broke `fdir` and `rrule` when they *were* bundled; letting Node's own loader resolve them makes that whole class of bug impossible), so it loads its packages from `node_modules` **at runtime**, and they must physically ship inside the asar.
 
-**So: any package imported by `src/main.ts` or `src/main/**` must be added to `MAIN_PROCESS_DEPENDENCIES` in `forge.config.ts`.** Miss one and nothing complains — dev works, `yarn package` succeeds — but the packaged app throws `Cannot find module` the first time that code path runs, which for a lazily-used feature can be long after launch. **`main-deps-check.mjs`** guards this: it walks the main-process module graph from `src/main.ts`, and fails if any runtime import is missing from the list (`pre-package.sh` runs it as a build gate). `node main-deps-check.mjs --list` prints the resolved package set and who imports it. Type-only imports are correctly ignored, since they're erased at compile time.
+`@electron/packager` copies `node_modules` and prunes `devDependencies` (`prune` defaults to `true`), so:
 
-`exiftool-vendored` is a deliberate exception to the "everything gets installed" rule: the hook installs it with `--omit=optional` so its ~25 MB vendored perl distribution stays out of the package. MkBrowser runs the **system** `exiftool` from the PATH instead (see `src/main/exifUtil.ts`) — perl cannot read files inside the asar. It is a documented user prerequisite; without it only EXIF saving fails.
+> **`dependencies` = exactly what the main process loads at runtime. Everything else is a `devDependency`.**
+
+That's the whole mechanism — `package.json` is the single source of truth for what ships, and there is no separate list to maintain. Two things follow:
+
+- **Adding a package the main process imports?** It must be in `dependencies` (`yarn add` does this by default — correct). Leave it in `devDependencies` and it is pruned out: dev works, `yarn package` succeeds, and the packaged app throws `Cannot find module` when that code path first runs.
+- **Peer dependencies count too.** Pruning does not follow peer deps — they are the consumer's responsibility to declare. `langchain` is in `dependencies` for exactly this reason: nothing of ours imports it, but `deepagents` peers on it. (Yarn Classic does not auto-install peers the way npm does.)
+
+`forge.config.ts` must therefore define its own `packagerConfig.ignore` (keeping `.vite`, `package.json`, `node_modules`), because the Forge Vite plugin otherwise sets `ignore: (file) => !file.startsWith('/.vite')` — it assumes 100% bundling and would drop `node_modules` entirely. The plugin only installs that default when the config does not define one, so ours takes over cleanly.
+
+`exiftool-vendored` is the one special case: its ~22 MB vendored perl distribution (`exiftool-vendored.pl`, an optional prod dep) is deleted in an `afterPrune` hook. Perl cannot read files inside the asar, so `src/main/exifUtil.ts` runs the **system** `exiftool` from the PATH — a documented user prerequisite; without it only EXIF saving fails. Note `ignore` cannot exclude it: packager's copy filter routes any path that *is* a module to the pruner and never consults `ignore`.
+
+**Verifying a packaging change:** package it and launch it (`yarn package && out/mk-browser-linux-x64/mk-browser`). A missing runtime dep is invisible to lint, unit tests, and `yarn package` — only the packaged app shows it.
 
 ## End-to-End (Playwright) Tests
 

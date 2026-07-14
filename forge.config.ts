@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { VitePlugin } from '@electron-forge/plugin-vite';
@@ -8,93 +7,57 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 /**
- * vite.main.config.mts externalizes ALL of node_modules from the main-process
- * bundle — main.js contains only our own code, and every package is loaded by
- * Node at runtime via bare `require()` calls.  The Forge Vite plugin strips
- * node_modules from the asar (it assumes everything is bundled), so we must
- * re-install the main process's dependencies inside the build directory before
- * the asar is created.
+ * Which of the project's files get copied into the packaged app.
  *
- * This list is every npm package imported directly by src/main.ts or src/main/
- * (their transitive deps are pulled in automatically by the npm install).
- * When the main process starts importing a new package, add it here — a stale
- * list fails loudly with "Cannot find module" on first launch of the packaged
- * app.  'electron' itself is provided by the runtime and must not be listed.
+ * We must define this ourselves, because the Forge Vite plugin otherwise installs
+ * `ignore: (file) => !file.startsWith('/.vite')` — i.e. it copies ONLY the Vite
+ * output and drops node_modules entirely, on the assumption that every dependency
+ * has been bundled into main.js.  That assumption does not hold here:
+ * vite.main.config.mts deliberately bundles nothing from node_modules (see the
+ * comment there — Rolldown's ESM→CJS interop breaks several of our packages), so
+ * the main process resolves its dependencies from node_modules at runtime and they
+ * have to be in the package.
  *
- * TODO: Need to check to see if this entire 'packageAfterCopy' stuff is really the best
- * way to handle this.  It works, but it feels a bit hacky.  Maybe there's a better way to
- * tell Forge "hey, these deps aren't bundled, make sure they get included in the final package"?
+ * The plugin only sets `ignore` when the config doesn't already define one, so
+ * defining it here takes over cleanly.  Keeping node_modules then hands the job to
+ * @electron/packager's standard behaviour: it prunes devDependencies during the copy
+ * (`prune` defaults to true), so the packaged app contains exactly the production
+ * `dependencies` from package.json.  package.json is the single source of truth for
+ * what ships — no hand-maintained list of main-process packages to keep in sync.
  */
-const MAIN_PROCESS_DEPENDENCIES = [
-  '@langchain/anthropic',
-  '@langchain/core',
-  '@langchain/google-genai',
-  '@langchain/langgraph',
-  '@langchain/openai',
-  'chokidar',
-  'deepagents',
-  'electron-squirrel-startup',
-  'exifreader',
-  'exiftool-vendored',
-  'fdir',
-  'github-slugger',
-  'js-yaml',
-  'mdast-util-toc',
-  'nanoid',
-  'rehype-katex',
-  'rehype-stringify',
-  'remark-frontmatter',
-  'remark-gfm',
-  'remark-math',
-  'remark-parse',
-  'remark-rehype',
-  'remark-stringify',
-  'rrule',
-  'unified',
-  'zod',
-];
+const PACKAGED_PATHS = ['/.vite', '/package.json', '/node_modules'];
+
+/**
+ * exiftool-vendored pulls in a ~22 MB vendored perl distribution as an *optional*
+ * production dependency.  We never use it: perl cannot read files inside the asar,
+ * so src/main/exifUtil.ts runs the system exiftool from the PATH instead (exiftool
+ * is a documented user prerequisite).  Pruning keeps it — it is a production dep —
+ * and `ignore` cannot drop it either: @electron/packager's copy filter routes any
+ * path that *is* a module straight to the pruner and never consults `ignore`
+ * (see copy-filter.js `userPathFilter`).  Deleting it in `afterPrune`, the hook
+ * packager provides for exactly this, is the supported way.
+ */
+const EXCLUDED_MODULES = ['exiftool-vendored.pl'];
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: './icon-256',
     extraResource: ['./icon-256.png', './resources/pdf-export', './resources/dictionaries'],
+    ignore: (file: string) => {
+      if (!file) return false; // the app root itself
+      return !PACKAGED_PATHS.some((prefix) => file === prefix || file.startsWith(`${prefix}/`));
+    },
+    afterPrune: [
+      (buildPath, _electronVersion, _platform, _arch, done) => {
+        for (const name of EXCLUDED_MODULES) {
+          fs.rmSync(path.join(buildPath, 'node_modules', name), { recursive: true, force: true });
+        }
+        done();
+      },
+    ],
   },
   rebuildConfig: {},
-  hooks: {
-    packageAfterCopy: async (_forgeConfig, buildPath) => {
-      // Read the source package.json to get dependency versions
-      const srcPkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'));
-
-      // Collect the main-process dependencies (all externalized from main.js)
-      const externalDeps: Record<string, string> = {};
-      for (const name of MAIN_PROCESS_DEPENDENCIES) {
-        const version = (srcPkg.dependencies as Record<string, string>)[name];
-        if (!version) {
-          throw new Error(`forge.config.ts: '${name}' is in MAIN_PROCESS_DEPENDENCIES but not in package.json dependencies`);
-        }
-        externalDeps[name] = version;
-      }
-
-      if (Object.keys(externalDeps).length === 0) return;
-
-      // Write (or update) a package.json in the build directory so npm can install deps
-      const buildPkgPath = path.join(buildPath, 'package.json');
-      let buildPkg: Record<string, unknown> = {};
-      if (fs.existsSync(buildPkgPath)) {
-        buildPkg = JSON.parse(fs.readFileSync(buildPkgPath, 'utf-8'));
-      }
-      buildPkg.dependencies = { ...(buildPkg.dependencies as Record<string, string> ?? {}), ...externalDeps };
-      fs.writeFileSync(buildPkgPath, JSON.stringify(buildPkg, null, 2));
-
-      // eslint-disable-next-line no-console
-      console.log('[forge hook] Installing external dependencies in build path:', Object.keys(externalDeps).join(', '));
-      // --omit=optional keeps exiftool-vendored's vendored perl distribution
-      // (exiftool-vendored.pl, ~25 MB) out of the package: we run the system
-      // exiftool from the PATH instead (see src/main/exifUtil.ts).
-      execSync('npm install --omit=dev --omit=optional', { cwd: buildPath, stdio: 'inherit' });
-    },
-  },
   makers: [
     new MakerDeb({
       options: {
