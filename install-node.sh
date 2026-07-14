@@ -5,7 +5,7 @@ set -euo pipefail
 # Node 22 LTS. 
 # WARNING: Do NOT bump to Node 24+: electron-forge 7.11 / electron-packager
 # 18.4.4 bundle extract-zip@2.0.1, whose stream.pipeline call stalls during the
-# Electron template extraction on Node 24, hanging `yarn make` indefinitely.
+# Electron template extraction on Node 24, hanging `npm run make` indefinitely.
 NODE_VERSION="22.22.3"
 NVM_VERSION="v0.40.3"
 
@@ -50,7 +50,3 @@ nvm alias default "${NODE_VERSION}"
 echo ""
 echo "Node.js $(node --version) installed and set as default."
 echo "npm version: $(npm --version)"
-
-echo "Installing yarn..."
-npm install -g yarn
-echo "yarn version: $(yarn --version)"

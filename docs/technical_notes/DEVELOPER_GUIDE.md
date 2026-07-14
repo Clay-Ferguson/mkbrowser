@@ -372,6 +372,6 @@ The repo-root script **`compiler-coverage.mjs`** runs the *exact* compiler versi
 - `node compiler-coverage.mjs` — **gate mode**: scans every non-`.d.ts` file under `src/`, prints only problems plus a summary, exits 1 on any bailout. `build.sh` runs this after lint and aborts the build on failure (~3 s for the whole tree).
 - `node compiler-coverage.mjs <files...>` — **verbose mode**: per-function report including `OK` lines. Use this while working on a specific file.
 
-**Workflow when a bailout appears** (locally or in the build): read the `BAIL` reason, apply the matching fix from the table above (usually: extract to a module-level helper), then re-run the script on the file until every unit reports `OK`. Verify with `yarn lint` and `yarn vitest run`.
+**Workflow when a bailout appears** (locally or in the build): read the `BAIL` reason, apply the matching fix from the table above (usually: extract to a module-level helper), then re-run the script on the file until every unit reports `OK`. Verify with `npm run lint` and `npx vitest run`.
 
 **Workflow when upgrading the compiler**: check `npm view babel-plugin-react-compiler dist-tags`, upgrade, and re-run the gate — version changes are exactly when new bailouts (or newly-compiling code) appear. Note from the migration: as of 2026-07 even the experimental compiler builds do **not** support try/finally, and the experimental compiler is *stricter* about leftover manual memoization — another reason the "no `useCallback`/`useMemo` at all" end state is the right one.

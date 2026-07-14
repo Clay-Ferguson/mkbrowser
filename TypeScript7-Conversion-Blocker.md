@@ -13,7 +13,7 @@ it typechecks with **zero errors** and roughly **6x faster** than TS 6. Nothing 
 
 We are blocked purely on **tooling**. TypeScript 7 is the Go-native compiler rewrite, and that rewrite
 removed the classic in-process JavaScript compiler API. `typescript-eslint` is built entirely on that API.
-Installing TS 7 today does not *degrade* our lint — it **crashes** it, taking `yarn lint` (and therefore
+Installing TS 7 today does not *degrade* our lint — it **crashes** it, taking `npm run lint` (and therefore
 `prebuild`) down with it.
 
 ---
@@ -195,10 +195,10 @@ npm view typescript-eslint@latest peerDependencies
 
 At that point the upgrade should be close to trivial, because we already proved the code compiles clean:
 
-1. `yarn add -D typescript@^7 typescript-eslint@<whatever version lands>`
+1. `npm install -D typescript@^7 typescript-eslint@<whatever version lands>`
 2. Bump the other `@typescript-eslint/*` devDeps to match.
-3. `yarn lint` — expect `tsc --noEmit` clean (already verified) and `eslint .` to work again.
-4. `yarn test` and a `yarn package` smoke test.
+3. `npm run lint` — expect `tsc --noEmit` clean (already verified) and `eslint .` to work again.
+4. `npm test` and a `npm run package` smoke test.
 
 No `tsconfig.json` changes are anticipated — TS 7.0.2 accepted our existing config as-is.
 

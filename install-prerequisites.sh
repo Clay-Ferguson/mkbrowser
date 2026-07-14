@@ -3,7 +3,7 @@
 # install-prerequisites.sh
 # Installs system dependencies on a fresh Ubuntu system
 # This prepares the system to build and run MkBrowser
-# NOTE: Node.js and Yarn are installed separately via install-node.sh
+# NOTE: Node.js (with npm) is installed separately via install-node.sh
 
 set -e  # Exit on any error
 
@@ -15,7 +15,7 @@ echo "  • ffmpeg (video encoding for test captures)"
 echo "  • xdotool (window manipulation for test automation)"
 echo "  • exiftool (reading/writing image EXIF metadata)"
 echo ""
-echo "Note: For Node.js and Yarn, run install-node.sh instead."
+echo "Note: For Node.js and npm, run install-node.sh instead."
 echo ""
 
 # Check if running on Linux
@@ -86,10 +86,10 @@ echo "  xdotool:  $(xdotool --version 2>&1 | head -n 1)"
 echo "  exiftool: $(exiftool -ver 2>&1 | head -n 1)"
 echo ""
 echo "✨ Next steps:"
-echo "  1. Run './install-node.sh' to install Node.js and Yarn"
-echo "  2. Run 'yarn install' to install project dependencies"
-echo "  3. Run 'yarn start:linux' to start the development server"
+echo "  1. Run './install-node.sh' to install Node.js (includes npm)"
+echo "  2. Run 'npm install' to install project dependencies"
+echo "  3. Run 'npm run start:linux' to start the development server"
 echo "  4. Run './build.sh' to create a distributable package and install it"
-echo "  5. Run tests: yarn test:e2e"
-echo "  6. Create user guide videos: yarn test:e2e create-file-demo.spec.ts && ../kocreator/create-video.sh \"\$PWD\" create-file-demo"
+echo "  5. Run tests: npm run test:e2e"
+echo "  6. Create user guide videos: npm run test:e2e -- create-file-demo.spec.ts && ../kocreator/create-video.sh \"\$PWD\" create-file-demo"
 echo ""

@@ -55,13 +55,12 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
-# Yarn Integrity file
+# Yarn artifacts — this project uses npm; ignore anything a stray yarn
+# invocation would create so it can't sneak back into the repo.
 .yarn-integrity
-
-# Yarn Berry artifacts — this project uses Yarn Classic (1.x); ignore Berry's
-# config/cache so a stray `yarn set version` doesn't re-introduce them.
 .yarn/
 .yarnrc.yml
+yarn.lock
 
 # dotenv environment variables file
 .env
@@ -100,9 +99,6 @@ typings/
 
 # Electron-Forge
 out/
-
-# Package lock (using yarn)
-package-lock.json
 
 # Editor directories
 .idea/

@@ -79,7 +79,7 @@ if [[ ! "$do_build" =~ ^[Nn]$ ]]; then
     fi
 
     echo "Building app with electron-forge..."
-    yarn package
+    npm run package
     if [ $? -ne 0 ]; then
         echo "Build failed. Exiting."
         exit 1
@@ -126,7 +126,7 @@ case $choice in
             cleanup_test_artifacts "$(basename "$file" .spec.ts)"
         done
         echo "Running all Playwright E2E tests..."
-        yarn test:e2e
+        npm run test:e2e
         ;;
     2)
         SPECIFIC_TEST=$(select_specific_test)
@@ -136,7 +136,7 @@ case $choice in
         fi
         cleanup_test_artifacts "$SPECIFIC_TEST"
         echo "Running specific test: $SPECIFIC_TEST.spec.ts..."
-        yarn playwright test tests/e2e/$SPECIFIC_TEST.spec.ts
+        npx playwright test tests/e2e/$SPECIFIC_TEST.spec.ts
         ;;
     3) 
         SPECIFIC_TEST=$(select_specific_test)
@@ -148,7 +148,7 @@ case $choice in
         ;;
     *)
         echo "Invalid choice. Running all tests..."
-        yarn test:e2e
+        npm run test:e2e
         ;;
 esac
 
@@ -194,5 +194,5 @@ if [[ ! "$show_report" =~ ^[Nn]$ ]]; then
     pkill -f "playwright show-report" 2>/dev/null
     sleep 1
 
-    yarn playwright show-report
+    npx playwright show-report
 fi

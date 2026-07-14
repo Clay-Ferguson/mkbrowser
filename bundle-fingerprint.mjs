@@ -16,7 +16,7 @@
 //
 // Usage: node bundle-fingerprint.mjs
 //
-// Run by build.sh (after `yarn make`) and playwright-test.sh (after `yarn package`).
+// Run by build.sh (after `npm run make`) and playwright-test.sh (after `npm run package`).
 // It cannot run in pre-package.sh — the bundle does not exist yet at that point.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -28,7 +28,7 @@ const SENTINEL = 'react.memo_cache_sentinel';
 
 if (!existsSync(assetsDir)) {
   console.error(`bundle-fingerprint: ${assetsDir} not found.`);
-  console.error('Run `yarn package` (or `yarn make`) first — this check reads the built renderer bundle.');
+  console.error('Run `npm run package` (or `npm run make`) first — this check reads the built renderer bundle.');
   process.exit(1);
 }
 

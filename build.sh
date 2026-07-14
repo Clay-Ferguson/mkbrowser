@@ -16,10 +16,10 @@ fi
 
 # Run the electron-forge make command to create distributables
 # This will create .deb and .rpm packages in the 'out' directory
-yarn make
+npm run make
 if [ $? -ne 0 ]; then
   echo ""
-  echo "❌ yarn make failed! Build aborted."
+  echo "❌ npm run make failed! Build aborted."
   exit 1
 fi
 

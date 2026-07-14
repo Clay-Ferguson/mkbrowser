@@ -82,7 +82,7 @@ Three guards enforce this: the `react-hooks/todo` + `react-hooks/syntax` ESLint 
 
 ## Building and Package Management
 
-We use **Yarn Classic (Yarn 1.x)** to manage packages — the `yarn.lock` is in the `# yarn lockfile v1` format. Use Yarn commands (`yarn add`, `yarn install`, etc.) rather than direct npm commands, and do **not** upgrade to Yarn Berry (Yarn 2+): it uses an incompatible lockfile format and config layout, and a partial migration once left stray `.yarnrc.yml` / `.yarn/` artifacts in this repo (since removed).
+We use **npm** to manage packages — `package-lock.json` is the lockfile and is committed. Do **not** use Yarn (this repo migrated off Yarn Classic in July 2026): a stray `yarn install` would recreate `yarn.lock` and ignore the npm lockfile. `.gitignore` ignores all Yarn artifacts (`yarn.lock`, `.yarn/`, `.yarnrc.yml`) so they can't sneak back in.
 
 ### `dependencies` vs `devDependencies` — this distinction decides what ships
 
@@ -94,14 +94,14 @@ The renderer and preload bundles inline everything they import, so their package
 
 That's the whole mechanism — `package.json` is the single source of truth for what ships, and there is no separate list to maintain. Two things follow:
 
-- **Adding a package the main process imports?** It must be in `dependencies` (`yarn add` does this by default — correct). Leave it in `devDependencies` and it is pruned out: dev works, `yarn package` succeeds, and the packaged app throws `Cannot find module` when that code path first runs.
-- **Peer dependencies count too.** Pruning does not follow peer deps — they are the consumer's responsibility to declare. `langchain` is in `dependencies` for exactly this reason: nothing of ours imports it, but `deepagents` peers on it. (Yarn Classic does not auto-install peers the way npm does.)
+- **Adding a package the main process imports?** It must be in `dependencies` (`npm install <pkg>` does this by default — correct). Leave it in `devDependencies` and it is pruned out: dev works, `npm run package` succeeds, and the packaged app throws `Cannot find module` when that code path first runs.
+- **Peer dependencies count too.** Pruning does not follow peer deps — packager's pruner (flora-colossus) walks only `dependencies`/`optionalDependencies`, never `peerDependencies`. `langchain` is in `dependencies` for exactly this reason: nothing of ours imports it, but `deepagents` peers on it. npm *installs* peers automatically, so dev always works — but an undeclared peer is still pruned from the packaged app, which is exactly the invisible-until-runtime failure mode described above.
 
 `forge.config.ts` must therefore define its own `packagerConfig.ignore` (keeping `.vite`, `package.json`, `node_modules`), because the Forge Vite plugin otherwise sets `ignore: (file) => !file.startsWith('/.vite')` — it assumes 100% bundling and would drop `node_modules` entirely. The plugin only installs that default when the config does not define one, so ours takes over cleanly.
 
 `exiftool-vendored` is the one special case: its ~22 MB vendored perl distribution (`exiftool-vendored.pl`, an optional prod dep) is deleted in an `afterPrune` hook. Perl cannot read files inside the asar, so `src/main/exifUtil.ts` runs the **system** `exiftool` from the PATH — a documented user prerequisite; without it only EXIF saving fails. Note `ignore` cannot exclude it: packager's copy filter routes any path that *is* a module to the pruner and never consults `ignore`.
 
-**Verifying a packaging change:** package it and launch it (`yarn package && out/mk-browser-linux-x64/mk-browser`). A missing runtime dep is invisible to lint, unit tests, and `yarn package` — only the packaged app shows it.
+**Verifying a packaging change:** package it and launch it (`npm run package && out/mk-browser-linux-x64/mk-browser`). A missing runtime dep is invisible to lint, unit tests, and `npm run package` — only the packaged app shows it.
 
 ## End-to-End (Playwright) Tests
 
@@ -110,7 +110,7 @@ The Playwright e2e tests (`tests/e2e/`) launch the **packaged** Electron build f
 ⚠️ **The tests do not force a recompile.** `tests/e2e/global-setup.ts` only builds when the bundle is *missing*; it does not detect stale output. So after editing any app source (`src/`, the `vite.*.config` files, `index.html`, etc.), you must rebuild before running the e2e tests or they will silently run against the **old** code:
 
 ```
-yarn package    # rebuilds .vite/build/ + .vite/renderer/
+npm run package    # rebuilds .vite/build/ + .vite/renderer/
 ```
 
 Forgetting this produces baffling failures where a fix (or a test selector that depends on a renderer change) appears not to work even though the source is correct. Test-only changes under `tests/` do **not** need a rebuild.

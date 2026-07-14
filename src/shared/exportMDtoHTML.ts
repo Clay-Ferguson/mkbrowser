@@ -17,14 +17,10 @@ function rehypeTargetBlank() {
   return (tree: Root) => {
     visitLinks(tree, node => {
       node.properties.target = '_blank';
-      // Security best practice: add rel="noopener"
-      if (typeof node.properties.rel === 'string') {
-        // Merge with existing rel
-        if (!node.properties.rel.includes('noopener')) {
-          node.properties.rel += ' noopener';
-        }
-      } else {
-        node.properties.rel = 'noopener';
+      // Security best practice: add rel="noopener" (hast models rel as a token list)
+      const rel = node.properties.rel ?? [];
+      if (!rel.includes('noopener')) {
+        node.properties.rel = [...rel, 'noopener'];
       }
     });
   };
