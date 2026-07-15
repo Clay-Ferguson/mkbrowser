@@ -52,22 +52,29 @@ const FREQ_MAP: Record<string, number> = {
 };
 
 /**
- * Safety cap on the number of occurrences generated for a single recurring item.
- * Without this, an unbounded rrule (no `until` and no `count` — i.e. an "ends:
- * never" repeat) makes RRule.all() loop forever, hanging the calendar. This also
- * guards against huge counts or far-future `until` dates.
+ * Recurring items are expanded only within a sliding window around "now": from
+ * MAX_PAST_YEARS back to MAX_FUTURE_YEARS ahead. The window bounds total
+ * memory/render load across *all* recurring items while guaranteeing that a
+ * long-lived rule (e.g. a daily reminder created years ago) always renders
+ * around the present. Expansion must never start at the rule's dtstart with a
+ * flat occurrence cap: an old-enough daily rule would exhaust the cap entirely
+ * in the past and silently vanish from today's calendar. Occurrences outside
+ * the window simply aren't shown.
  */
-const MAX_OCCURRENCES = 400;
+const MAX_PAST_YEARS = 5;
+const MAX_FUTURE_YEARS = 2;
 
 /**
- * Never populate the calendar with occurrences more than this far into the
- * future. This bounds total memory/render load across *all* recurring items
- * (each one is independently capped at MAX_OCCURRENCES, which alone could still
- * add up to many thousands of entries). For most frequencies this horizon is
- * the operative limit; MAX_OCCURRENCES is the backstop for very fine-grained
- * repeats (e.g. daily).
+ * Backstop cap on the number of in-window occurrences generated for a single
+ * recurring item. The window above is the operative bound — at the finest
+ * supported frequency (daily, interval 1) a 7-year window yields at most
+ * ~2,600 occurrences — so this only fires on unexpected runaway output.
+ * Invariant: this must stay comfortably larger than the window's daily
+ * worst case (windowYears * 366), otherwise a daily rule gets truncated
+ * partway through the window and occurrences near "today" vanish — the exact
+ * bug the windowing exists to prevent.
  */
-const MAX_FUTURE_YEARS = 2;
+const MAX_OCCURRENCES = 5000;
 
 /** Cap simultaneous file reads to avoid EMFILE on large vaults. */
 const CALENDAR_READ_CONCURRENCY = 50;
@@ -168,15 +175,19 @@ function expandRRule(
     dtstart,
   });
 
-  // we have the max occurrences and this time horizon in place so that we can
-  // be sure that calendar items that are configured to repeat forever, won't
-  // overflow memory or overload the calendar component
-  const horizon = new Date();
-  horizon.setFullYear(horizon.getFullYear() + MAX_FUTURE_YEARS);
-  const horizonMs = horizon.getTime();
+  // Expand only the sliding window around "now" (see MAX_PAST_YEARS above) so
+  // that items configured to repeat forever can't overflow memory or overload
+  // the calendar component, while an old rule still always reaches the present.
+  // The window bounds are encoded into the same UTC-as-wall-clock frame as
+  // dtstart (see above) so the comparison rrule performs is frame-consistent.
+  // The iterator's `len` counts only in-window occurrences, so MAX_OCCURRENCES
+  // acts purely as a backstop on what this window can return.
+  const now = new Date();
+  const windowStart = new Date(Date.UTC(now.getFullYear() - MAX_PAST_YEARS, now.getMonth(), now.getDate()));
+  const windowEnd = new Date(Date.UTC(now.getFullYear() + MAX_FUTURE_YEARS, now.getMonth(), now.getDate()));
 
   return rule
-    .all((date, len) => date.getTime() <= horizonMs && len < MAX_OCCURRENCES)
+    .between(windowStart, windowEnd, true, (_date, len) => len < MAX_OCCURRENCES)
     .map((occurrenceDate, i) => {
     // Decode the UTC components rrule produced back into a local wall-clock timestamp.
     let occStart: number;

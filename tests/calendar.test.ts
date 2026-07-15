@@ -322,8 +322,8 @@ describe('loadCalendarEntryForFile — malformed rrule fields', () => {
   it('ignores a non-numeric count rather than dropping the event', async () => {
     write('rrule-garbage-count.md', `---\ndue: 6/1/2026\nrrule:\n  freq: weekly\n  count: abc\n---\nBody.\n`);
     const results = await loadCalendarEntryForFile(f('rrule-garbage-count.md'));
-    // "abc" is not a valid count, so the rule falls back to the horizon/MAX
-    // bound — the event must still expand, not vanish.
+    // "abc" is not a valid count, so the rule falls back to the expansion
+    // window bounds — the event must still expand, not vanish.
     expect(results.length).toBeGreaterThan(3);
   });
 
@@ -343,6 +343,63 @@ describe('loadCalendarEntryForFile — malformed rrule fields', () => {
     write('rrule-nonstring-until.md', `---\ndue: 6/1/2026\nrrule:\n  freq: weekly\n  until: 2026\n  count: 2\n---\nBody.\n`);
     const results = await loadCalendarEntryForFile(f('rrule-nonstring-until.md'));
     expect(results).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// loadCalendarEntryForFile — long-lived recurring rules (windowed expansion)
+//
+// Regression guard: expansion used to start at dtstart with a flat 400-
+// occurrence cap, so a daily rule created >400 days ago exhausted the cap
+// entirely in the past and silently vanished from today's calendar. Expansion
+// now covers a sliding window around "now", so an old rule must always render
+// at the present. These tests use dates relative to the real clock on purpose.
+// ---------------------------------------------------------------------------
+
+describe('loadCalendarEntryForFile — long-lived recurring rules', () => {
+  function daysAgo(n: number): Date {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return d;
+  }
+
+  it('a daily "repeat forever" rule started 500 days ago still occurs today', async () => {
+    write('old-daily.md', `---\ndue: ${formatDueDate(daysAgo(500))}\nrrule:\n  freq: daily\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('old-daily.md'));
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    expect(results.some(ev => ev.start === todayStart.getTime())).toBe(true);
+  });
+
+  it('a daily rule started years ago still extends into the future', async () => {
+    write('old-daily-future.md', `---\ndue: ${formatDueDate(daysAgo(900))}\nrrule:\n  freq: daily\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('old-daily-future.md'));
+    const oneYearAhead = new Date();
+    oneYearAhead.setFullYear(oneYearAhead.getFullYear() + 1);
+    expect(results.some(ev => ev.start >= oneYearAhead.getTime())).toBe(true);
+  });
+
+  it('a weekday-only rule started >2 years ago still occurs within the past week', async () => {
+    write('old-weekdays.md', `---\ndue: ${formatDueDate(daysAgo(800))}\nrrule:\n  freq: daily\n  byday: MO,TU,WE,TH,FR\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('old-weekdays.md'));
+    const weekAgo = daysAgo(7).getTime();
+    const now = Date.now();
+    expect(results.some(ev => ev.start >= weekAgo && ev.start <= now)).toBe(true);
+  });
+
+  it('a very old daily rule stays bounded: no occurrences far outside the window', async () => {
+    write('ancient-daily.md', `---\ndue: ${formatDueDate(daysAgo(365 * 10))}\nrrule:\n  freq: daily\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('ancient-daily.md'));
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.length).toBeLessThan(5000);
+    // Nothing older than the ~5-year past window (a few days of slack for
+    // timezone-frame and leap-day rounding at the boundary).
+    const windowFloor = daysAgo(365 * 5 + 10).getTime();
+    expect(Math.min(...results.map(ev => ev.start))).toBeGreaterThanOrEqual(windowFloor);
+    // ...and it still reaches today.
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    expect(results.some(ev => ev.start === todayStart.getTime())).toBe(true);
   });
 });
 
