@@ -90,17 +90,23 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    let cancelled = false;
     fetchTags()
       .then((cats) => {
+        if (cancelled) return;
         const editor = fromLoaded(cats);
         setCategories(editor);
         if (editor.length > 0) setSelectedCatId([...editor].sort((a, b) => a.name.localeCompare(b.name))[0]!.id);
         setLoading(false);
       })
       .catch((err: unknown) => {
+        if (cancelled) return;
         setSaveError(err instanceof Error ? err.message : 'Failed to load tags');
         setLoading(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
