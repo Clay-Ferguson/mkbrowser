@@ -162,6 +162,13 @@ export function createCustomImage(entryPath: string) {
     useEffect(() => {
       let isMounted = true;
 
+      // Reset state when `src` changes so nothing from the previous src carries
+      // over: a lingering hasError (from a failed local resolve or an <img onError>)
+      // would otherwise stick to a now-valid src and permanently show the error pill.
+      setResolvedImg(null);
+      setIsLoading(true);
+      setHasError(false);
+
       async function resolve() {
         if (!src) {
           if (isMounted) {
