@@ -49,6 +49,7 @@ async function gatherThread(path: string) {
  */
 function ThreadView({ onSaveSettings }: ThreadViewProps) {
   const currentPath = useAS(s => s.currentPath);
+  const currentView = useAS(s => s.currentView);
   const rootPath = useAS(s => s.rootPath);
   const pendingScrollToBottom = useAS(s => s.pendingThreadScrollToBottom);
   const pendingEditFile = useAS(s => s.pendingEditFile);
@@ -91,6 +92,11 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
    * `isThread` / `childFolders` state that drives the UI branches.
    */
   useEffect(() => {
+    // Views never unmount (App.tsx hides them with CSS), so without this guard
+    // every browser-tab folder navigation would fire the gather IPC + store
+    // seeding for a thread view the user isn't looking at. Skip while hidden;
+    // `currentView` is in the deps so the gather runs when this tab activates.
+    if (currentView !== 'thread') return;
     // A slow gather can resolve after the user has navigated elsewhere, so
     // every state write below (including the loading flip) is gated on the
     // loaded path still being current — otherwise this run's results are
@@ -133,7 +139,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
       }
       setLoading(false);
     })();
-  }, [currentPath, refreshTick]);
+  }, [currentPath, refreshTick, currentView]);
 
   // Callback for entry rename / delete — reload the thread
   const refreshThread = () => setRefreshTick((t) => t + 1);
