@@ -11,6 +11,7 @@ import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
 import { parseDateString, past, future, today } from '../shared/timeUtil';
 import { createContentSearcher } from '../shared/searchHelpers';
+import { compileAdvancedQuery, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
 import { escapeRegexExceptWildcard, buildExcludePredicate } from '../shared/pathPattern';
 import { mapWithConcurrency } from '../shared/asyncUtil';
@@ -129,12 +130,9 @@ export function createMatchPredicate(
     // Compile the user expression ONCE, when the predicate is created — not once
     // per file scanned. A syntax error in the query yields an always-false
     // predicate rather than throwing or silently failing on every file.
-    let evalFunction: (...args: unknown[]) => unknown;
+    let evalFunction: ReturnType<typeof compileAdvancedQuery>;
     try {
-      evalFunction = new Function(
-        '$', 'past', 'future', 'today', 'prop',
-        `return (${queryStr});`,
-      ) as (...args: unknown[]) => unknown;
+      evalFunction = compileAdvancedQuery(queryStr);
     } catch (err) {
       // The user's advanced query is syntactically invalid. We can't evaluate it,
       // so the predicate matches nothing. Log at warn so an invalid query is
@@ -148,13 +146,16 @@ export function createMatchPredicate(
       const { $, getMatchCount } = createContentSearcher(content);
       const prop = createPropFunction(cache, content, filePath);
       try {
-        const matches = Boolean(evalFunction($, past, future, today, prop));
+        const matches = evalFunction({ $, prop, past, future, today });
         const matchCount = getMatchCount();
         return {
           matches,
           matchCount: matches ? Math.max(matchCount, 1) : 0,
         };
       } catch (err) {
+        // A timed-out query will time out on every file — abort the whole search
+        // instead of eating the timeout thousands of times.
+        if (err instanceof AdvancedQueryTimeoutError) throw err;
         // A runtime error while evaluating the (validly-compiled) query against
         // this file's content — e.g. the expression references a property in a way
         // that throws. Treat as a non-match for this file, but log it.
