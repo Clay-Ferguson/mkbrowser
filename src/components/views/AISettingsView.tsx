@@ -650,13 +650,11 @@ function AISettingsView() {
                       data-testid="ai-persona-combobox"
                       value={selectedPromptName}
                       onChange={(name) => {
+                        // Only track the typed name here; deriving the editor content on
+                        // every keystroke would wipe unsaved prompt edits the moment the
+                        // name stops matching an existing persona (e.g. renaming "foo" to
+                        // "foo2"). Editor content is derived only on selection (onSelect).
                         setSelectedPromptName(name);
-                        if (name === DEFAULT_PERSONA_NAME) {
-                          setPromptEditorContent(DEFAULT_AI_REWRITE_PERSONA);
-                        } else {
-                          const matched = aiRewritePrompts.find((p) => p.name === name);
-                          setPromptEditorContent(matched?.prompt ?? '');
-                        }
                       }}
                       onSelect={(option: ComboboxOption) => {
                         setSelectedPromptName(option.value);
