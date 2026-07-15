@@ -35,14 +35,15 @@ export function createContentSearcher(content: string): {
     // empty search text is treated as "no match" (this runs in the main process
     // against user-supplied advanced queries like `$('')`, which must not hang it).
     if (searchLower.length === 0) return false;
-    const found = contentLower.includes(searchLower);
-    if (found) {
-      let count = 0;
-      let idx = 0;
-      while ((idx = contentLower.indexOf(searchLower, idx)) !== -1) {
-        count++;
-        idx += searchLower.length;
-      }
+    // Count occurrences with a single scan; the first indexOf also answers
+    // "found?" (count > 0), so no separate includes() pre-check is needed.
+    let count = 0;
+    let idx = 0;
+    while ((idx = contentLower.indexOf(searchLower, idx)) !== -1) {
+      count++;
+      idx += searchLower.length;
+    }
+    if (count > 0) {
       matchCount += count;
       return true;
     }
