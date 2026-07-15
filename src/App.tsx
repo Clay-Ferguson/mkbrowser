@@ -228,12 +228,15 @@ function App() {
     document.documentElement.setAttribute('data-font-size', settings.fontSize);
   }, [settings.fontSize]);
 
-  // Apply global text highlight after each navigation/load cycle
+  // Apply global text highlight after each navigation/load cycle. `entries` is a
+  // dep so a silent refresh (refreshDirectory → loadDirectoryContents with
+  // showLoading:false) reapplies the highlight after it swaps the rendered DOM —
+  // `loading` never toggles on that path, so it alone would miss those refreshes.
   useEffect(() => {
     const id = requestAnimationFrame(() => applyGlobalHighlight(getGlobalHighlightText()));
     // Returns the useEffect cleanup (an unsubscribe-style teardown): cancels the pending animation frame on unmount / before re-run.
     return () => cancelAnimationFrame(id);
-  }, [currentPath, currentView, loading]);
+  }, [currentPath, currentView, loading, entries]);
 
   // Close an unmodified editor when ESC is pressed anywhere in the app
   useEffect(() => {
