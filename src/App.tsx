@@ -84,6 +84,15 @@ function errorMessage(err: unknown): string {
 }
 
 /**
+ * Monotonic token identifying the most recent loadDirectoryContents call.
+ * Two loads of the *same* path can overlap (a directoryRefreshNonce bump or
+ * refreshDirectory racing an in-flight load), and the path-based staleness
+ * check alone can't order them — without this, the older read resolving last
+ * would overwrite the newer listing.
+ */
+let latestLoadToken = 0;
+
+/**
  * Reads the given directory via IPC and pushes the results into App state and
  * the item store. Module-level (not in the component) so its try/catch/finally
  * doesn't make the React Compiler bail out on App.
@@ -96,16 +105,20 @@ async function loadDirectoryContents(
   setError: (error: string | null) => void,
 ): Promise<void> {
   if (!currentPath) return;
+  const token = ++latestLoadToken;
 
   if (showLoading) {
     setLoading(true);
   }
   setError(null);
-  // A slow read can resolve after the user has navigated elsewhere, so every
-  // state write below (including the loading flip) is gated on the loaded
-  // path still being current — otherwise this run's results are stale and
-  // belong to a folder we've already left.
-  const isStale = () => useAS.getState().currentPath !== currentPath;
+  // A slow read can resolve after the user has navigated elsewhere, or after a
+  // newer load of the same path has started, so every state write below
+  // (including the loading flip) is gated on this run still being the latest
+  // request for the current path. The path check is still needed alongside the
+  // token: the store's currentPath can change before the effect fires the next
+  // load (and bumps the token).
+  const isStale = () =>
+    token !== latestLoadToken || useAS.getState().currentPath !== currentPath;
   try {
     const files = await api.readDirectory(currentPath);
     if (isStale()) return;
