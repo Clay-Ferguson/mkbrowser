@@ -364,7 +364,12 @@ export async function searchFolder(
       dirsApi.withPromise(),
     ]);
 
-    const allEntries = [...files, ...dirs.filter(d => d !== folderPath)];
+    // fdir's onlyDirs() returns directory paths with a trailing separator
+    // (e.g. "/root/"), but folderPath arrives without one, so a raw !==
+    // comparison never excludes the search root itself. Normalize both with
+    // path.resolve (which strips trailing separators) so the root is dropped.
+    const resolvedRoot = path.resolve(folderPath);
+    const allEntries = [...files, ...dirs.filter(d => path.resolve(d) !== resolvedRoot)];
 
     // When mostRecent is enabled, limit to the 500 most recently modified entries.
     // filterMostRecent already stat'd them, so cache the times by path and feed
