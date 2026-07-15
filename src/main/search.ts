@@ -163,14 +163,25 @@ export function createMatchPredicate(
       }
     };
   } else if (type === 'wildcard') {
-    const regex = wildcardToRegex(queryStr);
+    // Compile the global regex ONCE, when the predicate is created — not once per
+    // matching file. It's derived purely from the query, and the single global
+    // scan below counts matches and answers "did it match?" in one pass (no
+    // separate `test`, no array of substrings materialized just to read .length).
+    const regex = new RegExp(wildcardToRegex(queryStr).source, 'gi');
     return (content: string, _filePath?: string) => {
-      const matches = regex.test(content);
-      if (matches) {
-        const allMatches = content.match(new RegExp(regex.source, 'gi'));
-        return { matches: true, matchCount: allMatches ? allMatches.length : 1};
+      regex.lastIndex = 0;
+      let matchCount = 0;
+      let match: RegExpExecArray | null;
+      while ((match = regex.exec(content)) !== null) {
+        matchCount++;
+        // A zero-width match (possible when the pattern is all wildcards, since
+        // `.{0,25}` can match the empty string) never advances lastIndex — step
+        // it forward manually so the loop terminates.
+        if (match.index === regex.lastIndex) regex.lastIndex++;
       }
-      return { matches: false, matchCount: 0};
+      return matchCount > 0
+        ? { matches: true, matchCount }
+        : { matches: false, matchCount: 0 };
     };
   } else {
     // Literal mode: case-insensitive text search
