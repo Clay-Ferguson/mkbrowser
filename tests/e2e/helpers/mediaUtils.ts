@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import type { Page, Locator } from '@playwright/test';
-import { screenshotWithHighlight, highlightElement, HIGHLIGHT } from './visual-indicators';
+import { screenshotWithHighlight, highlightElement, showHighlightOverlay } from './visual-indicators';
 import { logger } from '../../../src/shared/logUtil';
 
 /**
@@ -234,39 +234,9 @@ export async function insertText(
   }
 
   if (showHighlight) {
-    await mainWindow.evaluate(({ dur, styles }) => {
-      let editorElement: HTMLElement | null = null;
-
-      const cmEditor = document.querySelector('.cm-editor');
-      if (cmEditor) {
-        editorElement = cmEditor.parentElement?.closest('.rounded') as HTMLElement;
-        if (!editorElement) {
-          editorElement = cmEditor as HTMLElement;
-        }
-      } else {
-        editorElement = document.activeElement as HTMLElement;
-      }
-
-      if (!editorElement) {
-        // Runs inside page.evaluate (browser context); logUtil logger isn't available here.
-        // eslint-disable-next-line no-console
-        console.warn('No editor element found for highlighting');
-        return;
-      }
-
-      const originalBoxShadow = editorElement.style.boxShadow;
-      const originalOutline = editorElement.style.outline;
-
-      editorElement.style.setProperty('box-shadow', styles.boxShadow, 'important');
-      editorElement.style.setProperty('outline', styles.outline, 'important');
-      editorElement.style.setProperty('outline-offset', styles.outlineOffset, 'important');
-
-      setTimeout(() => {
-        (editorElement as HTMLElement).style.boxShadow = originalBoxShadow;
-        (editorElement as HTMLElement).style.outline = originalOutline;
-      }, dur);
-    }, { dur: highlightDuration, styles: HIGHLIGHT });
-
+    // With no locator, the overlay helper falls back to the CodeMirror
+    // editor container / focused element
+    await showHighlightOverlay(mainWindow, focusTarget ?? null, highlightDuration);
     await mainWindow.waitForTimeout(300);
   }
 

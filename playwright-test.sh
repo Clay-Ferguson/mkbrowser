@@ -53,9 +53,6 @@ generate_video_for_test() {
     source "$kocreator_dir/.venv/bin/activate"
     python "$kocreator_dir/create-video.py" "$current_folder" "$test_name"
     deactivate
-    echo ""
-    echo "CPU Cooldown 90s..."
-    sleep 90
 }
 
 # Open the generated test-videos folder in the file manager (Linux only)
@@ -173,6 +170,9 @@ if [ "$choice" = "1" ] && [ -n "$GENERATE_VIDEO" ]; then
     for file in tests/e2e/*.spec.ts; do
         test_name=$(basename "$file" .spec.ts)
         generate_video_for_test "$test_name"
+        echo ""
+        echo "CPU Cooldown 90s..."
+        sleep 90
     done
     open_videos_folder
 elif [ "$choice" = "2" ] && [ -n "$GENERATE_VIDEO" ] && [ -n "$SPECIFIC_TEST" ]; then

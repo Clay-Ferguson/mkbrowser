@@ -1,20 +1,149 @@
 import type { Page, Locator } from '@playwright/test';
 
 export const HIGHLIGHT = {
-  // border: '2px solid #ff4444',
   boxShadow: '0 0 30px rgba(255, 68, 68, 0.8), inset 0 0 20px rgba(255, 68, 68, 0.2)',
-  outline: '2px solid #ff6666',
-  outlineOffset: '2px',
+  border: '2px solid #ff6666',
 } as const;
+
+const HIGHLIGHT_OVERLAY_ID = '__mkb_highlight_overlay__';
 
 /**
  * Visual indicator helpers for creating demonstration videos.
  * These functions add visual cues before taking screenshots to show
  * where user interactions are happening.
+ *
+ * All highlighting is drawn by showHighlightOverlay as a standalone overlay
+ * <div> appended to <body>, rather than by styling the target element itself:
+ * an element's own outline/box-shadow gets clipped by any ancestor with
+ * `overflow: hidden`/`auto`, whereas the overlay is position:fixed at the
+ * element's absolute viewport coordinates, clamped to the viewport so it can
+ * never be truncated by the window edge, and pointer-events:none so it never
+ * interferes with clicks or typing.
+ *
+ * The overlay is promoted into the browser's top layer via the Popover API
+ * (popover="manual" + showPopover()). The app's dialogs (<dialog>.showModal())
+ * and popup menus (Popover API) live in the top layer, which paints above ALL
+ * z-indexes — so no z-index on the overlay could beat them. Top-layer elements
+ * stack in promotion order, and the overlay is always shown after the
+ * dialog/menu is already open, so it is guaranteed to paint on top.
  */
 
 /**
- * Highlights an element with a pulsing border before taking action on it.
+ * Draws the highlight overlay box around the element resolved from `locator`.
+ *
+ * If `locator` is null, falls back to the CodeMirror editor container, or
+ * failing that the currently focused element (for the "highlight whatever
+ * we're typing into" callers). Checkbox/radio inputs are widened to their
+ * closest ancestor <label> so the indicator and label text are boxed together.
+ *
+ * If `durationMs` is provided the overlay removes itself after that long;
+ * otherwise it persists until removeHighlightOverlay() is called.
+ */
+export async function showHighlightOverlay(
+  page: Page,
+  locator: Locator | null,
+  durationMs?: number
+): Promise<void> {
+  const el = locator ? await locator.elementHandle() : null;
+  await page.evaluate(({ el, styles, overlayId, dur }) => {
+    // Resolve the element to draw the box around. With no element provided,
+    // find the CodeMirror editor container or fall back to the focused element.
+    let target = el as HTMLElement | null;
+    if (!target) {
+      const cmEditor = document.querySelector('.cm-editor');
+      if (cmEditor) {
+        // Prefer the rounded container div wrapping the editor
+        target = (cmEditor.parentElement?.closest('.rounded') ?? cmEditor) as HTMLElement;
+      } else {
+        target = document.activeElement as HTMLElement | null;
+      }
+    }
+    if (!target) {
+      // Runs inside page.evaluate (browser context); logUtil logger isn't available here.
+      // eslint-disable-next-line no-console
+      console.warn('No element found for highlighting');
+      return;
+    }
+
+    // For checkbox/radio inputs, walk up to the closest ancestor <label> so
+    // the box encompasses the indicator and the label text together.
+    if (
+      target instanceof HTMLInputElement &&
+      (target.type === 'checkbox' || target.type === 'radio')
+    ) {
+      target = (target.closest('label') ?? target) as HTMLElement;
+    }
+
+    const rect = target.getBoundingClientRect();
+
+    // Expand outward: 2px breathing room + 2px border width.
+    const pad = 4;
+    let left = rect.left - pad;
+    let top = rect.top - pad;
+    let right = rect.right + pad;
+    let bottom = rect.bottom + pad;
+
+    // Clamp to the viewport so the box is always fully visible on screen.
+    const margin = 1;
+    left = Math.max(left, margin);
+    top = Math.max(top, margin);
+    right = Math.min(right, window.innerWidth - margin);
+    bottom = Math.min(bottom, window.innerHeight - margin);
+
+    // Remove any stale overlay from a previous (interrupted) call.
+    document.getElementById(overlayId)?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = overlayId;
+    overlay.setAttribute('popover', 'manual');
+    overlay.style.cssText = [
+      'position: fixed',
+      `left: ${left}px`,
+      `top: ${top}px`,
+      `width: ${right - left}px`,
+      `height: ${bottom - top}px`,
+      // Neutralise the UA [popover] defaults (inset: 0; margin: auto; padding;
+      // border; opaque background) so our box geometry and styling win.
+      'right: auto',
+      'bottom: auto',
+      'margin: 0',
+      'padding: 0',
+      'background: transparent',
+      'overflow: visible',
+      'box-sizing: border-box',
+      `border: ${styles.border}`,
+      `box-shadow: ${styles.boxShadow}`,
+      'pointer-events: none',
+      'z-index: 2147483647',
+    ].join('; ');
+    document.body.appendChild(overlay);
+
+    // Promote into the top layer, above any open modal <dialog> or popover
+    // menu (top-layer elements stack in promotion order; we're shown last).
+    // "manual" popovers aren't light-dismissed by open modals.
+    try {
+      overlay.showPopover();
+    } catch {
+      // Popover API unavailable — [popover] elements are display:none until
+      // shown, so drop the attribute to fall back to a plain fixed div.
+      overlay.removeAttribute('popover');
+    }
+
+    if (dur !== null) {
+      setTimeout(() => overlay.remove(), dur);
+    }
+  }, { el, styles: HIGHLIGHT, overlayId: HIGHLIGHT_OVERLAY_ID, dur: durationMs ?? null });
+}
+
+/** Removes the highlight overlay immediately (for overlays shown without a duration). */
+export async function removeHighlightOverlay(page: Page): Promise<void> {
+  await page.evaluate((overlayId) => {
+    document.getElementById(overlayId)?.remove();
+  }, HIGHLIGHT_OVERLAY_ID);
+}
+
+/**
+ * Highlights an element with a glowing border before taking action on it.
  * Useful for showing which element will be clicked.
  */
 export async function highlightElement(
@@ -22,24 +151,7 @@ export async function highlightElement(
   locator: Locator,
   duration = 800
 ): Promise<void> {
-  await locator.evaluate((element, { dur, styles }) => {
-    // Store original styles
-    const originalOutline = element.style.outline;
-    const originalOutlineOffset = element.style.outlineOffset;
-    const originalBoxShadow = element.style.boxShadow;
-
-    // Add highlight using consistent styles
-    element.style.setProperty('outline', styles.outline, 'important');
-    element.style.setProperty('outline-offset', styles.outlineOffset, 'important');
-    element.style.setProperty('box-shadow', styles.boxShadow, 'important');
-
-    // Restore after duration
-    setTimeout(() => {
-      element.style.outline = originalOutline;
-      element.style.outlineOffset = originalOutlineOffset;
-      element.style.boxShadow = originalBoxShadow;
-    }, dur);
-  }, { dur: duration, styles: HIGHLIGHT });
+  await showHighlightOverlay(page, locator, duration);
 
   // Wait for the highlight to be visible
   await page.waitForTimeout(300);
@@ -78,69 +190,10 @@ export async function demonstrateTyping(
     await page.waitForTimeout(100); // Wait for focus
   }
 
-  // Apply persistent highlight to the input area
+  // Apply persistent highlight to the input area (with no locator, the overlay
+  // helper falls back to the CodeMirror editor / focused element)
   if (showHighlight) {
-    if (locator) {
-      // When we have a locator, apply styles directly to the known element
-      // (locator.evaluate passes the DOM element directly — no need to search for it)
-      await locator.evaluate((element, { dur, styles }) => {
-        // const originalBorder = element.style.border;
-        const originalBoxShadow = element.style.boxShadow;
-        const originalOutline = element.style.outline;
-        const originalOutlineOffset = element.style.outlineOffset;
-
-        // element.style.setProperty('border', styles.border, 'important');
-        element.style.setProperty('box-shadow', styles.boxShadow, 'important');
-        element.style.setProperty('outline', styles.outline, 'important');
-        element.style.setProperty('outline-offset', styles.outlineOffset, 'important');
-
-        setTimeout(() => {
-          // element.style.border = originalBorder;
-          element.style.boxShadow = originalBoxShadow;
-          element.style.outline = originalOutline;
-          element.style.outlineOffset = originalOutlineOffset;
-        }, dur);
-      }, { dur: highlightDuration, styles: HIGHLIGHT });
-    } else {
-      // No locator — find CodeMirror editor or fall back to focused element
-      await page.evaluate(({ dur, styles }) => {
-        let editorElement: HTMLElement | null = null;
-
-        const cmEditor = document.querySelector('.cm-editor');
-        if (cmEditor) {
-          // Get the container div (parent of .cm-editor)
-          editorElement = cmEditor.parentElement?.closest('.rounded') as HTMLElement;
-          if (!editorElement) {
-            editorElement = cmEditor as HTMLElement;
-          }
-        } else {
-          editorElement = document.activeElement as HTMLElement;
-        }
-
-        if (!editorElement) {
-          // Runs inside page.evaluate (browser context); logUtil logger isn't available here.
-          // eslint-disable-next-line no-console
-          console.warn('No editor element found for highlighting');
-          return;
-        }
-
-        // const originalBorder = editorElement.style.border;
-        const originalBoxShadow = editorElement.style.boxShadow;
-        const originalOutline = editorElement.style.outline;
-
-        // editorElement.style.setProperty('border', styles.border, 'important');
-        editorElement.style.setProperty('box-shadow', styles.boxShadow, 'important');
-        editorElement.style.setProperty('outline', styles.outline, 'important');
-        editorElement.style.setProperty('outline-offset', styles.outlineOffset, 'important');
-
-        setTimeout(() => {
-          // editorElement!.style.border = originalBorder;
-          (editorElement as HTMLElement).style.boxShadow = originalBoxShadow;
-          (editorElement as HTMLElement).style.outline = originalOutline;
-        }, dur);
-      }, { dur: highlightDuration, styles: HIGHLIGHT });
-    }
-
+    await showHighlightOverlay(page, locator ?? null, highlightDuration);
     await page.waitForTimeout(300); // Let highlight render
   }
 
@@ -156,52 +209,24 @@ export async function demonstrateTyping(
 
 /**
  * Takes a screenshot with a red highlight border on the specified element.
- * Applies the border, captures the screenshot, then removes the border — all atomically.
- * This guarantees the highlight is always visible in the captured image regardless of timing.
+ * Shows the overlay, captures the screenshot, then removes it — all atomically.
+ * This guarantees the highlight is always visible in the captured image
+ * regardless of timing.
  */
 export async function screenshotWithHighlight(
   page: Page,
   locator: Locator,
   screenshotPath: string
 ): Promise<void> {
-  // Apply highlight. For checkbox/radio inputs, walk up to the closest ancestor
-  // <label> so the outline encompasses the indicator and the label text together.
-  await locator.evaluate((element, styles) => {
-    const target: HTMLElement =
-      (element instanceof HTMLInputElement &&
-        (element.type === 'checkbox' || element.type === 'radio'))
-        ? (element.closest('label') ?? element) as HTMLElement
-        : element as HTMLElement;
+  await showHighlightOverlay(page, locator);
 
-    target.dataset.origBoxShadow = target.style.boxShadow;
-    target.dataset.origOutline = target.style.outline;
-    target.dataset.origOutlineOffset = target.style.outlineOffset;
+  try {
+    // Wait for the browser to paint the overlay
+    await page.waitForTimeout(150);
 
-    target.style.setProperty('box-shadow', styles.boxShadow, 'important');
-    target.style.setProperty('outline', styles.outline, 'important');
-    target.style.setProperty('outline-offset', styles.outlineOffset, 'important');
-  }, HIGHLIGHT);
-
-  // Wait for the browser to paint the styles
-  await page.waitForTimeout(150);
-
-  // Capture the screenshot
-  await page.screenshot({ path: screenshotPath });
-
-  // Remove highlight
-  await locator.evaluate((element) => {
-    const target: HTMLElement =
-      (element instanceof HTMLInputElement &&
-        (element.type === 'checkbox' || element.type === 'radio'))
-        ? (element.closest('label') ?? element) as HTMLElement
-        : element as HTMLElement;
-
-    target.style.boxShadow = target.dataset.origBoxShadow || '';
-    target.style.outline = target.dataset.origOutline || '';
-    target.style.outlineOffset = target.dataset.origOutlineOffset || '';
-
-    delete target.dataset.origBoxShadow;
-    delete target.dataset.origOutline;
-    delete target.dataset.origOutlineOffset;
-  });
+    // Capture the screenshot
+    await page.screenshot({ path: screenshotPath });
+  } finally {
+    await removeHighlightOverlay(page);
+  }
 }
