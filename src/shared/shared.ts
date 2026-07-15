@@ -40,7 +40,7 @@ export interface OcrTarget {
  * required surface explicit while sharing this one canonical type.
  */
 export interface FileOps {
-  readFile: (path: string) => Promise<string>;
+  readFile: (path: string) => Promise<ReadFileResult>;
   writeFile: (path: string, content: string) => Promise<{ ok: boolean; content: string }>;
   createFile: (path: string, content: string) => Promise<{ success: boolean; error?: string }>;
   renameFile: (oldPath: string, newPath: string) => Promise<boolean>;
@@ -204,6 +204,22 @@ export interface FileEntry {
 }
 
 /**
+ * Result of `readFile` (the `read-file` IPC handler): a discriminated union so
+ * callers can distinguish a file that could not be read (`ok: false`) from one
+ * that was read successfully but happens to be empty (`ok: true, content: ''`).
+ *
+ * The handler previously swallowed read errors and returned `''`, collapsing
+ * those two cases. That silently corrupted destructive callers like `joinFiles`:
+ * an unreadable source looked identical to an empty one, so its content was
+ * dropped from the join and the source then deleted. Not to be confused with
+ * `FileReadResult` below, which additionally carries mtime/size from
+ * `readFileWithMtime`.
+ */
+export type ReadFileResult =
+  | { ok: true; content: string }
+  | { ok: false; error: string };
+
+/**
  * Result of readFileWithMtime: file content plus the mtime/size captured from
  * the same open file handle, so cache stamps always describe the content that
  * was actually read (never a wall-clock guess or a stale store value).
@@ -299,7 +315,7 @@ export interface ElectronAPI {
   updateConfig: (updates: Partial<AppConfig>) => Promise<void>;
   selectFolder: () => Promise<string | null>;
   readDirectory: (dirPath: string) => Promise<FileEntry[]>;
-  readFile: (filePath: string) => Promise<string>;
+  readFile: (filePath: string) => Promise<ReadFileResult>;
   readFileWithMtime: (filePath: string) => Promise<FileReadResult>;
   readExif: (filePath: string) => Promise<ExifData>;
   writeExif: (filePath: string, data: ExifData) => Promise<ExifWriteResult>;

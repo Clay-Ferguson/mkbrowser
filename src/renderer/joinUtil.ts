@@ -85,12 +85,25 @@ export async function joinFiles(
       return nameA.localeCompare(nameB);
     });
     
-    // Read all file contents; for appended files (not the lead), convert front matter to a fenced code block
+    // Read all file contents; for appended files (not the lead), convert front matter to a fenced code block.
+    // These reads happen BEFORE any write or delete, so if one fails there is
+    // nothing to roll back — we simply bail out having changed nothing. This is
+    // critical: readFile now reports failure explicitly (ok: false) instead of
+    // returning ''. An unreadable file must never masquerade as empty, or its
+    // content would silently vanish from the join and — for the lead file — its
+    // original content would be overwritten in place by the (incomplete) result.
     const contents: string[] = [];
     for (let i = 0; i < sortedPaths.length; i++) {
       const filePath = sortedPaths[i];
-      const raw = await readFile(filePath!); 
-      const content = i === 0 ? raw : prepareMarkdownForAppend(filePath!, raw); 
+      const result = await readFile(filePath!);
+      if (!result.ok) {
+        return {
+          success: false,
+          error: `Failed to read file: ${filePath}. No files were changed. (${result.error})`,
+        };
+      }
+      const raw = result.content;
+      const content = i === 0 ? raw : prepareMarkdownForAppend(filePath!, raw);
       contents.push(content);
     }
     
@@ -112,10 +125,10 @@ export async function joinFiles(
     }
 
     // Verify the write landed by reading the file back and comparing it to the
-    // content the writer reported writing. (readFile returns '' on error, which
-    // safely fails this comparison and preserves the source files.)
-    const readBack = await readFile(targetPath!); 
-    if (readBack !== writeSuccess.content) {
+    // content the writer reported writing. A failed read-back (ok: false) also
+    // fails this check, preserving the source files.
+    const readBack = await readFile(targetPath!);
+    if (!readBack.ok || readBack.content !== writeSuccess.content) {
       return {
         success: false,
         error: 'File verification failed: the written file does not match the expected content. Files were NOT deleted to preserve data.',

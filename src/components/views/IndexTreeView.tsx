@@ -310,9 +310,12 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         return;
       }
       try {
-        const content = await api.readFile(node.path);
-        const headings = extractHeadingTree(node.path, content);
-        expandIndexTreeNode(node.path, headings);
+        const result = await api.readFile(node.path);
+        if (result.ok) {
+          const headings = extractHeadingTree(node.path, result.content);
+          expandIndexTreeNode(node.path, headings);
+        }
+        // leave node collapsed if the file couldn't be read
       } catch {
         // leave node collapsed on error
       }
@@ -602,7 +605,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           const label = getFileName(node.path).replace(/\.md$/, '');
           if (node.path.endsWith('.md')) {
             api.readFile(node.path)
-              .then((raw) => {
+              .then((result) => {
+                // On a failed read, fall back to a plain link (no id suffix),
+                // matching the .catch() path below.
+                const raw = result.ok ? result.content : '';
                 const idVal = parseFrontMatter(raw).yaml?.id;
                 const id = idVal !== null && idVal !== undefined ? String(idVal) : '';
                 const suffix = id ? `<!-- id:${id} -->` : '';

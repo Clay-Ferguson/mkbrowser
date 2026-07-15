@@ -524,7 +524,7 @@ describe('deleteSelectedItems', () => {
 
 describe('performSplitFile (validation)', () => {
   const noopOps = {
-    readFile: async (_p: string) => '',
+    readFile: async (_p: string) => ({ ok: true as const, content: '' }),
     writeFile: async (_p: string, _c: string) => ({ ok: true, content: '' }),
     createFile: async (_p: string, _c: string) => ({ success: true }),
     renameFile: async (_o: string, _n: string) => true,
@@ -563,7 +563,7 @@ describe('performSplitFile (validation)', () => {
   // the type validation actually reaches and completes the split operation.
   const splittableOps = {
     ...noopOps,
-    readFile: async (_p: string) => 'alpha\n\n\nbeta',
+    readFile: async (_p: string) => ({ ok: true as const, content: 'alpha\n\n\nbeta' }),
   };
 
   it('accepts an uppercase-extension markdown file (case-insensitive)', async () => {
@@ -590,7 +590,7 @@ describe('performSplitFile (validation)', () => {
     // A valid markdown file whose content lacks the blank-line delimiter passes
     // validation but fails inside splitFile; that error must reach the caller.
     const items = [makeItem('/docs/notes.md', 'notes.md')];
-    const noSplitPointOps = { ...noopOps, readFile: async (_p: string) => 'one block, no delimiter' };
+    const noSplitPointOps = { ...noopOps, readFile: async (_p: string) => ({ ok: true as const, content: 'one block, no delimiter' }) };
     const result = await performSplitFile(items, noSplitPointOps);
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/split points/i);
@@ -603,7 +603,7 @@ describe('performSplitFile (validation)', () => {
 
 describe('performJoinFiles (validation)', () => {
   const noopOps = {
-    readFile: async (_p: string) => '',
+    readFile: async (_p: string) => ({ ok: true as const, content: '' }),
     writeFile: async (_p: string, _c: string) => ({ ok: true, content: '' }),
     deleteFile: async (_p: string) => true,
   };
@@ -663,7 +663,7 @@ describe('performJoinFiles (validation)', () => {
     const items = [makeItem('/docs/a.md', 'a.md'), makeItem('/docs/b.md', 'b.md')];
     const failingWriteOps = {
       ...noopOps,
-      readFile: async (_p: string) => 'content',
+      readFile: async (_p: string) => ({ ok: true as const, content: 'content' }),
       writeFile: async (_p: string, c: string) => ({ ok: false, content: c }),
     };
     const result = await performJoinFiles(items, failingWriteOps);
@@ -685,7 +685,7 @@ describe('joinFiles (write verification)', () => {
     return {
       store,
       deleted,
-      readFile: async (p: string) => store[p] ?? '',
+      readFile: async (p: string) => ({ ok: true as const, content: store[p] ?? '' }),
       writeFile: async (p: string, c: string) => {
         store[p] = c;
         return { ok: true, content: c };
@@ -763,7 +763,7 @@ function makeJoinFs(initial: Record<string, string>) {
   return {
     store,
     deleted,
-    readFile: async (p: string) => store[p] ?? '',
+    readFile: async (p: string) => ({ ok: true as const, content: store[p] ?? '' }),
     writeFile: async (p: string, c: string) => {
       store[p] = c;
       return { ok: true, content: c };
@@ -852,6 +852,49 @@ describe('joinFiles (markdown front-matter handling)', () => {
 // ---------------------------------------------------------------------------
 
 describe('joinFiles (delete + error paths)', () => {
+  it('fails without writing or deleting when a non-lead source cannot be read (ok: false)', async () => {
+    // An unreadable source must abort the join before any mutation. This guards
+    // the data-loss bug where a failed read looked like an empty file: its
+    // content would silently drop out of the join and the source would then be
+    // deleted (to trash), losing the content unless the user happened to notice.
+    const fs = makeJoinFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt'], {
+      ...fs,
+      readFile: async (p: string) =>
+        p === '/docs/b.txt'
+          ? { ok: false as const, error: 'EACCES' }
+          : { ok: true as const, content: fs.store[p] ?? '' },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/failed to read/i);
+    expect(result.error).toContain('/docs/b.txt');
+    // Nothing was written or deleted — both files are untouched.
+    expect(fs.store['/docs/a.txt']).toBe('alpha');
+    expect(fs.store['/docs/b.txt']).toBe('beta');
+    expect(fs.deleted).toEqual([]);
+  });
+
+  it('does not overwrite the lead file in place when the lead file itself cannot be read', async () => {
+    // The lead file is both the first read AND the write target. A failed read of
+    // it previously produced raw='' and overwrote the lead in place via plain
+    // writeFile (not even trashed) — unrecoverable. It must now abort with the
+    // lead file left intact.
+    const fs = makeJoinFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
+    const result = await joinFiles(['/docs/a.txt', '/docs/b.txt'], {
+      ...fs,
+      readFile: async (p: string) =>
+        p === '/docs/a.txt'
+          ? { ok: false as const, error: 'EACCES' }
+          : { ok: true as const, content: fs.store[p] ?? '' },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('/docs/a.txt');
+    expect(fs.store['/docs/a.txt']).toBe('alpha');
+    expect(fs.deleted).toEqual([]);
+  });
+
   it('reports an error when deleting a non-lead source fails', async () => {
     const fs = makeJoinFs({ '/docs/a.txt': 'alpha', '/docs/b.txt': 'beta' });
     // Write + verification succeed, but the delete of the non-lead source fails.

@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, OcrTarget, FileReadResult, FileWriteResult, ExifWriteResult } from './shared/shared';
+import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, ExifWriteResult } from './shared/shared';
 
 import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
@@ -233,13 +233,17 @@ function setupIpcHandlers(): void {
     return readDirectory(dirPath, getConfig().aiEnabled ?? false);
   });
 
-  // Read a single file's content
-  ipcMain.handle('read-file', async (_event, filePath: string): Promise<string> => {
+  // Read a single file's content. Returns a discriminated result so callers can
+  // tell an unreadable file (ok: false) apart from a successfully-read empty
+  // file (ok: true, content: '') — a distinction destructive callers such as
+  // joinFiles rely on to avoid dropping/overwriting content on a failed read.
+  ipcMain.handle('read-file', async (_event, filePath: string): Promise<ReadFileResult> => {
     try {
-      return await fs.promises.readFile(filePath, 'utf-8');
+      const content = await fs.promises.readFile(filePath, 'utf-8');
+      return { ok: true, content };
     } catch (error) {
       logger.error('Error reading file:', error);
-      return '';
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
 

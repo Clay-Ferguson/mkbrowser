@@ -55,7 +55,7 @@ function makeItem(path: string, name: string, isDirectory = false): ItemData {
 function seedFs(initial: Record<string, string>) {
   const store: Record<string, string> = { ...initial };
   const deleted: string[] = [];
-  vi.mocked(api.readFile).mockImplementation(async (p) => store[p] ?? '');
+  vi.mocked(api.readFile).mockImplementation(async (p) => ({ ok: true as const, content: store[p] ?? '' }));
   vi.mocked(api.writeFile).mockImplementation(async (p, c) => {
     store[p] = c;
     return { ok: true, content: c, mtime: 1, size: c.length };

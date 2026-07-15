@@ -157,7 +157,10 @@ const PREVIEW_DIVIDER_CHAR = '─';
  * the body (front matter stripped), capped at PREVIEW_MAX_CHARS.
  */
 async function getFilePreview(filePath: string, name: string): Promise<string> {
-  const raw = await api.readFile(filePath);
+  const readResult = await api.readFile(filePath);
+  // On a failed read, fall back to an empty body so the tooltip still shows the
+  // file name (with an empty preview) rather than throwing.
+  const raw = readResult.ok ? readResult.content : '';
   const { content } = parseFrontMatter(raw);
   const allLines = content.split(/\r?\n/).filter(l => l.trim().length > 0);
   const lines = allLines.slice(0, 5);

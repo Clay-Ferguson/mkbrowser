@@ -61,7 +61,14 @@ export async function splitFile(
   let baseName: string;
   let extension: string;
   try {
-    const content = await readFile(filePath);
+    const readResult = await readFile(filePath);
+    if (!readResult.ok) {
+      return {
+        success: false,
+        error: `Failed to read file: ${filePath}. (${readResult.error})`,
+      };
+    }
+    const content = readResult.content;
 
     // Split on the blank-line delimiter, dropping empty/whitespace-only parts so
     // a leading or trailing delimiter does not produce empty files. Non-empty

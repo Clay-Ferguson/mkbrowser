@@ -30,7 +30,7 @@ function makeFs(
     if (opts.readThrow) throw new Error(`read failed: ${path}`);
     const content = fs.get(path);
     if (content === undefined) throw new Error(`no such file: ${path}`);
-    return content;
+    return { ok: true as const, content };
   };
 
   const createFile = async (path: string, content: string) => {
