@@ -9,6 +9,7 @@ import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
 import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml, withIndexLock, type IndexMutationResult } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
+import { writeFileAtomic } from './main/atomicWrite';
 import { processTOC } from './shared/tocUtil';
 import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
 import { parseIgnoredPaths } from './shared/searchHelpers';
@@ -332,11 +333,11 @@ function setupIpcHandlers(): void {
         // lock itself.
         const contentToWrite = finalContent;
         savedStats = await withIndexLock(path.dirname(filePath), async () => {
-          await fs.promises.writeFile(filePath, contentToWrite, 'utf-8');
+          await writeFileAtomic(filePath, contentToWrite);
           return fs.promises.stat(filePath).catch(() => null);
         });
       } else {
-        await fs.promises.writeFile(filePath, finalContent, 'utf-8');
+        await writeFileAtomic(filePath, finalContent);
         savedStats = await fs.promises.stat(filePath).catch(() => null);
       }
 
