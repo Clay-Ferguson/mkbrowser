@@ -29,7 +29,8 @@ describe('parseDateString', () => {
 
   it('returns NaN for partial/invalid date formats', () => {
     expect(parseDateString('05/26')).toBeNaN();
-    expect(parseDateString('2026-05-26')).toBeNaN();
+    expect(parseDateString('2026-05')).toBeNaN();
+    expect(parseDateString('2026-5-26')).toBeNaN(); // ISO requires zero-padded month/day
   });
 
   it('returns NaN for impossible calendar dates (rollover rejected)', () => {
@@ -106,6 +107,38 @@ describe('parseDateString', () => {
 
   it('rejects day 31 in a 30-day month', () => {
     expect(parseDateString('11/31/2026')).toBeNaN(); // November has 30 days
+  });
+
+  // ISO 8601 (YYYY-MM-DD) — the idiomatic YAML front-matter date form,
+  // reaching parseDateString via the advanced-search prop(path, 'ts') helper.
+  it('parses an ISO date (YYYY-MM-DD) as local midnight', () => {
+    expect(parseDateString('2026-05-26')).toBe(new Date(2026, 4, 26, 0, 0, 0).getTime());
+  });
+
+  it('parses an ISO date-time with T or space separator (24-hour clock)', () => {
+    const expected = new Date(2026, 4, 26, 14, 30, 0).getTime();
+    expect(parseDateString('2026-05-26T14:30')).toBe(expected);
+    expect(parseDateString('2026-05-26 14:30')).toBe(expected);
+    expect(parseDateString('2026-05-26T14:30:45')).toBe(new Date(2026, 4, 26, 14, 30, 45).getTime());
+  });
+
+  it('trims surrounding whitespace around an ISO date', () => {
+    expect(parseDateString('  2026-05-26  ')).toBe(new Date(2026, 4, 26, 0, 0, 0).getTime());
+  });
+
+  it('rejects impossible or out-of-range ISO dates', () => {
+    expect(parseDateString('2025-02-31')).toBeNaN(); // Feb 31 does not exist
+    expect(parseDateString('2026-13-01')).toBeNaN(); // month > 12
+    expect(parseDateString('2026-00-10')).toBeNaN(); // month 00
+    expect(parseDateString('2026-05-00')).toBeNaN(); // day 00
+    expect(parseDateString('2026-05-32')).toBeNaN(); // day > 31
+  });
+
+  it('rejects ISO date-times with out-of-range time components or timezone suffixes', () => {
+    expect(parseDateString('2026-05-26T24:00')).toBeNaN(); // hour > 23
+    expect(parseDateString('2026-05-26T14:60')).toBeNaN(); // minute > 59
+    expect(parseDateString('2026-05-26T14:30:00Z')).toBeNaN(); // timezone suffixes not supported
+    expect(parseDateString('2026-05-26T14:30:00+02:00')).toBeNaN();
   });
 });
 

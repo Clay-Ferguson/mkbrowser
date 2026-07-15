@@ -6,6 +6,17 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // entirely a date/date-time value. Built once from the single source of truth.
 const DATE_REGEX_ANCHORED = new RegExp(`^\\s*${DATE_REGEX.source}\\s*$`);
 
+// Whole-string ISO 8601 date form: YYYY-MM-DD, optionally followed by a
+// 24-hour HH:MM[:SS] time separated by 'T' or a space. Accepted only by
+// parseDateString (front-matter values), NOT by the free-text DATE_REGEX
+// convention: YAML front matter like `date: 2026-07-15` is the idiomatic
+// place ISO dates appear, and js-yaml delivers them to us as plain strings.
+// Timezone suffixes (Z / ±HH:MM) are not accepted — like every other date in
+// the app, the value is interpreted as local time.
+// Capture groups: 1=year, 2=month, 3=day, 4=hour, 5=minute, 6=seconds.
+const ISO_DATE_REGEX_ANCHORED =
+  /^\s*(\d{4})-(\d{2})-(\d{2})(?:[T ]([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?)?\s*$/;
+
 /**
  * Sentinel returned by the date parsers when no valid date is found. NaN cannot
  * collide with any real `Date.getTime()` result (including 0 = 1970-01-01 UTC
@@ -15,14 +26,28 @@ const DATE_REGEX_ANCHORED = new RegExp(`^\\s*${DATE_REGEX.source}\\s*$`);
 export const NO_TIMESTAMP = Number.NaN;
 
 /**
- * Converts a DATE_REGEX match into a timestamp, validating that the calendar
- * date actually exists.
+ * Builds a timestamp from calendar components (month is 1-based), validating
+ * that the calendar date actually exists.
  *
- * The regex caps day at 01–31 but is not month-aware, so impossible dates like
+ * The regexes cap day at 31 but are not month-aware, so impossible dates like
  * `02/31/2025` match. `new Date(...)` silently rolls those over (Feb 31 → Mar 3),
  * which would produce a confident but wrong result. After constructing the Date
  * we verify the month and day survived round-trip; if not, the date is impossible
  * and we return NO_TIMESTAMP.
+ */
+function validatedTimestamp(
+  year: number, month: number, day: number,
+  hours: number, minutes: number, seconds: number,
+): number {
+  const date = new Date(year, month - 1, day, hours, minutes, seconds);
+  if (date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return NO_TIMESTAMP;
+  }
+  return date.getTime();
+}
+
+/**
+ * Converts a DATE_REGEX match into a timestamp via validatedTimestamp.
  *
  * Capture groups (see dateRegex.ts): 1=month, 2=day, 3=year, 4=hour, 5=minute,
  * 6=seconds, 7=AM/PM. Two-digit years are interpreted as 2000+YY.
@@ -56,15 +81,7 @@ function timestampFromMatch(match: RegExpMatchArray): number {
     }
   }
 
-  // Create Date object (month is 0-indexed in JavaScript)
-  const date = new Date(year, month - 1, day, hours, minutes, seconds);
-
-  // Reject impossible calendar dates that JavaScript silently rolled over.
-  if (date.getMonth() !== month - 1 || date.getDate() !== day) {
-    return NO_TIMESTAMP;
-  }
-
-  return date.getTime();
+  return validatedTimestamp(year, month, day, hours, minutes, seconds);
 }
 
 /**
@@ -153,14 +170,26 @@ export function today(timestamp: number): boolean {
 
 /**
  * Parses a string that is entirely a date or date-time value.
- * Accepts MM/DD/YYYY, MM/DD/YY, with optional HH:MM[:SS] AM/PM.
- * Returns milliseconds since epoch, or NO_TIMESTAMP (NaN) if the string cannot
- * be parsed or names an impossible calendar date.
+ * Accepts the app's MM/DD/YYYY or MM/DD/YY convention (optional HH:MM[:SS]
+ * AM/PM), and additionally the ISO 8601 form YYYY-MM-DD (optional 24-hour
+ * HH:MM[:SS], separated by 'T' or a space) since that is the idiomatic way to
+ * write dates in YAML front matter — the main consumer of this function via
+ * the advanced-search `prop(path, 'ts')` helper. All values are interpreted
+ * as local time. Returns milliseconds since epoch, or NO_TIMESTAMP (NaN) if
+ * the string cannot be parsed or names an impossible calendar date.
  */
 export function parseDateString(value: string): number {
   const match = value.match(DATE_REGEX_ANCHORED);
-  if (!match) return NO_TIMESTAMP;
-  return timestampFromMatch(match);
+  if (match) return timestampFromMatch(match);
+
+  const iso = value.match(ISO_DATE_REGEX_ANCHORED);
+  if (!iso) return NO_TIMESTAMP;
+  return validatedTimestamp(
+    parseInt(iso[1] ?? '', 10), parseInt(iso[2] ?? '', 10), parseInt(iso[3] ?? '', 10),
+    iso[4] ? parseInt(iso[4], 10) : 0,
+    iso[5] ? parseInt(iso[5], 10) : 0,
+    iso[6] ? parseInt(iso[6], 10) : 0,
+  );
 }
 
 /** Returns today's date formatted as `MM/DD/YY` (two-digit year). */
