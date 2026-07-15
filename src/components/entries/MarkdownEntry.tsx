@@ -165,7 +165,10 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // TOC block is stripped on edit entry). If the user has typed something, Escape falls through to
   // CodeMirror (e.g. to dismiss autocomplete).
   const handleEscape = () => {
-    if (edit.editContent === removeTOC(content)) {
+    // Read the edit buffer at call time — the editor flushes its debounced onChange right
+    // before invoking onEscape, so this render's edit.editContent may predate the flush.
+    const latest = useAS.getState().items.get(entry.path)?.editContent ?? edit.editContent;
+    if (latest === removeTOC(content)) {
       handleCancelEdit();
     }
   };
@@ -280,7 +283,11 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const onAskAI = () => {
     void (async () => {
       await edit.handleSave();
-      await handleAskAi(edit.editContent);
+      // Read at call time: on success the save cleared editContent and committed the saved
+      // text to item.content; on failure editContent still holds the (flushed) edit buffer.
+      // This render's edit.editContent may be missing the final pre-save keystrokes.
+      const latest = useAS.getState().items.get(entry.path);
+      await handleAskAi(latest?.editContent ?? latest?.content ?? edit.editContent);
     })();
   };
   

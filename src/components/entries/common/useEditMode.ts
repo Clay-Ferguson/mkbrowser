@@ -115,7 +115,12 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
   // (MarkdownEntry.tsx). Error handling lives in writeFileAndExitEditMode.
   const handleSave = async () => {
     setSaving(true);
-    await writeFileAndExitEditMode(path, editContent).finally(() => setSaving(false));
+    // Read the edit buffer from the store at call time, not from this render's closure: the
+    // editor flushes its debounced onChange synchronously right before invoking onSave (Ctrl+S)
+    // and on blur (Save button click), so the store is current but this component has not
+    // re-rendered yet — the closure's editContent may be missing the final keystrokes.
+    const latest = useAS.getState().items.get(path)?.editContent ?? editContent;
+    await writeFileAndExitEditMode(path, latest).finally(() => setSaving(false));
   };
 
   return {

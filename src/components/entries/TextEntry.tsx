@@ -56,7 +56,10 @@ function TextEntry(props: TextEntryProps) {
   // Only exit edit mode on Escape when the content is unmodified; if the user has typed
   // something, Escape is passed through to CodeMirror (e.g. to dismiss autocomplete).
   const handleEscape = () => {
-    if (edit.editContent === content) {
+    // Read the edit buffer at call time — the editor flushes its debounced onChange right
+    // before invoking onEscape, so this render's edit.editContent may predate the flush.
+    const latest = useAS.getState().items.get(entry.path)?.editContent ?? edit.editContent;
+    if (latest === content) {
       edit.handleCancel();
     }
   };

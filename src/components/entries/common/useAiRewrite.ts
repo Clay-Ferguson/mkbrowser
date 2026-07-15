@@ -1,7 +1,7 @@
 import { useState, type RefObject } from 'react';
 import { api } from '../../../renderer/api';
 import { logger } from '../../../shared/logUtil';
-import { setItemReviewing } from '../../../store';
+import { useAS, setItemReviewing } from '../../../store';
 import type { CodeMirrorEditorHandle } from '../../editor/CodeMirrorEditor';
 import type { DeferrableAction, StreamingRunner } from './useAiStreamingDialog';
 
@@ -72,11 +72,16 @@ export function useAiRewrite({
 
   const aiRewrite = () => {
     const selection = editorRef.current?.getSelection();
+    // Read the edit buffer at call time: clicking the rewrite button blurs the editor, which
+    // flushes its debounced onChange into the store — this render's editContent may be missing
+    // the final keystrokes. The selection offsets come from the live editor doc, so the content
+    // sent must describe that same (current) text.
+    const latestContent = useAS.getState().items.get(path)?.editContent ?? editContent;
     setIsRewriting(true);
     void run(async (defer) => {
       const result = selection
-        ? await api.rewriteContentSelection(editContent, selection.from, selection.to, path, hasIndexFile)
-        : await api.rewriteContent(editContent, path, hasIndexFile);
+        ? await api.rewriteContentSelection(latestContent, selection.from, selection.to, path, hasIndexFile)
+        : await api.rewriteContent(latestContent, path, hasIndexFile);
       if ('error' in result) {
         logger.error('Rewrite failed:', result.error);
         onError(result.error);

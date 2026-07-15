@@ -33,6 +33,51 @@ const FOCUS_DELAY_MS = 100;
 // or held keys) into a single store update without a perceptible lag.
 const ONCHANGE_DEBOUNCE_MS = 50;
 
+/**
+ * Mutable debounce state for onChange delivery, held in a single ref. `lastDelivered` is the
+ * last doc text handed to onChange (or adopted from an external value sync); the value-sync
+ * effect uses it to tell a store echo of the editor's own onChange apart from a genuine
+ * external content change.
+ */
+interface OnChangeDebounceState {
+  timer: ReturnType<typeof setTimeout> | null;
+  pendingDoc: string | null;
+  lastDelivered: string;
+}
+
+/**
+ * Synchronously delivers a pending debounced onChange, if any. Called on every path where a
+ * consumer is about to read onChange-fed state or the editor is going away — before onSave and
+ * onEscape run, when the editor loses focus, and in the mount-effect cleanup — so the final
+ * keystrokes of the debounce window are never dropped. Module-level so the mount effect and
+ * the other effects can share it (and the React Compiler leaves it uncompiled).
+ */
+function flushPendingOnChange(d: OnChangeDebounceState, onChange: (value: string) => void): void {
+  if (d.timer !== null) {
+    clearTimeout(d.timer);
+    d.timer = null;
+  }
+  if (d.pendingDoc !== null) {
+    const doc = d.pendingDoc;
+    d.pendingDoc = null;
+    d.lastDelivered = doc;
+    onChange(doc);
+  }
+}
+
+/**
+ * Discards a pending debounced onChange without delivering it — used when the doc content it
+ * was captured from is being superseded (external value sync) or intentionally abandoned
+ * (Ctrl-Q force cancel).
+ */
+function cancelPendingOnChange(d: OnChangeDebounceState): void {
+  if (d.timer !== null) {
+    clearTimeout(d.timer);
+    d.timer = null;
+  }
+  d.pendingDoc = null;
+}
+
 const searchMatchTheme = EditorView.theme({
   '.cm-searchMatch': { backgroundColor: 'yellow', color: 'black' },
   '.cm-searchMatch-selected': { backgroundColor: '#e6b800', color: 'black' },
@@ -238,9 +283,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   const viewClickStartRef = useRef<{ x: number; y: number } | null>(null);
   // Prevents onChange feedback loop when the sync effect dispatches an external value into the editor
   const suppressOnChangeRef = useRef(false);
-  // Debounce timer for onChange — collapses rapid keystroke bursts (e.g. speech-to-text) into one store update
-  const onChangeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingDocRef = useRef<string | null>(null);
+  // Debounce state for onChange (see OnChangeDebounceState) — collapses rapid keystroke bursts
+  // (e.g. speech-to-text) into one store update. lastDelivered starts as the mount value.
+  const onChangeDebounceRef = useRef<OnChangeDebounceState>({ timer: null, pendingDoc: null, lastDelivered: value });
   const onChangeRef = useRef(onChange);
   // Pixel cap for the editor height (some % of the surrounding scroll area). undefined means
   // no cap (no <main> ancestor, e.g. in unit tests) and the editor grows with its content.
@@ -363,6 +408,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           key: 'Escape',
           run: () => {
             if (onEscapeRef.current) {
+              // Deliver any pending onChange first: the parent's Escape handler decides whether
+              // to cancel by checking for unsaved modifications, which it must not miss.
+              flushPendingOnChange(onChangeDebounceRef.current, onChangeRef.current);
               onEscapeRef.current();
               return true;
             }
@@ -373,6 +421,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           key: 'Ctrl-q',
           run: () => {
             if (onForceCancelRef.current) {
+              // Force-cancel discards the edit; drop (don't deliver) the pending onChange so
+              // the abandoned keystrokes can't be written back into the store on teardown.
+              cancelPendingOnChange(onChangeDebounceRef.current);
               onForceCancelRef.current();
               return true;
             }
@@ -383,6 +434,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           key: 'Ctrl-s',
           run: () => {
             if (onSaveRef.current) {
+              // Deliver any pending onChange before saving, or keystrokes from the last
+              // ONCHANGE_DEBOUNCE_MS would be missing from the content the save reads.
+              flushPendingOnChange(onChangeDebounceRef.current, onChangeRef.current);
               onSaveRef.current();
               return true;
             }
@@ -433,17 +487,20 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           onViewModeClickRef.current(line);
           return false;
         },
+        // Flush the onChange debounce whenever focus leaves the editor: clicking Save / Cancel /
+        // Ask-AI etc. blurs the editor before the button's click handler runs, so this guarantees
+        // the store is current by the time any outside handler reads the edit buffer.
+        blur: () => {
+          flushPendingOnChange(onChangeDebounceRef.current, onChangeRef.current);
+          return false;
+        },
       }),
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !suppressOnChangeRef.current) {
-          pendingDocRef.current = update.state.doc.toString();
-          if (onChangeDebounceRef.current) clearTimeout(onChangeDebounceRef.current);
-          onChangeDebounceRef.current = setTimeout(() => {
-            if (pendingDocRef.current !== null) {
-              onChangeRef.current(pendingDocRef.current);
-              pendingDocRef.current = null;
-            }
-          }, ONCHANGE_DEBOUNCE_MS);
+          const d = onChangeDebounceRef.current;
+          d.pendingDoc = update.state.doc.toString();
+          if (d.timer !== null) clearTimeout(d.timer);
+          d.timer = setTimeout(() => flushPendingOnChange(d, onChangeRef.current), ONCHANGE_DEBOUNCE_MS);
         }
         if (update.selectionSet && onSelectionChangeRef.current) {
           const { from, to } = update.state.selection.main;
@@ -495,7 +552,10 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     // clears pending timers and destroys the CodeMirror view on unmount.
     const cleanup = () => {
       clearTimeout(focusTimer);
-      if (onChangeDebounceRef.current) clearTimeout(onChangeDebounceRef.current);
+      // Deliver (never drop) any pending onChange so the final keystrokes survive teardown —
+      // e.g. an unmount mid-edit keeps them in the store's edit buffer. Intentional discards
+      // (Ctrl-Q force cancel) cancel the pending state before this runs, making it a no-op.
+      flushPendingOnChange(onChangeDebounceRef.current, onChangeRef.current);
       view.destroy();
       viewRef.current = null;
     };
@@ -547,17 +607,30 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     if (!view) return;
 
     const currentContent = view.state.doc.toString();
-    if (currentContent !== value) {
-      suppressOnChangeRef.current = true;
-      view.dispatch({
-        changes: {
-          from: 0,
-          to: currentContent.length,
-          insert: value,
-        },
-      });
-      suppressOnChangeRef.current = false;
-    }
+    if (currentContent === value) return;
+
+    const d = onChangeDebounceRef.current;
+    // The store echoing back the editor's own last onChange can land while newer keystrokes
+    // are already pending — the editor is ahead of the store, not out of sync with it.
+    // Replacing the doc here would revert live typing; skip, and let the pending flush
+    // bring the store up to date instead.
+    if (d.pendingDoc !== null && value === d.lastDelivered) return;
+
+    // Genuine external change (AI rewrite, external-modification re-read, tags panel edit).
+    // It supersedes anything still sitting in the debounce window: drop the pending onChange,
+    // or its timer would later fire and overwrite this fresh value in the store with
+    // pre-sync content.
+    cancelPendingOnChange(d);
+    d.lastDelivered = value;
+    suppressOnChangeRef.current = true;
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: currentContent.length,
+        insert: value,
+      },
+    });
+    suppressOnChangeRef.current = false;
   }, [value]);
 
   // Apply a requested cursor position. Declared after the value-sync effect so that, when a
