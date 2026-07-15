@@ -27,6 +27,24 @@ interface ThreadViewProps {
 }
 
 /**
+ * Monotonic token identifying the most recent thread-load run. Two gathers of
+ * the *same* path can overlap (a refreshTick bump racing an in-flight load, or
+ * two refreshes in quick succession), and the path-based staleness check alone
+ * can't order them — without this, the older gather resolving last would
+ * overwrite the newer entries.
+ */
+let latestThreadToken = 0;
+
+/**
+ * Bumps and returns the next thread-load token. Module-level (not inline in the
+ * effect) because the React Compiler bails out on an UpdateExpression against a
+ * module global — plain functions aren't compiled, so the mutation is safe here.
+ */
+function nextThreadToken() {
+  return ++latestThreadToken;
+}
+
+/**
  * Fetches the ordered list of HUMAN.md / AI.md turn files for the given folder
  * hierarchy via IPC. Module-level (not in the component) so its try/catch
  * doesn't make the React Compiler bail out on ThreadView. Returns null when
@@ -97,11 +115,15 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
     // seeding for a thread view the user isn't looking at. Skip while hidden;
     // `currentView` is in the deps so the gather runs when this tab activates.
     if (currentView !== 'thread') return;
-    // A slow gather can resolve after the user has navigated elsewhere, so
-    // every state write below (including the loading flip) is gated on the
-    // loaded path still being current — otherwise this run's results are
-    // stale and belong to a folder we've already left.
-    const isStale = () => useAS.getState().currentPath !== currentPath;
+    const token = nextThreadToken();
+    // A slow gather can resolve after the user has navigated elsewhere, or after
+    // a newer gather of the same path has started (a refreshTick bump), so every
+    // state write below (including the loading flip) is gated on this run still
+    // being the latest request for the current path. The path check is still
+    // needed alongside the token: the store's currentPath can change before the
+    // effect fires the next run (and bumps the token).
+    const isStale = () =>
+      token !== latestThreadToken || useAS.getState().currentPath !== currentPath;
     // React's documented pattern for async work in an effect: the body lives
     // in an inline async function rather than the effect body itself.
     void (async () => {
