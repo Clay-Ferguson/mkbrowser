@@ -779,6 +779,15 @@ describe('createMatchPredicate (direct function testing)', () => {
     expect(result.matchCount).toBe(3);
   });
 
+  it('literal predicate: empty query never matches and does not hang', () => {
+    // searchFolder normally gates this off, but createMatchPredicate is exported;
+    // an unguarded empty needle would spin forever in indexOf().
+    const predicate = createMatchPredicate('', 'literal');
+    const result = predicate('any content at all');
+    expect(result.matches).toBe(false);
+    expect(result.matchCount).toBe(0);
+  });
+
   // ── Wildcard predicate ─────────────────────────────────────────────────────
   it('wildcard predicate: he*o matches "hello" and "hero"', () => {
     const predicate = createMatchPredicate('he*o', 'wildcard');
@@ -923,6 +932,14 @@ describe('createContentSearcher', () => {
   it('$("xyz") returns false and does not increment matchCount', () => {
     const { $, getMatchCount } = createContentSearcher('no match here');
     expect($('xyz')).toBe(false);
+    expect(getMatchCount()).toBe(0);
+  });
+
+  it('$("") returns false without hanging (empty-needle guard)', () => {
+    // indexOf('', idx) always returns idx (never -1), so an unguarded counting
+    // loop would spin forever — freezing the main process for `$('')`.
+    const { $, getMatchCount } = createContentSearcher('some content');
+    expect($('')).toBe(false);
     expect(getMatchCount()).toBe(0);
   });
 });

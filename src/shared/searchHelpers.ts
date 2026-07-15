@@ -30,6 +30,11 @@ export function createContentSearcher(content: string): {
 
   const $ = (searchText: string): boolean => {
     const searchLower = searchText.toLowerCase();
+    // Guard the empty needle: indexOf('', idx) always returns idx (never -1) and
+    // idx += 0 never advances, so the counting loop below would spin forever. An
+    // empty search text is treated as "no match" (this runs in the main process
+    // against user-supplied advanced queries like `$('')`, which must not hang it).
+    if (searchLower.length === 0) return false;
     const found = contentLower.includes(searchLower);
     if (found) {
       let count = 0;

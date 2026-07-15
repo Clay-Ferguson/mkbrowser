@@ -175,6 +175,13 @@ export function createMatchPredicate(
   } else {
     // Literal mode: case-insensitive text search
     const queryLower = queryStr.toLowerCase();
+    // Guard the empty needle: indexOf('', idx) always returns idx (never -1) and
+    // idx += 0 never advances, so the counting loop below would spin forever.
+    // searchFolder gates this off via its hasQuery check, but createMatchPredicate
+    // is exported — any other caller passing '' must not hang the main process.
+    if (queryLower.length === 0) {
+      return () => ({ matches: false, matchCount: 0 });
+    }
     return (content: string, _filePath?: string) => {
       const contentLower = content.toLowerCase();
       let matchCount = 0;
