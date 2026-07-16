@@ -86,11 +86,22 @@ export function useContentLoader({
     };
   }, [path, cacheValid, isExpanded, errorMessage]);
 
-  // Get content from cache
+  // Get content from cache. `undefined` means never loaded — an empty file
+  // reads back as '', which is content like any other.
+  const hasContent = item?.content !== undefined;
   const content = item?.content ?? '';
 
   return {
-    loading,
+    // Derived against the cache rather than reported raw, because a read that
+    // is superseded mid-flight can never clear its own flag: the ignore guard
+    // gates the `finally` too. That is routine, not an unmount-only edge case —
+    // two views can render the same path at once (App.tsx hides views with CSS
+    // instead of unmounting them), so a sibling entry's load landing first
+    // flips `cacheValid` and re-runs this effect while this read is still out.
+    // Content in hand means there is nothing to wait for, whoever fetched it.
+    // Untreated, this stranded *empty* files on "Loading..." forever: callers
+    // test `loading && !content`, where '' is indistinguishable from unloaded.
+    loading: loading && !hasContent,
     content,
   };
 }
