@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 
 export interface ComboboxOption {
@@ -41,6 +41,8 @@ function EditableCombobox({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  // Stable id base for wiring the input's ARIA relationships to the listbox/options.
+  const listboxId = useId();
 
   // Filter options based on current input value, unless showAllOptions is true
   const lowerValue = value.toLowerCase();
@@ -64,15 +66,26 @@ function EditableCombobox({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Scroll highlighted item into view
+  // Scroll highlighted item into view. Keyed on the highlighted option's value (not just
+  // the index) so a re-filter that leaves the index unchanged but swaps the underlying row
+  // still re-scrolls the new row into the viewport.
+  const highlightedValue =
+    highlightedIndex >= 0 ? filteredOptions[highlightedIndex]?.value : undefined;
   useEffect(() => {
     if (highlightedIndex >= 0 && listRef.current) {
       const highlightedElement = listRef.current.children[highlightedIndex] as HTMLElement;
-      if (highlightedElement) { 
+      if (highlightedElement) {
         highlightedElement.scrollIntoView({ block: 'nearest' });
       }
     }
-  }, [highlightedIndex]);
+  }, [highlightedIndex, highlightedValue]);
+
+  // Reset the highlight whenever the controlled value changes (including programmatic
+  // parent updates like a clear/reset), so it can't keep pointing into a now-stale
+  // filtered list. Local typing already clears it too, so this is idempotent there.
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [value]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
@@ -182,6 +195,7 @@ function EditableCombobox({
       {isOpen && filteredOptions.length > 0 && (
         <ul
           ref={listRef}
+          id={listboxId}
           className="absolute z-50 w-full mt-1 overflow-auto bg-slate-800 border border-slate-600 rounded shadow-lg"
           style={{ maxHeight: maxVisibleItems * OPTION_ROW_HEIGHT }}
           role="listbox"
@@ -189,6 +203,7 @@ function EditableCombobox({
           {filteredOptions.map((option, index) => (
             <li
               key={option.value}
+              id={`${listboxId}-option-${index}`}
               onClick={() => handleOptionClick(option)}
               onMouseEnter={() => setHighlightedIndex(index)}
               className={clsx(
