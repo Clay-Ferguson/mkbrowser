@@ -36,13 +36,32 @@ function EditableCombobox({
   'data-testid': dataTestId,
 }: EditableComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  // The highlight is stored with the controlled value it was set for. A value change
+  // (including programmatic parent updates like a clear/reset) invalidates it by
+  // derivation below, so it can't keep pointing into a now-stale filtered list.
+  const [highlight, setHighlight] = useState<{ index: number; forValue: string }>({
+    index: -1,
+    forValue: value,
+  });
+  const highlightedIndex = highlight.forValue === value ? highlight.index : -1;
   const [showAllOptions, setShowAllOptions] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   // Stable id base for wiring the input's ARIA relationships to the listbox/options.
   const listboxId = useId();
+
+  // Setter facade over `highlight` that stamps the current value, and feeds functional
+  // updaters the *effective* (derivation-aware) previous index rather than the raw one.
+  const setHighlightedIndex = (next: number | ((prev: number) => number)) => {
+    setHighlight((prev) => {
+      const prevIndex = prev.forValue === value ? prev.index : -1;
+      return {
+        index: typeof next === 'function' ? next(prevIndex) : next,
+        forValue: value,
+      };
+    });
+  };
 
   // Filter options based on current input value, unless showAllOptions is true
   const lowerValue = value.toLowerCase();
@@ -57,7 +76,9 @@ function EditableCombobox({
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
-        setHighlightedIndex(-1);
+        // Reset via the stable dispatcher (not the value-stamping facade) so this
+        // once-mounted effect needs no deps; index -1 derives to -1 for any forValue.
+        setHighlight((prev) => (prev.index === -1 ? prev : { ...prev, index: -1 }));
       }
     };
 
@@ -79,13 +100,6 @@ function EditableCombobox({
       }
     }
   }, [highlightedIndex, highlightedValue]);
-
-  // Reset the highlight whenever the controlled value changes (including programmatic
-  // parent updates like a clear/reset), so it can't keep pointing into a now-stale
-  // filtered list. Local typing already clears it too, so this is idempotent there.
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [value]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
