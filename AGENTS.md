@@ -13,7 +13,6 @@ MkBrowser is an Electron desktop app for folder browsing with inline Markdown re
 **Data flow**: Renderer → `api.*` (`src/services/api.ts`) → `window.electronAPI.*` → `ipcRenderer.invoke` → Main process → Node.js fs → result returned to renderer.
 
 ## The API Layer (IPC Boundary)
-
 Renderer code (components, hooks, utils) must reach the preload bridge through **`src/services/api.ts`**, not `window.electronAPI` directly:
 - `import { api } from '../services/api'` — typed `api` is a Proxy that forwards lazily to the live `window.electronAPI`. Call `api.readFile(...)`, etc. (method names match the `ElectronAPI` interface).
 - `getApi()` returns `window.electronAPI | undefined` for the rare case the bridge may be absent (e.g. unit tests under Node, the `pathUtil.ts` `'/'` fallback).
@@ -22,7 +21,6 @@ Renderer code (components, hooks, utils) must reach the preload bridge through *
 This isolates the IPC surface in one module, decoupling components from the preload global and making them unit-testable by mocking the module (`vi.mock('../services/api')`) instead of a browser global.
 
 ## Adding IPC Handlers (Three-File Sync)
-
 Every new file system operation requires changes in three files kept in sync:
 1. `src/main.ts` — `ipcMain.handle('handler-name', ...)` implementation
 2. `src/preload.ts` — method in `contextBridge.exposeInMainWorld`
@@ -31,7 +29,6 @@ Every new file system operation requires changes in three files kept in sync:
 Then call it from the renderer via `api.*` (see above). `src/global.d.ts` only declares the `window.electronAPI` global and re-exports shared types — it is not edited per-handler.
 
 ## State Management (Zustand, single store)
-
 State lives in a **single Zustand store** (`src/store/`), composed via the slices pattern (full docs: `docs/technical_notes/DEVELOPER_GUIDE.md`):
 - `core.ts` — creates `useAS` from `initialState` + every slice's `createXxxSlice(set, get)`; exports `getState()` for non-reactive reads
 - slice files (`items.ts`, `search.ts`, `settings.ts`, `view.ts`, `calendar.ts`, `indexTree.ts`, `aiConfig.ts`, `image.ts`) — actions defined inside the store, plus thin wrapper functions and pure getters (`scroll.ts` is a deliberate non-reactive module-level Map)
@@ -57,14 +54,12 @@ src/components/
 Entry components compose shared hooks from `entries/common/` and render `EntryActionBar`, `RenameInput`, `SelectionCheckbox` for consistent UX. New entry types should follow this composition pattern.
 
 ## Menu → IPC → Renderer Event Pattern
-
 Native menu actions (cut, paste, delete, etc.) flow as:
 1. `src/main.ts` — menu click sends event via `mainWindow.webContents.send('event-name')`
 2. `src/preload.ts` — exposes `onEventRequested(callback)` listener
 3. `src/App.tsx` — registers listener, calls store actions
 
 ## React Compiler — no `useCallback` / `useMemo`
-
 The renderer uses the **React Compiler** (`babel-plugin-react-compiler` in `vite.renderer.config.mts`) for automatic memoization. All `useCallback`/`useMemo` calls were removed from `src/` — **never add them back**, and never add an `eslint-disable` for any `react-hooks/*` rule (a suppression makes the compiler silently skip the whole component, and it's the one bailout cause lint can't catch).
 
 The compiler **bails out** (silently skips a component/hook, leaving it fully de-memoized) on constructs it doesn't support — `try/finally`, conditionals/`?.` inside try/catch, ref writes during render, mutating module globals, `this` expressions. The fix is always to restructure: promise `.catch().finally()` chains, or **module-level helper functions** (the compiler doesn't compile plain functions, so anything goes there).
@@ -72,7 +67,6 @@ The compiler **bails out** (silently skips a component/hook, leaving it fully de
 Three guards enforce this: the `react-hooks/todo` + `react-hooks/syntax` ESLint rules (errors in `eslint.config.mjs`); **`compiler-coverage.mjs`** at the repo root — the source of truth, since it runs the exact compiler version the build uses; and **`bundle-fingerprint.mjs`**, which runs *after* packaging (in `build.sh` and `playwright-test.sh`) and fails the build if the built renderer bundle contains less React Compiler output (`memo_cache_sentinel` occurrences) than the number of functions `compiler-coverage.mjs` compiled — the only check that can catch the compiler being silently configured out of the Vite pipeline (e.g. a broken `vite.renderer.config.mts` wiring). `node compiler-coverage.mjs` scans all of `src/` and exits 1 on any bailout (`pre-package.sh` runs it as a build gate — shared by `build.sh` and `playwright-test.sh`); `node compiler-coverage.mjs <file>` gives a verbose per-function report. After touching components/hooks, confirm the file still reports all `OK`. Full details, fix patterns, and the exhaustive-deps escape patterns: `docs/technical_notes/DEVELOPER_GUIDE.md` § React Compiler.
 
 ## Tech Stack
-
 - **Runtime**: Electron 43, React 19, TypeScript
 - **Build**: Electron Forge + Vite 8 / Rolldown (configs: `vite.main.config.mts`, `vite.preload.config.mts`, `vite.renderer.config.mts`)
 - **Styling**: Tailwind CSS 4 (CSS-first config in `src/index.css`, Typography plugin for Markdown)
@@ -81,11 +75,9 @@ Three guards enforce this: the `react-hooks/todo` + `react-hooks/syntax` ESLint 
 - **Testing**: Vitest (node environment), tests in `tests/`, fixtures in `tests/fixtures/`
 
 ## Building and Package Management
-
 We use **npm** to manage packages — `package-lock.json` is the lockfile and is committed. Do **not** use Yarn (this repo migrated off Yarn Classic in July 2026): a stray `yarn install` would recreate `yarn.lock` and ignore the npm lockfile. `.gitignore` ignores all Yarn artifacts (`yarn.lock`, `.yarn/`, `.yarnrc.yml`) so they can't sneak back in.
 
 ### `dependencies` vs `devDependencies` — this distinction decides what ships
-
 The renderer and preload bundles inline everything they import, so their packages are **build-time inputs**: they belong in `devDependencies`. The main process is the opposite — `vite.main.config.mts` externalizes **all** of `node_modules` from `main.js` (Rolldown's ESM→CJS interop silently broke `fdir` and `rrule` when they *were* bundled; letting Node's own loader resolve them makes that whole class of bug impossible), so it loads its packages from `node_modules` **at runtime**, and they must physically ship inside the asar.
 
 `@electron/packager` copies `node_modules` and prunes `devDependencies` (`prune` defaults to `true`), so:
@@ -117,20 +109,22 @@ Forgetting this produces baffling failures where a fix (or a test selector that 
 
 
 ## Grepping (UTF-8)
-
 Some source files (e.g. `FolderGraphView.tsx`) contain valid UTF-8 punctuation (`—`, `→`, `…`, `•`, `·`). In a single-byte locale (`LC_ALL=C`/POSIX) `grep` mislabels these files "binary" and silently skips them. Always search with `grep -a` (a.k.a. `--text`) so matches in those files aren't dropped.
 
 ## Git Commits
-
 Never commit changes to the 'git' repository yourself, unless you're asked to.
 
 ## TypeScript Language Version
-
 Note: We're not yet on the latest vesion of TypeScript, and the file named `TypeScript7-Conversion-Blocker.md` describes why we aren't
 
 ## Adding new NPM Packages
-
 *NEVER* add a new package/dependency without first asking the human to authorize it.
+
+## Logging
+Never use `console.log`/`console.error`. Use approach in './shared/logUtil'
+
+## Skills Files (SKILLS.md)
+Our policy is to never use SKILLS.md files, so never create those. If you think something would benefit this project as a SKILL.md, and would've created it otherwise then just tell me about it, but never create a `SKILLS.md` file.
 
 
 
