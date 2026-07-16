@@ -133,8 +133,68 @@ describe('writeFileAtomic', () => {
     }
 
     expect(await fs.promises.readFile(target, 'utf8')).toBe('durable data');
-    // fsync happened, and it happened before the rename.
-    expect(order).toEqual(['sync', 'rename']);
+    // fsync happened, and it happened before the rename. (The trailing entry is
+    // the parent-directory fsync, covered by its own test below.)
+    expect(order.slice(0, 2)).toEqual(['sync', 'rename']);
+  });
+
+  it('fsyncs the parent directory after the rename', async () => {
+    // rename() only dirties the directory inode; without flushing it a power
+    // loss can roll the entry back to the OLD version even though the save
+    // reported success. Prove the directory handle is synced, and after the
+    // rename (syncing it before would flush nothing).
+    const target = path.join(tmpDir, 'durable.txt');
+    const order: string[] = [];
+
+    const realOpen = fs.promises.open;
+    const openSpy = vi.spyOn(fs.promises, 'open').mockImplementation(async (...args: Parameters<typeof realOpen>) => {
+      const handle = await realOpen(...args);
+      const isDir = String(args[0]) === tmpDir;
+      const realSync = handle.sync.bind(handle);
+      vi.spyOn(handle, 'sync').mockImplementation(async () => {
+        order.push(isDir ? 'dir-sync' : 'file-sync');
+        return realSync();
+      });
+      return handle;
+    });
+
+    const realRename = fs.promises.rename;
+    const renameSpy = vi.spyOn(fs.promises, 'rename').mockImplementation(async (...args: Parameters<typeof realRename>) => {
+      order.push('rename');
+      return realRename(...args);
+    });
+
+    try {
+      await writeFileAtomic(target, 'durable data');
+    } finally {
+      openSpy.mockRestore();
+      renameSpy.mockRestore();
+    }
+
+    expect(await fs.promises.readFile(target, 'utf8')).toBe('durable data');
+    expect(order).toEqual(['file-sync', 'rename', 'dir-sync']);
+  });
+
+  it('still succeeds when the platform refuses to fsync the directory', async () => {
+    // Opening a directory as a file is not portable (Windows rejects it). The
+    // rename has already succeeded by then, so the save must NOT fail — and no
+    // temp file may be left behind by the swallowed error.
+    const target = path.join(tmpDir, 'note.md');
+
+    const realOpen = fs.promises.open;
+    const openSpy = vi.spyOn(fs.promises, 'open').mockImplementation(async (...args: Parameters<typeof realOpen>) => {
+      if (String(args[0]) === tmpDir) throw Object.assign(new Error('EISDIR'), { code: 'EISDIR' });
+      return realOpen(...args);
+    });
+
+    try {
+      await expect(writeFileAtomic(target, 'hello')).resolves.toBeUndefined();
+    } finally {
+      openSpy.mockRestore();
+    }
+
+    expect(await fs.promises.readFile(target, 'utf8')).toBe('hello');
+    expect(await listDir()).toEqual(['note.md']);
   });
 
   describe('symlinks', () => {

@@ -6,6 +6,37 @@ import { customAlphabet } from 'nanoid';
 const randomSuffix = customAlphabet('0123456789abcdef', 8);
 
 /**
+ * fsyncs a directory, flushing its inode so that a rename() into it is durable.
+ *
+ * rename() only updates the directory's in-memory inode; until that inode is
+ * flushed, a power loss can roll the entry back to the old name — resurrecting
+ * the PREVIOUS version of the file even though the write reported success.
+ * fsyncing the directory after the rename closes that window.
+ *
+ * Best effort by design: opening a directory as a file is not portable (Windows
+ * rejects it, and some filesystems reject the fsync itself). The rename has
+ * already succeeded and the new bytes are already on disk by this point, so a
+ * failure here costs durability of the final metadata flip, not correctness —
+ * never a reason to fail the caller's save.
+ */
+async function syncDirectory(dir: string): Promise<void> {
+  let handle: fs.promises.FileHandle | undefined;
+  try {
+    handle = await fs.promises.open(dir, 'r');
+    await handle.sync();
+  } catch {
+    // Unsupported on this platform/filesystem — ignore (see note above).
+  }
+  if (handle) {
+    try {
+      await handle.close();
+    } catch {
+      // ignore — nothing more we can do
+    }
+  }
+}
+
+/**
  * Writes content to filePath atomically: writes to a sibling temp file first,
  * fsyncs it, then renames it into place. On Linux/macOS, rename() is POSIX-atomic
  * within the same filesystem, so readers always see either the old complete file
@@ -15,6 +46,31 @@ const randomSuffix = customAlphabet('0123456789abcdef', 8);
  * disk BEFORE the rename. Without it, a power loss could leave the rename durable
  * while the data blocks it points at were never written — i.e. a renamed-but-empty
  * or garbage file. fsync-before-rename is the standard durable-write technique.
+ *
+ * The parent directory is then fsynced AFTER the rename (see syncDirectory), since
+ * the rename lands in the directory's inode and would otherwise be free to roll
+ * back on a power loss, resurrecting the old version of the file. That flush is
+ * best effort — where the platform refuses it, the fallback is losing the newest
+ * save and re-reading the previous complete version, never a torn file.
+ *
+ * WHERE THE FSYNCS ACTUALLY EARN THEIR COST: on stock Linux ext4 (data=ordered,
+ * the default) both fsyncs are close to redundant — that mount option already
+ * refuses to commit the rename until the file's data blocks are on disk, so the
+ * failure modes above cannot arise, and auto_da_alloc covers the rename-over-
+ * existing case a second time. They are insurance for the environments this app
+ * also ships to, or gets aimed at, where no such ordering is promised:
+ *   - macOS (APFS/HFS+) and Windows (NTFS): both journal metadata, but neither
+ *     orders a file's data ahead of the rename that publishes it;
+ *   - network / FUSE / cloud-synced folders (NFS, sshfs, Dropbox, Drive,
+ *     OneDrive): a folder browser gets pointed straight at these routinely, and
+ *     they batch, reorder, and define their own rename semantics;
+ *   - ext4 mounted data=writeback, which drops data-before-metadata ordering
+ *     deliberately, for throughput.
+ * The fsyncs are not free (each is a real journal commit + device flush, and the
+ * directory fsync is a second barrier on top of the file's). But measure before
+ * removing them, and note that the platform where the cost shows up is not the
+ * platform that needs the guarantee — benchmarking on Linux ext4 will make them
+ * look like pure overhead precisely because that is the one case already covered.
  *
  * The temp file is created in the SAME directory as the target (rename is only
  * atomic within one filesystem/mount) and given a leading-dot, randomized name
@@ -73,6 +129,9 @@ export async function writeFileAtomic(filePath: string, content: string): Promis
     }
 
     await fs.promises.rename(tmpPath, filePath);
+    // Flush the rename itself. Never throws, so it cannot reach the cleanup below
+    // and unlink/report failure for a write that already succeeded.
+    await syncDirectory(dir);
   } catch (err) {
     // Best-effort cleanup: close a still-open handle, then unlink the temp file.
     // It may not exist (open may have failed before creating it), so ignore
