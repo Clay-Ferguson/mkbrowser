@@ -37,7 +37,10 @@ const HIGHLIGHT_OVERLAY_ID = '__mkb_highlight_overlay__';
  * closest ancestor <label> so the indicator and label text are boxed together.
  *
  * If `durationMs` is provided the overlay removes itself after that long;
- * otherwise it persists until removeHighlightOverlay() is called.
+ * otherwise it persists until removeHighlightOverlay() is called. In either
+ * mode the overlay is also removed as soon as the highlighted element leaves
+ * the DOM or stops being visible (e.g. its view is hidden with display:none),
+ * so a fast-moving test can never leave a stale box over new content.
  */
 export async function showHighlightOverlay(
   page: Page,
@@ -128,6 +131,28 @@ export async function showHighlightOverlay(
       // shown, so drop the attribute to fall back to a plain fixed div.
       overlay.removeAttribute('popover');
     }
+
+    // Tie the overlay's lifecycle to the target's. The overlay is a detached
+    // fixed-position box, so without this it would outlive the element it
+    // highlights and sit over whatever renders next. A per-frame check (rather
+    // than a MutationObserver) also catches the app's hide-don't-unmount
+    // pattern: views are hidden with display:none, so the target can vanish
+    // visually without ever leaving the DOM.
+    const tracked = target;
+    const tick = () => {
+      if (!overlay.isConnected) {
+        return; // already removed by timeout / removeHighlightOverlay
+      }
+      const gone =
+        !tracked.isConnected ||
+        !tracked.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+      if (gone) {
+        overlay.remove();
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
 
     if (dur !== null) {
       setTimeout(() => overlay.remove(), dur);
