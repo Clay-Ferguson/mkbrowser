@@ -253,6 +253,9 @@ function FolderGraphView() {
   // the existing selections instead of rebuilding the graph. Null whenever no
   // graph is built.
   const applyHighlightRef = useRef<(() => void) | null>(null);
+  // Same pattern: written by the graph effect, called by the ResizeObserver so
+  // a container resize re-frames the existing graph rather than rebuilding it.
+  const resizeGraphRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     highlightRef.current = highlightItem;
   });
@@ -263,7 +266,10 @@ function FolderGraphView() {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(() => {
-      if (el.clientWidth > 0 && el.clientHeight > 0) setReady(true);
+      if (el.clientWidth === 0 || el.clientHeight === 0) return;
+      setReady(true);
+      // No-op until the graph effect has built a graph to re-frame.
+      resizeGraphRef.current?.();
     });
     ro.observe(el);
     // Returns the useEffect cleanup (an unsubscribe): disconnects the ResizeObserver on unmount.
@@ -459,6 +465,8 @@ function FolderGraphView() {
     nodeSel.on('mouseenter.contains', (_event: MouseEvent, d) => applyHoverHighlight(d));
     nodeSel.on('mouseleave.contains', () => applyHoverHighlight(null));
 
+    const centerForce = forceCenter<SimNode>(width / 2, height / 2);
+
     const sim: Simulation<SimNode, SimLink> = forceSimulation<SimNode>(simNodes)
       .force('link', forceLink<SimNode, SimLink>(simLinks)
         .id(d => d.id)
@@ -505,7 +513,8 @@ function FolderGraphView() {
             .distanceMax(CHARGE_DISTANCE_MAX)
             .filter((a, b) => a.isDirectory !== b.isDirectory)
         : null)
-      .force('center', forceCenter(width / 2, height / 2))
+      // Held in a local so a container resize can retarget it (see handleContainerResize).
+      .force('center', centerForce)
       .force('collide', USE_LABEL_PHYSICS
         ? forceLabelRect<SimNode>().strength(0.7).iterations(LABEL_COLLIDE_ITERATIONS)
         : forceCollide<SimNode>().radius(d => nodeRadius(d) + 4));
@@ -520,11 +529,18 @@ function FolderGraphView() {
     };
     sim.on('tick', tick);
 
+    // Set once the user zooms/pans by hand, which makes the viewport theirs: a
+    // later resize then preserves their transform instead of re-fitting over it.
+    // d3 populates sourceEvent only for user gestures — programmatic transforms
+    // (the initial fit, the resize re-fit) leave it null and don't trip this.
+    let userAdjustedView = false;
+
     // d3-zoom on the root SVG. Transform applied to the inner zoomLayer <g>.
     const zoomBehavior = d3zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 8])
       .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
         zoomLayer.attr('transform', event.transform.toString());
+        if (event.sourceEvent) userAdjustedView = true;
       });
     root.call(zoomBehavior);
 
@@ -532,9 +548,11 @@ function FolderGraphView() {
      * Computes the bounding box of all settled nodes and applies a zoom transform
      * that fits the entire graph within the container with padding. Pass
      * `animate: true` for a smooth transition (used once on initial settle),
-     * or `false` for an instant snap.
+     * or `false` for an instant snap. The container box is read live rather than
+     * captured at build time, so a fit that lands after a resize uses the box
+     * the user is actually looking at.
      */
-    function zoomToFit(animate: boolean): void {
+    const zoomToFit = (animate: boolean): void => {
       let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
       for (const n of simNodes) {
         if (n.x === undefined || n.y === undefined) continue;
@@ -544,21 +562,24 @@ function FolderGraphView() {
         if (n.y > yMax) yMax = n.y;
       }
       if (!isFinite(xMin)) return;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w === 0 || h === 0) return;
       const pad = 60;
       const dx = (xMax - xMin) + pad * 2;
       const dy = (yMax - yMin) + pad * 2;
       const cx = (xMin + xMax) / 2;
       const cy = (yMin + yMax) / 2;
-      const k = Math.min(2, Math.min(width / dx, height / dy));
-      const tx = width / 2 - cx * k;
-      const ty = height / 2 - cy * k;
+      const k = Math.min(2, Math.min(w / dx, h / dy));
+      const tx = w / 2 - cx * k;
+      const ty = h / 2 - cy * k;
       const t = zoomIdentity.translate(tx, ty).scale(k);
       if (animate) {
         root.transition().duration(600).call(zoomBehavior.transform, t);
       } else {
         root.call(zoomBehavior.transform, t);
       }
-    }
+    };
 
     // Drag: standard d3-force pattern. Pin during drag (so the node follows
     // the cursor exactly), release on drop so the system equilibrates and the
@@ -591,13 +612,31 @@ function FolderGraphView() {
       zoomToFit(true);
     });
 
-    // Returns the useEffect cleanup (an unsubscribe): stops the D3 force simulation, detaches its tick/end and zoom listeners, and drops the repaint closure (its selections are dead) on unmount / before re-run.
+    /**
+     * Called by the ResizeObserver after the container changes size. Re-frames
+     * the graph we already have — rebuilding it would re-randomize the layout
+     * and throw away the user's zoom, pan, and dragged node positions.
+     *
+     * The simulation is deliberately not restarted: retargeting the centering
+     * force only matters to future ticks (a drag, a rebuild), and the fit below
+     * is what actually re-frames a settled graph. Restarting would make the
+     * nodes physically drift on every resize tick, which is far more jarring
+     * than the empty margin it would fix.
+     */
+    const handleContainerResize = (): void => {
+      centerForce.x(container.clientWidth / 2).y(container.clientHeight / 2);
+      if (!userAdjustedView) zoomToFit(false);
+    };
+    resizeGraphRef.current = handleContainerResize;
+
+    // Returns the useEffect cleanup (an unsubscribe): stops the D3 force simulation, detaches its tick/end and zoom listeners, and drops the repaint/re-frame closures (their selections are dead) on unmount / before re-run.
     return () => {
       sim.stop();
       sim.on('tick', null);
       sim.on('end', null);
       root.on('.zoom', null);
       applyHighlightRef.current = null;
+      resizeGraphRef.current = null;
     };
   }, [folderGraph, ready]);
 
