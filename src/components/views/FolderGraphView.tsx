@@ -249,6 +249,10 @@ function FolderGraphView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const highlightRef = useRef<string | null>(highlightItem);
+  // Written by the graph effect, called by the highlight effect below: repaints
+  // the existing selections instead of rebuilding the graph. Null whenever no
+  // graph is built.
+  const applyHighlightRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     highlightRef.current = highlightItem;
   });
@@ -372,7 +376,7 @@ function FolderGraphView() {
         .attr('fill', d => colorForNode(d, hl === d.id))
         .attr('font-weight', d => hl === d.id ? 'bold' : 'normal');
     };
-    (svg as SVGSVGElement & { __applyHighlight?: () => void }).__applyHighlight = applyHighlight;
+    applyHighlightRef.current = applyHighlight;
 
     // Click → navigate. d3-drag's clickDistance(4) suppresses the click event
     // when the gesture was actually a drag, so we don't need a manual guard.
@@ -587,18 +591,18 @@ function FolderGraphView() {
       zoomToFit(true);
     });
 
-    // Returns the useEffect cleanup (an unsubscribe): stops the D3 force simulation and detaches its tick/end and zoom listeners on unmount / before re-run.
+    // Returns the useEffect cleanup (an unsubscribe): stops the D3 force simulation, detaches its tick/end and zoom listeners, and drops the repaint closure (its selections are dead) on unmount / before re-run.
     return () => {
       sim.stop();
       sim.on('tick', null);
       sim.on('end', null);
       root.on('.zoom', null);
+      applyHighlightRef.current = null;
     };
   }, [folderGraph, ready]);
 
   useEffect(() => {
-    const svg = svgRef.current as (SVGSVGElement & { __applyHighlight?: () => void }) | null;
-    svg?.__applyHighlight?.();
+    applyHighlightRef.current?.();
   }, [highlightItem]);
 
   if (!folderGraph) {
