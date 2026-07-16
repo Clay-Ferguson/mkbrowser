@@ -68,7 +68,7 @@ import { hasHumanMd } from '../../shared/ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig } from '../../renderer/searchUtil';
 import { buildReplaceResultMessage } from '../../shared/searchHelpers';
 import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
-import { getFileName } from '../../renderer/pathUtil';
+import { getFileName, getParentPath, isSamePath } from '../../renderer/pathUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 /**
@@ -190,6 +190,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     // A slow readIndexYaml can resolve after navigation (or after a newer run
     // for the same folder), so its write is gated on this run still being the
     // latest — otherwise a stale folder's yaml overwrites the current one.
+    // On navigation, currentPath changes a render before the new folder's
+    // entries arrive, so this can run with the OLD folder's entries paired
+    // with the NEW path — computing hasIndex from the wrong folder and
+    // fetching/flushing indexYaml against it. Skip such desynced runs; the
+    // effect re-runs once the matching entries land. An empty listing carries
+    // no path evidence, but hasIndex is necessarily false then, same as before.
+    const firstEntry = entries[0];
+    if (firstEntry && !isSamePath(getParentPath(firstEntry.path), currentPath)) return;
     let ignore = false;
     const hasIndex = entries.some((e) => e.indexOrder !== undefined);
     setHasIndexFile(hasIndex);
