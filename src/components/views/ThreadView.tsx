@@ -166,24 +166,21 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
   // Callback for entry rename / delete — reload the thread
   const refreshThread = () => setRefreshTick((t) => t + 1);
 
-  // When pendingScrollToBottom becomes true, remember the intent in a ref.
-  // The actual scroll happens once loading finishes (content is rendered).
-  const wantScrollToBottomRef = useRef(false);
-
+  // Scrolls to the bottom once a scroll-to-bottom is pending *and* loading has
+  // finished (so the new entries are rendered). The store flag is the intent and
+  // is consumed directly here — it deliberately stays set until the scroll
+  // actually runs. Recording it in a ref instead would strand the scroll
+  // whenever the intent arrives without a path change, since a ref write
+  // re-runs nothing and only a path change flips `loading`.
   useEffect(() => {
-    if (!pendingScrollToBottom) return;
-    clearPendingThreadScrollToBottom();
-    wantScrollToBottomRef.current = true;
-  }, [pendingScrollToBottom]);
+    if (loading || !pendingScrollToBottom) return;
 
-  // Once loading finishes and we want to scroll to bottom, do it after a short
-  // DOM-settle delay so the new entries are painted.
-  useEffect(() => {
-    if (loading || !wantScrollToBottomRef.current) return;
-    wantScrollToBottomRef.current = false;
-
-    // Short delay for the DOM to settle after React renders the new entries
+    // Short delay for the DOM to settle after React renders the new entries.
+    // The flag is cleared inside the callback rather than up front: clearing it
+    // first would re-run this effect, and its cleanup would cancel the very
+    // timer it just scheduled.
     const timer = setTimeout(() => {
+      clearPendingThreadScrollToBottom();
       const el = mainContainerRef.current;
       if (el) {
         el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
@@ -191,7 +188,7 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
     }, 50);
     // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending scroll-to-bottom timeout on unmount / before re-run.
     return () => clearTimeout(timer);
-  }, [loading, mainContainerRef]);
+  }, [loading, pendingScrollToBottom, mainContainerRef]);
 
   // Handle pending edit for thread view (e.g., after Reply creates a new HUMAN.md)
   useEffect(() => {
