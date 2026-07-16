@@ -386,6 +386,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   // when we re-render the page after the editing is completed, and so the logic related to 'preEditScrollPositionRef'
   // below is to be able to restore the scroll position back to the correct location after an expanded mode edit.
   useEffect(() => {
+    let restoreTimer: ReturnType<typeof setTimeout> | undefined;
     const isExpandedEditing = expandedEditor && anyItemEditing;
     if (isExpandedEditing && !wasExpandedEditingRef.current) {
       // Read from the store rather than live scrollTop: by the time this effect runs,
@@ -400,12 +401,18 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         const savedPos = preEditScrollPositionRef.current;
         preEditScrollPositionRef.current = null;
         if (currentPath) setBrowserScrollPosition(currentPath, savedPos);
-        setTimeout(() => {
+        restoreTimer = setTimeout(() => {
           mainContainerRef.current?.scrollTo({ top: savedPos, behavior: 'instant' });
         }, 50);
       }
     }
     wasExpandedEditingRef.current = isExpandedEditing;
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending
+    // restore timeout so a stale restore can't fire after re-entering expanded mode or
+    // navigating within the 50ms window.
+    return () => {
+      if (restoreTimer !== undefined) clearTimeout(restoreTimer);
+    };
   }, [expandedEditor, anyItemEditing, currentPath]);
 
   // Handle scroll events on the main container (debounced save)
