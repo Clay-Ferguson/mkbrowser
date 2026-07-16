@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fdir } from 'fdir';
+import { writeFileAtomic } from './atomicWrite';
 import { getSortedDirEntries } from './indexUtil';
 import { findTerminalEmulator } from './launcherUtil';
 
@@ -65,6 +66,12 @@ function rewriteImagePathsToAbsolute(content: string, sourceFilePath: string): s
 /**
  * Concatenate all .md and .txt files in a folder (optionally including subfolders)
  * into a single markdown string, with optional filename headers and dividers.
+ *
+ * The output may legitimately land inside `sourceFolder` (exporting a folder into
+ * itself, or into a subfolder of itself). Since the export is a `.md` file, it is
+ * eligible input for the *next* export of the same folder, which would append the
+ * previous run's full text to this run's — doubling the file on every export. So
+ * the traversal skips the output path itself; re-exporting is then idempotent.
  */
 export async function exportFolderContents(
   sourceFolder: string,
@@ -74,6 +81,10 @@ export async function exportFolderContents(
   includeFilenames: boolean,
   includeDividers: boolean,
 ): Promise<{ success: boolean; outputPath?: string; error?: string }> {
+  // Resolved so the traversal's skip-check compares like with like: outputFolder
+  // reaches us straight from a free-text dialog field and may be relative.
+  const outputPath = path.resolve(outputFolder, outputFileName);
+
   // Recursive depth-first function: files and subdirs are sorted together in one
   // case-insensitive pass so ordinal prefixes (00010_, 999_, etc.) fully control order.
   const processFolder = async (folderPath: string, relativePath: string): Promise<string[]> => {
@@ -85,9 +96,11 @@ export async function exportFolderContents(
 
     const imageExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.tif']);
 
-    // Filter to eligible items (text files, images, and when requested, subdirs)
+    // Filter to eligible items (text files, images, and when requested, subdirs),
+    // never the export's own output file (see the self-inclusion note above).
     const items = sortedEntries.filter((item) => {
       if (item.isDir) return includeSubfolders;
+      if (path.resolve(item.entryPath) === outputPath) return false;
       const lower = item.name.toLowerCase();
       return lower.endsWith('.md') || lower.endsWith('.txt') || imageExtensions.has(path.extname(lower));
     });
@@ -131,8 +144,7 @@ export async function exportFolderContents(
   const concatenatedContent = allParts.join(separator);
 
   // Write the output file
-  const outputPath = path.join(outputFolder, outputFileName);
-  await fs.promises.writeFile(outputPath, concatenatedContent, 'utf-8');
+  await writeFileAtomic(outputPath, concatenatedContent);
 
   return {
     success: true,
