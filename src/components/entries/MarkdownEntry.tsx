@@ -424,8 +424,13 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       return;
     }
     void (async () => {
+      // Scan only the front-matter block, not the whole document: a body line beginning with
+      // e.g. `due:` would otherwise win over the real property. yamlStr starts on document line 2
+      // (line 1 is the opening `---`), so a 0-based index within it maps to document line idx + 2.
       const propPrefix = `${key}:`;
-      const line = content.split('\n').findIndex(l => l.startsWith(propPrefix)) + 1;
+      const fm = splitFrontMatter(content);
+      const fmIdx = fm ? fm.yamlStr.split('\n').findIndex(l => l.startsWith(propPrefix)) : -1;
+      const line = fmIdx >= 0 ? fmIdx + 2 : 0;
       await edit.handleEditClick(line > 0 ? line : undefined);
       setShowPropsInEditor(true);
       onSaveSettings();
