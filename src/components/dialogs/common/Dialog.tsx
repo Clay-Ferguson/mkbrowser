@@ -63,6 +63,13 @@ function Dialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
+  // Snapshot the initial-focus target at mount. The dialog opens exactly once (in
+  // the mount-only effect below), so the focus target only needs reading once —
+  // and keeping initialFocusRef out of that effect's deps prevents a parent that
+  // swaps the ref object across renders from triggering a close()/showModal()
+  // flicker (plus refocus/reselect churn) on the already-open dialog.
+  const initialFocusSnapshotRef = useRef(initialFocusRef);
+
   useEffect(() => {
     const dlg = dialogRef.current;
     if (dlg && !dlg.open) {
@@ -70,7 +77,7 @@ function Dialog({
       // Move focus off the header ✕ button (showModal's default) onto an
       // explicit target if given, else the first editable field — selecting any
       // prefilled text so it can be typed over.
-      const field = initialFocusRef?.current ?? dlg.querySelector<HTMLElement>(FIRST_FIELD_SELECTOR);
+      const field = initialFocusSnapshotRef.current?.current ?? dlg.querySelector<HTMLElement>(FIRST_FIELD_SELECTOR);
       field?.focus();
       if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
         field.select();
@@ -82,7 +89,7 @@ function Dialog({
     return () => {
       if (dlg?.open) dlg.close();
     };
-  }, [initialFocusRef]);
+  }, []);
 
   // The native `cancel` event fires on Esc (and other platform dismiss gestures).
   // We drive open/closed from React state in the parent, so prevent the element
