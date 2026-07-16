@@ -138,6 +138,21 @@ function isParentOf(candidatePath: string, currentPath: string): boolean {
 }
 
 /**
+ * Whether any markdown file is currently open in edit mode, which is what gates
+ * the "Paste Link" context-menu action. Read non-reactively at menu-open time
+ * rather than through a `useAS` selector: Zustand evaluates every subscriber's
+ * selector on every store write, so subscribing would scan the whole item map
+ * on each write (e.g. per debounced keystroke while editing inline) to feed a
+ * value only ever read inside an event handler.
+ */
+function isEditingMarkdown(): boolean {
+  for (const [path, item] of useAS.getState().items) {
+    if (item.editing && path.endsWith('.md')) return true;
+  }
+  return false;
+}
+
+/**
  * Fire-and-forget runner for async context-menu / paste / drag-drop actions:
  * invokes `op` and logs a failure instead of leaking an unhandled rejection.
  * Module-level so the component's handlers don't need try/catch bodies — the
@@ -167,14 +182,6 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const pendingReveal = useAS(s => s.pendingIndexTreeReveal);
   const hasCutItems = useAS(s => hasAnyCutItems(s.items));
   const highlightItem = useAS(s => s.highlightItem);
-  // Derived: the path of the markdown file currently in edit mode, if any.
-  // Returns a primitive, so no useShallow is needed.
-  const editingMarkdownPath = useAS(s => {
-    for (const [path, item] of s.items) {
-      if (item.editing && path.endsWith('.md')) return path;
-    }
-    return null;
-  });
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   // Pending timers, tracked so they can be cancelled when superseded or on unmount.
@@ -589,7 +596,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    */
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();
-    const activeEditor = editingMarkdownPath ? getActiveMarkdownEditor() : null;
+    const activeEditor = isEditingMarkdown() ? getActiveMarkdownEditor() : null;
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
