@@ -282,7 +282,7 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
     // Validate duration up front so a bad value (NaN from `.nan`, negative, or a
     // non-numeric string) is surfaced rather than silently corrupting `end`.
     const duration = coerceDuration(parsed.duration);
-    if (parsed.duration != null && duration === null) {
+    if (parsed.duration !== null && duration === null) {
       logger.warn(`Calendar entry ${filePath}: ignoring invalid 'duration' ${JSON.stringify(parsed.duration)} (expected a positive number of hours); defaulting to 1`);
     }
 
@@ -298,7 +298,7 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
       } else {
         logger.warn(`Calendar entry ${filePath}: unrecognized 'start' time "${startTimeStr}" (use "1:30 PM" or "13:30"); treating event as all-day`);
       }
-    } else if (parsed.start != null) {
+    } else if (parsed.start !== null) {
       logger.warn(`Calendar entry ${filePath}: 'start' must be a time string like "1:30 PM" or "13:30", got ${JSON.stringify(parsed.start)}; treating event as all-day`);
     }
 

@@ -10,6 +10,7 @@ import {
 import { fetchTags } from '../renderer/tagApi';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
 import AlertDialog from './dialogs/AlertDialog';
+import { logger } from '../shared/logUtil';
 
 interface TagsPickerProps {
   /** Full path of the file being edited */
@@ -47,7 +48,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
       .catch((err) => {
         // A load failure (bad tags config, IPC error) is otherwise indistinguishable
         // from "no tags configured" since both render null — log so it's diagnosable.
-        console.error('Failed to load tag definitions:', err);
+        logger.error('Failed to load tag definitions:', err);
         if (!cancelled) setLoadState({ status: 'loaded', categories: [] });
       });
 
