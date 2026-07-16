@@ -177,6 +177,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   });
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
+  // Pending timers, tracked so they can be cancelled when superseded or on unmount.
+  const revealScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scriptFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
   const [runningScript, setRunningScript] = useState<string | null>(null);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
@@ -236,6 +239,11 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     if (!pendingReveal) return;
     clearPendingIndexTreeReveal();
 
+    // Clearing the pending flag re-runs this effect immediately, so its cleanup
+    // fires long before the walk below schedules the scroll — the timer is
+    // tracked in a ref and cancelled here (superseded reveal) and on unmount.
+    if (revealScrollTimerRef.current) clearTimeout(revealScrollTimerRef.current);
+
     const expandToPath = async (targetPath: string) => {
       if (!rootPath || !isPathInside(rootPath, targetPath)) return;
 
@@ -264,7 +272,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       }
 
       // Scroll to the target node after React has rendered the expanded tree
-      setTimeout(() => {
+      revealScrollTimerRef.current = setTimeout(() => {
+        revealScrollTimerRef.current = null;
         const container = containerRef.current;
         if (!container) return;
         const el = container.querySelector(`[data-tree-path="${CSS.escape(targetPath)}"]`);
@@ -276,6 +285,12 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
     void expandToPath(pendingReveal);
   }, [pendingReveal, rootPath]);
+
+  // Cancel any still-pending timers on unmount.
+  useEffect(() => () => {
+    if (revealScrollTimerRef.current) clearTimeout(revealScrollTimerRef.current);
+    if (scriptFlashTimerRef.current) clearTimeout(scriptFlashTimerRef.current);
+  }, []);
 
   /**
    * Handles a click on any tree row. Behavior depends on node type:
@@ -506,7 +521,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     if (runningScript) return;
     setRunningScript(node.path);
     void api.runShellScript(node.path);
-    setTimeout(() => setRunningScript(null), 3000);
+    scriptFlashTimerRef.current = setTimeout(() => {
+      scriptFlashTimerRef.current = null;
+      setRunningScript(null);
+    }, 3000);
   };
 
   const toggleBookmarksMenu = () => setShowBookmarksMenu(prev => !prev);
