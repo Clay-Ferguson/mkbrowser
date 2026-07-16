@@ -16,7 +16,7 @@ import { parseIgnoredPaths } from './shared/searchHelpers';
 import { searchFolder, type SearchResult } from './main/search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './main/folderAnalysis';
 import { loadCalendarEvents, type CalendarEventResult } from './main/calendarLoader';
-import { startCalendarWatcher, stopCalendarWatcher, getCalendarWatcherFolder } from './main/calendarWatcher';
+import { startCalendarWatcher, stopCalendarWatcher } from './main/calendarWatcher';
 import { scanFolderTree, type FolderGraphResult } from './main/folderGraph';
 import { loadTags } from './main/tagLoader';
 import type { TagCategory } from './shared/tagUtil';
@@ -606,20 +606,21 @@ function setupIpcHandlers(): void {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
       const results = await loadCalendarEvents(folderPath, ignoredPaths);
 
-      // Start (or keep) the file watcher for this folder
-      if (getCalendarWatcherFolder() !== folderPath) {
-        await startCalendarWatcher(folderPath, (results, filePath) => {
-          logger.info(`[main] calendar-file-changed: sending to renderer filePath=${filePath} count=${results.length}`);
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('calendar-file-changed', results, filePath);
-          }
-        }, (deletedPath, isFolder) => {
-          logger.info(`[main] calendar-file-deleted: deletedPath=${deletedPath} isFolder=${isFolder}`);
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('calendar-file-deleted', deletedPath, isFolder);
-          }
-        }, ignoredPaths);
-      }
+      // Start (or keep) the file watcher for this folder. startCalendarWatcher is
+      // the single authority on whether a restart is needed: it no-ops when the
+      // folder AND ignore list are unchanged, and restarts when either differs —
+      // so an edited ignoredPaths setting propagates to live updates here too.
+      await startCalendarWatcher(folderPath, (results, filePath) => {
+        logger.info(`[main] calendar-file-changed: sending to renderer filePath=${filePath} count=${results.length}`);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('calendar-file-changed', results, filePath);
+        }
+      }, (deletedPath, isFolder) => {
+        logger.info(`[main] calendar-file-deleted: deletedPath=${deletedPath} isFolder=${isFolder}`);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('calendar-file-deleted', deletedPath, isFolder);
+        }
+      }, ignoredPaths);
 
       return results;
     } catch (error) {

@@ -4,9 +4,9 @@ import { fdir } from 'fdir';
 import { RRule, Weekday } from 'rrule';
 import { loadYaml } from '../shared/yamlUtil';
 import { logger } from '../shared/logUtil';
-import { buildExcludePredicate } from '../shared/pathPattern';
+import { buildCalendarFilter } from '../shared/pathPattern';
 import { mapWithConcurrency } from '../shared/asyncUtil';
-import { parseDueStr } from '../shared/calendarUtil';
+import { coerceDueDate } from '../shared/calendarUtil';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
 
 export interface CalendarEventResult {
@@ -83,7 +83,7 @@ interface RRuleYaml {
   freq?: string;
   interval?: number;
   byday?: string;
-  until?: string;
+  until?: string | Date;
   count?: number;
 }
 
@@ -107,7 +107,7 @@ function normalizeRRule(raw: Record<string, unknown>): RRuleYaml {
     freq: typeof raw.freq === 'string' ? raw.freq : undefined,
     interval: toPositiveInt(raw.interval) ?? 1,
     byday: typeof raw.byday === 'string' ? raw.byday : undefined,
-    until: typeof raw.until === 'string' ? raw.until : undefined,
+    until: typeof raw.until === 'string' || raw.until instanceof Date ? raw.until : undefined,
     count: toPositiveInt(raw.count),
   };
 }
@@ -161,9 +161,15 @@ function expandRRule(
     ? new Date(Date.UTC(wall.getFullYear(), wall.getMonth(), wall.getDate()))
     : new Date(Date.UTC(wall.getFullYear(), wall.getMonth(), wall.getDate(), wall.getHours(), wall.getMinutes()));
 
-  const untilDate = rruleYaml.until ? parseDueStr(rruleYaml.until) : null;
+  // RRule treats `until` as inclusive (occurrences with dtstart <= until). Encode it as
+  // the END of the until day, not its midnight: an all-day dtstart sits at UTC midnight
+  // and would still pass, but a timed dtstart carries wall-clock hours (e.g. 13:30) and is
+  // strictly greater than midnight of the same day — so a midnight `until` would drop the
+  // final occurrence, ending the recurrence one occurrence early (the UI's default
+  // `until: 12/31/2027` on every timed repeat would stop on 12/30).
+  const untilDate = rruleYaml.until ? coerceDueDate(rruleYaml.until) : null;
   const until = untilDate
-    ? new Date(Date.UTC(untilDate.getFullYear(), untilDate.getMonth(), untilDate.getDate()))
+    ? new Date(Date.UTC(untilDate.getFullYear(), untilDate.getMonth(), untilDate.getDate(), 23, 59, 59, 999))
     : undefined;
 
   const rule = new RRule({
@@ -224,10 +230,15 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
     if (!fm) return [];
 
     const parsed = loadYaml(fm.yamlStr) as Record<string, unknown> | null;
-    if (!parsed || typeof parsed.due !== 'string') return [];
+    // No `due` at all means "not a calendar file" — skip quietly. A `due` that is
+    // present but unparseable is a likely user mistake, so make it discoverable.
+    if (!parsed || parsed.due === null) return [];
 
-    const dueDate = parseDueStr(parsed.due);
-    if (!dueDate) return [];
+    const dueDate = coerceDueDate(parsed.due);
+    if (!dueDate) {
+      logger.warn(`Skipping calendar entry ${filePath}: 'due' is not a recognized date: ${JSON.stringify(parsed.due)}`);
+      return [];
+    }
 
     const title = path.basename(filePath, '.md');
     const snippet = extractSnippet(fm.body);
@@ -278,16 +289,14 @@ export async function loadCalendarEvents(
   folderPath: string,
   ignoredPaths: string[] = [],
 ): Promise<CalendarEventResult[]> {
-  const shouldExclude = buildExcludePredicate(ignoredPaths);
+  // Same predicate the live watcher uses (see buildCalendarFilter) so the initial
+  // crawl and live updates always agree on which files are calendar sources.
+  const exclude = buildCalendarFilter(ignoredPaths);
 
   const api = new fdir()
     .withFullPaths()
-    .exclude((dirName, dirPath) => shouldExclude(dirName, dirPath))
-    .filter((filePath) => {
-      const fileName = path.basename(filePath);
-      if (shouldExclude(fileName, filePath)) return false;
-      return path.extname(filePath).toLowerCase() === '.md';
-    })
+    .exclude((dirName, dirPath) => exclude(dirName, dirPath, true))
+    .filter((filePath) => !exclude(path.basename(filePath), filePath, false))
     .crawl(folderPath);
 
   const files = await api.withPromise();

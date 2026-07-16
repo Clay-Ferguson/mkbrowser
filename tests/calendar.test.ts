@@ -15,6 +15,7 @@ import {
   setRRuleProperty,
   injectCalendarFrontMatter,
   parseDueStr,
+  coerceDueDate,
   formatDueDate,
 } from '../src/shared/calendarUtil';
 import { parseFrontMatter } from '../src/shared/frontMatterUtil';
@@ -59,6 +60,12 @@ A timed event with no explicit duration.
 due: 3/10/27
 ---
 Event with two-digit year.
+`);
+
+  write('iso-due.md', `---
+due: 2026-03-05
+---
+Event whose due is written in ISO YYYY-MM-DD form.
 `);
 
   write('no-frontmatter.md', `This file has no front matter at all.\n`);
@@ -157,6 +164,14 @@ describe('loadCalendarEntryForFile — two-digit year', () => {
   it('treats 2-digit year as 2000+YY', async () => {
     const [ev] = await loadCalendarEntryForFile(f('two-digit-year.md'));
     expect(ev.start).toBe(new Date(2027, 2, 10).getTime());
+  });
+});
+
+describe('loadCalendarEntryForFile — ISO due date', () => {
+  it('loads an event whose due is written as YYYY-MM-DD', async () => {
+    const results = await loadCalendarEntryForFile(f('iso-due.md'));
+    expect(results).toHaveLength(1);
+    expect(results[0].start).toBe(new Date(2026, 2, 5).getTime());
   });
 });
 
@@ -274,6 +289,18 @@ describe('loadCalendarEntryForFile — timezone / DST', () => {
       new Date(2026, 5, 8).getTime(),
       new Date(2026, 5, 15).getTime(),
     ]);
+  });
+
+  it('timed weekly with `until` includes the boundary occurrence (M1)', async () => {
+    // A timed dtstart carries wall-clock hours, so a midnight-encoded `until` on the
+    // final day would drop it and end the recurrence one occurrence early. The 6/15
+    // occurrence at 9:00 AM must be present.
+    write('tz-timed-until.md', `---\ndue: 6/1/2026\nstart: "9:00 AM"\nrrule:\n  freq: weekly\n  until: 6/15/2026\n---\nBody.\n`);
+    const results = await loadCalendarEntryForFile(f('tz-timed-until.md'));
+    expect(results.map(r => new Date(r.start).getDate())).toEqual([1, 8, 15]);
+    for (const ev of results) {
+      expect(new Date(ev.start).getHours()).toBe(9);
+    }
   });
 
   it('timed weekly occurrences keep the specified wall-clock time', async () => {
@@ -485,6 +512,43 @@ describe('parseDueStr', () => {
   it('accepts the last day of months with 31 and 30 days', () => {
     expect(parseDueStr('1/31/2026')?.getDate()).toBe(31);
     expect(parseDueStr('4/30/2026')?.getDate()).toBe(30);
+  });
+
+  it('parses an ISO YYYY-MM-DD date as a local calendar date', () => {
+    expect(parseDueStr('2025-03-05')?.getTime()).toBe(new Date(2025, 2, 5).getTime());
+    expect(parseDueStr('  2025-3-5  ')?.getTime()).toBe(new Date(2025, 2, 5).getTime());
+  });
+
+  it('rejects out-of-range ISO dates rather than rolling over', () => {
+    expect(parseDueStr('2025-02-30')).toBeNull();
+    expect(parseDueStr('2025-13-01')).toBeNull();
+    expect(parseDueStr('2026-02-29')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// coerceDueDate
+// ---------------------------------------------------------------------------
+
+describe('coerceDueDate', () => {
+  it('parses string due values via parseDueStr (M/D/YYYY and ISO)', () => {
+    expect(coerceDueDate('6/18/2026')?.getTime()).toBe(new Date(2026, 5, 18).getTime());
+    expect(coerceDueDate('2025-03-05')?.getTime()).toBe(new Date(2025, 2, 5).getTime());
+  });
+
+  it('accepts a Date instance, reading its UTC calendar day (no tz shift)', () => {
+    // A YAML timestamp `2025-03-05` resolves to UTC midnight; the coerced local
+    // Date must still land on the 5th regardless of the machine timezone.
+    const yamlDate = new Date(Date.UTC(2025, 2, 5));
+    expect(coerceDueDate(yamlDate)?.getTime()).toBe(new Date(2025, 2, 5).getTime());
+  });
+
+  it('returns null for missing, invalid, or wrong-typed values', () => {
+    expect(coerceDueDate(undefined)).toBeNull();
+    expect(coerceDueDate(null)).toBeNull();
+    expect(coerceDueDate(42)).toBeNull();
+    expect(coerceDueDate('not a date')).toBeNull();
+    expect(coerceDueDate(new Date(NaN))).toBeNull();
   });
 });
 
@@ -764,6 +828,52 @@ describe('rrule helpers — CRLF documents', () => {
   it('leaves the CRLF body intact', () => {
     const result = setRRuleProperty(CRLF_RRULE, { freq: 'daily' });
     expect(result.endsWith('Body.\r\n')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rrule helpers on non-block YAML styles (M5: duplicate-key poisoning)
+//
+// A flow-style rrule or a quoted key is valid YAML a user can legitimately write.
+// The old regex editors couldn't see them, so editing appended a second key and
+// js-yaml then threw on every subsequent parse. These pin the parse/dump fix.
+// ---------------------------------------------------------------------------
+
+describe('rrule helpers — non-block YAML styles', () => {
+  it('reads a flow-style rrule mapping', () => {
+    const content = `---\ndue: 1/5/2026\nrrule: {freq: weekly, interval: 2}\n---\nBody.`;
+    const r = getRRuleProperty(content);
+    expect(r?.freq).toBe('weekly');
+    expect(r?.interval).toBe('2');
+  });
+
+  it('replaces a flow-style rrule without appending a duplicate key', () => {
+    const content = `---\ndue: 1/5/2026\nrrule: {freq: weekly, interval: 2}\n---\nBody.`;
+    const result = setRRuleProperty(content, { freq: 'daily', count: '3' });
+    expect(result.match(/rrule:/g)).toHaveLength(1);
+    expect(getRRuleProperty(result)?.freq).toBe('daily');
+    // A duplicate key would make js-yaml throw; the front matter must still read back.
+    expect(parseFrontMatter(result).yaml?.due).toBe('1/5/2026');
+  });
+
+  it('removes a flow-style rrule cleanly', () => {
+    const content = `---\ndue: 1/5/2026\nrrule: {freq: weekly}\n---\nBody.`;
+    const result = setRRuleProperty(content, null);
+    expect(getRRuleProperty(result)).toBeNull();
+    expect(parseFrontMatter(result).yaml?.due).toBe('1/5/2026');
+  });
+
+  it('does not duplicate a quoted top-level key when injecting', () => {
+    const content = `---\n"due": 3/5/2025\n---\nBody text.`;
+    const result = injectCalendarFrontMatter(content, false);
+    // Exactly one due mapping — a second would make js-yaml throw on the next read.
+    expect(parseFrontMatter(result).yaml).not.toBeNull();
+    expect(parseFrontMatter(result).yaml?.due).toBe('3/5/2025');
+  });
+
+  it('leaves unparseable front matter untouched rather than corrupting it further', () => {
+    const broken = `---\ndue: 1/5/2026\nrrule:\nrrule:\n---\nBody.`;
+    expect(setRRuleProperty(broken, { freq: 'daily' })).toBe(broken);
   });
 });
 

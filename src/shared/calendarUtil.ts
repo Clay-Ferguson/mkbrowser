@@ -2,7 +2,9 @@
  * Utilities for turning a markdown file into a calendar item via front matter injection.
  */
 
+import { dump } from 'js-yaml';
 import { splitFrontMatter, setFrontMatterProperty, assembleFrontMatter } from '../shared/frontMatterUtil';
+import { loadYaml } from '../shared/yamlUtil';
 
 function getCurrentDateStr(): string {
   const now = new Date();
@@ -26,8 +28,24 @@ function getUntilDateStr(): string {
   return `12/31/${year}`;
 }
 
-/** True if the raw front matter YAML declares `key` at the top level (not nested/indented). */
+/**
+ * True if the raw front matter YAML declares `key` at the top level (not nested/indented).
+ *
+ * Parses the YAML rather than pattern-matching the text, so non-block spellings the regex
+ * missed — a quoted key (`"due": …`) or a flow-style mapping — are still detected. Missing
+ * a real top-level key here is what let {@link injectCalendarFrontMatter} prepend a second
+ * copy and poison the file with a duplicate mapping key. Only genuinely unparseable YAML
+ * (or a non-mapping top level) falls back to the textual check, preserving prior behavior.
+ */
 function hasTopLevelKey(yamlStr: string, key: string): boolean {
+  try {
+    const parsed = loadYaml(yamlStr);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return Object.prototype.hasOwnProperty.call(parsed, key);
+    }
+  } catch {
+    // Malformed YAML — fall back to a textual check so behavior is unchanged.
+  }
   return new RegExp(`^${key}[ \\t]*:`, 'm').test(yamlStr);
 }
 
@@ -108,9 +126,33 @@ export function setDueProperty(content: string, dueValue: string): string {
   return setFrontMatterProperty(content, 'due', dueValue);
 }
 
-/** Parse a `M/D/YYYY` (or `M/D/YY`) due string into a local Date, or null if invalid. */
+/**
+ * Build a local-midnight Date from calendar parts, or null if they don't form a real
+ * date — i.e. the Date constructor would have silently rolled them over (e.g.
+ * "2/30/2024" -> Mar 1, "13/1/2024" -> next Jan).
+ */
+function buildLocalDate(year: number, month: number, day: number): Date | null {
+  const d = new Date(year, month - 1, day);
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
+    return null;
+  }
+  return d;
+}
+
+/**
+ * Parse a due-date string into a local Date, or null if invalid. Accepts the app's
+ * canonical `M/D/YYYY` (or `M/D/YY`) form and the ISO `YYYY-MM-DD` form that js-yaml
+ * and many other tools emit for a bare `due: 2025-03-05` — interpreted as a local
+ * calendar date, not UTC. Without ISO support such an event was dropped silently.
+ */
 export function parseDueStr(dueStr: string): Date | null {
-  const parts = dueStr.trim().split('/');
+  const trimmed = dueStr.trim();
+
+  // ISO calendar date (YYYY-MM-DD) — the most common front-matter spelling.
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(trimmed);
+  if (iso) return buildLocalDate(Number(iso[1]), Number(iso[2]), Number(iso[3]));
+
+  const parts = trimmed.split('/');
   if (parts.length !== 3) return null;
   // Strict digits-only per part — also rejects empty parts like "/5/2025".
   if (!parts.every(p => /^\d+$/.test(p))) return null;
@@ -118,13 +160,26 @@ export function parseDueStr(dueStr: string): Date | null {
   const day = Number(parts[1]);
   let year = Number(parts[2]);
   if (year < 100) year += 2000;
-  const d = new Date(year, month - 1, day);
-  // Reject anything the Date constructor would have silently rolled over
-  // (e.g. "2/30/2024" -> Mar 1, "13/1/2024" -> next Jan).
-  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
-    return null;
+  return buildLocalDate(year, month, day);
+}
+
+/**
+ * Coerce a raw front-matter `due` value into a local Date, or null if missing/unusable.
+ *
+ * The value arrives from the YAML parser typed as `unknown`. Normally it is a string
+ * (js-yaml 5 dropped the timestamp tag, so even `due: 2025-03-05` stays a string,
+ * handled by parseDueStr). A Date instance is accepted defensively for any parser or
+ * caller that does resolve a YAML timestamp: its UTC calendar parts — the frame the
+ * YAML date spec uses — are read so the result lands on the day the user wrote,
+ * without a timezone-offset shift.
+ */
+export function coerceDueDate(due: unknown): Date | null {
+  if (due instanceof Date) {
+    if (Number.isNaN(due.getTime())) return null;
+    return buildLocalDate(due.getUTCFullYear(), due.getUTCMonth() + 1, due.getUTCDate());
   }
-  return d;
+  if (typeof due === 'string') return parseDueStr(due);
+  return null;
 }
 
 /** Format a Date as `M/D/YYYY` (the on-disk due string format). */
@@ -143,24 +198,47 @@ export interface RRuleProps {
   count?: string;
 }
 
+/** Render a parsed rrule field back to the string form the UI/editor expects. */
+function rruleFieldToString(value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return undefined;
+    // A YAML timestamp (e.g. `until: 2027-12-31`) resolves to UTC midnight; render it in
+    // the app's M/D/YYYY form from its UTC parts so the day the user wrote is preserved.
+    return `${value.getUTCMonth() + 1}/${value.getUTCDate()}/${value.getUTCFullYear()}`;
+  }
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return undefined;
+}
+
 /** Parses the `rrule:` block from front matter and returns its fields, or null if absent. */
 export function getRRuleProperty(content: string): RRuleProps | null {
   const parsed = splitFrontMatter(content);
   if (!parsed) return null;
-  const match = parsed.yamlStr.match(/^rrule:\n((?:[ \t]+.+\n?)*)/m);
-  if (!match) return null;
-  const block = match[1] ?? '';
-  const extract = (key: string) => {
-    const m = block.match(new RegExp(`^[ \\t]+${key}\\s*:\\s*(.+)$`, 'm'));
-    return m?.[1]?.trim();
-  };
+  let obj: unknown;
+  try {
+    obj = loadYaml(parsed.yamlStr);
+  } catch {
+    return null;
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+  const rrule = (obj as Record<string, unknown>).rrule;
+  if (!rrule || typeof rrule !== 'object' || Array.isArray(rrule)) return null;
+  const r = rrule as Record<string, unknown>;
   return {
-    freq: extract('freq'),
-    interval: extract('interval'),
-    byday: extract('byday'),
-    until: extract('until'),
-    count: extract('count'),
+    freq: rruleFieldToString(r.freq),
+    interval: rruleFieldToString(r.interval),
+    byday: rruleFieldToString(r.byday),
+    until: rruleFieldToString(r.until),
+    count: rruleFieldToString(r.count),
   };
+}
+
+/** Coerce a numeric-looking string to a YAML number, else leave it a string. */
+function numericOrString(value: string): number | string {
+  const n = Number(value);
+  return value.trim() !== '' && Number.isFinite(n) ? n : value;
 }
 
 function buildRRuleBlock(rrule: RRuleProps): string {
@@ -174,9 +252,28 @@ function buildRRuleBlock(rrule: RRuleProps): string {
 }
 
 /**
+ * Build the nested mapping written under `rrule:`. Interval/count are stored as YAML numbers
+ * (matching the injected `interval: 1` style) so the getter reads them back without quotes.
+ */
+function buildRRuleObject(rrule: RRuleProps): Record<string, unknown> {
+  const obj: Record<string, unknown> = { freq: rrule.freq };
+  if (rrule.interval && rrule.interval !== '1') obj.interval = numericOrString(rrule.interval);
+  if (rrule.byday) obj.byday = rrule.byday;
+  if (rrule.until) obj.until = rrule.until;
+  if (rrule.count) obj.count = numericOrString(rrule.count);
+  return obj;
+}
+
+/**
  * Replaces or removes the `rrule:` block in front matter. Pass `null` (or an
  * object with no `freq`) to remove the block entirely. Creates front matter if
  * none exists and an rrule is being set.
+ *
+ * Edits go through a real YAML parse/dump (like {@link setFrontMatterProperty}) rather than
+ * a text strip-and-append: a flow-style `rrule: {…}` the old strip regex couldn't see used
+ * to survive and get a second `rrule:` appended below it, producing a duplicate mapping key
+ * that makes every subsequent front-matter parse throw. Unparseable existing YAML is left
+ * untouched rather than risking further corruption.
  */
 export function setRRuleProperty(content: string, rrule: RRuleProps | null): string {
   const parsed = splitFrontMatter(content);
@@ -184,16 +281,25 @@ export function setRRuleProperty(content: string, rrule: RRuleProps | null): str
     if (!rrule?.freq) return content;
     return `---\n${buildRRuleBlock(rrule)}\n---\n${content}`;
   }
-  // Strip any existing rrule block (the `rrule:` line plus its indented children), then
-  // drop trailing blank lines it left behind.
-  const yaml = parsed.yamlStr.replace(/^rrule:\n(?:[ \t]+.+\n?)*/m, '').replace(/\n+$/, '');
-  if (!rrule?.freq) {
-    // The rrule may have been the only key — assembleFrontMatter drops the fences entirely
-    // rather than leaving an empty `---\n---` block behind.
-    return assembleFrontMatter(yaml, parsed.body);
+  let obj: unknown;
+  try {
+    obj = loadYaml(parsed.yamlStr) ?? {};
+  } catch {
+    return content;
   }
-  const merged = yaml ? `${yaml}\n${buildRRuleBlock(rrule)}` : buildRRuleBlock(rrule);
-  return `---\n${merged}\n---\n${parsed.body}`;
+  if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return content;
+  const yaml = obj as Record<string, unknown>;
+  if (!rrule?.freq) {
+    // Nothing to remove — return the content untouched (and unreformatted).
+    if (!Object.prototype.hasOwnProperty.call(yaml, 'rrule')) return content;
+    delete yaml.rrule;
+  } else {
+    yaml.rrule = buildRRuleObject(rrule);
+  }
+  // An empty mapping (rrule was the only key, now removed) yields '' so assembleFrontMatter
+  // drops the fences entirely rather than leaving `---\n{}\n---` behind.
+  const dumped = Object.keys(yaml).length ? dump(yaml, { lineWidth: -1 }) : '';
+  return assembleFrontMatter(dumped, parsed.body);
 }
 
 /**

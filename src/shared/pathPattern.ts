@@ -66,3 +66,30 @@ export function buildExcludePredicate(
     return patterns.some(p => p.test(name) || p.test(fullPath));
   };
 }
+
+/**
+ * Single exclusion predicate shared by the calendar's initial crawl (fdir) and its
+ * live watcher (chokidar), so both observe exactly the same set of files — otherwise
+ * events load on the initial scan but never live-update (or vice versa).
+ *
+ * Excludes hidden entries and user ignore patterns (via {@link buildExcludePredicate},
+ * anchored, matched against basename and full path). Non-`.md` *files* are excluded,
+ * but **directories are always traversable** so their `.md` children are reached — a
+ * folder named `notes.2024` has a non-`.md` "extension" and must not be pruned.
+ *
+ * `isDirectory` is a tri-state: `true`/`false` when known, `undefined` when not (e.g.
+ * a watcher pre-stat check where chokidar hasn't provided `stats` yet). When unknown,
+ * the extension rule is skipped and the entry is kept, so it is never pruned before it
+ * can be identified as a directory.
+ */
+export function buildCalendarFilter(
+  ignoredPaths: string[],
+): (name: string, fullPath: string, isDirectory?: boolean) => boolean {
+  const shouldExclude = buildExcludePredicate(ignoredPaths);
+  return (name: string, fullPath: string, isDirectory?: boolean): boolean => {
+    if (shouldExclude(name, fullPath)) return true;
+    // Only files are subject to the .md filter; directories and unknowns pass through.
+    if (isDirectory === false && !name.toLowerCase().endsWith('.md')) return true;
+    return false;
+  };
+}

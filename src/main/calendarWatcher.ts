@@ -1,8 +1,9 @@
 import path from 'node:path';
+import type { Stats } from 'node:fs';
 import * as chokidar from 'chokidar';
 import type { CalendarEventResult } from './calendarLoader';
 import { loadCalendarEntryForFile } from './calendarLoader';
-import { escapeRegexExceptWildcard } from '../shared/pathPattern';
+import { buildCalendarFilter } from '../shared/pathPattern';
 import { logger } from '../shared/logUtil';
 
 export type CalendarFileChangedCallback = (results: CalendarEventResult[], filePath: string) => void;
@@ -15,32 +16,41 @@ export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolea
 // CalendarWatcher class so each view can own an independent instance.
 let currentWatcher: ReturnType<typeof chokidar.watch> | null = null;
 let currentFolder: string | null = null;
+// The ignore patterns the active watcher was built with. Compared on each
+// start request so an ignoredPaths change (edited in Settings) restarts the
+// watcher instead of silently keeping the stale filter — otherwise live
+// updates and the initial crawl diverge over the same folder.
+let currentIgnoredPaths: string[] = [];
+
+/** Order-sensitive equality for two ignore-pattern lists. */
+function sameIgnoredPaths(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((pattern, i) => pattern === b[i]);
+}
 
 /**
- * Build a chokidar `ignored` predicate that excludes hidden files (leading dot),
- * node_modules, any file whose extension is neither absent nor `.md`, and any path
- * matching one of the user's `extraPatterns` (wildcard-aware, case-insensitive).
- * Extensionless paths are allowed through so directories remain watchable.
+ * Build the chokidar `ignored` predicate from the *same* {@link buildCalendarFilter}
+ * the initial crawl uses, so watched and loaded files never diverge.
+ *
+ * chokidar calls this as `(path, stats?)` — sometimes before it has stat'd the entry.
+ * We derive a tri-state directory flag from `stats` and hand it to the shared filter:
+ * a directory (or a pre-stat call where the type is unknown) is never pruned by the
+ * `.md` rule, so folders with dotted names (`notes.2024`) stay watchable and their
+ * `.md` children live-update. Only entries known to be non-`.md` *files* are ignored.
  */
-function buildIgnoredFn(extraPatterns: string[]): (filePath: string) => boolean {
-  const compiled = extraPatterns.map(pat => {
-    const escaped = escapeRegexExceptWildcard(pat);
-    return new RegExp(`(^|[/\\\\])${escaped.replace(/\*/g, '.*')}([/\\\\]|$)`, 'i');
-  });
-  return (filePath: string) => {
-    const base = path.basename(filePath);
-    if (base.startsWith('.')) return true;
-    if (filePath.includes('node_modules')) return true;
-    const ext = path.extname(filePath).toLowerCase();
-    if (ext && ext !== '.md') return true;
-    return compiled.some(p => p.test(base) || p.test(filePath));
+function buildIgnoredFn(ignoredPaths: string[]): (filePath: string, stats?: Stats) => boolean {
+  const exclude = buildCalendarFilter(ignoredPaths);
+  return (filePath: string, stats?: Stats) => {
+    const isDirectory = stats ? stats.isDirectory() : undefined;
+    return exclude(path.basename(filePath), filePath, isDirectory);
   };
 }
 
 /**
  * Start watching `folderPath` for `.md` file changes and deletions.
  *
- * - If already watching the exact same folder, this is a no-op.
+ * - If already watching the exact same folder with the exact same `ignoredPaths`,
+ *   this is a no-op. A changed ignore list restarts the watcher so its filter stays
+ *   in sync with the initial crawl's.
  * - Any existing watcher is fully closed (awaited) before the new one starts, so
  *   the two never coexist and can't emit duplicate events or leak file handles.
  * - `onChanged` fires with the file's updated {@link CalendarEventResult} entries
@@ -54,8 +64,16 @@ export async function startCalendarWatcher(
   onDeleted: CalendarFileDeletedCallback,
   ignoredPaths: string[] = [],
 ): Promise<void> {
-  // Don't restart if already watching the same folder
-  if (currentFolder === folderPath && currentWatcher !== null) return;
+  // Don't restart if already watching the same folder with the same ignore list.
+  // A changed ignoredPaths must fall through to a restart so the watcher's filter
+  // matches the patterns the initial crawl just used.
+  if (
+    currentFolder === folderPath &&
+    currentWatcher !== null &&
+    sameIgnoredPaths(currentIgnoredPaths, ignoredPaths)
+  ) {
+    return;
+  }
 
   // Await the close so the previous watcher is fully torn down before the new
   // one is created — otherwise the two briefly coexist and can emit duplicate
@@ -63,6 +81,7 @@ export async function startCalendarWatcher(
   await stopCalendarWatcher();
 
   currentFolder = folderPath;
+  currentIgnoredPaths = ignoredPaths;
   currentWatcher = chokidar.watch(folderPath, {
     persistent: true,
     ignoreInitial: true,
@@ -76,9 +95,9 @@ export async function startCalendarWatcher(
   // Shared handler for file creation and modification: both load the file's
   // calendar entries and notify via onChanged.
   const handleUpsert = (filePath: string) => {
-    // buildIgnoredFn() lets extensionless paths through so directories stay
-    // watchable; this guard filters extensionless files (e.g. README) that
-    // aren't .md.
+    // buildIgnoredFn() only prunes entries it can confirm are non-.md files; a
+    // pre-stat event may still deliver a non-.md file (e.g. README). This guard is
+    // the backstop so only .md files ever produce calendar entries.
     if (path.extname(filePath).toLowerCase() !== '.md') return;
     loadCalendarEntryForFile(filePath)
       .then(results => onChanged(results, filePath))
@@ -112,14 +131,10 @@ export async function stopCalendarWatcher(): Promise<void> {
   const watcher = currentWatcher;
   currentWatcher = null;
   currentFolder = null;
+  currentIgnoredPaths = [];
   try {
     await watcher.close();
   } catch (err) {
     logger.error('Failed to close calendar watcher:', err);
   }
-}
-
-/** Return the folder path currently being watched, or `null` if no watcher is active. */
-export function getCalendarWatcherFolder(): string | null {
-  return currentFolder;
 }
