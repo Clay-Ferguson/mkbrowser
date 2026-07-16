@@ -33,6 +33,13 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
+  // Destructure to primitive coordinates so the positioning effect can depend on
+  // the numbers rather than the mousePosition object's identity. A caller passing
+  // an inline { x, y } literal would otherwise re-create it every render and make
+  // the effect tear down / re-attach its resize+scroll listeners each time.
+  const mouseX = mousePosition?.x;
+  const mouseY = mousePosition?.y;
+
   // Keep the latest onClose in a ref so the dismiss listeners don't re-subscribe
   // every render when callers pass an inline arrow function.
   const onCloseRef = useRef(onClose);
@@ -67,9 +74,9 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
       let top: number;
       let left: number;
 
-      if (mousePosition) {
-        top = mousePosition.y;
-        left = mousePosition.x;
+      if (mouseX !== undefined && mouseY !== undefined) {
+        top = mouseY;
+        left = mouseX;
       } else {
         const anchor = anchorRef?.current;
         if (!anchor) return;
@@ -95,7 +102,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
 
       // If menu overflows bottom, flip above the cursor/anchor
       if (top + menuRect.height > viewportHeight - VIEWPORT_MARGIN) {
-        const flipFrom = mousePosition ? mousePosition.y : (anchorRef?.current?.getBoundingClientRect().top ?? top);
+        const flipFrom = mouseY !== undefined ? mouseY : (anchorRef?.current?.getBoundingClientRect().top ?? top);
         top = flipFrom - menuRect.height - ANCHOR_GAP;
       }
 
@@ -122,7 +129,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
     };
-  }, [anchorRef, mousePosition]);
+  }, [anchorRef, mouseX, mouseY]);
 
   // Click-outside and Escape dismiss
   useEffect(() => {

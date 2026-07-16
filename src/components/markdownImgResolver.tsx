@@ -219,6 +219,12 @@ export function createCustomImage(entryPath: string) {
       return () => {
         isMounted = false;
       };
+      // Deps are [src] only, but resolve() also reads `entryPath` from the
+      // createCustomImage() factory closure. That's safe *only* because each
+      // distinct entryPath produces a distinct CustomImage component type, so a
+      // changed entryPath forces a full remount (fresh closure) rather than a
+      // re-render. If entryPath is ever passed as a prop instead, add it here or
+      // the effect will keep resolving against the stale path.
     }, [src]);
     
     if (isLoading) {
