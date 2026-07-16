@@ -12,7 +12,8 @@ import EditAIModelDialog from '../dialogs/EditAIModelDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import AlertDialog from '../dialogs/AlertDialog';
 import CheckboxField from '../dialogs/common/CheckboxField';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
+import NameInputDialog from '../dialogs/common/NameInputDialog';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
 
 const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
@@ -116,6 +117,10 @@ function AISettingsView() {
       : cfg.aiRewritePrompts.find((p) => p.name === name)?.prompt ?? '';
   });
   const [showPromptDeleteConfirm, setShowPromptDeleteConfirm] = useState(false);
+  // "New Persona" dialog + the name-collision message it can raise (shown stacked
+  // above it, so the name the user typed survives the correction).
+  const [showNewPersonaDialog, setShowNewPersonaDialog] = useState(false);
+  const [personaNameMessage, setPersonaNameMessage] = useState<string | null>(null);
 
   // AI model CRUD dialog state
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -277,6 +282,44 @@ function AISettingsView() {
     void saveAiConfigField({ aiModels: updated, aiModel: newSelected });
     setShowDeleteConfirm(false);
   };
+
+  // --- Persona CRUD handlers ---
+
+  /**
+   * Creates an empty persona from the New Persona dialog and selects it, leaving
+   * the user in front of an empty editor ready to type the prompt and Save.
+   * Names are matched exactly, the same way the Save and Delete buttons match.
+   */
+  const handleCreatePersona = (name: string) => {
+    if (!name) {
+      setShowNewPersonaDialog(false);
+      return;
+    }
+    if (name === DEFAULT_PERSONA_NAME || aiRewritePrompts.some((p) => p.name === name)) {
+      setPersonaNameMessage(`A persona named "${name}" already exists. Choose a different name.`);
+      return;
+    }
+    setShowNewPersonaDialog(false);
+    setSelectedPromptName(name);
+    setPromptEditorContent('');
+    void saveAiConfigField({
+      aiRewritePrompts: [...aiRewritePrompts, { name, prompt: '' }],
+      aiRewritePrompt: name,
+    });
+  };
+
+  /** Writes the editor buffer back to the selected persona. */
+  const handleSavePersona = () => {
+    const name = selectedPromptName.trim();
+    if (!name) return;
+    const updated = aiRewritePrompts.filter((p) => p.name !== name);
+    updated.push({ name, prompt: promptEditorContent });
+    void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: name });
+  };
+
+  // The default agent is built in: it can be selected and used, but not edited,
+  // saved over, or deleted. An empty name means nothing is selected (post-delete).
+  const personaIsEditable = Boolean(selectedPromptName.trim()) && selectedPromptName !== DEFAULT_PERSONA_NAME;
 
   // Fire-and-forget: wired directly to the reset-confirmation dialog's
   // `onConfirm` (a `() => void` prop). Uses the sync-signature + internal
@@ -644,18 +687,13 @@ function AISettingsView() {
               <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
                 <h2 className="text-lg font-semibold text-slate-100 mb-4">AI Personas</h2>
                 <div>
-                  {/* Combobox row: name selector + Save + Delete */}
+                  {/* Combobox row: persona selector + New + Save + Delete */}
                   <div className="flex gap-3 mb-3">
+                    {/* Select-only (no onChange): personas are created through the
+                        New Persona button, not by typing a name in here. */}
                     <EditableCombobox
                       data-testid="ai-persona-combobox"
                       value={selectedPromptName}
-                      onChange={(name) => {
-                        // Only track the typed name here; deriving the editor content on
-                        // every keystroke would wipe unsaved prompt edits the moment the
-                        // name stops matching an existing persona (e.g. renaming "foo" to
-                        // "foo2"). Editor content is derived only on selection (onSelect).
-                        setSelectedPromptName(name);
-                      }}
                       onSelect={(option: ComboboxOption) => {
                         setSelectedPromptName(option.value);
                         if (option.value === DEFAULT_PERSONA_NAME) {
@@ -672,19 +710,21 @@ function AISettingsView() {
                           .sort((a, b) => a.name.localeCompare(b.name))
                           .map((p) => ({ value: p.name, label: p.name })),
                       ]}
-                      placeholder="Enter a name or select existing..."
+                      placeholder="Select a persona..."
                       className="flex-1"
                     />
                     <button
                       type="button"
-                      disabled={!selectedPromptName.trim() || selectedPromptName === DEFAULT_PERSONA_NAME}
-                      onClick={() => {
-                        const name = selectedPromptName.trim();
-                        if (!name) return;
-                        const updated = aiRewritePrompts.filter((p) => p.name !== name);
-                        updated.push({ name, prompt: promptEditorContent });
-                        void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: name });
-                      }}
+                      onClick={() => setShowNewPersonaDialog(true)}
+                      className={clsx(BUTTON_CLASS_DLG_BLUE, 'whitespace-nowrap')}
+                      data-testid="ai-persona-new-button"
+                    >
+                      New
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!personaIsEditable}
+                      onClick={handleSavePersona}
                       className={BUTTON_CLASS_DLG_GREEN}
                       data-testid="ai-persona-save-button"
                     >
@@ -692,7 +732,7 @@ function AISettingsView() {
                     </button>
                     <button
                       type="button"
-                      disabled={!selectedPromptName.trim() || selectedPromptName === DEFAULT_PERSONA_NAME || !aiRewritePrompts.some((p) => p.name === selectedPromptName)}
+                      disabled={!personaIsEditable || !aiRewritePrompts.some((p) => p.name === selectedPromptName)}
                       onClick={() => setShowPromptDeleteConfirm(true)}
                       className={BUTTON_CLASS_DLG_RED}
                       data-testid="ai-persona-delete-button"
@@ -704,7 +744,7 @@ function AISettingsView() {
                   <textarea
                     value={promptEditorContent}
                     onChange={(e) => setPromptEditorContent(e.target.value)}
-                    disabled={!selectedPromptName.trim() || selectedPromptName === DEFAULT_PERSONA_NAME}
+                    disabled={!personaIsEditable}
                     rows={5}
                     placeholder={DEFAULT_AI_REWRITE_PERSONA}
                     className="w-full bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-base font-mono disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-slate-500"
@@ -791,6 +831,29 @@ function AISettingsView() {
           message="Reset all AI usage statistics to zero? This cannot be undone."
           onConfirm={handleResetUsage}
           onCancel={() => setShowResetConfirm(false)}
+        />
+      )}
+
+      {/* New persona name prompt */}
+      {showNewPersonaDialog && (
+        <NameInputDialog
+          title="New Persona"
+          label="Persona name"
+          placeholder="e.g. Hemingway"
+          normalizeName={(raw) => raw.trim()}
+          onCreate={handleCreatePersona}
+          onCancel={() => setShowNewPersonaDialog(false)}
+          inputTestId="new-persona-dialog-input"
+          createTestId="new-persona-dialog-create-button"
+        />
+      )}
+
+      {/* Persona name collision message (stacked over the New Persona dialog) */}
+      {personaNameMessage && (
+        <AlertDialog
+          title="Name Already Used"
+          message={personaNameMessage}
+          onClose={() => setPersonaNameMessage(null)}
         />
       )}
 

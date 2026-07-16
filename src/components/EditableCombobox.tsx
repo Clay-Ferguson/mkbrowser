@@ -8,7 +8,12 @@ export interface ComboboxOption {
 
 interface EditableComboboxProps {
   value: string;
-  onChange: (value: string) => void;
+  /**
+   * Called as the user types. Omit to make the combobox select-only: the input
+   * becomes read-only, the list is never filtered, and `value` can then change
+   * only through `onSelect`.
+   */
+  onChange?: (value: string) => void;
   onSelect: (option: ComboboxOption) => void;
   options: ComboboxOption[];
   placeholder?: string;
@@ -22,8 +27,9 @@ interface EditableComboboxProps {
 const OPTION_ROW_HEIGHT = 36;
 
 /**
- * An editable combobox that combines a text input with a dropdown list.
- * Users can either type freely or select from existing options.
+ * A combobox that combines a text input with a dropdown list. Users can either
+ * type freely or select from existing options — or, when the caller omits
+ * `onChange`, pick from the options only (see `selectOnly` below).
  */
 function EditableCombobox({
   value,
@@ -63,9 +69,13 @@ function EditableCombobox({
     });
   };
 
+  // No onChange means the caller wants selection only: there is nothing to type
+  // into, so the input is read-only and the list stays unfiltered.
+  const selectOnly = !onChange;
+
   // Filter options based on current input value, unless showAllOptions is true
   const lowerValue = value.toLowerCase();
-  const filteredOptions = showAllOptions
+  const filteredOptions = showAllOptions || selectOnly
     ? options
     : options.filter((option) =>
         option.label.toLowerCase().includes(lowerValue)
@@ -102,7 +112,7 @@ function EditableCombobox({
   }, [highlightedIndex, highlightedValue]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
+    onChange?.(e.target.value);
     setShowAllOptions(false); // Filter as user types
     setIsOpen(true);
     setHighlightedIndex(-1);
@@ -179,12 +189,16 @@ function EditableCombobox({
           ref={inputRef}
           type="text"
           value={value}
+          readOnly={selectOnly}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           data-testid={dataTestId}
-          className="flex-1 bg-slate-900 text-slate-200 px-3 py-2 rounded-l border border-r-0 border-slate-600 focus:outline-none focus:border-blue-500 text-sm"
+          className={clsx(
+            'flex-1 bg-slate-900 text-slate-200 px-3 py-2 rounded-l border border-r-0 border-slate-600 focus:outline-none focus:border-blue-500 text-sm',
+            selectOnly && 'cursor-pointer',
+          )}
         />
         <button
           type="button"
