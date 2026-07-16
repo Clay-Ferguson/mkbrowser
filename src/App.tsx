@@ -275,8 +275,13 @@ function App() {
 
   // Load initial configuration
   useEffect(() => {
+    // Guard against a superseded run's writes winning (StrictMode/dev double-invoke,
+    // or an unmount before loadConfig resolves): the cleanup flips this and every
+    // post-await state write bails.
+    let cancelled = false;
     const initConfig = async () => {
       const result = await loadConfig();
+      if (cancelled) return;
       setLastExportFolder(result.lastExportFolder);
       setAiEnabled(result.aiEnabled);
       setRecentFolders(result.recentFolders);
@@ -290,9 +295,14 @@ function App() {
       }
     };
     initConfig().catch((err: unknown) => {
+      if (cancelled) return;
       setError(err instanceof Error ? err.message : 'Failed to load configuration');
       setLoading(false);
     });
+    // Returns the useEffect cleanup: marks this run stale so its async writes no-op.
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Load directory when path changes, or when an out-of-band refresh is requested
