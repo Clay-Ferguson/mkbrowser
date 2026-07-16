@@ -36,48 +36,43 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
   const viewRef = useRef<EditorView | null>(null);
   const settings = useAS(s => s.settings);
 
-  // Mount-time configuration, captured on first render. The mount effect below intentionally
-  // uses these initial values — a review session is created fresh per rewrite rather than
-  // having its texts mutated on a live instance, so capturing them once is correct.
-  const mountConfigRef = useRef({
-    originalText,
-    modifiedText,
-    language,
-    fontSize: settings.fontSize,
-  });
+  // Font size is captured once, deliberately excluded from the effect's deps: a font-size change
+  // mid-review must NOT rebuild the view, which would discard the user's in-progress chunk
+  // resolutions. The texts/language ARE deps, so the view rebuilds if a new review session ever
+  // reuses this instance with different content instead of remounting.
+  const fontSizeRef = useRef(settings.fontSize);
 
   useEffect(() => {
     if (!editorRef.current) return;
-    const cfg = mountConfigRef.current;
 
     const extensions = [
       basicSetup,
       oneDark,
-      createFontSizeTheme(cfg.fontSize),
+      createFontSizeTheme(fontSizeRef.current),
       EditorView.lineWrapping,
       EditorState.readOnly.of(true),
       unifiedMergeView({
-        original: cfg.originalText,
+        original: originalText,
         mergeControls: true,
         highlightChanges: true,
         gutter: true,
       }),
     ];
 
-    if (cfg.language === 'markdown') {
+    if (language === 'markdown') {
       extensions.push(markdown());
-    } else if (cfg.language === 'javascript') {
+    } else if (language === 'javascript') {
       extensions.push(javascript());
-    } else if (cfg.language === 'typescript') {
+    } else if (language === 'typescript') {
       extensions.push(javascript({ typescript: true }));
-    } else if (cfg.language === 'python') {
+    } else if (language === 'python') {
       extensions.push(python());
-    } else if (cfg.language === 'shell') {
+    } else if (language === 'shell') {
       extensions.push(StreamLanguage.define(shell));
     }
 
     const state = EditorState.create({
-      doc: cfg.modifiedText,
+      doc: modifiedText,
       extensions,
     });
 
@@ -88,12 +83,13 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
 
     viewRef.current = view;
 
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): destroys the CodeMirror EditorView and clears its ref on unmount.
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): destroys the CodeMirror
+    // EditorView and clears its ref on unmount or before a rebuild (texts/language change).
     return () => {
       view.destroy();
       viewRef.current = null;
     };
-  }, []);
+  }, [originalText, modifiedText, language]);
 
   const resolveAllChunks = (action: 'accept' | 'reject') => {
     const view = viewRef.current;
