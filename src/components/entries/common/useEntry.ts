@@ -78,7 +78,6 @@ export function useEditableEntry(
 
   const { loading, content } = useContentLoader({
     path: props.entry.path,
-    modifiedTime: props.entry.modifiedTime,
     isExpanded: core.isExpanded,
     errorMessage,
   });

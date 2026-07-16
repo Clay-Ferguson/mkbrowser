@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../../renderer/api';
-import { useAS, setItemContent, isCacheValid, getItem } from '../../../store';
+import { useAS, setItemContent, isItemCacheValid, getItem } from '../../../store';
 import { applyGlobalHighlight, getGlobalHighlightText } from '../../../renderer/globalHighlight';
 import type { ContentLoaderState } from './types';
 
 interface UseContentLoaderOptions {
   /** Full path of the file */
   path: string;
-  /** File modification time (for cache invalidation) */
-  modifiedTime: number;
   /** Whether content is expanded/visible */
   isExpanded: boolean;
   /** Error message to show on load failure */
@@ -49,12 +47,23 @@ async function loadFileContent(
  */
 export function useContentLoader({
   path,
-  modifiedTime,
   isExpanded,
   errorMessage = 'Error reading file',
 }: UseContentLoaderOptions): ContentLoaderState {
   const item = useAS(s => s.items.get(path));
   const [loading, setLoading] = useState(false);
+
+  // Reactive cache validity, derived from the subscribed item. Depending on
+  // this (rather than an mtime prop) makes the loader self-healing: *any*
+  // invalidation — content wiped by isReplacedFile when a file's birthtime
+  // changed behind our back, or a stale contentCachedAt after an external
+  // edit — flips it to false and re-triggers the load, even when the mtime is
+  // unchanged. With an mtime dep alone, a wipe without an mtime change left
+  // the entry permanently blank until app restart. No re-read loop is
+  // possible: a load that leaves the cache invalid (e.g. the store mtime
+  // already moved ahead of the read) keeps this false, and an unchanged dep
+  // never re-runs the effect.
+  const cacheValid = isItemCacheValid(item);
 
   // Load content if not cached or cache is stale
   useEffect(() => {
@@ -67,7 +76,7 @@ export function useContentLoader({
     let ignore = false;
 
     // Only load when expanded and there is no valid cached content.
-    if (isExpanded && !isCacheValid(path)) {
+    if (isExpanded && !cacheValid) {
       void loadFileContent(path, errorMessage, () => ignore, setLoading);
     }
 
@@ -75,7 +84,7 @@ export function useContentLoader({
     return () => {
       ignore = true;
     };
-  }, [path, modifiedTime, isExpanded, errorMessage]);
+  }, [path, cacheValid, isExpanded, errorMessage]);
 
   // Get content from cache
   const content = item?.content ?? '';

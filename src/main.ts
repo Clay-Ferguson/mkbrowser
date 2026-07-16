@@ -360,7 +360,10 @@ function setupIpcHandlers(): void {
 
       // If the post-write stat somehow failed (file deleted in between), fall
       // back to Date.now() rather than failing a save that actually landed.
-      return { ok: true, content: finalContent, mtime: savedStats?.mtimeMs ?? Date.now(), size: savedStats?.size };
+      // createdTime (birthtime) is included because the atomic rename gives the
+      // file a new inode — the renderer must adopt the new birthtime or the
+      // next directory refresh misreads the save as a file replacement.
+      return { ok: true, content: finalContent, mtime: savedStats?.mtimeMs ?? Date.now(), size: savedStats?.size, createdTime: savedStats?.birthtimeMs };
     } catch (error) {
       logger.error('Error writing file:', error);
       return { ok: false, content, mtime: 0 };

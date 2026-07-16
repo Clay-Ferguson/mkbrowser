@@ -29,8 +29,11 @@ async function writeFileAndExitEditMode(path: string, editContent: string): Prom
       // Stamp the cache with the file's real post-write mtime from the main
       // process — a renderer Date.now() is generally at or ahead of the disk
       // mtime, which would blind the pre-edit external-modification check to
-      // any later edit landing in the same mtime window.
-      setItemContent(path, result.content, result.mtime, result.size);
+      // any later edit landing in the same mtime window. The post-write
+      // createdTime (birthtime) must be adopted too: the atomic save renames a
+      // new inode into place, and a stale birthtime makes the next directory
+      // refresh wipe the item as "replaced" (isReplacedFile).
+      setItemContent(path, result.content, result.mtime, result.size, result.createdTime);
       setItemEditing(path, false);
       if (getGlobalHighlightText()) {
         requestAnimationFrame(() => applyGlobalHighlight(getGlobalHighlightText()));

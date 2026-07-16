@@ -113,7 +113,7 @@ async function saveCalendarProps(path: string, newContent: string): Promise<void
   try {
     const result = await api.writeFile(path, newContent);
     if (result.ok) {
-      setItemContent(path, result.content, result.mtime, result.size);
+      setItemContent(path, result.content, result.mtime, result.size, result.createdTime);
     }
   } catch (err) {
     logger.error('Failed to save calendar properties:', err);

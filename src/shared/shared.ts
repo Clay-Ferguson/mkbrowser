@@ -241,6 +241,15 @@ export interface FileWriteResult {
   mtime: number;
   /** Size in bytes of the file after the write; undefined when the post-write stat failed */
   size?: number;
+  /**
+   * birthtimeMs of the file after the write; undefined when the post-write stat
+   * failed. The atomic save (temp file + rename) gives the file a NEW inode, so
+   * its birthtime changes on every save. Callers must adopt this into the
+   * item's createdTime, or the next directory refresh sees a birthtime the
+   * store doesn't know, concludes the file was replaced behind our back
+   * (isReplacedFile), and wipes the item's cached content and volatile flags.
+   */
+  createdTime?: number;
 }
 
 export interface SearchResult {

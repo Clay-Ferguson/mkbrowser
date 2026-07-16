@@ -98,6 +98,40 @@ describe('items store — stale entry reconciliation', () => {
     });
   });
 
+  describe('setItemContent: adopting the post-save birthtime', () => {
+    // The atomic save (temp file + rename) gives the file a new inode, so its
+    // birthtime changes on every in-app save. The save flow passes the
+    // post-write stat's birthtime into setItemContent; without adopting it,
+    // the next directory refresh would see an unknown createdTime and wipe the
+    // entry as "replaced" — blanking every saved file's content (and, because
+    // nothing re-triggered the content loader, it stayed blank until restart).
+    it('a refresh after an in-app save is not treated as a replacement', () => {
+      seedCutNote(1000);
+
+      // Save: post-write stat says mtime=2000, birthtime=2000 (new inode).
+      setItemContent(NOTE, 'saved body', 2000, 10, 2000);
+      expect(getItem(NOTE)?.createdTime).toBe(2000);
+      expect(isCacheValid(NOTE)).toBe(true);
+
+      // The refresh triggered after the save (or by creating another file)
+      // reports the same post-save stat — an ordinary edit, not a replacement.
+      syncDirectoryItems(DIR, [entry(NOTE, { modifiedTime: 2000, createdTime: 2000, size: 10 })]);
+
+      const item = getItem(NOTE);
+      expect(item?.content).toBe('saved body');
+      expect(item?.isCut).toBe(true);
+      expect(isCacheValid(NOTE)).toBe(true);
+    });
+
+    it('keeps the existing createdTime when none is supplied (plain read)', () => {
+      seedCutNote(1000);
+
+      setItemContent(NOTE, 'read body', 1000, 9);
+
+      expect(getItem(NOTE)?.createdTime).toBe(1000);
+    });
+  });
+
   describe('syncDirectoryItems: pruning vanished entries', () => {
     it('removes cached entries the listing no longer contains', () => {
       seedCutNote();

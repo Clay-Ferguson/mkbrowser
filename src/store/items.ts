@@ -115,7 +115,7 @@ function stripTrailingSep(path: string): string {
 export interface ItemsSlice {
   upsertItems: (items: IncomingItem[]) => void;
   syncDirectoryItems: (dirPath: string, items: IncomingItem[]) => void;
-  setItemContent: (path: string, content: string, modifiedTime: number, size?: number) => void;
+  setItemContent: (path: string, content: string, modifiedTime: number, size?: number, createdTime?: number) => void;
   toggleItemSelected: (path: string) => void;
   toggleItemExpanded: (path: string) => void;
   setItemExpanded: (path: string, isExpanded: boolean) => void;
@@ -219,8 +219,14 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * started before an external change landed), the newer mtime is kept, so
      * contentCachedAt < modifiedTime and the stale content is immediately
      * cache-invalid instead of being poisoned as valid-at-the-newer-mtime.
+     *
+     * `createdTime` must be supplied after a *write* (the post-write stat's
+     * birthtimeMs): the atomic save replaces the file's inode, so its birthtime
+     * changes on every save. Without adopting it, the next directory refresh
+     * sees an unknown birthtime and isReplacedFile wipes the whole entry.
+     * Plain reads never change birthtime, so readers omit it.
      */
-    setItemContent: (path, content, modifiedTime, size) => {
+    setItemContent: (path, content, modifiedTime, size, createdTime) => {
       const state = get();
       const existing = state.items.get(path);
       if (!existing) return;
@@ -236,6 +242,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
         modifiedTime: Math.max(existing.modifiedTime, modifiedTime),
         contentCachedAt: modifiedTime,
         contentCachedSize: size,
+        createdTime: createdTime ?? existing.createdTime,
         tags,
         props,
       });
@@ -702,8 +709,8 @@ export function syncDirectoryItems(dirPath: string, items: IncomingItem[]): void
   getState().syncDirectoryItems(dirPath, items);
 }
 
-export function setItemContent(path: string, content: string, modifiedTime: number, size?: number): void {
-  getState().setItemContent(path, content, modifiedTime, size);
+export function setItemContent(path: string, content: string, modifiedTime: number, size?: number, createdTime?: number): void {
+  getState().setItemContent(path, content, modifiedTime, size, createdTime);
 }
 
 export function toggleItemSelected(path: string): void {
@@ -811,10 +818,13 @@ export function getCutItems(): ItemData[] {
 }
 
 /**
- * Check if cached content is valid for an item
+ * Check if an item's cached content is valid. Pure — usable both from
+ * non-reactive code (via {@link isCacheValid}) and from render, where a
+ * component that subscribes to the item can use the result as an effect
+ * dependency so a cache invalidation (content wiped or stamped stale)
+ * re-triggers loading even when the mtime is unchanged.
  */
-export function isCacheValid(path: string): boolean {
-  const item = getState().items.get(path);
+export function isItemCacheValid(item: ItemData | undefined): boolean {
   // Check content for undefined (never loaded) rather than falsiness, so an
   // empty file ('') still counts as cached once read — otherwise empty markdown
   // files would be re-read on every content-loader pass.
@@ -826,6 +836,13 @@ export function isCacheValid(path: string): boolean {
   // coarse filesystem timestamps) validate content an external edit has since
   // replaced — and a save over that stale content destroys the external edit.
   return item.contentCachedAt === item.modifiedTime;
+}
+
+/**
+ * Check if cached content is valid for an item (direct access, not a hook)
+ */
+export function isCacheValid(path: string): boolean {
+  return isItemCacheValid(getState().items.get(path));
 }
 
 /**
