@@ -79,20 +79,18 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
 
   // The persona name and the list of personas both come from the store mirror,
   // so a persona created/renamed/selected in AISettingsView is reflected here
-  // without a remount. `typingDraft` holds any in-progress combobox edit until
-  // it's committed via onSelect.
+  // without a remount. The displayed name is read straight from the store (no
+  // local draft), so the header can never claim a persona that isn't the active
+  // one — personas are created in AISettingsView, never typed in here.
   const { aiRewritePrompt, aiRewritePrompts } = useAS(s => s.aiConfig);
-  const storedPersona = aiRewritePrompt || DEFAULT_PERSONA_NAME;
-  const [typingDraft, setTypingDraft] = useState<string | null>(null);
-  const personaName = typingDraft ?? storedPersona;
+  const personaName = aiRewritePrompt || DEFAULT_PERSONA_NAME;
 
   /**
-   * Commits a persona selection from the combobox, clears the typing draft, and
-   * persists the new active persona via `saveAiConfig` so the editor's AI Rewrite
-   * button (which reads the same store mirror) picks it up immediately.
+   * Commits a persona selection from the combobox, persisting the new active
+   * persona via `saveAiConfig` so the editor's AI Rewrite button (which reads the
+   * same store mirror) picks it up immediately.
    */
   const handlePersonaSelect = (name: string) => {
-    setTypingDraft(null);
     void saveAiConfig({ aiRewritePrompt: name });
   };
 
@@ -243,10 +241,10 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
       </div>
       <div className="ml-auto text-sm text-slate-400 flex items-center gap-2">
         <span className="whitespace-nowrap">Chat with Persona:</span>
+        {/* Select-only (no onChange): personas are created in AISettingsView. */}
         <EditableCombobox
           data-testid="thread-persona-combobox"
           value={personaName}
-          onChange={setTypingDraft}
           onSelect={(option: ComboboxOption) => handlePersonaSelect(option.value)}
           options={[
             { value: DEFAULT_PERSONA_NAME, label: DEFAULT_PERSONA_NAME },
