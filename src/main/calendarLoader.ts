@@ -270,7 +270,9 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
       return [];
     }
 
-    const title = path.basename(filePath, '.md');
+    // Strip the .md extension case-insensitively — the crawl filter admits
+    // `.MD`/`.Md` too, and `path.basename(f, '.md')` only strips exact lowercase.
+    const title = path.basename(filePath).replace(/\.md$/i, '');
     const snippet = extractSnippet(fm.body);
 
     let startMs = dueDate.getTime();
