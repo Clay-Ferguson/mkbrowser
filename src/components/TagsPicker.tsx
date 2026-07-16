@@ -44,7 +44,10 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
           setLoadState({ status: 'loaded', categories });
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        // A load failure (bad tags config, IPC error) is otherwise indistinguishable
+        // from "no tags configured" since both render null — log so it's diagnosable.
+        console.error('Failed to load tag definitions:', err);
         if (!cancelled) setLoadState({ status: 'loaded', categories: [] });
       });
 
@@ -78,14 +81,19 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
       return;
     }
 
-    const isChecked = activeTags.includes(tagName(def.tag));
+    // Derive the active tags from the *live* buffer (currentContent), not the render-time
+    // `activeTags`: the toggle decision and the edit below must be made against the same
+    // content, or a buffer change between render and click (debounce flush, calendar save)
+    // would add/remove the wrong tags.
+    const currentActiveTags = parts ? getTagsFromYaml(parts.yamlStr) : [];
+    const isChecked = currentActiveTags.includes(tagName(def.tag));
 
     if (!isChecked) {
       // Radio-button behaviour within the category: remove other checked tags first.
       // Exception: "all" category allows multiple selections.
       if (category.name.toLowerCase() !== 'all') {
         for (const sibling of category.tags) {
-          if (sibling.tag !== def.tag && activeTags.includes(tagName(sibling.tag))) {
+          if (sibling.tag !== def.tag && currentActiveTags.includes(tagName(sibling.tag))) {
             currentContent = removeTagFromText(currentContent, sibling.tag);
           }
         }
