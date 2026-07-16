@@ -358,12 +358,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    * and reconciled with .INDEX.yaml, so the UI never desyncs from disk. The cut
    * flag is cleared only when every item moved successfully.
    */
-  // Fire-and-forget UI handler: sync signature so the click's synchronous work
-  // runs before the event is recycled, with the async body run through
+  // Fire-and-forget UI handler: sync signature with the async body run through
   // runAndLogFailure so failures are reported instead of leaking an unhandled
   // rejection.
-  const handlePasteIntoFolder = (node: FileNode, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handlePasteIntoFolder = (node: FileNode) => {
     const cutItems = getCutItems();
     if (cutItems.length === 0) return;
 
@@ -612,7 +610,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         onNewFolder: () => setCreateFolderParent(node.path),
       } : {}),
       ...(hasCutItems && node.isDirectory ? {
-        onPaste: () => handlePasteIntoFolder(node, e),
+        onPaste: () => handlePasteIntoFolder(node),
       } : {}),
       onCopyPath: () => void navigator.clipboard.writeText(node.path),
       onCopyRelativePath: () => void navigator.clipboard.writeText(computeRelativePath(currentPath, node.path)),
