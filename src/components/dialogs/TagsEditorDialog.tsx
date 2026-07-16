@@ -144,11 +144,16 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
   };
 
   const deleteCategory = (catId: string) => {
-    setCategories((prev) => prev.filter((c) => c.id !== catId));
+    // Derive both the new list and the fallback selection from one filtered
+    // array so the two setters can never disagree (e.g. two deletes batched in
+    // a single event). When the deleted category was selected, fall back to the
+    // first category in *display* order (alphabetical), matching sortedCategories.
+    const remaining = categories.filter((c) => c.id !== catId);
+    setCategories(remaining);
     setSelectedCatId((prevSel) => {
       if (prevSel !== catId) return prevSel;
-      const next = categories.filter((c) => c.id !== catId);
-      return next.length > 0 ? next[0]!.id : null;
+      if (remaining.length === 0) return null;
+      return [...remaining].sort((a, b) => a.name.localeCompare(b.name))[0]!.id;
     });
   };
 
