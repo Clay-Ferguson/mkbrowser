@@ -900,13 +900,31 @@ export function useExpansionCounts(): ExpansionCounts {
 }
 
 /**
+ * Memo cache for hasAnyCutItems, keyed on map identity. Zustand evaluates every
+ * subscriber's selector on every store write, and several entry components each
+ * subscribe with `useAS(s => hasAnyCutItems(s.items))` — without the cache that
+ * is one full item scan *per mounted entry* per write (e.g. per debounced
+ * keystroke while editing inline). Every items mutation builds a new Map, so
+ * map identity is a sound cache key and old entries are GC'd with their maps.
+ */
+const hasAnyCutItemsCache = new WeakMap<Map<string, ItemData>, boolean>();
+
+/**
  * Check whether any items are currently cut. Pure helper for direct selectors:
  * `useAS(s => hasAnyCutItems(s.items))` — the result is a primitive, so
- * no `useShallow` is needed.
+ * no `useShallow` is needed. Memoized on map identity, so N subscribers share
+ * one scan per store write.
  */
 export function hasAnyCutItems(items: Map<string, ItemData>): boolean {
+  const cached = hasAnyCutItemsCache.get(items);
+  if (cached !== undefined) return cached;
+  let result = false;
   for (const item of items.values()) {
-    if (item.isCut) return true;
+    if (item.isCut) {
+      result = true;
+      break;
+    }
   }
-  return false;
+  hasAnyCutItemsCache.set(items, result);
+  return result;
 }

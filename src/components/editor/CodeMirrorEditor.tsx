@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useImperativeHandle, type Ref, type RefObject, type CSSProperties } from 'react';
 import { EditorView, placeholder as placeholderExt, keymap, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
-import { EditorState, Compartment } from '@codemirror/state';
+import { EditorState, Compartment, type Text } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
 import { highlightSelectionMatches, search, searchKeymap, openSearchPanel, setSearchQuery, SearchQuery } from '@codemirror/search';
 import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching, StreamLanguage } from '@codemirror/language';
@@ -34,14 +34,16 @@ const FOCUS_DELAY_MS = 100;
 const ONCHANGE_DEBOUNCE_MS = 50;
 
 /**
- * Mutable debounce state for onChange delivery, held in a single ref. `lastDelivered` is the
- * last doc text handed to onChange (or adopted from an external value sync); the value-sync
- * effect uses it to tell a store echo of the editor's own onChange apart from a genuine
- * external content change.
+ * Mutable debounce state for onChange delivery, held in a single ref. `pendingDoc` holds the
+ * immutable CodeMirror `Text` of the latest undelivered change — capturing the reference is
+ * O(1) per keystroke, and the O(doc) `toString()` happens once at flush time instead of on
+ * every keystroke. `lastDelivered` is the last doc text handed to onChange (or adopted from
+ * an external value sync); the value-sync effect uses it to tell a store echo of the editor's
+ * own onChange apart from a genuine external content change.
  */
 interface OnChangeDebounceState {
   timer: ReturnType<typeof setTimeout> | null;
-  pendingDoc: string | null;
+  pendingDoc: Text | null;
   lastDelivered: string;
 }
 
@@ -58,7 +60,7 @@ function flushPendingOnChange(d: OnChangeDebounceState, onChange: (value: string
     d.timer = null;
   }
   if (d.pendingDoc !== null) {
-    const doc = d.pendingDoc;
+    const doc = d.pendingDoc.toString();
     d.pendingDoc = null;
     d.lastDelivered = doc;
     onChange(doc);
@@ -498,7 +500,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !suppressOnChangeRef.current) {
           const d = onChangeDebounceRef.current;
-          d.pendingDoc = update.state.doc.toString();
+          d.pendingDoc = update.state.doc;
           if (d.timer !== null) clearTimeout(d.timer);
           d.timer = setTimeout(() => flushPendingOnChange(d, onChangeRef.current), ONCHANGE_DEBOUNCE_MS);
         }
