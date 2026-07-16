@@ -20,6 +20,7 @@ export interface CalendarSlice {
   setCalendarLoading: (loading: boolean) => void;
   setCalendarViewType: (viewType: CalendarViewType) => void;
   setCalendarViewTime: (date: Date) => void;
+  setCalendarWatcherWarning: (message: string | null) => void;
 }
 
 /**
@@ -67,6 +68,9 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
 
     /** Set the date the calendar is centered on. */
     setCalendarViewTime: (date) => set({ calendarViewTime: date }),
+
+    /** Set (or clear, with null) the one-time file-watcher warning banner. */
+    setCalendarWatcherWarning: (message) => set({ calendarWatcherWarning: message }),
   };
 }
 
@@ -103,4 +107,8 @@ export function setCalendarViewType(viewType: CalendarViewType): void {
 
 export function setCalendarViewTime(date: Date): void {
   getState().setCalendarViewTime(date);
+}
+
+export function setCalendarWatcherWarning(message: string | null): void {
+  getState().setCalendarWatcherWarning(message);
 }

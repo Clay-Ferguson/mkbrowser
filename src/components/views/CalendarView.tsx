@@ -5,7 +5,7 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { api } from '../../renderer/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { setCalendarViewType, setCalendarViewTime, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useAS } from '../../store';
+import { setCalendarViewType, setCalendarViewTime, setCalendarWatcherWarning, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useAS } from '../../store';
 import type { CalendarEvent, CalendarViewType } from '../../shared/types';
 import { logger } from '../../shared/logUtil';
 import { getParentPath, joinPath } from '../../renderer/pathUtil';
@@ -62,6 +62,7 @@ export default function CalendarView() {
   const date = useAS(s => s.calendarViewTime);
   const settings = useAS(s => s.settings);
   const activeCalendarFolder = useAS(s => s.activeCalendarFolder);
+  const watcherWarning = useAS(s => s.calendarWatcherWarning);
   const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
 
   const handleViewChange = (v: View) => {
@@ -149,6 +150,19 @@ export default function CalendarView() {
           title="Browse to this folder"
         >
           <span className="text-slate-500">Calendar folder:</span> {activeCalendarFolder}
+        </div>
+      )}
+      {watcherWarning && (
+        <div className="w-full px-4 py-2 bg-amber-900/40 border-b border-amber-700 text-amber-200 text-sm flex items-start gap-3">
+          <span className="flex-shrink-0" aria-hidden="true">⚠</span>
+          <span className="flex-1">{watcherWarning}</span>
+          <button
+            className="flex-shrink-0 text-amber-300 hover:text-amber-100"
+            onClick={() => setCalendarWatcherWarning(null)}
+            title="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       )}
       {loading && (

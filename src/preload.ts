@@ -105,6 +105,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => { ipcRenderer.removeListener('calendar-file-deleted', listener); };
   },
 
+  // Calendar watcher error (e.g. inotify exhaustion) — surfaced once so the user
+  // knows live updates degraded (chokidar → renderer)
+  onCalendarWatcherError: (callback: (message: string) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, message: string) => callback(message);
+    ipcRenderer.on('calendar-watcher-error', listener);
+    return () => { ipcRenderer.removeListener('calendar-watcher-error', listener); };
+  },
+
   runOcrInTerminal: (ocrToolsFolder: string, targets: OcrTarget[]) => ipcRenderer.invoke('run-ocr-in-terminal', ocrToolsFolder, targets),
   insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) =>
     ipcRenderer.invoke('insert-into-index-yaml', dirPath, newName, insertAfterName),

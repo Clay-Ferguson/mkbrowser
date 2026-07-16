@@ -8,6 +8,7 @@ import { logger } from '../shared/logUtil';
 
 export type CalendarFileChangedCallback = (results: CalendarEventResult[], filePath: string) => void;
 export type CalendarFileDeletedCallback = (deletedPath: string, isFolder: boolean) => void;
+export type CalendarWatcherErrorCallback = (message: string) => void;
 
 // Single module-level watcher state. This is a deliberate design choice, not an
 // oversight: the app watches exactly one active vault folder at a time, tied to
@@ -25,6 +26,24 @@ let currentIgnoredPaths: string[] = [];
 /** Order-sensitive equality for two ignore-pattern lists. */
 function sameIgnoredPaths(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((pattern, i) => pattern === b[i]);
+}
+
+/**
+ * Turn a chokidar watcher error into a user-facing sentence. On large vaults the
+ * most common failure is Linux inotify exhaustion (`ENOSPC`): the OS runs out of
+ * watch descriptors and live updates silently stop for part (or all) of the tree.
+ * That gets a specific, actionable message; anything else falls back to the raw
+ * error text.
+ */
+function describeWatcherError(err: unknown): string {
+  const code = (err as { code?: unknown } | null)?.code;
+  if (code === 'ENOSPC') {
+    return 'The system file-watch limit was reached, so calendar events may stop updating '
+      + 'live for some files. Increase the inotify watch limit '
+      + '(fs.inotify.max_user_watches) or reopen the calendar folder.';
+  }
+  const detail = err instanceof Error ? err.message : String(err);
+  return `Calendar live updates may be incomplete: ${detail}`;
 }
 
 /**
@@ -56,6 +75,9 @@ function buildIgnoredFn(ignoredPaths: string[]): (filePath: string, stats?: Stat
  * - `onChanged` fires with the file's updated {@link CalendarEventResult} entries
  *   on creation or modification.
  * - `onDeleted` fires with the removed path and a `isFolder` flag on deletion.
+ * - `onError` fires **at most once per watcher session** with a user-facing
+ *   message when chokidar reports an error (e.g. inotify exhaustion) — enough to
+ *   warn the user that live updates degraded without spamming on repeat errors.
  * - `ignoredPaths` accepts the same wildcard patterns used by folder browsing.
  */
 export async function startCalendarWatcher(
@@ -63,6 +85,7 @@ export async function startCalendarWatcher(
   onChanged: CalendarFileChangedCallback,
   onDeleted: CalendarFileDeletedCallback,
   ignoredPaths: string[] = [],
+  onError?: CalendarWatcherErrorCallback,
 ): Promise<void> {
   // Don't restart if already watching the same folder with the same ignore list.
   // A changed ignoredPaths must fall through to a restart so the watcher's filter
@@ -89,8 +112,17 @@ export async function startCalendarWatcher(
     ignorePermissionErrors: true,
   });
 
-  currentWatcher.on('error', (err: unknown) =>
-    logger.error('Calendar watcher error:', err));
+  // Surface the first error of this watcher session to the renderer so the user
+  // knows live updates degraded; subsequent errors are still logged but not
+  // re-reported (inotify exhaustion can fire repeatedly).
+  let errorReported = false;
+  currentWatcher.on('error', (err: unknown) => {
+    logger.error('Calendar watcher error:', err);
+    if (!errorReported) {
+      errorReported = true;
+      onError?.(describeWatcherError(err));
+    }
+  });
 
   // Shared handler for file creation and modification: both load the file's
   // calendar entries and notify via onChanged.

@@ -369,6 +369,7 @@ export interface ElectronAPI {
   // Calendar file-change and delete events
   onCalendarFileChanged: (callback: (results: CalendarEventResult[], filePath: string) => void) => () => void;
   onCalendarFileDeleted: (callback: (deletedPath: string, isFolder: boolean) => void) => () => void;
+  onCalendarWatcherError: (callback: (message: string) => void) => () => void;
 
   runOcrInTerminal: (ocrToolsFolder: string, targets: OcrTarget[]) => Promise<{ success: boolean; error?: string }>;
   insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;

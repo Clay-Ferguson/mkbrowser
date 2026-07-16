@@ -497,7 +497,11 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
           const moved = e.filePath ? remapMovedPath(e.filePath, oldRoot, newRoot) : null;
           if (moved === null) return e;
           eventsChanged = true;
-          return { ...e, filePath: moved };
+          // The id embeds the file path (`filePath` or `filePath::i`), so rebuild
+          // it from the moved path — leaving the old path in `id` risks duplicate
+          // ids if a new file lands on the old path before the watcher resyncs.
+          const id = moved + e.id.slice(e.filePath!.length);
+          return { ...e, id, filePath: moved };
         });
         if (eventsChanged) {
           patch.calendarEvents = calendarEvents;

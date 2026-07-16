@@ -620,7 +620,12 @@ function setupIpcHandlers(): void {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('calendar-file-deleted', deletedPath, isFolder);
         }
-      }, ignoredPaths);
+      }, ignoredPaths, (message) => {
+        logger.warn(`[main] calendar-watcher-error: ${message}`);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('calendar-watcher-error', message);
+        }
+      });
 
       return results;
     } catch (error) {

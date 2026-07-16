@@ -112,6 +112,7 @@ const initialState: AppState = {
   calendarLoading: false,
   calendarViewType: 'month',
   calendarViewTime: new Date(),
+  calendarWatcherWarning: null,
   aiConfig: defaultAiConfig,
 };
 

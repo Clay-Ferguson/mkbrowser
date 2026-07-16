@@ -160,6 +160,52 @@ describe('loadCalendarEntryForFile — timed event with default duration', () =>
   });
 });
 
+describe('loadCalendarEntryForFile — start/duration validation (L4)', () => {
+  it('accepts a 24-hour start time', async () => {
+    write('start-24h.md', `---\ndue: 6/15/2026\nstart: "13:30"\nduration: 2\n---\nBody.\n`);
+    const [ev] = await loadCalendarEntryForFile(f('start-24h.md'));
+    const expectedStart = new Date(2026, 5, 15, 13, 30, 0, 0).getTime();
+    expect(ev.start).toBe(expectedStart);
+    expect(ev.end).toBe(expectedStart + 2 * 60 * 60 * 1000);
+  });
+
+  it('demotes an unrecognized start time to an all-day event', async () => {
+    write('start-bad.md', `---\ndue: 6/15/2026\nstart: "half past noon"\n---\nBody.\n`);
+    const [ev] = await loadCalendarEntryForFile(f('start-bad.md'));
+    expect(ev.start).toBe(new Date(2026, 5, 15).getTime());
+    expect(ev.end).toBe(ev.start);
+  });
+
+  it('rejects an out-of-range 24-hour start time', async () => {
+    write('start-oob.md', `---\ndue: 6/15/2026\nstart: "25:00"\n---\nBody.\n`);
+    const [ev] = await loadCalendarEntryForFile(f('start-oob.md'));
+    expect(ev.start).toBe(new Date(2026, 5, 15).getTime());
+    expect(ev.end).toBe(ev.start);
+  });
+
+  it('tolerates a numeric-string duration', async () => {
+    write('duration-string.md', `---\ndue: 6/15/2026\nstart: "9:00 AM"\nduration: "2"\n---\nBody.\n`);
+    const [ev] = await loadCalendarEntryForFile(f('duration-string.md'));
+    const expectedStart = new Date(2026, 5, 15, 9, 0, 0, 0).getTime();
+    expect(ev.end).toBe(expectedStart + 2 * 60 * 60 * 1000);
+  });
+
+  it('defaults to 1 hour for a NaN duration instead of producing a NaN end', async () => {
+    write('duration-nan.md', `---\ndue: 6/15/2026\nstart: "9:00 AM"\nduration: .nan\n---\nBody.\n`);
+    const [ev] = await loadCalendarEntryForFile(f('duration-nan.md'));
+    const expectedStart = new Date(2026, 5, 15, 9, 0, 0, 0).getTime();
+    expect(Number.isNaN(ev.end)).toBe(false);
+    expect(ev.end).toBe(expectedStart + 60 * 60 * 1000);
+  });
+
+  it('defaults to 1 hour for a negative duration', async () => {
+    write('duration-negative.md', `---\ndue: 6/15/2026\nstart: "9:00 AM"\nduration: -2\n---\nBody.\n`);
+    const [ev] = await loadCalendarEntryForFile(f('duration-negative.md'));
+    const expectedStart = new Date(2026, 5, 15, 9, 0, 0, 0).getTime();
+    expect(ev.end).toBe(expectedStart + 60 * 60 * 1000);
+  });
+});
+
 describe('loadCalendarEntryForFile — two-digit year', () => {
   it('treats 2-digit year as 2000+YY', async () => {
     const [ev] = await loadCalendarEntryForFile(f('two-digit-year.md'));

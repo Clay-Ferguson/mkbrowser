@@ -479,6 +479,14 @@ export interface AppState {
   calendarViewTime: Date;
 
   /**
+   * A one-time, user-facing warning from the file watcher (e.g. inotify
+   * exhaustion) — null when there is nothing to show. Displayed as a dismissible
+   * banner in the calendar so the user knows live updates degraded. Not
+   * persisted.
+   */
+  calendarWatcherWarning: string | null;
+
+  /**
    * Renderer-reactive mirror of the AI-related slice of AppConfig. The source of
    * truth is the main process config, but consumers (e.g. the editor's AI Rewrite
    * button) must react to changes made in AISettingsView / ThreadView WITHOUT

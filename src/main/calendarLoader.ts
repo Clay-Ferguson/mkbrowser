@@ -23,22 +23,52 @@ export interface CalendarEventResult {
   snippet: string;
 }
 
-/** Parse a 12-hour time string like "1:30 PM" into { hours, minutes } in 24-hr. Returns null on failure. */
+/**
+ * Parse a start-time string into 24-hour `{ hours, minutes }`. Accepts both the
+ * 12-hour form (`"1:30 PM"`) and the 24-hour form (`"13:30"`). Returns null on
+ * anything unrecognized so the caller can warn and fall back to an all-day event.
+ */
 function parseStartTime(timeStr: string): { hours: number; minutes: number } | null {
-  const match = /^\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*$/i.exec(timeStr.trim());
-  if (!match) return null;
-  const [, hourStr, minStr, meridiemStr] = match;
-  if (!hourStr || !minStr || !meridiemStr) return null;
-  let hours = parseInt(hourStr, 10);
-  const minutes = parseInt(minStr, 10);
-  const meridiem = meridiemStr.toUpperCase();
-  if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) return null;
-  if (meridiem === 'AM') {
-    if (hours === 12) hours = 0;
-  } else {
-    if (hours !== 12) hours += 12;
+  const trimmed = timeStr.trim();
+
+  const match12 = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec(trimmed);
+  if (match12) {
+    const [, hourStr, minStr, meridiemStr] = match12;
+    let hours = parseInt(hourStr!, 10);
+    const minutes = parseInt(minStr!, 10);
+    if (hours < 1 || hours > 12 || minutes < 0 || minutes > 59) return null;
+    if (meridiemStr!.toUpperCase() === 'AM') {
+      if (hours === 12) hours = 0;
+    } else {
+      if (hours !== 12) hours += 12;
+    }
+    return { hours, minutes };
   }
-  return { hours, minutes };
+
+  const match24 = /^(\d{1,2}):(\d{2})$/.exec(trimmed);
+  if (match24) {
+    const [, hourStr, minStr] = match24;
+    const hours = parseInt(hourStr!, 10);
+    const minutes = parseInt(minStr!, 10);
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+    return { hours, minutes };
+  }
+
+  return null;
+}
+
+/**
+ * Coerce a `duration:` value (hours) into a positive finite number, or null if it
+ * is absent/invalid. Tolerates numeric strings (`"2"`) the same way
+ * {@link normalizeRRule} does for `interval`, and rejects the values that would
+ * otherwise silently corrupt the event: `NaN` (from YAML `.nan`, which is `typeof
+ * 'number'` and would make `end` NaN) and non-positive numbers (which would place
+ * `end` at or before `start`). Returns null so the caller can warn and default to 1.
+ */
+function coerceDuration(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const n = typeof value === 'string' ? Number(value.trim()) : typeof value === 'number' ? value : NaN;
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
 const BYDAY_MAP: Record<string, Weekday> = {
@@ -247,9 +277,14 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
     let endMs = dueDate.getTime();
     let durationMs = 0;
 
-    const startTimeStr = typeof parsed.start === 'string' ? parsed.start : null;
-    const duration = typeof parsed.duration === 'number' ? parsed.duration : null;
+    // Validate duration up front so a bad value (NaN from `.nan`, negative, or a
+    // non-numeric string) is surfaced rather than silently corrupting `end`.
+    const duration = coerceDuration(parsed.duration);
+    if (parsed.duration != null && duration === null) {
+      logger.warn(`Calendar entry ${filePath}: ignoring invalid 'duration' ${JSON.stringify(parsed.duration)} (expected a positive number of hours); defaulting to 1`);
+    }
 
+    const startTimeStr = typeof parsed.start === 'string' ? parsed.start : null;
     if (startTimeStr) {
       const time = parseStartTime(startTimeStr);
       if (time) {
@@ -258,7 +293,11 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
         startMs = startDate.getTime();
         durationMs = (duration ?? 1) * 60 * 60 * 1000;
         endMs = startMs + durationMs;
+      } else {
+        logger.warn(`Calendar entry ${filePath}: unrecognized 'start' time "${startTimeStr}" (use "1:30 PM" or "13:30"); treating event as all-day`);
       }
+    } else if (parsed.start != null) {
+      logger.warn(`Calendar entry ${filePath}: 'start' must be a time string like "1:30 PM" or "13:30", got ${JSON.stringify(parsed.start)}; treating event as all-day`);
     }
 
     if (parsed.rrule && typeof parsed.rrule === 'object' && !Array.isArray(parsed.rrule)) {

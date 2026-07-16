@@ -29,6 +29,7 @@ import {
   setItemEditing,
   updateCalendarEvent,
   deleteCalendarEventsUnderPath,
+  setCalendarWatcherWarning,
 } from './store';
 import type { CalendarEvent, AppView } from './shared/types';
 import type { CalendarEventResult, AppConfig } from './shared/shared';
@@ -220,6 +221,15 @@ function App() {
       } else {
         updateCalendarEvent(deletedPath, []);
       }
+    });
+  }, []);
+
+  // Surface a one-time file-watcher warning (e.g. inotify exhaustion) so the user
+  // knows calendar live-updates degraded. Shown as a dismissible banner in CalendarView.
+  useEffect(() => {
+    // Returns the useEffect cleanup: the unsubscribe fn that removes the 'calendar-watcher-error' IPC listener on unmount.
+    return api.onCalendarWatcherError((message: string) => {
+      setCalendarWatcherWarning(message);
     });
   }, []);
 
