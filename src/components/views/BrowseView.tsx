@@ -58,6 +58,7 @@ import {
   setIndexYaml,
   setSelectedLinkItems,
   useAS,
+  type ItemData,
   type SearchDefinition,
 } from '../../store';
 import { scrollItemIntoView, scrollElementIntoView } from '../../renderer/entryDom';
@@ -138,6 +139,42 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
       ))}
     </div>
   );
+}
+
+/**
+ * Every selection/cut/editing flag BrowseView needs, in a single pass over the
+ * item map. The map is rebuilt on each store write — including every keystroke
+ * in edit mode — so separate `.some()`/`.filter()` scans would each walk the
+ * whole folder again per render.
+ *
+ * `selectedItems` keeps the map's insertion order, matching what the previous
+ * `Array.from(items.values()).filter(...)` produced.
+ */
+function summarizeItems(items: Map<string, ItemData>) {
+  const selectedItems: ItemData[] = [];
+  let selectedFileCount = 0;
+  let hasSelectedFolders = false;
+  let hasCutItems = false;
+  let anyItemEditing = false;
+
+  for (const item of items.values()) {
+    if (item.isSelected) {
+      selectedItems.push(item);
+      if (item.isDirectory) hasSelectedFolders = true;
+      else selectedFileCount++;
+    }
+    if (item.isCut) hasCutItems = true;
+    if (item.editing) anyItemEditing = true;
+  }
+
+  return {
+    selectedItems,
+    hasSelectedItems: selectedItems.length > 0,
+    selectedFileCount,
+    hasSelectedFolders,
+    hasCutItems,
+    anyItemEditing,
+  };
 }
 
 interface BrowseViewProps {
@@ -257,11 +294,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
 
-  const hasSelectedItems = Array.from(items.values()).some((item) => item.isSelected);
-  const hasCutItems = Array.from(items.values()).some((item) => item.isCut);
-  const selectedItems = Array.from(items.values()).filter((item) => item.isSelected);
-  const selectedFileCount = selectedItems.filter((item) => !item.isDirectory).length;
-  const hasSelectedFolders = selectedItems.some((item) => item.isDirectory);
+  const { selectedItems, hasSelectedItems, selectedFileCount, hasSelectedFolders, hasCutItems, anyItemEditing } =
+    summarizeItems(items);
 
   const previousPathRef = useRef<string | null>(null);
   const mainContainerRef = useRef<HTMLElement | null>(null);
@@ -375,7 +409,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   // When expanded editor activates and a file starts editing, save scroll position
   // and scroll to top. When expanded editing ends, restore the saved position.
-  const anyItemEditing = Array.from(items.values()).some((item) => item.editing);
   // Expanded-editor mode with an active edit: the editing entry is maximized to fill the whole
   // browse area (100% width/height), the outer scrollbar goes away, and only the CodeMirror
   // editor itself scrolls. Achieved by turning the main > content > list > entry chain into
@@ -520,25 +553,23 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     }, 'Failed to paste as attachment: ', onSetError);
   };
 
-  const getSelectedItems = () => Array.from(items.values()).filter((item) => item.isSelected);
-
   const performDelete = () => {
     runOp(async () => {
-      await deleteSelected(getSelectedItems(), currentPath, hasIndexFile, onSetError, onRefreshDirectory, () => setShowDeleteConfirm(false));
+      await deleteSelected(selectedItems, currentPath, hasIndexFile, onSetError, onRefreshDirectory, () => setShowDeleteConfirm(false));
     }, 'Failed to delete: ', onSetError);
   };
 
   const handleSplitFile = () => {
     if (!currentPath) return;
     runOp(async () => {
-      await splitSelectedFile(currentPath, getSelectedItems(), hasIndexFile, onSetError, onRefreshDirectory);
+      await splitSelectedFile(currentPath, selectedItems, hasIndexFile, onSetError, onRefreshDirectory);
     }, 'Failed to split file: ', onSetError);
   };
 
   const handleJoinFiles = () => {
     if (!currentPath) return;
     runOp(async () => {
-      await joinSelectedFiles(currentPath, getSelectedItems(), hasIndexFile, onSetError, onRefreshDirectory);
+      await joinSelectedFiles(currentPath, selectedItems, hasIndexFile, onSetError, onRefreshDirectory);
     }, 'Failed to join files: ', onSetError);
   };
 
@@ -763,9 +794,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   };
 
   const handleCopyLink = () => {
-    const paths = Array.from(items.values())
-      .filter((item) => item.isSelected)
-      .map((item) => item.path);
+    const paths = selectedItems.map((item) => item.path);
     setSelectedLinkItems(paths);
     clearAllSelections();
   };
@@ -1273,7 +1302,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
       {showDeleteConfirm && (
         <ConfirmDialog
-          message={`Move ${getSelectedItems().length} selected item(s) to trash?`}
+          message={`Move ${selectedItems.length} selected item(s) to trash?`}
           onConfirm={performDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />
