@@ -317,7 +317,10 @@ async function createItemOp(
   try {
     if (insertAtIndex !== null) {
       const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1]?.name ?? null : null;
-      await api.insertIntoIndexYaml(currentPath, itemName, insertAfterName);
+      const insertResult = await api.insertIntoIndexYaml(currentPath, itemName, insertAfterName);
+      if (!insertResult.success) {
+        throw new Error(insertResult.error || `Failed to insert "${itemName}" into the index`);
+      }
     }
   } catch (err: unknown) {
     onSetError('Failed to insert item into index: ' + toErrorMessage(err));
