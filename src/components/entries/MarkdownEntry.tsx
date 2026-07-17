@@ -27,7 +27,6 @@ import StreamingDialog from '../dialogs/StreamingDialog';
 import EditCalendarDialog from '../dialogs/EditCalendarDialog';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
-import DiffReviewEditor from '../editor/DiffReviewEditor';
 import TagsPicker from '../TagsPicker';
 import PropsDisplay from '../PropsDisplay';
 import MarkdownView from './MarkdownView';
@@ -461,6 +460,12 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     />
   ) : null;
 
+  // In-place AI review (the CodeMirror unified merge view inside the live editor). The tag
+  // pills/picker are hidden while it's active — TagsPicker writes into the edit buffer, which
+  // the editor deliberately ignores during a review. Front matter is forced visible so a diff
+  // chunk in a hidden front-matter region can't be invisible.
+  const reviewing = !!item?.reviewing;
+
   return (
     <>
       <EntryShell
@@ -487,52 +492,43 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             <div className={ENTRY_LOADING}>Loading...</div>
           ) : edit.isEditing ? (
             <>
-              {item?.reviewing && item.rewrittenContent !== undefined ? (
-                <DiffReviewEditor
-                  originalText={edit.editContent}
-                  modifiedText={item.rewrittenContent}
-                  language="markdown"
-                  onComplete={(finalText) => {
-                    edit.setEditContent(finalText);
-                    setItemReviewing(entry.path, false);
-                  }}
-                  onCancel={() => setItemReviewing(entry.path, false)}
-                />
-              ) : (
-                <>
-                  {propsDisplay}
-                  {tagsVisible && <TagsPicker filePath={entry.path} />}
-                  <CodeMirrorEditor
-                    ref={editorRef}
-                    onReady={handleEditorReady}
-                    value={edit.editContent}
-                    onChange={edit.setEditContent}
-                    placeholder="Enter markdown content..."
-                    language="markdown"
-                    autoFocus
-                    goToLine={item?.goToLine}
-                    onGoToLineComplete={() => clearItemGoToLine(entry.path)}
-                    goToPosition={pendingCursorPos}
-                    onGoToPositionComplete={() => setPendingCursorPos(null)}
-                    onEscape={handleEscape}
-                    onForceCancel={handleCancelEdit}
-                    onSave={handleSaveEdit}
-                    onSelectionChange={setHasSelection}
-                    showPropsInEditor={showPropsInEditor}
-                    fillHeight={maximized}
-                    fileName={entry.name}
-                    filePath={entry.path}
-                    onMakeCalendarItem={() => {
-                      setShowPropsInEditor(true);
-                      onSaveSettings();
-                    }}
-                    onMakeRepeatingCalendarItem={() => {
-                      setShowPropsInEditor(true);
-                      onSaveSettings();
-                    }}
-                  />
-                </>
-              )}
+              {!reviewing && propsDisplay}
+              {!reviewing && tagsVisible && <TagsPicker filePath={entry.path} />}
+              <CodeMirrorEditor
+                ref={editorRef}
+                onReady={handleEditorReady}
+                value={edit.editContent}
+                onChange={edit.setEditContent}
+                placeholder="Enter markdown content..."
+                language="markdown"
+                autoFocus
+                goToLine={item?.goToLine}
+                onGoToLineComplete={() => clearItemGoToLine(entry.path)}
+                goToPosition={pendingCursorPos}
+                onGoToPositionComplete={() => setPendingCursorPos(null)}
+                onEscape={handleEscape}
+                onForceCancel={handleCancelEdit}
+                onSave={handleSaveEdit}
+                onSelectionChange={setHasSelection}
+                showPropsInEditor={showPropsInEditor || reviewing}
+                fillHeight={maximized}
+                fileName={entry.name}
+                filePath={entry.path}
+                onMakeCalendarItem={() => {
+                  setShowPropsInEditor(true);
+                  onSaveSettings();
+                }}
+                onMakeRepeatingCalendarItem={() => {
+                  setShowPropsInEditor(true);
+                  onSaveSettings();
+                }}
+                reviewText={reviewing ? (item?.rewrittenContent ?? null) : null}
+                onReviewComplete={(finalText) => {
+                  edit.setEditContent(finalText);
+                  setItemReviewing(entry.path, false);
+                }}
+                onReviewCancel={() => setItemReviewing(entry.path, false)}
+              />
             </>
           ) : (
             <>

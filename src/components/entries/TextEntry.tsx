@@ -9,7 +9,6 @@ import {
 } from '../../store';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
-import DiffReviewEditor from '../editor/DiffReviewEditor';
 import AlertDialog from '../dialogs/AlertDialog';
 import {
   useEditableEntry,
@@ -30,7 +29,8 @@ type TextEntryProps = BaseEntryProps;
 /**
  * Entry component for plain-text files. Expands inline to show a read-only CodeMirror view;
  * clicking the content area opens an editable CodeMirror editor. Supports AI rewrite of the
- * whole document or a selected range, and shows a diff-review editor after a rewrite completes.
+ * whole document or a selected range; after a rewrite completes, the editor itself enters an
+ * in-place diff review (CodeMirror's unified merge view) via its `reviewText` prop.
  */
 function TextEntry(props: TextEntryProps) {
   const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
@@ -133,35 +133,28 @@ function TextEntry(props: TextEntryProps) {
           {loading && !content ? (
             <div className={ENTRY_LOADING}>Loading...</div>
           ) : edit.isEditing ? (
-            item?.reviewing && item.rewrittenContent !== undefined ? (
-              <DiffReviewEditor
-                originalText={edit.editContent}
-                modifiedText={item.rewrittenContent}
-                language={fileLanguage}
-                onComplete={(finalText) => {
-                  edit.setEditContent(finalText);
-                  setItemReviewing(entry.path, false);
-                }}
-                onCancel={() => setItemReviewing(entry.path, false)}
-              />
-            ) : (
-              <CodeMirrorEditor
-                key="edit"
-                ref={editorRef}
-                value={edit.editContent}
-                onChange={edit.setEditContent}
-                placeholder="Enter text content..."
-                language={fileLanguage}
-                autoFocus
-                goToLine={item?.goToLine}
-                onGoToLineComplete={() => clearItemGoToLine(entry.path)}
-                onEscape={handleEscape}
-                onForceCancel={edit.handleCancel}
-                onSave={() => void edit.handleSave()}
-                onSelectionChange={setHasSelection}
-                fillHeight={maximized}
-              />
-            )
+            <CodeMirrorEditor
+              key="edit"
+              ref={editorRef}
+              value={edit.editContent}
+              onChange={edit.setEditContent}
+              placeholder="Enter text content..."
+              language={fileLanguage}
+              autoFocus
+              goToLine={item?.goToLine}
+              onGoToLineComplete={() => clearItemGoToLine(entry.path)}
+              onEscape={handleEscape}
+              onForceCancel={edit.handleCancel}
+              onSave={() => void edit.handleSave()}
+              onSelectionChange={setHasSelection}
+              fillHeight={maximized}
+              reviewText={item?.reviewing ? (item.rewrittenContent ?? null) : null}
+              onReviewComplete={(finalText) => {
+                edit.setEditContent(finalText);
+                setItemReviewing(entry.path, false);
+              }}
+              onReviewCancel={() => setItemReviewing(entry.path, false)}
+            />
           ) : (
             <CodeMirrorEditor
               key="view"

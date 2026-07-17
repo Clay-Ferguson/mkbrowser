@@ -358,7 +358,7 @@ Removing a suppression usually means confronting `react-hooks/exhaustive-deps` h
    }, []);   // honest: only refs and module-level helpers are referenced
    ```
 
-   See `CodeMirrorEditor.tsx` and `DiffReviewEditor.tsx` for the full pattern. Props that *do* change during the object's lifetime get their own small sync effects instead.
+   See `CodeMirrorEditor.tsx` for the full pattern. Props that *do* change during the object's lifetime get their own small sync effects instead.
 4. **"Latest callback" refs** (handlers inside a once-created object must call current props) → keep the refs, but sync them in a no-deps effect (runs after every render), never during render.
 
 One companion gotcha: **`react-hooks/set-state-in-effect`** flags *synchronous* `setState` in an effect body. When an effect kicks off async loading, keep the pre-await `setLoading(true)` inside the async function (module-level helper or async IIFE), not directly in the effect body.
@@ -406,7 +406,7 @@ We can't use that pattern, because in MkBrowser the text being edited is **share
 | `useEditMode` | reads / seeds | Seeds the buffer on edit entry (with the external-modification mtime check), and **saves the buffer to disk** — the save path reads `editContent`, not the editor. |
 | `TagsPicker` | writes | Toggles hashtags directly in the buffer text. |
 | Calendar dialog | writes | Writes `due`/rrule front matter into the buffer during an edit. |
-| AI rewrite review (`DiffReviewEditor`) | writes | Replaces the buffer with the accepted rewritten text. |
+| AI rewrite review (`CodeMirrorEditor` review mode) | writes | On review completion (`onReviewComplete`), replaces the buffer with the accepted rewritten text. While a review is active the editor doc intentionally diverges from the buffer (it holds the proposed text) and both `onChange` and `value` syncs are suspended. |
 | `handleToggleShowProps` (`MarkdownEntry`) | writes | Prepends an empty `---` front-matter block when enabling the props panel. |
 | `renameItem` (store) | migrates | Moves unsaved edits to the new path on rename, so an in-progress edit survives a rename. |
 

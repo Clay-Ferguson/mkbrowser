@@ -288,8 +288,9 @@ With a deliberate, agonizing slowness, he rose from the chair. His movements wer
     await demoClick(aiRewriteButton);
 
     // ── 11. The diff review appears — original vs the AI's rewrite ────
-    // Entering review mode swaps the editor for the DiffReviewEditor, which
-    // shows the original text struck through and the rewritten text inline.
+    // Entering review mode swaps CodeMirror's unified merge view into the live
+    // editor (via a compartment), showing the original text struck through and
+    // the rewritten text inline, with the review button bar below the editor.
     const diffDoneButton = mainWindow.getByTestId('diff-done-button');
     await expect(diffDoneButton).toBeVisible({ timeout: 30000 });
     await expect(mainWindow.getByText('cutting through the silence').first()).toBeVisible({ timeout: 10000 });

@@ -9,9 +9,8 @@ export const FONT_SIZE_MAP: Record<FontSize, string> = {
   xlarge: '18px',
 };
 
-// Shared font-size / base theme used by both the editable CodeMirrorEditor and the read-only
-// DiffReviewEditor. Returns a fresh theme so callers can swap it in a compartment when the
-// font-size setting changes.
+// Font-size / base theme for CodeMirrorEditor. Returns a fresh theme so callers can swap it
+// in a compartment when the font-size setting changes.
 export function createFontSizeTheme(fontSize: FontSize) {
   return EditorView.theme({
     '&': {

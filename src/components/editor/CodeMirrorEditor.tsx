@@ -5,6 +5,7 @@ import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
 import { highlightSelectionMatches, search, searchKeymap, openSearchPanel, setSearchQuery, SearchQuery } from '@codemirror/search';
 import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching, StreamLanguage } from '@codemirror/language';
 import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+import { unifiedMergeView, getChunks, getOriginalDoc } from '@codemirror/merge';
 import { oneDarkTheme, oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { javascript } from '@codemirror/lang-javascript';
@@ -26,6 +27,7 @@ import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
 import { createFontSizeTheme } from './editorTheme';
 import { logger } from '../../shared/logUtil';
+import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN } from '../../renderer/styles';
 
 // Delay before auto-focusing / scrolling to a line after mount. Lets CodeMirror finish its
 // initial layout so focus and scrollIntoView land on correctly measured content.
@@ -80,6 +82,42 @@ function cancelPendingOnChange(d: OnChangeDebounceState): void {
     d.timer = null;
   }
   d.pendingDoc = null;
+}
+
+/**
+ * Ends AI-review mode: swaps the unified merge view out of `mergeCompartment` and brings the
+ * document to `finalText` in a single transaction. Any pending debounced onChange is dropped —
+ * it was captured from a review-mode doc state that never belonged in the store — and
+ * `lastDelivered` is primed with `finalText` so the store echoing the result back through the
+ * value prop is recognized as an echo rather than re-dispatched into the editor. The caller
+ * clears `reviewingRef` AFTER this runs, so the updateListener ignores the exit transaction.
+ */
+function exitReviewToText(
+  view: EditorView,
+  mergeCompartment: Compartment,
+  d: OnChangeDebounceState,
+  finalText: string,
+): void {
+  cancelPendingOnChange(d);
+  const current = view.state.doc.toString();
+  view.dispatch({
+    ...(current === finalText ? {} : { changes: minimalDiff(current, finalText) }),
+    effects: mergeCompartment.reconfigure([]),
+  });
+  d.lastDelivered = finalText;
+}
+
+/**
+ * Centers the first pending diff chunk after entering review, so the user sees the proposal
+ * immediately instead of hunting for it in a long document. Runs in a rAF because the merge
+ * extension computes its chunks after the reconfigure transaction settles.
+ */
+function scrollFirstChunkIntoView(view: EditorView | null): void {
+  if (!view) return;
+  const first = getChunks(view.state)?.chunks[0];
+  if (first !== undefined) {
+    view.dispatch({ effects: EditorView.scrollIntoView(first.fromB, { y: 'center' }) });
+  }
 }
 
 const searchMatchTheme = EditorView.theme({
@@ -162,6 +200,24 @@ interface CodeMirrorEditorProps {
    * selected. Receives the 1-based line number clicked, so the caller can open the editor there.
    */
   onViewModeClick?: (line: number) => void;
+  /**
+   * AI-review mode. When set (non-null), the live editor enters an in-place diff review: the
+   * current document is snapshotted as the diff's "original" side, the document becomes this
+   * proposed text, and CodeMirror's unified merge view (swapped in via a compartment) shows
+   * per-chunk accept/reject gutter controls plus an Accept All / Done / Cancel button bar.
+   * Undo history, scroll position, and the spell checker all survive the round trip. While
+   * reviewing, onChange is not fired and external `value` syncs are ignored; the review's
+   * outcome is delivered through onReviewComplete / onReviewCancel instead.
+   */
+  reviewText?: string | null;
+  /**
+   * Reports the final document when the user finishes the review. "Accept All" keeps every
+   * unresolved chunk's proposed text; "Done" rejects every unresolved chunk (keeping only the
+   * chunks accepted individually via the gutter controls).
+   */
+  onReviewComplete?: (finalText: string) => void;
+  /** Called when the user cancels the review; the editor restores the pre-review document. */
+  onReviewCancel?: () => void;
 }
 
 export interface CodeMirrorEditorHandle {
@@ -260,19 +316,28 @@ function applyPostMountFocus(
 
 /**
  * Full-featured CodeMirror 6 editor with Markdown/code language support, spell checking,
- * front-matter hiding, hashtag/date decorations, and a custom context menu.
+ * front-matter hiding, hashtag/date decorations, an in-place AI-review diff mode (see
+ * `reviewText`), and a custom context menu.
  *
  * The view is created once on mount and never rebuilt for prop changes — mutable props
- * (value, fontSize, showPropsInEditor) are applied through separate effects or compartments
- * so that undo history, cursor position, and the async spell checker are preserved.
+ * (value, fontSize, showPropsInEditor, reviewText) are applied through separate effects or
+ * compartments so that undo history, cursor position, and the async spell checker are preserved.
  */
-function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady, fillHeight = false, onViewModeClick }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady, fillHeight = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const fontSizeCompartment = useRef(new Compartment());
   const frontMatterCompartment = useRef(new Compartment());
   const spellCheckCompartment = useRef(new Compartment());
+  const mergeCompartment = useRef(new Compartment());
+  // True while the merge view is active in the editor. A ref (not state) because the once-created
+  // updateListener and keymap handlers need the live value; the buttons and border render from
+  // the `reviewing` prop-derived flag below instead.
+  const reviewingRef = useRef(false);
+  // The pre-review document, snapshotted when review is entered — the diff's "original" side
+  // and the text restored on cancel.
+  const reviewOriginalRef = useRef<string | null>(null);
   const typoRef = useRef<Typo | null>(null);
   const onEscapeRef = useRef(onEscape);
   const onForceCancelRef = useRef(onForceCancel);
@@ -300,8 +365,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   // uses these initial values — a given editor instance is created fresh per file/mode rather
   // than having them mutated on a live instance, so capturing them once is correct (not a
   // stale-closure bug). The props that DO change during a session are re-synced by their own
-  // effects below: `value` (value-sync), `settings.fontSize` (font-size), and
-  // `showPropsInEditor` (front matter).
+  // effects below: `value` (value-sync), `settings.fontSize` (font-size),
+  // `showPropsInEditor` (front matter), and `reviewText` (AI-review merge view).
   const mountConfigRef = useRef({
     value,
     placeholder,
@@ -403,6 +468,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       fontSizeCompartment.current.of(createFontSizeTheme(cfg.fontSize)),
       spellCheckCompartment.current.of([]),
       spellCheckTheme,
+      // AI-review merge view, swapped in/out by the review effect below. Empty when not reviewing.
+      mergeCompartment.current.of([]),
       frontMatterCompartment.current.of(
         cfg.showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
       ),
@@ -418,6 +485,11 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         {
           key: 'Escape',
           run: () => {
+            // During AI review the store's edit buffer still holds the pre-review text, so the
+            // parent's "unmodified → cancel editing" Escape logic would silently tear down the
+            // review. The explicit review buttons are the only exits (Ctrl-Q stays available
+            // as the force-abandon hatch).
+            if (reviewingRef.current) return false;
             if (onEscapeRef.current) {
               // Deliver any pending onChange first: the parent's Escape handler decides whether
               // to cancel by checking for unsaved modifications, which it must not miss.
@@ -444,6 +516,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         {
           key: 'Ctrl-s',
           run: () => {
+            // Saving mid-review would write the pre-review edit buffer while the user is looking
+            // at the proposal — resolve the review first (the Save button is hidden too).
+            if (reviewingRef.current) return false;
             if (onSaveRef.current) {
               // Deliver any pending onChange before saving, or keystrokes from the last
               // ONCHANGE_DEBOUNCE_MS would be missing from the content the save reads.
@@ -507,7 +582,10 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         },
       }),
       EditorView.updateListener.of((update) => {
-        if (update.docChanged && !suppressOnChangeRef.current) {
+        // During AI review doc changes are review mechanics (entering review, rejecting chunks,
+        // hand-tweaking the proposal) — none of them belong in the store until the review is
+        // resolved, at which point onReviewComplete/onReviewCancel deliver the outcome.
+        if (update.docChanged && !suppressOnChangeRef.current && !reviewingRef.current) {
           const d = onChangeDebounceRef.current;
           d.pendingDoc = update.state.doc;
           if (d.timer !== null) clearTimeout(d.timer);
@@ -621,6 +699,11 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     const view = viewRef.current;
     if (!view) return;
 
+    // During AI review the editor doc intentionally diverges from `value` (it holds the
+    // proposed text; the store still holds the pre-review buffer). Syncing here would clobber
+    // the diff — the review handlers reconcile doc and store when the review is resolved.
+    if (reviewingRef.current) return;
+
     const currentContent = view.state.doc.toString();
     if (currentContent === value) return;
 
@@ -646,6 +729,43 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     });
     suppressOnChangeRef.current = false;
   }, [value]);
+
+  // Enter/exit AI-review mode. `unifiedMergeView` is an extension, not a component, so review
+  // happens in the LIVE editor: the current doc is snapshotted as the diff's original side and
+  // the document becomes the proposed text, with per-chunk accept/reject controls in the gutter.
+  // Undo history, scroll position, and the async spell checker survive the whole round trip.
+  // The exit branch only covers review state being cleared externally (e.g. the parent leaving
+  // edit mode mid-review); the button handlers below clear reviewingRef themselves before the
+  // parent nulls the prop, making the exit branch a no-op on the normal paths.
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    if (reviewText !== null && reviewText !== undefined) {
+      if (reviewingRef.current) return;
+      const original = view.state.doc.toString();
+      reviewingRef.current = true;
+      reviewOriginalRef.current = original;
+      // Keystrokes still in the debounce window describe the pre-review doc; the rewrite flow
+      // already read the live edit buffer (flushed by the button click's blur), so drop them.
+      cancelPendingOnChange(onChangeDebounceRef.current);
+      view.dispatch({
+        ...(original === reviewText ? {} : { changes: minimalDiff(original, reviewText) }),
+        effects: mergeCompartment.current.reconfigure(
+          unifiedMergeView({
+            original,
+            mergeControls: true,
+            highlightChanges: true,
+            gutter: true,
+          })
+        ),
+      });
+      requestAnimationFrame(() => scrollFirstChunkIntoView(viewRef.current));
+    } else if (reviewingRef.current) {
+      exitReviewToText(view, mergeCompartment.current, onChangeDebounceRef.current, reviewOriginalRef.current ?? view.state.doc.toString());
+      reviewingRef.current = false;
+      reviewOriginalRef.current = null;
+    }
+  }, [reviewText]);
 
   // Apply a requested cursor position. Declared after the value-sync effect so that, when a
   // content change and a position request land in the same commit, the doc is already updated
@@ -681,10 +801,49 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     });
   }, [showPropsInEditor]);
 
+  // Renders the review button bar / amber border. Derived from the prop (not reviewingRef) so it
+  // participates in React rendering; reviewingRef guards the handlers against the brief window
+  // where the prop is set but the effect hasn't entered (or has already exited) review.
+  const reviewing = reviewText !== null && reviewText !== undefined;
+
+  const handleReviewAcceptAll = () => {
+    const view = viewRef.current;
+    if (!view || !reviewingRef.current) return;
+    // Accepting every unresolved chunk keeps the proposal text, so the current editor doc
+    // (the proposal, minus any chunks already rejected individually) IS the final result.
+    const finalText = view.state.doc.toString();
+    exitReviewToText(view, mergeCompartment.current, onChangeDebounceRef.current, finalText);
+    reviewingRef.current = false;
+    reviewOriginalRef.current = null;
+    onReviewComplete?.(finalText);
+  };
+
+  const handleReviewDone = () => {
+    const view = viewRef.current;
+    if (!view || !reviewingRef.current) return;
+    // "Done" rejects every unresolved chunk. acceptChunk folds accepted chunks into the merge
+    // view's original document, so getOriginalDoc() is exactly "original + accepted so far" —
+    // the result of rejecting the rest. Read it before the merge field is torn down.
+    const finalText = getOriginalDoc(view.state).toString();
+    exitReviewToText(view, mergeCompartment.current, onChangeDebounceRef.current, finalText);
+    reviewingRef.current = false;
+    reviewOriginalRef.current = null;
+    onReviewComplete?.(finalText);
+  };
+
+  const handleReviewCancel = () => {
+    const view = viewRef.current;
+    if (!view || !reviewingRef.current) return;
+    exitReviewToText(view, mergeCompartment.current, onChangeDebounceRef.current, reviewOriginalRef.current ?? view.state.doc.toString());
+    reviewingRef.current = false;
+    reviewOriginalRef.current = null;
+    onReviewCancel?.();
+  };
+
   return (
     <div
       ref={containerRef}
-      className={`w-full border border-slate-600 focus-within:border-blue-500 overflow-hidden flex flex-col${fillHeight ? ' flex-1 min-h-0' : ''}`}
+      className={`w-full border ${reviewing ? 'border-amber-600' : 'border-slate-600 focus-within:border-blue-500'} overflow-hidden flex flex-col${fillHeight ? ' flex-1 min-h-0' : ''}`}
       style={
         fillHeight
           ? ({ '--cm-max-height': '100%', '--cm-height': '100%' } as CSSProperties)
@@ -698,6 +857,35 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         className={fillHeight ? 'flex-1 min-h-0' : undefined}
         onContextMenu={handleContextMenu}
       />
+
+      {reviewing && (
+        <div className="flex items-center gap-2 p-2 border-t border-slate-600">
+          <button
+            type="button"
+            onClick={handleReviewAcceptAll}
+            className={BUTTON_CLASS_SM_GREEN}
+            data-testid="diff-accept-all-button"
+          >
+            Accept All
+          </button>
+          <button
+            type="button"
+            onClick={handleReviewDone}
+            className={BUTTON_CLASS_SM_BLUE}
+            data-testid="diff-done-button"
+          >
+            Done
+          </button>
+          <button
+            type="button"
+            onClick={handleReviewCancel}
+            className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+            data-testid="diff-cancel-button"
+          >
+            Cancel Rewrite
+          </button>
+        </div>
+      )}
 
       <EditorContextMenu
         contextMenu={contextMenu}
