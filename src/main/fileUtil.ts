@@ -72,8 +72,12 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
       size,
     };
 
-    // Pre-load contents of .attach folders so the renderer needs no extra I/O
-    if (isDirectory && entry.name.endsWith(ATTACH_SUFFIX)) {
+    // Pre-load contents of .attach folders so the renderer needs no extra I/O.
+    // Symlinks never recurse: a link named "*.attach" that resolves to one of its
+    // own ancestors makes this recursion fan out (bounded only by the kernel's
+    // symlink-resolution limit, ~40 levels deep) and hang the main process.
+    // Attach folders the app creates are always real directories.
+    if (isDirectory && !entry.isSymbolicLink() && entry.name.endsWith(ATTACH_SUFFIX)) {
       try {
         fileEntry.attachments = await readDirectory(fullPath, aiEnabled);
       } catch (err) {
