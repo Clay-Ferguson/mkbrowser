@@ -9,6 +9,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
+import { rehypeCallouts } from '../../shared/rehypeCallouts';
 import { removeTOC } from '../../shared/tocUtil';
 import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks, safeUrlTransform } from '../../shared/mkUtil';
 import { BlockClickContext, blockClickComponents } from '../blockClickComponents';
@@ -18,7 +19,7 @@ import CustomCode from '../CustomCode';
 import CustomPre from '../CustomPre';
 
 const REMARK_PLUGINS: PluggableList = [remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]];
-const REHYPE_PLUGINS: PluggableList = [rehypeKatex, rehypeSlug];
+const REHYPE_PLUGINS: PluggableList = [rehypeKatex, rehypeSlug, rehypeCallouts];
 
 const ARTICLE_CLASS = 'prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2';
 

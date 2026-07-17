@@ -223,3 +223,20 @@ that must not turn bold.
      const nested = 'code block inside a list';
      ```
 2. A final item.
+
+> [!NOTE]
+> Highlights information that users should take into account.
+
+> [!IMPORTANT]
+> This is an important note.
+
+> [!WARNING]
+> Critical content demanding immediate attention.
+
+> [!TIP]
+> This is a tip
+
+> [!CAUTION]
+> This is a caution
+
+

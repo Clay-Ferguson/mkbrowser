@@ -126,6 +126,66 @@ html[data-font-size="xlarge"] {
   margin-bottom: 0.3em;
 }
 
+/* GitHub-style callouts / alerts (`> [!NOTE]`, `[!TIP]`, `[!WARNING]`, …).
+   The blockquote is tagged with `markdown-alert markdown-alert-<type>` by the
+   local rehypeCallouts plugin; all styling lives here. */
+.prose blockquote.markdown-alert {
+  margin: 1em 0;
+  padding: 0.6em 1em;
+  border-left: 4px solid var(--callout-accent);
+  border-radius: 0 6px 6px 0;
+  background: var(--callout-bg);
+  color: var(--tw-prose-body);
+  /* prose italicises blockquotes and injects curly quotes; alerts want neither. */
+  font-style: normal;
+  quotes: none;
+}
+.prose blockquote.markdown-alert p:first-of-type::before,
+.prose blockquote.markdown-alert p:last-of-type::after {
+  content: none;
+}
+.prose blockquote.markdown-alert > p:last-child {
+  margin-bottom: 0;
+}
+.prose blockquote.markdown-alert > .markdown-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  margin-bottom: 0.4em;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--callout-accent);
+}
+.prose blockquote.markdown-alert > .markdown-alert-title::before {
+  content: var(--callout-icon);
+  font-style: normal;
+}
+.prose blockquote.markdown-alert-note {
+  --callout-accent: #4493f8;
+  --callout-bg: rgba(56, 139, 253, 0.1);
+  --callout-icon: 'ℹ️';
+}
+.prose blockquote.markdown-alert-tip {
+  --callout-accent: #3fb950;
+  --callout-bg: rgba(63, 185, 80, 0.1);
+  --callout-icon: '💡';
+}
+.prose blockquote.markdown-alert-important {
+  --callout-accent: #ab7df8;
+  --callout-bg: rgba(163, 113, 247, 0.1);
+  --callout-icon: '❗';
+}
+.prose blockquote.markdown-alert-warning {
+  --callout-accent: #d29922;
+  --callout-bg: rgba(187, 128, 9, 0.1);
+  --callout-icon: '⚠️';
+}
+.prose blockquote.markdown-alert-caution {
+  --callout-accent: #f85149;
+  --callout-bg: rgba(248, 81, 73, 0.1);
+  --callout-icon: '🛑';
+}
+
 ::highlight(global-search) {
   background-color: yellow;
   color: black;
