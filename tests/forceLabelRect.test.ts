@@ -86,6 +86,30 @@ describe('forceLabelRect', () => {
     expect(a3.vx as number).toBeCloseTo(-(b3.vx as number), 10);
   });
 
+  it('still collides a very wide box with a distant small one (pruning must not skip it)', () => {
+    // The wide node's box spans x ∈ [-200, 200]; the small node sits 150px away
+    // with a tiny box, so only the wide box's reach makes them overlap. The
+    // per-subtree pruning must account for the wide neighbor's extent when
+    // searching from the small node, or this pair would be silently skipped.
+    const wide: RectCollideNode = box({ index: 0, x: 0, y: 0, vx: 0, vy: 0 }, 200, 8);
+    const small: RectCollideNode = box({ index: 1, x: 150, y: 2, vx: 0, vy: 0 }, 5, 5);
+    // Far-away bystanders spread the quadtree out so pruning actually engages.
+    const bystanders: RectCollideNode[] = [
+      box({ index: 2, x: 2000, y: 2000, vx: 0, vy: 0 }, 5, 5),
+      box({ index: 3, x: -2000, y: 2000, vx: 0, vy: 0 }, 5, 5),
+    ];
+    const force = forceLabelRect<RectCollideNode>();
+    force.initialize([wide, small, ...bystanders]);
+    force(1);
+    // Overlap resolved on y (shallower than x): small is below wide's center.
+    expect(small.vy as number).toBeGreaterThan(0);
+    expect(wide.vy as number).toBeLessThan(0);
+    for (const b of bystanders) {
+      expect(b.vx).toBe(0);
+      expect(b.vy).toBe(0);
+    }
+  });
+
   it('scales the push by strength', () => {
     const make = (): [RectCollideNode, RectCollideNode] => [
       box({ index: 0, x: 0, y: 0, vx: 0, vy: 0 }, 10, 10),

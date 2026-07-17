@@ -55,7 +55,10 @@ export interface ForceLabelRect<N extends RectCollideNode> {
  * footprints instead of by circles (which is all the built-in `forceCollide`
  * supports). Modeled on `forceCollide`: each tick it builds a quadtree over node
  * centers and, for every node, visits only the quads that could possibly contain
- * an overlapping box (pruned using the global maximum half-extent). Overlapping
+ * an overlapping box. Pruning uses per-subtree maximum half-extents cached on
+ * the quadtree cells by a bottom-up pass (mirroring how `forceCollide` caches a
+ * per-cell max radius), so one unusually wide label only widens the search near
+ * itself rather than inflating every node's search window graph-wide. Overlapping
  * pairs are pushed apart along their axis of least penetration (the minimum
  * translation vector), split evenly between the two nodes and scaled by
  * `strength`. Like `forceCollide`, the push is applied to velocities and is not
@@ -69,12 +72,29 @@ export interface ForceLabelRect<N extends RectCollideNode> {
  * (1-s)^k, so raise this for more rigidity when strong repulsion forces are
  * squeezing nodes together, at a linear cost per extra pass.
  */
+/**
+ * Subtree-max label half-extents cached on every quadtree cell (internal node
+ * or leaf) by the bottom-up pass in onePass, then read by the top-down visit
+ * to prune. Attached as expando properties, the same way d3's forceCollide
+ * stores its per-cell max radius.
+ */
+interface QuadExtents {
+  hw: number;
+  hh: number;
+}
+
 export function forceLabelRect<N extends RectCollideNode>(): ForceLabelRect<N> {
   let nodes: N[] = [];
   let strength = 0.7;
   let iterations = 1;
-  let maxHalfW = 0;
-  let maxHalfH = 0;
+
+  function halfW(n: N): number {
+    return Math.max(Math.abs(n.bx0 ?? 0), Math.abs(n.bx1 ?? 0));
+  }
+
+  function halfH(n: N): number {
+    return Math.max(Math.abs(n.by0 ?? 0), Math.abs(n.by1 ?? 0));
+  }
 
   function boxOf(node: N, cx: number, cy: number): Box {
     return {
@@ -117,13 +137,36 @@ export function forceLabelRect<N extends RectCollideNode>(): ForceLabelRect<N> {
       d => (d.x ?? 0) + (d.vx ?? 0),
       d => (d.y ?? 0) + (d.vy ?? 0),
     );
+    // Bottom-up pass caching each cell's subtree-max half-extents for pruning.
+    tree.visitAfter((quad) => {
+      let hw = 0;
+      let hh = 0;
+      if (Array.isArray(quad)) {
+        // Internal cell: max over its (up to four) child cells, already tagged
+        // since visitAfter runs children first.
+        for (const child of quad) {
+          if (!child) continue;
+          const ext = child as unknown as QuadExtents;
+          hw = Math.max(hw, ext.hw);
+          hh = Math.max(hh, ext.hh);
+        }
+      } else {
+        // Leaf: max over its linked list of coincident points.
+        let leaf: QuadtreeLeaf<N> | undefined = quad;
+        do {
+          hw = Math.max(hw, halfW(leaf.data));
+          hh = Math.max(hh, halfH(leaf.data));
+        } while ((leaf = leaf.next));
+      }
+      const ext = quad as unknown as QuadExtents;
+      ext.hw = hw;
+      ext.hh = hh;
+    });
     for (const node of nodes) {
       const xi = (node.x ?? 0) + (node.vx ?? 0);
       const yi = (node.y ?? 0) + (node.vy ?? 0);
-      // A box of node can reach at most its own half-extent plus the largest
-      // half-extent in the graph; anything farther cannot overlap.
-      const rx = Math.max(Math.abs(node.bx0 ?? 0), Math.abs(node.bx1 ?? 0)) + maxHalfW;
-      const ry = Math.max(Math.abs(node.by0 ?? 0), Math.abs(node.by1 ?? 0)) + maxHalfH;
+      const nodeHw = halfW(node);
+      const nodeHh = halfH(node);
       tree.visit((quad, x0, y0, x1, y1) => {
         if (!Array.isArray(quad)) {
           // Leaf: walk its linked list of coincident points. Resolve each pair
@@ -134,7 +177,12 @@ export function forceLabelRect<N extends RectCollideNode>(): ForceLabelRect<N> {
             if ((other.index ?? 0) > (node.index ?? 0)) resolve(node, other);
           } while ((leaf = leaf.next));
         }
-        // Prune quads entirely outside the interaction window.
+        // Prune cells entirely outside the interaction window: a box in this
+        // cell reaches at most this cell's subtree-max half-extent beyond the
+        // cell bounds, plus this node's own reach.
+        const ext = quad as unknown as QuadExtents;
+        const rx = nodeHw + ext.hw;
+        const ry = nodeHh + ext.hh;
         return x0 > xi + rx || x1 < xi - rx || y0 > yi + ry || y1 < yi - ry;
       });
     }
@@ -142,12 +190,6 @@ export function forceLabelRect<N extends RectCollideNode>(): ForceLabelRect<N> {
 
   force.initialize = (_nodes: N[]): void => {
     nodes = _nodes;
-    maxHalfW = 0;
-    maxHalfH = 0;
-    for (const n of nodes) {
-      maxHalfW = Math.max(maxHalfW, Math.abs(n.bx0 ?? 0), Math.abs(n.bx1 ?? 0));
-      maxHalfH = Math.max(maxHalfH, Math.abs(n.by0 ?? 0), Math.abs(n.by1 ?? 0));
-    }
   };
 
   force.strength = function (value?: number): number | ForceLabelRect<N> {
