@@ -146,6 +146,79 @@ function nodeRadius(d: SimNode): number {
   return NODE_RADIUS_BASE + Math.min(10, Math.sqrt(d.childCount));
 }
 
+// Radius step (px) between successive tree depths in the seeded initial layout.
+// Matches the folder link rest length so the seed starts near link equilibrium.
+const SEED_RADIAL_STEP = LINK_DISTANCE_FOLDER;
+
+/**
+ * Seeds initial node positions with a radial tree layout: the root at the
+ * center, each depth ring SEED_RADIAL_STEP further out, and each subtree
+ * confined to an angular sector sized by its node count. Without this, d3's
+ * default phyllotaxis start packs all nodes into a tiny disc, which puts every
+ * pair within the distance-capped repulsion forces' range for the first many
+ * ticks (an O(n²) startup phase) and makes convergence slow; seeding starts
+ * the layout near its equilibrium shape instead. Nodes unreachable from the
+ * root (defensive — the scan emits a tree) are left for d3 to place.
+ */
+function seedRadialPositions(nodes: SimNode[], links: SimLink[], cx: number, cy: number): void {
+  const root = nodes.find(n => n.depth === 0);
+  if (!root) return;
+  const byId = new Map<string, SimNode>();
+  for (const n of nodes) byId.set(n.id, n);
+  const childrenOf = new Map<string, string[]>();
+  for (const l of links) {
+    const source = l.source as string;
+    let arr = childrenOf.get(source);
+    if (!arr) {
+      arr = [];
+      childrenOf.set(source, arr);
+    }
+    arr.push(l.target as string);
+  }
+
+  // Subtree node counts, used to weight each child's angular sector. The
+  // visited set guards against cycles in malformed link data.
+  const subtreeSize = new Map<string, number>();
+  const visited = new Set<string>();
+  const computeSize = (id: string): number => {
+    if (visited.has(id)) return 0;
+    visited.add(id);
+    let size = 1;
+    for (const c of childrenOf.get(id) ?? []) size += computeSize(c);
+    subtreeSize.set(id, size);
+    return size;
+  };
+  computeSize(root.id);
+
+  const place = (id: string, depth: number, a0: number, a1: number): void => {
+    const n = byId.get(id);
+    if (n) {
+      if (depth === 0) {
+        n.x = cx;
+        n.y = cy;
+      } else {
+        const a = (a0 + a1) / 2;
+        const r = depth * SEED_RADIAL_STEP;
+        n.x = cx + r * Math.cos(a);
+        n.y = cy + r * Math.sin(a);
+      }
+    }
+    const children = childrenOf.get(id) ?? [];
+    let total = 0;
+    for (const c of children) total += subtreeSize.get(c) ?? 0;
+    if (total === 0) return;
+    let start = a0;
+    for (const c of children) {
+      const size = subtreeSize.get(c) ?? 0;
+      if (size === 0) continue; // cycle-guard skip in computeSize
+      const end = start + ((a1 - a0) * size) / total;
+      place(c, depth + 1, start, end);
+      start = end;
+    }
+  };
+  place(root.id, 0, 0, 2 * Math.PI);
+}
+
 const PREVIEW_MAX_CHARS = 500;
 // U+2500 (box drawings light horizontal) renders as a continuous, gapless rule,
 // so a run of them reads like an underline beneath the file name.
@@ -305,6 +378,11 @@ function FolderGraphView() {
       crossRepelGroup: n.isDirectory ? n.id : getParentPath(n.id),
     }));
     const simLinks: SimLink[] = rawLinks.map(l => ({ source: l.source, target: l.target }));
+
+    // Must run before forceSimulation(), which assigns the packed phyllotaxis
+    // default to any node still missing x/y. Links still hold string endpoints
+    // here — forceLink resolves them to node objects only once the sim starts.
+    seedRadialPositions(simNodes, simLinks, width / 2, height / 2);
 
     // For the "hover a folder to see what it contains" behavior: map each folder
     // id to the set of its direct children (file or folder ids), so hovering can
