@@ -48,7 +48,7 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
         // click. onPropClick decides what a pill click does, so keep the mouseup from reaching it.
         onMouseUp={onPropClick ? (e) => e.stopPropagation() : undefined}
         className={clsx(
-          'inline-flex items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden',
+          'inline-flex shrink-0 items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden',
           onPropClick && 'cursor-pointer hover:brightness-125',
         )}
         style={{ fontFamily: MONO_FONT_STACK }}
@@ -66,7 +66,7 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
       key={tag}
       onClick={onTagClick}
       className={clsx(
-        'px-2 py-0.5 rounded-md text-sm bg-blue-600/50 text-blue-100 border border-slate-400/60 select-none whitespace-nowrap',
+        'px-2 py-0.5 shrink-0 rounded-md text-sm bg-blue-600/50 text-blue-100 border border-slate-400/60 select-none whitespace-nowrap',
         onTagClick && 'cursor-pointer hover:brightness-125',
       )}
       style={{ fontFamily: MONO_FONT_STACK }}
@@ -76,7 +76,7 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick }: P
   ));
 
   return (
-    <div className="flex flex-nowrap justify-end gap-x-2 mb-2">
+    <div className="flex flex-wrap justify-end gap-2 mb-2">
       {propPills}
       {tagPills}
     </div>
