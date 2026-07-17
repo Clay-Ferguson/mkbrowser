@@ -19,6 +19,7 @@ import { hashtagPlugin, hashtagTheme } from '../../renderer/editor/editorHashtag
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../renderer/editor/editorDateUtil';
 import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../renderer/editor/editorFrontMatterUtil';
 import { headingSizeExtensions } from '../../renderer/editor/editorHeadingUtil';
+import { minimalDiff } from '../../renderer/editor/editorDiffUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
@@ -625,12 +626,11 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     cancelPendingOnChange(d);
     d.lastDelivered = value;
     suppressOnChangeRef.current = true;
+    // Dispatch a minimal diff, not a whole-doc replace: replacing the entire document
+    // maps CodeMirror's scroll anchor (and selection) to position 0, bouncing the user
+    // to the top of the file on every external sync.
     view.dispatch({
-      changes: {
-        from: 0,
-        to: currentContent.length,
-        insert: value,
-      },
+      changes: minimalDiff(currentContent, value),
     });
     suppressOnChangeRef.current = false;
   }, [value]);
