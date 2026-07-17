@@ -2,14 +2,15 @@ import { useEffect, useRef } from 'react';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { basicSetup } from 'codemirror';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { markdown } from '@codemirror/lang-markdown';
+import { oneDarkTheme, oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
+import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
-import { StreamLanguage } from '@codemirror/language';
+import { StreamLanguage, syntaxHighlighting } from '@codemirror/language';
 import { shell } from '@codemirror/legacy-modes/mode/shell';
 import { unifiedMergeView, acceptChunk, rejectChunk, getChunks } from '@codemirror/merge';
 import { useAS } from '../../store';
+import { markdownHighlightStyle } from '../../renderer/editor/editorMarkdownHighlight';
 import { createFontSizeTheme } from './editorTheme';
 import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN } from '../../renderer/styles';
 
@@ -47,7 +48,11 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
 
     const extensions = [
       basicSetup,
-      oneDark,
+      // one-dark unbundled so Markdown gets the same Markdown-aware highlight style as the main
+      // editor — reviewing a rewrite must not recolour the text the user was just editing.
+      // See CodeMirrorEditor / editorMarkdownHighlight for why one highlighter, not two.
+      oneDarkTheme,
+      syntaxHighlighting(language === 'markdown' ? markdownHighlightStyle : oneDarkHighlightStyle),
       createFontSizeTheme(fontSizeRef.current),
       EditorView.lineWrapping,
       EditorState.readOnly.of(true),
@@ -60,7 +65,8 @@ function DiffReviewEditor({ originalText, modifiedText, language = 'text', onCom
     ];
 
     if (language === 'markdown') {
-      extensions.push(markdown());
+      // GFM base, matching CodeMirrorEditor — see the note there.
+      extensions.push(markdown({ base: markdownLanguage }));
     } else if (language === 'javascript') {
       extensions.push(javascript());
     } else if (language === 'typescript') {

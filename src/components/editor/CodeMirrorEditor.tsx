@@ -5,8 +5,8 @@ import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
 import { highlightSelectionMatches, search, searchKeymap, openSearchPanel, setSearchQuery, SearchQuery } from '@codemirror/search';
 import { indentOnInput, syntaxHighlighting, defaultHighlightStyle, bracketMatching, StreamLanguage } from '@codemirror/language';
 import { closeBrackets, autocompletion, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { markdown } from '@codemirror/lang-markdown';
+import { oneDarkTheme, oneDarkHighlightStyle } from '@codemirror/theme-one-dark';
+import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { javascript } from '@codemirror/lang-javascript';
 import { python } from '@codemirror/lang-python';
 import { shell } from '@codemirror/legacy-modes/mode/shell';
@@ -19,6 +19,7 @@ import { hashtagPlugin, hashtagTheme } from '../../renderer/editor/editorHashtag
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../renderer/editor/editorDateUtil';
 import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../renderer/editor/editorFrontMatterUtil';
 import { headingSizeExtensions } from '../../renderer/editor/editorHeadingUtil';
+import { markdownHighlightStyle } from '../../renderer/editor/editorMarkdownHighlight';
 import { minimalDiff } from '../../renderer/editor/editorDiffUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu } from './useEditorContextMenu';
@@ -390,7 +391,14 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // END_basicSetupReplacement
       search({ top: true }),
       searchMatchTheme,
-      oneDark,
+      // one-dark, unbundled: `oneDark` is just [oneDarkTheme, syntaxHighlighting(oneDarkHighlightStyle)],
+      // and Markdown needs a different highlight style (markdownHighlightStyle extends one-dark's
+      // rather than replacing them) while keeping the identical UI chrome. Registering one
+      // highlighter rather than two keeps tag precedence explicit — see editorMarkdownHighlight.
+      // NOTE: this is the only *active* highlighter; the defaultHighlightStyle above is registered
+      // with `fallback: true`, so it applies only if no other highlighter is present.
+      oneDarkTheme,
+      syntaxHighlighting(cfg.language === 'markdown' ? markdownHighlightStyle : oneDarkHighlightStyle),
       cursorOverrideTheme,
       fontSizeCompartment.current.of(createFontSizeTheme(cfg.fontSize)),
       spellCheckCompartment.current.of([]),
@@ -517,7 +525,11 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     }
 
     if (cfg.language === 'markdown') {
-      extensions.push(markdown(), ...headingSizeExtensions);
+      // `base: markdownLanguage` parses GFM; markdown()'s default base is plain CommonMark, under
+      // which ~~strikethrough~~, tables and task lists produce no tags at all — so they could never
+      // be coloured, while MarkdownView renders them via remark-gfm. This keeps what the editor
+      // highlights honest about what the app actually renders.
+      extensions.push(markdown({ base: markdownLanguage }), ...headingSizeExtensions);
     } else if (cfg.language === 'javascript') {
       extensions.push(javascript());
     } else if (cfg.language === 'typescript') {

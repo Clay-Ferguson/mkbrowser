@@ -47,6 +47,7 @@
     "@electron/fuses": "^1.8.0",
     "@eslint/js": "^9",
     "@heroicons/react": "^2.2.0",
+    "@lezer/highlight": "^1.2.3",
     "@playwright/test": "^1.58.2",
     "@rolldown/plugin-babel": "^0.2.3",
     "@tailwindcss/typography": "^0.5.19",
