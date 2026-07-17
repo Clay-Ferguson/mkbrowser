@@ -146,6 +146,25 @@ function nodeRadius(d: SimNode): number {
   return NODE_RADIUS_BASE + Math.min(10, Math.sqrt(d.childCount));
 }
 
+/**
+ * Per-pair strength for the merged cross-group force. Resolving both flavors
+ * of supplementary repulsion here lets a single force instance — one quadtree
+ * build and traversal per tick instead of two — serve both pair classes:
+ *   file vs file in different folders → CROSS_FOLDER_EXTRA_STRENGTH
+ *   file vs non-parent folder         → FILE_FOLDER_REPEL_STRENGTH
+ *   folder vs folder                  → 0 (hub repulsion spaces those)
+ * Symmetric in its arguments, as forceCrossGroupRepel requires.
+ */
+function crossGroupPairStrength(a: SimNode, b: SimNode): number {
+  if (a.isDirectory !== b.isDirectory) {
+    return USE_FILE_FOLDER_REPULSION ? FILE_FOLDER_REPEL_STRENGTH : 0;
+  }
+  if (!a.isDirectory && USE_CROSS_FOLDER_REPULSION) {
+    return CROSS_FOLDER_EXTRA_STRENGTH;
+  }
+  return 0;
+}
+
 // Radius step (px) between successive tree depths in the seeded initial layout.
 // Matches the folder link rest length so the seed starts near link equilibrium.
 const SEED_RADIAL_STEP = LINK_DISTANCE_FOLDER;
@@ -374,7 +393,7 @@ function FolderGraphView() {
       // Files are grouped by their parent folder, folders by their own path —
       // so cross-folder file pairs and file-vs-non-parent-folder pairs differ
       // in group (extra repulsion applies), while a file and its own parent
-      // match (exempt). Consumed by the crossRepel/fileFolderRepel forces.
+      // match (exempt). Consumed by the merged crossRepel force.
       crossRepelGroup: n.isDirectory ? n.id : getParentPath(n.id),
     }));
     const simLinks: SimLink[] = rawLinks.map(l => ({ source: l.source, target: l.target }));
@@ -572,24 +591,15 @@ function FolderGraphView() {
               : 0)
             .distanceMax(FOLDER_HUB_DISTANCE_MAX)
         : null)
-      // Extra repulsion between files in different folders (layered on top of the
-      // baseline charge above), capped at the same range so the doubling stays
-      // local. The filter keeps this force to file-file pairs; file-folder pairs
-      // get their own strength below.
-      .force('crossRepel', USE_CROSS_FOLDER_REPULSION
+      // Extra repulsion between cross-group pairs — cross-folder file pairs and
+      // file-vs-non-parent-folder pairs (the shared group key exempts a file's
+      // own parent) — layered on top of the baseline charge above and capped at
+      // the same range so the boost stays local. One merged force serves both
+      // pair classes at their respective strengths; see crossGroupPairStrength.
+      .force('crossRepel', (USE_CROSS_FOLDER_REPULSION || USE_FILE_FOLDER_REPULSION)
         ? forceCrossGroupRepel<SimNode>()
-            .strength(CROSS_FOLDER_EXTRA_STRENGTH)
+            .strength(crossGroupPairStrength)
             .distanceMax(CHARGE_DISTANCE_MAX)
-            .filter((a, b) => !a.isDirectory && !b.isDirectory)
-        : null)
-      // Extra repulsion between a file and any non-parent folder (the shared
-      // group key exempts the parent), so files keep their distance from
-      // neighboring folders' hubs instead of crowding against them.
-      .force('fileFolderRepel', USE_FILE_FOLDER_REPULSION
-        ? forceCrossGroupRepel<SimNode>()
-            .strength(FILE_FOLDER_REPEL_STRENGTH)
-            .distanceMax(CHARGE_DISTANCE_MAX)
-            .filter((a, b) => a.isDirectory !== b.isDirectory)
         : null)
       // Held in a local so a container resize can retarget it (see handleContainerResize).
       .force('center', centerForce)

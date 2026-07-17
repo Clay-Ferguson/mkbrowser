@@ -53,19 +53,19 @@ describe('forceCrossGroupRepel', () => {
     expect(b.vx).toBe(0);
   });
 
-  it('skips cross-group pairs rejected by the filter', () => {
+  it('skips cross-group pairs whose per-pair strength is zero', () => {
     const a = node(0, 0, 'folderA');
     const b = node(1, 10, 'folderB');
-    const force = forceCrossGroupRepel<CrossGroupNode>().strength(220).filter(() => false);
+    const force = forceCrossGroupRepel<CrossGroupNode>().strength(() => 0);
     force.initialize([a, b]);
     force(1);
     expect(a.vx).toBe(0);
     expect(b.vx).toBe(0);
   });
 
-  it('applies only to cross-group pairs accepted by the filter', () => {
-    // Tag nodes via group naming: the filter only lets file-vs-folder pairs
-    // through, mirroring how FolderGraphView separates pair classes.
+  it('applies only to cross-group pairs the strength accessor gives a nonzero value', () => {
+    // The accessor only powers file-vs-folder pairs, mirroring how
+    // FolderGraphView separates pair classes in its merged force.
     type KindNode = CrossGroupNode & { isDirectory: boolean };
     const kindNode = (index: number, x: number, group: string, isDirectory: boolean): KindNode =>
       ({ ...node(index, x, group), isDirectory });
@@ -74,15 +74,30 @@ describe('forceCrossGroupRepel', () => {
     const fileB = kindNode(1, 10, 'folderB', false);
     const folderC = kindNode(2, 20, 'folderC', true);
     const force = forceCrossGroupRepel<KindNode>()
-      .strength(220)
-      .filter((a, b) => a.isDirectory !== b.isDirectory);
+      .strength((a, b) => a.isDirectory !== b.isDirectory ? 220 : 0);
     force.initialize([fileA, fileB, folderC]);
     force(1);
-    // fileA-fileB is filtered out; each file interacts only with folderC,
+    // fileA-fileB gets zero strength; each file interacts only with folderC,
     // which is pushed right by both files (it sits right of both).
     expect(fileA.vx as number).toBeLessThan(0);
     expect(fileB.vx as number).toBeLessThan(0);
     expect(folderC.vx as number).toBeGreaterThan(0);
+  });
+
+  it('applies different magnitudes to different pair classes in one pass', () => {
+    // Two isolated pairs far apart, so each interacts only within its pair.
+    // The accessor gives the B pair double the A pair's strength; the resulting
+    // pushes must scale accordingly.
+    const a1 = node(0, 0, 'groupA1');
+    const a2 = node(1, 10, 'groupA2');
+    const b1 = node(2, 10000, 'groupB1');
+    const b2 = node(3, 10010, 'groupB2');
+    const force = forceCrossGroupRepel<CrossGroupNode>()
+      .strength((a, b) => (a === b1 || b === b1) ? 440 : 220)
+      .distanceMax(180);
+    force.initialize([a1, a2, b1, b2]);
+    force(1);
+    expect(Math.abs(b1.vx as number)).toBeCloseTo(2 * Math.abs(a1.vx as number), 10);
   });
 
   it('scales the push by alpha', () => {

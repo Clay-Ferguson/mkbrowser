@@ -11,15 +11,19 @@ export interface CrossGroupNode extends SimulationNodeDatum {
   crossRepelGroup?: string;
 }
 
+/**
+ * Per-pair strength accessor. Called once per interacting pair, in arbitrary
+ * argument order, so it must be symmetric. Return 0 to exempt the pair.
+ */
+export type CrossGroupStrength<N extends CrossGroupNode> = (a: N, b: N) => number;
+
 export interface ForceCrossGroupRepel<N extends CrossGroupNode> {
   (alpha: number): void;
   initialize(nodes: N[], random?: () => number): void;
-  strength(): number;
-  strength(value: number): ForceCrossGroupRepel<N>;
+  strength(): CrossGroupStrength<N>;
+  strength(value: number | CrossGroupStrength<N>): ForceCrossGroupRepel<N>;
   distanceMax(): number;
   distanceMax(value: number): ForceCrossGroupRepel<N>;
-  filter(): (a: N, b: N) => boolean;
-  filter(value: (a: N, b: N) => boolean): ForceCrossGroupRepel<N>;
 }
 
 /**
@@ -31,21 +35,19 @@ export interface ForceCrossGroupRepel<N extends CrossGroupNode> {
  * It mirrors `forceManyBody`'s force law (acceleration ∝ strength·alpha / dist²,
  * scaled by alpha so it cools with the simulation), so layering this on top of a
  * `forceManyBody` of equal magnitude makes a cross-group pair feel exactly twice
- * the repulsion of a same-group pair. `strength` here is a positive magnitude
- * (the amount of *extra* repulsion). `distanceMax` caps the interaction range —
- * match it to the baseline charge's distanceMax so the doubling stays local and
- * doesn't reintroduce long-range cluster drift. A quadtree prunes the search to
- * that range, so the cost is local rather than O(n²).
- *
- * `filter` further restricts which cross-group pairs interact (e.g. only
- * file-vs-folder pairs), letting several instances of this force coexist with
- * different strengths without double-applying to the same pair.
+ * the repulsion of a same-group pair. `strength` is a positive magnitude (the
+ * amount of *extra* repulsion) — either a constant or a per-pair accessor, which
+ * lets one instance (one quadtree build + traversal per tick) serve several pair
+ * classes at different magnitudes, with 0 exempting a pair entirely.
+ * `distanceMax` caps the interaction range — match it to the baseline charge's
+ * distanceMax so the doubling stays local and doesn't reintroduce long-range
+ * cluster drift. A quadtree prunes the search to that range, so the cost is
+ * local rather than O(n²).
  */
 export function forceCrossGroupRepel<N extends CrossGroupNode>(): ForceCrossGroupRepel<N> {
   let nodes: N[] = [];
-  let strength = 220;
+  let strength: CrossGroupStrength<N> = () => 220;
   let maxDist = Infinity;
-  let filter: (a: N, b: N) => boolean = () => true;
 
   function force(alpha: number): void {
     const maxSq = maxDist * maxDist;
@@ -70,18 +72,22 @@ export function forceCrossGroupRepel<N extends CrossGroupNode>(): ForceCrossGrou
             if (
               otherGroup !== undefined &&
               otherGroup !== group &&
-              (other.index ?? 0) > (node.index ?? 0) &&
-              filter(node, other)
+              (other.index ?? 0) > (node.index ?? 0)
             ) {
               const dx = (other.x ?? 0) - xi;
               const dy = (other.y ?? 0) - yi;
               const l = dx * dx + dy * dy;
               if (l > 0 && l <= maxSq) {
-                const w = (strength * alpha) / l;
-                node.vx = (node.vx ?? 0) - dx * w;
-                node.vy = (node.vy ?? 0) - dy * w;
-                other.vx = (other.vx ?? 0) + dx * w;
-                other.vy = (other.vy ?? 0) + dy * w;
+                // Strength accessor runs last: it's the only per-pair cost
+                // that involves a call, so the cheap arithmetic gates it.
+                const s = strength(node, other);
+                if (s !== 0) {
+                  const w = (s * alpha) / l;
+                  node.vx = (node.vx ?? 0) - dx * w;
+                  node.vy = (node.vy ?? 0) - dy * w;
+                  other.vx = (other.vx ?? 0) + dx * w;
+                  other.vy = (other.vy ?? 0) + dy * w;
+                }
               }
             }
           } while ((leaf = leaf.next));
@@ -96,21 +102,15 @@ export function forceCrossGroupRepel<N extends CrossGroupNode>(): ForceCrossGrou
     nodes = _nodes;
   };
 
-  force.strength = function (value?: number): number | ForceCrossGroupRepel<N> {
+  force.strength = function (value?: number | CrossGroupStrength<N>): CrossGroupStrength<N> | ForceCrossGroupRepel<N> {
     if (value === undefined) return strength;
-    strength = value;
+    strength = typeof value === 'number' ? () => value : value;
     return force as ForceCrossGroupRepel<N>;
   };
 
   force.distanceMax = function (value?: number): number | ForceCrossGroupRepel<N> {
     if (value === undefined) return maxDist;
     maxDist = value;
-    return force as ForceCrossGroupRepel<N>;
-  };
-
-  force.filter = function (value?: (a: N, b: N) => boolean): ((a: N, b: N) => boolean) | ForceCrossGroupRepel<N> {
-    if (value === undefined) return filter;
-    filter = value;
     return force as ForceCrossGroupRepel<N>;
   };
 
