@@ -458,23 +458,17 @@ async function ensureMarkdownIds(
   // oldest-first order (mapWithConcurrency returns results in input order). A read
   // failure yields null content and is skipped below (no id → excluded from rename
   // detection), matching the previous per-file skip.
-  //
-  // The mtime is captured *before* the read so Phase 4 can compare-and-swap: if a
-  // concurrent write lands between the stat and the read, we hold the old mtime
-  // with the new content and Phase 4 conservatively skips (a harmless no-op);
-  // stat-after-read would invert that into old content passing the guard.
   const contents = await mapWithConcurrency(
     markdownFiles,
     RECONCILE_FILE_CONCURRENCY,
     async ({ name }) => {
       const filePath = path.join(dirPath, name);
       try {
-        const mtimeMs = (await fs.promises.stat(filePath)).mtimeMs;
         const rawContent = (await fs.promises.readFile(filePath, 'utf8')) as string | null;
-        return { name, rawContent, mtimeMs };
+        return { name, rawContent };
       } catch (err) {
         logger.debug(`reconcileIndexedFiles: cannot read "${filePath}": ${err}`);
-        return { name, rawContent: null, mtimeMs: 0 };
+        return { name, rawContent: null };
       }
     },
   );
@@ -487,9 +481,9 @@ async function ensureMarkdownIds(
     name: string;
     filePath: string;
     content: string;
-    mtimeMs: number;
+    rawContent: string;
   }> = [];
-  for (const { name, rawContent, mtimeMs } of contents) {
+  for (const { name, rawContent } of contents) {
     if (rawContent === null) continue; // unreadable — skip (no id assigned)
     const { yaml: fm } = parseFrontMatter(rawContent);
 
@@ -514,7 +508,7 @@ async function ensureMarkdownIds(
         name,
         filePath: path.join(dirPath, name),
         content: injected.content,
-        mtimeMs,
+        rawContent,
       });
     }
     nameToId.set(name, fileId);
@@ -526,23 +520,25 @@ async function ensureMarkdownIds(
   // persisted, so drop it from the maps (no id → excluded from rename detection),
   // matching the original per-file skip on a failed read/write.
   //
-  // Each write is a guarded compare-and-swap: the content being written is the
-  // content Phase 2 read, so if the file's mtime moved since (a save from a path
-  // that doesn't hold the index lock, or an external editor), writing would
-  // clobber those newer edits with stale content. Skip instead — the file is
+  // Each write is a guarded compare-and-swap: the content being written derives
+  // from the content Phase 2 read, so if the file changed since (a save from a
+  // path that doesn't hold the index lock, or an external editor), writing would
+  // clobber those newer edits with stale content. Re-read and compare content —
+  // an mtime check would miss a write landing in the same timestamp tick on
+  // filesystems with coarse (1s) granularity. On mismatch, skip — the file is
   // dropped from the maps exactly like a failed write, and the next reconcile
   // assigns/heals its id from the fresh content.
   await mapWithConcurrency(
     pendingWrites,
     RECONCILE_FILE_CONCURRENCY,
-    async ({ name, filePath, content, mtimeMs }) => {
+    async ({ name, filePath, content, rawContent }) => {
       const dropFromMaps = () => {
         const id = nameToId.get(name);
         nameToId.delete(name);
         if (id) idToName.delete(id);
       };
       try {
-        if ((await fs.promises.stat(filePath)).mtimeMs !== mtimeMs) {
+        if ((await fs.promises.readFile(filePath, 'utf8')) !== rawContent) {
           logger.warn(
             `reconcileIndexedFiles: "${filePath}" changed since it was read; skipping id write to avoid clobbering the newer content`,
           );
@@ -1248,9 +1244,6 @@ export async function renameInIndexYaml(
  */
 async function ensureFileFrontMatterId(filePath: string): Promise<string | null> {
   try {
-    // Stat before read so the pre-write guard below errs toward skipping (see
-    // the same pattern in ensureMarkdownIds Phase 2/4).
-    const mtimeMs = (await fs.promises.stat(filePath)).mtimeMs;
     const content = await fs.promises.readFile(filePath, 'utf8');
     const { yaml: fm } = parseFrontMatter(content);
     const existingId = frontMatterId(fm);
@@ -1258,9 +1251,11 @@ async function ensureFileFrontMatterId(filePath: string): Promise<string | null>
     const { content: updated, id } = injectFrontMatterId(content);
     // Guarded compare-and-swap: if the file changed since we read it (e.g. an
     // editor save landed in between), writing `updated` — derived from the old
-    // content — would clobber those edits. Degrade to a name-only entry; the
-    // next reconcile assigns the id from the fresh content.
-    if ((await fs.promises.stat(filePath)).mtimeMs !== mtimeMs) {
+    // content — would clobber those edits. Re-read and compare content (an mtime
+    // check would miss same-tick writes on coarse-timestamp filesystems).
+    // Degrade to a name-only entry; the next reconcile assigns the id from the
+    // fresh content.
+    if ((await fs.promises.readFile(filePath, 'utf8')) !== content) {
       logger.warn(
         `ensureFileFrontMatterId: "${filePath}" changed since it was read; skipping id write to avoid clobbering the newer content`,
       );

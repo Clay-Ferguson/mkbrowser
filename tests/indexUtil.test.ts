@@ -1426,9 +1426,10 @@ describe('save flow leaves file and index consistent for a new file (issue 014)'
 
 describe('reconcile does not clobber a concurrent write (MAIN_ISSUES.md issue 1)', () => {
   // Simulates a save landing inside reconcile's read-to-write window: the spy
-  // lets reconcile read the old content, then rewrites the file on disk (with a
-  // bumped mtime) before reconcile's Phase 4 write. The mtime compare-and-swap
-  // must skip the stale write, leaving the newer content intact.
+  // lets reconcile read the old content, then rewrites the file on disk before
+  // reconcile's Phase 4 write. The content compare-and-swap (the pre-write
+  // re-read sees the newer content) must skip the stale write, leaving the
+  // newer content intact.
   function interceptReadToRewrite(fileName: string, newerContent: string) {
     const filePath = path.join(tmpDir, fileName);
     const realReadFile = fs.promises.readFile.bind(fs.promises);
@@ -1437,9 +1438,6 @@ describe('reconcile does not clobber a concurrent write (MAIN_ISSUES.md issue 1)
       if (typeof target === 'string' && path.resolve(target) === path.resolve(filePath)) {
         vi.mocked(fs.promises.readFile).mockRestore();
         fs.writeFileSync(filePath, newerContent, 'utf8');
-        // Force a distinct mtime even on filesystems with coarse timestamps.
-        const future = (Date.now() + 5000) / 1000;
-        fs.utimesSync(filePath, future, future);
       }
       return result;
     });
