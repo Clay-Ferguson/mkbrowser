@@ -329,6 +329,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   const viewRef = useRef<EditorView | null>(null);
   const fontSizeCompartment = useRef(new Compartment());
   const frontMatterCompartment = useRef(new Compartment());
+  const prevShowPropsRef = useRef(showPropsInEditor);
   const spellCheckCompartment = useRef(new Compartment());
   const mergeCompartment = useRef(new Compartment());
   // True while the merge view is active in the editor. A ref (not state) because the once-created
@@ -794,10 +795,18 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     const view = viewRef.current;
     if (!view) return;
 
+    // Only scroll to the top on a genuine off→on toggle (not on mount, and not when hiding),
+    // so the newly revealed front matter is visible even if the user was scrolled deep in the doc.
+    const turningOn = showPropsInEditor && !prevShowPropsRef.current;
+    prevShowPropsRef.current = showPropsInEditor;
+
     view.dispatch({
-      effects: frontMatterCompartment.current.reconfigure(
-        showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
-      ),
+      effects: [
+        frontMatterCompartment.current.reconfigure(
+          showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
+        ),
+        ...(turningOn ? [EditorView.scrollIntoView(0, { y: 'start' })] : []),
+      ],
     });
   }, [showPropsInEditor]);
 
