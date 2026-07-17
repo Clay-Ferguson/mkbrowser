@@ -169,6 +169,13 @@ function crossGroupPairStrength(a: SimNode, b: SimNode): number {
 // Matches the folder link rest length so the seed starts near link equilibrium.
 const SEED_RADIAL_STEP = LINK_DISTANCE_FOLDER;
 
+// Per-frame time budget (ms) for the headless settle loop. The layout is
+// computed by running simulation ticks with no DOM updates at all — the graph
+// is revealed only once settled — and each animation frame runs as many ticks
+// as fit in this budget, so the wait spinner keeps animating and the app stays
+// responsive while a large layout computes.
+const SETTLE_TICK_BUDGET_MS = 30;
+
 /**
  * Seeds initial node positions with a radial tree layout: the root at the
  * center, each depth ring SEED_RADIAL_STEP further out, and each subtree
@@ -236,6 +243,35 @@ function seedRadialPositions(nodes: SimNode[], links: SimLink[], cx: number, cy:
     }
   };
   place(root.id, 0, 0, 2 * Math.PI);
+}
+
+/**
+ * Runs a stopped simulation's initial settle headless: the exact number of
+ * ticks d3's internal timer would run (alpha decaying from 1 to alphaMin) with
+ * zero DOM work per tick, chunked across animation frames on a time budget so
+ * a wait spinner can animate and the app stays responsive while a large layout
+ * computes. Calls `onDone` after the final tick; returns a cancel function.
+ * Module-level (not compiled by the React Compiler): the counter mutations in
+ * the chunk lambda would make the compiler bail out on the whole component.
+ */
+function runHeadlessSettle(sim: Simulation<SimNode, SimLink>, onDone: () => void): () => void {
+  const totalTicks = Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay()));
+  let ticksDone = 0;
+  let rafId = 0;
+  const runChunk = (): void => {
+    const start = performance.now();
+    while (ticksDone < totalTicks && performance.now() - start < SETTLE_TICK_BUDGET_MS) {
+      sim.tick();
+      ticksDone++;
+    }
+    if (ticksDone < totalTicks) {
+      rafId = requestAnimationFrame(runChunk);
+      return;
+    }
+    onDone();
+  };
+  rafId = requestAnimationFrame(runChunk);
+  return () => cancelAnimationFrame(rafId);
 }
 
 const PREVIEW_MAX_CHARS = 500;
@@ -352,6 +388,10 @@ function FolderGraphView() {
     highlightRef.current = highlightItem;
   });
   const [ready, setReady] = useState(false);
+  // True while the headless settle loop is computing the layout: the SVG is
+  // hidden (visibility, not display — label measurement needs layout) and a
+  // centered wait spinner shows in its place.
+  const [settling, setSettling] = useState(false);
 
   // Wait for container to be measured before building the simulation.
   useEffect(() => {
@@ -607,6 +647,14 @@ function FolderGraphView() {
         ? forceLabelRect<SimNode>().strength(0.7).iterations(LABEL_COLLIDE_ITERATIONS)
         : forceCollide<SimNode>().radius(d => nodeRadius(d) + 4));
 
+    // forceSimulation() auto-starts its internal timer; stop it — the initial
+    // settle runs headless in the chunked loop below, and only user drags
+    // restart live ticking (via alphaTarget().restart() in the drag handlers).
+    sim.stop();
+
+    // Syncs the DOM to current node positions. During the initial settle this
+    // is NOT registered as a tick listener — it runs once when the layout is
+    // done, then attaches so post-settle drags animate live.
     const tick = () => {
       linkSel
         .attr('x1', d => (d.source as SimNode).x ?? 0)
@@ -615,7 +663,6 @@ function FolderGraphView() {
         .attr('y2', d => (d.target as SimNode).y ?? 0);
       nodeSel.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`);
     };
-    sim.on('tick', tick);
 
     // Set once the user zooms/pans by hand, which makes the viewport theirs: a
     // later resize then preserves their transform instead of re-fitting over it.
@@ -690,13 +737,17 @@ function FolderGraphView() {
       });
     nodeSel.call(dragBehavior);
 
-    // Zoom-to-fit when the simulation first settles. Subsequent settles
-    // (after a drag) shouldn't re-zoom — that would be jarring — so guard
-    // with a one-shot flag.
-    let didInitialFit = false;
-    sim.on('end', () => {
-      if (didInitialFit) return;
-      didInitialFit = true;
+    // Headless settle (see runHeadlessSettle): when done, one DOM sync + an
+    // animated zoom-to-fit reveal the finished layout, and the tick listener
+    // attaches so post-settle drags animate live. Subsequent settles (after a
+    // drag) never re-fit — that would be jarring.
+    let isSettling = true;
+    setSettling(true);
+    const cancelSettle = runHeadlessSettle(sim, () => {
+      isSettling = false;
+      tick();
+      sim.on('tick', tick);
+      setSettling(false);
       zoomToFit(true);
     });
 
@@ -713,15 +764,20 @@ function FolderGraphView() {
      */
     const handleContainerResize = (): void => {
       centerForce.x(container.clientWidth / 2).y(container.clientHeight / 2);
-      if (!userAdjustedView) zoomToFit(false);
+      // Mid-settle positions aren't worth fitting to — the settle's own final
+      // zoomToFit reads the container box live, so it lands correctly anyway.
+      if (!userAdjustedView && !isSettling) zoomToFit(false);
     };
     resizeGraphRef.current = handleContainerResize;
 
-    // Returns the useEffect cleanup (an unsubscribe): stops the D3 force simulation, detaches its tick/end and zoom listeners, and drops the repaint/re-frame closures (their selections are dead) on unmount / before re-run.
+    // Returns the useEffect cleanup (an unsubscribe): cancels any in-flight
+    // settle chunk, stops the D3 force simulation, detaches its tick and zoom
+    // listeners, and drops the repaint/re-frame closures (their selections are
+    // dead) on unmount / before re-run.
     return () => {
+      cancelSettle();
       sim.stop();
       sim.on('tick', null);
-      sim.on('end', null);
       root.on('.zoom', null);
       applyHighlightRef.current = null;
       resizeGraphRef.current = null;
@@ -765,7 +821,20 @@ function FolderGraphView() {
         </div>
       </header>
       <div ref={containerRef} className="flex-1 min-h-0 relative">
-        <svg ref={svgRef} className="absolute inset-0 w-full h-full block" />
+        <svg
+          ref={svgRef}
+          className={`absolute inset-0 w-full h-full block ${settling ? 'invisible' : ''}`}
+        />
+        {settling && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="flex flex-col items-center gap-3 text-slate-400">
+              <div className="w-10 h-10 rounded-full border-4 border-slate-600 border-t-blue-400 animate-spin" />
+              <p className="text-sm">
+                Laying out {folderGraph.nodes.length} nodes…
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
