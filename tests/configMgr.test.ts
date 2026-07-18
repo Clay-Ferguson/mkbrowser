@@ -119,6 +119,44 @@ describe('initConfig — file preservation on error', () => {
   });
 });
 
+describe('initConfig — resilience to persist failures', () => {
+  // initConfig()'s writes are seeding/normalization only (first-run defaults,
+  // back-filled AI fields); the in-memory config is already complete before
+  // they run. A failed flush must therefore never reject initConfig():
+  // main.ts awaits it inside the app-ready handler, and a rejection there
+  // lands in a catch block that skips setupIpcHandlers()/createWindow() —
+  // i.e. a disk problem that only prevents *persisting* would leave the app
+  // running with no window at all.
+  it('first-run: resolves with in-memory defaults when the initial write fails', async () => {
+    expect(fs.existsSync(CONFIG_FILE)).toBe(false);
+    // Fail the atomic write at the temp-file open (what ENOSPC/EACCES look like).
+    vi.spyOn(fs.promises, 'open').mockRejectedValueOnce(
+      Object.assign(new Error('ENOSPC: no space left on device'), { code: 'ENOSPC' }),
+    );
+    await expect(initConfig()).resolves.toBeUndefined();
+    const cfg = getConfig();
+    expect(cfg.browseFolder).toBe('');
+    expect(Array.isArray(cfg.aiModels)).toBe(true);
+    // A write failure is not a *load* error — nothing to surface to the user here.
+    expect(getConfigLoadError()).toBeNull();
+  });
+
+  it('valid config needing AI back-fill: resolves and keeps loaded values when the write fails', async () => {
+    // No AI fields on disk → withDefaultAISettings reports changed → initConfig persists.
+    writeConfig(yaml.dump({ browseFolder: '/keep' }));
+    vi.spyOn(fs.promises, 'open').mockRejectedValueOnce(
+      Object.assign(new Error('ENOSPC: no space left on device'), { code: 'ENOSPC' }),
+    );
+    await expect(initConfig()).resolves.toBeUndefined();
+    // In-memory config is the loaded file plus AI defaults.
+    expect(getConfig().browseFolder).toBe('/keep');
+    expect(getConfig().aiModels?.length ?? 0).toBeGreaterThan(0);
+    expect(getConfigLoadError()).toBeNull();
+    // The failed atomic write must not have touched the original file.
+    expect(fs.readFileSync(CONFIG_FILE, 'utf-8')).toBe(yaml.dump({ browseFolder: '/keep' }));
+  });
+});
+
 describe('initConfig — getConfigLoadError()', () => {
   it('returns null after a successful load', async () => {
     writeConfig(yaml.dump({ browseFolder: '/ok' }));

@@ -179,10 +179,21 @@ let _configLoadError: { error: string; backupPath: string | null } | null = null
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/** Create the config directory if it does not already exist. */
+/**
+ * Create the config directory if it does not already exist. Best effort: a
+ * failure (EACCES, ENOSPC, read-only mount) is logged and swallowed, because a
+ * missing directory only prevents *persisting* — the read path tolerates an
+ * absent file, and persistConfig() re-runs its own mkdir before every write.
+ * Throwing here would abort initConfig() and, through main.ts's app-ready
+ * catch, prevent the window from ever being created.
+ */
 function ensureConfigDir(): void {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(CONFIG_DIR)) {
+      fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    }
+  } catch (err) {
+    logger.error('[configMgr] Failed to create config directory (continuing; config will not persist):', CONFIG_DIR, err);
   }
 }
 
@@ -226,6 +237,37 @@ export function flushConfig(): Promise<void> {
 }
 
 /**
+ * Persist wrapper for initConfig() ONLY: log-and-continue instead of rejecting.
+ *
+ * The writes initConfig() issues are seeding/normalization writes (first-run
+ * defaults, back-filled AI fields) — the in-memory config is already complete
+ * and correct before they run, so a failed flush (ENOSPC, EACCES, read-only or
+ * network mount…) must never reject initConfig(). Two bugs existed before this
+ * wrapper, both caused by letting the raw persistConfig() rejection escape:
+ *
+ *  1. First-run path: the rejection propagated out of initConfig() into
+ *     main.ts's app-ready handler, whose catch skips setupIpcHandlers() and
+ *     createWindow() — a disk problem that only prevented *saving* left the
+ *     app running with no window at all.
+ *  2. Valid-config path: the `await persistConfig()` sat inside the same
+ *     try/catch as the read/parse, so a pure WRITE error was misclassified as
+ *     a corrupt config file — the user's valid config.yaml was backed up as
+ *     "unreadable", getConfigLoadError() reported corruption, and the
+ *     already-loaded config was discarded from memory in favor of blank
+ *     defaults.
+ *
+ * Explicit user changes are different: updateConfig() still returns the real
+ * write promise so callers can see and surface a persistence failure.
+ */
+async function persistConfigAtInit(): Promise<void> {
+  try {
+    await persistConfig();
+  } catch (err) {
+    logger.error('[configMgr] Failed to write config during init — continuing with in-memory config:', CONFIG_FILE, err);
+  }
+}
+
+/**
  * Copy the config file to a timestamped `.bak-<ms>` sibling as a recovery aid
  * when the file exists but cannot be parsed. Returns the backup path on success,
  * or `null` when the copy itself fails (e.g. the file is unreadable).
@@ -265,16 +307,23 @@ export function getConfigLoadError(): { error: string; backupPath: string | null
  *  3. File exists but unreadable/invalid → load in-memory defaults WITHOUT
  *     writing to disk (leaving the original intact so the user can recover it).
  *     A `.bak-<timestamp>` copy is created and getConfigLoadError() is set.
+ *
+ * Never rejects on a WRITE failure: any persist performed here is best-effort
+ * (see persistConfigAtInit) because the in-memory config is complete before
+ * the write starts. main.ts awaits this in the app-ready handler, so a
+ * rejection would abort window creation over a save-only problem.
  */
 export async function initConfig(): Promise<void> {
   ensureConfigDir();
   _configLoadError = null;
 
   if (!fs.existsSync(CONFIG_FILE)) {
-    // First-run: no config file on disk yet — write defaults.
+    // First-run: no config file on disk yet — write defaults. The write is
+    // best-effort (see persistConfigAtInit): the in-memory defaults are
+    // already set, so a failed seed write must not reject initConfig().
     const { config: withAI, changed } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
     _config = withAI;
-    if (changed) await persistConfig();
+    if (changed) await persistConfigAtInit();
     return;
   }
 
@@ -289,7 +338,13 @@ export async function initConfig(): Promise<void> {
       const base = { ...parsed, settings: { ...cloneDefaultSettings(), ...parsed.settings } };
       const { config: withAI, changed } = withDefaultAISettings(base);
       _config = withAI;
-      if (changed) await persistConfig();
+      // ⚠️ This persist MUST NOT throw: we are inside the try/catch that
+      // classifies READ/parse failures as a corrupt config. A raw
+      // `await persistConfig()` here once let a write error (ENOSPC etc.)
+      // fall into that catch — backing up the user's VALID config as
+      // "unreadable" and replacing the config just loaded into _config with
+      // blank defaults. persistConfigAtInit swallows and logs write errors.
+      if (changed) await persistConfigAtInit();
       return;
     }
 
