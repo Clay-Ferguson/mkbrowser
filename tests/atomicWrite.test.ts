@@ -233,6 +233,41 @@ describe('writeFileAtomic', () => {
       expect(statAfter.mode & 0o777).toBe(0o600);
     });
 
+    it('propagates a failed write-through on a dangling symlink instead of clobbering the link', async () => {
+      // A symlink whose target directory does not exist makes the write-through
+      // fail with ENOENT. That failure must reach the caller — it must NOT fall
+      // back to the temp-file+rename path, which would replace the link itself
+      // with a regular file (the exact forking the symlink handling prevents).
+      const link = path.join(tmpDir, 'link.md');
+      await fs.promises.symlink(path.join(tmpDir, 'no-such-dir', 'real.md'), link);
+
+      await expect(writeFileAtomic(link, 'new')).rejects.toThrow();
+
+      // The link survives as a link, still pointing at its (missing) target.
+      expect((await fs.promises.lstat(link)).isSymbolicLink()).toBe(true);
+      // No temp file was left behind by an attempted fallback.
+      expect(await listDir()).toEqual(['link.md']);
+    });
+
+    it('propagates a failed write-through on a read-only symlink target instead of clobbering the link', async () => {
+      // Writing through a link to a read-only file fails with EACCES. The buggy
+      // fallback would "succeed" here — rename only needs write permission on the
+      // directory — replacing the link with a regular file and silently forking
+      // the document from its still-untouched real target.
+      const real = path.join(tmpDir, 'real.md');
+      const link = path.join(tmpDir, 'link.md');
+      await fs.promises.writeFile(real, 'old', 'utf8');
+      await fs.promises.chmod(real, 0o444);
+      await fs.promises.symlink(real, link);
+
+      await expect(writeFileAtomic(link, 'new')).rejects.toThrow();
+
+      // The link is still a link and the real target's bytes are untouched.
+      expect((await fs.promises.lstat(link)).isSymbolicLink()).toBe(true);
+      expect(await fs.promises.readFile(real, 'utf8')).toBe('old');
+      expect(await listDir()).toEqual(['link.md', 'real.md']);
+    });
+
     it('does not create a temp file or call rename when writing through a symlink', async () => {
       // Proves the write-through path was taken rather than the atomic path: no
       // rename, and no stray temp file left in the directory.
