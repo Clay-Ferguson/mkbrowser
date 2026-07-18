@@ -709,6 +709,33 @@ describe('getDueProperty', () => {
   });
 });
 
+// The scalar getters must never leak YAML syntax (quotes) into the value, and an
+// explicitly empty key (`due:`) must read as absent — not as the text of whatever
+// line happens to follow it.
+describe('scalar getters — YAML-aware value extraction', () => {
+  it('returns null for an explicitly empty due key (not the next line)', () => {
+    const content = `---\ndue:\nstart: "9:00 AM"\n---\nBody.`;
+    expect(getDueProperty(content)).toBeNull();
+  });
+
+  it('returns a double-quoted due value without the quote characters', () => {
+    const content = `---\ndue: "3/5/2026"\n---\nBody.`;
+    expect(getDueProperty(content)).toBe('3/5/2026');
+    // The whole point: the value must be usable by parseDueStr.
+    expect(parseDueStr(getDueProperty(content)!)).not.toBeNull();
+  });
+
+  it('returns a single-quoted start value without the quote characters', () => {
+    const content = `---\ndue: 5/1/2026\nstart: '9:00 AM'\n---\nBody.`;
+    expect(getStartProperty(content)).toBe('9:00 AM');
+  });
+
+  it('does not include a trailing same-line comment in the value', () => {
+    const content = `---\ndue: 6/15/2026 # my birthday\n---\nBody.`;
+    expect(getDueProperty(content)).toBe('6/15/2026');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // getStartProperty / getDurationProperty
 // ---------------------------------------------------------------------------
@@ -1041,6 +1068,27 @@ describe('injectCalendarFrontMatter', () => {
   it('leaves content unchanged when every calendar field already exists', () => {
     const content = `---\ndue: 6/15/2026\nstart: "2:00 PM"\nduration: 1\n---\nBody text.\n`;
     expect(injectCalendarFrontMatter(content, false)).toBe(content);
+  });
+
+  // Injection must never leave the file with front matter that no longer parses —
+  // that permanently poisons every subsequent front matter read of the file.
+  it('does not corrupt a flow-style front matter mapping', () => {
+    const content = `---\n{title: Hello}\n---\nBody text.`;
+    const result = injectCalendarFrontMatter(content, false);
+    const parsed = parseFrontMatter(result);
+    expect(parsed.yaml).not.toBeNull();
+    expect(parsed.yaml?.title).toBe('Hello');
+    expect(getDueProperty(result)).toMatch(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
+  });
+
+  it('leaves a top-level sequence front matter untouched rather than corrupting it', () => {
+    const content = `---\n- a\n- b\n---\nBody text.`;
+    expect(injectCalendarFrontMatter(content, false)).toBe(content);
+  });
+
+  it('leaves malformed front matter untouched rather than corrupting it further', () => {
+    const broken = `---\ntitle: [unclosed\n---\nBody.`;
+    expect(injectCalendarFrontMatter(broken, false)).toBe(broken);
   });
 });
 

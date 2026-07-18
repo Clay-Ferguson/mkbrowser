@@ -75,12 +75,33 @@ function buildCalendarBlock(repeating: boolean, existingYaml = ''): string {
 
 /**
  * Extracts a simple scalar property value from front matter, or null if not present.
- * When stripQuotes is true, surrounding double quotes are removed (used for 'start').
+ *
+ * The YAML is parsed for real (same approach as {@link hasTopLevelKey}) rather than
+ * regex-scanned. The old `^key\s*:\s*(.+)$` pattern had two provable failure modes:
+ *  1. `\s` matches newlines, so an explicitly empty key (`due:` — a legal YAML null)
+ *     let `\s*` cross the line break and capture the entire NEXT line as the value
+ *     (getDueProperty returned `start: "9:00 AM"`).
+ *  2. YAML quoting leaked into the value: `due: "3/5/2026"` came back with the quote
+ *     characters, which parseDueStr then rejected — silently dropping a due date that
+ *     the calendar loader (which parses YAML properly) accepts fine. Trailing same-line
+ *     comments leaked the same way.
+ * The regex survives only as a fallback for malformed YAML, and uses `[ \t]*` — never
+ * `\s*`, which is how failure (1) got in — so it cannot cross a line boundary.
+ * `stripQuotes` applies only to that fallback; the parsed path never sees quotes.
  */
 function getScalarProperty(content: string, key: string, stripQuotes = false): string | null {
   const parsed = splitFrontMatter(content);
   if (!parsed) return null;
-  const pattern = stripQuotes ? `^${key}\\s*:\\s*"?(.+?)"?\\s*$` : `^${key}\\s*:\\s*(.+)$`;
+  try {
+    const obj = loadYaml(parsed.yamlStr);
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      // Nullish, non-scalar, and empty values all read as "not present".
+      return scalarFieldToString((obj as Record<string, unknown>)[key]) || null;
+    }
+  } catch {
+    // Malformed YAML — fall back to the textual scan so behavior is unchanged.
+  }
+  const pattern = stripQuotes ? `^${key}[ \\t]*:[ \\t]*"?(.+?)"?[ \\t]*$` : `^${key}[ \\t]*:[ \\t]*(.+)$`;
   const match = parsed.yamlStr.match(new RegExp(pattern, 'm'));
   return match?.[1]?.trim() ?? null;
 }
@@ -198,8 +219,13 @@ export interface RRuleProps {
   count?: string;
 }
 
-/** Render a parsed rrule field back to the string form the UI/editor expects. */
-function rruleFieldToString(value: unknown): string | undefined {
+/**
+ * Render a parsed YAML scalar back to the string form the UI/editor expects.
+ * Shared by the rrule getter and {@link getScalarProperty} so a value reads back
+ * identically whether it lives at the top level or nested under `rrule:`.
+ * Non-scalars (mappings/sequences) and nullish values render as undefined.
+ */
+function scalarFieldToString(value: unknown): string | undefined {
   if (value === undefined || value === null) return undefined;
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) return undefined;
@@ -227,11 +253,11 @@ export function getRRuleProperty(content: string): RRuleProps | null {
   if (!rrule || typeof rrule !== 'object' || Array.isArray(rrule)) return null;
   const r = rrule as Record<string, unknown>;
   return {
-    freq: rruleFieldToString(r.freq),
-    interval: rruleFieldToString(r.interval),
-    byday: rruleFieldToString(r.byday),
-    until: rruleFieldToString(r.until),
-    count: rruleFieldToString(r.count),
+    freq: scalarFieldToString(r.freq),
+    interval: scalarFieldToString(r.interval),
+    byday: scalarFieldToString(r.byday),
+    until: scalarFieldToString(r.until),
+    count: scalarFieldToString(r.count),
   };
 }
 
@@ -308,7 +334,9 @@ export function setRRuleProperty(content: string, rrule: RRuleProps | null): str
  * If there is already a front matter block, merges the calendar fields at the top,
  * keeping any of `due`/`start`/`duration`/`rrule` the file already defines rather than
  * duplicating the key. If there is no front matter block, prepends one.
- * Returns the modified content (unchanged if every calendar field is already present).
+ * Returns the modified content — unchanged if every calendar field is already present,
+ * or if the existing front matter is malformed or non-mapping YAML that cannot be
+ * merged into without corrupting it (see the validation notes in the body).
  */
 export function injectCalendarFrontMatter(content: string, repeating: boolean): string {
   const parsed = splitFrontMatter(content);
@@ -320,7 +348,36 @@ export function injectCalendarFrontMatter(content: string, repeating: boolean): 
   const calendarBlock = buildCalendarBlock(repeating, parsed.yamlStr);
   if (!calendarBlock) return content;
 
+  // The merge works by text-prepending block-mapping lines above the existing YAML,
+  // which preserves the user's formatting — but it is only valid YAML if the existing
+  // top level is itself a block mapping (or empty). Against a flow-style mapping
+  // (`{title: Hello}`), a sequence, or a scalar, the concatenation does not parse, and
+  // writing it would poison every subsequent front matter read of the file. So the
+  // merged text is validated with a real parse before it is returned — never trust a
+  // textual YAML edit without re-parsing the result.
   const existing = parsed.yamlStr.trim();
   const merged = existing ? `${calendarBlock}\n${existing}` : calendarBlock;
-  return `---\n${merged}\n---\n${parsed.body}`;
+  try {
+    loadYaml(merged);
+    return `---\n${merged}\n---\n${parsed.body}`;
+  } catch {
+    // Fall through to the re-dump path below.
+  }
+
+  // The concatenation didn't parse. If the existing YAML alone is a valid mapping
+  // (e.g. flow style), re-serialize it in block form — losing hand formatting, which
+  // is accepted app-wide for YAML edits — and prepend to that instead. Otherwise
+  // (malformed YAML, or a top-level sequence/scalar we can't merge into) return the
+  // content untouched rather than risk corrupting it further, matching the refusal
+  // behavior of setFrontMatterProperty and setRRuleProperty.
+  try {
+    const obj = loadYaml(parsed.yamlStr);
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      const redumped = dump(obj, { lineWidth: -1 }).trim();
+      return `---\n${calendarBlock}\n${redumped}\n---\n${parsed.body}`;
+    }
+  } catch {
+    // Existing YAML is malformed — nothing safe to merge into.
+  }
+  return content;
 }
