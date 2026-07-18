@@ -30,6 +30,7 @@ export { defaultSettings };
 // AI defaults
 // ---------------------------------------------------------------------------
 
+// todo-0: we need to externalize this into a YAML file.
 const DEFAULT_AI_MODELS: AIModelConfig[] = [
   // Anthropic — Claude 4 generation
   // Model IDs: https://platform.claude.com/docs/en/about-claude/models/overview
