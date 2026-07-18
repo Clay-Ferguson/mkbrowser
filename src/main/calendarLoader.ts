@@ -262,7 +262,15 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
     const parsed = loadYaml(fm.yamlStr) as Record<string, unknown> | null;
     // No `due` at all means "not a calendar file" — skip quietly. A `due` that is
     // present but unparseable is a likely user mistake, so make it discoverable.
-    if (!parsed || parsed.due === null) return [];
+    //
+    // ⚠️ Absence has TWO spellings here: a key that is missing entirely reads back
+    // as `undefined`, while an explicitly empty `due:` line parses to YAML `null`.
+    // Both mean "no due date" and both must skip quietly — a check for only one of
+    // them (this line once tested just `=== null`) lets the other fall through to
+    // coerceDueDate() and log a bogus "'due' is not a recognized date: undefined"
+    // warning for every non-calendar markdown file that merely has front matter,
+    // once per calendar scan. The same trap applies to `duration`/`start` below.
+    if (!parsed || parsed.due === undefined || parsed.due === null) return [];
 
     const dueDate = coerceDueDate(parsed.due);
     if (!dueDate) {
@@ -281,8 +289,13 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
 
     // Validate duration up front so a bad value (NaN from `.nan`, negative, or a
     // non-numeric string) is surfaced rather than silently corrupting `end`.
+    // coerceDuration maps *absent* (undefined/null) and *invalid* values to the
+    // same null, so the warning must be gated on presence — and an absent key is
+    // `undefined`, not `null` (see the `due` comment above). Testing only
+    // `!== null` warned "invalid 'duration' undefined" for every calendar file
+    // that simply omits the optional field.
     const duration = coerceDuration(parsed.duration);
-    if (parsed.duration !== null && duration === null) {
+    if (parsed.duration !== undefined && parsed.duration !== null && duration === null) {
       logger.warn(`Calendar entry ${filePath}: ignoring invalid 'duration' ${JSON.stringify(parsed.duration)} (expected a positive number of hours); defaulting to 1`);
     }
 
@@ -298,7 +311,11 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
       } else {
         logger.warn(`Calendar entry ${filePath}: unrecognized 'start' time "${startTimeStr}" (use "1:30 PM" or "13:30"); treating event as all-day`);
       }
-    } else if (parsed.start !== null) {
+    } else if (parsed.start !== undefined && parsed.start !== null) {
+      // Warn only when `start` is present with a non-string value (e.g. a bare
+      // 13:30 that YAML read as something else). An absent key is `undefined` —
+      // not `null` — and is the normal all-day case, so it must stay silent
+      // (see the `due` comment above for the undefined-vs-null trap).
       logger.warn(`Calendar entry ${filePath}: 'start' must be a time string like "1:30 PM" or "13:30", got ${JSON.stringify(parsed.start)}; treating event as all-day`);
     }
 

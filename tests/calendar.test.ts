@@ -1,8 +1,9 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadCalendarEntryForFile, loadCalendarEvents } from '../src/main/calendarLoader';
+import { logger } from '../src/shared/logUtil';
 import {
   hasDueProperty,
   getDueProperty,
@@ -235,6 +236,46 @@ describe('loadCalendarEntryForFile — missing / invalid front matter', () => {
   it('returns [] for a nonexistent file', async () => {
     const results = await loadCalendarEntryForFile(f('does-not-exist.md'));
     expect(results).toHaveLength(0);
+  });
+});
+
+// A YAML key that is simply absent reads back as `undefined` (an explicitly empty
+// key like `due:` reads as `null`). Absent optional fields are the normal case —
+// they must not produce warnings, or a routine calendar scan spams one warning per
+// front-mattered file in the vault. These tests pin that down by spying on
+// logger.warn.
+describe('loadCalendarEntryForFile — absent optional fields warn nothing', () => {
+  it('is silent for a file with front matter but no due field (not a calendar file)', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    try {
+      const results = await loadCalendarEntryForFile(f('no-due.md'));
+      expect(results).toHaveLength(0);
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('is silent for a timed event with no duration field (defaults to 1h)', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    try {
+      const results = await loadCalendarEntryForFile(f('timed-event-default-duration.md'));
+      expect(results).toHaveLength(1);
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
+  it('is silent for an all-day event with no start field', async () => {
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    try {
+      const results = await loadCalendarEntryForFile(f('simple-event.md'));
+      expect(results).toHaveLength(1);
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });
 
