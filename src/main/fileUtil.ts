@@ -6,6 +6,21 @@ import { readAiHint } from './ai/aiHint';
 import { readIndexYaml, compareByIndexOrder } from './indexUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { compareNames } from '../shared/fileTypes';
+import { mapWithConcurrency } from '../shared/asyncUtil';
+
+/**
+ * Bound on concurrently processed directory entries. Each entry's task can hold
+ * file descriptors open — readFile for AI hints, readdir/readFile in the
+ * recursive .attach pre-load — so an unbounded `Promise.all` over a large
+ * directory can exhaust the process fd limit (EMFILE). That failure mode is
+ * especially nasty here because every per-entry error is deliberately swallowed
+ * (best-effort listing): EMFILE doesn't crash, it silently drops aiHints and
+ * attachments and routes stat failures into the fabricated-Date.now() fallback
+ * below. Same bound and rationale as RECONCILE_FILE_CONCURRENCY in indexUtil.ts
+ * and the other bounded fs fan-outs in this codebase. (Nested .attach recursion
+ * gets its own budget per level, but attach nesting is shallow in practice.)
+ */
+const READDIR_CONCURRENCY = 32;
 
 /**
  * Read directory contents and return FileEntry[] for the renderer.
@@ -29,7 +44,12 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
   // Build each entry independently and resolve in parallel; the per-entry I/O
   // (stat, recursive reads, AI hints) is independent, so serial awaits here
   // would add up to N filesystem round-trips on large or slow directories.
-  const built = await Promise.all(entries.map(async (entry): Promise<FileEntry | null> => {
+  // Bounded (not Promise.all): see READDIR_CONCURRENCY — an unbounded fan-out
+  // risks silent EMFILE degradation on large directories. mapWithConcurrency
+  // preserves input order, and its fail-fast-on-rejection behavior is moot here
+  // because this callback never rejects (every await inside is caught or
+  // no-throw) — keep it that way, or one bad entry aborts the whole listing.
+  const built = await mapWithConcurrency(entries, READDIR_CONCURRENCY, async (entry): Promise<FileEntry | null> => {
     // Skip hidden files/folders (starting with .)
     if (entry.name.startsWith('.')) return null;
 
@@ -92,7 +112,7 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
     }
 
     return fileEntry;
-  }));
+  });
 
   for (const fileEntry of built) {
     if (fileEntry) fileEntries.push(fileEntry);

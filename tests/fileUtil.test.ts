@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readDirectory } from '../src/main/fileUtil';
 import { ATTACH_SUFFIX } from '../src/shared/specialFiles';
 
@@ -42,4 +42,47 @@ describe('readDirectory attach folder pre-loading', () => {
       expect(entry.attachments).toBeUndefined();
     }
   }, 10000);
+});
+
+describe('readDirectory I/O fan-out', () => {
+  it('bounds the number of concurrently processed entries (EMFILE protection)', async () => {
+    // A large directory: every entry spawns its own async task (stat, and for
+    // some entries fd-holding readFile/readdir calls). If those tasks all run
+    // at once, the fd-holding ones can exhaust the process's file-descriptor
+    // limit (EMFILE) — and because every per-entry failure in readDirectory is
+    // swallowed, the damage is silent: missing aiHints, missing attachments,
+    // and fabricated Date.now() timestamps from the stat-failure fallback.
+    //
+    // EMFILE itself is ulimit-dependent, so instead of provoking it we measure
+    // the peak number of per-entry tasks in flight simultaneously, via a
+    // stat spy that holds each call open for a tick so overlap is observable.
+    const fileCount = 200;
+    for (let i = 0; i < fileCount; i++) {
+      fs.writeFileSync(path.join(tmpDir, `f${i}.md`), '', 'utf8');
+    }
+
+    const realStat = fs.promises.stat.bind(fs.promises);
+    let inFlight = 0;
+    let peak = 0;
+    const spy = vi.spyOn(fs.promises, 'stat').mockImplementation(async (...args) => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      try {
+        await new Promise((r) => { setTimeout(r, 1); }); // hold the slot so overlap is measurable
+        return await realStat(...(args as Parameters<typeof realStat>));
+      } finally {
+        inFlight--;
+      }
+    });
+    try {
+      const entries = await readDirectory(tmpDir, false);
+      expect(entries).toHaveLength(fileCount);
+    } finally {
+      spy.mockRestore();
+    }
+
+    // 32 is the codebase-wide bound for fs fan-outs (see RECONCILE_FILE_CONCURRENCY
+    // in indexUtil.ts). Unbounded Promise.all would peak at ~fileCount here.
+    expect(peak).toBeLessThanOrEqual(32);
+  }, 15000);
 });
