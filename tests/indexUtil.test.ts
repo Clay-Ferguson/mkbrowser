@@ -842,6 +842,38 @@ describe('reconcileIndexedFiles', () => {
     }
   });
 
+  it('still detects a rename of a non-markdown file whose content changed since it was indexed', async () => {
+    // The stored (create_time, size) fingerprint is only useful if it matches the
+    // file's *current* stat when the rename happens. If a content change (size
+    // moved on) leaves the entry holding the values from index time, the next
+    // rename matches neither fingerprint nor name and the entry is dropped +
+    // re-appended at the bottom — losing its position. Reconcile must therefore
+    // refresh the fingerprint whenever it matches the entry by name.
+    // Distinct sizes keep the fingerprints unique even if birthtime is 0.
+    touchFile('a.png', 'aa');
+    touchFile('b.png', 'bbbb');
+    touchFile('c.png', 'cccccc');
+    await reconcileIndexedFiles(tmpDir, true);
+    const initialNames = readIndex().files.map((f: IndexEntry) => f.name);
+
+    // Modify b.png in place: same name, but its size no longer matches the
+    // fingerprint stored at index time.
+    fs.writeFileSync(path.join(tmpDir, 'b.png'), 'bbbbbbbbbb', 'utf8');
+    await reconcileIndexedFiles(tmpDir);
+    // The entry must now carry the file's current stat, not the stale one.
+    const bEntry = readIndex().files.find((f: IndexEntry) => f.name === 'b.png');
+    expect(bEntry?.size).toBe(10);
+
+    // Rename the modified file. The (refreshed) fingerprint is the only link —
+    // the old name is gone — so a stale fingerprint would drop the entry and
+    // re-append the file at the end instead of re-pointing it in place.
+    fs.renameSync(path.join(tmpDir, 'b.png'), path.join(tmpDir, 'renamed.png'));
+    await reconcileIndexedFiles(tmpDir);
+
+    const expected = initialNames.map((n) => (n === 'b.png' ? 'renamed.png' : n));
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(expected);
+  });
+
   it('assigns a unique id to every file across a large directory (bounded parallel I/O)', async () => {
     // Exercises the parallel stat/read/write fan-out: more files than the
     // concurrency limit, a mix of markdown (which gets ids written) and
@@ -893,6 +925,7 @@ describe('reconcileEntries', () => {
     idToName: new Map<string, string>(),
     fingerprintToVisibleNames: new Map<string, string[]>(),
     nameToId: new Map<string, string>(),
+    nameToStat: new Map<string, { createTime: number; size: number }>(),
     visibleNames: new Set<string>(),
   });
 
@@ -922,6 +955,24 @@ describe('reconcileEntries', () => {
     );
     expect(files[0].name).toBe('new.png');
     expect(handledNames.has('new.png')).toBe(true);
+  });
+
+  it('refreshes a stale fingerprint from the current stat when matching by name', () => {
+    // The file's content changed since it was indexed (size 100 → 250), so the
+    // stored fingerprint no longer matches anything on disk and the entry falls
+    // back to a name match. The entry must adopt the file's *current* stat —
+    // a fingerprint frozen at index time can never match current disk stats, so
+    // leaving it stale permanently disables rename detection for the file.
+    const maps = emptyMaps();
+    maps.visibleNames.add('photo.png');
+    maps.nameToStat.set('photo.png', { createTime: 200, size: 250 });
+    maps.fingerprintToVisibleNames.set('200:250:.png', ['photo.png']);
+    const { files, handledNames } = reconcileEntries(
+      [{ name: 'photo.png', create_time: 100, size: 100 }],
+      maps,
+    );
+    expect(files).toEqual([{ name: 'photo.png', create_time: 200, size: 250 }]);
+    expect(handledNames.has('photo.png')).toBe(true);
   });
 
   it('drops a fingerprinted entry whose fingerprint is gone', () => {

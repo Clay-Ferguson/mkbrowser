@@ -561,7 +561,9 @@ async function ensureMarkdownIds(
  * renames in place (by id for markdown, by fingerprint for non-markdown), drops
  * entries whose file/folder no longer exists, and collects the set of names that
  * matched a disk entry ("handled") so the caller knows which visible entries are
- * still new. Name-only entries also pick up an id when their file now has one.
+ * still new. Name-only entries also pick up an id when their file now has one,
+ * and a fingerprinted entry matched by name has its fingerprint refreshed from
+ * the file's current stat (see the name-match branch below).
  *
  * Non-markdown fingerprints (createTime:size:ext) are not guaranteed unique, so a
  * rename is only inferred when the fingerprint maps one-to-one (one index entry ↔
@@ -579,10 +581,11 @@ export function reconcileEntries(
     idToName: Map<string, string>;
     fingerprintToVisibleNames: Map<string, string[]>;
     nameToId: Map<string, string>;
+    nameToStat: Map<string, Fingerprint>;
     visibleNames: Set<string>;
   },
 ): { files: IndexEntry[]; handledNames: Set<string> } {
-  const { idToName, fingerprintToVisibleNames, nameToId, visibleNames } = maps;
+  const { idToName, fingerprintToVisibleNames, nameToId, nameToStat, visibleNames } = maps;
   const handledNames = new Set<string>();
 
   // Count how many index entries claim each fingerprint. A "createTime:size:ext"
@@ -633,8 +636,27 @@ export function reconcileEntries(
         entry.name = diskNames[0]!; 
         handledNames.add(entry.name);
       } else if (visibleNames.has(entry.name)) {
-        // Ambiguous fingerprint (collision) — match by name only, never re-point.
+        // Fingerprint didn't match 1:1 (stale or colliding) — match by name
+        // only, never re-point.
         handledNames.add(entry.name);
+        // Refresh the stored fingerprint from the file's current stat. Reaching
+        // this branch usually means the file's content changed since it was
+        // indexed: its size (and, with replace-on-save editors, its birthtime)
+        // moved on while the entry kept the values frozen at index time. A stale
+        // fingerprint can never match the *current* stats in
+        // fingerprintToVisibleNames, so without this refresh a single content
+        // change permanently disabled rename detection for the file — the next
+        // rename then matched neither fingerprint nor name, dropped the entry,
+        // and re-appended the file at the bottom, losing the position that
+        // .INDEX.yaml exists to preserve. (In the colliding-fingerprint case
+        // this writes back identical values — harmless.) `nameToStat` misses
+        // the name when its stat failed or the name now belongs to a directory;
+        // keep the old values then rather than blanking the entry's identity.
+        const current = nameToStat.get(entry.name);
+        if (current) {
+          entry.create_time = current.createTime;
+          entry.size = current.size;
+        }
       }
       // Otherwise the name is gone and the fingerprint is ambiguous → treat as
       // deleted (filtered out below) rather than risk a wrong re-point.
@@ -810,6 +832,7 @@ export async function reconcileIndexedFiles(
         idToName,
         fingerprintToVisibleNames,
         nameToId,
+        nameToStat,
         visibleNames,
       });
       const files = appendNewEntries(reconciledFiles, visibleEntries, handledNames, {
