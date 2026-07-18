@@ -8,12 +8,14 @@ export default defineConfig({
       //
       // The regex externalizes every bare import specifier (anything not starting
       // with '.', '/', or '\0'), i.e. all package names including deep imports like
-      // 'pkg/sub/path'. Node resolves them at runtime from the node_modules that
-      // the packageAfterCopy hook in forge.config.ts installs into the packaged
-      // app — so the installer stays fully self-contained. Any package the main
-      // process imports directly must be listed in MAIN_PROCESS_DEPENDENCIES in
-      // forge.config.ts (forgetting one fails loudly: "Cannot find module" on
-      // first launch of the packaged app).
+      // 'pkg/sub/path'. Node resolves them at runtime from the node_modules shipped
+      // inside the packaged app: forge.config.ts's `ignore` allowlist (see the
+      // PACKAGED_PATHS comment there) keeps node_modules in the package, and
+      // @electron/packager prunes devDependencies from it — so the production
+      // `dependencies` in package.json are exactly what ships, with no separate
+      // list to maintain. Any package the main process imports directly must be in
+      // `dependencies` (not devDependencies), or it is pruned from the package and
+      // the packaged app throws "Cannot find module" when that code path first runs.
       //
       // Why not bundle: Rolldown's (Vite 8) ESM→CJS interop broke fdir
       // (`import.meta.url` lowered to `undefined` in CJS output) and rrule
