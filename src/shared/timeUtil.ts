@@ -34,12 +34,25 @@ export const NO_TIMESTAMP = Number.NaN;
  * which would produce a confident but wrong result. After constructing the Date
  * we verify the month and day survived round-trip; if not, the date is impossible
  * and we return NO_TIMESTAMP.
+ *
+ * ⚠️ Legacy Date-constructor pitfall: `new Date(y, ...)` maps a year in 0–99 to
+ * 1900+y instead of the literal year. Years that small can reach us from ISO
+ * strings like `0099-12-31` (the ISO regex accepts any \d{4} year), so after
+ * construction we restore the real year with setFullYear — otherwise we'd
+ * silently return a 19xx timestamp while the month/day round-trip check passes
+ * (only the year is wrong, and the check doesn't look at the year).
+ * setFullYear is applied *after* the constructor may have rolled an impossible
+ * month/day forward, which is safe: rolling changes month/day, so the round-trip
+ * check below still rejects those inputs.
  */
 function validatedTimestamp(
   year: number, month: number, day: number,
   hours: number, minutes: number, seconds: number,
 ): number {
   const date = new Date(year, month - 1, day, hours, minutes, seconds);
+  if (year >= 0 && year < 100) {
+    date.setFullYear(year);
+  }
   if (date.getMonth() !== month - 1 || date.getDate() !== day) {
     return NO_TIMESTAMP;
   }
@@ -57,8 +70,14 @@ function timestampFromMatch(match: RegExpMatchArray): number {
   const day = parseInt(match[2] ?? '', 10);
   let year = parseInt(match[3] ?? '', 10);
 
-  // Convert 2-digit year to 4-digit (assumes 2000s)
-  if (year < 100) {
+  // Convert 2-digit year to 4-digit (assumes 2000s). This must key off the
+  // *digit count*, not the numeric value: DATE_REGEX's year group is
+  // (\d{4}|\d{2}), so a 4-digit year like "0026" also parses to a value < 100,
+  // but it names the literal year 26 and must not be bumped to 2026. (A value
+  // check here was exactly the bug: "07/18/0026" came back as 2026.) Years
+  // below 100 that survive un-bumped are handled by validatedTimestamp's
+  // setFullYear correction for the Date constructor's 1900+y mapping.
+  if ((match[3] ?? '').length === 2) {
     year += 2000;
   }
 

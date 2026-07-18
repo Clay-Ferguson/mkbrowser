@@ -134,6 +134,23 @@ describe('parseDateString', () => {
     expect(parseDateString('2026-05-32')).toBeNaN(); // day > 31
   });
 
+  // new Date(y, ...) treats a year in 0–99 as 1900+y. The parsers must
+  // compensate, otherwise explicit 4-digit years like 0099 silently become
+  // 20th-century dates.
+  it('parses a 4-digit ISO year below 100 literally, not as 19xx', () => {
+    const expected = new Date(2000, 11, 31, 0, 0, 0); // leap-safe scaffold year
+    expected.setFullYear(99);
+    expect(parseDateString('0099-12-31')).toBe(expected.getTime());
+  });
+
+  it('parses a 4-digit slash-date year below 100 literally, not as 2-digit', () => {
+    // "0026" is four explicit digits: the 2-digit "YY → 2000+YY" convention
+    // must not apply, and the Date constructor's 1900+y mapping must not leak.
+    const expected = new Date(2000, 6, 18, 0, 0, 0);
+    expected.setFullYear(26);
+    expect(parseDateString('07/18/0026')).toBe(expected.getTime());
+  });
+
   it('rejects ISO date-times with out-of-range time components or timezone suffixes', () => {
     expect(parseDateString('2026-05-26T24:00')).toBeNaN(); // hour > 23
     expect(parseDateString('2026-05-26T14:60')).toBeNaN(); // minute > 59
