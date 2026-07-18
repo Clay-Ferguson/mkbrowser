@@ -87,7 +87,14 @@ const BOOTSTRAP = `
  */
 export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost) => boolean {
   // Compile FIRST so a syntax error throws before we bother building a context.
-  const script = new vm.Script(`(${queryStr});`, { filename: 'advanced-search-query' });
+  //
+  // The wrapping matters: the parens make object literals (`{a: 1}`) parse as an
+  // expression rather than a block, and the closing `)` MUST sit on its own line.
+  // If it shared the query's line, a query ending in a line comment — e.g.
+  // `$('apple') // match apple` — would swallow the `)` into the comment and turn
+  // a valid expression into "Unexpected end of input". The newline is safe: it
+  // sits inside the parens, so ASI cannot terminate the expression there.
+  const script = new vm.Script(`(${queryStr}\n);`, { filename: 'advanced-search-query' });
 
   // Rebound before each evaluation; the dispatcher below closes over it.
   let host: AdvancedQueryHost | null = null;

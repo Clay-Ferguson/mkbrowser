@@ -117,6 +117,14 @@ describe('compile and evaluation semantics', () => {
     expect(() => compileAdvancedQuery('$$$invalid(((syntax')).toThrow();
   });
 
+  it('compiles a query that ends with a line comment', () => {
+    // Regression: the compiled source is `(<query>\n);` — the closing paren must
+    // be on its own line, or a trailing `// comment` in the query swallows it
+    // and a valid expression becomes a SyntaxError.
+    expect(evalQuery("$('apple') // match apple", makeHost('apple pie'))).toBe(true);
+    expect(evalQuery('42 // the answer')).toBe(true);
+  });
+
   it('returns truthiness of non-boolean results', () => {
     expect(evalQuery('42')).toBe(true);
     expect(evalQuery('"hello"')).toBe(true);
