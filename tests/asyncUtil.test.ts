@@ -54,6 +54,22 @@ describe('mapWithConcurrency', () => {
     expect(maxActive).toBeLessThanOrEqual(2);
   });
 
+  it('still maps every item when `limit` is NaN', async () => {
+    // Regression test: Math.min/Math.max propagate NaN, and
+    // Array.from({ length: NaN }) yields an EMPTY array — a NaN limit used to
+    // spawn zero workers and resolve to an array of holes without calling fn.
+    const results = await mapWithConcurrency([1, 2, 3], Number.NaN, async (n) => n * 2);
+    expect(results).toEqual([2, 4, 6]);
+  });
+
+  it('still maps every item when `limit` is undefined at runtime', async () => {
+    // A JS (or `as any`) call site can pass undefined despite the types;
+    // Math.min coerces it to NaN, hitting the same zero-worker failure mode.
+    const limit = undefined as unknown as number;
+    const results = await mapWithConcurrency([1, 2, 3], limit, async (n) => n + 1);
+    expect(results).toEqual([2, 3, 4]);
+  });
+
   it('rejects when the iteratee throws', async () => {
     await expect(
       mapWithConcurrency([1, 2, 3], 2, async (n) => {
