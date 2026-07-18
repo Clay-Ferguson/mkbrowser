@@ -23,6 +23,31 @@ let currentFolder: string | null = null;
 // updates and the initial crawl diverge over the same folder.
 let currentIgnoredPaths: string[] = [];
 
+// Serialization chain for start/stop operations. Both startCalendarWatcher and
+// stopCalendarWatcher are async and mutate the module state above across `await`
+// points, and their callers (the 'load-calendar-events' IPC handler, app
+// shutdown) can overlap — e.g. two rapid folder switches run two IPC handlers
+// concurrently. Without serialization, a second start() call could observe
+// `currentWatcher === null` while the first was still awaiting the old
+// watcher's close(), and both would then create a watcher; whichever assigned
+// `currentWatcher` last silently overwrote (and leaked) the other's — two live
+// watchers, duplicate events, and state pointing at the wrong folder. That is
+// exactly the bug this chain prevents: every public start/stop runs strictly
+// after the previous one has fully completed, so the check-then-act sequences
+// inside them are atomic with respect to each other.
+let operationChain: Promise<void> = Promise.resolve();
+
+/**
+ * Run `op` after every previously enqueued operation has settled. The chain
+ * itself swallows rejections (so one failed op can't wedge all future ones),
+ * but the promise returned to the caller still rejects normally.
+ */
+function serialized<T>(op: () => Promise<T>): Promise<T> {
+  const run = operationChain.then(op);
+  operationChain = run.then(() => undefined, () => undefined);
+  return run;
+}
+
 /** Order-sensitive equality for two ignore-pattern lists. */
 function sameIgnoredPaths(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((pattern, i) => pattern === b[i]);
@@ -55,10 +80,23 @@ function describeWatcherError(err: unknown): string {
  * a directory (or a pre-stat call where the type is unknown) is never pruned by the
  * `.md` rule, so folders with dotted names (`notes.2024`) stay watchable and their
  * `.md` children live-update. Only entries known to be non-`.md` *files* are ignored.
+ *
+ * The watch root itself is **never** ignored. chokidar applies `ignored` to the
+ * root path it was asked to watch (see `_addToNodeFs` in chokidar's handler),
+ * but fdir's `exclude()` in {@link loadCalendarEvents}'s crawl is only ever
+ * applied to *subdirectories* — the crawl always descends into its own root.
+ * Without this bypass, a calendar folder whose own name is hidden (`.notes`) or
+ * matches a user ignore pattern would load events on the initial crawl and then
+ * silently never live-update, because chokidar would ignore the entire tree at
+ * its root. Filtering of everything *inside* the root is unaffected.
  */
-function buildIgnoredFn(ignoredPaths: string[]): (filePath: string, stats?: Stats) => boolean {
+function buildIgnoredFn(folderPath: string, ignoredPaths: string[]): (filePath: string, stats?: Stats) => boolean {
   const exclude = buildCalendarFilter(ignoredPaths);
+  // Resolve once so comparisons are immune to trailing-slash / '.' differences
+  // between the path we passed to chokidar and the path chokidar hands back.
+  const rootPath = path.resolve(folderPath);
   return (filePath: string, stats?: Stats) => {
+    if (path.resolve(filePath) === rootPath) return false;
     const isDirectory = stats ? stats.isDirectory() : undefined;
     return exclude(path.basename(filePath), filePath, isDirectory);
   };
@@ -79,12 +117,30 @@ function buildIgnoredFn(ignoredPaths: string[]): (filePath: string, stats?: Stat
  *   message when chokidar reports an error (e.g. inotify exhaustion) — enough to
  *   warn the user that live updates degraded without spamming on repeat errors.
  * - `ignoredPaths` accepts the same wildcard patterns used by folder browsing.
+ * - Overlapping calls are safe: every start/stop runs through {@link serialized},
+ *   so a second call issued while a restart is mid-flight simply queues behind it.
  */
-export async function startCalendarWatcher(
+export function startCalendarWatcher(
   folderPath: string,
   onChanged: CalendarFileChangedCallback,
   onDeleted: CalendarFileDeletedCallback,
   ignoredPaths: string[] = [],
+  onError?: CalendarWatcherErrorCallback,
+): Promise<void> {
+  return serialized(() => doStartCalendarWatcher(folderPath, onChanged, onDeleted, ignoredPaths, onError));
+}
+
+/**
+ * The actual start implementation. Only ever runs inside the {@link serialized}
+ * chain — its check-then-stop-then-create sequence spans `await` points and is
+ * only correct when no other start/stop interleaves with it (see the comment on
+ * `operationChain` for the leaked-watcher bug that motivates this).
+ */
+async function doStartCalendarWatcher(
+  folderPath: string,
+  onChanged: CalendarFileChangedCallback,
+  onDeleted: CalendarFileDeletedCallback,
+  ignoredPaths: string[],
   onError?: CalendarWatcherErrorCallback,
 ): Promise<void> {
   // Don't restart if already watching the same folder with the same ignore list.
@@ -101,22 +157,27 @@ export async function startCalendarWatcher(
   // Await the close so the previous watcher is fully torn down before the new
   // one is created — otherwise the two briefly coexist and can emit duplicate
   // events / leak file handles during a folder switch.
-  await stopCalendarWatcher();
+  // NOTE: this must call the internal doStopCalendarWatcher, not the public
+  // stopCalendarWatcher — the public wrapper enqueues on operationChain, and we
+  // are already *inside* that chain, so calling it here would deadlock waiting
+  // on ourselves.
+  await doStopCalendarWatcher();
 
   currentFolder = folderPath;
   currentIgnoredPaths = ignoredPaths;
-  currentWatcher = chokidar.watch(folderPath, {
+  const watcher = chokidar.watch(folderPath, {
     persistent: true,
     ignoreInitial: true,
-    ignored: buildIgnoredFn(ignoredPaths),
+    ignored: buildIgnoredFn(folderPath, ignoredPaths),
     ignorePermissionErrors: true,
   });
+  currentWatcher = watcher;
 
   // Surface the first error of this watcher session to the renderer so the user
   // knows live updates degraded; subsequent errors are still logged but not
   // re-reported (inotify exhaustion can fire repeatedly).
   let errorReported = false;
-  currentWatcher.on('error', (err: unknown) => {
+  watcher.on('error', (err: unknown) => {
     logger.error('Calendar watcher error:', err);
     if (!errorReported) {
       errorReported = true;
@@ -132,34 +193,49 @@ export async function startCalendarWatcher(
     // the backstop so only .md files ever produce calendar entries.
     if (path.extname(filePath).toLowerCase() !== '.md') return;
     loadCalendarEntryForFile(filePath)
-      .then(results => onChanged(results, filePath))
+      .then(results => {
+        // The load is async, so this watcher may have been stopped or replaced
+        // (user switched folders) while the file was being read. Closing the
+        // chokidar watcher stops *new* events, but it cannot recall a load that
+        // was already in flight — without this identity check the old session
+        // would still deliver an event from the previous vault to onChanged.
+        if (currentWatcher !== watcher) return;
+        onChanged(results, filePath);
+      })
       .catch((err: unknown) => logger.error(`Failed to load calendar events for ${filePath}:`, err));
   };
-  currentWatcher.on('change', handleUpsert);
-  currentWatcher.on('add', handleUpsert);
+  watcher.on('change', handleUpsert);
+  watcher.on('add', handleUpsert);
 
-  currentWatcher.on('unlink', (filePath: string) => {
-    // console.log("************ onUnlink (file deleted): "+filePath);
+  watcher.on('unlink', (filePath: string) => {
     if (path.extname(filePath).toLowerCase() !== '.md') return;
     onDeleted(filePath, false);
   });
 
-  currentWatcher.on('unlinkDir', (dirPath: string) => {
-    // console.log("************ onUnlinkDir (folder deleted): "+dirPath);
+  watcher.on('unlinkDir', (dirPath: string) => {
     onDeleted(dirPath, true);
   });
 }
 
 /**
- * Stop and close the active calendar watcher. Module state is cleared
- * synchronously so the "already watching" guard in {@link startCalendarWatcher}
- * sees a clean slate immediately; the underlying chokidar close is then awaited.
- * A no-op when no watcher is active.
+ * Stop and close the active calendar watcher. A no-op when no watcher is
+ * active. Serialized with {@link startCalendarWatcher}, so a stop issued while
+ * a start is mid-flight waits for it and then closes the watcher it created.
  */
-export async function stopCalendarWatcher(): Promise<void> {
+export function stopCalendarWatcher(): Promise<void> {
+  return serialized(doStopCalendarWatcher);
+}
+
+/**
+ * The actual stop implementation. Module state is cleared before the close is
+ * awaited; that ordering is safe (not racy) because every caller holds the
+ * {@link serialized} chain, so nothing can observe the intermediate state.
+ */
+async function doStopCalendarWatcher(): Promise<void> {
   if (!currentWatcher) return;
-  // Capture and clear the module state synchronously so the "already watching"
-  // guard immediately sees a cleared slot, then await the close on the local.
+  // Capture and clear the module state before awaiting the close: the cleared
+  // `currentWatcher` also disarms any in-flight handleUpsert loads belonging to
+  // this watcher (they compare against it before firing onChanged).
   const watcher = currentWatcher;
   currentWatcher = null;
   currentFolder = null;
