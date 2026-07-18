@@ -1,10 +1,13 @@
 #!/bin/bash
 
 # Pre-package checks for MkBrowser
-# Runs the full quality gate — unit tests, linter, and React Compiler coverage —
-# that must pass before the app is packaged. Shared by both build.sh (which then
-# runs `npm run make`) and playwright-test.sh (which then runs `npm run package`), so
-# every packaged build goes through the same checks.
+# Runs the unit tests and the linter before the app is packaged. Shared by both
+# build.sh (which then runs `npm run make`) and playwright-test.sh (which then
+# runs `npm run package`), so every packaged build goes through the same checks.
+#
+# The two React Compiler gates (compiler-coverage.mjs / bundle-fingerprint.mjs)
+# are NOT here: they run as prePackage/postPackage hooks in forge.config.ts, so
+# every `npm run package` / `npm run make` runs them even without this script.
 #
 # Exits non-zero on the first failed gate; callers should check $? and abort.
 
@@ -34,22 +37,4 @@ if [ $? -ne 0 ]; then
 fi
 echo ""
 echo "✅ Lint passed!"
-echo ""
-
-# Verify every component/hook compiles under the React Compiler, aborting on any
-# bailout. A bailed-out component is silently de-memoized at build time — a real
-# perf regression here, since the codebase has no manual useCallback/useMemo left.
-# This uses the exact compiler version the renderer build uses, catching bailouts
-# the react-hooks ESLint rules can't see (see the compiler-coverage.mjs header).
-echo "⚛️  Checking React Compiler coverage..."
-echo ""
-node compiler-coverage.mjs
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "❌ React Compiler bailout(s) found! Build aborted."
-  echo "   Fix the constructs listed above (see REACT_COMPILER_PLAN.md for patterns)."
-  exit 1
-fi
-echo ""
-echo "✅ React Compiler coverage clean!"
 echo ""

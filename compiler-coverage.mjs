@@ -6,7 +6,8 @@
 //
 // Usage:
 //   node compiler-coverage.mjs              # gate mode: scan all of src/, print only
-//                                           #   bailouts, exit 1 if any (used by build.sh)
+//                                           #   bailouts, exit 1 if any (runs as the
+//                                           #   prePackage Forge hook in forge.config.ts)
 //   node compiler-coverage.mjs [files...]   # verbose mode: per-function report including
 //                                           #   successes (still exits 1 on bailouts)
 //
@@ -29,9 +30,9 @@
 // Neither failure mode covers the compiler being configured out of the Vite pipeline
 // entirely (this script bypasses Vite by design). That case is caught downstream:
 // a clean gate-mode run records the compiled-function count in
-// .compiler-coverage-count.json, and bundle-fingerprint.mjs (run by build.sh and
-// playwright-test.sh AFTER packaging) asserts the built renderer bundle contains at
-// least that much compiler output.
+// .compiler-coverage-count.json, and bundle-fingerprint.mjs (the postPackage Forge
+// hook, run AFTER packaging) asserts the built renderer bundle contains at least
+// that much compiler output.
 import { transformAsync } from '@babel/core';
 import { reactCompilerPreset } from '@vitejs/plugin-react';
 import { readFileSync, writeFileSync } from 'node:fs';

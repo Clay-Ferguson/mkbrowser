@@ -379,7 +379,7 @@ Lint gives fast, in-editor feedback — but it is **advisory, not authoritative*
 
 The repo-root script **`compiler-coverage.mjs`** runs the *exact* compiler version the renderer build uses over the sources and reports, per component/hook, what compiled and what bailed (and why). It closes both lint gaps above, and it is a **permanent fixture**, not a workaround — no lint configuration can replicate "run the actual build plugin."
 
-- `node compiler-coverage.mjs` — **gate mode**: scans every non-`.d.ts` file under `src/`, prints only problems plus a summary, exits 1 on any bailout. `build.sh` runs this after lint and aborts the build on failure (~3 s for the whole tree).
+- `node compiler-coverage.mjs` — **gate mode**: scans every non-`.d.ts` file under `src/`, prints only problems plus a summary, exits 1 on any bailout (~3 s for the whole tree). Runs as the `prePackage` Forge hook in `forge.config.ts` (with `bundle-fingerprint.mjs` as the `postPackage` hook), so every `npm run package` / `npm run make` is gated and aborts on failure — no packaging path can skip it.
 - `node compiler-coverage.mjs <files...>` — **verbose mode**: per-function report including `OK` lines. Use this while working on a specific file.
 
 **Workflow when a bailout appears** (locally or in the build): read the `BAIL` reason, apply the matching fix from the table above (usually: extract to a module-level helper), then re-run the script on the file until every unit reports `OK`. Verify with `npm run lint` and `npx vitest run`.

@@ -66,8 +66,9 @@ open_videos_folder() {
 # Optionally build the app so the Playwright fixture loads the latest code
 read -p "Build app before running tests? [Y/n]: " do_build
 if [[ ! "$do_build" =~ ^[Nn]$ ]]; then
-    # Run the same quality gate (tests, lint, React Compiler coverage) that
-    # build.sh runs, so the packaged bundle the e2e tests load is fully checked.
+    # Run the same quality gate (tests, lint) that build.sh runs. The React
+    # Compiler gates (compiler-coverage / bundle-fingerprint) run inside
+    # `npm run package` itself, as Forge hooks (forge.config.ts).
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     "$SCRIPT_DIR/pre-package.sh"
     if [ $? -ne 0 ]; then
@@ -79,14 +80,6 @@ if [[ ! "$do_build" =~ ^[Nn]$ ]]; then
     npm run package
     if [ $? -ne 0 ]; then
         echo "Build failed. Exiting."
-        exit 1
-    fi
-
-    # Post-package gate: verify the React Compiler's output actually shipped in
-    # the renderer bundle the e2e tests are about to load (see bundle-fingerprint.mjs).
-    node bundle-fingerprint.mjs
-    if [ $? -ne 0 ]; then
-        echo "Bundle fingerprint check failed. Exiting."
         exit 1
     fi
     echo ""

@@ -8,11 +8,9 @@
   "scripts": {
     "start": "electron-forge start",
     "start:linux": "ELECTRON_DISABLE_SANDBOX=1 electron-forge start --",
-    "build": "electron-forge package",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "prebuild": "npm run lint",
     "lint": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit && eslint .",
     "test": "vitest run",
     "test:watch": "vitest",

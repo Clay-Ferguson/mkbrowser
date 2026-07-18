@@ -6,8 +6,9 @@
 echo "🔨 Building MkBrowser..."
 echo ""
 
-# Run the shared quality gate (tests, lint, React Compiler coverage) and abort
-# if anything fails.
+# Run the shared quality gate (tests, lint) and abort if anything fails.
+# The React Compiler gates (compiler-coverage / bundle-fingerprint) run inside
+# `npm run make` itself, as Forge prePackage/postPackage hooks (forge.config.ts).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/pre-package.sh"
 if [ $? -ne 0 ]; then
@@ -15,25 +16,11 @@ if [ $? -ne 0 ]; then
 fi
 
 # Run the electron-forge make command to create distributables
-# This will create .deb and .rpm packages in the 'out' directory
+# This will create a .deb package in the 'out' directory
 npm run make
 if [ $? -ne 0 ]; then
   echo ""
   echo "❌ npm run make failed! Build aborted."
-  exit 1
-fi
-
-# Post-package gate: verify the React Compiler's output actually shipped in the
-# renderer bundle. pre-package.sh's compiler-coverage check runs the compiler
-# standalone, so only this check against the built bundle can catch the compiler
-# being configured out of the Vite pipeline (see bundle-fingerprint.mjs).
-echo ""
-echo "🔎 Checking React Compiler output in the built bundle..."
-node bundle-fingerprint.mjs
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "❌ Bundle fingerprint check failed! The renderer was built de-memoized."
-  echo "   Check the compiler wiring in vite.renderer.config.mts."
   exit 1
 fi
 

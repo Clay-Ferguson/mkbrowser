@@ -1,3 +1,4 @@
+import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ForgeConfig } from '@electron-forge/shared-types';
@@ -57,6 +58,19 @@ const EXCLUDED_MODULES = ['exiftool-vendored.pl'];
  */
 const STRIPPED_FILE_PATTERNS = [/\.map$/, /\.d\.ts$/, /\.d\.mts$/, /\.d\.cts$/];
 
+/**
+ * Run one of the repo's React Compiler gate scripts as a child Node process,
+ * inheriting stdio so its report prints normally. Throws on failure, which
+ * aborts the Forge run. Both scripts resolve their inputs from process.cwd(),
+ * and Forge always runs from the project root.
+ */
+function runGate(script: string): void {
+  const result = spawnSync(process.execPath, [script], { stdio: 'inherit' });
+  if (result.status !== 0) {
+    throw new Error(`${script} failed — packaging aborted.`);
+  }
+}
+
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
@@ -82,6 +96,30 @@ const config: ForgeConfig = {
     ],
   },
   rebuildConfig: {},
+  // The two React Compiler gates run as Forge hooks so that EVERY packaging
+  // path — `npm run package`, `npm run make`, build.sh, playwright-test.sh,
+  // and the e2e global-setup's auto-build — is gated structurally; there is no
+  // way to package without them. (They previously lived in the shell scripts,
+  // where a direct `npm run package` bypassed them.) `electron-forge start` is
+  // unaffected: these hooks only fire for package/make.
+  hooks: {
+    // Pre-packaging: every component/hook must compile under the React
+    // Compiler (a bailout ships de-memoized — see compiler-coverage.mjs).
+    // A passing run also records the compiled-function count in
+    // .compiler-coverage-count.json, which the postPackage gate reads as its
+    // floor — so the hook ordering also guarantees that file is fresh.
+    prePackage: async () => {
+      runGate('compiler-coverage.mjs');
+    },
+    // Post-packaging: the compiler's output must actually be present in the
+    // built renderer bundle — the only check that can catch the compiler
+    // being silently configured out of the Vite pipeline (see
+    // bundle-fingerprint.mjs). Runs here because the Vite output does not
+    // exist until packaging has built it.
+    postPackage: async () => {
+      runGate('bundle-fingerprint.mjs');
+    },
+  },
   makers: [
     new MakerDeb({
       options: {

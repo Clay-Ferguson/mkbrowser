@@ -16,8 +16,9 @@
 //
 // Usage: node bundle-fingerprint.mjs
 //
-// Run by build.sh (after `npm run make`) and playwright-test.sh (after `npm run package`).
-// It cannot run in pre-package.sh — the bundle does not exist yet at that point.
+// Runs as the postPackage Forge hook in forge.config.ts, so every
+// `npm run package` / `npm run make` is gated. It cannot run earlier (e.g. from
+// the prePackage hook) — the bundle does not exist until packaging builds it.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -34,7 +35,7 @@ if (!existsSync(assetsDir)) {
 
 if (!existsSync(countFile)) {
   console.error(`bundle-fingerprint: ${countFile} not found.`);
-  console.error('Run `node compiler-coverage.mjs` first (pre-package.sh does this); a passing run records');
+  console.error('Run `node compiler-coverage.mjs` first (the prePackage hook does this); a passing run records');
   console.error('the compiled-function count there, which sets this check\'s floor.');
   process.exit(1);
 }
