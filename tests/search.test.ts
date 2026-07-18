@@ -375,6 +375,21 @@ describe('filename search', () => {
       expect(scienceDir).toBeDefined();
     });
 
+    it('directory results carry canonical paths — no trailing separator', async () => {
+      // fdir's onlyDirs() emits every directory path WITH a trailing separator
+      // ("/a/b/"). If that leaks into SearchResult.path, the result violates the
+      // canonical-path contract pinned for content mode below ("relativePath is
+      // relative to the searched folder root"): path.join(root, relativePath)
+      // no longer equals path, and renderer helpers that parse the last segment
+      // (getParentPath → returns the folder ITSELF instead of its parent;
+      // getFileName → returns '') misbehave on folder results.
+      const results = await searchFolder(TEST_DATA_DIR, 'science', 'literal', 'filenames');
+      const scienceDir = results.find(r => r.relativePath === rel('topics', 'science'));
+      expect(scienceDir).toBeDefined();
+      expect(scienceDir!.path.endsWith('/') || scienceDir!.path.endsWith('\\')).toBe(false);
+      expect(path.join(TEST_DATA_DIR, scienceDir!.relativePath)).toBe(scienceDir!.path);
+    });
+
     it('matches file extensions: query ".txt" finds all .txt files', async () => {
       const results = await searchFolder(TEST_DATA_DIR, '.txt', 'literal', 'filenames');
       // There are 8 .txt files in test-data

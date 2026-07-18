@@ -376,12 +376,35 @@ export async function searchFolder(
       dirsApi.withPromise(),
     ]);
 
-    // fdir's onlyDirs() returns directory paths with a trailing separator
-    // (e.g. "/root/"), but folderPath arrives without one, so a raw !==
-    // comparison never excludes the search root itself. Normalize both with
-    // path.resolve (which strips trailing separators) so the root is dropped.
+    // fdir's onlyDirs() returns EVERY directory path with a trailing separator
+    // (e.g. "/root/sub/"), which causes two distinct problems if left as-is:
+    //
+    // 1. folderPath arrives without one, so a raw !== comparison never excludes
+    //    the search root itself. Normalize both sides with path.resolve (which
+    //    strips trailing separators) so the root is dropped.
+    // 2. The trailing separator must NOT leak into SearchResult.path. Every
+    //    other path in the app (and every file result here) is spelled without
+    //    one, and SearchResult's contract is path === join(folderPath,
+    //    relativePath). A trailing separator silently breaks last-segment
+    //    parsing downstream — e.g. the renderer's getParentPath("/a/b/")
+    //    returns "/a/b" (the folder itself, not its parent) and
+    //    getFileName("/a/b/") returns "" — so folder results navigated to the
+    //    wrong place and showed an empty name. path.relative() happens to strip
+    //    it from relativePath, which is exactly why the mismatch was easy to
+    //    miss: only the absolute `path` field carried the separator.
+    //
+    // So: strip the trailing separator from each dir here, at the source, so
+    // everything downstream (filterMostRecent, the statCache keys, buildResult)
+    // sees one canonical spelling. Stripping cannot produce '' or collide with
+    // a file: only the filesystem root reduces to bare separators, and that can
+    // only appear as the (already dropped) search root.
     const resolvedRoot = path.resolve(folderPath);
-    const allEntries = [...files, ...dirs.filter(d => path.resolve(d) !== resolvedRoot)];
+    const allEntries = [
+      ...files,
+      ...dirs
+        .filter(d => path.resolve(d) !== resolvedRoot)
+        .map(d => d.replace(/[/\\]+$/, '')),
+    ];
 
     // When mostRecent is enabled, limit to the 500 most recently modified entries.
     // filterMostRecent already stat'd them, so cache the times by path and feed
