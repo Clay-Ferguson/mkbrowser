@@ -1485,7 +1485,7 @@ describe('reconcile does not clobber a concurrent write (MAIN_ISSUES.md issue 1)
     const filePath = path.join(tmpDir, fileName);
     const realReadFile = fs.promises.readFile.bind(fs.promises);
     vi.spyOn(fs.promises, 'readFile').mockImplementation(async (target, ...args) => {
-      const result = await realReadFile(target as never, ...(args as never[]));
+      const result = await realReadFile(target as never, ...(args as unknown as never[]));
       if (typeof target === 'string' && path.resolve(target) === path.resolve(filePath)) {
         vi.mocked(fs.promises.readFile).mockRestore();
         fs.writeFileSync(filePath, newerContent, 'utf8');

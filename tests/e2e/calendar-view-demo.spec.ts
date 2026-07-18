@@ -85,7 +85,6 @@ Let's click it to switch this folder into the Calendar View.`
     // Month view, so we both persist the config and click the "Month" toolbar button
     // (which updates the live store) to lock it in before we capture anything.
     await mainWindow.evaluate(() => {
-      // @ts-expect-error electronAPI is injected by the preload script
       return window.electronAPI.updateConfig({ calendarViewType: 'month' });
     });
     const monthButton = mainWindow.getByRole('button', { name: 'Month' });

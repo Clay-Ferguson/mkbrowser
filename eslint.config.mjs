@@ -313,4 +313,38 @@ export default tseslint.config(
       "react-hooks/syntax": "error",                      // invalid JS the compiler rejects outright
     },
   },
+
+  // Typed linting for everything OUTSIDE src/: the test suite and the root
+  // build/tool configs, which tsconfig.node.json type-checks (see its header).
+  // Uses an explicit `project` rather than `projectService` because these files
+  // are not in the root tsconfig.json, which is what the project service would
+  // find for them. Same typed rule set as the src/** block above, minus the
+  // react-hooks rules — those stay src-scoped so they don't misfire on
+  // Playwright fixture callbacks (the `use` param) in e2e/ and fixtures/.
+  {
+    files: ["tests/**/*.ts", "*.config.ts", "*.config.mts"],
+    languageOptions: {
+      parserOptions: {
+        project: "./tsconfig.node.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-unsafe-assignment": "error",
+      "@typescript-eslint/no-unsafe-call": "error",
+      "@typescript-eslint/no-unsafe-member-access": "error",
+      "@typescript-eslint/no-unsafe-return": "error",
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        { checksVoidReturn: true, checksConditionals: false, checksSpreads: false },
+      ],
+      "@typescript-eslint/return-await": ["error", "error-handling-correctness-only"],
+      "@typescript-eslint/switch-exhaustiveness-check": [
+        "error",
+        { considerDefaultExhaustiveForUnions: true },
+      ],
+      "@typescript-eslint/no-deprecated": "error",
+    },
+  },
 );

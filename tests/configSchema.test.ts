@@ -158,7 +158,7 @@ describe('parseConfigYaml — settings tolerance', () => {
       futureField: 'keep-me',
     };
     const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
-    expect((cfg?.settings?.searchDefinitions?.[0] as Record<string, unknown>).futureField).toBe('keep-me');
+    expect((cfg?.settings?.searchDefinitions?.[0] as unknown as Record<string, unknown>).futureField).toBe('keep-me');
   });
 
   it('preserves unknown forward-compat keys on a bookmark (loose element schema)', () => {
@@ -166,7 +166,7 @@ describe('parseConfigYaml — settings tolerance', () => {
       browseFolder: '/x',
       settings: { bookmarks: [{ path: '/p', name: 'B', futureField: 'keep-me' }] },
     });
-    expect((cfg?.settings?.bookmarks?.[0] as Record<string, unknown>).futureField).toBe('keep-me');
+    expect((cfg?.settings?.bookmarks?.[0] as unknown as Record<string, unknown>).futureField).toBe('keep-me');
   });
 });
 
@@ -199,7 +199,7 @@ describe('parseConfigYaml — aiModels tolerance', () => {
       browseFolder: '/x',
       aiModels: [{ name: 'M', provider: 'OPENAI', model: 'm', inputPer1M: 1, outputPer1M: 2, vision: false, readonly: false, futureField: 'keep-me' }],
     });
-    expect((cfg?.aiModels?.[0] as Record<string, unknown>).futureField).toBe('keep-me');
+    expect((cfg?.aiModels?.[0] as unknown as Record<string, unknown>).futureField).toBe('keep-me');
   });
 
   it('coerces numeric-string prices and defaults bad prices to 0', () => {

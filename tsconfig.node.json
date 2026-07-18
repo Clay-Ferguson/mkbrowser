@@ -1,0 +1,31 @@
+{
+  // Type-checks everything OUTSIDE the app source: the root build/tool configs
+  // and the entire test suite. The main tsconfig.json only includes src/**, so
+  // without this project these files would be linted untyped but never see the
+  // TypeScript compiler at all (Forge loads forge.config.ts transpile-only, and
+  // Vitest/Playwright transpile their configs and tests the same way).
+  // Run via `npm run lint` (tsc -p tsconfig.node.json --noEmit).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // "node" instead of tsconfig.json's "vite/client": these files run under
+    // Node (configs, unit tests, Playwright), not inside the Vite renderer.
+    // "vite/client" stays so src/ modules pulled in through test imports keep
+    // compiling identically to the main project.
+    "types": ["node", "vite/client"],
+    // Relaxed for tests only (src/ keeps it via tsconfig.json): tests index
+    // into arrays constantly right after asserting their length, and an
+    // out-of-bounds access simply fails the test at runtime — the strictness
+    // would force `!` on ~126 call sites for no added safety.
+    "noUncheckedIndexedAccess": false
+  },
+  "include": [
+    "forge.config.ts",
+    "forge.env.d.ts",
+    "*.config.ts",
+    "*.config.mts",
+    "tests/**/*.ts",
+    // Ambient declarations (window.electronAPI) that src/ modules imported by
+    // tests rely on; tsconfig.json's include covers this for the main project.
+    "src/global.d.ts"
+  ]
+}

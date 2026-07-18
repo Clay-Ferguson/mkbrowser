@@ -44,7 +44,7 @@ function modelEndEvent(usage_metadata: unknown): StreamEventLike {
 
 /** Concatenate all string args passed to a mock across its calls. */
 function joinCalls(mock: ReturnType<typeof vi.fn>): string {
-  return mock.mock.calls.map((c) => c[0]).join('');
+  return mock.mock.calls.map((c) => c[0] as string).join('');
 }
 
 // ---------------------------------------------------------------------------

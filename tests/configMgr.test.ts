@@ -19,7 +19,7 @@ vi.mock('electron', () => ({ app: { getPath: () => tmpHome } }));
 
 import { initConfig, getConfig, getConfigLoadError, updateConfig, withDefaultAISettings } from '../src/main/configMgr';
 import { defaultSettings, cloneDefaultSettings } from '../src/main/configSchema';
-import type { AIModelConfig, AppConfig } from '../src/types/shared';
+import type { AIModelConfig, AppConfig } from '../src/shared/shared';
 
 // configMgr uses app.getPath('userData') directly as CONFIG_DIR, so tmpHome IS the dir.
 const CONFIG_DIR = tmpHome;
@@ -413,20 +413,27 @@ describe('getConfig() — encapsulation (issue 014)', () => {
     // Type-level: the declared return type is Readonly<AppConfig>, not the mutable AppConfig.
     // This catches accidental mutations like cfg.browseFolder = '...' at compile time.
     expectTypeOf(cfg).toEqualTypeOf<Readonly<AppConfig>>();
-    expectTypeOf(cfg).not.toEqualTypeOf<AppConfig>();
+    // Assert the readonly-ness directly with a never-invoked mutation probe:
+    // expect-type's toEqualTypeOf ignores readonly modifiers, so
+    // `.not.toEqualTypeOf<AppConfig>()` cannot express this.
+    const rejectsMutation = (): void => {
+      // @ts-expect-error -- Readonly<AppConfig> must reject property assignment
+      cfg.browseFolder = '/nope';
+    };
+    void rejectsMutation;
   });
 });
 
 describe('configMgr module boundary (issue 020)', () => {
   // configMgr is a main-process runtime manager and must not become a secondary
   // import surface for shared types — those have a single canonical home in
-  // src/types/shared.ts. Type-only re-exports are erased at runtime so they
+  // src/shared/shared.ts. Type-only re-exports are erased at runtime so they
   // can't be detected via module exports; assert against the source instead.
-  it('does not bulk re-export shared types from ./types/shared', () => {
+  it('does not bulk re-export shared types from ../shared/shared', () => {
     const source = fs.readFileSync(
       path.join(__dirname, '../src/main/configMgr.ts'),
       'utf-8',
     );
-    expect(source).not.toMatch(/export\s+type\s*\{[^}]*\}\s*from\s*['"]\.\/types\/shared['"]/);
+    expect(source).not.toMatch(/export\s+type\s*\{[^}]*\}\s*from\s*['"]\.\.\/shared\/shared['"]/);
   });
 });

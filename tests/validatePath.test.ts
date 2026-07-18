@@ -12,18 +12,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ---------------------------------------------------------------------------
 
 // Mock configMgr.getConfig to return controlled agenticAllowedFolders
-const mockGetConfig = vi.fn();
+const mockGetConfig = vi.fn<(...args: unknown[]) => unknown>();
 
 vi.mock('../src/main/configMgr', () => ({
   getConfig: (...args: unknown[]) => mockGetConfig(...args),
 }));
 
 // Mock node:fs/promises so we can control realpath behaviour
-const mockRealpath = vi.fn();
+const mockRealpath = vi.fn<(p: string) => Promise<string>>();
 
 vi.mock('node:fs/promises', () => ({
-  default: { realpath: (...args: unknown[]) => mockRealpath(...args) },
-  realpath: (...args: unknown[]) => mockRealpath(...args),
+  default: { realpath: (p: string) => mockRealpath(p) },
+  realpath: (p: string) => mockRealpath(p),
 }));
 
 // Now import the function under test (after mocks are hoisted)

@@ -8,18 +8,18 @@
  * whether the server start is triggered) so nothing touches disk or a network.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { AIModelConfig } from '../src/types/shared';
+import type { AIModelConfig } from '../src/shared/shared';
 
 // ---------------------------------------------------------------------------
 // Mocks — must be set up before importing the module under test
 // ---------------------------------------------------------------------------
 
-const mockGetConfig = vi.fn();
+const mockGetConfig = vi.fn<(...args: unknown[]) => unknown>();
 vi.mock('../src/main/configMgr', () => ({
   getConfig: (...args: unknown[]) => mockGetConfig(...args),
 }));
 
-const mockEnsureRunning = vi.fn(() => Promise.resolve());
+const mockEnsureRunning = vi.fn((..._args: unknown[]) => Promise.resolve());
 vi.mock('../src/main/ai/llamaServer', () => ({
   ensureRunning: (...args: unknown[]) => mockEnsureRunning(...args),
 }));

@@ -12,7 +12,7 @@ import {
   performJoinFiles,
 } from '../src/renderer/edit';
 import { joinFiles } from '../src/renderer/joinUtil';
-import type { ItemData } from '../src/types/types';
+import type { ItemData } from '../src/shared/types';
 
 // ---------------------------------------------------------------------------
 // Helpers

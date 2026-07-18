@@ -13,7 +13,7 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "prebuild": "npm run lint",
-    "lint": "tsc --noEmit && eslint .",
+    "lint": "tsc --noEmit && tsc -p tsconfig.node.json --noEmit && eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
