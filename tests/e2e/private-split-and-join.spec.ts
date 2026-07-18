@@ -223,8 +223,7 @@ Join sorts the selected files alphabetically, merges their contents into the fir
     writeNarration(
       screenshotDir,
       step++,
-      `The three files have been merged back into a single document containing all three paragraphs, in the right order.
-Split and Join are perfect companions: split a large document to work on its sections independently, then join the pieces back together when you're done.`
+      `The three files have been merged back into a single document containing all three paragraphs, in the right order.`
     );
 
     // Cleanup: remove the joined file so the demo folder is left empty and
