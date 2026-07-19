@@ -147,6 +147,26 @@ function ensureConfigDir(): void {
 let _writeChain: Promise<void> = Promise.resolve();
 
 /**
+ * Project the in-memory config to the shape that belongs on disk.
+ *
+ * In memory, `aiModels` is the merged list: the built-in catalog from
+ * ai-models.yaml (`readonly: true`) followed by the user's own models
+ * (`readonly: false`). Only the latter are the user's data. The built-ins are
+ * re-merged from the catalog on every load by withDefaultAISettings(), so
+ * writing them out is at best dead weight and at worst misleading — a copy of
+ * our catalog frozen into the user's file, showing prices and model IDs that no
+ * longer match the ones the app actually uses after a catalog update.
+ *
+ * Dropping them is lossless: nothing reads a built-in back from config.yaml.
+ * `aiModel` (the selection) is stored as a name, so it can still name a
+ * built-in without that entry being present here.
+ */
+function toPersistedConfig(config: AppConfig): AppConfig {
+  if (!config.aiModels) return config;
+  return { ...config, aiModels: config.aiModels.filter((m) => !m.readonly) };
+}
+
+/**
  * Snapshot the current config and enqueue an atomic, fsync'd write to disk.
  * Returns a promise that resolves once THIS snapshot has been persisted (or
  * rejects if its write failed). The stored chain tail swallows errors so a
@@ -155,7 +175,7 @@ let _writeChain: Promise<void> = Promise.resolve();
 function persistConfig(): Promise<void> {
   // Snapshot synchronously at call time so the queued write reflects the config
   // as of this call, regardless of later mutations.
-  const data = yaml.dump(_config);
+  const data = yaml.dump(toPersistedConfig(_config));
   const run = _writeChain.then(async () => {
     await fs.promises.mkdir(CONFIG_DIR, { recursive: true });
     await writeFileAtomic(CONFIG_FILE, data);

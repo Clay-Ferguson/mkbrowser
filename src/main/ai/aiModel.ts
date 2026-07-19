@@ -100,13 +100,29 @@ export function enforceDefaultAIModels<T extends AIModelConfigLike>(args: {
   const selectedModel = selectedMatch ? selectedMatch.name : args.defaultSelectedModelName;
 
   // Detect whether anything changed.
-  let changed = false;
+  //
+  // `changed` drives persistence, and only the user's own models are persisted —
+  // configMgr's toPersistedConfig() drops the built-ins, which are re-merged
+  // from the catalog on every load. So this compares the *persisted projection*
+  // of the input against that of the output (userModels), rather than the merged
+  // lists. Comparing merged lists would report a change on every startup, since
+  // a config read off disk can never contain the built-ins about to be merged
+  // in — a pointless write per app launch.
+  //
+  // Projecting the input too (rather than using existingModels raw) keeps the
+  // function idempotent for both shapes of input: a config straight from disk
+  // (no built-ins, so the filter is a no-op) and one already enforced in memory
+  // (built-ins present, and correctly ignored).
+  const existingUserModels = existingModels.filter((m) => !m.readonly);
 
-  if (existingModels.length !== enforcedModels.length) {
-    changed = true;
-  } else {
-    for (let i = 0; i < enforcedModels.length; i++) {
-      if (!modelsEqual(existingModels[i]!, enforcedModels[i]!)) { 
+  // Index alignment is sound: userModels is built by walking existingModels in
+  // order and keeping a subset of that same non-readonly set, so equal lengths
+  // imply nothing was dropped and position i refers to the same entry in both.
+  let changed = existingUserModels.length !== userModels.length;
+
+  if (!changed) {
+    for (let i = 0; i < userModels.length; i++) {
+      if (!modelsEqual(existingUserModels[i]!, userModels[i]!)) {
         changed = true;
         break;
       }

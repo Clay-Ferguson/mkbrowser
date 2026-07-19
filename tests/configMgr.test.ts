@@ -415,6 +415,66 @@ describe('DEFAULT_AI_MODELS catalog integrity', () => {
   });
 });
 
+// config.yaml is the user's file, so it holds only the user's models. The
+// built-in catalog is re-merged from ai-models.yaml on every load, and writing
+// a copy of it into config.yaml would leave stale prices/model IDs sitting in
+// the user's file after any catalog update.
+describe('persisted aiModels — built-in models are never written to config.yaml', () => {
+  const userModel: AIModelConfig = {
+    name: 'My Custom Model',
+    provider: 'OPENAI',
+    model: 'gpt-custom',
+    inputPer1M: 1,
+    outputPer1M: 2,
+    vision: false,
+    readonly: false,
+  };
+
+  it('writes only readonly=false models while keeping the merged list in memory', async () => {
+    await initConfig();
+    await updateConfig({ aiModels: [...(getConfig().aiModels ?? []), userModel] });
+
+    const onDisk = yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')) as AppConfig;
+    expect(onDisk.aiModels).toEqual([userModel]);
+
+    // In memory the built-ins are still present and still selectable.
+    const inMemory = getConfig().aiModels ?? [];
+    expect(inMemory.some((m) => m.readonly)).toBe(true);
+    expect(inMemory.at(-1)).toEqual(userModel);
+  });
+
+  it('round-trips: reloading rebuilds the built-ins and preserves the user model', async () => {
+    await initConfig();
+    await updateConfig({ aiModels: [...(getConfig().aiModels ?? []), userModel] });
+    const before = getConfig().aiModels;
+
+    await initConfig();
+    expect(getConfig().aiModels).toEqual(before);
+  });
+
+  it('does not rewrite the file on a restart that changes nothing', async () => {
+    // Merging the built-in catalog back in on load must not count as a change:
+    // the built-ins are not persisted, so the projection that would be written
+    // is identical to what is already on disk. A trailing comment is valid YAML
+    // that parses to the same config, so it survives iff no write happened.
+    await initConfig();
+    await updateConfig({ aiModels: [...(getConfig().aiModels ?? []), userModel] });
+    fs.appendFileSync(CONFIG_FILE, '\n# sentinel-not-rewritten\n', 'utf-8');
+
+    await initConfig();
+
+    expect(fs.readFileSync(CONFIG_FILE, 'utf-8')).toContain('# sentinel-not-rewritten');
+    // …and the restart still produced the full merged list in memory.
+    expect(getConfig().aiModels?.some((m) => m.readonly)).toBe(true);
+  });
+
+  it('writes an empty list when the user has no models of their own', async () => {
+    await initConfig();
+    const onDisk = yaml.load(fs.readFileSync(CONFIG_FILE, 'utf-8')) as AppConfig;
+    expect(onDisk.aiModels).toEqual([]);
+  });
+});
+
 // The catalog is our own shipped asset, so parseAIModelCatalog is strict where
 // parseConfigYaml is forgiving — a malformed entry must fail loudly instead of
 // degrading to a default that silently mis-prices or mis-routes a model.
