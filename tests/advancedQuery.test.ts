@@ -110,6 +110,28 @@ describe('helper bridge', () => {
     expect(evalQuery('past(1)')).toBe(true);
     expect(evalQuery('future(Date.now() + 1e6)')).toBe(true);
   });
+
+  it('today crosses the bridge: valid timestamp true, NaN sentinel false', () => {
+    expect(evalQuery('today(Date.now())')).toBe(true);
+    expect(evalQuery("today(prop('missing', 'ts'))")).toBe(false);
+  });
+
+  it('the optional window argument reaches the host as a number (or undefined when omitted)', () => {
+    // Args are coerced twice (sandbox wrapper, then hostCall dispatcher) — pin
+    // that the host sees numbers, and undefined when the arg is omitted.
+    const calls: unknown[][] = [];
+    const host = makeHost();
+    host.past = (ts, days) => { calls.push(['past', ts, days]); return true; };
+    host.future = (ts, days) => { calls.push(['future', ts, days]); return true; };
+    host.today = (ts) => { calls.push(['today', ts]); return true; };
+    compileAdvancedQuery("past(5, 7) && past(1) && future(9, '30') && today('123')")(host);
+    expect(calls).toEqual([
+      ['past', 5, 7],
+      ['past', 1, undefined],
+      ['future', 9, 30],
+      ['today', 123],
+    ]);
+  });
 });
 
 describe('compile and evaluation semantics', () => {

@@ -6,6 +6,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import { searchFolder, createMatchPredicate, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/main/search';
+import { AdvancedQueryTimeoutError } from '../src/main/advancedQuery';
 import { createContentSearcher } from '../src/shared/searchHelpers';
 import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/shared/timeUtil';
 import { setupTestData, TEST_DATA_DIR, rel } from './fixtures/setup';
@@ -905,6 +906,91 @@ describe('YAML front-matter cache via prop()', () => {
     // A "parsed, but empty" result is stored as null — a real entry, not absence.
     expect(cache.has('/plain.md')).toBe(true);
     expect(cache.get('/plain.md')).toBeNull();
+  });
+});
+
+// ── Section 9c: advanced-search helpers against the REAL host implementations ─
+// advancedQuery.test.ts exercises the sandbox bridge with a MOCK host (its
+// `prop` is a flat map lookup and its `'ts'` mode always returns NaN), and
+// timeUtil.test.ts covers past/future/today as pure functions. These tests
+// close the gap between the two layers: createMatchPredicate wires the real
+// helpers (createContentSearcher, createPropFunction, past/future/today) into
+// the sandbox, and that wiring — dot-notation drilling, prop(…, 'ts') date
+// parsing, per-file runtime errors, the timeout abort — is what's pinned here.
+describe('advanced predicate with real helper implementations', () => {
+  /** ISO YYYY-MM-DD for the calendar date `days` from now (local time). */
+  const isoDaysFromNow = (days: number): string => {
+    const d = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  it('prop drills into nested front-matter with dot-notation', () => {
+    const predicate = createMatchPredicate("prop('meta.author.name') === 'Ada'", 'advanced');
+    const content = '---\nmeta:\n  author:\n    name: Ada\n---\nbody';
+    expect(predicate(content).matches).toBe(true);
+  });
+
+  it('prop returns undefined when a dot-path traverses a scalar', () => {
+    const predicate = createMatchPredicate("prop('title.sub') === undefined", 'advanced');
+    expect(predicate('---\ntitle: plain string\n---\nbody').matches).toBe(true);
+  });
+
+  it('prop returns YAML numbers and booleans with their real types', () => {
+    const predicate = createMatchPredicate("prop('count') === 3 && prop('done') === true", 'advanced');
+    expect(predicate('---\ncount: 3\ndone: true\n---\nbody').matches).toBe(true);
+  });
+
+  it('prop treats malformed front-matter YAML as absent (no throw)', () => {
+    const predicate = createMatchPredicate("prop('key') === undefined", 'advanced');
+    expect(predicate('---\nkey: [1, 2\n---\nbody').matches).toBe(true);
+  });
+
+  it("past(prop(…, 'ts')) parses a real front-matter date", () => {
+    const predicate = createMatchPredicate("past(prop('due', 'ts'))", 'advanced');
+    expect(predicate('---\ndue: 2020-01-15\n---\nbody').matches).toBe(true);
+    expect(predicate('---\ndue: 2126-01-15\n---\nbody').matches).toBe(false);
+  });
+
+  it('past applies its lookbackDays window through the sandbox', () => {
+    const content = `---\ndue: ${isoDaysFromNow(-10)}\n---\nbody`;
+    expect(createMatchPredicate("past(prop('due', 'ts'), 30)", 'advanced')(content).matches).toBe(true);
+    expect(createMatchPredicate("past(prop('due', 'ts'), 5)", 'advanced')(content).matches).toBe(false);
+  });
+
+  it("future(prop(…, 'ts')) and its lookaheadDays window", () => {
+    const content = `---\ndue: ${isoDaysFromNow(10)}\n---\nbody`;
+    expect(createMatchPredicate("future(prop('due', 'ts'))", 'advanced')(content).matches).toBe(true);
+    expect(createMatchPredicate("future(prop('due', 'ts'), 30)", 'advanced')(content).matches).toBe(true);
+    expect(createMatchPredicate("future(prop('due', 'ts'), 5)", 'advanced')(content).matches).toBe(false);
+  });
+
+  it("today(prop(…, 'ts')) matches only today's calendar date", () => {
+    const predicate = createMatchPredicate("today(prop('due', 'ts'))", 'advanced');
+    expect(predicate(`---\ndue: ${isoDaysFromNow(0)}\n---\nbody`).matches).toBe(true);
+    expect(predicate(`---\ndue: ${isoDaysFromNow(-1)}\n---\nbody`).matches).toBe(false);
+    expect(predicate(`---\ndue: ${isoDaysFromNow(1)}\n---\nbody`).matches).toBe(false);
+  });
+
+  it('all three date helpers reject a missing property (NaN sentinel)', () => {
+    const predicate = createMatchPredicate(
+      "past(prop('x', 'ts')) || future(prop('x', 'ts')) || today(prop('x', 'ts'))", 'advanced');
+    expect(predicate('---\ntitle: no dates\n---\nbody').matches).toBe(false);
+  });
+
+  it('a runtime error evaluating one file is a non-match, not a crash', () => {
+    const predicate = createMatchPredicate("prop('a').b.c === 1", 'advanced');
+    // No front-matter → prop('a') is undefined → TypeError inside the sandbox.
+    expect(predicate('plain body, no front matter', '/x.md')).toEqual({ matches: false, matchCount: 0 });
+    // The same predicate still works on a file where the expression evaluates.
+    expect(predicate('---\na:\n  b:\n    c: 1\n---\nbody').matches).toBe(true);
+  });
+
+  it('a query timeout propagates out of the predicate (aborts the whole search)', () => {
+    // Unlike per-file runtime errors, AdvancedQueryTimeoutError must NOT be
+    // swallowed as a non-match — the caller aborts the search on it.
+    const predicate = createMatchPredicate('(() => { while (true) {} })()', 'advanced');
+    expect(() => predicate('any content')).toThrow(AdvancedQueryTimeoutError);
   });
 });
 
