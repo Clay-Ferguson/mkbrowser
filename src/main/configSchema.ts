@@ -25,7 +25,7 @@
 
 import { z } from 'zod';
 import { AI_PROVIDERS, DEFAULT_IMAGE_SIZE } from '../shared/shared';
-import type { AppConfig, AppSettings } from '../shared/shared';
+import type { AIModelConfig, AppConfig, AppSettings } from '../shared/shared';
 
 // ---------------------------------------------------------------------------
 // Settings defaults (single source of truth; configMgr imports these)
@@ -219,4 +219,80 @@ void _schemaMatchesAppConfig;
 export function parseConfigYaml(parsed: unknown): AppConfig | null {
   const result = AppConfigSchema.safeParse(parsed);
   return result.success ? result.data : null;
+}
+
+// ---------------------------------------------------------------------------
+// Built-in AI model catalog (ai/ai-models.yaml)
+// ---------------------------------------------------------------------------
+
+/**
+ * Strict counterpart to `AIModelConfigSchema`.
+ *
+ * The tolerance rules at the top of this file exist because config.yaml is the
+ * user's file: untrusted, hand-editable, and better off degrading per-field than
+ * refusing to load. `ai/ai-models.yaml` is the opposite — it is our own asset,
+ * inlined into the bundle at build time and never written to — so every
+ * forgiving `.catch()` here would only serve to hide one of our own typos. A bad
+ * `provider` would silently re-route a model to Anthropic; a misspelled
+ * `inputPer1M` would silently price it at $0. Both are worth a hard failure.
+ *
+ * Hence: no `.catch()`, and `.strict()` so an unrecognized key (the likeliest
+ * shape of a typo) is an error rather than dead weight carried along.
+ */
+const BuiltInAIModelSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    provider: z.enum(AI_PROVIDERS),
+    model: z.string().trim().min(1),
+    inputPer1M: z.number().nonnegative(),
+    outputPer1M: z.number().nonnegative(),
+    vision: z.boolean(),
+    readonly: z.boolean(),
+  })
+  .strict();
+
+const AIModelCatalogSchema = z
+  .object({
+    defaultModel: z.string().trim().min(1),
+    models: z.array(BuiltInAIModelSchema).min(1),
+  })
+  .strict()
+  // The selected default must name a real entry, or `enforceDefaultAIModels`
+  // would hand the app a selected model that doesn't exist in its own catalog.
+  .refine((c) => c.models.some((m) => m.name === c.defaultModel), {
+    message: 'defaultModel must match the `name` of one of the models',
+    path: ['defaultModel'],
+  })
+  // `model` IDs are the identity used for API calls and cost attribution;
+  // duplicates mean two catalog entries silently shadow each other.
+  .refine((c) => new Set(c.models.map((m) => m.model)).size === c.models.length, {
+    message: 'duplicate model ID in catalog',
+    path: ['models'],
+  })
+  // Names are matched case-insensitively against the user's config, so two
+  // entries differing only in case would collide there.
+  .refine(
+    (c) => new Set(c.models.map((m) => m.name.toLowerCase())).size === c.models.length,
+    { message: 'duplicate model name in catalog (names are case-insensitive)', path: ['models'] },
+  );
+
+export interface AIModelCatalog {
+  defaultModel: string;
+  models: AIModelConfig[];
+}
+
+/**
+ * Validate the built-in model catalog parsed from `ai/ai-models.yaml`.
+ *
+ * Throws on any problem — see `BuiltInAIModelSchema` for why this one is strict
+ * where `parseConfigYaml` is forgiving. This runs at module load in the main
+ * process, so a bad edit fails fast and loudly; the configMgr unit tests import
+ * that module, which makes the test suite the gate that catches it.
+ */
+export function parseAIModelCatalog(parsed: unknown): AIModelCatalog {
+  const result = AIModelCatalogSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(`ai-models.yaml is malformed: ${z.prettifyError(result.error)}`);
+  }
+  return result.data;
 }

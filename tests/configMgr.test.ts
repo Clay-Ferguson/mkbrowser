@@ -18,7 +18,7 @@ const { tmpHome } = vi.hoisted(() => {
 vi.mock('electron', () => ({ app: { getPath: () => tmpHome } }));
 
 import { initConfig, getConfig, getConfigLoadError, updateConfig, withDefaultAISettings } from '../src/main/configMgr';
-import { defaultSettings, cloneDefaultSettings } from '../src/main/configSchema';
+import { defaultSettings, cloneDefaultSettings, parseAIModelCatalog } from '../src/main/configSchema';
 import type { AIModelConfig, AppConfig } from '../src/shared/shared';
 
 // configMgr uses app.getPath('userData') directly as CONFIG_DIR, so tmpHome IS the dir.
@@ -401,6 +401,65 @@ describe('DEFAULT_AI_MODELS catalog integrity', () => {
   it('default selected model is Claude Haiku 4.5', () => {
     const { config } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
     expect(config.aiModel).toBe('Claude Haiku 4.5');
+  });
+
+  it('the shipped ai-models.yaml is the source of the catalog', () => {
+    // Guards against the catalog silently reverting to a hard-coded array: the
+    // config the app hands out must contain exactly the YAML's models.
+    const catalog = parseAIModelCatalog(
+      yaml.load(fs.readFileSync(path.join(__dirname, '../src/main/ai/ai-models.yaml'), 'utf-8')),
+    );
+    const { config } = withDefaultAISettings({ browseFolder: '', settings: cloneDefaultSettings() });
+    expect(config.aiModels).toEqual(catalog.models);
+    expect(config.aiModel).toBe(catalog.defaultModel);
+  });
+});
+
+// The catalog is our own shipped asset, so parseAIModelCatalog is strict where
+// parseConfigYaml is forgiving — a malformed entry must fail loudly instead of
+// degrading to a default that silently mis-prices or mis-routes a model.
+describe('parseAIModelCatalog — strict validation of the shipped catalog', () => {
+  const validModel = {
+    name: 'Test Model',
+    provider: 'ANTHROPIC',
+    model: 'test-model-1',
+    inputPer1M: 1,
+    outputPer1M: 2,
+    vision: true,
+    readonly: true,
+  };
+  const validCatalog = { defaultModel: 'Test Model', models: [validModel] };
+
+  it('accepts a well-formed catalog', () => {
+    expect(parseAIModelCatalog(validCatalog).models).toEqual([validModel]);
+  });
+
+  it.each([
+    ['defaultModel naming no existing model', { ...validCatalog, defaultModel: 'Nope' }],
+    ['a duplicate model ID', {
+      defaultModel: 'Test Model',
+      models: [validModel, { ...validModel, name: 'Other' }],
+    }],
+    ['a duplicate name differing only in case', {
+      defaultModel: 'Test Model',
+      models: [validModel, { ...validModel, name: 'TEST MODEL', model: 'test-model-2' }],
+    }],
+    ['an unknown provider', {
+      ...validCatalog,
+      models: [{ ...validModel, provider: 'OPENAI_TYPO' }],
+    }],
+    // The likeliest real typo: a misspelled key would leave the real field
+    // missing, so it must be an error rather than silently ignored extra data.
+    ['a misspelled pricing key', {
+      ...validCatalog,
+      models: [{ ...validModel, inputPer1m: 1, inputPer1M: undefined }],
+    }],
+    ['a negative price', { ...validCatalog, models: [{ ...validModel, inputPer1M: -1 }] }],
+    ['a price given as a string', { ...validCatalog, models: [{ ...validModel, inputPer1M: '1.0' }] }],
+    ['an empty model list', { defaultModel: 'Test Model', models: [] }],
+    ['a non-object top level', 'just a string'],
+  ])('throws on %s', (_label, input) => {
+    expect(() => parseAIModelCatalog(input)).toThrow(/ai-models\.yaml is malformed/);
   });
 });
 
