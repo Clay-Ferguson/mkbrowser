@@ -289,8 +289,8 @@ async function filterMostRecent(filePaths: string[]): Promise<StatEntry[]> {
 
 /**
  * Stat an entry and assemble its SearchResult. Stat failures are swallowed so an
- * entry that can't be stat'd still appears (without time metadata) — matching the
- * prior behavior. Factored out of the four near-identical build-and-push blocks.
+ * entry that can't be stat'd still appears (without time metadata). Shared by
+ * every result-producing path in searchFolder.
  *
  * On the mostRecent path the file was already stat'd in filterMostRecent; pass
  * those times as cachedStat to reuse them instead of stat'ing the file again.
@@ -388,10 +388,10 @@ export async function searchFolder(
     //    relativePath). A trailing separator silently breaks last-segment
     //    parsing downstream — e.g. the renderer's getParentPath("/a/b/")
     //    returns "/a/b" (the folder itself, not its parent) and
-    //    getFileName("/a/b/") returns "" — so folder results navigated to the
-    //    wrong place and showed an empty name. path.relative() happens to strip
-    //    it from relativePath, which is exactly why the mismatch was easy to
-    //    miss: only the absolute `path` field carried the separator.
+    //    getFileName("/a/b/") returns "" — so folder results would navigate to
+    //    the wrong place and show an empty name. path.relative() happens to
+    //    strip it from relativePath, so only the absolute `path` field would
+    //    carry the separator — a mismatch that's easy to miss.
     //
     // So: strip the trailing separator from each dir here, at the source, so
     // everything downstream (filterMostRecent, the statCache keys, buildResult)
@@ -418,7 +418,7 @@ export async function searchFolder(
     }
 
     // Stat entries with bounded concurrency. mapWithConcurrency preserves input
-    // order, so the pre-sort order matches the old sequential loop exactly.
+    // order, so the pre-sort order is deterministic.
     const entryResults = await mapWithConcurrency(
       entriesToSearch,
       SEARCH_FILE_CONCURRENCY,
@@ -466,7 +466,7 @@ export async function searchFolder(
     }
 
     // Read + stat files with bounded concurrency. mapWithConcurrency preserves
-    // input order, so the pre-sort order matches the old sequential loop exactly.
+    // input order, so the pre-sort order is deterministic.
     const fileResults = await mapWithConcurrency(
       filesToSearch,
       SEARCH_FILE_CONCURRENCY,

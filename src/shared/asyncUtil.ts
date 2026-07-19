@@ -3,11 +3,11 @@
  * concurrently. Prevents unbounded fan-out (e.g. thousands of simultaneous
  * fs.promises.readFile calls hitting EMFILE). Results are returned in input order.
  * 
- * Funtion is fail-fast: on the first rejection, other
- * in-flight items still complete but the results are discarded. If a caller ever uses
- * it for batch *writes* (multi-file paste, search-and-replace), a mid-batch failure
- * leaves a partially applied batch with no report of which items completed. Fine as a
- *  read helper; callers doing writes need their own per-item accounting.
+ * Fail-fast: on the first rejection, other in-flight items still complete but
+ * the results are discarded. If a caller ever uses it for batch *writes*
+ * (multi-file paste, search-and-replace), a mid-batch failure leaves a partially
+ * applied batch with no report of which items completed. Fine as a read helper;
+ * callers doing writes need their own per-item accounting.
  */
 export async function mapWithConcurrency<T, R>(
   items: readonly T[],

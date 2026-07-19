@@ -382,7 +382,7 @@ async function buildNonMarkdownFingerprints(
   // directories. Files that can't be stat'd yield null (rename detection skipped
   // for them); a per-file failure never aborts the batch. mapWithConcurrency
   // preserves input order, so assembling the maps from its results below stays
-  // deterministic (matching the previous in-order build).
+  // deterministic.
   const stats = await mapWithConcurrency(
     nonMarkdownFiles,
     RECONCILE_FILE_CONCURRENCY,
@@ -457,7 +457,7 @@ async function ensureMarkdownIds(
   // Phase 2 — read every file's content in parallel (bounded), preserving the
   // oldest-first order (mapWithConcurrency returns results in input order). A read
   // failure yields null content and is skipped below (no id → excluded from rename
-  // detection), matching the previous per-file skip.
+  // detection).
   const contents = await mapWithConcurrency(
     markdownFiles,
     RECONCILE_FILE_CONCURRENCY,
@@ -475,8 +475,8 @@ async function ensureMarkdownIds(
 
   // Phase 3 — decide ids sequentially in oldest-first order. This loop is purely
   // synchronous (no awaits), so the cross-file collision logic that mutates and
-  // reads idToName/nameToId runs without interleaving — exactly as the old serial
-  // loop did. Files needing a (re)written id are collected for a batched write.
+  // reads idToName/nameToId runs without interleaving. Files needing a
+  // (re)written id are collected for a batched write.
   const pendingWrites: Array<{
     name: string;
     filePath: string;
@@ -517,8 +517,7 @@ async function ensureMarkdownIds(
 
   // Phase 4 — persist the injected ids in parallel (bounded). Writes target
   // distinct paths, so they're independent. If a write fails the file couldn't be
-  // persisted, so drop it from the maps (no id → excluded from rename detection),
-  // matching the original per-file skip on a failed read/write.
+  // persisted, so drop it from the maps (no id → excluded from rename detection).
   //
   // Each write is a guarded compare-and-swap: the content being written derives
   // from the content Phase 2 read, so if the file changed since (a save from a
@@ -573,7 +572,7 @@ async function ensureMarkdownIds(
  *
  * Pure: reads only the supplied maps and returns the filtered entries plus the
  * handled-name set — no filesystem access. (Entry objects are mutated in place
- * for renames/id-assignment, matching the previous inline behavior.)
+ * for renames/id-assignment.)
  */
 export function reconcileEntries(
   files: IndexEntry[],
@@ -645,10 +644,10 @@ export function reconcileEntries(
         // moved on while the entry kept the values frozen at index time. A stale
         // fingerprint can never match the *current* stats in
         // fingerprintToVisibleNames, so without this refresh a single content
-        // change permanently disabled rename detection for the file — the next
-        // rename then matched neither fingerprint nor name, dropped the entry,
-        // and re-appended the file at the bottom, losing the position that
-        // .INDEX.yaml exists to preserve. (In the colliding-fingerprint case
+        // change would permanently disable rename detection for the file — the
+        // next rename would match neither fingerprint nor name, dropping the
+        // entry and re-appending the file at the bottom, losing the position
+        // that .INDEX.yaml exists to preserve. (In the colliding-fingerprint case
         // this writes back identical values — harmless.) `nameToStat` misses
         // the name when its stat failed or the name now belongs to a directory;
         // keep the old values then rather than blanking the entry's identity.
@@ -669,8 +668,8 @@ export function reconcileEntries(
   }
 
   // An id entry that matched nothing by id, but whose *name* is still on disk and
-  // unclaimed, is that same file with a changed id — the front-matter id was hand-
-  // edited, removed, or (before this was tightened) mangled by a YAML round-trip.
+  // unclaimed, is that same file with a changed id — the front-matter id was
+  // hand-edited or removed.
   // Re-bind the entry to the file and adopt the file's current id.
   //
   // Without this the entry is orphaned but still survives the keep filter (its
@@ -699,8 +698,8 @@ export function reconcileEntries(
   //    kept: it is bound to a file that is on disk right now.
   //  - An id entry that matched *neither* is gone: its file was deleted, or its
   //    name is already owned by the entry holding that file's id. It must be
-  //    dropped. Keeping it just because its name is still visible is precisely
-  //    what used to leave a stale entry sitting alongside the real one.
+  //    dropped. Keeping it just because its name is still visible would leave a
+  //    stale entry sitting alongside the real one.
   //  - Everything else (fingerprinted and name-only entries) is judged on whether
   //    its name is still on disk; the loops above already corrected `name` for any
   //    rename they were confident about.
@@ -934,8 +933,8 @@ export async function validateAttachFolderLocation(
   dirPath: string,
 ): Promise<{ success: boolean; error?: string }> {
   // Serialized per-directory (withIndexLock) so its read-modify-write can't
-  // interleave with another index mutation. See issue 013. (The move helpers no
-  // longer call this — they fold the same reorder into their single write.)
+  // interleave with another index mutation. See issue 013. (The move helpers
+  // don't call this — they fold the same reorder into their single write.)
   return withIndexLock(dirPath, async () => {
     const indexFilePath = indexPathFor(dirPath);
     try {

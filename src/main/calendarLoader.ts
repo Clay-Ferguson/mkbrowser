@@ -266,8 +266,8 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
     // ⚠️ Absence has TWO spellings here: a key that is missing entirely reads back
     // as `undefined`, while an explicitly empty `due:` line parses to YAML `null`.
     // Both mean "no due date" and both must skip quietly — a check for only one of
-    // them (this line once tested just `=== null`) lets the other fall through to
-    // coerceDueDate() and log a bogus "'due' is not a recognized date: undefined"
+    // them lets the other fall through to coerceDueDate() and log a bogus
+    // "'due' is not a recognized date: undefined"
     // warning for every non-calendar markdown file that merely has front matter,
     // once per calendar scan. The same trap applies to `duration`/`start` below.
     if (!parsed || parsed.due === undefined || parsed.due === null) return [];
@@ -292,8 +292,8 @@ export async function loadCalendarEntryForFile(filePath: string): Promise<Calend
     // coerceDuration maps *absent* (undefined/null) and *invalid* values to the
     // same null, so the warning must be gated on presence — and an absent key is
     // `undefined`, not `null` (see the `due` comment above). Testing only
-    // `!== null` warned "invalid 'duration' undefined" for every calendar file
-    // that simply omits the optional field.
+    // `!== null` would warn "invalid 'duration' undefined" for every calendar
+    // file that simply omits the optional field.
     const duration = coerceDuration(parsed.duration);
     if (parsed.duration !== undefined && parsed.duration !== null && duration === null) {
       logger.warn(`Calendar entry ${filePath}: ignoring invalid 'duration' ${JSON.stringify(parsed.duration)} (expected a positive number of hours); defaulting to 1`);

@@ -199,7 +199,7 @@ function ensureConfigDir(): void {
 
 // Serialize config writes through a single promise chain (mirrors withIndexLock
 // in indexUtil.ts, but there is only one config file so no per-key map is
-// needed). The main process is single-threaded, but persistConfig() is now
+// needed). The main process is single-threaded, but persistConfig() is
 // async: without serialization, two overlapping updateConfig() calls could race
 // on the atomic rename and land an older snapshot last. Chaining guarantees the
 // writes apply in call order, so the final on-disk file matches the final
@@ -242,19 +242,18 @@ export function flushConfig(): Promise<void> {
  * The writes initConfig() issues are seeding/normalization writes (first-run
  * defaults, back-filled AI fields) — the in-memory config is already complete
  * and correct before they run, so a failed flush (ENOSPC, EACCES, read-only or
- * network mount…) must never reject initConfig(). Two bugs existed before this
- * wrapper, both caused by letting the raw persistConfig() rejection escape:
+ * network mount…) must never reject initConfig(). Letting the raw
+ * persistConfig() rejection escape would cause two distinct failures:
  *
- *  1. First-run path: the rejection propagated out of initConfig() into
+ *  1. First-run path: the rejection would propagate out of initConfig() into
  *     main.ts's app-ready handler, whose catch skips setupIpcHandlers() and
- *     createWindow() — a disk problem that only prevented *saving* left the
- *     app running with no window at all.
- *  2. Valid-config path: the `await persistConfig()` sat inside the same
- *     try/catch as the read/parse, so a pure WRITE error was misclassified as
- *     a corrupt config file — the user's valid config.yaml was backed up as
- *     "unreadable", getConfigLoadError() reported corruption, and the
- *     already-loaded config was discarded from memory in favor of blank
- *     defaults.
+ *     createWindow() — a disk problem that only prevents *saving* would leave
+ *     the app running with no window at all.
+ *  2. Valid-config path: the `await persistConfig()` sits inside the same
+ *     try/catch as the read/parse, so a pure WRITE error would be misclassified
+ *     as a corrupt config file — the user's valid config.yaml backed up as
+ *     "unreadable", getConfigLoadError() reporting corruption, and the
+ *     already-loaded config discarded from memory in favor of blank defaults.
  *
  * Explicit user changes are different: updateConfig() still returns the real
  * write promise so callers can see and surface a persistence failure.
@@ -340,7 +339,7 @@ export async function initConfig(): Promise<void> {
       _config = withAI;
       // ⚠️ This persist MUST NOT throw: we are inside the try/catch that
       // classifies READ/parse failures as a corrupt config. A raw
-      // `await persistConfig()` here once let a write error (ENOSPC etc.)
+      // `await persistConfig()` here would let a write error (ENOSPC etc.)
       // fall into that catch — backing up the user's VALID config as
       // "unreadable" and replacing the config just loaded into _config with
       // blank defaults. persistConfigAtInit swallows and logs write errors.

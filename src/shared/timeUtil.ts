@@ -73,10 +73,10 @@ function timestampFromMatch(match: RegExpMatchArray): number {
   // Convert 2-digit year to 4-digit (assumes 2000s). This must key off the
   // *digit count*, not the numeric value: DATE_REGEX's year group is
   // (\d{4}|\d{2}), so a 4-digit year like "0026" also parses to a value < 100,
-  // but it names the literal year 26 and must not be bumped to 2026. (A value
-  // check here was exactly the bug: "07/18/0026" came back as 2026.) Years
-  // below 100 that survive un-bumped are handled by validatedTimestamp's
-  // setFullYear correction for the Date constructor's 1900+y mapping.
+  // but it names the literal year 26 and must not be bumped to 2026 (a value
+  // check would turn "07/18/0026" into 2026). Years below 100 that survive
+  // un-bumped are handled by validatedTimestamp's setFullYear correction for
+  // the Date constructor's 1900+y mapping.
   if ((match[3] ?? '').length === 2) {
     year += 2000;
   }

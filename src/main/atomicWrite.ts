@@ -97,14 +97,14 @@ export async function writeFileAtomic(filePath: string, content: string): Promis
   // atomic path below, which creates the file fresh.
   //
   // The catch guards ONLY the lstat. The write-through itself must sit OUTSIDE
-  // it: an earlier version wrapped both, so when the target WAS a symlink but
-  // the write-through failed (dangling link → ENOENT, read-only target →
-  // EACCES), the error was swallowed and control fell into the atomic path —
-  // which "succeeded" by renaming a temp file over the link, replacing the link
-  // with a regular file and silently forking the document from its real target,
-  // the exact outcome this branch exists to prevent. Once we know filePath is a
-  // symlink, write-through is the only acceptable strategy; its failure must
-  // propagate to the caller, never trigger the rename fallback.
+  // it: if it were inside, a symlink whose write-through fails (dangling link →
+  // ENOENT, read-only target → EACCES) would have its error swallowed and fall
+  // into the atomic path — which would "succeed" by renaming a temp file over
+  // the link, replacing the link with a regular file and silently forking the
+  // document from its real target, the exact outcome this branch exists to
+  // prevent. Once we know filePath is a symlink, write-through is the only
+  // acceptable strategy; its failure must propagate to the caller, never
+  // trigger the rename fallback.
   let isSymlink = false;
   try {
     isSymlink = (await fs.promises.lstat(filePath)).isSymbolicLink();

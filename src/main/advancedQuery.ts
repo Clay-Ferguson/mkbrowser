@@ -82,8 +82,8 @@ const BOOTSTRAP = `
  * Throws on a syntactically invalid expression (mirrors `new Function`, so the
  * caller's existing compile-error handling applies). The returned function
  * evaluates the expression against one file's helpers and returns its truthiness;
- * runtime errors in the query propagate to the caller (as before), and a timeout
- * surfaces as AdvancedQueryTimeoutError.
+ * runtime errors in the query propagate to the caller, and a timeout surfaces as
+ * AdvancedQueryTimeoutError.
  */
 export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost) => boolean {
   // Compile FIRST so a syntax error throws before we bother building a context.

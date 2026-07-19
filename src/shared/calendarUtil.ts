@@ -31,11 +31,11 @@ function getUntilDateStr(): string {
 /**
  * True if the raw front matter YAML declares `key` at the top level (not nested/indented).
  *
- * Parses the YAML rather than pattern-matching the text, so non-block spellings the regex
- * missed — a quoted key (`"due": …`) or a flow-style mapping — are still detected. Missing
- * a real top-level key here is what let {@link injectCalendarFrontMatter} prepend a second
- * copy and poison the file with a duplicate mapping key. Only genuinely unparseable YAML
- * (or a non-mapping top level) falls back to the textual check, preserving prior behavior.
+ * Parses the YAML rather than pattern-matching the text, so non-block spellings a regex
+ * would miss — a quoted key (`"due": …`) or a flow-style mapping — are still detected.
+ * Missing a real top-level key here would let {@link injectCalendarFrontMatter} prepend a
+ * second copy and poison the file with a duplicate mapping key. Only genuinely unparseable
+ * YAML (or a non-mapping top level) falls back to the textual check.
  */
 function hasTopLevelKey(yamlStr: string, key: string): boolean {
   try {
@@ -44,7 +44,7 @@ function hasTopLevelKey(yamlStr: string, key: string): boolean {
       return Object.prototype.hasOwnProperty.call(parsed, key);
     }
   } catch {
-    // Malformed YAML — fall back to a textual check so behavior is unchanged.
+    // Malformed YAML — fall back to the textual check below.
   }
   return new RegExp(`^${key}[ \\t]*:`, 'm').test(yamlStr);
 }
@@ -77,17 +77,17 @@ function buildCalendarBlock(repeating: boolean, existingYaml = ''): string {
  * Extracts a simple scalar property value from front matter, or null if not present.
  *
  * The YAML is parsed for real (same approach as {@link hasTopLevelKey}) rather than
- * regex-scanned. The old `^key\s*:\s*(.+)$` pattern had two provable failure modes:
+ * regex-scanned. A naive `^key\s*:\s*(.+)$` scan fails in two provable ways:
  *  1. `\s` matches newlines, so an explicitly empty key (`due:` — a legal YAML null)
- *     let `\s*` cross the line break and capture the entire NEXT line as the value
- *     (getDueProperty returned `start: "9:00 AM"`).
- *  2. YAML quoting leaked into the value: `due: "3/5/2026"` came back with the quote
- *     characters, which parseDueStr then rejected — silently dropping a due date that
+ *     lets `\s*` cross the line break and capture the entire NEXT line as the value
+ *     (getDueProperty would return `start: "9:00 AM"`).
+ *  2. YAML quoting leaks into the value: `due: "3/5/2026"` comes back with the quote
+ *     characters, which parseDueStr then rejects — silently dropping a due date that
  *     the calendar loader (which parses YAML properly) accepts fine. Trailing same-line
- *     comments leaked the same way.
- * The regex survives only as a fallback for malformed YAML, and uses `[ \t]*` — never
- * `\s*`, which is how failure (1) got in — so it cannot cross a line boundary.
- * `stripQuotes` applies only to that fallback; the parsed path never sees quotes.
+ *     comments leak the same way.
+ * A regex survives only as a fallback for malformed YAML, and uses `[ \t]*` — never
+ * `\s*` (see failure 1) — so it cannot cross a line boundary. `stripQuotes` applies
+ * only to that fallback; the parsed path never sees quotes.
  */
 function getScalarProperty(content: string, key: string, stripQuotes = false): string | null {
   const parsed = splitFrontMatter(content);
@@ -99,7 +99,7 @@ function getScalarProperty(content: string, key: string, stripQuotes = false): s
       return scalarFieldToString((obj as Record<string, unknown>)[key]) || null;
     }
   } catch {
-    // Malformed YAML — fall back to the textual scan so behavior is unchanged.
+    // Malformed YAML — fall back to the textual scan below.
   }
   const pattern = stripQuotes ? `^${key}[ \\t]*:[ \\t]*"?(.+?)"?[ \\t]*$` : `^${key}[ \\t]*:[ \\t]*(.+)$`;
   const match = parsed.yamlStr.match(new RegExp(pattern, 'm'));
@@ -164,7 +164,7 @@ function buildLocalDate(year: number, month: number, day: number): Date | null {
  * Parse a due-date string into a local Date, or null if invalid. Accepts the app's
  * canonical `M/D/YYYY` (or `M/D/YY`) form and the ISO `YYYY-MM-DD` form that js-yaml
  * and many other tools emit for a bare `due: 2025-03-05` — interpreted as a local
- * calendar date, not UTC. Without ISO support such an event was dropped silently.
+ * calendar date, not UTC. Without ISO support such an event would be dropped silently.
  */
 export function parseDueStr(dueStr: string): Date | null {
   const trimmed = dueStr.trim();
@@ -296,10 +296,10 @@ function buildRRuleObject(rrule: RRuleProps): Record<string, unknown> {
  * none exists and an rrule is being set.
  *
  * Edits go through a real YAML parse/dump (like {@link setFrontMatterProperty}) rather than
- * a text strip-and-append: a flow-style `rrule: {…}` the old strip regex couldn't see used
- * to survive and get a second `rrule:` appended below it, producing a duplicate mapping key
- * that makes every subsequent front-matter parse throw. Unparseable existing YAML is left
- * untouched rather than risking further corruption.
+ * a text strip-and-append: a textual strip can't see a flow-style `rrule: {…}`, which would
+ * survive and get a second `rrule:` appended below it — a duplicate mapping key that makes
+ * every subsequent front-matter parse throw. Unparseable existing YAML is left untouched
+ * rather than risking further corruption.
  */
 export function setRRuleProperty(content: string, rrule: RRuleProps | null): string {
   const parsed = splitFrontMatter(content);
