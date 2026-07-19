@@ -238,6 +238,12 @@ export function parseConfigYaml(parsed: unknown): AppConfig | null {
  *
  * Hence: no `.catch()`, and `.strict()` so an unrecognized key (the likeliest
  * shape of a typo) is an error rather than dead weight carried along.
+ *
+ * `readonly` is deliberately *not* a YAML field: every entry in this catalog is
+ * built-in and therefore read-only by definition, so it is stamped on here
+ * rather than repeated on every line where it could only ever be wrong. Being
+ * `.strict()`, the schema also rejects a `readonly:` key if one is ever added
+ * back, which keeps the two from disagreeing.
  */
 const BuiltInAIModelSchema = z
   .object({
@@ -247,9 +253,9 @@ const BuiltInAIModelSchema = z
     inputPer1M: z.number().nonnegative(),
     outputPer1M: z.number().nonnegative(),
     vision: z.boolean(),
-    readonly: z.boolean(),
   })
-  .strict();
+  .strict()
+  .transform((m) => ({ ...m, readonly: true }));
 
 const AIModelCatalogSchema = z
   .object({

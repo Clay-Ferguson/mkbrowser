@@ -426,12 +426,13 @@ describe('parseAIModelCatalog — strict validation of the shipped catalog', () 
     inputPer1M: 1,
     outputPer1M: 2,
     vision: true,
-    readonly: true,
   };
   const validCatalog = { defaultModel: 'Test Model', models: [validModel] };
 
-  it('accepts a well-formed catalog', () => {
-    expect(parseAIModelCatalog(validCatalog).models).toEqual([validModel]);
+  it('accepts a well-formed catalog and stamps every entry readonly', () => {
+    // `readonly` is not a YAML field — the catalog is built-in by definition, so
+    // the parser sets it rather than each entry repeating it.
+    expect(parseAIModelCatalog(validCatalog).models).toEqual([{ ...validModel, readonly: true }]);
   });
 
   it.each([
@@ -454,6 +455,9 @@ describe('parseAIModelCatalog — strict validation of the shipped catalog', () 
       ...validCatalog,
       models: [{ ...validModel, inputPer1m: 1, inputPer1M: undefined }],
     }],
+    // `readonly` is stamped on by the parser; a YAML entry declaring its own is
+    // redundant at best and contradictory at worst, so it is rejected outright.
+    ['an explicit readonly key', { ...validCatalog, models: [{ ...validModel, readonly: true }] }],
     ['a negative price', { ...validCatalog, models: [{ ...validModel, inputPer1M: -1 }] }],
     ['a price given as a string', { ...validCatalog, models: [{ ...validModel, inputPer1M: '1.0' }] }],
     ['an empty model list', { defaultModel: 'Test Model', models: [] }],

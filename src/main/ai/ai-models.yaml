@@ -34,17 +34,17 @@ models:
   #
   # Claude Mythos 5 is deliberately omitted: same price/capabilities as Fable 5,
   # but it is limited-availability (Project Glasswing) so most keys can't call it.
-  - { name: Claude Fable 5, provider: ANTHROPIC, model: claude-fable-5, inputPer1M: 10.00, outputPer1M: 50.00, vision: true, readonly: true }
-  - { name: Claude Opus 4.8, provider: ANTHROPIC, model: claude-opus-4-8, inputPer1M: 5.00, outputPer1M: 25.00, vision: true, readonly: true }
-  - { name: Claude Opus 4.7, provider: ANTHROPIC, model: claude-opus-4-7, inputPer1M: 5.00, outputPer1M: 25.00, vision: true, readonly: true }
-  - { name: Claude Opus 4.6, provider: ANTHROPIC, model: claude-opus-4-6, inputPer1M: 5.00, outputPer1M: 25.00, vision: true, readonly: true }
-  - { name: Claude Opus 4.5, provider: ANTHROPIC, model: claude-opus-4-5, inputPer1M: 5.00, outputPer1M: 25.00, vision: true, readonly: true }
+  - { name: Claude Fable 5, provider: ANTHROPIC, model: claude-fable-5, inputPer1M: 10.00, outputPer1M: 50.00, vision: true }
+  - { name: Claude Opus 4.8, provider: ANTHROPIC, model: claude-opus-4-8, inputPer1M: 5.00, outputPer1M: 25.00, vision: true }
+  - { name: Claude Opus 4.7, provider: ANTHROPIC, model: claude-opus-4-7, inputPer1M: 5.00, outputPer1M: 25.00, vision: true }
+  - { name: Claude Opus 4.6, provider: ANTHROPIC, model: claude-opus-4-6, inputPer1M: 5.00, outputPer1M: 25.00, vision: true }
+  - { name: Claude Opus 4.5, provider: ANTHROPIC, model: claude-opus-4-5, inputPer1M: 5.00, outputPer1M: 25.00, vision: true }
   # ⚠️ Claude Sonnet 5 is on introductory pricing ($2/$10) through 2026-08-31.
   # On 2026-09-01 it reverts to the standard $3.00 / $15.00 — update this entry then.
-  - { name: Claude Sonnet 5, provider: ANTHROPIC, model: claude-sonnet-5, inputPer1M: 2.00, outputPer1M: 10.00, vision: true, readonly: true }
-  - { name: Claude Sonnet 4.6, provider: ANTHROPIC, model: claude-sonnet-4-6, inputPer1M: 3.00, outputPer1M: 15.00, vision: true, readonly: true }
-  - { name: Claude Sonnet 4.5, provider: ANTHROPIC, model: claude-sonnet-4-5-20250929, inputPer1M: 3.00, outputPer1M: 15.00, vision: true, readonly: true }
-  - { name: Claude Haiku 4.5, provider: ANTHROPIC, model: claude-haiku-4-5-20251001, inputPer1M: 1.00, outputPer1M: 5.00, vision: true, readonly: true }
+  - { name: Claude Sonnet 5, provider: ANTHROPIC, model: claude-sonnet-5, inputPer1M: 2.00, outputPer1M: 10.00, vision: true }
+  - { name: Claude Sonnet 4.6, provider: ANTHROPIC, model: claude-sonnet-4-6, inputPer1M: 3.00, outputPer1M: 15.00, vision: true }
+  - { name: Claude Sonnet 4.5, provider: ANTHROPIC, model: claude-sonnet-4-5-20250929, inputPer1M: 3.00, outputPer1M: 15.00, vision: true }
+  - { name: Claude Haiku 4.5, provider: ANTHROPIC, model: claude-haiku-4-5-20251001, inputPer1M: 1.00, outputPer1M: 5.00, vision: true }
 
   # OpenAI
   # Model IDs: https://developers.openai.com/api/docs/models
@@ -56,15 +56,15 @@ models:
   # have been delisted from the pricing page (most are also scheduled for
   # shutdown in Oct/Dec 2026), so their per-token rates can no longer be
   # verified — see the audit notes rather than restoring stale numbers.
-  - { name: GPT-5.6 Sol, provider: OPENAI, model: gpt-5.6-sol, inputPer1M: 5.00, outputPer1M: 30.00, vision: true, readonly: true }
-  - { name: GPT-5.6 Terra, provider: OPENAI, model: gpt-5.6-terra, inputPer1M: 2.50, outputPer1M: 15.00, vision: true, readonly: true }
-  - { name: GPT-5.6 Luna, provider: OPENAI, model: gpt-5.6-luna, inputPer1M: 1.00, outputPer1M: 6.00, vision: true, readonly: true }
-  - { name: GPT-5.5, provider: OPENAI, model: gpt-5.5, inputPer1M: 5.00, outputPer1M: 30.00, vision: true, readonly: true }
-  - { name: GPT-5.5 Pro, provider: OPENAI, model: gpt-5.5-pro, inputPer1M: 30.00, outputPer1M: 180.00, vision: true, readonly: true }
-  - { name: GPT-5.4, provider: OPENAI, model: gpt-5.4, inputPer1M: 2.50, outputPer1M: 15.00, vision: true, readonly: true }
-  - { name: GPT-5.4 Pro, provider: OPENAI, model: gpt-5.4-pro, inputPer1M: 30.00, outputPer1M: 180.00, vision: true, readonly: true }
-  - { name: GPT-5.4 Mini, provider: OPENAI, model: gpt-5.4-mini, inputPer1M: 0.75, outputPer1M: 4.50, vision: true, readonly: true }
-  - { name: GPT-5.4 Nano, provider: OPENAI, model: gpt-5.4-nano, inputPer1M: 0.20, outputPer1M: 1.25, vision: true, readonly: true }
+  - { name: GPT-5.6 Sol, provider: OPENAI, model: gpt-5.6-sol, inputPer1M: 5.00, outputPer1M: 30.00, vision: true }
+  - { name: GPT-5.6 Terra, provider: OPENAI, model: gpt-5.6-terra, inputPer1M: 2.50, outputPer1M: 15.00, vision: true }
+  - { name: GPT-5.6 Luna, provider: OPENAI, model: gpt-5.6-luna, inputPer1M: 1.00, outputPer1M: 6.00, vision: true }
+  - { name: GPT-5.5, provider: OPENAI, model: gpt-5.5, inputPer1M: 5.00, outputPer1M: 30.00, vision: true }
+  - { name: GPT-5.5 Pro, provider: OPENAI, model: gpt-5.5-pro, inputPer1M: 30.00, outputPer1M: 180.00, vision: true }
+  - { name: GPT-5.4, provider: OPENAI, model: gpt-5.4, inputPer1M: 2.50, outputPer1M: 15.00, vision: true }
+  - { name: GPT-5.4 Pro, provider: OPENAI, model: gpt-5.4-pro, inputPer1M: 30.00, outputPer1M: 180.00, vision: true }
+  - { name: GPT-5.4 Mini, provider: OPENAI, model: gpt-5.4-mini, inputPer1M: 0.75, outputPer1M: 4.50, vision: true }
+  - { name: GPT-5.4 Nano, provider: OPENAI, model: gpt-5.4-nano, inputPer1M: 0.20, outputPer1M: 1.25, vision: true }
 
   # Google — Gemini
   # Model IDs: https://ai.google.dev/gemini-api/docs/models
@@ -73,13 +73,13 @@ models:
   # Gemini Pro tiers price by prompt size (e.g. 3.1 Pro is $2/$12 up to 200k
   # tokens, $4/$18 above it). We record the base tier, so cost estimates for
   # very large prompts will read low.
-  - { name: Gemini 3.5 Flash, provider: GOOGLE, model: gemini-3.5-flash, inputPer1M: 1.50, outputPer1M: 9.00, vision: true, readonly: true }
-  - { name: Gemini 3.1 Pro Preview, provider: GOOGLE, model: gemini-3.1-pro-preview, inputPer1M: 2.00, outputPer1M: 12.00, vision: true, readonly: true }
-  - { name: Gemini 3.1 Flash-Lite, provider: GOOGLE, model: gemini-3.1-flash-lite, inputPer1M: 0.25, outputPer1M: 1.50, vision: true, readonly: true }
-  - { name: Gemini 3 Flash Preview, provider: GOOGLE, model: gemini-3-flash-preview, inputPer1M: 0.50, outputPer1M: 3.00, vision: true, readonly: true }
-  - { name: Gemini 2.5 Pro, provider: GOOGLE, model: gemini-2.5-pro, inputPer1M: 1.25, outputPer1M: 10.00, vision: true, readonly: true }
-  - { name: Gemini 2.5 Flash, provider: GOOGLE, model: gemini-2.5-flash, inputPer1M: 0.30, outputPer1M: 2.50, vision: true, readonly: true }
-  - { name: Gemini 2.5 Flash-Lite, provider: GOOGLE, model: gemini-2.5-flash-lite, inputPer1M: 0.10, outputPer1M: 0.40, vision: true, readonly: true }
+  - { name: Gemini 3.5 Flash, provider: GOOGLE, model: gemini-3.5-flash, inputPer1M: 1.50, outputPer1M: 9.00, vision: true }
+  - { name: Gemini 3.1 Pro Preview, provider: GOOGLE, model: gemini-3.1-pro-preview, inputPer1M: 2.00, outputPer1M: 12.00, vision: true }
+  - { name: Gemini 3.1 Flash-Lite, provider: GOOGLE, model: gemini-3.1-flash-lite, inputPer1M: 0.25, outputPer1M: 1.50, vision: true }
+  - { name: Gemini 3 Flash Preview, provider: GOOGLE, model: gemini-3-flash-preview, inputPer1M: 0.50, outputPer1M: 3.00, vision: true }
+  - { name: Gemini 2.5 Pro, provider: GOOGLE, model: gemini-2.5-pro, inputPer1M: 1.25, outputPer1M: 10.00, vision: true }
+  - { name: Gemini 2.5 Flash, provider: GOOGLE, model: gemini-2.5-flash, inputPer1M: 0.30, outputPer1M: 2.50, vision: true }
+  - { name: Gemini 2.5 Flash-Lite, provider: GOOGLE, model: gemini-2.5-flash-lite, inputPer1M: 0.10, outputPer1M: 0.40, vision: true }
 
   # llama.cpp (local)
-  - { name: Local LLAMA.CPP, provider: LLAMACPP, model: local, inputPer1M: 0, outputPer1M: 0, vision: false, readonly: true }
+  - { name: Local LLAMA.CPP, provider: LLAMACPP, model: local, inputPer1M: 0, outputPer1M: 0, vision: false }
