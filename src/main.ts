@@ -81,6 +81,11 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // Already the Electron default, but stated explicitly so a future
+      // Electron default change (or another flag interaction) can't silently
+      // un-sandbox the renderer. The preload is contextBridge-only, so it
+      // runs fine sandboxed.
+      sandbox: true,
     },
   });
 
