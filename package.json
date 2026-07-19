@@ -1,10 +1,13 @@
 {
   "name": "mk-browser",
   "productName": "mk-browser",
-  "version": "1.0.0",
-  "description": "My Electron application description",
+  "version": "1.1.0",
+  "description": "Desktop folder browser with inline Markdown rendering, editing, and search",
   "main": ".vite/build/main.js",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "electron-forge start",
     "start:linux": "ELECTRON_DISABLE_SANDBOX=1 electron-forge start --",
@@ -18,7 +21,16 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug"
   },
-  "keywords": [],
+  "keywords": [
+    "electron",
+    "markdown",
+    "file-browser",
+    "notes",
+    "desktop",
+    "ai",
+    "ai-agent",
+    "llm"
+  ],
   "author": {
     "name": "Clay Ferguson",
     "email": "wclayf@gmail.com"
@@ -36,10 +48,6 @@
     "@codemirror/view": "^6.39.11",
     "@electron-forge/cli": "^7.11.1",
     "@electron-forge/maker-deb": "^7.11.1",
-    "@electron-forge/maker-rpm": "^7.11.1",
-    "@electron-forge/maker-squirrel": "^7.11.1",
-    "@electron-forge/maker-zip": "^7.11.1",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.11.1",
     "@electron-forge/plugin-vite": "^7.11.1",
     "@electron/fuses": "^1.8.0",

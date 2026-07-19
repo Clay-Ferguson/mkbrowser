@@ -2,8 +2,12 @@
 
 # Build script for MkBrowser Electron app
 # This creates distributable packages for the application
+#
+# Remember to bump `version` in package.json when cutting a release, so the
+# installed .deb identifies which build it is (dpkg -s mk-browser).
 
-echo "🔨 Building MkBrowser..."
+VERSION=$(node -p "require('./package.json').version")
+echo "🔨 Building MkBrowser v$VERSION..."
 echo ""
 
 # Run the shared quality gate (tests, lint) and abort if anything fails.
