@@ -50,6 +50,10 @@ generate_video_for_test() {
     echo "Generating video for $test_name..."
     local current_folder="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     local kocreator_dir="$current_folder/../kocreator"
+    if [ ! -f "$kocreator_dir/.venv/bin/activate" ]; then
+        echo "kocreator not found at $kocreator_dir (or its .venv is missing) — skipping video generation."
+        return 1
+    fi
     source "$kocreator_dir/.venv/bin/activate"
     python "$kocreator_dir/create-video.py" "$current_folder" "$test_name"
     deactivate
