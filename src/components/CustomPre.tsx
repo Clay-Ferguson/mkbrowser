@@ -25,7 +25,11 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
   const isMermaid = languageMatch?.[1] === 'mermaid';
 
   // Extracts plain text from the child <code> element and writes it to the clipboard.
-  const handleCopy = () => {
+  // Stops propagation so the click doesn't bubble to the parent entry and trigger edit mode.
+  const handleCopy = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     void (async () => {
       const codeContent = (codeElement?.props as { children?: React.ReactNode })?.children; 
       const textToCopy = nodeToString(codeContent).replace(/\n$/, '');
@@ -44,6 +48,9 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
     <button
       type="button"
       onClick={handleCopy}
+      // The parent entry enters edit mode on mouseup (MarkdownEntry.tsx), not click,
+      // so the copy button has to stop that event specifically.
+      onMouseUp={(e) => e.stopPropagation()}
       className="absolute top-2 right-2 p-1.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
       title={copied ? 'Copied!' : 'Copy code'}
     >
