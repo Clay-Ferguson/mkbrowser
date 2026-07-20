@@ -105,7 +105,6 @@ A comprehensive list of what MkBrowser can do. See the [User Guide](docs/USER_GU
 | Chat Thread view | Renders a full conversation as a stacked thread with a Reply button. |
 | Multiple providers | Anthropic, OpenAI, Google AI, and llama.cpp (local) models. |
 | Model management | Create/edit/delete named model entries with provider, vision support, and per-token cost. |
-| llama.cpp server controls | Start/stop/refresh a local llama-server from within the app, via the separately installed [llama-deck](https://github.com/Clay-Ferguson/llama-deck) project. |
 | Agentic Mode | Let the AI read, write, and delete files via tools, scoped to Allowed Folders. |
 | `#file:` attachments | Embed matching files (text or images) into a prompt via `#file:<pattern>` directives. |
 | AI Rewrite | AI-assisted rewrite of a file or a selection, shown as a reviewable diff. |
@@ -178,7 +177,7 @@ A comprehensive list of what MkBrowser can do. See the [User Guide](docs/USER_GU
 - **Diagrams**: Mermaid
 - **Config**: YAML (`js-yaml`)
 - **LangChain/LangGraph**: For Local & Cloud API Access
-- **Local LLMs**: llama.cpp, run via the separate [llama-deck](https://github.com/Clay-Ferguson/llama-deck) project (downloaded and installed separately; point MkBrowser at its folder in AI Settings)
+- **Local LLMs**: llama.cpp — you run `llama-server` yourself and point MkBrowser at its URL in AI Settings
 
 
 ## Architecture Overview

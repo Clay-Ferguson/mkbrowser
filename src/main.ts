@@ -24,7 +24,6 @@ import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleR
 import { hasScriptedAnswer, queueScriptedAnswer } from './main/ai/langGraph';
 import type { StreamCallbacks } from './main/ai/langGraph';
 import { getUsageWithCosts, resetUsage } from './main/ai/usageTracker';
-import { checkHealth, ensureRunning, stopServer } from './main/ai/llamaServer';
 import { readExifMetadata, readImageDimensions, writeExifMetadata } from './main/exifUtil';
 import { logger } from './shared/logUtil';
 import { exportFolderContents, exportToPdf } from './main/exportUtil';
@@ -895,29 +894,6 @@ function setupIpcHandlers(): void {
   // Reset AI usage statistics
   ipcMain.handle('reset-ai-usage', async () => {
     await resetUsage();
-  });
-
-  // llama.cpp server lifecycle — health check, start, stop
-  ipcMain.handle('check-llama-health', async (): Promise<string> => {
-    return checkHealth();
-  });
-
-  ipcMain.handle('start-llama-server', async (): Promise<{ success: boolean; error?: string }> => {
-    try {
-      await ensureRunning();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  });
-
-  ipcMain.handle('stop-llama-server', async (): Promise<{ success: boolean; error?: string }> => {
-    try {
-      await stopServer();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
   });
 
   // Reply to AI: create an H subfolder with an empty HUMAN.md for the user to write in

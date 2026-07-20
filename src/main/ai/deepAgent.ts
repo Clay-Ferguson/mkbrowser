@@ -35,7 +35,6 @@ import { logger } from '../../shared/logUtil';
 import { consumeScriptedAnswer } from './scriptedAnswer';
 import { getReasoningContent } from './messageUtil';
 import { StreamProcessor } from '../../main/ai/streamProcessor';
-import { checkHealth } from './llamaServer';
 
 /** 
  * Set to true to use Deep Agents; false to use the original StateGraph path. 
@@ -184,12 +183,7 @@ export async function streamDeepAgent(
 
     let eventCount = 0;
     const heartbeat = setInterval(() => {
-      checkHealth()
-        .catch(() => 'error')
-        .then(health => {
-          debugLog(`streamDeepAgent → still waiting… ${eventCount} events received so far | llamacpp health: ${health}`);
-        })
-        .catch((err: unknown) => debugLog('streamDeepAgent → heartbeat failed:', err));
+      debugLog(`streamDeepAgent → still waiting… ${eventCount} events received so far`);
     }, 5000);
 
     try {

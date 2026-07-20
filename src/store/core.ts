@@ -69,7 +69,6 @@ export const defaultAiConfig: AiConfigState = {
   aiModels: [],
   aiModel: '',
   llamacppBaseUrl: 'http://localhost:8080/v1',
-  llamacppFolder: '',
   agenticMode: false,
   agenticAllowedFolders: '',
 };

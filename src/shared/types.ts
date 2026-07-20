@@ -513,7 +513,6 @@ export interface AiConfigState {
   aiModels: import('./shared').AIModelConfig[];
   aiModel: string;
   llamacppBaseUrl: string;
-  llamacppFolder: string;
   agenticMode: boolean;
   agenticAllowedFolders: string;
 }

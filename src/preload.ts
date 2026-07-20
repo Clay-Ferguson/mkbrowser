@@ -53,11 +53,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   rewriteContent: (content: string, filePath: string, hasIndexFile: boolean) => ipcRenderer.invoke('rewrite-content', content, filePath, hasIndexFile),
   rewriteContentSelection: (content: string, selectionFrom: number, selectionTo: number, filePath: string, hasIndexFile: boolean) => ipcRenderer.invoke('rewrite-content-selection', content, selectionFrom, selectionTo, filePath, hasIndexFile),
 
-  // llama.cpp server lifecycle
-  checkLlamaHealth: () => ipcRenderer.invoke('check-llama-health'),
-  startLlamaServer: () => ipcRenderer.invoke('start-llama-server'),
-  stopLlamaServer: () => ipcRenderer.invoke('stop-llama-server'),
-
   // AI streaming events
   onAiStreamStart: (callback: () => void) => {
     const listener = () => callback();

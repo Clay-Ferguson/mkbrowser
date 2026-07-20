@@ -1,11 +1,10 @@
 /**
  * Unit tests for the active-model helpers in src/main/ai/aiModel.ts:
- * getActiveModel, getActiveProvider, and ensureModelServerRunning.
+ * getActiveModel and getActiveProvider.
  *
- * These resolve the user's selected model from config and decide whether the
- * local llama.cpp server needs starting — pure selection/fallback logic, no LLM
- * call. We mock configMgr (to control the config) and llamaServer (to observe
- * whether the server start is triggered) so nothing touches disk or a network.
+ * These resolve the user's selected model from config — pure selection/fallback
+ * logic, no LLM call. We mock configMgr (to control the config) so nothing
+ * touches disk or a network.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { AIModelConfig } from '../src/shared/shared';
@@ -19,12 +18,7 @@ vi.mock('../src/main/configMgr', () => ({
   getConfig: (...args: unknown[]) => mockGetConfig(...args),
 }));
 
-const mockEnsureRunning = vi.fn((..._args: unknown[]) => Promise.resolve());
-vi.mock('../src/main/ai/llamaServer', () => ({
-  ensureRunning: (...args: unknown[]) => mockEnsureRunning(...args),
-}));
-
-import { getActiveModel, getActiveProvider, ensureModelServerRunning } from '../src/main/ai/aiModel';
+import { getActiveModel, getActiveProvider } from '../src/main/ai/aiModel';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -94,29 +88,5 @@ describe('getActiveProvider', () => {
   it('falls back to ANTHROPIC when the selection does not resolve', () => {
     selectModel('Nonexistent');
     expect(getActiveProvider()).toBe('ANTHROPIC');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// ensureModelServerRunning
-// ---------------------------------------------------------------------------
-
-describe('ensureModelServerRunning', () => {
-  it('starts the llama.cpp server when the active model is LLAMACPP', async () => {
-    selectModel('Local LLAMA.CPP');
-    await ensureModelServerRunning();
-    expect(mockEnsureRunning).toHaveBeenCalledTimes(1);
-  });
-
-  it('does nothing for a cloud provider', async () => {
-    selectModel('Claude Haiku');
-    await ensureModelServerRunning();
-    expect(mockEnsureRunning).not.toHaveBeenCalled();
-  });
-
-  it('does nothing when no model is selected', async () => {
-    selectModel(undefined);
-    await ensureModelServerRunning();
-    expect(mockEnsureRunning).not.toHaveBeenCalled();
   });
 });

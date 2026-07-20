@@ -309,10 +309,10 @@ To add a new field to the global store:
 
 ### Local AI Model Inference Troubleshooting
 
-Local inference runs on **llama-deck**, a separate project (https://github.com/Clay-Ferguson/llama-deck) that holds the shell scripts and configs for running `llama-server`. It is downloaded and installed independently of MkBrowser; you point MkBrowser at its folder via the **llama-deck folder** field in AI Settings. If you happen to be running on extremely limited hardware these are the two settings you can change to turn off some advanced reasoning and agent of capabilities, to run just a minimalist chatbot:
+Local inference runs against a `llama-server` that **you** start and manage yourself, outside of MkBrowser. The app has no control over that process — it only sends requests to the **llama.cpp Base URL** configured in AI Settings. If you happen to be running on extremely limited hardware these are the two settings you can change to turn off some advanced reasoning and agent of capabilities, to run just a minimalist chatbot:
 
 1) In `deepAgents.ts` set `USE_DEEP_AGENTS` variable to false. There's currently no way to alter this without an app rebuild.
-2) In llama-deck's `start-server.sh` make sure you have `--reasoning off`, which makes the model run without reasoniong and so it's tryign to do less and can therefore complete inference in a shorter amount of time with less GPU/CPU power.
+2) Launch `llama-server` with `--reasoning off`, which makes the model run without reasoniong and so it's tryign to do less and can therefore complete inference in a shorter amount of time with less GPU/CPU power.
 
 ## React Compiler
 

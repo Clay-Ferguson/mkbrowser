@@ -27,7 +27,6 @@ function pickAiConfig(updates: Partial<AppConfig>): Partial<AiConfigState> {
   if ('aiModels' in updates) mirror.aiModels = updates.aiModels ?? defaultAiConfig.aiModels;
   if ('aiModel' in updates) mirror.aiModel = updates.aiModel ?? defaultAiConfig.aiModel;
   if ('llamacppBaseUrl' in updates) mirror.llamacppBaseUrl = updates.llamacppBaseUrl ?? defaultAiConfig.llamacppBaseUrl;
-  if ('llamacppFolder' in updates) mirror.llamacppFolder = updates.llamacppFolder ?? defaultAiConfig.llamacppFolder;
   if ('agenticMode' in updates) mirror.agenticMode = updates.agenticMode ?? defaultAiConfig.agenticMode;
   if ('agenticAllowedFolders' in updates) mirror.agenticAllowedFolders = updates.agenticAllowedFolders ?? defaultAiConfig.agenticAllowedFolders;
   return mirror;

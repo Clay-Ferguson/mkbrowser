@@ -10,7 +10,7 @@ import { fdir } from 'fdir';
 import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messages';
 import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
-import { getActiveModel, getActiveProvider, ensureModelServerRunning } from './aiModel';
+import { getActiveModel, getActiveProvider } from './aiModel';
 import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from '../../shared/ai/aiPrompts';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
@@ -219,9 +219,6 @@ export async function handleAskAI(
     }
   }
 
-  // If using a LLAMACPP model, ensure the server is running before inference
-  await ensureModelServerRunning();
-
   // Find the next available response folder: A/, A1/, A2/, ...
   const responseFolder = await findNextNumberedFolder(parentFolderPath, 'A');
 
@@ -402,9 +399,6 @@ async function runRewrite(
   onStreamDone?: () => void,
   onStreamError?: (err: unknown) => void,
 ): Promise<{ content: string; usage?: AIUsageInfo } | { error: string }> {
-  // If using a LLAMACPP model, ensure the server is running before inference
-  await ensureModelServerRunning();
-
   // Resolve the persona. It's woven into the system prompt by the invocation
   // layer (see resolveActivePersona/buildSystemPrompt), so it's no longer
   // prefixed to the prompt text here. Fall back to the default editor persona

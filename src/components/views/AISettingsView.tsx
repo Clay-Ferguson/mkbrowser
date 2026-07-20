@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
-import { logger } from '../../shared/logUtil';
 import { saveAiConfig } from '../../renderer/config';
 import { useAS, getAiConfig } from '../../store';
 import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../shared/shared';
@@ -30,50 +29,8 @@ function errorMessage(err: unknown): string {
 }
 
 /**
- * Starts the local llama.cpp server via IPC and reports status through the
- * given setter. Module-level (not in the component) so its try/catch — with
- * the `??` fallback inside — doesn't make the React Compiler bail out on
- * AISettingsView.
- */
-async function startLlamaServerWithStatus(setStatus: (status: string) => void): Promise<void> {
-  try {
-    const result = await api.startLlamaServer();
-    if (result.success) {
-      setStatus('running');
-    } else {
-      setStatus('stopped');
-      alert(result.error ?? 'Failed to start server');
-    }
-  } catch (err) {
-    setStatus('stopped');
-    alert('Failed to start server: ' + errorMessage(err));
-  }
-}
-
-/** Formats an elapsed-seconds count as "m:ss" for the server-starting message. */
-function formatElapsed(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${String(mins)}:${secs.toString().padStart(2, '0')}`;
-}
-
-/** Stops the local llama.cpp server; see startLlamaServerWithStatus. */
-async function stopLlamaServerWithStatus(setStatus: (status: string) => void): Promise<void> {
-  try {
-    const result = await api.stopLlamaServer();
-    if (result.success) {
-      setStatus('stopped');
-    } else {
-      alert(result.error ?? 'Failed to stop server');
-    }
-  } catch (err) {
-    alert('Failed to stop server: ' + errorMessage(err));
-  }
-}
-
-/**
  * Settings page for all AI-related configuration: enabling AI, selecting and
- * managing model configs, configuring the llama.cpp local server, editing
+ * managing model configs, pointing at a local llama.cpp server, editing
  * rewrite personas, and viewing per-provider usage statistics.
  *
  * AI config lives on AppConfig (not AppSettings), so it is mirrored into the
@@ -98,13 +55,6 @@ function AISettingsView() {
   // from the store (nothing else writes them) and persisted on blur.
   const [llamacppBaseUrl, setLlamacppBaseUrl] = useState<string>(() => getAiConfig().llamacppBaseUrl);
   const [agenticAllowedFolders, setAgenticAllowedFolders] = useState<string>(() => getAiConfig().agenticAllowedFolders);
-  const [llamacppFolder, setLlamacppFolder] = useState<string>(() => getAiConfig().llamacppFolder);
-  const [llamaServerStatus, setLlamaServerStatus] = useState<string>('stopped');
-  const [llamaServerBusy, setLlamaServerBusy] = useState(false);
-  // Starting the server can take several minutes (the model has to load), so
-  // while a start is in flight we show a reassuring message with elapsed time.
-  const [llamaStarting, setLlamaStarting] = useState(false);
-  const [llamaStartSeconds, setLlamaStartSeconds] = useState(0);
 
   // Persona editor working state: which persona is being edited + the textarea
   // buffer. Seeded lazily from the store's active persona.
@@ -138,7 +88,7 @@ function AISettingsView() {
   const [modelTableExpanded, setModelTableExpanded] = useState(false);
 
   // AI config is read reactively from the store (seeded at startup by
-  // loadConfig); only the non-config stats/health need fetching here. Views
+  // loadConfig); only the non-config usage stats need fetching here. Views
   // never unmount (App.tsx hides them with CSS), so a mount-only fetch would
   // go stale — re-fetch each time this tab becomes the active view instead.
   const currentView = useAS(s => s.currentView);
@@ -148,24 +98,9 @@ function AISettingsView() {
     void api.getAiUsage().then((data) => {
       if (!ignore) setUsageData(data);
     });
-    // While a start is in flight the health endpoint still reports 'stopped'
-    // until the model finishes loading — don't let that overwrite our
-    // optimistic 'loading' status.
-    if (!llamaStarting) {
-      void api.checkLlamaHealth().then((status) => {
-        if (!ignore) setLlamaServerStatus(status);
-      });
-    }
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the ignore flag so the pending getAiUsage()/checkLlamaHealth() promises can't set state after unmount/re-run.
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the ignore flag so the pending getAiUsage() promise can't set state after unmount/re-run.
     return () => { ignore = true; };
-  }, [currentView, llamaStarting]);
-
-  // Tick the elapsed-time counter shown in the "server is starting" message.
-  useEffect(() => {
-    if (!llamaStarting) return;
-    const id = setInterval(() => { setLlamaStartSeconds((s) => s + 1); }, 1000);
-    return () => { clearInterval(id); };
-  }, [llamaStarting]);
+  }, [currentView]);
 
   const saveAiConfigField = async (updates: Partial<AppConfig>) => {
     try {
@@ -334,36 +269,6 @@ function AISettingsView() {
         setShowResetConfirm(false);
       } catch (err) {
         alert('Failed to reset usage: ' + errorMessage(err));
-      }
-    })();
-  };
-
-  /** Starts the local llama.cpp server and updates the displayed status. */
-  const startLlama = () => {
-    setLlamaServerBusy(true);
-    setLlamaStarting(true);
-    setLlamaStartSeconds(0);
-    setLlamaServerStatus('loading');
-    void startLlamaServerWithStatus(setLlamaServerStatus).finally(() => {
-      setLlamaServerBusy(false);
-      setLlamaStarting(false);
-    });
-  };
-
-  /** Stops the local llama.cpp server and updates the displayed status. */
-  const stopLlama = () => {
-    setLlamaServerBusy(true);
-    void stopLlamaServerWithStatus(setLlamaServerStatus).finally(() => setLlamaServerBusy(false));
-  };
-
-  /** Re-pings the llama.cpp health endpoint and refreshes the displayed status. */
-  const refreshLlama = () => {
-    void (async () => {
-      try {
-        const status = await api.checkLlamaHealth();
-        setLlamaServerStatus(status);
-      } catch (err) {
-        logger.error('Failed to refresh llama.cpp status:', err);
       }
     })();
   };
@@ -587,64 +492,6 @@ function AISettingsView() {
                     <div className="space-y-3 bg-slate-750 rounded-lg p-4 border border-slate-600">
                       <h3 className="text-sm font-medium text-slate-300">llama.cpp Server</h3>
 
-                      {/* Server status + controls */}
-                      <div className="flex items-center gap-3">
-                        <span className="text-slate-400 text-sm">Status:</span>
-                        <span className={clsx(
-                          'text-sm font-medium',
-                          llamaServerStatus === 'running' ? 'text-green-400' :
-                            llamaServerStatus === 'loading' ? 'text-yellow-400' :
-                              'text-slate-500',
-                        )}>
-                          {llamaServerStatus === 'running' ? 'Running' :
-                            llamaServerStatus === 'loading' ? 'Loading model…' :
-                              'Stopped'}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={llamaServerBusy || llamaServerStatus === 'running' || llamaServerStatus === 'loading'}
-                          onClick={startLlama}
-                          className="px-3 py-1 text-xs bg-green-700 hover:bg-green-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
-                          data-testid="llama-server-start-button"
-                        >
-                          Start
-                        </button>
-                        <button
-                          type="button"
-                          disabled={llamaServerBusy || llamaServerStatus === 'stopped'}
-                          onClick={stopLlama}
-                          className="px-3 py-1 text-xs bg-red-700 hover:bg-red-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded transition-colors"
-                          data-testid="llama-server-stop-button"
-                        >
-                          Stop
-                        </button>
-                        <button
-                          type="button"
-                          disabled={llamaServerBusy}
-                          onClick={refreshLlama}
-                          className="px-3 py-1 text-xs bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:text-slate-500 text-slate-200 rounded transition-colors"
-                          data-testid="llama-server-refresh-button"
-                        >
-                          Refresh
-                        </button>
-                      </div>
-
-                      {llamaStarting && (
-                        <p
-                          className="text-xs text-yellow-400/90 leading-relaxed"
-                          data-testid="llama-server-starting-message"
-                        >
-                          Starting the server and loading the model into memory — this can take
-                          several minutes, especially on the first start after booting. You can keep
-                          using the rest of the app while you wait; this page will show
-                          &ldquo;Running&rdquo; as soon as the server is ready.
-                          {' '}
-                          <span className="font-mono text-yellow-300">
-                            ({formatElapsed(llamaStartSeconds)} elapsed)
-                          </span>
-                        </p>
-                      )}
-
                       {/* Base URL */}
                       <div className="flex items-center gap-2">
                         <label className="text-slate-300 text-sm whitespace-nowrap">Base URL:</label>
@@ -657,25 +504,10 @@ function AISettingsView() {
                           data-testid="llamacpp-base-url-input"
                         />
                       </div>
-
-                      {/* llama-deck folder path (separate project the user installs) */}
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <label className="text-slate-300 text-sm whitespace-nowrap">llama-deck folder:</label>
-                          <input
-                            type="text"
-                            value={llamacppFolder}
-                            onChange={(e) => setLlamacppFolder(e.target.value)}
-                            onBlur={() => void saveAiConfigField({ llamacppFolder })}
-                            placeholder="/path/to/llama-deck"
-                            className="bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 font-mono text-sm"
-                            data-testid="llamacpp-folder-input"
-                          />
-                        </div>
-                        <p className="text-xs italic text-slate-400">
-                          Location where llama-deck (https://github.com/Clay-Ferguson/llama-deck) files are located
-                        </p>
-                      </div>
+                      <p className="text-xs italic text-slate-400">
+                        MkBrowser only connects to this URL — you are responsible for starting and
+                        stopping the llama-server process yourself.
+                      </p>
                     </div>
                   )}
                 </div>

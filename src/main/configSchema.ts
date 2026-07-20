@@ -188,7 +188,6 @@ const AppConfigSchema = z
     aiModels: tolerantArray(AIModelConfigSchema).optional(),
     aiModel: z.string().optional().catch(undefined),
     llamacppBaseUrl: z.string().optional().catch(undefined),
-    llamacppFolder: z.string().optional().catch(undefined),
     agenticMode: z.boolean().optional().catch(undefined),
     agenticAllowedFolders: z.string().optional().catch(undefined),
     aiRewritePrompt: z.string().optional().catch(undefined),

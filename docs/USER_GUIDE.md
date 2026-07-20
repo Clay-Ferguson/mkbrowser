@@ -113,7 +113,6 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [AI Model](#ai-model)
       * [Create / Edit / Delete models](#create--edit--delete-models)
     * [llama.cpp Base URL](#llamacpp-base-url)
-    * [llama.cpp Server Controls](#llamacpp-server-controls)
     * [AI Settings View](#ai-settings-view)
     * [Supported Models](#supported-models)
     * [Agentic Mode](#agentic-mode)
@@ -1148,17 +1147,7 @@ The **llama.cpp Base URL** field is only shown when the selected model's **Provi
 
 This setting is saved when the field loses focus (click away / tab out).
 
-### llama.cpp Server Controls
-
-When the selected model's **Provider** is `LLAMACPP`, an additional server control panel appears in AI Settings with the following buttons:
-
-- **Start** — launches the llama-server process using the configured **llama-deck folder** path.
-- **Stop** — shuts down the running server.
-- **Refresh** — checks the current server status without restarting it.
-
-The status indicator shows **Running**, **Loading model…**, or **Stopped**. The **Start** and **Stop** buttons are disabled when they would have no effect (e.g. Start is disabled while the server is already running or loading).
-
-These controls drive **llama-deck**, a separate project you download and install yourself: https://github.com/Clay-Ferguson/llama-deck. It contains the `start-server.sh`, `stop-server.sh`, and `status.sh` scripts (and the model configuration) that MkBrowser runs on your behalf; it is not bundled with MkBrowser. After installing it, set the **llama-deck folder** field to the directory where you cloned it. This is separate from the Base URL — the folder is used to *launch* the server, while the URL is used to *talk* to it.
+MkBrowser does **not** start, stop, or otherwise manage the llama-server process — it only sends requests to whatever is already listening at this URL. Running the server is entirely up to you; start it before selecting a `LLAMACPP` model, and if it isn't reachable, AI requests will simply fail with a connection error.
 
 ### AI Settings View
 

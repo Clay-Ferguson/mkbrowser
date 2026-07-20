@@ -3,7 +3,6 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { getConfig } from '../configMgr';
 import type { AIModelConfig } from '../../shared/shared';
-import { ensureRunning } from './llamaServer';
 import { createDebugLog } from "./aiLog";
 
 const debugLog = createDebugLog('aiModel');
@@ -141,9 +140,9 @@ export function enforceDefaultAIModels<T extends AIModelConfigLike>(args: {
   return { models: enforcedModels, selectedModel, changed };
 }
 
-// NOTE: Local inference is served by the separate 'llama-deck' project
-// (https://github.com/Clay-Ferguson/llama-deck), which users download and install
-// on their own; see its README for llama.cpp setup instructions.
+// NOTE: Local inference is served by a llama.cpp `llama-server` the user runs
+// themselves. MkBrowser never starts, stops, or otherwise manages that process —
+// it only talks to whatever is listening at the configured base URL.
 
 /**
  * Resolve the active AI provider and model name from the config.
@@ -218,16 +217,6 @@ export function getActiveModel(): AIModelConfig | undefined {
  */
 export function getActiveProvider(): AIProvider {
   return getActiveModel()?.provider ?? 'ANTHROPIC';
-}
-
-/**
- * When the active model is served by a local llama.cpp instance, make sure the
- * server is running before inference. No-op for cloud providers.
- */
-export async function ensureModelServerRunning(): Promise<void> {
-  if (getActiveModel()?.provider === 'LLAMACPP') {
-    await ensureRunning();
-  }
 }
 
 
