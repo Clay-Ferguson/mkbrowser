@@ -15,6 +15,10 @@ import tailwindcss from '@tailwindcss/vite';
 // - img/connect/font-src local-file:/data:: markdown images resolve to the
 //   local-file:// protocol (see markdownImgResolver.tsx); Vite may inline
 //   small assets as data: URIs.
+// - no worker-src: the renderer runs one same-origin worker (graphSimWorker.ts),
+//   which default-src 'self' already covers. A policy that bans workers costs
+//   the folder graph and nothing else — visible only in the packaged app, since
+//   this tag is build-only.
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",

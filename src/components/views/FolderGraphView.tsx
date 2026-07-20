@@ -1,21 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  forceSimulation,
-  forceLink,
-  forceManyBody,
-  forceCenter,
-  forceCollide,
-  type Simulation,
-  type SimulationNodeDatum,
-  type SimulationLinkDatum,
-} from 'd3-force';
+import type { Simulation, ForceCenter } from 'd3-force';
 import { select } from 'd3-selection';
 import { drag as d3drag, type D3DragEvent } from 'd3-drag';
 import { zoom as d3zoom, zoomIdentity, type D3ZoomEvent } from 'd3-zoom';
 import { api } from '../../renderer/api';
 import 'd3-transition';
-import { forceLabelRect } from './forceLabelRect';
-import { forceCrossGroupRepel } from './forceCrossGroupRepel';
+import {
+  buildSimulation,
+  nodeRadius,
+  USE_LABEL_PHYSICS,
+  LABEL_BOX_PADDING,
+  FLOATS_PER_NODE,
+  type SimNode,
+  type SimLink,
+  type SettleRequest,
+  type SettleResponse,
+} from './graphSim';
 import {
   useAS,
   navigateToBrowserPath,
@@ -23,103 +23,7 @@ import {
 } from '../../store';
 import { parseFrontMatter } from '../../shared/frontMatterUtil';
 import { getParentPath } from '../../renderer/pathUtil';
-
-interface SimNode extends SimulationNodeDatum {
-  id: string;
-  name: string;
-  isDirectory: boolean;
-  depth: number;
-  childCount: number;
-  /** Cached hover preview text (file name + divider + first lines of body). */
-  previewText?: string;
-  /**
-   * The file mtime (ms since epoch) the cached previewText was generated from.
-   * If the file's current mtime is newer, the cache is stale and regenerated.
-   */
-  previewTimestamp?: number;
-  /**
-   * Label footprint box edges as offsets from the node center, populated when
-   * USE_LABEL_PHYSICS is on and consumed by forceLabelRect. See RectCollideNode.
-   */
-  bx0?: number;
-  by0?: number;
-  bx1?: number;
-  by1?: number;
-  /**
-   * Repulsion-group key: the parent folder path for files, the folder's own
-   * path for folders. Same key = exempt from cross-group repulsion, so a file
-   * and its own parent folder never repel. See CrossGroupNode.
-   */
-  crossRepelGroup?: string;
-}
-
-interface SimLink extends SimulationLinkDatum<SimNode> {
-  source: string | SimNode;
-  target: string | SimNode;
-}
-
-const NODE_RADIUS_BASE = 5;
-
-// Physics model for keeping nodes from colliding.
-//   true  → rectangular collision on each node's circle + label footprint, so
-//           file-name labels never overlap (labels stay glued to their circles
-//           and whole nodes spread apart). See forceLabelRect.ts.
-//   false → original circle-only collision (labels can overlap when circles are
-//           close). Flip this one constant to revert to the previous physics.
-const USE_LABEL_PHYSICS: boolean = true;
-// Breathing room (px) added around each label box before collisions are resolved.
-const LABEL_BOX_PADDING = 2;
-// Label-collision resolution passes per tick. One pass at strength 0.7 leaves
-// 30% of any overlap behind, which the repulsion forces (charge, crossRepel,
-// fileFolderRepel, hubRepel) replenish each tick — visible as slight label
-// overlap in crowded regions. Each extra pass cuts the residual by another
-// 70% ((1-strength)^k overall), buying rigidity at linear cost.
-const LABEL_COLLIDE_ITERATIONS = 3;
-
-// Baseline repulsion between all nodes, and the range past which it's ignored
-// (see the 'charge' force). Named so the cross-folder repulsion can match them.
-const CHARGE_STRENGTH = -220;
-const CHARGE_DISTANCE_MAX = 180;
-
-// When true, files in *different* folders repel each other with an extra dose of
-// charge equal to the baseline — so a cross-folder file pair feels double the
-// repulsion of a same-folder pair, keeping the two folders' file clusters from
-// intermingling and obscuring their connector lines. See forceCrossGroupRepel.ts.
-// Flip to false to remove the effect (folders then rely on the baseline charge).
-const USE_CROSS_FOLDER_REPULSION: boolean = true;
-// Magnitude of the *extra* cross-folder repulsion. Equal to |CHARGE_STRENGTH|
-// makes the total exactly double for cross-folder file pairs.
-const CROSS_FOLDER_EXTRA_STRENGTH = 440; // try 220, 330, or 440
-
-// Extra repulsion between a file and any folder that is NOT its parent, so
-// files don't crowd up against neighboring folders' hubs. A file and its own
-// parent share a repulsion-group key, which exempts that pair — the parent
-// link stays the only attraction/spacing between them. Stronger than the
-// file-vs-file extra above because folder hubs anchor whole clumps and need
-// more clearance.
-const USE_FILE_FOLDER_REPULSION: boolean = true;
-const FILE_FOLDER_REPEL_STRENGTH = 500;
-
-// Long-range repulsion between folder hubs. The baseline charge is capped at
-// CHARGE_DISTANCE_MAX, so in graphs whose natural diameter exceeds that range
-// nothing pushes separated subtrees apart and the layout compresses into one
-// dense mat. This force restores cluster-scale separation: only folders emit
-// it (files have zero strength here, keeping their charge local), but every
-// node feels it, which is what carries whole clumps away from each other.
-// Strength scales with direct child count so bigger clusters claim more room.
-const USE_FOLDER_HUB_REPULSION: boolean = true;
-const FOLDER_HUB_STRENGTH_BASE = -200;
-const FOLDER_HUB_STRENGTH_PER_CHILD = -40;
-// Most-negative strength a single hub can reach, so huge folders don't blast
-// the rest of the graph off-screen.
-const FOLDER_HUB_STRENGTH_MIN = -2200;
-const FOLDER_HUB_DISTANCE_MAX = 1500;
-
-// Link rest lengths. Folder→file links stay short so files hug their parent
-// (tight clumps); folder→subfolder links are longer so hubs — and therefore
-// the clumps around them — get structural spacing from each other.
-const LINK_DISTANCE_FILE = 60;
-const LINK_DISTANCE_FOLDER = 130;
+import { logger } from '../../shared/logUtil';
 
 // Node colors by type, tuned for a dark slate-900 background.
 const COLOR_ROOT = '#ef4444';     // bright red
@@ -138,140 +42,6 @@ function colorForNode(d: SimNode, highlighted: boolean): string {
   const lower = d.name.toLowerCase();
   if (lower.endsWith('.md') || lower.endsWith('.markdown')) return COLOR_MARKDOWN;
   return COLOR_OTHER;
-}
-
-/** Returns the circle radius for a node — folders scale up with their child count. */
-function nodeRadius(d: SimNode): number {
-  if (!d.isDirectory) return NODE_RADIUS_BASE;
-  return NODE_RADIUS_BASE + Math.min(10, Math.sqrt(d.childCount));
-}
-
-/**
- * Per-pair strength for the merged cross-group force. Resolving both flavors
- * of supplementary repulsion here lets a single force instance — one quadtree
- * build and traversal per tick instead of two — serve both pair classes:
- *   file vs file in different folders → CROSS_FOLDER_EXTRA_STRENGTH
- *   file vs non-parent folder         → FILE_FOLDER_REPEL_STRENGTH
- *   folder vs folder                  → 0 (hub repulsion spaces those)
- * Symmetric in its arguments, as forceCrossGroupRepel requires.
- */
-function crossGroupPairStrength(a: SimNode, b: SimNode): number {
-  if (a.isDirectory !== b.isDirectory) {
-    return USE_FILE_FOLDER_REPULSION ? FILE_FOLDER_REPEL_STRENGTH : 0;
-  }
-  if (!a.isDirectory && USE_CROSS_FOLDER_REPULSION) {
-    return CROSS_FOLDER_EXTRA_STRENGTH;
-  }
-  return 0;
-}
-
-// Radius step (px) between successive tree depths in the seeded initial layout.
-// Matches the folder link rest length so the seed starts near link equilibrium.
-const SEED_RADIAL_STEP = LINK_DISTANCE_FOLDER;
-
-// Per-frame time budget (ms) for the headless settle loop. The layout is
-// computed by running simulation ticks with no DOM updates at all — the graph
-// is revealed only once settled — and each animation frame runs as many ticks
-// as fit in this budget, so the wait spinner keeps animating and the app stays
-// responsive while a large layout computes.
-const SETTLE_TICK_BUDGET_MS = 30;
-
-/**
- * Seeds initial node positions with a radial tree layout: the root at the
- * center, each depth ring SEED_RADIAL_STEP further out, and each subtree
- * confined to an angular sector sized by its node count. Without this, d3's
- * default phyllotaxis start packs all nodes into a tiny disc, which puts every
- * pair within the distance-capped repulsion forces' range for the first many
- * ticks (an O(n²) startup phase) and makes convergence slow; seeding starts
- * the layout near its equilibrium shape instead. Nodes unreachable from the
- * root (defensive — the scan emits a tree) are left for d3 to place.
- */
-function seedRadialPositions(nodes: SimNode[], links: SimLink[], cx: number, cy: number): void {
-  const root = nodes.find(n => n.depth === 0);
-  if (!root) return;
-  const byId = new Map<string, SimNode>();
-  for (const n of nodes) byId.set(n.id, n);
-  const childrenOf = new Map<string, string[]>();
-  for (const l of links) {
-    const source = l.source as string;
-    let arr = childrenOf.get(source);
-    if (!arr) {
-      arr = [];
-      childrenOf.set(source, arr);
-    }
-    arr.push(l.target as string);
-  }
-
-  // Subtree node counts, used to weight each child's angular sector. The
-  // visited set guards against cycles in malformed link data.
-  const subtreeSize = new Map<string, number>();
-  const visited = new Set<string>();
-  const computeSize = (id: string): number => {
-    if (visited.has(id)) return 0;
-    visited.add(id);
-    let size = 1;
-    for (const c of childrenOf.get(id) ?? []) size += computeSize(c);
-    subtreeSize.set(id, size);
-    return size;
-  };
-  computeSize(root.id);
-
-  const place = (id: string, depth: number, a0: number, a1: number): void => {
-    const n = byId.get(id);
-    if (n) {
-      if (depth === 0) {
-        n.x = cx;
-        n.y = cy;
-      } else {
-        const a = (a0 + a1) / 2;
-        const r = depth * SEED_RADIAL_STEP;
-        n.x = cx + r * Math.cos(a);
-        n.y = cy + r * Math.sin(a);
-      }
-    }
-    const children = childrenOf.get(id) ?? [];
-    let total = 0;
-    for (const c of children) total += subtreeSize.get(c) ?? 0;
-    if (total === 0) return;
-    let start = a0;
-    for (const c of children) {
-      const size = subtreeSize.get(c) ?? 0;
-      if (size === 0) continue; // cycle-guard skip in computeSize
-      const end = start + ((a1 - a0) * size) / total;
-      place(c, depth + 1, start, end);
-      start = end;
-    }
-  };
-  place(root.id, 0, 0, 2 * Math.PI);
-}
-
-/**
- * Runs a stopped simulation's initial settle headless: the exact number of
- * ticks d3's internal timer would run (alpha decaying from 1 to alphaMin) with
- * zero DOM work per tick, chunked across animation frames on a time budget so
- * a wait spinner can animate and the app stays responsive while a large layout
- * computes. Calls `onDone` after the final tick; returns a cancel function.
- * Module-level (not compiled by the React Compiler): the counter mutations in
- * the chunk lambda would make the compiler bail out on the whole component.
- */
-function runHeadlessSettle(sim: Simulation<SimNode, SimLink>, onDone: () => void): () => void {
-  const totalTicks = Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay()));
-  let ticksDone = 0;
-  let rafId = 0;
-  const runChunk = (): void => {
-    const start = performance.now();
-    while (ticksDone < totalTicks && performance.now() - start < SETTLE_TICK_BUDGET_MS) {
-      sim.tick();
-      ticksDone++;
-    }
-    if (ticksDone < totalTicks) {
-      rafId = requestAnimationFrame(runChunk);
-      return;
-    }
-    onDone();
-  };
-  rafId = requestAnimationFrame(runChunk);
-  return () => cancelAnimationFrame(rafId);
 }
 
 const PREVIEW_MAX_CHARS = 500;
@@ -337,6 +107,10 @@ async function loadPreviewIntoTooltip(d: SimNode, setTitle: (text: string) => vo
  * character-count estimate if it's unavailable. Module-level (not compiled by
  * the React Compiler): the `this` binding d3 uses would make the compiler bail
  * out on the whole component.
+ *
+ * This is the only part of the force model that needs a document, which is why
+ * it runs here and ships its four numbers to the layout worker rather than the
+ * worker needing any DOM of its own.
  */
 function measureLabelFootprint(this: SVGTextElement, d: SimNode): void {
   const r = nodeRadius(d);
@@ -362,14 +136,33 @@ function measureLabelFootprint(this: SVGTextElement, d: SimNode): void {
 }
 
 /**
+ * Copies a worker-settled layout (packed [x, y, vx, vy] per node) back onto the
+ * node objects the SVG selections are bound to. Module-level (not compiled by
+ * the React Compiler): the running offset counter is a mutation the compiler
+ * would bail on inside the component.
+ */
+function applySettledPositions(nodes: SimNode[], positions: Float64Array): void {
+  let offset = 0;
+  for (const n of nodes) {
+    n.x = positions[offset] ?? 0;
+    n.y = positions[offset + 1] ?? 0;
+    n.vx = positions[offset + 2] ?? 0;
+    n.vy = positions[offset + 3] ?? 0;
+    offset += FLOATS_PER_NODE;
+  }
+}
+
+/**
  * Interactive D3 force-directed graph of a folder tree. Nodes represent files
  * and folders; links represent parent-child containment. Supports drag-to-reposition,
  * scroll-to-zoom, click-to-navigate, and hover highlighting (green for a folder's
  * direct children, red for the hovered node's ancestor path to root). File nodes
- * show a lazily-loaded content preview in the native SVG tooltip. The simulation
- * uses several layered repulsion forces (cross-folder, file-vs-non-parent-folder,
- * folder-hub long-range) to keep clusters visually separated; see the module-level
- * constants for tuning knobs.
+ * show a lazily-loaded content preview in the native SVG tooltip.
+ *
+ * The layout itself lives in graphSim.ts and is computed in graphSimWorker.ts:
+ * this component renders the graph, measures label footprints, ships the whole
+ * settle to the worker, and takes ownership of the result for drag interaction.
+ * See the constants in graphSim.ts for the physics tuning knobs.
  */
 function FolderGraphView() {
   const folderGraph = useAS(s => s.folderGraph);
@@ -388,9 +181,9 @@ function FolderGraphView() {
     highlightRef.current = highlightItem;
   });
   const [ready, setReady] = useState(false);
-  // True while the headless settle loop is computing the layout: the SVG is
-  // hidden (visibility, not display — label measurement needs layout) and a
-  // centered wait spinner shows in its place.
+  // True while the layout worker is computing the layout: the SVG is hidden
+  // (visibility, not display — label measurement needs layout) and a centered
+  // wait spinner shows in its place.
   const [settling, setSettling] = useState(false);
 
   // Wait for container to be measured before building the simulation.
@@ -437,11 +230,6 @@ function FolderGraphView() {
       crossRepelGroup: n.isDirectory ? n.id : getParentPath(n.id),
     }));
     const simLinks: SimLink[] = rawLinks.map(l => ({ source: l.source, target: l.target }));
-
-    // Must run before forceSimulation(), which assigns the packed phyllotaxis
-    // default to any node still missing x/y. Links still hold string endpoints
-    // here — forceLink resolves them to node objects only once the sim starts.
-    seedRadialPositions(simNodes, simLinks, width / 2, height / 2);
 
     // For the "hover a folder to see what it contains" behavior: map each folder
     // id to the set of its direct children (file or folder ids), so hovering can
@@ -506,7 +294,8 @@ function FolderGraphView() {
 
     // Measure each label so forceLabelRect can treat the circle + its text as a
     // single rectangular footprint (the SVG is laid out by now — this effect
-    // only runs once `ready`).
+    // only runs once `ready`). Must happen before the worker request below,
+    // which ships these measurements as plain numbers.
     if (USE_LABEL_PHYSICS) {
       nodeSel.select<SVGTextElement>('text').each(measureLabelFootprint);
     }
@@ -559,7 +348,7 @@ function FolderGraphView() {
     //  • Red: the chain of links from the hovered node (file or folder) up through
     //    each ancestor folder to the root, tracing its full path.
     const idOf = (end: string | SimNode): string => typeof end === 'string' ? end : end.id;
-    const linkKey = (parent: string, child: string): string => `${parent} ${child}`;
+    const linkKey = (parent: string, child: string): string => `${parent} ${child}`;
     const applyHoverHighlight = (hovered: SimNode | null): void => {
       // Children to paint green (only when hovering a folder).
       const children = hovered?.isDirectory
@@ -602,59 +391,9 @@ function FolderGraphView() {
     nodeSel.on('mouseenter.contains', (_event: MouseEvent, d) => applyHoverHighlight(d));
     nodeSel.on('mouseleave.contains', () => applyHoverHighlight(null));
 
-    const centerForce = forceCenter<SimNode>(width / 2, height / 2);
-
-    const sim: Simulation<SimNode, SimLink> = forceSimulation<SimNode>(simNodes)
-      .force('link', forceLink<SimNode, SimLink>(simLinks)
-        .id(d => d.id)
-        // Source/target are resolved to nodes before this accessor runs.
-        .distance(l => (l.target as SimNode).isDirectory ? LINK_DISTANCE_FOLDER : LINK_DISTANCE_FILE)
-        .strength(0.7))
-      // distanceMax caps the repulsion's range. Without it, every node repels
-      // every other regardless of distance, so the summed push between two
-      // separated subtrees stretches the single link bridging them (most
-      // visibly the root's links) far past its target length. Limiting charge
-      // to a local radius keeps the per-node repulsion from inflating the whole
-      // layout; cluster-scale spacing is the hub force's job (below).
-      .force('charge', forceManyBody<SimNode>().strength(CHARGE_STRENGTH).distanceMax(CHARGE_DISTANCE_MAX))
-      // Folder hubs repel at long range so separated subtrees become distinct
-      // clumps instead of compressing into one mat once the graph outgrows
-      // CHARGE_DISTANCE_MAX. Only folders emit (few of them, so root links
-      // don't get the runaway stretch that uncapped all-pairs charge caused).
-      .force('hubRepel', USE_FOLDER_HUB_REPULSION
-        ? forceManyBody<SimNode>()
-            .strength(d => d.isDirectory
-              ? Math.max(
-                  FOLDER_HUB_STRENGTH_MIN,
-                  FOLDER_HUB_STRENGTH_BASE + FOLDER_HUB_STRENGTH_PER_CHILD * d.childCount,
-                )
-              : 0)
-            .distanceMax(FOLDER_HUB_DISTANCE_MAX)
-        : null)
-      // Extra repulsion between cross-group pairs — cross-folder file pairs and
-      // file-vs-non-parent-folder pairs (the shared group key exempts a file's
-      // own parent) — layered on top of the baseline charge above and capped at
-      // the same range so the boost stays local. One merged force serves both
-      // pair classes at their respective strengths; see crossGroupPairStrength.
-      .force('crossRepel', (USE_CROSS_FOLDER_REPULSION || USE_FILE_FOLDER_REPULSION)
-        ? forceCrossGroupRepel<SimNode>()
-            .strength(crossGroupPairStrength)
-            .distanceMax(CHARGE_DISTANCE_MAX)
-        : null)
-      // Held in a local so a container resize can retarget it (see handleContainerResize).
-      .force('center', centerForce)
-      .force('collide', USE_LABEL_PHYSICS
-        ? forceLabelRect<SimNode>().strength(0.7).iterations(LABEL_COLLIDE_ITERATIONS)
-        : forceCollide<SimNode>().radius(d => nodeRadius(d) + 4));
-
-    // forceSimulation() auto-starts its internal timer; stop it — the initial
-    // settle runs headless in the chunked loop below, and only user drags
-    // restart live ticking (via alphaTarget().restart() in the drag handlers).
-    sim.stop();
-
-    // Syncs the DOM to current node positions. During the initial settle this
-    // is NOT registered as a tick listener — it runs once when the layout is
-    // done, then attaches so post-settle drags animate live.
+    // Syncs the DOM to current node positions. Only meaningful once a
+    // simulation exists on this thread and has resolved the links' string
+    // endpoints to node objects.
     const tick = () => {
       linkSel
         .attr('x1', d => (d.source as SimNode).x ?? 0)
@@ -716,40 +455,96 @@ function FolderGraphView() {
       }
     };
 
-    // Drag: standard d3-force pattern. Pin during drag (so the node follows
-    // the cursor exactly), release on drop so the system equilibrates and the
-    // user feels the physics respond.
-    const dragBehavior = d3drag<SVGGElement, SimNode>()
-      .clickDistance(4)
-      .on('start', (event: D3DragEvent<SVGGElement, SimNode, SimNode>, d) => {
-        if (!event.active) sim.alphaTarget(0.3).restart();
-        d.fx = d.x;
-        d.fy = d.y;
-      })
-      .on('drag', (event: D3DragEvent<SVGGElement, SimNode, SimNode>, d) => {
-        d.fx = event.x;
-        d.fy = event.y;
-      })
-      .on('end', (event: D3DragEvent<SVGGElement, SimNode, SimNode>, d) => {
-        if (!event.active) sim.alphaTarget(0);
-        d.fx = undefined;
-        d.fy = undefined;
-      });
-    nodeSel.call(dragBehavior);
-
-    // Headless settle (see runHeadlessSettle): when done, one DOM sync + an
-    // animated zoom-to-fit reveal the finished layout, and the tick listener
-    // attaches so post-settle drags animate live. Subsequent settles (after a
-    // drag) never re-fit — that would be jarring.
+    // The main thread's copy of the simulation, created only once the worker
+    // hands back a settled layout. It exists purely so drags feel live: it is
+    // seeded with the worker's result and left cold at alpha 0 until a drag
+    // wakes it. Null (with nothing draggable) for the whole settle.
+    let sim: Simulation<SimNode, SimLink> | null = null;
+    let centerForce: ForceCenter<SimNode> | null = null;
     let isSettling = true;
     setSettling(true);
-    const cancelSettle = runHeadlessSettle(sim, () => {
+
+    const worker = new Worker(new URL('./graphSimWorker.ts', import.meta.url), { type: 'module' });
+
+    worker.addEventListener('message', (event: MessageEvent<SettleResponse>) => {
+      applySettledPositions(simNodes, event.data.positions);
+
+      // Rebuild the same force model here, over the settled positions, so drags
+      // continue the physics the worker computed. The container box is read
+      // live rather than reusing the request's, so a resize mid-settle leaves
+      // the center force pointing at the viewport the user actually has.
+      const built = buildSimulation(simNodes, simLinks, container.clientWidth, container.clientHeight);
+      sim = built.sim;
+      centerForce = built.centerForce;
+      // forceSimulation starts alpha at 1. Left there, the first drag's
+      // restart() would re-run a full settle and visibly explode the layout;
+      // at 0 the graph stays put until alphaTarget lifts it.
+      sim.alpha(0);
+
+      // buildSimulation resolved the links' endpoints, so the DOM can now be
+      // synced to the settled layout and kept in sync for subsequent drags.
       isSettling = false;
       tick();
       sim.on('tick', tick);
+
+      // Drag: standard d3-force pattern. Pin during drag (so the node follows
+      // the cursor exactly), release on drop so the system equilibrates and the
+      // user feels the physics respond. Attached only now — there is no live
+      // simulation to drag against until the settle lands.
+      const dragBehavior = d3drag<SVGGElement, SimNode>()
+        .clickDistance(4)
+        .on('start', (event: D3DragEvent<SVGGElement, SimNode, SimNode>, d) => {
+          if (!event.active) built.sim.alphaTarget(0.3).restart();
+          d.fx = d.x;
+          d.fy = d.y;
+        })
+        .on('drag', (event: D3DragEvent<SVGGElement, SimNode, SimNode>, d) => {
+          d.fx = event.x;
+          d.fy = event.y;
+        })
+        .on('end', (event: D3DragEvent<SVGGElement, SimNode, SimNode>, d) => {
+          if (!event.active) built.sim.alphaTarget(0);
+          d.fx = undefined;
+          d.fy = undefined;
+        });
+      nodeSel.call(dragBehavior);
+
       setSettling(false);
       zoomToFit(true);
     });
+
+    // A worker that fails to start (a bundling or CSP regression) would
+    // otherwise leave the spinner up forever. Reveal the graph — unsettled and
+    // visibly wrong — rather than hiding the breakage behind a main-thread
+    // fallback that would make the worker silently optional.
+    worker.addEventListener('error', (event: ErrorEvent) => {
+      logger.error('[FolderGraphView] layout worker failed:', event.message);
+      isSettling = false;
+      setSettling(false);
+    });
+
+    const request: SettleRequest = {
+      // Explicitly picked rather than posting simNodes, so the hover-preview
+      // cache these accumulate never gets cloned across the boundary.
+      nodes: simNodes.map(n => ({
+        id: n.id,
+        name: n.name,
+        isDirectory: n.isDirectory,
+        depth: n.depth,
+        childCount: n.childCount,
+        crossRepelGroup: n.crossRepelGroup,
+        bx0: n.bx0,
+        by0: n.by0,
+        bx1: n.bx1,
+        by1: n.by1,
+      })),
+      // Fresh string-endpoint links: the worker's forceLink resolves them
+      // against its own node copies, and simLinks is bound to the DOM here.
+      links: rawLinks.map(l => ({ source: l.source, target: l.target })),
+      width,
+      height,
+    };
+    worker.postMessage(request);
 
     /**
      * Called by the ResizeObserver after the container changes size. Re-frames
@@ -761,23 +556,25 @@ function FolderGraphView() {
      * is what actually re-frames a settled graph. Restarting would make the
      * nodes physically drift on every resize tick, which is far more jarring
      * than the empty margin it would fix.
+     *
+     * Mid-settle there is no simulation here to retarget; the center the worker
+     * was given stands, and the settle's own zoomToFit reads the container box
+     * live, so the finished layout still lands framed correctly.
      */
     const handleContainerResize = (): void => {
-      centerForce.x(container.clientWidth / 2).y(container.clientHeight / 2);
-      // Mid-settle positions aren't worth fitting to — the settle's own final
-      // zoomToFit reads the container box live, so it lands correctly anyway.
+      centerForce?.x(container.clientWidth / 2).y(container.clientHeight / 2);
       if (!userAdjustedView && !isSettling) zoomToFit(false);
     };
     resizeGraphRef.current = handleContainerResize;
 
-    // Returns the useEffect cleanup (an unsubscribe): cancels any in-flight
-    // settle chunk, stops the D3 force simulation, detaches its tick and zoom
-    // listeners, and drops the repaint/re-frame closures (their selections are
-    // dead) on unmount / before re-run.
+    // Returns the useEffect cleanup (an unsubscribe): terminates the layout
+    // worker (whose result would land on dead selections), stops the D3 force
+    // simulation, detaches its tick and zoom listeners, and drops the
+    // repaint/re-frame closures on unmount / before re-run.
     return () => {
-      cancelSettle();
-      sim.stop();
-      sim.on('tick', null);
+      worker.terminate();
+      sim?.stop();
+      sim?.on('tick', null);
       root.on('.zoom', null);
       applyHighlightRef.current = null;
       resizeGraphRef.current = null;
