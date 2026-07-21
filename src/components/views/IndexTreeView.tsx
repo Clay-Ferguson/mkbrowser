@@ -183,7 +183,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const pendingReveal = useAS(s => s.pendingIndexTreeReveal);
   const hasCutItems = useAS(s => hasAnyCutItems(s.items));
   const highlightItem = useAS(s => s.highlightItem);
-  const inBrowseFileMode = useAS(s => s.browseFileName !== null);
+  const browseFileName = useAS(s => s.browseFileName);
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   // Pending timers, tracked so they can be cancelled when superseded or on unmount.
@@ -562,40 +562,32 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     }
   };
 
+  /**
+   * Handles a click on a heading row: browses to the heading — scrolling the
+   * already-rendered heading into view when its document is on screen,
+   * otherwise navigating to the file and queueing a heading scroll via
+   * `pendingScrollToHeadingSlug` — and toggles the heading's child headings.
+   * (Headings have no context menu; this click is the whole interaction.)
+   */
   const handleHeadingClick = (node: MarkdownHeadingNode) => {
+    const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
+    const folderPath = getParentPath(filePath);
+    setHighlightItem(filePath);
+    // Scrolling in place keeps single-file mode intact, so hopping between a
+    // document's headings never kicks the user back to the folder listing.
+    // browseFileName has to be checked as well as the slug: two documents can
+    // yield the same slug, and in single-file mode only the one open file is
+    // rendered, so a slug hit for any other file is a false positive.
+    const showingThisFile = browseFileName === null || joinPath(currentPath, browseFileName) === filePath;
+    if (showingThisFile && document.getElementById(node.slug)) {
+      scrollElementIntoView(node.slug, true);
+    } else {
+      setPendingScrollToHeadingSlug(node.slug);
+      navigateToBrowserPath(folderPath, filePath);
+    }
+
     const hasChildren = node.children && node.children.length > 0;
     if (hasChildren) void handleNodeClick(node);
-  };
-
-  /**
-   * Shows the context menu for a heading row. The only available action is
-   * "Browse", which scrolls the existing rendered heading into view if the
-   * document is already open, or navigates to the file and queues a heading
-   * scroll via `pendingScrollToHeadingSlug` otherwise.
-   */
-  const handleHeadingContextMenu = (node: MarkdownHeadingNode, e: React.MouseEvent) => {
-    e.preventDefault();
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      path: node.path,
-      isDirectory: false,
-      onBrowse: () => {
-        const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
-        const folderPath = getParentPath(filePath);
-        setHighlightItem(filePath);
-        // In single-file mode the heading may well be on screen (BrowseFile is
-        // rendering that very document), but "Browse" always means "show me the
-        // folder listing" — so take the navigate branch, which exits single-file
-        // mode and re-queues the heading scroll for the remounted BrowseView.
-        if (!inBrowseFileMode && document.getElementById(node.slug)) {
-          scrollElementIntoView(node.slug, true);
-        } else {
-          setPendingScrollToHeadingSlug(node.slug);
-          navigateToBrowserPath(folderPath, filePath);
-        }
-      },
-    });
   };
 
   /**
@@ -782,16 +774,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
               <div
                 key={node.path}
                 data-tree-path={node.path}
-                className={`flex items-center gap-1 py-0.5 whitespace-nowrap select-none
-                  text-slate-400 border-l-2 border-transparent
-                  ${hasChildren ? 'cursor-pointer hover:bg-slate-700' : 'cursor-default hover:bg-slate-700'}
-                `}
-                style={{
-                  paddingLeft: `${8 + depth * INDENT_SIZE}px`,
-                  ...(contextMenu?.path === node.path ? { backgroundColor: '#1e40af' } : {}),
-                }}
+                className="flex items-center gap-1 py-0.5 whitespace-nowrap select-none
+                  text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700"
+                style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px` }}
                 onClick={() => handleHeadingClick(node)}
-                onContextMenu={e => handleHeadingContextMenu(node, e)}
               >
                 <span className="shrink-0 w-3 text-center mr-1 text-slate-500">
                   {hasChildren
