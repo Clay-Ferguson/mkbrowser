@@ -53,7 +53,10 @@ function TextEntry(props: TextEntryProps) {
   // content area, and editor all become nested flex columns (BrowseView flexes the outer chain).
   // `alwaysExpandedEditor` forces this on for callers that give the entry the whole pane.
   const editorExpanded = expandedEditor || alwaysExpandedEditor;
-  const maximized = editorExpanded && edit.isEditing;
+  // `alwaysExpandedEditor` callers (BrowseFile) hand this entry the whole pane, so it fills
+  // the available height in *view* mode too — not just while editing. In the folder listing
+  // the entry is one row among many, so there maximizing stays tied to editing.
+  const maximized = alwaysExpandedEditor || (expandedEditor && edit.isEditing);
 
   // Only exit edit mode on Escape when the content is unmodified; if the user has typed
   // something, Escape is passed through to CodeMirror (e.g. to dismiss autocomplete).
@@ -166,6 +169,7 @@ function TextEntry(props: TextEntryProps) {
               onChange={() => {}}
               language={fileLanguage}
               readOnly
+              fillHeight={maximized}
               onViewModeClick={(line) => void edit.handleEditClick(line)}
             />
           )}

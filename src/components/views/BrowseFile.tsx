@@ -69,6 +69,13 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
   // user's preference for the folder listing survives a trip through here.
   const expandedEditing = useAS(s => (entry ? (s.items.get(entry.path)?.editing ?? false) : false));
 
+  // Plain-text files fill the pane at all times, editing or not: TextEntry's CodeMirror
+  // would otherwise cap itself at ~60% of the scroll area (a sensible limit for a row in
+  // the folder listing, wasted space for the one file that owns this view). Markdown keeps
+  // its natural, page-scrolled height unless it is being edited.
+  const fillsPane = !!entry && !entry.isMarkdown && !isImageFile(entry.name) && isTextFile(entry.name);
+  const flexPane = expandedEditing || fillsPane;
+
   // Show the content immediately — a single-file view whose one entry sits
   // collapsed would be a dead end.
   const entryPath = entry?.path;
@@ -116,9 +123,9 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
           ancestor. Same structure as BrowseView. */}
       <main
         data-testid="browse-file-main-content"
-        className={`flex-1 min-h-0 pb-4 pt-1 pr-3 pl-3 relative ${expandedEditing ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}
+        className={`flex-1 min-h-0 pb-4 pt-1 pr-3 pl-3 relative ${flexPane ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}
       >
-        <div className={expandedEditing ? 'w-full px-4 flex-1 min-h-0 flex flex-col' : getContentWidthClasses(settings.contentWidth)}>
+        <div className={flexPane ? 'w-full px-4 flex-1 min-h-0 flex flex-col' : getContentWidthClasses(settings.contentWidth)}>
           {!entry && (
             <div className="flex items-center justify-center py-12">
               <p className="text-slate-400" data-testid="browse-file-not-found">
@@ -128,7 +135,7 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
           )}
 
           {entry && (
-            <div className={expandedEditing ? 'flex-1 min-h-0 flex flex-col' : undefined}>
+            <div className={flexPane ? 'flex-1 min-h-0 flex flex-col' : undefined}>
               {entry.isMarkdown ? (
                 <MarkdownEntry entry={entry} view="browser" onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} alwaysExpandedEditor />
               ) : isImageFile(entry.name) ? (
