@@ -15,19 +15,21 @@ import {
 /**
  * Private E2E Test: Browse File (single-file browsing)
  *
- * "Browse File" on the index tree's context menu shows one file on its own in
- * the right-hand pane, in place of the folder listing. This test covers the
- * round trip and the one behavior that carries real regression risk:
+ * Clicking a file in the index tree shows it on its own in the right-hand
+ * pane, in place of the folder listing. This test covers the round trip and
+ * the behaviors that carry real regression risk:
  *
- *   1. "Browse File" on a file swaps BrowseView out for BrowseFile, showing
- *      only that file — a sibling file in the same folder must NOT be visible.
+ *   1. Clicking a file swaps BrowseView out for BrowseFile, showing only that
+ *      file — a sibling file in the same folder must NOT be visible. For a
+ *      markdown file the same click ALSO expands its headings in the tree;
+ *      both halves are asserted, since either could regress alone.
  *   2. Click-to-edit still works there. This is the assertion that matters:
  *      the entry components render their own CodeMirror, so editing is meant
  *      to work identically outside the list. Verified through to disk.
  *   3. Breadcrumb navigation exits single-file mode (setCurrentPath clears
  *      browseFileName), restoring the folder listing.
- *   4. "Browse" on a file returns to the listing, and "Browse File" is offered
- *      for files but never for folders.
+ *   4. "Browse" on a file returns to the listing, and clicking a folder in the
+ *      tree navigates rather than entering single-file mode.
  *
  * This test is private (not part of the demo video set) — it still writes
  * screenshots/narration per the shared conventions, but its purpose is
@@ -56,9 +58,14 @@ test.describe('Private: Browse File', () => {
     const siblingName = 'my-browse-sibling.md';
     fs.rmSync(folderPath, { recursive: true, force: true });
     fs.mkdirSync(folderPath);
+    // Sub-headings below the title are deliberate: extractHeadingTree runs the
+    // content through sanitizeForTOC, which skips the FIRST heading as the
+    // document title (it would just repeat the filename). A file whose only
+    // heading is its title therefore yields an empty heading tree — so the
+    // Phase 1 tree-expansion assertion needs at least one heading past the top.
     fs.writeFileSync(
       path.join(folderPath, targetName),
-      `# Browse Target\n\nThe file we view on its own.\n`
+      `# Browse Target\n\nThe file we view on its own.\n\n## First Section\n\nSection one body.\n\n## Second Section\n\nSection two body.\n`
     );
     fs.writeFileSync(
       path.join(folderPath, siblingName),
@@ -87,7 +94,7 @@ Right now the right-hand pane shows the whole folder listing — two markdown fi
 Let's pull one of them up on its own.`
     );
 
-    // --- Phase 1: Browse File on a file ------------------------------------
+    // --- Phase 1: click a file in the tree ---------------------------------
     const tree = mainWindow.getByTestId('file-explorer-tree');
     await expect(tree).toBeVisible({ timeout: 10000 });
 
@@ -96,20 +103,15 @@ Let's pull one of them up on its own.`
 
     const treeTarget = tree.getByText(targetName, { exact: true }).first();
     await treeTarget.scrollIntoViewIfNeeded();
-    await demoRightClick(treeTarget);
 
-    const browseFileItem = mainWindow.getByTestId('browse-file');
-    await expect(browseFileItem).toBeVisible({ timeout: 5000 });
-
-    await takeScreenshot(mainWindow, browseFileItem, screenshotDir, step++, 'about-to-click-browse-file');
+    await takeScreenshot(mainWindow, treeTarget, screenshotDir, step++, 'about-to-click-tree-file');
     writeNarration(
       screenshotDir,
       step++,
-      `Right-clicking a file in the tree offers a "Browse File" action.
-Unlike "Browse", which opens the file's containing folder, this shows the single file by itself.`
+      `Clicking a file in the tree opens it on its own — no menu needed.`
     );
 
-    await demoClick(browseFileItem);
+    await demoClick(treeTarget);
 
     // BrowseFile replaced BrowseView: its pane is present, the listing's is not.
     const single = mainWindow.getByTestId('browse-file-main-content');
@@ -122,6 +124,12 @@ Unlike "Browse", which opens the file's containing folder, this shows the single
     // is exactly right — single-file mode replaces the listing, not the tree.
     await expect(single.getByRole('heading', { name: 'Browse Target' })).toBeVisible({ timeout: 10000 });
     await expect(single.getByText(siblingName, { exact: true })).toHaveCount(0);
+
+    // The same click also expanded the file's headings in the tree. Asserted
+    // separately from the browse half: the two behaviors share one click but
+    // are independent code paths, so either could regress on its own.
+    await expect(tree.getByText('First Section', { exact: true })).toBeVisible({ timeout: 10000 });
+    await expect(tree.getByText('Second Section', { exact: true })).toBeVisible();
 
     // The breadcrumb still tracks the containing folder.
     await expect(mainWindow.getByTestId('browse-file-header-breadcrumbs')).toBeVisible();
@@ -219,8 +227,7 @@ We've typed a new line at the end. Let's save it.`
     );
     await demoClick(mainWindow.getByTestId('refresh-button'));
 
-    await demoRightClick(tree.getByText(rootFileName, { exact: true }).first());
-    await demoClick(mainWindow.getByTestId('browse-file'));
+    await demoClick(tree.getByText(rootFileName, { exact: true }).first());
 
     const rootSingle = mainWindow.getByTestId('browse-file-main-content');
     await expect(rootSingle).toBeVisible({ timeout: 10000 });
@@ -246,10 +253,10 @@ The home button stays available anyway, which is what gets you back to the listi
 
     fs.rmSync(path.join(testDataPath, rootFileName), { force: true });
 
-    // --- Phase 4: "Browse" also exits, and folders get no "Browse File" -----
-    // Re-enter single-file mode, then leave it via the tree's "Browse" item.
-    await demoRightClick(tree.getByText(targetName, { exact: true }).first());
-    await demoClick(mainWindow.getByTestId('browse-file'));
+    // --- Phase 4: "Browse" exits; clicking a FOLDER does not enter ---------
+    // Re-enter single-file mode with a click, then leave it via the tree's
+    // "Browse" item.
+    await demoClick(tree.getByText(targetName, { exact: true }).first());
     await expect(mainWindow.getByTestId('browse-file-main-content')).toBeVisible({ timeout: 10000 });
 
     await demoRightClick(tree.getByText(targetName, { exact: true }).first());
@@ -257,20 +264,19 @@ The home button stays available anyway, which is what gets you back to the listi
     await expect(mainWindow.getByTestId('browser-main-content')).toBeVisible({ timeout: 10000 });
     await expect(mainWindow.getByTestId('browse-file-main-content')).toHaveCount(0);
 
-    // A folder offers "Browse" but never "Browse File".
-    await demoRightClick(tree.getByText(folderName, { exact: true }).first());
-    await expect(mainWindow.getByTestId('browse-to-folder')).toBeVisible({ timeout: 5000 });
-    await expect(mainWindow.getByTestId('browse-file')).toHaveCount(0);
+    // Clicking a FOLDER row still just expands/collapses it in the tree — only
+    // files enter single-file mode.
+    await demoClick(tree.getByText(folderName, { exact: true }).first());
+    await expect(mainWindow.getByTestId('browse-file-main-content')).toHaveCount(0);
+    await expect(mainWindow.getByTestId('browser-main-content')).toBeVisible();
 
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'folder-menu-has-no-browse-file');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'folder-click-does-not-enter-single-file');
     writeNarration(
       screenshotDir,
       step++,
-      `Right-clicking a folder offers "Browse" but no "Browse File" — there's no single file to show.
-So single-file browsing is a file-only action, and you can always get back to the listing with "Browse" or the breadcrumb.`
+      `Clicking a folder in the tree behaves as it always has — it expands and collapses, and never takes over the pane.
+Single-file browsing is a file-only gesture, and "Browse" or the breadcrumb always gets you back to the listing.`
     );
-
-    await mainWindow.keyboard.press('Escape');
 
     // --- Phase 5: the folder listing kept its own editor preference ---------
     // Single-file mode forces expansion via a prop, NOT by writing the global

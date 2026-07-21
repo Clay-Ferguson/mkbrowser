@@ -7,8 +7,6 @@ interface IndexTreeContextMenuProps {
   isDirectory: boolean;
   onClose: () => void;
   onBrowse: () => void;
-  /** When provided, a "Browse File" item is shown (file nodes only). */
-  onBrowseFile?: () => void;
   /** When provided, a "New Folder" item is shown. */
   onNewFolder?: () => void;
   /** When provided, a "Rename" item is shown. */
@@ -30,7 +28,7 @@ interface IndexTreeContextMenuProps {
  * cursor position and renders only the action items whose callbacks are provided
  * by the caller (optional items are omitted when the callback is absent).
  */
-export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onBrowseFile, onNewFolder, onRename, onDelete, onPaste, onPasteLink, onCopyPath, onCopyRelativePath }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onNewFolder, onRename, onDelete, onPaste, onPasteLink, onCopyPath, onCopyRelativePath }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       <PopupMenuItem
@@ -38,13 +36,6 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
         onClick={() => { onBrowse(); onClose(); }}
         data-testid="browse-to-folder"
       />
-      {onBrowseFile && (
-        <PopupMenuItem
-          label="Browse File"
-          onClick={() => { onBrowseFile(); onClose(); }}
-          data-testid="browse-file"
-        />
-      )}
       {(onNewFolder || onRename || onDelete) && <PopupMenuDivider />}
       {onNewFolder && (
         <PopupMenuItem

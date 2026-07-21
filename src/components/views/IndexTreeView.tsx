@@ -198,7 +198,6 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     path: string;
     isDirectory: boolean;
     onBrowse: () => void;
-    onBrowseFile?: () => void;
     onNewFolder?: () => void;
     onRename?: () => void;
     onDelete?: () => void;
@@ -305,10 +304,11 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   /**
    * Handles a click on any tree row. Behavior depends on node type:
    * - Heading node: toggles expansion of the heading's child headings.
-   * - Markdown file: toggles expansion; loads heading children from disk on
-   *   first expand.
+   * - Any file: opens it on its own in the right-hand pane (see BrowseFile).
+   * - Markdown file: additionally toggles its heading children in the tree,
+   *   loading them from disk on first expand — so one click both opens the
+   *   document and reveals its structure.
    * - Directory: toggles expansion; reads directory contents on first expand.
-   * - Other file types: no-op (non-expandable).
    */
   const handleNodeClick = async (node: TreeNode) => {
     if (isMarkdownHeadingNode(node)) {
@@ -322,6 +322,13 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     }
 
     if (!isFileNode(node)) return;
+
+    // Every file — markdown or not — opens in single-file browsing. For
+    // markdown this runs alongside the heading toggle below.
+    if (!node.isDirectory) {
+      setHighlightItem(node.path);
+      setBrowseFile(getParentPath(node.path), node.name);
+    }
 
     if (isMarkdownFile(node)) {
       // Toggle markdown file expansion — load headings on first expand
@@ -618,15 +625,6 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           navigateToBrowserPath(folderPath, node.path);
         }
       },
-      // Files only — "Browse File" shows the one file in place of the folder
-      // listing. Folders have nothing to show this way, so the callback is
-      // omitted and the menu drops the item.
-      ...(node.isDirectory ? {} : {
-        onBrowseFile: () => {
-          setHighlightItem(node.path);
-          setBrowseFile(getParentPath(node.path), node.name);
-        },
-      }),
       onRename: () => setRenameTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       onDelete: () => setDeleteTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       ...(node.isDirectory ? {
@@ -743,7 +741,6 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           isDirectory={contextMenu.isDirectory}
           onClose={() => setContextMenu(null)}
           onBrowse={contextMenu.onBrowse}
-          onBrowseFile={contextMenu.onBrowseFile}
           onNewFolder={contextMenu.onNewFolder}
           onRename={contextMenu.onRename}
           onDelete={contextMenu.onDelete}
@@ -811,12 +808,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
           const isMd = isMarkdownFile(node);
           const isSh = isShellScript(node);
-          const isClickable = node.isDirectory || isMd;
 
           let className = 'flex items-center gap-1 py-0.5 whitespace-nowrap select-none';
           if (node.path === highlightItem) {
-            className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent';
-            className += isClickable ? ' cursor-pointer' : ' cursor-default';
+            className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
           } //
           else if (node.isDirectory && node.path === currentPath) {
             className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
@@ -836,7 +831,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
             className += ' text-green-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-300/20';
           } //
           else {
-            className += ' text-slate-400 border-l-2 border-transparent cursor-default hover:bg-slate-700';
+            className += ' text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700';
           }
 
           const isRunning = runningScript === node.path;
@@ -855,8 +850,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
               className={clsx(className, isDragOver && 'bg-blue-600/40 outline outline-1 outline-blue-400')}
               style={rowStyle}
               onClick={e => {
+                // Ctrl+click on a shell script runs it instead of opening it.
                 if (isSh && e.ctrlKey) { handleRunScript(node); return; }
-                if (isClickable) void handleNodeClick(node);
+                void handleNodeClick(node);
               }}
               onContextMenu={e => handleFileNodeContextMenu(node, e)}
               {...(node.isDirectory ? {
