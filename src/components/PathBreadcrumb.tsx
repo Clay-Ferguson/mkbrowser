@@ -114,32 +114,22 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
         return (
           <div key={segmentPath} className="flex items-center">
             <span className="text-slate-200 mx-1">/</span>
-            {isLast ? (
-              <span
-                {...dropProps(segmentPath)}
-                className={clsx(
-                  'px-2 py-1 text-purple-400 font-bold break-all rounded border',
-                  isDragOver ? 'bg-blue-600/60 border-blue-400' : 'border-transparent',
-                )}
-              >
-                {part}
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => onNavigate(segmentPath)}
-                {...dropProps(segmentPath)}
-                data-testid={`breadcrumb-segment-${part}`}
-                className={clsx(
-                  'px-2 py-1 text-slate-200 hover:bg-slate-700 border rounded cursor-pointer no-underline break-all transition-colors',
-                  isDragOver
-                    ? 'bg-blue-600/60 border-blue-400'
-                    : 'border-transparent hover:border-slate-500',
-                )}
-              >
-                {part}
-              </button>
-            )}
+
+            <button
+              type="button"
+              onClick={() => onNavigate(segmentPath)}
+              {...dropProps(segmentPath)}
+              data-testid={`breadcrumb-segment-${part}`}
+              className={clsx(
+                'px-2 py-1 text-slate-200 hover:bg-slate-700 border rounded cursor-pointer no-underline break-all transition-colors',
+                isDragOver
+                  ? 'bg-blue-600/60 border-blue-400'
+                  : 'border-transparent hover:border-slate-500',
+              )}
+            >
+              {part}
+            </button>
+
           </div>
         );
       })}
