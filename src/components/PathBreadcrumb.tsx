@@ -24,8 +24,9 @@ export type PathBreadcrumbProps = {
  * Renders the current directory path as a row of clickable breadcrumb segments.
  *
  * Each ancestor segment is a clickable button that navigates to that directory.
- * The current (rightmost) segment is non-interactive. Every segment — including the
- * root home icon — doubles as a drag-and-drop target that accepts file/folder moves.
+ * The current (rightmost) segment is non-interactive. The root home icon is always
+ * shown and always clickable, even at the root itself. Every segment — including
+ * that home icon — doubles as a drag-and-drop target that accepts file/folder moves.
  * A "reveal in tree" button appears at the end when the index tree panel is visible.
  */
 function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory }: PathBreadcrumbProps) {
@@ -44,8 +45,6 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
     if (index < 0) return normalizedRoot;
     return joinPath(normalizedRoot, ...parts.slice(0, index + 1));
   };
-
-  const atRoot = normalizedCurrent === normalizedRoot;
 
   // Produces drag-event handlers that make a breadcrumb segment a drop target for
   // ENTRY_DND_MIME payloads (dragged from BrowseView entry icons or the IndexTreeView).
@@ -82,15 +81,18 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
 
   return (
     <div data-testid="path-breadcrumb" className="flex flex-wrap items-center gap-1 text-base">
-      {parts.length > 0 &&
+      {/* Always rendered and always clickable, including when already at the
+          root. Navigating to the root you are on is a harmless no-op for the
+          folder listing, but it is the way out of single-file browsing (see
+          BrowseFile) — where the breadcrumb otherwise offers nothing to click,
+          since the only other segment is the folder holding the browsed file. */}
       <button
         type="button"
-        onClick={() => !atRoot && onNavigate(normalizedRoot)}
-        disabled={atRoot}
+        onClick={() => onNavigate(normalizedRoot)}
         {...dropProps(normalizedRoot)}
         data-testid="breadcrumb-home-button"
         className={clsx(
-          'p-2 text-slate-400 hover:bg-slate-700 border rounded cursor-pointer flex-shrink-0 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:border-transparent',
+          'p-2 text-slate-400 hover:bg-slate-700 border rounded cursor-pointer flex-shrink-0 transition-colors',
           dragOverPath === normalizedRoot
             ? 'bg-blue-600/60 border-blue-400'
             : 'border-transparent hover:border-slate-500',
@@ -99,7 +101,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
         title="Go to root folder"
       >
         <HomeIcon className="w-5 h-5" />
-      </button>}
+      </button>
 
       {parts.length === 0 && (
         <span className="text-slate-200 font-medium">/</span>

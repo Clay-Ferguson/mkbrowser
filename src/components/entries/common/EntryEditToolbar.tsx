@@ -5,8 +5,12 @@ import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_RED, BUTTON_CLASS_SM_PURPLE, ENTR
 interface EntryEditToolbarProps {
   /** Whether the editor is in expanded mode. */
   expandedEditor: boolean;
-  /** Toggle the expanded editor. */
-  onToggleExpandedEditor: () => void;
+  /**
+   * Toggle the expanded editor. Omit to hide the expand/collapse button
+   * entirely — for callers whose editor is always expanded and where the
+   * toggle would therefore be a no-op (see `alwaysExpandedEditor`).
+   */
+  onToggleExpandedEditor?: () => void;
 
   /** Whether to show the AI Rewrite button. */
   showRewrite: boolean;
@@ -62,17 +66,19 @@ export function EntryEditToolbar({
   return (
     <div className="flex items-center gap-2">
       {leftExtras}
-      <button
-        type="button"
-        onClick={onToggleExpandedEditor}
-        title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
-        className={ENTRY_EDITOR_ICON_BTN}
-        data-testid="entry-editor-expand-toggle-button"
-      >
-        {expandedEditor
-          ? <ArrowsPointingInIcon className="w-5 h-5" />
-          : <ArrowsPointingOutIcon className="w-5 h-5" />}
-      </button>
+      {onToggleExpandedEditor && (
+        <button
+          type="button"
+          onClick={onToggleExpandedEditor}
+          title={expandedEditor ? 'Collapse editor' : 'Expand editor'}
+          className={ENTRY_EDITOR_ICON_BTN}
+          data-testid="entry-editor-expand-toggle-button"
+        >
+          {expandedEditor
+            ? <ArrowsPointingInIcon className="w-5 h-5" />
+            : <ArrowsPointingOutIcon className="w-5 h-5" />}
+        </button>
+      )}
       {showRewrite && (
         <button
           type="button"

@@ -12,6 +12,7 @@ import CalendarView from './components/views/CalendarView';
 import AISettingsView from './components/views/AISettingsView';
 import ThreadView from './components/views/ThreadView';
 import BrowseView from './components/views/BrowseView';
+import BrowseFile from './components/views/BrowseFile';
 import IndexTreeView from './components/views/IndexTreeView';
 import AppTabButtons from './components/AppTabButtons';
 import {
@@ -186,6 +187,7 @@ function App() {
   const items = useAS(s => s.items);
   const currentView = useAS(s => s.currentView);
   const currentPath = useAS(s => s.currentPath);
+  const browseFileName = useAS(s => s.browseFileName);
   const directoryRefreshNonce = useAS(s => s.directoryRefreshNonce);
   const folderGraph = useAS(s => s.folderGraph);
   const settings = useAS(s => s.settings);
@@ -532,17 +534,32 @@ function App() {
           <div {...viewProps('browser')}>
             <div className="flex-1 flex flex-row min-h-0">
               {settings.indexTreeWidth !== 'hidden' && <IndexTreeView onRefreshDirectory={refreshDirectory} />}
+              {/* Single-file browsing swaps BrowseView out rather than hiding
+                  it: mounting both would give the browsed file two live entry
+                  instances — two CodeMirror editors racing to register as the
+                  active one, and duplicate DOM ids. The folder listing's scroll
+                  position survives the unmount because it is persisted per
+                  folder in the store and restored when BrowseView remounts. */}
               <div className="flex-1 flex flex-col min-h-0 min-w-0">
-                <BrowseView
-                  entries={entries}
-                  loading={loading}
-                  aiEnabled={aiEnabled}
-                  lastExportFolder={lastExportFolder}
-                  onSetLastExportFolder={setLastExportFolder}
-                  onRefreshDirectory={refreshDirectory}
-                  onSetError={setError}
-                  onSaveSettings={handleSaveSettings}
-                />
+                {browseFileName ? (
+                  <BrowseFile
+                    entries={entries}
+                    onRefreshDirectory={refreshDirectory}
+                    onSetError={setError}
+                    onSaveSettings={handleSaveSettings}
+                  />
+                ) : (
+                  <BrowseView
+                    entries={entries}
+                    loading={loading}
+                    aiEnabled={aiEnabled}
+                    lastExportFolder={lastExportFolder}
+                    onSetLastExportFolder={setLastExportFolder}
+                    onRefreshDirectory={refreshDirectory}
+                    onSetError={setError}
+                    onSaveSettings={handleSaveSettings}
+                  />
+                )}
               </div>
             </div>
           </div>

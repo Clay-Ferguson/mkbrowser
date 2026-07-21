@@ -16,6 +16,8 @@ export interface ViewSlice {
   setCurrentView: (view: AppView) => void;
   setCurrentPath: (path: string) => void;
   navigateToBrowserPath: (path: string, scrollToFile?: string, view?: AppView) => void;
+  setBrowseFile: (folderPath: string, fileName: string) => void;
+  clearBrowseFile: () => void;
   clearPendingScrollToFile: () => void;
   setPendingScrollToFile: (fileName: string) => void;
   setPendingScrollToHeadingSlug: (slug: string) => void;
@@ -49,10 +51,21 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     },
 
     /** Set the current path being browsed. Navigating to a different folder
-     * also clears item selections, atomically with the path change. */
+     * also clears item selections and exits single-file browsing, atomically
+     * with the path change. */
     setCurrentPath: (path) => {
-      if (get().currentPath === path) return;
-      const newState: Partial<AppState> = { currentPath: path };
+      if (get().currentPath === path) {
+        // Same folder, so nothing to navigate — but while browsing a single
+        // file this still means "show me this folder's listing", and it is the
+        // common case: the breadcrumb's last segment IS the folder holding the
+        // browsed file, so without this a breadcrumb click would do nothing.
+        get().clearBrowseFile();
+        return;
+      }
+      // browseFileName names a file inside currentPath, so it cannot survive a
+      // path change — clearing it here is also what makes breadcrumb clicks
+      // drop back to the folder listing without any extra wiring.
+      const newState: Partial<AppState> = { currentPath: path, browseFileName: null };
       const clearedItems = withSelectionsCleared(get().items);
       if (clearedItems) {
         newState.items = clearedItems;
@@ -71,6 +84,11 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       const newState: Partial<AppState> = {
         currentPath: path,
         currentView: view,
+        // Every caller of this means "show me the folder listing" (optionally
+        // scrolled to a file), so it always exits single-file browsing —
+        // unconditionally, since re-navigating to the folder you are already
+        // in is exactly what the tree's "Browse" item does to get back.
+        browseFileName: null,
       };
       if (scrollToFile !== undefined) {
         newState.pendingScrollToFile = scrollToFile;
@@ -84,6 +102,35 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
         }
       }
       set(newState);
+    },
+
+    /**
+     * Display a single file on its own, in place of the folder listing, in one
+     * state update: the file's folder becomes `currentPath` (so PathBreadcrumb
+     * keeps working unchanged) and `browseFileName` records which file.
+     *
+     * Note this sets `currentPath` directly rather than delegating to
+     * `setCurrentPath`, which would clear `browseFileName` right back out.
+     */
+    setBrowseFile: (folderPath, fileName) => {
+      const newState: Partial<AppState> = {
+        currentPath: folderPath,
+        currentView: 'browser',
+        browseFileName: fileName,
+      };
+      if (folderPath !== get().currentPath) {
+        const clearedItems = withSelectionsCleared(get().items);
+        if (clearedItems) {
+          newState.items = clearedItems;
+        }
+      }
+      set(newState);
+    },
+
+    /** Exit single-file browsing and return to the folder listing. */
+    clearBrowseFile: () => {
+      if (get().browseFileName === null) return;
+      set({ browseFileName: null });
     },
 
     /** Clear the pending scroll to file (call after scrolling completes). */
@@ -196,6 +243,14 @@ export function setCurrentPath(path: string): void {
 
 export function navigateToBrowserPath(path: string, scrollToFile?: string, view: AppView = 'browser'): void {
   getState().navigateToBrowserPath(path, scrollToFile, view);
+}
+
+export function setBrowseFile(folderPath: string, fileName: string): void {
+  getState().setBrowseFile(folderPath, fileName);
+}
+
+export function clearBrowseFile(): void {
+  getState().clearBrowseFile();
 }
 
 export function clearPendingScrollToFile(): void {

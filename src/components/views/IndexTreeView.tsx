@@ -25,6 +25,7 @@ import {
   renameItem,
   clearAllCutItems,
   navigateToBrowserPath,
+  setBrowseFile,
   setHighlightItem,
   setIndexTreeWidth,
   getSettings,
@@ -182,6 +183,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const pendingReveal = useAS(s => s.pendingIndexTreeReveal);
   const hasCutItems = useAS(s => hasAnyCutItems(s.items));
   const highlightItem = useAS(s => s.highlightItem);
+  const inBrowseFileMode = useAS(s => s.browseFileName !== null);
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   // Pending timers, tracked so they can be cancelled when superseded or on unmount.
@@ -196,6 +198,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     path: string;
     isDirectory: boolean;
     onBrowse: () => void;
+    onBrowseFile?: () => void;
     onNewFolder?: () => void;
     onRename?: () => void;
     onDelete?: () => void;
@@ -574,7 +577,11 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
         const folderPath = getParentPath(filePath);
         setHighlightItem(filePath);
-        if (document.getElementById(node.slug)) {
+        // In single-file mode the heading may well be on screen (BrowseFile is
+        // rendering that very document), but "Browse" always means "show me the
+        // folder listing" — so take the navigate branch, which exits single-file
+        // mode and re-queues the heading scroll for the remounted BrowseView.
+        if (!inBrowseFileMode && document.getElementById(node.slug)) {
           scrollElementIntoView(node.slug, true);
         } else {
           setPendingScrollToHeadingSlug(node.slug);
@@ -611,6 +618,15 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           navigateToBrowserPath(folderPath, node.path);
         }
       },
+      // Files only — "Browse File" shows the one file in place of the folder
+      // listing. Folders have nothing to show this way, so the callback is
+      // omitted and the menu drops the item.
+      ...(node.isDirectory ? {} : {
+        onBrowseFile: () => {
+          setHighlightItem(node.path);
+          setBrowseFile(getParentPath(node.path), node.name);
+        },
+      }),
       onRename: () => setRenameTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       onDelete: () => setDeleteTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       ...(node.isDirectory ? {
@@ -727,6 +743,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           isDirectory={contextMenu.isDirectory}
           onClose={() => setContextMenu(null)}
           onBrowse={contextMenu.onBrowse}
+          onBrowseFile={contextMenu.onBrowseFile}
           onNewFolder={contextMenu.onNewFolder}
           onRename={contextMenu.onRename}
           onDelete={contextMenu.onDelete}

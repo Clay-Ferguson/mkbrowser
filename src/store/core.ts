@@ -80,6 +80,7 @@ const initialState: AppState = {
   items: new Map(),
   currentPath: '',
   currentView: 'browser', // browser | search-results | settings
+  browseFileName: null,
   pendingScrollToFile: null,
   pendingScrollToHeadingSlug: null,
   searchQuery: '',

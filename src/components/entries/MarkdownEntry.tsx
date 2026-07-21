@@ -132,7 +132,7 @@ async function saveCalendarProps(path: string, newContent: string): Promise<void
  * In document mode, timestamp-based file names are hidden from the header row.
  */
 function MarkdownEntry(props: MarkdownEntryProps) {
-  const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false } = props;
+  const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, alwaysExpandedEditor = false } = props;
   const item = useAS(s => s.items.get(entry.path));
   const hasCutItems = useAS(s => hasAnyCutItems(s.items));
 
@@ -146,7 +146,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const hasIndexFile = useAS(s => s.hasIndexFile);
   // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
   // content area, and editor all become nested flex columns (BrowseView flexes the outer chain).
-  const maximized = expandedEditor && edit.isEditing;
+  // `alwaysExpandedEditor` forces this on for callers that give the entry the whole pane.
+  const editorExpanded = expandedEditor || alwaysExpandedEditor;
+  const maximized = editorExpanded && edit.isEditing;
 
   // The two ways an edit session ends. Both drop editedMeta, so the next session starts out
   // showing the store's saved front matter rather than a leftover override (see below).
@@ -292,8 +294,10 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
-      expandedEditor={expandedEditor}
-      onToggleExpandedEditor={handleToggleExpandedEditor}
+      expandedEditor={editorExpanded}
+      // Omitted when the editor is always expanded — the toggle would be a
+      // no-op, so the button is hidden rather than shown doing nothing.
+      onToggleExpandedEditor={alwaysExpandedEditor ? undefined : handleToggleExpandedEditor}
       showRewrite={!item?.reviewing && aiRewriteMode}
       onAiRewrite={handleAiRewrite}
       rewriteDisabled={edit.saving || isRewriting}

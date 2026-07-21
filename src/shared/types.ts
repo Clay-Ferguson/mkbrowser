@@ -296,6 +296,15 @@ export interface AppState {
   currentView: AppView;
 
   /**
+   * Name (not full path) of a single file to display on its own, in place of
+   * the folder listing, when the browser view is active. Null means show the
+   * normal listing. Always resolved against `currentPath`: the two are set
+   * together by `setBrowseFile`, and any change to `currentPath` clears this,
+   * so it can never name a file outside the folder being browsed.
+   */
+  browseFileName: string | null;
+
+  /**
    * Full file path to scroll into view after navigation completes.
    * Set when navigating from search results, cleared after scrolling.
    */

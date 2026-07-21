@@ -33,7 +33,7 @@ type TextEntryProps = BaseEntryProps;
  * in-place diff review (CodeMirror's unified merge view) via its `reviewText` prop.
  */
 function TextEntry(props: TextEntryProps) {
-  const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
+  const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false, alwaysExpandedEditor = false } = props;
   const item = useAS(s => s.items.get(entry.path));
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
@@ -51,7 +51,9 @@ function TextEntry(props: TextEntryProps) {
   const expandedEditor = useAS(s => s.settings.expandedEditor);
   // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
   // content area, and editor all become nested flex columns (BrowseView flexes the outer chain).
-  const maximized = expandedEditor && edit.isEditing;
+  // `alwaysExpandedEditor` forces this on for callers that give the entry the whole pane.
+  const editorExpanded = expandedEditor || alwaysExpandedEditor;
+  const maximized = editorExpanded && edit.isEditing;
 
   // Only exit edit mode on Escape when the content is unmodified; if the user has typed
   // something, Escape is passed through to CodeMirror (e.g. to dismiss autocomplete).
@@ -81,8 +83,10 @@ function TextEntry(props: TextEntryProps) {
 
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
-      expandedEditor={expandedEditor}
-      onToggleExpandedEditor={handleToggleExpandedEditor}
+      expandedEditor={editorExpanded}
+      // Omitted when the editor is always expanded — the toggle would be a
+      // no-op, so the button is hidden rather than shown doing nothing.
+      onToggleExpandedEditor={alwaysExpandedEditor ? undefined : handleToggleExpandedEditor}
       showRewrite={!item?.reviewing && aiRewriteMode}
       onAiRewrite={aiRewrite}
       rewriteDisabled={edit.saving || isRewriting}

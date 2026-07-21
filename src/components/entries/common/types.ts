@@ -25,6 +25,13 @@ export interface BaseEntryProps {
   isAttachment?: boolean;
   /** When true, the folder is in document mode (.INDEX.yaml exists); used to suppress timestamp-generated file names */
   documentMode?: boolean;
+  /**
+   * Editable entries only (Markdown/Text). Forces the editor to open maximized
+   * regardless of the global `expandedEditor` setting, and hides the
+   * expand/collapse toggle. Used by BrowseFile, where the entry already owns
+   * the whole pane so a non-expanded editor would just waste it.
+   */
+  alwaysExpandedEditor?: boolean;
 }
 
 /**
