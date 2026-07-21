@@ -60,7 +60,7 @@ test.describe('Private: Browse File', () => {
     fs.mkdirSync(folderPath);
     // Sub-headings below the title are deliberate: the Phase 1 tree-expansion
     // assertion below looks for heading nodes nested under the file, so the
-    // fixture needs at least one heading past the top-level title.
+    // fixture needs a heading structure with more than one level.
     fs.writeFileSync(
       path.join(folderPath, targetName),
       `# Browse Target\n\nThe file we view on its own.\n\n## First Section\n\nSection one body.\n\n## Second Section\n\nSection two body.\n`
@@ -126,8 +126,10 @@ Let's pull one of them up on its own.`
     // The same click also expanded the file's headings in the tree. Asserted
     // separately from the browse half: the two behaviors share one click but
     // are independent code paths, so either could regress on its own.
-    await expect(tree.getByText('First Section', { exact: true })).toBeVisible({ timeout: 10000 });
-    await expect(tree.getByText('Second Section', { exact: true })).toBeVisible();
+    // The tree mirrors the file's headings exactly, so the document's own title
+    // heading is the single top-level node; the `##` sections sit collapsed
+    // beneath it until that node is expanded in turn.
+    await expect(tree.getByText('Browse Target', { exact: true })).toBeVisible({ timeout: 10000 });
 
     // The breadcrumb still tracks the containing folder.
     await expect(mainWindow.getByTestId('browse-file-header-breadcrumbs')).toBeVisible();

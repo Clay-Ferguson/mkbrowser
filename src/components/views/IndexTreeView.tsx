@@ -551,12 +551,17 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const handleNarrowTree = () => void saveTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
   const handleWidenTree = () => void saveTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
 
+  /**
+   * Opens a bookmark. A bookmarked file opens in single-file browsing (same as
+   * clicking it in the tree) — a bookmark names one specific document, so
+   * showing it alone is what the click meant; no scroll-to-file is needed since
+   * it is the only thing on screen. A bookmarked folder browses its listing.
+   */
   const handleBookmarkNavigate = (fullPath: string) => {
     const lastName = getFileName(fullPath);
     if (lastName.includes('.')) {
-      const folderPath = getParentPath(fullPath);
       setHighlightItem(fullPath);
-      navigateToBrowserPath(folderPath, fullPath);
+      setBrowseFile(getParentPath(fullPath), lastName);
     } else {
       navigateToBrowserPath(fullPath);
     }

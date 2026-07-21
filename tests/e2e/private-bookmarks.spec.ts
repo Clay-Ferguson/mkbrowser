@@ -222,17 +222,31 @@ They're sorted alphabetically by their display name, so you can always find them
 
     await demoClick(fileBookmarkItem);
 
-    // The app navigates back to the root folder where the file lives.
-    await expect(mainContent.getByText(fileName).first()).toBeVisible({ timeout: 10000 });
-    await expect(mainContent.getByText(insideFileName)).not.toBeVisible();
+    // A bookmarked *file* opens in single-file browsing, so BrowseView (and its
+    // 'browser-main-content') is swapped out for BrowseFile entirely — assert
+    // against the single-file pane, not `mainContent`.
+    const singleFile = mainWindow.getByTestId('browse-file-main-content');
+    await expect(singleFile.getByText(fileName).first()).toBeVisible({ timeout: 10000 });
+    // The sibling file in the other folder is not merely off-screen: nothing
+    // but the bookmarked file is rendered in this mode.
+    await expect(singleFile.getByText(insideFileName)).toHaveCount(0);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'navigated-via-bookmark');
     writeNarration(
       screenshotDir,
       step++,
-      `In one click, the app jumped back out to the folder containing our bookmarked file.
-Bookmarks are a fast way to teleport around your workspace.`
+      `In one click, the app opened our bookmarked file on its own, with nothing else competing for the view.
+Bookmarks are a fast way to teleport around your workspace. Click any breadcrumb above the file to return to the folder listing.`
     );
+
+    // Back to the folder listing — the remaining steps drive the file's entry
+    // action bar, which is scoped to BrowseView's `mainContent`. The home
+    // button is the exit from single-file mode and lands on the root, which is
+    // where the bookmarked file lives.
+    await demoClick(
+      mainWindow.getByTestId('browse-file-header-breadcrumbs').getByTestId('breadcrumb-home-button')
+    );
+    await expect(mainContent.getByText(fileName).first()).toBeVisible({ timeout: 10000 });
 
     // --- Rename the folder bookmark from the menu ---
     await demoClick(bookmarksMenuButton);
