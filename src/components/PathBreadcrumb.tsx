@@ -108,7 +108,6 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
       )}
 
       {parts.map((part, index) => {
-        const isLast = index === parts.length - 1;
         const segmentPath = buildPathForIndex(index);
         const isDragOver = dragOverPath === segmentPath;
         return (

@@ -58,11 +58,9 @@ test.describe('Private: Browse File', () => {
     const siblingName = 'my-browse-sibling.md';
     fs.rmSync(folderPath, { recursive: true, force: true });
     fs.mkdirSync(folderPath);
-    // Sub-headings below the title are deliberate: extractHeadingTree runs the
-    // content through sanitizeForTOC, which skips the FIRST heading as the
-    // document title (it would just repeat the filename). A file whose only
-    // heading is its title therefore yields an empty heading tree — so the
-    // Phase 1 tree-expansion assertion needs at least one heading past the top.
+    // Sub-headings below the title are deliberate: the Phase 1 tree-expansion
+    // assertion below looks for heading nodes nested under the file, so the
+    // fixture needs at least one heading past the top-level title.
     fs.writeFileSync(
       path.join(folderPath, targetName),
       `# Browse Target\n\nThe file we view on its own.\n\n## First Section\n\nSection one body.\n\n## Second Section\n\nSection two body.\n`

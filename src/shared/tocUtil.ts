@@ -150,13 +150,6 @@ function sanitizeForTOC(content: string): string {
 
   for (let i = 0; i < body.length; i++) {
     const line = body[i]!;
-
-    // The table of contents always looks best when the first heading is skipped,
-    // because it would be a repeat of what is already right at the top of the page
-    // and will normally be the title for the entire document also, which makes no
-    // sense to put in the table of contents.
-    if (i === 0 && line.text && line.text.trim().startsWith('#')) continue;
-
     out.push(line.code ? '' : line.text);
   }
 
