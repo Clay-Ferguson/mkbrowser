@@ -47,12 +47,17 @@ export function isMarkdownFile(fileName: string): boolean {
   return fileName.toLowerCase().endsWith('.md');
 }
 
+/** Returns true if the file has a `.pdf` extension. */
+export function isPdfFile(fileName: string): boolean {
+  return getExtension(fileName) === '.pdf';
+}
+
 /** Returns the syntax-highlight language for a text file, defaulting to `'text'`. */
 export function getTextFileLanguage(fileName: string): TextFileLanguage {
   return TEXT_FILE_LANGUAGES[getExtension(fileName)] ?? 'text';
 }
 
-export type FileIconType = 'markdown' | 'text' | 'image' | 'generic';
+export type FileIconType = 'markdown' | 'text' | 'image' | 'pdf' | 'generic';
 
 /** Returns the icon category for a file based on its extension. */
 export function getIconForFileExtension(fileName: string): FileIconType {
@@ -60,6 +65,7 @@ export function getIconForFileExtension(fileName: string): FileIconType {
   if (ext === '.md') return 'markdown';
   if (ext in TEXT_FILE_LANGUAGES) return 'text';
   if (IMAGE_EXTENSIONS.has(ext)) return 'image';
+  if (ext === '.pdf') return 'pdf';
   return 'generic';
 }
 

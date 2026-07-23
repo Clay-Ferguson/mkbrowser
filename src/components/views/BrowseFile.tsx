@@ -5,13 +5,14 @@ import MarkdownEntry from '../entries/MarkdownEntry';
 import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
+import PDFEntry from '../entries/PDFEntry';
 import PathBreadcrumb from '../PathBreadcrumb';
 import {
   setCurrentPath,
   setItemExpanded,
   useAS,
 } from '../../store';
-import { isImageFile, isTextFile } from '../../shared/fileTypes';
+import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
 
 /**
@@ -73,7 +74,7 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
   // would otherwise cap itself at ~60% of the scroll area (a sensible limit for a row in
   // the folder listing, wasted space for the one file that owns this view). Markdown keeps
   // its natural, page-scrolled height unless it is being edited.
-  const fillsPane = !!entry && !entry.isMarkdown && !isImageFile(entry.name) && isTextFile(entry.name);
+  const fillsPane = !!entry && !entry.isMarkdown && !isImageFile(entry.name) && (isTextFile(entry.name) || isPdfFile(entry.name));
   const flexPane = expandedEditing || fillsPane;
 
   // Show the content immediately — a single-file view whose one entry sits
@@ -144,6 +145,8 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
                 <ImageEntry entry={entry} allImages={[entry]} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
               ) : isTextFile(entry.name) ? (
                 <TextEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} alwaysExpandedEditor />
+              ) : isPdfFile(entry.name) ? (
+                <PDFEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
               ) : (
                 <GenericEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
               )}

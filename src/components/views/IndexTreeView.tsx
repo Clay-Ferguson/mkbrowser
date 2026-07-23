@@ -89,6 +89,7 @@ function renderFileIcon(iconType: FileIconType) {
     case 'markdown': return <DocumentTextIcon className="w-5 h-5 text-blue-400 shrink-0" />;
     case 'text':     return <DocumentTextIcon className="w-5 h-5 text-emerald-400 shrink-0" />;
     case 'image':    return <PhotoIcon className="w-5 h-5 text-green-500 shrink-0" />;
+    case 'pdf':      return <DocumentTextIcon className="w-5 h-5 text-red-400 shrink-0" />;
     default:         return <DocumentIcon className="w-5 h-5 text-slate-300 shrink-0" />;
   }
 }

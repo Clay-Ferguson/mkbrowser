@@ -12,6 +12,7 @@ import MarkdownEntry from '../entries/MarkdownEntry';
 import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
+import PDFEntry from '../entries/PDFEntry';
 import ToolsPopupMenu from '../menus/ToolsPopupMenu';
 import EditPopupMenu from '../menus/EditPopupMenu';
 import SearchPopupMenu from '../menus/SearchPopupMenu';
@@ -62,7 +63,7 @@ import {
   type SearchDefinition,
 } from '../../store';
 import { scrollItemIntoView, scrollElementIntoView } from '../../renderer/entryDom';
-import { isImageFile, isTextFile, sortEntries } from '../../shared/fileTypes';
+import { isImageFile, isTextFile, isPdfFile, sortEntries } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { hasHumanMd } from '../../shared/ai/aiPatterns';
@@ -132,6 +133,8 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
             <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
           ) : isTextFile(entry.name) ? (
             <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+          ) : isPdfFile(entry.name) ? (
+            <PDFEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
           ) : (
             <GenericEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
           )}
@@ -1192,6 +1195,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                       <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                     ) : isTextFile(entry.name) ? (
                       <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                    ) : isPdfFile(entry.name) ? (
+                      <PDFEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                     ) : (
                       <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                     )}

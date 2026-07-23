@@ -85,6 +85,12 @@ const createWindow = () => {
       // un-sandbox the renderer. The preload is contextBridge-only, so it
       // runs fine sandboxed.
       sandbox: true,
+      // Enable Chromium's built-in PDFium viewer so PDFs render inside an
+      // <embed type="application/pdf"> (see PdfViewer.tsx) instead of being
+      // downloaded. Modern Chromium exposes only the PDF viewer here — legacy
+      // NPAPI/Flash plugins are gone — so this is limited to PDF display and is
+      // compatible with the sandbox/contextIsolation settings above.
+      plugins: true,
     },
   });
 
