@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { api } from '../../../renderer/api';
+import { getParentPath, getFileName, joinPath } from '../../../renderer/pathUtil';
 import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../renderer/styles';
-import { toggleBookmark, addBookmark, toggleItemExpanded, setCurrentView, useAS, setPendingIndexTreeReveal, setHighlightItem } from '../../../store';
+import { toggleBookmark, addBookmark, toggleItemExpanded, setCurrentView, useAS, setPendingIndexTreeReveal, setHighlightItem, setBrowseFile } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 
 interface EntryActionBarProps {
@@ -59,7 +60,13 @@ export function EntryActionBar({
   isFolder = false,
 }: EntryActionBarProps) {
   const settings = useAS(s => s.settings);
+  const browseFileName = useAS(s => s.browseFileName);
+  const currentPath = useAS(s => s.currentPath);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
+
+  // In single-file browsing mode this exact file is already the one on screen,
+  // so the "View File" button would be a no-op — hide it.
+  const isViewingThisFile = browseFileName !== null && joinPath(currentPath, browseFileName) === path;
 
   // Removing a bookmark is immediate; adding one opens a dialog so the user can give it a name.
   const handleBookmarkClick = (e: React.MouseEvent) => {
@@ -85,6 +92,14 @@ export function EntryActionBar({
   const handleOpenExternal = (e: React.MouseEvent) => {
     e.stopPropagation();
     void api.openExternal(path);
+  };
+
+  // Switch to single-file browsing of this file — the same effect as clicking
+  // the file's row in the index tree (see IndexTreeView's handleNodeClick).
+  const handleViewFile = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHighlightItem(path);
+    setBrowseFile(getParentPath(path), getFileName(path));
   };
 
   return (
@@ -118,6 +133,17 @@ export function EntryActionBar({
       >
         <ArrowTopRightOnSquareIcon className="w-5 h-5" />
       </button>
+      {!isViewingThisFile && (
+        <button
+          type="button"
+          onClick={handleViewFile}
+          className={BUTTON_CLASS_BLUE}
+          title="View File"
+          data-testid="entry-view-file-button"
+        >
+          <EyeIcon className="w-5 h-5" />
+        </button>
+      )}
       {!isAttachment && settings.indexTreeWidth !== 'hidden' && (
         <button
           type="button"
