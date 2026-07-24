@@ -355,6 +355,11 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
           </div>
         )}
 
+        {/* Hint */}
+        <div className="px-6 pt-3 text-center text-xs italic text-slate-400 flex-shrink-0">
+          Use Category &ldquo;ALL&rdquo; for non-mutually exclusive tags
+        </div>
+
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-600 flex-shrink-0">
           <div className="text-sm text-red-400">{saveError ?? ''}</div>
