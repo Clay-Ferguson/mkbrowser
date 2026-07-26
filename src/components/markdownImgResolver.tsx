@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { ExtraProps } from 'react-markdown';
 import { api } from '../renderer/api';
 import { logger } from '../shared/logUtil';
 import { decodeMarkdownUrl } from '../renderer/linkUtil';
 import { getParentPath, pathSep, splitPathSegments } from '../renderer/pathUtil';
+import FullscreenImageViewer from './entries/FullscreenImageViewer';
 
 /**
  * A successfully resolved local image: its absolute filesystem path plus its
@@ -147,9 +149,24 @@ async function resolveImagePath(entryPath: string, imageSrc: string): Promise<Re
 }
 
 /**
+ * Whether a mouseup on a rendered markdown image should open the fullscreen viewer:
+ * left button only, never for a linked image (following the link must win), and not
+ * when the user was drag-selecting text and happened to release over the image.
+ */
+function shouldOpenFullscreen(e: React.MouseEvent<HTMLImageElement>): boolean {
+  if (e.button !== 0) return false;
+  if (e.currentTarget.closest('a')) return false;
+  if (window.getSelection()?.toString()) return false;
+  return true;
+}
+
+/**
  * Custom image component factory for rendering images in markdown.
  * Handles relative paths by resolving them from the markdown file's location,
  * with fallback to walking up the directory tree.
+ *
+ * Clicking a rendered image opens it in FullscreenImageViewer as a standalone
+ * image (no folder navigation — see BrowseContext there).
  */
 export function createCustomImage(entryPath: string) {
   // `node` is react-markdown's internal hast node; destructure it out so it isn't
@@ -158,6 +175,7 @@ export function createCustomImage(entryPath: string) {
     const [resolvedImg, setResolvedImg] = useState<{ src: string; width?: number; height?: number } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     useEffect(() => {
       let isMounted = true;
@@ -250,16 +268,45 @@ export function createCustomImage(entryPath: string) {
     // so later loads don't shift the content below (which would invalidate
     // scroll-to-heading positions).
     return (
-      <img
-        src={resolvedImg.src}
-        alt={alt}
-        width={resolvedImg.width}
-        height={resolvedImg.height}
-        {...props}
-        loading="lazy"
-        onError={() => setHasError(true)}
-        className="max-w-full h-auto"
-      />
+      <>
+        <img
+          src={resolvedImg.src}
+          alt={alt}
+          width={resolvedImg.width}
+          height={resolvedImg.height}
+          {...props}
+          loading="lazy"
+          onError={() => setHasError(true)}
+          // Opening on mouseup (not click) mirrors the block-click components and lets
+          // stopPropagation run before the surrounding block's own mouseup handler,
+          // which would otherwise open the markdown editor instead.
+          onMouseUp={(e) => {
+            if (!shouldOpenFullscreen(e)) return;
+            e.stopPropagation();
+            setIsFullscreen(true);
+          }}
+          title="Click to view fullscreen"
+          className="max-w-full h-auto cursor-zoom-in"
+        />
+        {/* Portaled to <body>: the overlay is a <div> and markdown images usually sit
+            inside a <p>, which cannot legally contain one.
+
+            The wrapper stops mouse events at the portal root. A portal's events still
+            propagate up the *React* tree, so without this every click inside the overlay
+            would also reach the enclosing block component and open the markdown editor
+            underneath. The overlay's own handlers run first (bubbling reaches them before
+            the wrapper), so closing and zooming still work. */}
+        {isFullscreen && createPortal(
+          <div onMouseUp={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+            <FullscreenImageViewer
+              src={resolvedImg.src}
+              name={alt || src || 'Image'}
+              onClose={() => setIsFullscreen(false)}
+            />
+          </div>,
+          document.body,
+        )}
+      </>
     );
   };
 }

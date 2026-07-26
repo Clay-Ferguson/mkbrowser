@@ -77,6 +77,9 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
   const fillsPane = !!entry && !entry.isMarkdown && !isImageFile(entry.name) && (isTextFile(entry.name) || isPdfFile(entry.name));
   const flexPane = expandedEditing || fillsPane;
 
+  // The folder's images, in listing order — the fullscreen viewer's navigation set.
+  const folderImages = entries.filter((e) => !e.isDirectory && isImageFile(e.name));
+
   // Show the content immediately — a single-file view whose one entry sits
   // collapsed would be a dead end.
   const entryPath = entry?.path;
@@ -140,9 +143,13 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
               {entry.isMarkdown ? (
                 <MarkdownEntry entry={entry} view="browser" onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} alwaysExpandedEditor />
               ) : isImageFile(entry.name) ? (
-                /* allImages drives only the fullscreen viewer's prev/next; with
-                   one file on screen the file itself is the whole set. */
-                <ImageEntry entry={entry} allImages={[entry]} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
+                /* allImages drives only the fullscreen viewer's prev/next. Only this one
+                   file is on screen, but the listing for currentPath is already loaded, so
+                   the folder's other images are available here — and passing them is what
+                   lets Left/Right walk the folder from the fullscreen view, exactly as it
+                   does from the folder listing. Passing just [entry] would make the arrow
+                   keys silently do nothing. */
+                <ImageEntry entry={entry} allImages={folderImages} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
               ) : isTextFile(entry.name) ? (
                 <TextEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} alwaysExpandedEditor />
               ) : isPdfFile(entry.name) ? (

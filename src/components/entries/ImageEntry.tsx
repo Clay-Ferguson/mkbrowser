@@ -143,12 +143,16 @@ function ImageEntry(props: ImageEntryProps) {
 
       {isFullscreen && (
         <FullscreenImageViewer
-          entry={entry}
-          allImages={allImages}
+          src={imageUrl}
+          name={entry.name}
           onClose={() => setIsFullscreen(false)}
-          onDelete={onDelete}
-          onExifClick={handleExifClick}
-          exifLoading={exifLoading}
+          browse={{
+            path: entry.path,
+            allImages,
+            onDelete,
+            onExifClick: handleExifClick,
+            exifLoading,
+          }}
         />
       )}
 
