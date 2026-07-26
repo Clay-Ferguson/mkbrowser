@@ -5,6 +5,9 @@ import type { ContextMenuState } from './useEditorContextMenu';
 
 interface EditorContextMenuProps {
   contextMenu: ContextMenuState;
+  onSave: () => void;
+  /** Whether the Save item is shown — false in read-only views and during an AI review. */
+  canSave: boolean;
   onCut: () => void;
   onCopy: () => void;
   onPaste: () => void;
@@ -24,12 +27,15 @@ const VIEWPORT_MARGIN = 8;
 
 /**
  * Floating context menu for the CodeMirror editor. Renders at the right-click coordinates,
- * clamped so it stays fully within the viewport. Includes standard edit actions (cut/copy/paste,
- * select all), timestamp/date insertion, optional spell-check suggestions, and Markdown-only
- * items (Paste Link, calendar item creation). Closes on outside click, scroll, or Escape.
+ * clamped so it stays fully within the viewport. Includes Save (writes the file without
+ * leaving edit mode), standard edit actions (cut/copy/paste, select all), timestamp/date
+ * insertion, optional spell-check suggestions, and Markdown-only items (Paste Link, calendar
+ * item creation). Closes on outside click, scroll, or Escape.
  */
 export function EditorContextMenu({
   contextMenu,
+  onSave,
+  canSave,
   onCut,
   onCopy,
   onPaste,
@@ -104,6 +110,21 @@ export function EditorContextMenu({
       style={{ left: position.left, top: position.top }}
       onClick={(e) => e.stopPropagation()}
     >
+      {canSave && (
+        <>
+          <button
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={onSave}
+            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+            data-testid="editor-save"
+          >
+            Save
+          </button>
+          <div className="border-t border-slate-600 my-1" />
+        </>
+      )}
       {contextMenu.spelling && (
         <>
           <div className="px-4 py-1 text-xs text-red-400 font-medium">

@@ -21,6 +21,7 @@ interface UseEditorContextMenuProps {
   typoRef: React.RefObject<Typo | null>;
   fileName?: string;
   filePath?: string;
+  onSave?: () => void;
   onMakeCalendarItem?: () => void;
   onMakeRepeatingCalendarItem?: () => void;
 }
@@ -30,14 +31,14 @@ interface UseEditorContextMenuProps {
  *
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
- * top of the menu. Also exposes cut/copy/paste, select-all, timestamp/date insertion,
- * and — for Markdown files — "Paste Link" and calendar-item creation actions.
+ * top of the menu. Also exposes save-in-place, cut/copy/paste, select-all, timestamp/date
+ * insertion, and — for Markdown files — "Paste Link" and calendar-item creation actions.
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
- * `canPasteLink`, `calendarAlreadyExists`).
+ * `canPasteLink`, `canSave`, `calendarAlreadyExists`).
  */
-export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onSave, onMakeCalendarItem, onMakeRepeatingCalendarItem }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   const [calendarAlreadyExists, setCalendarAlreadyExists] = useState(false);
   const selectedLinkItems = useAS(s => s.selectedLinkItems);
@@ -188,6 +189,16 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
     view.focus();
   };
 
+  // "Save" — unlike Ctrl+S (save and exit), this writes the file and leaves the user in the
+  // editor. The menu is closed and focus handed back to the editor first, so the caller's save
+  // (and its green saved-flash) runs against an already-focused editor the user can keep typing in.
+  const handleSave = () => {
+    const view = viewRef.current;
+    closeContextMenu();
+    view?.focus();
+    onSave?.();
+  };
+
   const handleSelectAll = () => {
     const view = viewRef.current;
     if (!view) return;
@@ -304,6 +315,8 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onM
   return {
     contextMenu,
     handleContextMenu,
+    handleSave,
+    canSave: !!onSave,
     handleCut,
     handleCopy,
     handlePaste,

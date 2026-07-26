@@ -168,6 +168,13 @@ interface CodeMirrorEditorProps {
   onForceCancel?: () => void;
   /** Called when Ctrl-S is pressed — save and exit editing */
   onSave?: () => void;
+  /**
+   * Called by the context menu's "Save" — write the file but stay in edit mode. Resolving true
+   * plays the green saved-flash around the editor; resolving false (a failed write) plays
+   * nothing, so the flash only ever means "this is on disk". Omit it (read-only views) and the
+   * menu item is not shown.
+   */
+  onSaveKeepEditing?: () => Promise<boolean>;
   /** Called when the editor selection changes — reports whether text is selected */
   onSelectionChange?: (hasSelection: boolean) => void;
   /** Whether to show front matter (Properties) in the editor. Defaults to true. */
@@ -323,7 +330,7 @@ function applyPostMountFocus(
  * (value, fontSize, showPropsInEditor, reviewText) are applied through separate effects or
  * compartments so that undo history, cursor position, and the async spell checker are preserved.
  */
-function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady, fillHeight = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSaveKeepEditing, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady, fillHeight = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -360,6 +367,10 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   // Pixel cap for the editor height (some % of the surrounding scroll area). undefined means
   // no cap (no <main> ancestor, e.g. in unit tests) and the editor grows with its content.
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
+  // Bumped on every successful context-menu save. Used as the key of the saved-flash overlay,
+  // so each save mounts a fresh element and restarts the animation from the top — a second
+  // save while the previous flash is still playing re-triggers it instead of being swallowed.
+  const [saveFlashKey, setSaveFlashKey] = useState(0);
   const settings = useAS(s => s.settings);
 
   // Mount-time configuration, captured on first render. The mount effect below intentionally
@@ -400,8 +411,31 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   // own equivalent instance.
   useImperativeHandle(ref, () => createEditorHandle(viewRef), []);
 
+  // Renders the review button bar / amber border, and gates the context menu's Save. Derived
+  // from the prop (not reviewingRef) so it participates in React rendering; reviewingRef guards
+  // the handlers against the brief window where the prop is set but the effect hasn't entered
+  // (or has already exited) review.
+  const reviewing = reviewText !== null && reviewText !== undefined;
+
+  // Context-menu "Save": writes the file and leaves the user in the editor, flashing a green
+  // border on success. Saving mid-review would write the pre-review edit buffer while the user
+  // is looking at the proposal, so the item is hidden then — same rule as Ctrl-S.
+  const handleContextMenuSave = () => {
+    if (!onSaveKeepEditing) return;
+    // Deliver any pending onChange before saving, exactly as Ctrl-S does, or keystrokes from
+    // the last ONCHANGE_DEBOUNCE_MS would be missing from the content the save reads.
+    flushPendingOnChange(onChangeDebounceRef.current, onChangeRef.current);
+    void onSaveKeepEditing()
+      .then((saved) => {
+        if (saved) setSaveFlashKey(k => k + 1);
+      })
+      .catch((err: unknown) => logger.error('Failed to save file:', err));
+  };
+
   const {
     contextMenu,
+    handleSave,
+    canSave,
     handleContextMenu,
     handleCut,
     handleCopy,
@@ -417,7 +451,15 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     isMarkdown,
     calendarAlreadyExists,
     setCalendarAlreadyExists,
-  } = useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem });
+  } = useEditorContextMenu({
+    viewRef,
+    typoRef,
+    fileName,
+    filePath,
+    onSave: onSaveKeepEditing !== undefined && !reviewing ? handleContextMenuSave : undefined,
+    onMakeCalendarItem,
+    onMakeRepeatingCalendarItem,
+  });
 
   // Build the EditorView exactly once, on mount, from the mountConfigRef snapshot (see its
   // comment above for why first-render values are correct here). Rebuilding the whole view
@@ -810,11 +852,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     });
   }, [showPropsInEditor]);
 
-  // Renders the review button bar / amber border. Derived from the prop (not reviewingRef) so it
-  // participates in React rendering; reviewingRef guards the handlers against the brief window
-  // where the prop is set but the effect hasn't entered (or has already exited) review.
-  const reviewing = reviewText !== null && reviewText !== undefined;
-
   const handleReviewAcceptAll = () => {
     const view = viewRef.current;
     if (!view || !reviewingRef.current) return;
@@ -852,7 +889,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   return (
     <div
       ref={containerRef}
-      className={`w-full border ${reviewing ? 'border-amber-600' : 'border-slate-600 focus-within:border-blue-500'} overflow-hidden flex flex-col${fillHeight ? ' flex-1 min-h-0' : ''}`}
+      className={`relative w-full border ${reviewing ? 'border-amber-600' : 'border-slate-600 focus-within:border-blue-500'} overflow-hidden flex flex-col${fillHeight ? ' flex-1 min-h-0' : ''}`}
       style={
         fillHeight
           ? ({ '--cm-max-height': '100%', '--cm-height': '100%' } as CSSProperties)
@@ -896,8 +933,22 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         </div>
       )}
 
+      {/* Green "saved" flash after a context-menu Save. An overlay (rather than a class on the
+          container) keeps it out of the way of the container's own border classes, and being
+          keyed makes every save restart the animation. Removed once the animation ends. */}
+      {saveFlashKey > 0 && (
+        <div
+          key={saveFlashKey}
+          className="editor-save-flash pointer-events-none absolute inset-0 z-10"
+          onAnimationEnd={() => setSaveFlashKey(0)}
+          data-testid="editor-save-flash"
+        />
+      )}
+
       <EditorContextMenu
         contextMenu={contextMenu}
+        onSave={handleSave}
+        canSave={canSave}
         onCut={handleCut}
         onCopy={handleCopy}
         onPaste={handlePaste}

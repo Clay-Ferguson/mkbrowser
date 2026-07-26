@@ -163,6 +163,14 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     void edit.handleSave();
   };
 
+  // Context-menu Save (save without leaving the editor). Clears the calendar-dialog override
+  // for the same reason handleSaveEdit does: the save refreshes item.tags/props from the
+  // content that landed on disk, so the pills can go back to reading the store.
+  const handleSaveKeepEditing = (): Promise<boolean> => {
+    setEditedMeta(null);
+    return edit.handleSaveKeepEditing();
+  };
+
   // Only exit edit mode on Escape when the content is unmodified (comparing without TOC, since the
   // TOC block is stripped on edit entry). If the user has typed something, Escape falls through to
   // CodeMirror (e.g. to dismiss autocomplete).
@@ -517,6 +525,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                 onEscape={handleEscape}
                 onForceCancel={handleCancelEdit}
                 onSave={handleSaveEdit}
+                onSaveKeepEditing={handleSaveKeepEditing}
                 onSelectionChange={setHasSelection}
                 showPropsInEditor={showPropsInEditor || reviewing}
                 fillHeight={maximized}

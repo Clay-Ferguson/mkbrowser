@@ -153,6 +153,7 @@ function TextEntry(props: TextEntryProps) {
               onEscape={handleEscape}
               onForceCancel={edit.handleCancel}
               onSave={() => void edit.handleSave()}
+              onSaveKeepEditing={edit.handleSaveKeepEditing}
               onSelectionChange={setHasSelection}
               fillHeight={maximized}
               reviewText={item?.reviewing ? (item.rewrittenContent ?? null) : null}

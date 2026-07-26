@@ -116,4 +116,6 @@ export interface EditModeState {
   handleCancel: () => void;
   /** Save changes */
   handleSave: () => Promise<void>;
+  /** Save changes and stay in edit mode; resolves true when the write succeeded */
+  handleSaveKeepEditing: () => Promise<boolean>;
 }

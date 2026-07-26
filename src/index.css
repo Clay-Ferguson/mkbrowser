@@ -186,6 +186,24 @@ html[data-font-size="xlarge"] {
   --callout-icon: '🛑';
 }
 
+/* Green "saved" flash around the CodeMirror editor, played after the context menu's Save
+   (which saves without leaving edit mode, so the border is the only confirmation the user
+   gets). Drawn as an inset box-shadow on an absolutely-positioned overlay: it frames the
+   editor from the inside without touching the container's border, so nothing reflows and
+   no text is covered. CodeMirrorEditor mounts the overlay with a fresh key per save, which
+   is what restarts the animation. */
+@keyframes editor-save-flash {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  65% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.editor-save-flash {
+  box-shadow: inset 0 0 0 3px #22c55e; /* green-500 */
+  animation: editor-save-flash 1.1s ease-out forwards;
+}
+
 ::highlight(global-search) {
   background-color: yellow;
   color: black;

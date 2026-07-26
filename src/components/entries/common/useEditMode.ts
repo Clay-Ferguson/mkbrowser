@@ -45,6 +45,39 @@ async function writeFileAndExitEditMode(path: string, editContent: string): Prom
 }
 
 /**
+ * Writes the file and stays in edit mode — backs the editor context menu's "Save" item,
+ * which lets the user checkpoint their work and keep typing. Commits the saved content to
+ * the store exactly like writeFileAndExitEditMode (the mtime/size/createdTime stamping
+ * matters just as much here) but leaves `editing` — and the edit buffer — alone.
+ *
+ * The edit buffer is re-seeded from what actually landed on disk because the main process
+ * can rewrite the content it saves (TOC regeneration, injecting a Document Mode `id` into
+ * the front matter); without this the buffer would drift from the file, and the next
+ * Escape-if-unmodified check would compare against — and a later save would re-write —
+ * stale text. In the common case the saved content matches the buffer, so nothing is
+ * dispatched into the editor at all.
+ *
+ * Resolves true only when the write succeeded, so callers can show saved-confirmation
+ * feedback. Module-level (not in the hook) so its try/catch doesn't make the React
+ * Compiler bail out on useEditMode.
+ */
+async function writeFileKeepEditing(path: string, editContent: string): Promise<boolean> {
+  try {
+    const result = await api.writeFile(path, editContent);
+    if (!result.ok) return false;
+    setItemContent(path, result.content, result.mtime, result.size, result.createdTime);
+    const savedBuffer = removeTOC(result.content);
+    if (savedBuffer !== editContent) {
+      setItemEditContent(path, savedBuffer);
+    }
+    return true;
+  } catch (err) {
+    logger.error('Failed to save file:', err);
+    return false;
+  }
+}
+
+/**
  * Hook that handles edit mode logic for file Entry components.
  * Provides state and handlers for the code editor.
  *
@@ -126,6 +159,16 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     await writeFileAndExitEditMode(path, latest).finally(() => setSaving(false));
   };
 
+  // Save without leaving the editor (context menu "Save"). Reads the edit buffer from the
+  // store at call time for the same reason handleSave does — the editor flushes its
+  // debounced onChange right before invoking this, so the store is current but this
+  // component has not re-rendered yet.
+  const handleSaveKeepEditing = async (): Promise<boolean> => {
+    setSaving(true);
+    const latest = useAS.getState().items.get(path)?.editContent ?? editContent;
+    return await writeFileKeepEditing(path, latest).finally(() => setSaving(false));
+  };
+
   return {
     isEditing,
     editContent,
@@ -134,5 +177,6 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     handleEditClick,
     handleCancel,
     handleSave,
+    handleSaveKeepEditing,
   };
 }
