@@ -18,6 +18,7 @@ import {
   parseDueStr,
   coerceDueDate,
   formatDueDate,
+  isCalendarFrontMatter,
 } from '../src/shared/calendarUtil';
 import { parseFrontMatter } from '../src/shared/frontMatterUtil';
 
@@ -1204,5 +1205,36 @@ describe('front-matter parsing — write/read round-trip agreement', () => {
     const [ev] = await loadCalendarEntryForFile(f('round-trip.md'));
     expect(ev.start).toBe(new Date(2026, 5, 15, 14, 0, 0, 0).getTime());
     expect(ev.end).toBe(ev.start + 2 * 60 * 60 * 1000);
+  });
+});
+
+describe('isCalendarFrontMatter — the boolean form of the loader admission rule', () => {
+  // Each case is [description, front-matter block]. The loader (which parses,
+  // warns, and expands) and the predicate (which only answers yes/no, and is what
+  // the Search dialog's "Calendar Items" option uses) must agree on every one
+  // of them — that agreement is the whole point of sharing coerceDueDate.
+  const cases: [string, string][] = [
+    ['M/D/YYYY due', '---\ndue: 6/15/2026\n---\nBody.\n'],
+    ['M/D/YY due', '---\ndue: 6/15/26\n---\nBody.\n'],
+    ['ISO due', '---\ndue: 2026-06-15\n---\nBody.\n'],
+    ['due with a start time', '---\ndue: 6/15/2026\nstart: "2:00 PM"\n---\nBody.\n'],
+    ['empty due', '---\ndue:\n---\nBody.\n'],
+    ['no due key', '---\ntags: notes\n---\nBody.\n'],
+    ['unparseable due', '---\ndue: someday\n---\nBody.\n'],
+    ['numeric due', '---\ndue: 42\n---\nBody.\n'],
+    ['no front matter', 'Just a body.\n'],
+  ];
+
+  it.each(cases)('agrees with loadCalendarEntryForFile for %s', async (_name, content) => {
+    write('agreement.md', content);
+    const events = await loadCalendarEntryForFile(f('agreement.md'));
+    const { yaml } = parseFrontMatter(content);
+    expect(isCalendarFrontMatter(yaml)).toBe(events.length > 0);
+  });
+
+  it('returns false for absent front matter', () => {
+    expect(isCalendarFrontMatter(null)).toBe(false);
+    expect(isCalendarFrontMatter(undefined)).toBe(false);
+    expect(isCalendarFrontMatter({})).toBe(false);
   });
 });

@@ -119,6 +119,7 @@ const SearchDefinitionSchema = z
     sortDirection: z.enum(['asc', 'desc']).catch('desc'),
     searchImageExif: z.boolean().optional(),
     mostRecent: z.boolean().optional(),
+    calendarItemsOnly: z.boolean().optional(),
   })
   .loose();
 

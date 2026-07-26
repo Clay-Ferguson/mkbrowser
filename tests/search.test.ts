@@ -1340,3 +1340,140 @@ describe('result cap', () => {
     expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// calendarItemsOnly filter — restrict the search to calendar files
+// (markdown whose front matter has a parseable `due:`), applied before
+// the mostRecent trim.
+// ═══════════════════════════════════════════════════════════════════
+describe('calendarItemsOnly filter', () => {
+  let dir: string;
+
+  /** Basenames of the results, sorted, for order-independent comparison. */
+  const names = (results: { path: string }[]): string[] =>
+    results.map(r => path.basename(r.path)).sort();
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-calendar-only-'));
+    const write = (name: string, body: string) =>
+      fs.writeFileSync(path.join(dir, name), body, 'utf-8');
+
+    // The two genuine calendar files — the M/D/YYYY and ISO due spellings.
+    write('cal-slash.md', '---\ndue: 5/20/2026\n---\n\nCAL_MARKER apple\n');
+    write('cal-iso.md', '---\ndue: 2026-05-21\n---\n\nCAL_MARKER banana\n');
+    // Every remaining file contains CAL_MARKER but is NOT a calendar file:
+    write('empty-due.md', '---\ndue:\n---\n\nCAL_MARKER\n');          // due: null
+    write('no-due.md', '---\ntags: notes\n---\n\nCAL_MARKER\n');      // due absent
+    write('bad-due.md', '---\ndue: someday\n---\n\nCAL_MARKER\n');    // unparseable due
+    write('plain.md', 'CAL_MARKER no front matter\n');
+    write('notes.txt', '---\ndue: 5/20/2026\n---\n\nCAL_MARKER\n');   // not markdown
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('keeps only markdown files with a parseable due (control: all match without it)', async () => {
+    const unfiltered = await searchFolder(dir, 'CAL_MARKER', 'literal', 'content', [], false, false, false);
+    expect(names(unfiltered)).toEqual([
+      'bad-due.md', 'cal-iso.md', 'cal-slash.md', 'empty-due.md', 'no-due.md', 'notes.txt', 'plain.md',
+    ]);
+
+    const filtered = await searchFolder(dir, 'CAL_MARKER', 'literal', 'content', [], false, false, true);
+    expect(names(filtered)).toEqual(['cal-iso.md', 'cal-slash.md']);
+  });
+
+  it('still applies the query on top of the calendar filter', async () => {
+    const results = await searchFolder(dir, 'apple', 'literal', 'content', [], false, false, true);
+    expect(names(results)).toEqual(['cal-slash.md']);
+  });
+
+  it('returns every calendar file for an empty query', async () => {
+    const results = await searchFolder(dir, '', 'literal', 'content', [], false, false, true);
+    expect(names(results)).toEqual(['cal-iso.md', 'cal-slash.md']);
+  });
+
+  it('works with wildcard and advanced queries', async () => {
+    const wildcard = await searchFolder(dir, 'CAL*banana', 'wildcard', 'content', [], false, false, true);
+    expect(names(wildcard)).toEqual(['cal-iso.md']);
+
+    // prop() reads the front matter the calendar pre-pass already parsed and
+    // cached, so this also covers the shared YamlCache staying valid.
+    const advanced = await searchFolder(dir, "$('CAL_MARKER') && !!prop('due')", 'advanced', 'content', [], false, false, true);
+    expect(names(advanced)).toEqual(['cal-iso.md', 'cal-slash.md']);
+  });
+
+  it('excludes images even when searchImageExif is enabled', async () => {
+    // searchImageExif normally widens the candidate set; calendarItemsOnly keeps
+    // it markdown-only (an image can never carry front matter).
+    const results = await searchFolder(dir, 'CAL_MARKER', 'literal', 'content', [], true, false, true);
+    expect(names(results)).toEqual(['cal-iso.md', 'cal-slash.md']);
+  });
+
+  it('is ignored in filenames mode', async () => {
+    // Front matter says nothing about a file *name*, so the flag does not apply —
+    // plain.md (not a calendar file) must still be found.
+    const results = await searchFolder(dir, 'plain', 'literal', 'filenames', [], false, false, true);
+    expect(names(results)).toEqual(['plain.md']);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// calendarItemsOnly + mostRecent — the calendar filter runs FIRST, so the
+// result is the newest calendar items, not the calendar subset of the
+// newest files.
+// ═══════════════════════════════════════════════════════════════════
+describe('calendarItemsOnly combined with mostRecent', () => {
+  const EXTRA = 5;
+  const CAL_TOTAL = MOST_RECENT_LIMIT + EXTRA;
+  const NEWER_NON_CALENDAR = 10;
+  let dir: string;
+
+  /** Zero-padded index parsed back out of a result path's basename. */
+  const indexOf = (p: string): number =>
+    parseInt(path.basename(p).replace(/\D/g, ''), 10);
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-calendar-recent-'));
+    const base = new Date('2026-01-01T00:00:00Z').getTime();
+    // Calendar files, mtime increasing with index (index 0 oldest).
+    for (let i = 0; i < CAL_TOTAL; i++) {
+      const fp = path.join(dir, `cal-${String(i).padStart(4, '0')}.md`);
+      fs.writeFileSync(fp, '---\ndue: 5/20/2026\n---\n\nRECENT_MARKER\n', 'utf-8');
+      const when = new Date(base + i * 1000);
+      fs.utimesSync(fp, when, when);
+    }
+    // Non-calendar files that are NEWER than every calendar file. If the
+    // mostRecent trim ran first these would consume the whole 500-file budget
+    // and the search would return (almost) nothing.
+    for (let i = 0; i < NEWER_NON_CALENDAR; i++) {
+      const fp = path.join(dir, `other-${String(i).padStart(4, '0')}.md`);
+      fs.writeFileSync(fp, 'RECENT_MARKER no front matter\n', 'utf-8');
+      const when = new Date(base + (CAL_TOTAL + i) * 1000);
+      fs.utimesSync(fp, when, when);
+    }
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('returns the newest MOST_RECENT_LIMIT calendar files, ignoring newer non-calendar files', async () => {
+    const results = await searchFolder(dir, 'RECENT_MARKER', 'literal', 'content', [], false, true, true);
+
+    expect(results).toHaveLength(MOST_RECENT_LIMIT);
+    for (const r of results) {
+      expect(path.basename(r.path).startsWith('cal-')).toBe(true);
+      // The EXTRA oldest calendar files (indices 0-4) are the ones dropped.
+      expect(indexOf(r.path)).toBeGreaterThanOrEqual(EXTRA);
+    }
+  });
+
+  it('populates time metadata from the calendar pre-pass stats', async () => {
+    const results = await searchFolder(dir, '', 'literal', 'content', [], false, true, true);
+    for (const r of results) {
+      expect(typeof r.modifiedTime).toBe('number');
+      expect(typeof r.createdTime).toBe('number');
+    }
+  });
+});

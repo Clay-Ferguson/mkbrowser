@@ -147,6 +147,41 @@ describe('parseConfigYaml — settings tolerance', () => {
     expect((cfg?.settings as Record<string, unknown> | undefined)?.futureSetting).toBe(true);
   });
 
+  it('keeps a searchDefinition saved before calendarItemsOnly existed', () => {
+    // Legacy definitions have no calendarItemsOnly key at all. The field is
+    // optional, so the element must survive untouched and read back as
+    // undefined (which every consumer treats as false).
+    const legacy = {
+      name: 'legacy',
+      searchText: 'foo',
+      searchTarget: 'content',
+      searchMode: 'literal',
+      sortBy: 'modified-time',
+      sortDirection: 'desc',
+      searchImageExif: false,
+      mostRecent: false,
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [legacy] } });
+    expect(cfg?.settings?.searchDefinitions).toEqual([legacy]);
+    expect(cfg?.settings?.searchDefinitions?.[0]?.calendarItemsOnly).toBeUndefined();
+  });
+
+  it('round-trips a searchDefinition with calendarItemsOnly set', () => {
+    const def = {
+      name: 'cal',
+      searchText: 'standup',
+      searchTarget: 'content',
+      searchMode: 'literal',
+      sortBy: 'modified-time',
+      sortDirection: 'desc',
+      searchImageExif: false,
+      mostRecent: true,
+      calendarItemsOnly: true,
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
+    expect(cfg?.settings?.searchDefinitions?.[0]).toEqual(def);
+  });
+
   it('preserves unknown forward-compat keys on a searchDefinition (loose element schema)', () => {
     const def = {
       name: 'X',

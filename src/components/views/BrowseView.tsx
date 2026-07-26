@@ -721,6 +721,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           sortDirection: options.sortDirection,
           searchImageExif: options.searchImageExif,
           mostRecent: options.mostRecent,
+          calendarItemsOnly: options.calendarItemsOnly,
         };
         await saveSearchDefinitionToConfig(definition);
       }
@@ -728,7 +729,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       // Decode {{nl}} tokens back to spaces for actual search execution
       const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
 
-      const results = await api.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchImageExif, options.mostRecent);
+      const results = await api.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchImageExif, options.mostRecent, options.calendarItemsOnly);
       setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection, options.searchName || '');
       setCurrentView('search-results');
     }, 'Search failed: ', onSetError);
@@ -769,6 +770,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       sortDirection: options.sortDirection,
       searchImageExif: options.searchImageExif,
       mostRecent: options.mostRecent,
+      calendarItemsOnly: options.calendarItemsOnly,
     };
     runOp(async () => {
       await saveSearchDefinitionToConfig(definition);
@@ -829,7 +831,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         definition.searchMode,
         definition.searchTarget,
         definition.searchImageExif,
-        definition.mostRecent
+        definition.mostRecent,
+        definition.calendarItemsOnly
       );
       setSearchResults(results, definition.searchText, currentPath, definition.sortBy, definition.sortDirection, definition.name);
       setCurrentView('search-results');
@@ -846,6 +849,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       sortBy: definition.sortBy,
       sortDirection: definition.sortDirection,
       searchImageExif: definition.searchImageExif,
+      mostRecent: definition.mostRecent,
+      calendarItemsOnly: definition.calendarItemsOnly,
     });
     setShowSearchDialog(true);
   };

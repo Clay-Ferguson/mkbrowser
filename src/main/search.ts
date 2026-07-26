@@ -13,6 +13,7 @@ import { parseDateString, past, future, today } from '../shared/timeUtil';
 import { createContentSearcher } from '../shared/searchHelpers';
 import { compileAdvancedQuery, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
+import { isCalendarFrontMatter } from '../shared/calendarUtil';
 import { escapeRegexExceptWildcard, buildExcludePredicate } from '../shared/pathPattern';
 import { mapWithConcurrency } from '../shared/asyncUtil';
 import { logger } from '../shared/logUtil';
@@ -258,15 +259,13 @@ type StatTimes = { mtimeMs: number; birthtimeMs: number; size: number };
 type StatEntry = { path: string } & StatTimes;
 
 /**
- * Filter an array of file paths to the N most recently modified.
- * Stats all files (with bounded concurrency), sorts by mtime descending, and
- * returns the top MOST_RECENT_LIMIT. The captured stat times are returned with
- * each path so callers can reuse them (see buildResult's cachedStat) instead of
- * stat'ing the same files a second time.
+ * Stat every path (with bounded concurrency), dropping the ones that can't be
+ * stat'd. The captured times are returned with each path so callers can reuse
+ * them (see buildResult's cachedStat) instead of stat'ing the same files again.
  */
-async function filterMostRecent(filePaths: string[]): Promise<StatEntry[]> {
+async function statEntries(filePaths: string[]): Promise<StatEntry[]> {
   // mapWithConcurrency bounds the concurrent stat() calls (it preserves input
-  // order, though that's irrelevant here since we re-sort by mtime below).
+  // order, which callers that re-sort by mtime don't rely on).
   const stats = await mapWithConcurrency(
     filePaths,
     SEARCH_FILE_CONCURRENCY,
@@ -282,9 +281,71 @@ async function filterMostRecent(filePaths: string[]): Promise<StatEntry[]> {
       }
     },
   );
-  const entries = stats.filter((s): s is StatEntry => s !== null);
-  entries.sort((a, b) => b.mtimeMs - a.mtimeMs);
-  return entries.slice(0, MOST_RECENT_LIMIT);
+  return stats.filter((s): s is StatEntry => s !== null);
+}
+
+/** Sort already-stat'd entries newest-first and keep the top MOST_RECENT_LIMIT.
+ * Split out from filterMostRecent so a candidate set that has *already* been
+ * stat'd (the calendar pre-pass below) can be trimmed without a second stat. */
+function takeMostRecent(entries: StatEntry[]): StatEntry[] {
+  // Copy before sorting: the caller's array is its own candidate list, and the
+  // pre-pass ordering shouldn't be clobbered as a side effect of trimming.
+  return [...entries].sort((a, b) => b.mtimeMs - a.mtimeMs).slice(0, MOST_RECENT_LIMIT);
+}
+
+/**
+ * Filter an array of file paths to the MOST_RECENT_LIMIT most recently modified,
+ * carrying each one's captured stat times along for buildResult to reuse.
+ */
+async function filterMostRecent(filePaths: string[]): Promise<StatEntry[]> {
+  return takeMostRecent(await statEntries(filePaths));
+}
+
+/**
+ * Reduce a candidate list to the *calendar files* in it — markdown files whose
+ * front matter carries a parseable `due:` (see isCalendarFrontMatter, which is
+ * the boolean form of the rule calendarLoader.ts uses to admit a calendar item,
+ * so search and the Calendar view can never disagree).
+ *
+ * Runs as a pre-pass, before the mostRecent trim, so "Recent Files + Calendar
+ * Items Only" yields the newest *calendar* items rather than the calendar subset
+ * of the newest files (which is frequently empty in a large tree).
+ *
+ * Each file is read once here and its front matter parsed into `yamlCache`, so
+ * the match phase's advanced-query prop() lookups don't re-parse it; the returned
+ * StatEntry values also feed buildResult's cachedStat, removing the stat the
+ * match phase would otherwise do. Net extra I/O is therefore one re-read of the
+ * (much smaller) surviving calendar subset.
+ */
+async function filterCalendarFiles(filePaths: string[], yamlCache: YamlCache): Promise<StatEntry[]> {
+  const mdFiles = filePaths.filter(fp => path.extname(fp).toLowerCase() === '.md');
+  const entries = await mapWithConcurrency(
+    mdFiles,
+    SEARCH_FILE_CONCURRENCY,
+    async (fp): Promise<StatEntry | null> => {
+      // Only the stat/read is wrapped: an unreadable or oversized file is an
+      // expected I/O condition we skip the same way the match phase does. The
+      // calendar test itself stays outside the catch so a genuine bug there
+      // surfaces instead of being miscategorized as "file skipped".
+      let times: StatTimes;
+      let content: string;
+      try {
+        const stat = await fs.promises.stat(fp);
+        times = { mtimeMs: stat.mtimeMs, birthtimeMs: stat.birthtimeMs, size: stat.size };
+        if (times.size > MAX_SEARCH_FILE_BYTES) {
+          logger.debug('search: skipping oversized file', fp, times.size);
+          return null;
+        }
+        content = await fs.promises.readFile(fp, 'utf-8');
+      } catch (err) {
+        logger.debug('search: skipping unreadable file in calendar filter', fp, err);
+        return null;
+      }
+      if (!isCalendarFrontMatter(getYaml(yamlCache, content, fp))) return null;
+      return { path: fp, ...times };
+    },
+  );
+  return entries.filter((e): e is StatEntry => e !== null);
 }
 
 /**
@@ -340,6 +401,10 @@ async function buildResult(
  * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
  * @param searchImageExif - Whether to include image files and search their EXIF metadata
  * @param mostRecent   - Whether to limit search to the 500 most recently modified files
+ * @param calendarItemsOnly - Whether to restrict the search to calendar files (markdown
+ *   with a parseable `due:` front-matter property). Applied *before* the mostRecent trim,
+ *   and it also makes searchImageExif moot since an image can never be a calendar file.
+ *   Ignored in 'filenames' mode (the Search dialog disables the option there).
  * @returns Array of SearchResult sorted by matchCount descending, capped at SEARCH_RESULT_LIMIT
  */
 export async function searchFolder(
@@ -350,6 +415,7 @@ export async function searchFolder(
   ignoredPaths: string[] = [],
   searchImageExif = false,
   mostRecent = false,
+  calendarItemsOnly = false,
 ): Promise<SearchResult[]> {
   const yamlCache: YamlCache = new Map();
   const results: SearchResult[] = [];
@@ -446,7 +512,11 @@ export async function searchFolder(
         const fileName = path.basename(filePath);
         if (shouldExcludePath(fileName, filePath)) return false;
         const ext = path.extname(filePath).toLowerCase();
-        if (ext === '.md' || ext === '.txt') return true;
+        if (ext === '.md') return true;
+        // Calendar items are markdown-only, so nothing else can be a candidate —
+        // not .txt, and not images even with searchImageExif on.
+        if (calendarItemsOnly) return false;
+        if (ext === '.txt') return true;
         if (searchImageExif && EXIF_IMAGE_EXTENSIONS.has(ext)) return true;
         return false;
       })
@@ -454,12 +524,19 @@ export async function searchFolder(
 
     const files = await api.withPromise();
 
-    // When mostRecent is enabled, limit to the 500 most recently modified files.
-    // filterMostRecent already stat'd them, so cache the times by path and feed
-    // them to buildResult to avoid a second stat per file.
+    // Narrow the candidate set before searching, reusing the stats each filter
+    // captured (cached by path, fed to buildResult) so no file is stat'd twice:
+    //  - calendarItemsOnly: keep only calendar files, then — if mostRecent is
+    //    also on — the newest 500 *of those* (see filterCalendarFiles).
+    //  - mostRecent alone: the 500 most recently modified candidates.
     let filesToSearch = files;
     let statCache: Map<string, StatTimes> | null = null;
-    if (mostRecent) {
+    if (calendarItemsOnly) {
+      let entries = await filterCalendarFiles(files, yamlCache);
+      if (mostRecent) entries = takeMostRecent(entries);
+      filesToSearch = entries.map(e => e.path);
+      statCache = new Map(entries.map(e => [e.path, e]));
+    } else if (mostRecent) {
       const recent = await filterMostRecent(files);
       filesToSearch = recent.map(e => e.path);
       statCache = new Map(recent.map(e => [e.path, e]));

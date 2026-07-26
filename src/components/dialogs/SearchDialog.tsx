@@ -27,6 +27,7 @@ export interface SearchOptions {
   sortDirection: SearchSortDirection;
   searchImageExif: boolean;
   mostRecent: boolean;
+  calendarItemsOnly: boolean;
 }
 
 export interface SearchDialogInitialValues {
@@ -38,6 +39,7 @@ export interface SearchDialogInitialValues {
   sortDirection?: SearchSortDirection;
   searchImageExif?: boolean;
   mostRecent?: boolean;
+  calendarItemsOnly?: boolean;
 }
 
 interface SearchDialogProps {
@@ -52,9 +54,9 @@ interface SearchDialogProps {
 /**
  * The full search dialog: a left panel of saved search definitions
  * (SearchDefinitionsPanel) and a right panel of search options — the query, the
- * target (file contents vs. names), the mode (literal/wildcard/advanced), EXIF
- * and recent-files toggles, and result sorting. It can run a search (onSearch),
- * save the current options as a named definition (onSave), or delete one
+ * target (file contents vs. names), the mode (literal/wildcard/advanced), the
+ * EXIF / recent-files / calendar-items-only toggles, and result sorting. It can
+ * run a search (onSearch), save the options as a named definition (onSave), or delete one
  * (onDeleteSearchDefinition, gated behind a ConfirmDialog).
  *
  * Two cross-cutting behaviours worth knowing:
@@ -74,6 +76,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const [sortDirection, setSortDirection] = useState<SearchSortDirection>(initialValues?.sortDirection || 'desc');
   const [searchImageExif, setSearchImageExif] = useState(initialValues?.searchImageExif ?? false);
   const [mostRecent, setMostRecent] = useState(initialValues?.mostRecent ?? false);
+  const [calendarItemsOnly, setCalendarItemsOnly] = useState(initialValues?.calendarItemsOnly ?? false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -98,6 +101,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     setSortDirection(def.sortDirection);
     setSearchImageExif(def.searchImageExif ?? false);
     setMostRecent(def.mostRecent ?? false);
+    setCalendarItemsOnly(def.calendarItemsOnly ?? false);
   };
 
   const handleSearch = () => {
@@ -107,7 +111,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
 
     globalHighlight.setGlobalHighlightText(searchType === 'literal' ? cleanedQuery : '');
-    onSearch({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
+    onSearch({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
   };
 
   const handleSave = () => {
@@ -115,7 +119,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
     const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
 
-    onSave({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent });
+    onSave({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -178,7 +182,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 label="Search Image EXIF"
                 checked={searchImageExif}
                 onChange={setSearchImageExif}
-                disabled={searchMode === 'filenames'}
+                // Images can never be calendar items, so the two are mutually exclusive.
+                disabled={searchMode === 'filenames' || calendarItemsOnly}
                 testId="search-image-exif"
                 inputClassName={SEARCH_CHECKBOX_CLASS}
               />
@@ -187,6 +192,17 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 checked={mostRecent}
                 onChange={setMostRecent}
                 testId="search-most-recent"
+                inputClassName={SEARCH_CHECKBOX_CLASS}
+              />
+              <CheckboxField
+                label="Calendar Items"
+                checked={calendarItemsOnly}
+                onChange={setCalendarItemsOnly}
+                // Calendar-ness is a front-matter property, so it only means
+                // something for a content search (see searchFolder, which
+                // likewise ignores the flag in filenames mode).
+                disabled={searchMode === 'filenames'}
+                testId="search-calendar-items-only"
                 inputClassName={SEARCH_CHECKBOX_CLASS}
               />
             </div>
@@ -253,6 +269,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 <>Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters. Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
               ) : searchMode === 'filenames' ? (
                 <>Searches file and folder names recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+              ) : calendarItemsOnly ? (
+                <>Searches only calendar items — .md files with a <code className="bg-slate-700 px-1 rounded">due:</code> front matter property (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
               ) : searchImageExif ? (
                 <>Searches .md, .txt, and image EXIF metadata recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
               ) : (

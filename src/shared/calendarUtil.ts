@@ -216,6 +216,23 @@ export function coerceDueDate(due: unknown): Date | null {
   return null;
 }
 
+/**
+ * True when a file's parsed front matter admits it as a calendar item.
+ *
+ * This is the boolean form of the admission rule `loadCalendarEntryForFile()`
+ * applies (`src/main/calendarLoader.ts`): a `due` that is present, non-null, and
+ * parseable. It exists for callers that only need the yes/no answer and must not
+ * pay for rrule expansion — currently the Search dialog's "Calendar Items"
+ * criterion (`src/main/search.ts`). Keeping both on `coerceDueDate` is what makes
+ * search and the calendar agree on which files are calendar files.
+ *
+ * Note the two spellings of absence: a missing key reads back as `undefined`, an
+ * empty `due:` line as `null`. `!= null` covers both, deliberately.
+ */
+export function isCalendarFrontMatter(parsed: Record<string, unknown> | null | undefined): boolean {
+  return !!parsed && parsed.due !== null && coerceDueDate(parsed.due) !== null;
+}
+
 /** Format a Date as `M/D/YYYY` (the on-disk due string format). */
 export function formatDueDate(date: Date): string {
   const m = date.getMonth() + 1;

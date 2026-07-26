@@ -80,6 +80,29 @@ explicitly empty `due:` means "not a calendar file" and is skipped **quietly**; 
 that is present but unparseable is logged as a warning, since that is a likely user
 mistake.
 
+### "Is this a calendar file?" — one rule, two callers
+
+`isCalendarFrontMatter(parsed)` in `src/shared/calendarUtil.ts` is the boolean form of
+the admission rule above (`due` present, non-null, and accepted by `coerceDueDate`). It
+exists for callers that need the yes/no answer without the parsing, warning, and
+recurrence expansion `loadCalendarEntryForFile` does.
+
+Its one caller today is the Search dialog's **Calendar Items** checkbox
+(`src/main/search.ts`): when checked, the crawl admits only `.md` files and a pre-pass
+(`filterCalendarFiles`) drops everything the predicate rejects before the query, the
+`searchImageExif` widening, and the Recent Files trim are applied. The pre-pass runs
+*before* the trim deliberately — the other order would return the calendar subset of the
+500 newest files, which is usually empty in a large tree. It reads each `.md` once,
+caching the parsed front matter in the search's `YamlCache` (so an advanced query's
+`prop()` doesn't re-parse) and its stat times (so matched files aren't stat'd twice).
+The option is content-search only; `searchFolder` ignores it in `filenames` mode and the
+dialog disables the checkbox there. Both the flag and its persisted
+`SearchDefinition.calendarItemsOnly` counterpart default to `false` when absent.
+
+Because both paths bottom out in `coerceDueDate`, a file that the Calendar view shows can
+never be one the calendar-only search skips. `tests/calendar.test.ts` asserts that
+agreement case by case.
+
 ### Recurring Events
 
 Add an `rrule:` block to make an entry repeat. The property names mirror the iCal

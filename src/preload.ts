@@ -28,7 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchImageExif, mostRecent),
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean, calendarItemsOnly?: boolean) => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchImageExif, mostRecent, calendarItemsOnly),
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),
   loadCalendarEventsForFiles: (filePaths: string[]) => ipcRenderer.invoke('load-calendar-events-for-files', filePaths),

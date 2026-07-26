@@ -85,6 +85,9 @@ export interface SearchDefinition {
   searchImageExif?: boolean;
   /** Whether to limit the search to the 500 most recently modified files. */
   mostRecent?: boolean;
+  /** Whether to restrict the search to calendar files (markdown with a parseable
+   *  `due:` front-matter property). Content searches only. */
+  calendarItemsOnly?: boolean;
 }
 
 export interface Bookmark {
@@ -339,7 +342,7 @@ export interface ElectronAPI {
   openExternal: (filePath: string) => Promise<boolean>;
   openExternalUrl: (url: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => Promise<SearchResult[]>;
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean, calendarItemsOnly?: boolean) => Promise<SearchResult[]>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;
