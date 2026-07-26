@@ -343,6 +343,8 @@ export interface ElectronAPI {
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;
+  /** Calendar events for an explicit file list (search results). Stops the folder watcher. */
+  loadCalendarEventsForFiles: (filePaths: string[]) => Promise<CalendarEventResult[]>;
   scanFolderTree: (folderPath: string) => Promise<FolderGraphScanResult>;
   loadTags: () => Promise<TagCategory[]>;
   saveTags: (yamlContent: string) => Promise<void>;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, ShareIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, ShareIcon, CalendarDaysIcon } from '@heroicons/react/24/outline';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import {
@@ -11,10 +11,15 @@ import {
   deleteItems,
   setFolderGraph,
   setCurrentView,
+  showTab,
+  setCalendarSource,
+  setCalendarEvents,
+  setCalendarLoading,
   useAS,
 } from '../../store';
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
+import { toCalendarEvents } from '../../shared/calendarUtil';
 import { getContentWidthClasses, BUTTON_CLASS_BLUE, BUTTON_CLASS_RED } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
@@ -26,9 +31,11 @@ interface SearchResultsViewProps {
  * Displays the results of the most recent folder search as a sorted list of
  * file cards. Each card shows the relative path and match count, and provides
  * Edit (navigate to browser and open the file for editing) and Delete buttons.
- * Results can be rendered as a folder graph via the "Graph View" button. The
- * active sort order (file name, created time, or modified time) and direction
- * are read from the store and applied client-side on each render.
+ * The results can also be rendered two other ways: as a folder graph via the
+ * "Graph View" button, and — for the subset of results that are calendar files —
+ * on the Calendar tab via the "Calendar View" button. The active sort order (file
+ * name, created time, or modified time) and direction are read from the store and
+ * applied client-side on each render.
  */
 function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const searchResults = useAS(s => s.searchResults);
@@ -146,6 +153,41 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     setDeleteTarget(null);
   };
 
+  /**
+   * Opens the Calendar tab showing only the search results that are calendar
+   * files. The main process re-reads each result's front matter, so which files
+   * qualify is decided by the same parser the folder scan uses. This replaces
+   * whatever the calendar was previously showing, and is a snapshot — the load
+   * stops the folder watcher, since the results can span many folders.
+   */
+  const handleShowCalendar = () => {
+    if (searchResults.length === 0) return;
+    showTab('calendar');
+    setCurrentView('calendar');
+    setCalendarSource({
+      kind: 'search',
+      folder: searchFolder,
+      query: searchQuery,
+      name: searchName,
+      totalResults: searchResults.length,
+    });
+    setCalendarLoading(true);
+    void api.loadCalendarEventsForFiles(searchResults.map(r => r.path))
+      .then((results) => {
+        setCalendarEvents(toCalendarEvents(results));
+      })
+      .catch((err: unknown) => {
+        logger.error('Failed to load calendar from search results:', err);
+        setCalendarEvents([]);
+      });
+  };
+
+  const handleShowGraph = () => {
+    if (searchResults.length === 0) return;
+    setFolderGraph(buildFolderGraphFromSearchResults(searchResults));
+    setCurrentView('folder-graph');
+  };
+
   return (
     <div className={`flex-1 flex flex-col min-h-0 bg-slate-900 ${fontSizeClass}`}>
       {/* Header - only show search info when a search has been executed */}
@@ -159,21 +201,30 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
               )}
               Searched for <span className="text-slate-200 font-medium">&quot;{searchQuery}&quot;</span> in {folderName}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (searchResults.length === 0) return;
-                const graph = buildFolderGraphFromSearchResults(searchResults);
-                setFolderGraph(graph);
-                setCurrentView('folder-graph');
-              }}
-              disabled={searchResults.length === 0}
-              className="ml-auto flex items-center gap-1.5 px-3 py-1 text-sm text-slate-200 bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              title="View search results as folder graph"
-            >
-              <ShareIcon className="w-4 h-4" />
-              Graph View
-            </button>
+            <div className="ml-auto flex-shrink-0 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleShowGraph}
+                disabled={searchResults.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1 text-sm text-slate-200 bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                title="View search results as folder graph"
+                data-testid="search-graph-view-button"
+              >
+                <ShareIcon className="w-4 h-4" />
+                Graph View
+              </button>
+              <button
+                type="button"
+                onClick={handleShowCalendar}
+                disabled={searchResults.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1 text-sm text-slate-200 bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                title="View the calendar items among the search results"
+                data-testid="search-calendar-view-button"
+              >
+                <CalendarDaysIcon className="w-4 h-4" />
+                Calendar View
+              </button>
+            </div>
           </div>
         </header>
       )}

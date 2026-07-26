@@ -5,6 +5,19 @@
 import { dump } from 'js-yaml';
 import { splitFrontMatter, setFrontMatterProperty, assembleFrontMatter } from '../shared/frontMatterUtil';
 import { loadYaml } from '../shared/yamlUtil';
+import type { CalendarEventResult } from '../shared/shared';
+import type { CalendarEvent } from '../shared/types';
+
+/**
+ * Convert the IPC wire form of calendar events (epoch milliseconds, so they
+ * survive structured cloning) into the `Date`-based form react-big-calendar
+ * needs. Every path that brings events into the store — the folder scan, the
+ * search-results scan, and the watcher's incremental updates — goes through here
+ * so the conversion is defined once.
+ */
+export function toCalendarEvents(results: CalendarEventResult[]): CalendarEvent[] {
+  return results.map(r => ({ ...r, start: new Date(r.start), end: new Date(r.end) }));
+}
 
 function getCurrentDateStr(): string {
   const now = new Date();

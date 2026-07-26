@@ -361,3 +361,21 @@ export async function loadCalendarEvents(
   const results = await mapWithConcurrency(files, CALENDAR_READ_CONCURRENCY, loadCalendarEntryForFile);
   return results.flat();
 }
+
+/**
+ * Parse an explicit list of files (search results) into calendar events. The
+ * counterpart to loadCalendarEvents() for the case where the candidate set is
+ * already known and does not correspond to any single folder, so there is
+ * nothing to crawl and no ignore patterns to apply — the search that produced
+ * the list already honored them.
+ *
+ * Non-markdown paths are dropped up front; every remaining file goes through the
+ * same loadCalendarEntryForFile() that the folder crawl and the watcher use, so
+ * "is this a calendar file" has exactly one definition. Files that are missing,
+ * unreadable, or carry no `due:` simply contribute no events.
+ */
+export async function loadCalendarEventsForFiles(filePaths: string[]): Promise<CalendarEventResult[]> {
+  const mdFiles = filePaths.filter(f => f.toLowerCase().endsWith('.md'));
+  const results = await mapWithConcurrency(mdFiles, CALENDAR_READ_CONCURRENCY, loadCalendarEntryForFile);
+  return results.flat();
+}

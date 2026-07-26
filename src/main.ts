@@ -15,7 +15,7 @@ import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
 import { parseIgnoredPaths } from './shared/searchHelpers';
 import { searchFolder, type SearchResult } from './main/search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './main/folderAnalysis';
-import { loadCalendarEvents, type CalendarEventResult } from './main/calendarLoader';
+import { loadCalendarEvents, loadCalendarEventsForFiles, type CalendarEventResult } from './main/calendarLoader';
 import { startCalendarWatcher, stopCalendarWatcher } from './main/calendarWatcher';
 import { scanFolderTree, type FolderGraphResult } from './main/folderGraph';
 import { loadTags } from './main/tagLoader';
@@ -643,6 +643,22 @@ function setupIpcHandlers(): void {
       return results;
     } catch (error) {
       logger.error('Error loading calendar events:', error);
+      return [];
+    }
+  });
+
+  // Load calendar events for an explicit list of files (the search-results calendar).
+  ipcMain.handle('load-calendar-events-for-files', async (_event, filePaths: string[]): Promise<CalendarEventResult[]> => {
+    try {
+      // Snapshot semantics: a search-sourced calendar spans arbitrarily many folders,
+      // so there is no single folder to watch. Tear the watcher down instead of
+      // leaving it armed on whatever folder was scanned last — otherwise it would
+      // stream changes for files that are not in the search results into a list that
+      // is supposed to *be* the search results.
+      await stopCalendarWatcher();
+      return await loadCalendarEventsForFiles(filePaths);
+    } catch (error) {
+      logger.error('Error loading calendar events for files:', error);
       return [];
     }
   });

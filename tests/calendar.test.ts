@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { loadCalendarEntryForFile, loadCalendarEvents } from '../src/main/calendarLoader';
+import { loadCalendarEntryForFile, loadCalendarEvents, loadCalendarEventsForFiles } from '../src/main/calendarLoader';
 import { logger } from '../src/shared/logUtil';
 import {
   hasDueProperty,
@@ -546,6 +546,63 @@ describe('loadCalendarEvents — directory scan', () => {
     const results = await loadCalendarEvents(tmpDir);
     const filePaths = results.map(ev => ev.filePath);
     expect(filePaths.some(p => p.includes('ignored'))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// loadCalendarEventsForFiles — explicit path list (the search-results calendar)
+// ---------------------------------------------------------------------------
+
+describe('loadCalendarEventsForFiles — explicit path list', () => {
+  it('returns entries only for the files given, not the whole folder', async () => {
+    const results = await loadCalendarEventsForFiles([f('simple-event.md'), f('timed-event.md')]);
+    expect(results.map(ev => ev.filePath).sort()).toEqual([f('simple-event.md'), f('timed-event.md')].sort());
+  });
+
+  it('skips markdown files that are not calendar files', async () => {
+    const results = await loadCalendarEventsForFiles([
+      f('simple-event.md'), f('no-due.md'), f('no-frontmatter.md'),
+    ]);
+    expect(results).toHaveLength(1);
+    expect(results[0]!.filePath).toBe(f('simple-event.md'));
+  });
+
+  it('skips non-markdown paths without reading them', async () => {
+    write('notes.txt', 'due: 6/15/2026\n');
+    write('photo.png', 'not really a png');
+    const results = await loadCalendarEventsForFiles([f('notes.txt'), f('photo.png'), f('simple-event.md')]);
+    expect(results.map(ev => ev.filePath)).toEqual([f('simple-event.md')]);
+  });
+
+  it('accepts uppercase .MD extensions', async () => {
+    write('SHOUTING.MD', `---\ndue: 6/15/2026\n---\nAn event in an uppercase-extension file.\n`);
+    const results = await loadCalendarEventsForFiles([f('SHOUTING.MD')]);
+    expect(results).toHaveLength(1);
+    expect(results[0]!.title).toBe('SHOUTING');
+  });
+
+  it('tolerates paths that no longer exist (deleted since the search ran)', async () => {
+    const results = await loadCalendarEventsForFiles([f('gone.md'), f('simple-event.md')]);
+    expect(results.map(ev => ev.filePath)).toEqual([f('simple-event.md')]);
+  });
+
+  it('expands recurring entries the same way the folder scan does', async () => {
+    const results = await loadCalendarEventsForFiles([f('recurring-weekly.md')]);
+    expect(results).toHaveLength(3);
+    expect(new Set(results.map(ev => ev.filePath))).toEqual(new Set([f('recurring-weekly.md')]));
+    // Occurrence ids must stay unique so react-big-calendar can key them.
+    expect(new Set(results.map(ev => ev.id)).size).toBe(3);
+  });
+
+  it('returns an empty array for an empty list', async () => {
+    expect(await loadCalendarEventsForFiles([])).toEqual([]);
+  });
+
+  it('agrees with loadCalendarEvents when handed that scan\'s own file set', async () => {
+    const scanned = await loadCalendarEvents(tmpDir);
+    const uniqueFiles = [...new Set(scanned.map(ev => ev.filePath))];
+    const fromList = await loadCalendarEventsForFiles(uniqueFiles);
+    expect(fromList.map(ev => ev.id).sort()).toEqual(scanned.map(ev => ev.id).sort());
   });
 });
 

@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean) => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchImageExif, mostRecent),
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),
+  loadCalendarEventsForFiles: (filePaths: string[]) => ipcRenderer.invoke('load-calendar-events-for-files', filePaths),
   scanFolderTree: (folderPath: string) => ipcRenderer.invoke('scan-folder-tree', folderPath),
   loadTags: () => ipcRenderer.invoke('load-tags'),
   saveTags: (yamlContent: string) => ipcRenderer.invoke('save-tags', yamlContent),

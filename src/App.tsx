@@ -32,8 +32,9 @@ import {
   deleteCalendarEventsUnderPath,
   setCalendarWatcherWarning,
 } from './store';
-import type { CalendarEvent, AppView } from './shared/types';
+import type { AppView } from './shared/types';
 import type { CalendarEventResult, AppConfig } from './shared/shared';
+import { toCalendarEvents } from './shared/calendarUtil';
 import type { FileNode } from './store';
 import { loadConfig } from './renderer/config';
 import { isPathInside } from './renderer/pathUtil';
@@ -207,10 +208,7 @@ function App() {
     // Returns the useEffect cleanup: the unsubscribe fn from onCalendarFileChanged, which removes the 'calendar-file-changed' IPC listener on unmount.
     return api.onCalendarFileChanged((results: CalendarEventResult[], filePath: string) => {
       // console.log('[App] onCalendarFileChanged fired', { filePath, count: results.length });
-      const updated: CalendarEvent[] = results.map(r => ({
-        id: r.id, title: r.title, start: new Date(r.start), end: new Date(r.end), filePath: r.filePath, snippet: r.snippet,
-      }));
-      updateCalendarEvent(filePath, updated);
+      updateCalendarEvent(filePath, toCalendarEvents(results));
     });
   }, []);
 

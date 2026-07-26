@@ -5,10 +5,10 @@ import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { api } from '../../renderer/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { setCalendarViewType, setCalendarViewTime, setCalendarWatcherWarning, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, useAS } from '../../store';
-import type { CalendarEvent, CalendarViewType } from '../../shared/types';
+import { setCalendarViewType, setCalendarViewTime, setCalendarWatcherWarning, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, setCurrentView, useAS } from '../../store';
+import type { CalendarEvent, CalendarSource, CalendarViewType } from '../../shared/types';
 import { logger } from '../../shared/logUtil';
-import { getParentPath, joinPath } from '../../renderer/pathUtil';
+import { getFileName, getParentPath, joinPath } from '../../renderer/pathUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
 
 /** Formats a Date as MM/DD/YYYY for use in the `due:` front-matter field. */
@@ -47,8 +47,51 @@ interface PendingSlot {
 }
 
 /**
+ * The clickable banner above the calendar describing where its events came
+ * from. A folder-sourced calendar names the scanned folder and navigates to it;
+ * a search-sourced one names the search and how many of its results turned out
+ * to be calendar files, and navigates back to the result list.
+ */
+function CalendarSourceHeader({ source, eventCount }: { source: CalendarSource; eventCount: number }) {
+  const bannerClass = 'w-full px-4 py-2 bg-slate-800 border-b border-slate-700 text-slate-300 text-sm truncate cursor-pointer hover:bg-slate-700';
+
+  if (source.kind === 'folder') {
+    return (
+      <div
+        className={bannerClass}
+        onClick={() => navigateToBrowserPath(source.folder)}
+        title="Browse to this folder"
+        data-testid="calendar-source-header"
+      >
+        <span className="text-slate-500">Calendar folder:</span> {source.folder}
+      </div>
+    );
+  }
+
+  const folderName = getFileName(source.folder) || source.folder;
+  return (
+    <div
+      className={bannerClass}
+      onClick={() => setCurrentView('search-results')}
+      title="Back to search results"
+      data-testid="calendar-source-header"
+    >
+      <span className="text-slate-500">Search results:</span>{' '}
+      <span className="text-slate-200 font-medium">{eventCount}</span> of {source.totalResults}{' '}
+      {source.totalResults === 1 ? 'result is a calendar item' : 'results are calendar items'}
+      <span className="text-slate-500"> — </span>
+      {source.name && <span className="text-purple-300 font-semibold mr-1">{source.name}:</span>}
+      &quot;{source.query}&quot; in {folderName}
+    </div>
+  );
+}
+
+/**
  * Renders a react-big-calendar view populated with events parsed from Markdown
- * front matter in the active calendar folder. Clicking a calendar slot opens a
+ * front matter. A pure renderer of store state: the events are loaded elsewhere,
+ * either by a folder scan from BrowseView or from the search results (see the
+ * `calendarSource` union), and this component treats both identically apart from
+ * the header banner. Clicking a calendar slot opens a
  * dialog to create a new Markdown file pre-filled with `due:`, `start:`, and
  * `duration:` fields derived from the selection. Clicking an event navigates the
  * browser to the corresponding file. The selected view type and current date are
@@ -61,7 +104,7 @@ export default function CalendarView() {
   const view = viewTypeToRbc[calendarViewType] ?? Views.MONTH;
   const date = useAS(s => s.calendarViewTime);
   const settings = useAS(s => s.settings);
-  const activeCalendarFolder = useAS(s => s.activeCalendarFolder);
+  const calendarSource = useAS(s => s.calendarSource);
   const watcherWarning = useAS(s => s.calendarWatcherWarning);
   const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
 
@@ -143,14 +186,8 @@ export default function CalendarView() {
   return (
     <>
     <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
-      {activeCalendarFolder && (
-        <div
-          className="w-full px-4 py-2 bg-slate-800 border-b border-slate-700 text-slate-300 text-sm truncate cursor-pointer hover:bg-slate-700"
-          onClick={() => navigateToBrowserPath(activeCalendarFolder)}
-          title="Browse to this folder"
-        >
-          <span className="text-slate-500">Calendar folder:</span> {activeCalendarFolder}
-        </div>
+      {calendarSource && (
+        <CalendarSourceHeader source={calendarSource} eventCount={events?.length ?? 0} />
       )}
       {watcherWarning && (
         <div className="w-full px-4 py-2 bg-amber-900/40 border-b border-amber-700 text-amber-200 text-sm flex items-start gap-3">
@@ -171,6 +208,13 @@ export default function CalendarView() {
             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
             <span className="text-slate-400 text-sm">Loading calendar...</span>
           </div>
+        </div>
+      )}
+      {/* An empty month grid looks identical to a failed load, so say plainly that the
+          search simply had no calendar files in it rather than leaving the user guessing. */}
+      {!loading && events?.length === 0 && calendarSource?.kind === 'search' && (
+        <div className="w-full px-4 py-2 bg-slate-800/60 border-b border-slate-700 text-slate-400 text-sm">
+          None of the search results are calendar items — a file needs a <code className="text-slate-300">due:</code> property in its front matter to appear here.
         </div>
       )}
       {!loading && events && (

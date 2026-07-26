@@ -213,7 +213,14 @@ A right-justified **Graph View** button in the `SearchResultsView` header
 2. Pushes that state into the store via `setFolderGraph(...)`.
 3. Switches the active view with `setCurrentView('folder-graph')`.
 
-The button is disabled when `searchResults` is empty.
+The button is disabled when `searchResults` is empty. Its `data-testid` is
+`search-graph-view-button`.
+
+A sibling **Calendar View** button sits immediately to its right, offering the
+same idea for a different renderer: it opens the Calendar tab showing the subset
+of the search results that are calendar files. Unlike this one it is not purely
+client-side — deciding which results qualify means re-reading their front matter,
+so it goes through IPC. See `calendar_view.md` § Event Sources.
 
 ### Tree builder
 

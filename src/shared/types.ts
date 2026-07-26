@@ -451,18 +451,11 @@ export interface AppState {
   selectedLinkItems: string[];
 
   /**
-   * The folder that was scanned to populate calendarEvents.
-   * Tracked independently from the current browse path so the calendar
-   * remains stable while the user navigates elsewhere.
+   * Where the currently loaded calendarEvents came from (null = never loaded).
+   * Tracked independently of the current browse path and the live search results
+   * so the calendar stays stable while the user navigates elsewhere.
    */
-  calendarFolder: string | null;
-
-  /**
-   * The folder name displayed above the calendar — the folder the calendar
-   * was built from. Preserved so the user can see which folder was active in
-   * the BrowseView when they opened the calendar.
-   */
-  activeCalendarFolder: string | null;
+  calendarSource: CalendarSource | null;
 
   /**
    * Calendar events loaded from the file system (null = not yet loaded).
@@ -525,6 +518,27 @@ export interface AiConfigState {
   agenticMode: boolean;
   agenticAllowedFolders: string;
 }
+
+/**
+ * Where the calendar's events came from. The two sources differ in more than
+ * labeling: a `folder` calendar is the recursive crawl of one folder and stays
+ * live via the chokidar watcher, while a `search` calendar is a one-shot snapshot
+ * of the calendar files among a set of search results — it spans arbitrarily many
+ * folders, so there is nothing coherent to watch and no live updates are applied.
+ */
+export type CalendarSource =
+  | { kind: 'folder'; folder: string }
+  | {
+      kind: 'search';
+      /** Folder the search ran in (for display). */
+      folder: string;
+      /** The search query, as displayed in SearchResultsView. */
+      query: string;
+      /** Saved search definition name, or '' when the search was ad hoc. */
+      name: string;
+      /** How many results the search returned, only some of which are calendar files. */
+      totalResults: number;
+    };
 
 /**
  * A single event displayed on the calendar view.

@@ -37,8 +37,7 @@ import {
   setItemExpanded,
   setCurrentView,
   showTab,
-  setCalendarFolder,
-  setActiveCalendarFolder,
+  setCalendarSource,
   setCalendarEvents,
   setCalendarLoading,
   setCurrentPath,
@@ -71,6 +70,7 @@ import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig } from '
 import { buildReplaceResultMessage } from '../../shared/searchHelpers';
 import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
 import { getFileName, getParentPath, isSamePath } from '../../renderer/pathUtil';
+import { toCalendarEvents } from '../../shared/calendarUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 /**
@@ -887,19 +887,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     if (!currentPath) return;
     showTab('calendar');
     setCurrentView('calendar');
-    setCalendarFolder(currentPath);
-    setActiveCalendarFolder(currentPath);
+    setCalendarSource({ kind: 'folder', folder: currentPath });
     setCalendarLoading(true);
     runOp(async () => {
       const results = await api.loadCalendarEvents(currentPath);
-      setCalendarEvents(results.map(r => ({
-        id: r.id,
-        title: r.title,
-        start: new Date(r.start),
-        end: new Date(r.end),
-        filePath: r.filePath,
-        snippet: r.snippet,
-      })));
+      setCalendarEvents(toCalendarEvents(results));
     }, 'Failed to load calendar: ', (msg) => {
       onSetError(msg);
       setCalendarEvents([]);

@@ -1,4 +1,4 @@
-import type { CalendarEvent, CalendarViewType } from '../shared/types';
+import type { CalendarEvent, CalendarSource, CalendarViewType } from '../shared/types';
 import { ensureTrailingSep } from '../renderer/pathUtil';
 import { getState } from './core';
 import type { StoreSet, StoreGet } from './core';
@@ -12,8 +12,7 @@ import type { StoreSet, StoreGet } from './core';
  * `core.ts`.
  */
 export interface CalendarSlice {
-  setCalendarFolder: (folder: string | null) => void;
-  setActiveCalendarFolder: (folder: string | null) => void;
+  setCalendarSource: (source: CalendarSource | null) => void;
   deleteCalendarEventsUnderPath: (deletedPath: string) => void;
   updateCalendarEvent: (filePath: string, updated: CalendarEvent[]) => void;
   setCalendarEvents: (events: CalendarEvent[]) => void;
@@ -30,16 +29,16 @@ export interface CalendarSlice {
  */
 export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice {
   return {
-    /** Set the folder the calendar should load events from. */
-    setCalendarFolder: (folder) => set({ calendarFolder: folder }),
-
-    /** Set the folder whose events are currently loaded into the calendar. */
-    setActiveCalendarFolder: (folder) => set({ activeCalendarFolder: folder }),
+    /** Record where the currently loaded calendar events came from. */
+    setCalendarSource: (source) => set({ calendarSource: source }),
 
     /** Remove all calendar events whose `filePath` equals or lives under `deletedPath`. */
     deleteCalendarEventsUnderPath: (deletedPath) => {
-      const calendarEvents = get().calendarEvents;
-      if (!calendarEvents) return;
+      const { calendarEvents, calendarSource } = get();
+      // Watcher-driven — only a folder-sourced calendar is live. A search-sourced
+      // one is a snapshot of a specific result set (the watcher is stopped when it
+      // loads), so a late in-flight event must not be allowed to edit it.
+      if (!calendarEvents || calendarSource?.kind !== 'folder') return;
       const normalizedDir = ensureTrailingSep(deletedPath);
       const remaining = calendarEvents.filter(
         e => e.filePath !== deletedPath && !(e.filePath?.startsWith(normalizedDir) ?? false),
@@ -51,8 +50,9 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
 
     /** Replace the events for a single file (upsert by filePath). */
     updateCalendarEvent: (filePath, updated) => {
-      const calendarEvents = get().calendarEvents;
-      if (!calendarEvents) return;
+      const { calendarEvents, calendarSource } = get();
+      // Folder-sourced only — see deleteCalendarEventsUnderPath above.
+      if (!calendarEvents || calendarSource?.kind !== 'folder') return;
       const existing = calendarEvents.filter(e => e.filePath !== filePath);
       set({ calendarEvents: [...existing, ...updated] });
     },
@@ -77,12 +77,8 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
 // Thin non-hook wrappers so the barrel API (and every caller) is unchanged;
 // they delegate to the actions living inside the store.
 
-export function setCalendarFolder(folder: string | null): void {
-  getState().setCalendarFolder(folder);
-}
-
-export function setActiveCalendarFolder(folder: string | null): void {
-  getState().setActiveCalendarFolder(folder);
+export function setCalendarSource(source: CalendarSource | null): void {
+  getState().setCalendarSource(source);
 }
 
 export function deleteCalendarEventsUnderPath(deletedPath: string): void {
