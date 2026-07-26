@@ -33,6 +33,7 @@ import MarkdownView from './MarkdownView';
 import { logger } from '../../shared/logUtil';
 import { getParentPath } from '../../renderer/pathUtil';
 import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
+import { trackScrollbarPress, pressStartedOnScrollbar } from '../../renderer/scrollbarPress';
 import { HUMAN_FILENAME, AI_FILENAME } from '../../shared/specialFiles';
 import {
   useEditableEntry,
@@ -490,7 +491,10 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       >
         <div
           className={clsx(ENTRY_CONTENT_AREA, maximized && 'flex-1 min-h-0 flex flex-col')}
-          onMouseUp={!edit.isEditing ? (e) => { if (e.button === 0 && !window.getSelection()?.toString()) void edit.handleEditClick(); } : undefined}
+          // onMouseDown feeds the scrollbar check: dragging a code block's scrollbar
+          // must not count as a click-to-edit (see scrollbarPress.ts).
+          onMouseDown={!edit.isEditing ? trackScrollbarPress : undefined}
+          onMouseUp={!edit.isEditing ? (e) => { if (e.button === 0 && !pressStartedOnScrollbar() && !window.getSelection()?.toString()) void edit.handleEditClick(); } : undefined}
         >
           {loading && !content ? (
             <div className={ENTRY_LOADING}>Loading...</div>

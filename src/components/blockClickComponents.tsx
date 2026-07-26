@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { Components, ExtraProps } from 'react-markdown';
+import { pressStartedOnScrollbar } from '../renderer/scrollbarPress';
 
 type EditClickHandler = (goToLine?: number) => void | Promise<void>;
 
@@ -26,6 +27,12 @@ function block<Tag extends keyof React.JSX.IntrinsicElements>(Tag: Tag) {
       // so the native context menu (Copy, etc.) can appear.
       if (e.button !== 0) return;
       if ((e.target as HTMLElement).closest('a, button, input')) return;
+
+      // A scrollable descendant (e.g. an overflowing fenced code block inside a list item
+      // or blockquote) bubbles its scrollbar presses up to here; using the scrollbar isn't
+      // a click-to-edit. Deliberately not stopPropagation'd — the entry content area runs
+      // the same check, so the press is ignored there too.
+      if (pressStartedOnScrollbar()) return;
 
       // this check for a selection is required to be able to allow the users to click and drag the mouse to
       // select a region of text to copy, because without this check it would immediately assume that if
