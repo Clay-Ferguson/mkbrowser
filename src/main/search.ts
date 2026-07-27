@@ -1,8 +1,16 @@
 /**
  * Core search logic extracted from the IPC handler for testability.
- * 
+ *
  * This module implements folder-level search across .md and .txt files,
  * supporting literal, wildcard, and advanced (JavaScript expression) search types.
+ *
+ * Two search modes ("Search Target" in the Search dialog):
+ *  - 'content' — "File Contents+Names": a file is a hit when the query matches its
+ *    NAME *or* its CONTENTS. Contents are only read for .md/.txt (plus images when
+ *    searchImageExif is on), but the *name* half covers every file extension. The
+ *    name test is pure CPU, so it runs first and short-circuits: a name-matched
+ *    file is never read. Folders are never matched in this mode.
+ *  - 'filenames' — "File Names": names only, but including folder names.
  */
 import path from 'node:path';
 import fs from 'node:fs';
@@ -72,6 +80,23 @@ const EXIF_IMAGE_EXTENSIONS = new Set([
 ]);
 
 /**
+ * True if a file's *contents* are searchable in 'content' mode. The name half of
+ * that mode deliberately does NOT consult this — every extension can match by
+ * name. Shared by the crawl filter and the candidate partition so the two can
+ * never disagree about what "readable" means.
+ */
+function isContentCandidate(filePath: string, searchImageExif: boolean, calendarItemsOnly: boolean): boolean {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.md') return true;
+  // Calendar items are markdown-only, so nothing else can be a candidate —
+  // not .txt, and not images even with searchImageExif on.
+  if (calendarItemsOnly) return false;
+  if (ext === '.txt') return true;
+  if (searchImageExif && EXIF_IMAGE_EXTENSIONS.has(ext)) return true;
+  return false;
+}
+
+/**
  * Search result from the file search
  */
 export interface SearchResult {
@@ -80,6 +105,10 @@ export interface SearchResult {
   matchCount: number;
   modifiedTime?: number;
   createdTime?: number;
+  /** Set (in 'content' mode only) when this file matched on its NAME, meaning its
+   * contents were never read — so matchCount counts occurrences within the file
+   * name, not within the body. The renderer shows "name match" rather than a count. */
+  nameMatch?: boolean;
 }
 
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
@@ -397,7 +426,9 @@ async function buildResult(
  * @param folderPath   - Root folder to search
  * @param query        - Search text or JavaScript expression (empty = match everything)
  * @param searchType   - 'literal' | 'wildcard' | 'advanced'
- * @param searchMode   - 'content' (search file bodies) or 'filenames'
+ * @param searchMode   - 'content' (file bodies OR file names — see the module header;
+ *   the name half is skipped for 'advanced', which stays content-only) or 'filenames'
+ *   (file *and folder* names only)
  * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
  * @param searchImageExif - Whether to include image files and search their EXIF metadata
  * @param mostRecent   - Whether to limit search to the 500 most recently modified files
@@ -504,42 +535,109 @@ export async function searchFolder(
       if (r) results.push(r);
     }
   } else {
-    // Search file contents - .md and .txt files, plus images when searchImageExif is enabled
+    // "File Contents+Names": match on the file NAME or the file CONTENTS.
+    //
+    // The name half applies to literal/wildcard queries only. An 'advanced' query
+    // is a JavaScript expression written against file content: evaluating it
+    // against a bare filename is meaningless for prop()/the date helpers, and a
+    // negated expression (e.g. !$("draft")) would match nearly every file in the
+    // tree. So advanced searches behave exactly as they always have.
+    const nameMatchActive = matchPredicate !== null && searchType !== 'advanced';
+    // Whether the crawl widens past the content-searchable extensions so that a
+    // .pdf/.zip/etc. can match by name. Not when calendarItemsOnly is on: "only
+    // calendar items" has to stay true, and nothing but markdown with a `due:`
+    // can be a calendar item — so there the name test applies only to the
+    // calendar file set. When this is false the crawl output is exactly what it
+    // was before names were searchable (advanced mode, and the empty-query
+    // mostRecent path, are therefore untouched).
+    const broadCrawl = nameMatchActive && !calendarItemsOnly;
+
     const api = new fdir()
       .withFullPaths()
       .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
       .filter((filePath) => {
         const fileName = path.basename(filePath);
         if (shouldExcludePath(fileName, filePath)) return false;
-        const ext = path.extname(filePath).toLowerCase();
-        if (ext === '.md') return true;
-        // Calendar items are markdown-only, so nothing else can be a candidate —
-        // not .txt, and not images even with searchImageExif on.
-        if (calendarItemsOnly) return false;
-        if (ext === '.txt') return true;
-        if (searchImageExif && EXIF_IMAGE_EXTENSIONS.has(ext)) return true;
-        return false;
+        // Every file is a name candidate; the content-side extension filter is
+        // applied when partitioning the crawl results below.
+        if (broadCrawl) return true;
+        return isContentCandidate(filePath, searchImageExif, calendarItemsOnly);
       })
       .crawl(folderPath);
 
-    const files = await api.withPromise();
+    const crawled = await api.withPromise();
 
     // Narrow the candidate set before searching, reusing the stats each filter
     // captured (cached by path, fed to buildResult) so no file is stat'd twice:
     //  - calendarItemsOnly: keep only calendar files, then — if mostRecent is
     //    also on — the newest 500 *of those* (see filterCalendarFiles).
-    //  - mostRecent alone: the 500 most recently modified candidates.
-    let filesToSearch = files;
+    //  - mostRecent alone: the 500 most recently modified candidates. Applied to
+    //    the *content* candidates rather than to every crawled file, so a folder
+    //    full of recently-touched images/binaries can't crowd the .md/.txt files
+    //    out of the content search the way a shared trim would.
+    let filesToSearch = broadCrawl
+      ? crawled.filter(fp => isContentCandidate(fp, searchImageExif, calendarItemsOnly))
+      : crawled;
     let statCache: Map<string, StatTimes> | null = null;
     if (calendarItemsOnly) {
-      let entries = await filterCalendarFiles(files, yamlCache);
+      let entries = await filterCalendarFiles(filesToSearch, yamlCache);
       if (mostRecent) entries = takeMostRecent(entries);
       filesToSearch = entries.map(e => e.path);
       statCache = new Map(entries.map(e => [e.path, e]));
-    } else if (mostRecent) {
-      const recent = await filterMostRecent(files);
+    }
+
+    // Name pass. Pure CPU and zero I/O, so it runs before anything is read: every
+    // hit here is a file the content pass below never has to open. With
+    // calendarItemsOnly the candidate set isn't known until the calendar pre-pass
+    // above has run, hence testing names against filesToSearch in that case.
+    const nameHits = new Map<string, number>();
+    if (nameMatchActive && matchPredicate) {
+      for (const filePath of calendarItemsOnly ? filesToSearch : crawled) {
+        const { matches, matchCount } = matchPredicate(path.basename(filePath));
+        if (matches) nameHits.set(filePath, matchCount);
+      }
+    }
+    // The short-circuit this feature exists for: don't read a file we've already
+    // matched by name.
+    if (nameHits.size > 0) {
+      filesToSearch = filesToSearch.filter(fp => !nameHits.has(fp));
+    }
+
+    if (mostRecent && !calendarItemsOnly) {
+      const recent = await filterMostRecent(filesToSearch);
       filesToSearch = recent.map(e => e.path);
       statCache = new Map(recent.map(e => [e.path, e]));
+    }
+
+    // Build the name-match results. Under mostRecent these are trimmed to the
+    // MOST_RECENT_LIMIT newest *matches* — match-then-trim, the reverse of the
+    // filenames branch above. Trimming first would mean stat()ing every file in
+    // the tree, whereas the name test itself costs no I/O at all, so only the
+    // (small) hit set ever needs stats.
+    let nameEntries: { path: string; matchCount: number; cachedStat?: StatTimes }[] =
+      [...nameHits].map(([p, matchCount]) => ({
+        path: p,
+        matchCount,
+        cachedStat: statCache?.get(p),
+      }));
+    if (mostRecent && !calendarItemsOnly && nameEntries.length > MOST_RECENT_LIMIT) {
+      const recentHits = await filterMostRecent(nameEntries.map(e => e.path));
+      nameEntries = recentHits.map(e => ({
+        path: e.path,
+        matchCount: nameHits.get(e.path) ?? 1,
+        cachedStat: e,
+      }));
+    }
+    const nameResults = await mapWithConcurrency(
+      nameEntries,
+      SEARCH_FILE_CONCURRENCY,
+      async (entry): Promise<SearchResult> => ({
+        ...(await buildResult(folderPath, entry.path, entry.matchCount, entry.cachedStat)),
+        nameMatch: true,
+      }),
+    );
+    for (const r of nameResults) {
+      results.push(r);
     }
 
     // Read + stat files with bounded concurrency. mapWithConcurrency preserves
@@ -602,9 +700,16 @@ export async function searchFolder(
     }
   }
 
-  // Sort by match count (descending), then cap to the hard ceiling. The slice keeps
-  // the top SEARCH_RESULT_LIMIT by match count (for an empty query every entry has
-  // matchCount 1, so it's an arbitrary-but-bounded subset).
-  results.sort((a, b) => b.matchCount - a.matchCount);
+  // Sort name matches first, then by match count (descending), then cap to the hard
+  // ceiling. The slice keeps the top SEARCH_RESULT_LIMIT (for an empty query every
+  // entry has matchCount 1, so it's an arbitrary-but-bounded subset).
+  //
+  // Name matches lead because a filename hit is the most relevant kind of hit and
+  // its matchCount — occurrences within a short file name, usually 1 — would
+  // otherwise sink it below every content match and make it the first thing dropped
+  // by the cap. Only 'content' mode ever sets nameMatch, so this is a no-op for
+  // filenames mode.
+  results.sort((a, b) =>
+    (b.nameMatch ? 1 : 0) - (a.nameMatch ? 1 : 0) || b.matchCount - a.matchCount);
   return results.slice(0, SEARCH_RESULT_LIMIT);
 }

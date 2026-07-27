@@ -215,7 +215,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               className="mb-3"
               inputClassName={SEARCH_RADIO_CLASS}
               options={[
-                { value: 'content', label: 'File Contents', testId: 'search-mode-content' },
+                { value: 'content', label: 'File Contents+Names', testId: 'search-mode-content' },
                 { value: 'filenames', label: 'File Names', testId: 'search-mode-filenames' },
               ]}
             />
@@ -263,19 +263,29 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
             </div>
 
             <p className="text-xs text-slate-500 mt-2">
-              {searchType === 'advanced' ? (
-                <>Uses <code className="bg-slate-700 px-1 rounded">$(&quot;text&quot;)</code> function, or past(ts), future(ts), future(ts, days), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code></>
-              ) : searchType === 'wildcard' ? (
-                <>Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters. Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
-              ) : searchMode === 'filenames' ? (
-                <>Searches file and folder names recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+              {/* Scope sentence — what gets searched. The 'content' target matches
+                  file names as well as contents, but only for literal/wildcard: an
+                  advanced expression is JavaScript evaluated against file content,
+                  so it never matches names (in the 'filenames' target it is applied
+                  to the name instead, which is why that branch comes first). */}
+              {searchMode === 'filenames' ? (
+                <>Searches file and folder names recursively (case-insensitive).</>
+              ) : searchType === 'advanced' ? (
+                <>Searches file contents only — advanced expressions never match file names.</>
               ) : calendarItemsOnly ? (
-                <>Searches only calendar items — .md files with a <code className="bg-slate-700 px-1 rounded">due:</code> front matter property (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+                <>Searches only calendar items — .md files with a <code className="bg-slate-700 px-1 rounded">due:</code> front matter property — matching their contents or their file name (case-insensitive).</>
               ) : searchImageExif ? (
-                <>Searches .md, .txt, and image EXIF metadata recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+                <>Searches the contents of .md, .txt, and image EXIF metadata, plus every file name, recursively (case-insensitive).</>
               ) : (
-                <>Searches .md and .txt files recursively (case-insensitive). Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.</>
+                <>Searches the contents of .md and .txt files, plus every file name, recursively (case-insensitive).</>
               )}
+              {searchType === 'wildcard' && (
+                <> Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters.</>
+              )}
+              {searchType === 'advanced' && (
+                <> Uses the <code className="bg-slate-700 px-1 rounded">$(&quot;text&quot;)</code> function, or past(ts), future(ts), future(ts, days), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code>.</>
+              )}
+              {' '}Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.
             </p>
 
             <div className="flex justify-end items-center gap-3 mt-6">

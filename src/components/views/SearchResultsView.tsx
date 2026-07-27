@@ -278,9 +278,14 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                     </div>
                   </div>
 
-                  {/* Match count */}
+                  {/* Match count. A name match short-circuits the content read, so
+                      its matchCount counts occurrences within the file name — a
+                      count that would read as misleadingly low next to the content
+                      matches. Label it instead. */}
                   <div className="text-sm text-slate-500 flex-shrink-0">
-                    {result.matchCount} match{result.matchCount !== 1 ? 'es' : ''}
+                    {result.nameMatch
+                      ? 'name match'
+                      : `${result.matchCount} match${result.matchCount !== 1 ? 'es' : ''}`}
                   </div>
 
                   {/* Edit button */}

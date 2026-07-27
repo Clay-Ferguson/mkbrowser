@@ -114,29 +114,43 @@ describe('literal content search', () => {
 });
 
 describe('wildcard content search', () => {
-  it('matches basic wildcard pattern', async () => {
-    // hel*world → /hel.{0,25}world/i matches "Hello World", "hello world",
-    // and "hello_world and helloWorld" (merged into one greedy match)
+  // NOTE: 'content' mode is "File Contents+Names" — it tests the file NAME first
+  // and short-circuits, so a fixture whose *name* also matches the pattern comes
+  // back as a name match (nameMatch: true, matchCount counted over the name) and
+  // its body is never read. wildcard-testing/hello-world.md is exactly such a
+  // file for the hel* / *world patterns below, which is why these assert
+  // nameMatch rather than a content count. Content counting for that file is
+  // pinned directly against createMatchPredicate instead.
+
+  it('matches basic wildcard pattern (name half short-circuits the content read)', async () => {
+    // hel*world matches hello-world.md's CONTENT ("Hello World", "hello world",
+    // and "hello_world and helloWorld" merged into one greedy match = 3) *and* its
+    // name, so the name half wins and the body is never read.
     const results = await searchFolder(TEST_DATA_DIR, 'hel*world', 'wildcard');
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
-    expect(hw?.matchCount).toBe(3);
+    expect(hw!.nameMatch).toBe(true);
+    expect(hw!.matchCount).toBe(1); // "hello-world.md" — one match in the name
+
+    // The content-side behavior the search skipped is unchanged: still 3 matches.
+    const body = fs.readFileSync(hw!.path, 'utf-8');
+    expect(createMatchPredicate('hel*world', 'wildcard')(body).matchCount).toBe(3);
   });
 
   it('matches wildcard at start of pattern', async () => {
-    // *world matches content with up to 25 chars before "world"
+    // *world matches up to 25 chars before "world" — here in the file's name.
     const results = await searchFolder(TEST_DATA_DIR, '*world', 'wildcard');
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
-    expect(hw?.matchCount).toBeGreaterThanOrEqual(3);
+    expect(hw!.nameMatch).toBe(true);
   });
 
   it('matches wildcard at end of pattern', async () => {
-    // hello* matches "hello" followed by up to 25 chars
+    // hello* matches "hello" followed by up to 25 chars.
     const results = await searchFolder(TEST_DATA_DIR, 'hello*', 'wildcard');
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
-    expect(hw?.matchCount).toBeGreaterThanOrEqual(1);
+    expect(hw!.nameMatch).toBe(true);
   });
 
   it('matches multiple wildcards in pattern', async () => {
@@ -160,20 +174,23 @@ describe('wildcard content search', () => {
   });
 
   it('is case-insensitive', async () => {
-    // HEL*WORLD (all caps) should match the same content as hel*world
+    // HEL*WORLD (all caps) should match the same lowercase name as hel*world
     const results = await searchFolder(TEST_DATA_DIR, 'HEL*WORLD', 'wildcard');
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
-    expect(hw?.matchCount).toBe(3);
+    expect(hw!.nameMatch).toBe(true);
   });
 
   it('counts multiple wildcard matches in a single file', async () => {
-    // hel*world matches 3 times in hello-world.md:
-    // "Hello World" (title), "hello world", "hello_world and helloWorld" (greedy merge)
-    const results = await searchFolder(TEST_DATA_DIR, 'hel*world', 'wildcard');
-    const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
-    expect(hw).toBeDefined();
-    expect(hw?.matchCount).toBe(3);
+    // apple*line matches multi-match/repeated.md's CONTENT twice — "apple three
+    // times on one line" and "apple again on another line" — and its name
+    // ("repeated.md") not at all, so this exercises the content half's counting.
+    // `.` never matches a newline, so the two matches can't merge across lines.
+    const results = await searchFolder(TEST_DATA_DIR, 'apple*line', 'wildcard');
+    const repeated = results.find(r => r.relativePath === rel('multi-match', 'repeated.md'));
+    expect(repeated).toBeDefined();
+    expect(repeated!.nameMatch).toBeUndefined();
+    expect(repeated!.matchCount).toBe(2);
   });
 
   it('returns empty array when no files match', async () => {
@@ -497,6 +514,159 @@ describe('filename search', () => {
 
 
 // ═══════════════════════════════════════════════════════════════════
+// 5. Content+Names search (searchMode='content')
+//
+// 'content' mode is "File Contents+Names": a file is a hit when the query
+// matches its NAME *or* its CONTENTS. The name test is pure CPU while the
+// content test costs a read, so it runs first and short-circuits — a
+// name-matched file is never opened, and its result carries nameMatch: true.
+//
+// Two scope rules distinguish it from 'filenames' mode:
+//   - the NAME half covers every extension (contents are still only read for
+//     .md/.txt, plus images when searchImageExif is on)
+//   - FOLDER names are never matched (that's filenames mode's job)
+// ═══════════════════════════════════════════════════════════════════
+describe('content+names search', () => {
+  let dir: string;
+
+  /** Basenames of the results, sorted, for order-independent comparison. */
+  const names = (results: { path: string }[]): string[] =>
+    results.map(r => path.basename(r.path)).sort();
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-content-names-'));
+    const write = (relPath: string, body: string) => {
+      const fp = path.join(dir, relPath);
+      fs.mkdirSync(path.dirname(fp), { recursive: true });
+      fs.writeFileSync(fp, body, 'utf-8');
+    };
+
+    // Name matches TARGET, body does not → name-only hit.
+    write('alpha-target.md', 'no marker here\n');
+    // Body matches TARGET five times, name does not → content-only hit, and the
+    // higher matchCount lets us pin the name-matches-first ordering.
+    write('bulk.md', 'TARGET TARGET TARGET TARGET TARGET\n');
+    // Name matches but the extension is not content-searchable → still a hit,
+    // because the name half ignores extensions entirely.
+    write('target-archive.zip', 'irrelevant bytes\n');
+    // Body matches but the extension is not content-searchable and the name does
+    // not match → must NOT be found (contents of a .pdf are never read).
+    write('notes.pdf', 'TARGET inside a pdf\n');
+    // A FOLDER whose name matches, holding a file that matches neither → nothing
+    // from this subtree may appear.
+    write('target-folder/keep.md', 'nothing relevant\n');
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('matches on the file name OR the contents', async () => {
+    const results = await searchFolder(dir, 'TARGET', 'literal', 'content');
+    expect(names(results)).toEqual(['alpha-target.md', 'bulk.md', 'target-archive.zip']);
+  });
+
+  it('flags name matches and skips reading them', async () => {
+    const results = await searchFolder(dir, 'TARGET', 'literal', 'content');
+    const byName = new Map(results.map(r => [path.basename(r.path), r]));
+
+    // Name hit: matchCount counts occurrences within the NAME, not the body.
+    expect(byName.get('alpha-target.md')!.nameMatch).toBe(true);
+    expect(byName.get('alpha-target.md')!.matchCount).toBe(1);
+    // Content hit: nameMatch is absent and the body count is reported.
+    expect(byName.get('bulk.md')!.nameMatch).toBeUndefined();
+    expect(byName.get('bulk.md')!.matchCount).toBe(5);
+  });
+
+  it('name matching applies to every extension, contents only to .md/.txt', async () => {
+    const results = await searchFolder(dir, 'TARGET', 'literal', 'content');
+    const byName = new Map(results.map(r => [path.basename(r.path), r]));
+
+    // A .zip is found by NAME...
+    expect(byName.get('target-archive.zip')!.nameMatch).toBe(true);
+    // ...but a .pdf whose only match is in its BODY is not, because non-.md/.txt
+    // files are never read.
+    expect(byName.has('notes.pdf')).toBe(false);
+  });
+
+  it('never matches folder names (unlike filenames mode)', async () => {
+    const contentResults = await searchFolder(dir, 'target-folder', 'literal', 'content');
+    expect(contentResults).toEqual([]);
+
+    // Contrast: filenames mode does match the folder.
+    const filenameResults = await searchFolder(dir, 'target-folder', 'literal', 'filenames');
+    expect(names(filenameResults)).toEqual(['target-folder']);
+  });
+
+  it('sorts name matches ahead of content matches with a higher matchCount', async () => {
+    const results = await searchFolder(dir, 'TARGET', 'literal', 'content');
+    // bulk.md has 5 content matches but must still come last: without this, a
+    // name hit (count 1) would be the first thing dropped by SEARCH_RESULT_LIMIT.
+    expect(results.map(r => path.basename(r.path)).at(-1)).toBe('bulk.md');
+    for (const r of results.slice(0, -1)) {
+      expect(r.nameMatch).toBe(true);
+    }
+  });
+
+  it('wildcard queries match names too', async () => {
+    const results = await searchFolder(dir, 'alpha*.md', 'wildcard', 'content');
+    expect(names(results)).toEqual(['alpha-target.md']);
+    expect(results[0].nameMatch).toBe(true);
+  });
+
+  it('advanced queries stay content-only (no name matching)', async () => {
+    // An advanced query is JavaScript evaluated against file content: applying it
+    // to a bare name is meaningless for prop()/the date helpers, and a negated
+    // expression would match nearly every file in the tree. So only bulk.md — the
+    // one CONTENT match — comes back.
+    const results = await searchFolder(dir, "$('TARGET')", 'advanced', 'content');
+    expect(names(results)).toEqual(['bulk.md']);
+    expect(results[0].nameMatch).toBeUndefined();
+  });
+
+  it('calendarItemsOnly still excludes non-calendar files that match by name', async () => {
+    // alpha-target.md matches by name but has no `due:` front matter, so "only
+    // calendar items" must keep winning — the name half is confined to the
+    // calendar file set.
+    const results = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, false, true);
+    expect(results).toEqual([]);
+  });
+
+  it('empty query does not widen the candidate set to non-.md/.txt files', async () => {
+    // With no query there is nothing to match a name against, so the crawl must
+    // stay as narrow as it always was — no .zip/.pdf may leak into the results.
+    const results = await searchFolder(dir, '', 'literal', 'content', [], false, true);
+    expect(names(results)).toEqual(['alpha-target.md', 'bulk.md', 'keep.md']);
+  });
+
+  it('finds a non-searchable extension by name in the real fixture tree', async () => {
+    // "settings" appears in no fixture file's CONTENT — only in data/settings.yaml's
+    // name, an extension content search never reads.
+    const results = await searchFolder(TEST_DATA_DIR, 'settings', 'literal', 'content');
+    const yamlFile = results.find(r => r.relativePath === rel('data', 'settings.yaml'));
+    expect(yamlFile).toBeDefined();
+    expect(yamlFile!.nameMatch).toBe(true);
+  });
+
+  it('a file matching both name and content is reported as a name match', async () => {
+    // calculus.md contains "calculus" three times AND has it in its name.
+    const results = await searchFolder(TEST_DATA_DIR, 'calculus', 'literal', 'content');
+    const calculus = results.find(r => r.relativePath === rel('topics', 'math', 'calculus.md'));
+    expect(calculus).toBeDefined();
+    expect(calculus!.nameMatch).toBe(true);
+    expect(calculus!.matchCount).toBe(1);
+  });
+
+  it('does not return folders from the real fixture tree', async () => {
+    // "science" is a folder name (topics/science) and appears in no file content.
+    const results = await searchFolder(TEST_DATA_DIR, 'science', 'literal', 'content');
+    const scienceDir = results.find(r => r.relativePath === rel('topics', 'science'));
+    expect(scienceDir).toBeUndefined();
+  });
+});
+
+
+// ═══════════════════════════════════════════════════════════════════
 // 6. Ignored Paths
 // ═══════════════════════════════════════════════════════════════════
 describe('ignored paths', () => {
@@ -632,7 +802,7 @@ describe('result metadata', () => {
     expect(literal.length).toBeGreaterThan(0);
     expect(filenames.length).toBeGreaterThan(0);
 
-    const allowedKeys = new Set(['path', 'relativePath', 'matchCount', 'modifiedTime', 'createdTime']);
+    const allowedKeys = new Set(['path', 'relativePath', 'matchCount', 'modifiedTime', 'createdTime', 'nameMatch']);
     for (const r of [...literal, ...filenames]) {
       expect(Object.keys(r).every(k => allowedKeys.has(k))).toBe(true);
       expect('lineNumber' in r).toBe(false);
@@ -652,25 +822,37 @@ describe('result metadata', () => {
     }
   });
 
-  it('results sorted by matchCount descending (verified across all modes)', async () => {
-    // Content search (literal)
-    const literalResults = await searchFolder(TEST_DATA_DIR, 'apple', 'literal');
-    for (let i = 1; i < literalResults.length; i++) {
-      expect(literalResults[i - 1].matchCount).toBeGreaterThanOrEqual(literalResults[i].matchCount);
-    }
+  it('results sorted by name matches first, then matchCount descending (all modes)', async () => {
+    // The ordering contract: in 'content' mode name matches lead (a filename hit is
+    // the most relevant kind, and its name-scoped matchCount would otherwise sink it
+    // below every content hit and make it the first casualty of the result cap);
+    // within each group, matchCount descending.
+    const assertOrdered = (results: { matchCount: number; nameMatch?: boolean }[]) => {
+      for (let i = 1; i < results.length; i++) {
+        const prev = results[i - 1];
+        const cur = results[i];
+        // A name match must never follow a content match.
+        expect(!!prev.nameMatch || !cur.nameMatch).toBe(true);
+        if (!!prev.nameMatch === !!cur.nameMatch) {
+          expect(prev.matchCount).toBeGreaterThanOrEqual(cur.matchCount);
+        }
+      }
+    };
 
-    // Content search (wildcard)
-    const wildcardResults = await searchFolder(TEST_DATA_DIR, 'hel*', 'wildcard');
-    for (let i = 1; i < wildcardResults.length; i++) {
-      expect(wildcardResults[i - 1].matchCount).toBeGreaterThanOrEqual(wildcardResults[i].matchCount);
-    }
+    // Content search (literal) — 'apple' matches no file name, so this is a pure
+    // matchCount ordering check.
+    assertOrdered(await searchFolder(TEST_DATA_DIR, 'apple', 'literal'));
 
-    // Filename search
+    // Content search (wildcard) — 'hel*' matches both names (hello-world.md,
+    // help-wanted.md) and contents, so it exercises the two-group ordering.
+    assertOrdered(await searchFolder(TEST_DATA_DIR, 'hel*', 'wildcard'));
+
+    // Filename search — never sets nameMatch, so ordering is matchCount only.
     const filenameResults = await searchFolder(TEST_DATA_DIR, 'entry', 'literal', 'filenames');
-    for (let i = 1; i < filenameResults.length; i++) {
-      expect(filenameResults[i - 1].matchCount).toBeGreaterThanOrEqual(filenameResults[i].matchCount);
+    for (const r of filenameResults) {
+      expect(r.nameMatch).toBeUndefined();
     }
-
+    assertOrdered(filenameResults);
   });
 });
 

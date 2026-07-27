@@ -195,6 +195,10 @@ export interface SearchResultItem {
   matchCount: number;
   modifiedTime?: number; // File modification timestamp (milliseconds since epoch)
   createdTime?: number; // File creation timestamp (milliseconds since epoch)
+  /** Set (in 'content' mode only) when the file matched on its NAME, so its
+   * contents were never read — matchCount counts occurrences within the file name
+   * rather than the body. The results view shows "name match" instead of a count. */
+  nameMatch?: boolean;
 }
 
 /**

@@ -260,6 +260,10 @@ export interface SearchResult {
   matchCount: number;
   modifiedTime?: number;
   createdTime?: number;
+  /** Set (in 'content' mode only) when the file matched on its NAME, so its
+   * contents were never read — matchCount counts occurrences within the file name
+   * rather than the body. The results view shows "name match" instead of a count. */
+  nameMatch?: boolean;
 }
 
 export interface ReplaceResult {

@@ -648,11 +648,13 @@ MkBrowser includes a powerful search feature to help you find content across you
 1. Click the **Search** button in the toolbar or press `Ctrl+Shift+F`.
 2. Enter your search query.
 3. Choose your search options:
-    - **Search Target**: Choose to search **File Content** or **File Names**.
+    - **Search Target**:
+        - **File Contents+Names**: A file is a match if your text is found in its **contents** *or* in its **file name**. Contents are read from `.md` and `.txt` files (plus image EXIF metadata when that option is checked), but the file-name half of the match applies to **every** file regardless of extension — so a `.pdf` or `.zip` whose name contains your text is found too. Folder names are not matched. Results that matched on the file name are labeled **name match** and are listed first.
+        - **File Names**: Matches names only — but unlike the option above, it includes **folder** names as well as files of every type, and never reads any file contents.
     - **Search Mode**: 
         - **Literal**: Exact text match.
         - **Wildcard**: Use `*` to match any characters (e.g., `note-*.md`).
-        - **Advanced**: Use custom predicate functions (see below).
+        - **Advanced**: Use custom predicate functions (see below). Note that Advanced expressions are evaluated against file **contents only** — they never match on file names.
 
 ## Advanced Search Predicates
 
