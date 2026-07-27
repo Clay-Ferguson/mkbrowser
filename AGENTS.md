@@ -126,8 +126,5 @@ Never use `console.log`/`console.error`. Use approach in './shared/logUtil'
 ## Skills Files (SKILLS.md)
 Our policy is to never use SKILLS.md files, so never create those. If you think something would benefit this project as a SKILL.md, and would've created it otherwise then just tell me about it, but never create a `SKILLS.md` file.
 
-## Note to AI Agents
-You're running in a Virtual Machine where you only have read/write access to the project folder itself, as well as 'git' being installed. You will not be able to run linter, compiler, build tools, or tests, because I don't have that stuff installed in your VM. If you need to run a linter or have the test suite run to confirm something that you need to confirm, simply stop and ask me to do it for you, before you continue.
-
 
 
