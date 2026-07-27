@@ -145,10 +145,16 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
 }
 
 /**
- * Every selection/cut/editing flag BrowseView needs, in a single pass over the
- * item map. The map is rebuilt on each store write — including every keystroke
- * in edit mode — so separate `.some()`/`.filter()` scans would each walk the
+ * Every selection/cut flag BrowseView needs, in a single pass over the item
+ * map. The map is rebuilt on each store write — including every keystroke in
+ * edit mode — so separate `.some()`/`.filter()` scans would each walk the
  * whole folder again per render.
+ *
+ * Deliberately reports nothing about edit state: the map is global and holds
+ * items from every folder visited this session, so a "something is editing"
+ * flag derived here would stay true after navigating away from the file being
+ * edited. Edit-driven layout is scoped to the current folder via
+ * `editingEntries` below.
  *
  * `selectedItems` keeps the map's insertion order, matching what the previous
  * `Array.from(items.values()).filter(...)` produced.
@@ -158,7 +164,6 @@ function summarizeItems(items: Map<string, ItemData>) {
   let selectedFileCount = 0;
   let hasSelectedFolders = false;
   let hasCutItems = false;
-  let anyItemEditing = false;
 
   for (const item of items.values()) {
     if (item.isSelected) {
@@ -167,7 +172,6 @@ function summarizeItems(items: Map<string, ItemData>) {
       else selectedFileCount++;
     }
     if (item.isCut) hasCutItems = true;
-    if (item.editing) anyItemEditing = true;
   }
 
   return {
@@ -176,7 +180,6 @@ function summarizeItems(items: Map<string, ItemData>) {
     selectedFileCount,
     hasSelectedFolders,
     hasCutItems,
-    anyItemEditing,
   };
 }
 
@@ -289,21 +292,33 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     : sortEntries(entriesWithCurrentTimes, settings.sortOrder, settings.foldersOnTop);
 
   // In expanded-editor mode, show only the entries being edited (fall back to
-  // everything when nothing is in edit mode yet).
+  // everything when nothing in THIS folder is in edit mode).
   const editingEntries = expandedEditor
     ? sortedEntries.filter((entry) => !entry.isDirectory && items.get(entry.path)?.editing)
     : [];
-  const visibleEntries = expandedEditor && editingEntries.length > 0 ? editingEntries : sortedEntries;
+
+  // Expanded-editor mode with an active edit: the editing entry is maximized to fill the whole
+  // browse area (100% width/height), the outer scrollbar goes away, and only the CodeMirror
+  // editor itself scrolls. Achieved by turning the main > content > list > entry chain into
+  // nested flex columns (see the className conditionals below and fillHeight in the entries).
+  //
+  // This MUST be derived from editingEntries — i.e. from an edit in the *current* folder —
+  // and never from a "some item in the store is editing" scan. The items map is global, so
+  // such a scan stays true after navigating to another folder while a file is still open for
+  // editing; the list would then fall back to all entries (below) while the maximize classes
+  // stayed on, making every row an equal-share flex item and wrecking the folder listing.
+  const expandedEditing = editingEntries.length > 0;
+  const visibleEntries = expandedEditing ? editingEntries : sortedEntries;
 
   const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
 
-  const { selectedItems, hasSelectedItems, selectedFileCount, hasSelectedFolders, hasCutItems, anyItemEditing } =
+  const { selectedItems, hasSelectedItems, selectedFileCount, hasSelectedFolders, hasCutItems } =
     summarizeItems(items);
 
   const previousPathRef = useRef<string | null>(null);
   const mainContainerRef = useRef<HTMLElement | null>(null);
   const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const preEditScrollPositionRef = useRef<number | null>(null);
+  const preEditScrollPositionRef = useRef<{ path: string | null; top: number } | null>(null);
   const wasExpandedEditingRef = useRef<boolean>(false);
   const toolsButtonRef = useRef<HTMLButtonElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
@@ -412,44 +427,50 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   // When expanded editor activates and a file starts editing, save scroll position
   // and scroll to top. When expanded editing ends, restore the saved position.
-  // Expanded-editor mode with an active edit: the editing entry is maximized to fill the whole
-  // browse area (100% width/height), the outer scrollbar goes away, and only the CodeMirror
-  // editor itself scrolls. Achieved by turning the main > content > list > entry chain into
-  // nested flex columns (see the className conditionals below and fillHeight in the entries).
-  const expandedEditing = expandedEditor && anyItemEditing;
-
-  // NOTE: when we're editing in expanded mode that will mean our scroll bar will be completely irrelevant 
+  //
+  // NOTE: when we're editing in expanded mode that will mean our scroll bar will be completely irrelevant
   // when we re-render the page after the editing is completed, and so the logic related to 'preEditScrollPositionRef'
   // below is to be able to restore the scroll position back to the correct location after an expanded mode edit.
+  // The saved position is tagged with the folder it belongs to, because expanded editing also ends by
+  // navigating away from that folder — and restoring then would scroll the folder we just arrived at to
+  // an offset that means nothing there (and overwrite its own saved position with it).
   useEffect(() => {
     let restoreTimer: ReturnType<typeof setTimeout> | undefined;
-    const isExpandedEditing = expandedEditor && anyItemEditing;
-    if (isExpandedEditing && !wasExpandedEditingRef.current) {
+    if (expandedEditing && !wasExpandedEditingRef.current) {
       // Read from the store rather than live scrollTop: by the time this effect runs,
       // visibleEntries has already changed (DOM content shrank) and the browser has
       // clamped scrollTop to 0, losing the real position. The store holds the last
       // debounced-saved value, which is accurate to within 150ms — long before the
       // user clicked "Expand editor".
-      preEditScrollPositionRef.current = currentPath ? getBrowserScrollPosition(currentPath) : 0;
+      preEditScrollPositionRef.current = {
+        path: currentPath,
+        top: currentPath ? getBrowserScrollPosition(currentPath) : 0,
+      };
       mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' });
-    } else if (!isExpandedEditing && wasExpandedEditingRef.current) {
-      if (preEditScrollPositionRef.current !== null) {
-        const savedPos = preEditScrollPositionRef.current;
-        preEditScrollPositionRef.current = null;
-        if (currentPath) setBrowserScrollPosition(currentPath, savedPos);
-        restoreTimer = setTimeout(() => {
-          mainContainerRef.current?.scrollTo({ top: savedPos, behavior: 'instant' });
-        }, 50);
+    } else if (!expandedEditing && wasExpandedEditingRef.current) {
+      const saved = preEditScrollPositionRef.current;
+      preEditScrollPositionRef.current = null;
+      if (saved !== null) {
+        // Always hand the position back to the folder it came from: scrolling the
+        // maximized editor to the top saved a bogus 0 for that folder, so this
+        // repair matters whether we're still there or navigating away.
+        if (saved.path) setBrowserScrollPosition(saved.path, saved.top);
+        // Only move the live container when the edit ended in place (save/close).
+        if (saved.path === currentPath) {
+          restoreTimer = setTimeout(() => {
+            mainContainerRef.current?.scrollTo({ top: saved.top, behavior: 'instant' });
+          }, 50);
+        }
       }
     }
-    wasExpandedEditingRef.current = isExpandedEditing;
+    wasExpandedEditingRef.current = expandedEditing;
     // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending
     // restore timeout so a stale restore can't fire after re-entering expanded mode or
     // navigating within the 50ms window.
     return () => {
       if (restoreTimer !== undefined) clearTimeout(restoreTimer);
     };
-  }, [expandedEditor, anyItemEditing, currentPath]);
+  }, [expandedEditing, currentPath]);
 
   // Handle scroll events on the main container (debounced save)
   const handleMainScroll = (e: React.UIEvent<HTMLElement>) => {
