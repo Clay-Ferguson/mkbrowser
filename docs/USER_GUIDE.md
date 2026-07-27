@@ -747,7 +747,7 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 
 After a search, MkBrowser highlights every occurrence of the search term across all rendered Markdown content in the Browse view — not just in the Search Results tab. This makes it easy to spot matching text as you scroll through your files.
 
-To remove the highlight, open the **Search** menu and click **Clear Search Highlight**. The option only appears when a highlight is active.
+To remove the highlight, open the **Search** menu and click **Clear Highlight**. The option only appears when a highlight is active.
 
 ## Saving Search Definitions
 You can save frequently used searches for quick access later.

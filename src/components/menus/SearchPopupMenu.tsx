@@ -18,7 +18,7 @@ interface SearchPopupMenuProps {
 /**
  * Popup menu for the Search toolbar button. Lists saved search definitions
  * alphabetically (left-click to run, right-click to edit) and provides a
- * "New Search…" entry at the top. Also shows "Clear Search Highlight" when a
+ * "New Search…" entry at the top. Also shows "Clear Highlight" when a
  * global text highlight is active.
  */
 export default function SearchPopupMenu({
@@ -42,7 +42,7 @@ export default function SearchPopupMenu({
       />
       {getGlobalHighlightText() && (
         <PopupMenuItem
-          label="Clear Search Highlight"
+          label="Clear Highlight"
           onClick={() => { setGlobalHighlightText(null); applyGlobalHighlight(''); onClose(); }}
         />
       )}
