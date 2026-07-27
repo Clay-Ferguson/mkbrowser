@@ -8,8 +8,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-/** Absolute path to the test-data root */
-export const TEST_DATA_DIR = path.resolve(__dirname, '..', '..', 'test-data');
+/**
+ * Absolute path to the test-data root.
+ *
+ * Defaults to <projectRoot>/test-data. Override with MKB_TEST_DATA_DIR to put
+ * the fixtures on a different filesystem — needed when the project lives on a
+ * mount that doesn't report a creation time (e.g. a virtiofs share into a VM),
+ * since the `createdTime` assertions read `stat().birthtime`. We have this because
+ * our AI Agent (Claude Code) runs in a VM and so it defines the env var inside 
+ * that KVM to deal with this issue, and allow the KVM to not fail when running tests.
+ */
+export const TEST_DATA_DIR = process.env.MKB_TEST_DATA_DIR
+  ? path.resolve(process.env.MKB_TEST_DATA_DIR)
+  : path.resolve(__dirname, '..', '..', 'test-data');
 
 /** Convenience: build the expected relative path for assertions */
 export function rel(...segments: string[]): string {
