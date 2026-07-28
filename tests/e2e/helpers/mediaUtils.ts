@@ -19,22 +19,47 @@ export function logScreenshotSummary(screenshotDir: string): void {
   logger.log(`\n✓ Created ${pngCount} screenshots and ${txtCount} narration files in ${screenshotDir}`);
 }
 
+/**
+ * Files the app names by timestamp rather than by the `my-` test convention:
+ * the ones Document Mode's insert bar creates (`generateTimestampFileName`) and
+ * the ones a clipboard paste lands in. A spec that aborts before its own
+ * cleanup leaves these behind, and the next run then sees content it did not
+ * seed — which is how one failing spec cascades into several.
+ */
+const TIMESTAMP_FILE_RE = /^\d{4}-\d{2}-\d{2}--.*\.md$/;
+
 export function cleanupTestDataFiles(): void {
   const testDataDir = path.resolve(path.join(__dirname, '../../../mkbrowser-test'));
   logger.log('testDataDir:', testDataDir);
   cleanupTestDataFilesRecursive(testDataDir);
 }
 
+/**
+ * Removes everything a previous e2e run may have created under mkbrowser-test,
+ * so each spec starts from the checked-in fixture state. Nothing tracked by git
+ * matches any of these patterns, so this can only delete generated files.
+ *
+ * Deleting whole `my-*` DIRECTORIES matters as much as the files: specs seed a
+ * folder, work inside it, and remove it on the last line — so an abort leaves
+ * the folder (often with a `*.attach` subfolder holding a stale paste) for the
+ * next run to trip over.
+ */
 function cleanupTestDataFilesRecursive(dir: string): void {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'A' || entry.name === 'H') {
+      // 'A'/'H' are AI-chat turn folders; 'my-*' are spec-seeded folders.
+      if (entry.name === 'A' || entry.name === 'H' || entry.name.startsWith('my-')) {
         fs.rmSync(fullPath, { recursive: true, force: true });
       } else {
         cleanupTestDataFilesRecursive(fullPath);
       }
-    } else if (/^my-.*\.md$/.test(entry.name) || entry.name === 'AI.md' || entry.name === 'HUMAN.md') {
+    } else if (
+      /^my-.*\.md$/.test(entry.name) ||
+      TIMESTAMP_FILE_RE.test(entry.name) ||
+      entry.name === 'AI.md' ||
+      entry.name === 'HUMAN.md'
+    ) {
       fs.unlinkSync(fullPath);
     }
   }

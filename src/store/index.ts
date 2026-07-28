@@ -1,4 +1,4 @@
-export type { AppState, AppView, AppSettings, AiConfigState, Bookmark, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, FolderAnalysisState, FolderGraphState, FolderGraphNode, FolderGraphLink, HashtagEntry, ThreadEntry, ThreadChildFolder, TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode, CalendarEvent } from '../shared/types';
+export type { AppState, AppView, BrowseFileMode, AppSettings, AiConfigState, Bookmark, FontSize, SortOrder, ContentWidth, IndexTreeWidth, ItemData, SearchResultItem, SearchDefinition, SearchSortBy, SearchSortDirection, FolderAnalysisState, FolderGraphState, FolderGraphNode, FolderGraphLink, HashtagEntry, ThreadEntry, ThreadChildFolder, TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode, CalendarEvent } from '../shared/types';
 export { createItemData } from '../shared/types';
 
 // Store is split into cohesive slices, each contributing its actions to the

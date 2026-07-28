@@ -5,6 +5,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
 ![Screenshot](./img/screenshot.png)
 
 <!-- TOC -->
+* [MkBrowser User Guide](#mkbrowser-user-guide)
 * [Desktop Icon (Linux)](#desktop-icon-linux)
 * [Tab Bar](#tab-bar)
 * [Browsing and Editing](#browsing-and-editing)
@@ -142,7 +143,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Calendar Items Folder](#calendar-items-folder)
 * [Image Viewer and EXIF Metadata](#image-viewer-and-exif-metadata)
   * * [Editing EXIF Data](#editing-exif-data)
-  * * [ExifTool Requirement](#exiftool-requirement)
+    * [ExifTool Requirement](#exiftool-requirement)
 * [Automatic Markdown-to-HTML Export (Front Matter Autogen)](#automatic-markdown-to-html-export-front-matter-autogen)
   * [How It Works](#how-it-works)
   * [Use Case: Browser Landing Page](#use-case-browser-landing-page)

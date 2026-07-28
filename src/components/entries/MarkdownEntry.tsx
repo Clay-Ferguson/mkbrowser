@@ -19,7 +19,7 @@ import {
   setPendingThreadScrollToBottom,
   setItemReviewing,
   setItemContent,
-  setExpandedEditor,
+  toggleExpandedEditor,
   setShowPropsInEditor,
 } from '../../store';
 import AlertDialog from '../dialogs/AlertDialog';
@@ -146,7 +146,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const { showToc, showPropsInEditor, expandedEditor } = useAS(s => s.settings);
   const hasIndexFile = useAS(s => s.hasIndexFile);
   // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
-  // content area, and editor all become nested flex columns (BrowseView flexes the outer chain).
+  // content area, and editor all become nested flex columns (BrowseFile flexes the outer chain —
+  // it is the only view that ever hosts a maximized editor).
   // `alwaysExpandedEditor` forces this on for callers that give the entry the whole pane.
   const editorExpanded = expandedEditor || alwaysExpandedEditor;
   const maximized = editorExpanded && edit.isEditing;
@@ -216,8 +217,11 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     onSaveSettings();
   };
 
+  // Flips the preference AND moves the editor to match: expanding hands this
+  // file the whole pane via BrowseFile, collapsing drops back to the folder
+  // listing with the editor still open inline.
   const handleToggleExpandedEditor = () => {
-    setExpandedEditor(!expandedEditor);
+    toggleExpandedEditor(entry.path);
     onSaveSettings();
   };
 

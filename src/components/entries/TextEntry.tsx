@@ -5,7 +5,7 @@ import {
   clearItemGoToLine,
   setItemReviewing,
   useAS,
-  setExpandedEditor,
+  toggleExpandedEditor,
 } from '../../store';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
@@ -50,7 +50,8 @@ function TextEntry(props: TextEntryProps) {
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const expandedEditor = useAS(s => s.settings.expandedEditor);
   // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
-  // content area, and editor all become nested flex columns (BrowseView flexes the outer chain).
+  // content area, and editor all become nested flex columns (BrowseFile flexes the outer chain —
+  // it is the only view that ever hosts a maximized editor).
   // `alwaysExpandedEditor` forces this on for callers that give the entry the whole pane.
   const editorExpanded = expandedEditor || alwaysExpandedEditor;
   // `alwaysExpandedEditor` callers (BrowseFile) hand this entry the whole pane, so it fills
@@ -71,8 +72,11 @@ function TextEntry(props: TextEntryProps) {
 
   const handleToggleExpanded = useToggleExpanded(entry.path);
 
+  // Flips the preference AND moves the editor to match: expanding hands this
+  // file the whole pane via BrowseFile, collapsing drops back to the folder
+  // listing with the editor still open inline.
   const handleToggleExpandedEditor = () => {
-    setExpandedEditor(!expandedEditor);
+    toggleExpandedEditor(entry.path);
     onSaveSettings();
   };
 

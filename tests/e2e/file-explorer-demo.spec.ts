@@ -177,49 +177,31 @@ Let's click on the "Searching" heading to expand it and reveal its sub-headings 
 We can drill into any section of the document directly from the file explorer.`
     );
 
-    // --- Right-click "Saving Search Definitions" sub-heading ---
+    // --- Click the "Saving Search Definitions" sub-heading ---
+    // Heading rows are click-only: commit 4655289 ("making markdown index
+    // heading clicks scroll markdown heading to view") removed
+    // handleHeadingContextMenu and the heading row's onContextMenu, so a
+    // right-click here opens nothing. The left-click IS the whole interaction —
+    // handleHeadingClick scrolls the document straight to that section.
     const savingSearchNode = tree.getByText('Saving Search Definitions').first();
     await savingSearchNode.scrollIntoViewIfNeeded();
-    await takeScreenshot(mainWindow, savingSearchNode, screenshotDir, step++, 'about-to-right-click-saving-search-definitions');
+    await takeScreenshot(mainWindow, savingSearchNode, screenshotDir, step++, 'about-to-click-saving-search-definitions');
     writeNarration(
       screenshotDir,
       step++,
       `We can see the sub-heading "Saving Search Definitions" in the tree.
-Let's right-click it to open the context menu for that heading.`
+Let's click it to jump straight to that section of the document.`
     );
 
-    await demoRightClick(savingSearchNode);
+    await demoClick(savingSearchNode);
     await mainWindow.waitForTimeout(1200);
 
-    // The right-click opens a context menu for the heading. Verify it appeared.
-    const savingSearchBrowseItem = mainWindow.getByTestId('browse-to-folder');
-    await expect(savingSearchBrowseItem).toBeVisible({ timeout: 5000 });
-
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'saving-search-context-menu-open');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Again the context menu appears, this time for the heading.
-We'll click the "Browse to File" item, which scrolls the right-hand side of the app directly to that section of the document.`
-    );
-
-    // Highlight the menu item, then click it to jump to the heading.
-    await takeScreenshot(mainWindow, savingSearchBrowseItem, screenshotDir, step++, 'about-to-click-browse-to-heading');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Let's click the "Browse to File" menu item to jump straight to the "Saving Search Definitions" section.`
-    );
-
-    await demoClick(savingSearchBrowseItem);
-    await mainWindow.waitForTimeout(1200);
-
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'right-click-saving-search-definitions-scrolled');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'saving-search-definitions-scrolled');
     writeNarration(
       screenshotDir,
       step++,
       `The right-hand panel has scrolled directly to the "Saving Search Definitions" section of the USER_GUIDE document.
-Using the context menu in the File Explorer Tree is a fast way to jump to that exact section in the reader.`
+Clicking a heading in the File Explorer Tree is a fast way to jump to that exact section in the reader.`
     );
 
     // --- Phase 3 ---

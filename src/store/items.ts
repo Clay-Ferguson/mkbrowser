@@ -4,6 +4,7 @@ import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
 import { getParentPath, isPathInside, remapMovedPath } from '../renderer/pathUtil';
+import { enterExpandedEditPatch, isExpandedEditOf } from './expandedEdit';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
 
@@ -586,6 +587,16 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
 
     /**
      * Set the editing state of an item.
+     *
+     * This is also the single choke point for expanded-editor routing: with the
+     * user's `expandedEditor` preference on, starting an edit in the folder
+     * listing enters single-file mode so BrowseFile hosts the maximized editor,
+     * and ending that edit returns to the listing. Doing it here rather than at
+     * each call site means every path gets it for free — click-to-edit,
+     * search-results jump-to-edit (BrowseView's pendingEditFile), and the
+     * global Escape handler alike — and keeps it in the same atomic `set()` as
+     * the edit flag itself. See `expandedEdit.ts` for the rules.
+     *
      * @param path - The full path of the item
      * @param editing - Whether the item is being edited
      * @param goToLine - Optional 1-based line number to scroll to when editing starts
@@ -604,9 +615,17 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
         ...(editing ? {} : { editContent: undefined, reviewing: undefined, rewrittenContent: undefined }),
       });
 
+      // Cancel and save-and-close both land here with editing=false, so both
+      // exit. Save-and-keep-editing leaves `editing` alone, which correctly
+      // keeps the user in the maximized editor.
+      const routing = editing
+        ? enterExpandedEditPatch(state, path)
+        : (isExpandedEditOf(state, path) ? { browseFileName: null } : null);
+
       set({
         items: newItems,
         ...(editing ? { highlightItem: path } : {}),
+        ...routing,
       });
     },
 

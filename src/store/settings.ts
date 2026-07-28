@@ -20,7 +20,6 @@ export interface SettingsSlice {
   setFoldersOnTop: (foldersOnTop: boolean) => void;
   setShowToc: (showToc: boolean) => void;
   setShowPropsInEditor: (showPropsInEditor: boolean) => void;
-  setExpandedEditor: (expandedEditor: boolean) => void;
   setIgnoredPaths: (ignoredPaths: string) => void;
   setContentWidth: (contentWidth: ContentWidth) => void;
   setOcrToolsFolder: (ocrToolsFolder: string) => void;
@@ -57,9 +56,9 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
     setShowPropsInEditor: (showPropsInEditor) =>
       set({ settings: { ...get().settings, showPropsInEditor } }),
 
-    /** Toggle the editor between its normal and expanded (full-width) layout. */
-    setExpandedEditor: (expandedEditor) =>
-      set({ settings: { ...get().settings, expandedEditor } }),
+    // `expandedEditor` is deliberately NOT settable on its own: flipping it
+    // has to move the editor between the folder listing and BrowseFile in the
+    // same update. Use `toggleExpandedEditor(path)` in the view slice.
 
     /** Update the ignored paths setting. */
     setIgnoredPaths: (ignoredPaths) => set({ settings: { ...get().settings, ignoredPaths } }),
@@ -161,10 +160,6 @@ export function setShowToc(showToc: boolean): void {
 
 export function setShowPropsInEditor(showPropsInEditor: boolean): void {
   getState().setShowPropsInEditor(showPropsInEditor);
-}
-
-export function setExpandedEditor(expandedEditor: boolean): void {
-  getState().setExpandedEditor(expandedEditor);
 }
 
 export function setIgnoredPaths(ignoredPaths: string): void {

@@ -81,6 +81,7 @@ const initialState: AppState = {
   currentPath: '',
   currentView: 'browser', // browser | search-results | settings
   browseFileName: null,
+  browseFileMode: 'browse',
   pendingScrollToFile: null,
   pendingScrollToHeadingSlug: null,
   searchQuery: '',

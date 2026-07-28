@@ -30,6 +30,10 @@ export interface BaseEntryProps {
    * regardless of the global `expandedEditor` setting, and hides the
    * expand/collapse toggle. Used by BrowseFile, where the entry already owns
    * the whole pane so a non-expanded editor would just waste it.
+   *
+   * Passed only in BrowseFile's `'browse'` mode. Its `'expanded-edit'` mode
+   * also gives the entry the whole pane, but there the global setting is what
+   * put it there, so the toggle must stay live — see `AppState.browseFileMode`.
    */
   alwaysExpandedEditor?: boolean;
 }

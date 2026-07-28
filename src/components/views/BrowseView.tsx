@@ -153,8 +153,8 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
  * Deliberately reports nothing about edit state: the map is global and holds
  * items from every folder visited this session, so a "something is editing"
  * flag derived here would stay true after navigating away from the file being
- * edited. Edit-driven layout is scoped to the current folder via
- * `editingEntries` below.
+ * edited. Nothing in this view is edit-driven any more — a maximized editor
+ * lives only in BrowseFile — so don't add one back.
  *
  * `selectedItems` keeps the map's insertion order, matching what the previous
  * `Array.from(items.values()).filter(...)` produced.
@@ -222,7 +222,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const [showCutOrphanAttachConfirm, setShowCutOrphanAttachConfirm] = useState<boolean>(false);
 
   const hasIndexFile = useAS(s => s.hasIndexFile);
-  const expandedEditor = useAS(s => s.settings.expandedEditor);
 
   const items = useAS(s => s.items);
   const currentView = useAS(s => s.currentView);
@@ -291,24 +290,13 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       })
     : sortEntries(entriesWithCurrentTimes, settings.sortOrder, settings.foldersOnTop);
 
-  // In expanded-editor mode, show only the entries being edited (fall back to
-  // everything when nothing in THIS folder is in edit mode).
-  const editingEntries = expandedEditor
-    ? sortedEntries.filter((entry) => !entry.isDirectory && items.get(entry.path)?.editing)
-    : [];
-
-  // Expanded-editor mode with an active edit: the editing entry is maximized to fill the whole
-  // browse area (100% width/height), the outer scrollbar goes away, and only the CodeMirror
-  // editor itself scrolls. Achieved by turning the main > content > list > entry chain into
-  // nested flex columns (see the className conditionals below and fillHeight in the entries).
-  //
-  // This MUST be derived from editingEntries — i.e. from an edit in the *current* folder —
-  // and never from a "some item in the store is editing" scan. The items map is global, so
-  // such a scan stays true after navigating to another folder while a file is still open for
-  // editing; the list would then fall back to all entries (below) while the maximize classes
-  // stayed on, making every row an equal-share flex item and wrecking the folder listing.
-  const expandedEditing = editingEntries.length > 0;
-  const visibleEntries = expandedEditing ? editingEntries : sortedEntries;
+  // This view renders a folder listing and nothing else. Expanded ("maximized")
+  // editing used to live here too, as a class chain that turned this same
+  // container into a nested flex column around the one entry being edited —
+  // a dual-purpose <div> whose styling meant two different things. It is now
+  // BrowseFile's job exclusively: starting an edit with the expandedEditor
+  // preference on enters single-file mode (see store/expandedEdit.ts), which
+  // swaps this component out entirely. Inline editing here is unchanged.
 
   const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
 
@@ -318,8 +306,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const previousPathRef = useRef<string | null>(null);
   const mainContainerRef = useRef<HTMLElement | null>(null);
   const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const preEditScrollPositionRef = useRef<{ path: string | null; top: number } | null>(null);
-  const wasExpandedEditingRef = useRef<boolean>(false);
   const toolsButtonRef = useRef<HTMLButtonElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
@@ -332,7 +318,12 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     // Skip browser scroll handling when not in browser view — ThreadView
     // manages its own scrolling and we don't want to interfere.
     if (currentView !== 'browser') {
-      previousPathRef.current = currentPath;
+      // Keep the tracked folder in sync so returning to this tab isn't mistaken
+      // for a folder navigation (which would save a scrollTop belonging to a
+      // listing that is no longer rendered). Deliberately leaves a null ref
+      // null: this component can mount while another tab is active, and that
+      // mount still owes a scroll restore — see isFirstMount below.
+      if (previousPathRef.current !== null) previousPathRef.current = currentPath;
       return;
     }
 
@@ -341,6 +332,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     // scroll position is preserved natively when switching tabs — we only
     // need to save/restore per folder when navigating between folders.
     const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
+
+    // A fresh mount also has to restore, because this component really does get
+    // unmounted and remounted: single-file mode (browsing one file, and
+    // expanded editing) swaps it out for BrowseFile rather than hiding it. The
+    // position was last written by the debounced scroll save, so it comes back
+    // accurate to within 150ms. At app startup nothing is saved yet and the
+    // restore is a harmless scrollTo(0).
+    const isFirstMount = previousPathRef.current === null;
 
     // Save scroll position for the previous folder before switching
     if (isNewFolder && previousPathRef.current && mainContainerRef.current) {
@@ -381,8 +380,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         // tied to this effect's cleanup, and the flag is consumed immediately.
         scrollElementIntoView(pendingScrollToHeadingSlug, true);
         clearPendingScrollToHeadingSlug();
-      } else if (isNewFolder) {
-        // Restore the saved scroll position for the folder we navigated to.
+      } else if (isNewFolder || isFirstMount) {
+        // Restore the saved scroll position for the folder we navigated to (or
+        // the one we were already in, when remounting).
         const savedPosition = getBrowserScrollPosition(currentPath);
         const mainContainer = mainContainerRef.current;
         if (mainContainer) {
@@ -425,52 +425,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   };
 
 
-  // When expanded editor activates and a file starts editing, save scroll position
-  // and scroll to top. When expanded editing ends, restore the saved position.
-  //
-  // NOTE: when we're editing in expanded mode that will mean our scroll bar will be completely irrelevant
-  // when we re-render the page after the editing is completed, and so the logic related to 'preEditScrollPositionRef'
-  // below is to be able to restore the scroll position back to the correct location after an expanded mode edit.
-  // The saved position is tagged with the folder it belongs to, because expanded editing also ends by
-  // navigating away from that folder — and restoring then would scroll the folder we just arrived at to
-  // an offset that means nothing there (and overwrite its own saved position with it).
-  useEffect(() => {
-    let restoreTimer: ReturnType<typeof setTimeout> | undefined;
-    if (expandedEditing && !wasExpandedEditingRef.current) {
-      // Read from the store rather than live scrollTop: by the time this effect runs,
-      // visibleEntries has already changed (DOM content shrank) and the browser has
-      // clamped scrollTop to 0, losing the real position. The store holds the last
-      // debounced-saved value, which is accurate to within 150ms — long before the
-      // user clicked "Expand editor".
-      preEditScrollPositionRef.current = {
-        path: currentPath,
-        top: currentPath ? getBrowserScrollPosition(currentPath) : 0,
-      };
-      mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' });
-    } else if (!expandedEditing && wasExpandedEditingRef.current) {
-      const saved = preEditScrollPositionRef.current;
-      preEditScrollPositionRef.current = null;
-      if (saved !== null) {
-        // Always hand the position back to the folder it came from: scrolling the
-        // maximized editor to the top saved a bogus 0 for that folder, so this
-        // repair matters whether we're still there or navigating away.
-        if (saved.path) setBrowserScrollPosition(saved.path, saved.top);
-        // Only move the live container when the edit ended in place (save/close).
-        if (saved.path === currentPath) {
-          restoreTimer = setTimeout(() => {
-            mainContainerRef.current?.scrollTo({ top: saved.top, behavior: 'instant' });
-          }, 50);
-        }
-      }
-    }
-    wasExpandedEditingRef.current = expandedEditing;
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending
-    // restore timeout so a stale restore can't fire after re-entering expanded mode or
-    // navigating within the 50ms window.
-    return () => {
-      if (restoreTimer !== undefined) clearTimeout(restoreTimer);
-    };
-  }, [expandedEditing, currentPath]);
+  // No expanded-editing scroll bookkeeping lives here any more. Entering a
+  // maximized edit used to shrink this listing to a single row in place, which
+  // destroyed the scroll position and needed a save/restore pair to repair.
+  // Now it swaps the whole component out for BrowseFile, and the position is
+  // restored on remount by the effect above like any other navigation.
 
   // Handle scroll events on the main container (debounced save)
   const handleMainScroll = (e: React.UIEvent<HTMLElement>) => {
@@ -603,10 +562,10 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
    * file without its attachments before proceeding.
    */
   const handleCutClick = () => {
-    const hasOrphanedAttachment = visibleEntries.some((entry) => {
+    const hasOrphanedAttachment = sortedEntries.some((entry) => {
       if (entry.isDirectory || !items.get(entry.path)?.isSelected) return false;
       const attachName = `${entry.name}${ATTACH_SUFFIX}`;
-      const attachEntry = visibleEntries.find((e) => e.name === attachName);
+      const attachEntry = sortedEntries.find((e) => e.name === attachName);
       return attachEntry !== undefined && !items.get(attachEntry.path)?.isSelected;
     });
     if (hasOrphanedAttachment) {
@@ -968,9 +927,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           />
         </div>
 
-        {/* Hidden while an entry is being edited in expanded mode — these buttons don't
-            apply to the maximized editor and would only steal space from it. */}
-        {!expandedEditing && (
         <div data-testid="browser-header-actions" className="flex-1 flex items-center justify-end gap-2">
           {/* Cut button - shown when items are selected and no items are cut */}
           {hasSelectedItems && !hasCutItems && (
@@ -1143,7 +1099,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           </button>
 
         </div>
-        )}
       </header>
 
       {/* Main content */}
@@ -1151,9 +1106,9 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         data-testid="browser-main-content"
         ref={mainContainerRef}
         onScroll={handleMainScroll}
-        className={`flex-1 min-h-0 pb-4 pt-1 pr-3 pl-3 relative ${expandedEditing ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}
+        className="flex-1 min-h-0 pb-4 pt-1 pr-3 pl-3 relative overflow-y-auto"
       >
-        <div className={expandedEditing ? 'w-full px-4 flex-1 min-h-0 flex flex-col' : `${getContentWidthClasses(settings.contentWidth)}`}>
+        <div className={getContentWidthClasses(settings.contentWidth)}>
           {loading && (
             <div className="flex items-center justify-center py-12">
               <div className="text-slate-400">Loading...</div>
@@ -1173,23 +1128,23 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               the whole entry list (the remount storm was tripping React's max-update-depth). Index-only bits (move handlers,
               IndexInsertBars, attach-folder gating) are computed conditionally inside the map. */}
           {!loading && sortedEntries.length > 0 && (
-            <div className={expandedEditing ? 'flex-1 min-h-0 flex flex-col' : hasIndexFile ? 'pr-12' : '[&>div+div]:-mt-px'}>
-              {hasIndexFile && !expandedEditing && !visibleEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
+            <div className={hasIndexFile ? 'pr-12' : '[&>div+div]:-mt-px'}>
+              {hasIndexFile && !sortedEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
                 <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />
               )}
-              {visibleEntries.map((entry, idx) => {
+              {sortedEntries.map((entry, idx) => {
                 const moveUp = hasIndexFile && idx > 0 ? () => handleMoveEntry(entry.name, 'up') : undefined;
                 const moveDown = hasIndexFile && idx < sortedEntries.length - 1 ? () => handleMoveEntry(entry.name, 'down') : undefined;
                 const moveToTop = hasIndexFile && idx > 0 ? () => handleMoveEntryToEdge(entry.name, 'top') : undefined;
                 const moveToBottom = hasIndexFile && idx < sortedEntries.length - 1 ? () => handleMoveEntryToEdge(entry.name, 'bottom') : undefined;
-                const prevEntry = visibleEntries[idx - 1];
+                const prevEntry = sortedEntries[idx - 1];
                 const isAttach = entry.name.endsWith(ATTACH_SUFFIX);
                 const indentFolder = isAttach && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
                 const parentExpanded = !indentFolder || (!!prevEntry && (items.get(prevEntry.path)?.isExpanded ?? false)); 
                 // Folders are shown whenever their parent is expanded (attach folders included).
                 const showFolder = parentExpanded;
                 return (
-                  <div key={entry.path} className={expandedEditing ? 'flex-1 min-h-0 flex flex-col' : undefined}>
+                  <div key={entry.path}>
                     {entry.isDirectory ? (
                       <>
                         {showFolder && (
@@ -1218,7 +1173,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                     ) : (
                       <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                     )}
-                    {hasIndexFile && !expandedEditing && !visibleEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
+                    {hasIndexFile && !sortedEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
                       <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
                     )}
                   </div>

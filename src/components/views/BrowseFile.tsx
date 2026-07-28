@@ -49,14 +49,30 @@ interface BrowseFileProps {
  * insert bars, selection toolbar) are simply not passed, and the entries hide
  * them accordingly.
  *
- * Editing is always maximized here (`alwaysExpandedEditor`), and the
- * expand/collapse toggle is hidden along with it.
+ * Editing is always maximized here, but for one of two reasons, which
+ * `browseFileMode` tells apart:
+ *
+ * - `'browse'` — the user asked to read this file on its own. The entry is
+ *   forced expanded via `alwaysExpandedEditor` and the expand/collapse toggle
+ *   is hidden, because toggling it would be a no-op. Deliberately independent
+ *   of the global `expandedEditor` setting: this mode neither reads nor writes
+ *   it, so the user's preference for the folder listing survives a trip here.
+ * - `'expanded-edit'` — an edit started in the folder listing while the user's
+ *   `expandedEditor` preference was on, and that preference is what maximizes
+ *   the entry. So `alwaysExpandedEditor` is NOT passed: the toggle appears, and
+ *   collapsing it (or ending the edit) returns to the listing.
  */
 function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }: BrowseFileProps) {
   const rootPath = useAS(s => s.rootPath);
   const currentPath = useAS(s => s.currentPath);
   const browseFileName = useAS(s => s.browseFileName);
+  const browseFileMode = useAS(s => s.browseFileMode);
   const settings = useAS(s => s.settings);
+
+  // See the two modes above. In 'expanded-edit' mode `settings.expandedEditor`
+  // is true by construction, so the entry maximizes itself off the setting and
+  // the toggle stays live.
+  const alwaysExpandedEditor = browseFileMode === 'browse';
 
   // The listing for currentPath is already loaded (App.tsx's
   // loadDirectoryContents ran on the path change and pushed every item into the
@@ -65,9 +81,10 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
   const entry = entries.find((e) => e.name === browseFileName && !e.isDirectory);
 
   // Editing here is ALWAYS expanded — the entry already owns the whole pane, so
-  // a non-expanded editor would just waste it. Deliberately independent of the
-  // global `expandedEditor` setting: this neither reads nor writes it, so the
-  // user's preference for the folder listing survives a trip through here.
+  // a non-expanded editor would just waste it. Scoped to this view's one entry,
+  // never to a "something in the store is editing" scan: the items map is
+  // global and long-lived, so such a scan goes stale the moment the user
+  // navigates elsewhere with a file still open for editing.
   const expandedEditing = useAS(s => (entry ? (s.items.get(entry.path)?.editing ?? false) : false));
 
   // Plain-text files fill the pane at all times, editing or not: TextEntry's CodeMirror
@@ -121,10 +138,11 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
         </div>
       </header>
 
-      {/* The expandedEditing class chain converts this into a nested flex
-          column so a maximized CodeMirror fills the pane and owns the only
-          scrollbar — the entry's own `maximized` styling expects a flexed
-          ancestor. Same structure as BrowseView. */}
+      {/* The flexPane class chain converts this into a nested flex column so a
+          maximized CodeMirror fills the pane and owns the only scrollbar — the
+          entry's own `maximized` styling expects a flexed ancestor. This view
+          is the only place that chain exists; BrowseView renders a plain
+          scrolling folder listing and nothing else. */}
       <main
         data-testid="browse-file-main-content"
         className={`flex-1 min-h-0 pb-4 pt-1 pr-3 pl-3 relative ${flexPane ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}
@@ -141,7 +159,7 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
           {entry && (
             <div className={flexPane ? 'flex-1 min-h-0 flex flex-col' : undefined}>
               {entry.isMarkdown ? (
-                <MarkdownEntry entry={entry} view="browser" onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} alwaysExpandedEditor />
+                <MarkdownEntry entry={entry} view="browser" onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} alwaysExpandedEditor={alwaysExpandedEditor} />
               ) : isImageFile(entry.name) ? (
                 /* allImages drives only the fullscreen viewer's prev/next. Only this one
                    file is on screen, but the listing for currentPath is already loaded, so
@@ -151,7 +169,7 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
                    keys silently do nothing. */
                 <ImageEntry entry={entry} allImages={folderImages} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
               ) : isTextFile(entry.name) ? (
-                <TextEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} alwaysExpandedEditor />
+                <TextEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} alwaysExpandedEditor={alwaysExpandedEditor} />
               ) : isPdfFile(entry.name) ? (
                 <PDFEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
               ) : (

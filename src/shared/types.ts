@@ -122,6 +122,12 @@ export interface ItemData {
 export type AppView = 'browser' | 'search-results' | 'settings' | 'folder-analysis' | 'ai-settings' | 'thread' | 'folder-graph' | 'calendar';
 
 /**
+ * Why the browser view is showing a single file instead of the folder listing.
+ * See `AppState.browseFileMode` for what each value changes.
+ */
+export type BrowseFileMode = 'browse' | 'expanded-edit';
+
+/**
  * A single hashtag entry with its occurrence count
  */
 export interface HashtagEntry {
@@ -307,6 +313,24 @@ export interface AppState {
    * so it can never name a file outside the folder being browsed.
    */
   browseFileName: string | null;
+
+  /**
+   * Why single-file mode was entered, which decides how the one entry behaves:
+   *
+   * - `'browse'` — the user asked to read this file on its own (index tree
+   *   click, the entry action bar's "View File"). The editor is forced expanded
+   *   via the `alwaysExpandedEditor` prop and the expand/collapse toggle is
+   *   hidden, independently of the global `expandedEditor` setting.
+   * - `'expanded-edit'` — an edit started in the folder listing while
+   *   `settings.expandedEditor` was on, so the maximized editor took over the
+   *   pane. The toggle IS shown here, and collapsing (or ending the edit)
+   *   returns to the listing.
+   *
+   * Only meaningful while `browseFileName` is non-null. `setBrowseFile` always
+   * writes it, so a value left behind by a previous single-file session can
+   * never be read stale.
+   */
+  browseFileMode: BrowseFileMode;
 
   /**
    * Full file path to scroll into view after navigation completes.

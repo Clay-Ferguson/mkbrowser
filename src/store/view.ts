@@ -1,7 +1,8 @@
-import type { AppState, AppView, FolderAnalysisState, FolderGraphState } from '../shared/types';
+import type { AppState, AppView, BrowseFileMode, FolderAnalysisState, FolderGraphState } from '../shared/types';
 import { getState } from './core';
 import type { StoreSet, StoreGet } from './core';
 import { withSelectionsCleared } from './items';
+import { enterExpandedEditPatch, isExpandedEditing } from './expandedEdit';
 
 // ============================================================================
 // View / navigation - current view & path, pending scroll/edit signals,
@@ -16,8 +17,9 @@ export interface ViewSlice {
   setCurrentView: (view: AppView) => void;
   setCurrentPath: (path: string) => void;
   navigateToBrowserPath: (path: string, scrollToFile?: string, view?: AppView) => void;
-  setBrowseFile: (folderPath: string, fileName: string) => void;
+  setBrowseFile: (folderPath: string, fileName: string, mode?: BrowseFileMode) => void;
   clearBrowseFile: () => void;
+  toggleExpandedEditor: (path: string) => void;
   clearPendingScrollToFile: () => void;
   setPendingScrollToFile: (fileName: string) => void;
   setPendingScrollToHeadingSlug: (slug: string) => void;
@@ -111,12 +113,18 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      *
      * Note this sets `currentPath` directly rather than delegating to
      * `setCurrentPath`, which would clear `browseFileName` right back out.
+     *
+     * `mode` records *why* we are here and defaults to plain browsing — the
+     * expanded-edit case is entered by the routing in `setItemEditing`, not by
+     * calling this. Writing it unconditionally is what keeps a leftover mode
+     * from a previous single-file session from ever being read stale.
      */
-    setBrowseFile: (folderPath, fileName) => {
+    setBrowseFile: (folderPath, fileName, mode = 'browse') => {
       const newState: Partial<AppState> = {
         currentPath: folderPath,
         currentView: 'browser',
         browseFileName: fileName,
+        browseFileMode: mode,
       };
       if (folderPath !== get().currentPath) {
         const clearedItems = withSelectionsCleared(get().items);
@@ -131,6 +139,28 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     clearBrowseFile: () => {
       if (get().browseFileName === null) return;
       set({ browseFileName: null });
+    },
+
+    /**
+     * Flip the persisted `expandedEditor` preference from the edit toolbar's
+     * expand/collapse button, and move the editor to match — in one update.
+     *
+     * Turning it ON mid-edit hands `path` the whole pane (the same routing an
+     * edit started from the listing gets); turning it OFF while that maximized
+     * editor is up drops back to the folder listing with the editor still open
+     * inline. `path` is the file whose toolbar was clicked, so it is always the
+     * one being edited.
+     *
+     * Callers still invoke `onSaveSettings()` afterwards to persist the flag.
+     */
+    toggleExpandedEditor: (path) => {
+      const state = get();
+      const expandedEditor = !state.settings.expandedEditor;
+      const settings = { ...state.settings, expandedEditor };
+      const routing = expandedEditor
+        ? enterExpandedEditPatch({ ...state, settings }, path)
+        : (isExpandedEditing(state) ? { browseFileName: null } : null);
+      set({ settings, ...routing });
     },
 
     /** Clear the pending scroll to file (call after scrolling completes). */
@@ -245,12 +275,16 @@ export function navigateToBrowserPath(path: string, scrollToFile?: string, view:
   getState().navigateToBrowserPath(path, scrollToFile, view);
 }
 
-export function setBrowseFile(folderPath: string, fileName: string): void {
-  getState().setBrowseFile(folderPath, fileName);
+export function setBrowseFile(folderPath: string, fileName: string, mode?: BrowseFileMode): void {
+  getState().setBrowseFile(folderPath, fileName, mode);
 }
 
 export function clearBrowseFile(): void {
   getState().clearBrowseFile();
+}
+
+export function toggleExpandedEditor(path: string): void {
+  getState().toggleExpandedEditor(path);
 }
 
 export function clearPendingScrollToFile(): void {
