@@ -11,7 +11,7 @@ import {
   getCurrentPath,
   requestDirectoryRefresh,
 } from '../store';
-import { getParentPath, isPathInside, isSamePath } from './pathUtil';
+import { getParentPath, isPathInside, isSamePath, splitPathSegments } from './pathUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { logger } from '../shared/logUtil';
 
@@ -146,6 +146,25 @@ export function canDropAsAttachment(payload: DragPayload, filePath: string): boo
 }
 
 /**
+ * True when changing the contents of `folder` changes what the browse view is showing for
+ * `currentPath`.
+ *
+ * That is not just `folder === currentPath`: `readDirectory` pre-loads the contents of
+ * `.attach` folders into the listing (recursively), so attachments are on screen as rows
+ * even though they live in a subfolder. A folder below `currentPath` is therefore visible
+ * exactly when every path segment between the two is itself an attachment folder — an
+ * ordinary subfolder's contents are not rendered.
+ */
+export function affectsBrowseListing(folder: string, currentPath: string): boolean {
+  if (isSamePath(folder, currentPath)) return true;
+  if (!isPathInside(currentPath, folder)) return false;
+  const depthBelow = splitPathSegments(currentPath).length;
+  return splitPathSegments(folder)
+    .slice(depthBelow)
+    .every(segment => segment.endsWith(ATTACH_SUFFIX));
+}
+
+/**
  * Finishes a drag-and-drop move that {@link canDropInto} has already approved: performs the
  * move, then brings every affected view back in step with the filesystem. Shared by all four
  * drop targets (browse-view folders and files, index tree folders, breadcrumb segments) so
@@ -155,15 +174,11 @@ export function canDropAsAttachment(payload: DragPayload, filePath: string): boo
  * @param destFolder - Absolute path of the folder to move it into.
  * @param onRefreshDirectory - Reloads the browse view. Callers that have this as a prop should
  *   pass it (it refreshes without a loading flash); otherwise the store-level request is used.
- * @param alsoAffects - A further folder whose listing this drop changed, beyond the source and
- *   destination. Used for attachment drops, where a newly created `.attach` folder appears in
- *   the *parent* folder — neither end of the move.
  */
 export async function completeEntryDrop(
   payload: DragPayload,
   destFolder: string,
-  onRefreshDirectory?: () => void,
-  alsoAffects?: string
+  onRefreshDirectory?: () => void
 ): Promise<void> {
   const result = await moveEntryIntoFolder(payload, destFolder);
   if (!result.success) {
@@ -180,11 +195,7 @@ export async function completeEntryDrop(
   await reloadExpandedTreeFolder(result.sourceFolder);
 
   const currentPath = getCurrentPath();
-  const affectsBrowseView =
-    isSamePath(destFolder, currentPath) ||
-    isSamePath(result.sourceFolder, currentPath) ||
-    (alsoAffects !== undefined && isSamePath(alsoAffects, currentPath));
-  if (affectsBrowseView) {
+  if (affectsBrowseListing(destFolder, currentPath) || affectsBrowseListing(result.sourceFolder, currentPath)) {
     if (onRefreshDirectory) {
       onRefreshDirectory();
     } else {
@@ -213,9 +224,7 @@ export async function dropAsAttachment(
   const attachFolderPath = await ensureAttachFolder(filePath);
   if (!attachFolderPath) return; // ensureAttachFolder already reported the failure
 
-  // A brand-new .attach folder is itself a new row in the file's own folder, which is
-  // neither the source nor the destination of the move — hence the alsoAffects argument.
-  await completeEntryDrop(payload, attachFolderPath, onRefreshDirectory, getParentPath(filePath));
+  await completeEntryDrop(payload, attachFolderPath, onRefreshDirectory);
 }
 
 /**

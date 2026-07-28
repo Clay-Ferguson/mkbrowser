@@ -4,7 +4,13 @@
  * dropAsAttachment) needs the IPC bridge and is exercised manually / in the packaged app.
  */
 import { describe, it, expect } from 'vitest';
-import { canDropInto, canDropAsAttachment, parseDragPayload, type DragPayload } from '../src/renderer/dragAndDrop';
+import {
+  canDropInto,
+  canDropAsAttachment,
+  affectsBrowseListing,
+  parseDragPayload,
+  type DragPayload,
+} from '../src/renderer/dragAndDrop';
 
 function file(path: string): DragPayload {
   const name = path.slice(path.lastIndexOf('/') + 1);
@@ -76,6 +82,51 @@ describe('canDropAsAttachment', () => {
 
   it('accepts re-attaching an item from one file to another', () => {
     expect(canDropAsAttachment(file('/root/a/one.md.attach/diagram.png'), '/root/a/two.md')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// affectsBrowseListing — decides whether a drop refreshes the browse view
+// ---------------------------------------------------------------------------
+
+describe('affectsBrowseListing', () => {
+  const cur = '/root/docs';
+
+  it('is true for the browsed folder itself', () => {
+    expect(affectsBrowseListing(cur, cur)).toBe(true);
+  });
+
+  it('ignores trailing-separator and separator-spelling differences', () => {
+    expect(affectsBrowseListing('/root/docs/', cur)).toBe(true);
+  });
+
+  it('is true for an attachment folder in the browsed folder', () => {
+    // The regression this guards: a file moved *out of* an attach folder left a
+    // stale row behind, because the source folder is not currentPath and so no
+    // refresh was triggered. readDirectory pre-loads attachments into the listing,
+    // so that folder's contents are on screen and the view must reload.
+    expect(affectsBrowseListing('/root/docs/notes.md.attach', cur)).toBe(true);
+  });
+
+  it('is true for a nested attachment folder', () => {
+    expect(affectsBrowseListing('/root/docs/notes.md.attach/chart.png.attach', cur)).toBe(true);
+  });
+
+  it('is false for an ordinary subfolder, whose contents are not rendered', () => {
+    expect(affectsBrowseListing('/root/docs/subfolder', cur)).toBe(false);
+  });
+
+  it('is false for an attachment folder inside an ordinary subfolder', () => {
+    expect(affectsBrowseListing('/root/docs/subfolder/notes.md.attach', cur)).toBe(false);
+  });
+
+  it('is false for the parent folder and for unrelated folders', () => {
+    expect(affectsBrowseListing('/root', cur)).toBe(false);
+    expect(affectsBrowseListing('/root/other', cur)).toBe(false);
+  });
+
+  it('does not treat a name-prefix sibling as being inside the browsed folder', () => {
+    expect(affectsBrowseListing('/root/docs-archive/notes.md.attach', cur)).toBe(false);
   });
 });
 
