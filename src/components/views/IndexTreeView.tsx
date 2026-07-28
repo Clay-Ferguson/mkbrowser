@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { clsx } from 'clsx';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
+import { ENTRY_DROP_TARGET } from '../../renderer/styles';
 import { logger } from '../../shared/logUtil';
 import { getIconForFileExtension, isImageFile } from '../../shared/fileTypes';
 import type { FileIconType } from '../../shared/fileTypes';
@@ -37,7 +37,7 @@ import {
   ENTRY_DND_MIME,
   parseDragPayload,
   canDropInto,
-  moveEntryIntoFolder,
+  completeEntryDrop,
   makeEntryDragStartHandler,
   reloadExpandedTreeFolder,
   makeTreeNodes as makeNodes,
@@ -493,9 +493,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
   /**
    * Handles a drag-and-drop of a file or folder entry onto a directory node.
-   * Moves the dragged item into the target folder on disk, removes it from the
-   * store, and refreshes both the source and destination folders in the tree and
-   * (if visible) in the browse view.
+   * Validates the drop here, then hands the move and all the follow-up view
+   * refreshes to the shared completeEntryDrop.
    */
   const handleDropOnFolder = (node: FileNode, e: React.DragEvent) => {
     e.preventDefault();
@@ -508,21 +507,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     if (!payload || !node.isDirectory) return;
     if (!canDropInto(payload, node.path)) return;
 
-    runAndLogFailure('Failed to move item into folder:', async () => {
-      const result = await moveEntryIntoFolder(payload, node.path);
-      if (!result.success) return;
-
-      // Drop the moved item from the store so the browse view stops showing it.
-      deleteItems([payload.path]);
-
-      // Refresh the browse view if it is showing either affected folder.
-      if (node.path === currentPath || result.sourceFolder === currentPath) {
-        onRefreshDirectory?.();
-      }
-
-      await reloadExpandedTreeFolder(node.path);
-      await reloadExpandedTreeFolder(result.sourceFolder);
-    });
+    runAndLogFailure('Failed to move item into folder:', () =>
+      completeEntryDrop(payload, node.path, onRefreshDirectory)
+    );
   };
 
   const handleDragOverFolder = (node: FileNode, e: React.DragEvent) => {
@@ -800,9 +787,18 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
           const isMd = isMarkdownFile(node);
           const isSh = isShellScript(node);
+          const isDragOver = node.isDirectory && dragOverPath === node.path;
 
           let className = 'flex items-center gap-1 py-0.5 whitespace-nowrap select-none';
-          if (node.path === highlightItem) {
+          // The drop highlight replaces the row's normal colors rather than being
+          // appended to them: every branch below carries a `hover:bg-…`, and a variant
+          // beats a plain `bg-…` of equal specificity, so an appended drop background
+          // would always lose (the pointer is over the row it is dragging across).
+          // `border-l-2 border-transparent` is kept because it occupies layout space.
+          if (isDragOver) {
+            className += ` text-white border-l-2 border-transparent cursor-pointer ${ENTRY_DROP_TARGET}`;
+          } //
+          else if (node.path === highlightItem) {
             className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
           } //
           else if (node.isDirectory && node.path === currentPath) {
@@ -827,7 +823,6 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           }
 
           const isRunning = runningScript === node.path;
-          const isDragOver = node.isDirectory && dragOverPath === node.path;
           const isContextTarget = contextMenu?.path === node.path;
           const rowStyle: React.CSSProperties = {
             paddingLeft: `${8 + depth * INDENT_SIZE}px`,
@@ -839,7 +834,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
             <div
               key={node.path}
               data-tree-path={node.path}
-              className={clsx(className, isDragOver && 'bg-blue-600/40 outline outline-1 outline-blue-400')}
+              className={className}
               style={rowStyle}
               onClick={e => {
                 // Ctrl+click on a shell script runs it instead of opening it.

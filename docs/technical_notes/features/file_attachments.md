@@ -16,13 +16,13 @@ This convention was chosen because it requires no database, no sidecar metadata 
 | `report.txt` | `report.txt.attach` |
 | `chapter-1.md` | `chapter-1.md.attach` |
 
-The suffix string `.attach` is defined as the module-level constant `ATTACH_SUFFIX = '.attach'` in `src/components/views/BrowseView.tsx` and is checked via `entry.name.endsWith(ATTACH_SUFFIX)` throughout the rendering code. Any directory whose name ends with `.attach` is treated as an attachment folder; there is no further validation.
+The suffix string `.attach` is defined as the constant `ATTACH_SUFFIX = '.attach'` in `src/shared/specialFiles.ts` (that module has no imports, so both the main process and the renderer can use it) and is checked via `entry.name.endsWith(ATTACH_SUFFIX)` throughout the rendering code. Any directory whose name ends with `.attach` is treated as an attachment folder; there is no further validation.
 
 ---
 
 ## Data Model
 
-### `FileEntry` interface (`src/global.d.ts`)
+### `FileEntry` interface (`src/shared/shared.ts`)
 
 Two optional fields were added to the existing `FileEntry` interface to support attachments:
 
@@ -40,7 +40,7 @@ hasAttachFolder?: boolean;
 
 ---
 
-## Backend: File-System Scanning (`src/utils/fileUtils.ts`)
+## Backend: File-System Scanning (`src/main/fileUtil.ts`)
 
 The `readDirectory` function builds the `FileEntry[]` array used by the entire application. Two passes handle attachments:
 
@@ -116,12 +116,39 @@ The `PaperClipIcon` button appears on a `MarkdownEntry` row only when:
 )}
 ```
 
-The `onPasteAsAttachment` handler lives in `BrowseView.tsx` (`doPasteAsAttachment`). It:
+The `onPasteAsAttachment` handler lives in `BrowseView.tsx` (`doPasteAsAttachment`). It calls `ensureAttachFolder(filePath)` (below) and then the shared `pasteIntoFolder(attachFolderPath, items, ...)` utility to move the cut items.
+
+---
+
+## Creating the Folder: `ensureAttachFolder` (`src/renderer/fileOpsUtil.ts`)
+
+The single place an attach folder comes into existence. Given a file path it:
 
 1. Derives the attach folder path as `${filePath}${ATTACH_SUFFIX}`.
-2. Calls `window.electronAPI.pathExists(attachFolderPath)` to check existence.
-3. If the folder does not exist, calls `window.electronAPI.createFolder(attachFolderPath)`. In Document Mode it also calls `window.electronAPI.insertIntoIndexYaml(currentPath, attachFolderName, fileName)` to insert the new folder into the index immediately after its parent file.
-4. Calls the shared `pasteIntoFolder(attachFolderPath, items, ...)` utility to move the cut items.
+2. Returns it immediately if `api.pathExists` says it is already there.
+3. Otherwise calls `api.createFolder`; on failure it reports via `setAppError` and returns `null`.
+4. If the file lives in the folder currently being browsed **and** that folder is in Document Mode, calls `api.insertIntoIndexYaml(parentFolder, attachFolderName, fileName)` so the new folder lands immediately after its parent file rather than being appended to the end of the document by the next reconcile. The check is on the file's own parent folder, so a file nested inside another `.attach` folder does not wrongly consult the browsed folder's `hasIndexFile`.
+
+Both the paperclip paste and the drag-and-drop path (below) go through it.
+
+---
+
+## Drag-and-Drop: Dropping onto a File (`src/renderer/dragAndDrop.ts`)
+
+Dragging any entry (by its icon handle, which is the `draggable` element) and dropping it **onto a file row** attaches it to that file — the folder is created on demand, so no prior cut is needed.
+
+The drop target lives in **`EntryShell.tsx`**, the shared skeleton behind every file-type entry, so Markdown, Text, Image, PDF and Generic rows all accept attachment drops from one wiring. It uses the `useDropTarget` hook (`src/components/entries/common/useDropTarget.ts`), which owns the drag-over highlight (`ENTRY_DROP_TARGET`) and reads the `DataTransfer` synchronously — the payload must be parsed before any `await`, since the `DataTransfer` only lives for the duration of the event dispatch.
+
+Two functions do the work:
+
+- **`canDropAsAttachment(payload, filePath)`** — validation. Only the "file dropped onto itself" case is attachment-specific (without it, dragging a file onto its own row would create `<file>.attach` and move the file inside). Everything else is delegated to the existing `canDropInto(payload, filePath + ATTACH_SUFFIX)`, which already rejects a drop onto the payload itself (so `X.md.attach` cannot be dropped back onto `X.md`), a drop into the payload's current parent (so an item already attached to the file is refused), and a folder dropped into its own descendant.
+- **`dropAsAttachment(payload, filePath)`** — calls `ensureAttachFolder`, then `completeEntryDrop`.
+
+**`completeEntryDrop(payload, destFolder, onRefreshDirectory?, alsoAffects?)`** is the routine shared by all four drop targets (browse-view folders, browse-view files, index-tree folders, breadcrumb segments), which therefore differ only in how they compute the destination folder. It performs the move via `moveEntryIntoFolder` → `pasteCutItems` (the same primitive as cut/paste, so the name-collision check and index reconciliation are not duplicated), reports any failure through `setAppError`, prunes the moved path from the item store, reloads both affected folders in the index tree, and refreshes the browse view when it is showing an affected folder.
+
+The `alsoAffects` argument exists for this feature: a newly created `.attach` folder is a new row in the file's **parent** folder, which is neither the source nor the destination of the move, so without it the browse view would not repaint.
+
+Note the folder is created before the move is attempted. A name collision is impossible in a folder that was just created, so the only way this leaves an empty `.attach` behind is a genuine filesystem error during the rename.
 
 ---
 
@@ -184,10 +211,15 @@ This means attachment files participate in search, bulk selection, and other glo
 
 | File | Role |
 |------|------|
-| `src/global.d.ts` | `FileEntry.attachments` and `FileEntry.hasAttachFolder` fields |
-| `src/utils/fileUtils.ts` | Pre-loads attach folder contents and sets `hasAttachFolder` during directory scan |
-| `src/components/views/BrowseView.tsx` | Renders attach folders inline; `ATTACH_SUFFIX` constant; `doPasteAsAttachment` handler |
+| `src/shared/specialFiles.ts` | The `ATTACH_SUFFIX` constant, shared by the main process and the renderer |
+| `src/shared/shared.ts` | `FileEntry.attachments` and `FileEntry.hasAttachFolder` fields |
+| `src/main/fileUtil.ts` | Pre-loads attach folder contents and sets `hasAttachFolder` during directory scan |
+| `src/components/views/BrowseView.tsx` | Renders attach folders inline; `doPasteAsAttachment` handler |
+| `src/renderer/fileOpsUtil.ts` | `ensureAttachFolder` — the one place an `.attach` folder is created |
+| `src/renderer/dragAndDrop.ts` | `canDropAsAttachment`, `dropAsAttachment`, and the shared `completeEntryDrop` |
+| `src/components/entries/common/EntryShell.tsx` | Makes every file-type entry a drop target for attachments |
+| `src/components/entries/common/useDropTarget.ts` | Drag-over highlight state + drop handlers for a single row |
 | `src/components/entries/MarkdownEntry.tsx` | Paperclip button (`PaperClipIcon`) shown when cut items exist and no attach folder yet |
 | `src/components/entries/FolderEntry.tsx` | `isAttachFolder` prop; hides name text on hover, hides move buttons, hides row in read-only Document Mode |
-| `src/utils/indexUtil.ts` | `validateAttachFolderLocation` and `reorderAttachFolders` — keeps `.INDEX.yaml` ordering correct after moves |
+| `src/main/indexUtil.ts` | `validateAttachFolderLocation` and `reorderAttachFolders` — keeps `.INDEX.yaml` ordering correct after moves |
 | `src/main.ts` | IPC `renameFile` handler automatically renames the sibling `.attach` folder |

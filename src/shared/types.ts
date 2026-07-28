@@ -396,6 +396,14 @@ export interface AppState {
    */
   directoryRefreshNonce: number;
 
+  /**
+   * Application-level error message shown in App's AlertDialog, or null when
+   * there is nothing to report. Lives in the store rather than App's local
+   * state so shared non-component code (file operations, drag-and-drop) can
+   * surface a failure without an `onSetError` callback threaded down to it.
+   */
+  appError: string | null;
+
   pendingEditFile: string | null;
 
   /**

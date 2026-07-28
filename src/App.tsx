@@ -31,6 +31,10 @@ import {
   updateCalendarEvent,
   deleteCalendarEventsUnderPath,
   setCalendarWatcherWarning,
+  // Aliased at the import (rather than bound inside App) so it stays a module-scope
+  // reference: a local `const setError = setAppError` would read as component state
+  // to react-hooks/exhaustive-deps and be demanded in every effect's dep array.
+  setAppError as setError,
 } from './store';
 import type { AppView } from './shared/types';
 import type { CalendarEventResult, AppConfig } from './shared/shared';
@@ -177,7 +181,10 @@ function App() {
   const rootPath = useAS(s => s.rootPath);
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // The error message lives in the store (not local state) so shared file-operation
+  // and drag-and-drop code can report a failure without an onSetError callback
+  // threaded down to it; App remains the only place that renders it.
+  const error = useAS(s => s.appError);
   const [aiEnabled, setAiEnabled] = useState<boolean>(false);
   const [lastExportFolder, setLastExportFolder] = useState<string>('');
   const [recentFolders, setRecentFolders] = useState<string[]>([]);

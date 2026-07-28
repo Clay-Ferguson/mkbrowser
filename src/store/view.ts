@@ -29,6 +29,7 @@ export interface ViewSlice {
   setPendingExpandFile: (filePath: string) => void;
   clearPendingExpandFile: () => void;
   requestDirectoryRefresh: () => void;
+  setAppError: (message: string | null) => void;
   setPendingThreadScrollToBottom: () => void;
   clearPendingThreadScrollToBottom: () => void;
   setFolderAnalysis: (data: FolderAnalysisState | null) => void;
@@ -210,6 +211,18 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     requestDirectoryRefresh: () =>
       set({ directoryRefreshNonce: get().directoryRefreshNonce + 1 }),
 
+    /**
+     * Show (or with null, dismiss) the application-level error dialog.
+     *
+     * Note the ordering hazard for callers: starting a directory load clears
+     * this, so an error must be set *after* any refresh it accompanies, never
+     * before.
+     */
+    setAppError: (message) => {
+      if (get().appError === message) return;
+      set({ appError: message });
+    },
+
     /** Request ThreadView to scroll to bottom after its next render. */
     setPendingThreadScrollToBottom: () => set({ pendingThreadScrollToBottom: true }),
 
@@ -321,6 +334,18 @@ export function clearPendingExpandFile(): void {
 
 export function requestDirectoryRefresh(): void {
   getState().requestDirectoryRefresh();
+}
+
+export function setAppError(message: string | null): void {
+  getState().setAppError(message);
+}
+
+/**
+ * Get the folder currently being browsed without subscribing (for use in async
+ * callbacks that need to decide whether their change affects the visible list).
+ */
+export function getCurrentPath(): string {
+  return getState().currentPath;
 }
 
 export function setPendingThreadScrollToBottom(): void {

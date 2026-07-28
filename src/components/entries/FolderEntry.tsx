@@ -1,23 +1,18 @@
-import { useState } from 'react';
 import { clsx } from 'clsx';
 import { ClipboardDocumentIcon, FolderIcon } from '@heroicons/react/24/solid';
-import { hasAnyCutItems, useAS, deleteItems } from '../../store';
+import { hasAnyCutItems, useAS } from '../../store';
 import { buildEntryHeaderId } from '../../renderer/entryDom';
-import { logger } from '../../shared/logUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 import {
   makeEntryDragStartHandler,
-  ENTRY_DND_MIME,
-  parseDragPayload,
   canDropInto,
-  moveEntryIntoFolder,
-  reloadExpandedTreeFolder,
-  type DragPayload,
+  completeEntryDrop,
 } from '../../renderer/dragAndDrop';
-import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED } from '../../renderer/styles';
+import { BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_HIGHLIGHTED, ENTRY_DROP_TARGET } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useEntry,
+  useDropTarget,
   EntryActionBar,
   RenameInput,
   SelectionCheckbox,
@@ -30,34 +25,6 @@ interface FolderEntryProps extends BaseEntryProps {
   onRefreshDirectory?: () => void;
   isAttachFolder?: boolean;
   indentFolder?: boolean;
-}
-
-/**
- * Moves a dragged item into the given folder and refreshes the affected views.
- * Module-level (not compiled by the React Compiler): the conditionals inside
- * try/catch would make the compiler bail out on the whole component.
- */
-async function dropIntoFolder(
-  payload: DragPayload,
-  folderPath: string,
-  onRefreshDirectory: (() => void) | undefined,
-): Promise<void> {
-  try {
-    const result = await moveEntryIntoFolder(payload, folderPath);
-    if (!result.success) return;
-
-    // Drop the moved item from the store so the browse view stops showing it.
-    deleteItems([payload.path]);
-
-    // Refresh the source folder in the tree if it is expanded (this folder is collapsed
-    // in the tree by definition while being browsed, so only the source can need a reload).
-    await reloadExpandedTreeFolder(result.sourceFolder);
-
-    // Refresh the browse view in case the moved item came from the folder being viewed.
-    onRefreshDirectory?.();
-  } catch (err) {
-    logger.error('Failed to move item into folder:', err);
-  }
 }
 
 /**
@@ -87,44 +54,22 @@ function FolderEntry(props: FolderEntryProps) {
     e.stopPropagation();
   };
 
-  // Drop target: accept a file/folder dragged from the IndexTreeView and move it into this folder.
-  const [isDragOver, setIsDragOver] = useState(false);
-
-  const handleDragOver = (e: React.DragEvent) => {
-    if (!e.dataTransfer.types.includes(ENTRY_DND_MIME)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (!isDragOver) setIsDragOver(true);
-  };
-
-  const handleDragLeave = () => setIsDragOver(false);
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-
-    // Read the drag payload synchronously — the DataTransfer is only valid
-    // during the event dispatch, before any await.
-    const payload = parseDragPayload(e.dataTransfer.getData(ENTRY_DND_MIME));
-    if (!payload || !canDropInto(payload, entry.path)) return;
-
-    void dropIntoFolder(payload, entry.path, onRefreshDirectory);
-  };
+  // Drop target: accept a file/folder dragged from the entry list or the index tree
+  // and move it into this folder.
+  const drop = useDropTarget(
+    payload => canDropInto(payload, entry.path),
+    payload => void completeEntryDrop(payload, entry.path, onRefreshDirectory)
+  );
 
   return (
     <div className={clsx('group', indentFolder && 'pl-8', isHighlighted && ENTRY_HIGHLIGHTED)}>
       <div
         onClick={() => !isRenaming && onNavigate(entry.path)}
         onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        {...drop.dropProps}
         className={clsx(
           'w-full flex items-center gap-3 px-2 py-0 transition-colors text-left cursor-pointer',
-          isDragOver
-            ? 'bg-blue-600/60 outline outline-1 outline-blue-400'
-            : 'bg-transparent hover:bg-blue-700/70',
+          drop.isDragOver ? ENTRY_DROP_TARGET : 'bg-transparent hover:bg-blue-700/70',
         )}
       >
         <SelectionCheckbox

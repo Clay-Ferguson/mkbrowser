@@ -68,7 +68,7 @@ import { generateTimestampFileName } from '../../shared/timeUtil';
 import { hasHumanMd } from '../../shared/ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig } from '../../renderer/searchUtil';
 import { buildReplaceResultMessage } from '../../shared/searchHelpers';
-import { pasteIntoFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
+import { pasteIntoFolder, ensureAttachFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
 import { getFileName, getParentPath, isSamePath } from '../../renderer/pathUtil';
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
@@ -494,30 +494,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     runOp(async () => {
       await pasteIntoFolder(folderPath, items, onSetError, onRefreshDirectory);
     }, 'Failed to paste into folder: ', onSetError);
-  };
-
-  /**
-   * Returns the attachment folder path for `filePath`, creating it on disk if it
-   * does not yet exist. If the current folder uses index ordering the new attach
-   * folder is also inserted into .INDEX.yaml immediately after its parent file.
-   * Returns null and reports an error if folder creation fails.
-   */
-  const ensureAttachFolder = async (filePath: string): Promise<string | null> => {
-    const attachFolderPath = `${filePath}${ATTACH_SUFFIX}`;
-    const exists = await api.pathExists(attachFolderPath);
-    if (!exists) {
-      const result = await api.createFolder(attachFolderPath);
-      if (!result.success) {
-        onSetError(result.error || 'Failed to create attachment folder');
-        return null;
-      }
-      if (hasIndexFile && currentPath) {
-        const fileName = getFileName(filePath);
-        const attachFolderName = `${fileName}${ATTACH_SUFFIX}`;
-        await api.insertIntoIndexYaml(currentPath, attachFolderName, fileName);
-      }
-    }
-    return attachFolderPath;
   };
 
   const doPasteAsAttachment = (filePath: string) => {

@@ -21,6 +21,8 @@ export { useAiStreamingDialog } from './useAiStreamingDialog';
 export type { AiStreamingDialog, StreamingRunner, DeferrableAction } from './useAiStreamingDialog';
 export { useAiRewrite } from './useAiRewrite';
 export type { AiRewrite } from './useAiRewrite';
+export { useDropTarget } from './useDropTarget';
+export type { DropTargetState } from './useDropTarget';
 
 // Components
 export { EntryActionBar, useToggleExpanded } from './EntryActionBar';

@@ -89,9 +89,31 @@ export const DLG_FOOTER_CLASS = 'flex justify-end gap-3';
 // Entry component structural classes
 export const ENTRY_OUTER = 'bg-slate-800 group overflow-hidden';
 export const ENTRY_HIGHLIGHTED = 'border-2 border-purple-500 relative z-10';
-export const ENTRY_HEADER_ROW = 'flex items-center gap-3 px-2 py-0 bg-blue-800/50 group-hover:bg-blue-700/70 transition-colors';
+/** Layout half of the entry header row, shared by its normal and drop-target states. */
+const ENTRY_HEADER_ROW_LAYOUT = 'flex items-center gap-3 px-2 py-0 transition-colors';
+export const ENTRY_HEADER_ROW = `${ENTRY_HEADER_ROW_LAYOUT} bg-blue-800/50 group-hover:bg-blue-700/70`;
 export const ENTRY_HEADER_EXPANDED = 'border border-slate-500';
 export const ENTRY_NAME_SPAN = 'text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline';
+/**
+ * Highlight for a row that a drag is hovering and can be dropped on.
+ *
+ * The outline is drawn *inside* the row's own box (`-outline-offset-2`) rather than
+ * around it. An outline never occupies layout space either way, so nothing shifts —
+ * but an outset one is invisible on three sides here: ENTRY_OUTER sets
+ * `overflow-hidden`, which clips it, and BrowseView overlaps adjacent rows by 1px
+ * (`[&>div+div]:-mt-px`) to collapse their borders, which covers the bottom edge.
+ * Insetting it puts every edge inside the clip region. `relative z-10` then lifts the
+ * row above the neighbor that overlaps it.
+ *
+ * Callers must *replace* the row's normal background classes with this rather than
+ * appending it (see ENTRY_HEADER_ROW_DROP, and the ternary in FolderEntry). Appending
+ * does not work: `:where()` gives `group-hover:bg-…` and a plain `bg-…` the same
+ * specificity, so the one Tailwind emits later — the variant — wins, and the pointer
+ * is by definition over the row it is dragging across.
+ */
+export const ENTRY_DROP_TARGET = 'relative z-10 bg-blue-600/60 outline outline-2 -outline-offset-2 outline-green-400';
+/** Entry header row while an acceptable drag hovers it. */
+export const ENTRY_HEADER_ROW_DROP = `${ENTRY_HEADER_ROW_LAYOUT} ${ENTRY_DROP_TARGET}`;
 export const ENTRY_CONTENT_AREA = 'px-6 py-4';
 export const ENTRY_LOADING = 'text-slate-400 text-sm';
 export const ENTRY_EDITOR_ICON_BTN = 'p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer';

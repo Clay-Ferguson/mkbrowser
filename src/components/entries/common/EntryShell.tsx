@@ -3,10 +3,11 @@ import { clsx } from 'clsx';
 import type { FileEntry } from '../../../global';
 import { buildEntryHeaderId } from '../../../renderer/entryDom';
 import { formatFlyoverInfo } from '../../../shared/fileTypes';
-import { makeEntryDragStartHandler } from '../../../renderer/dragAndDrop';
+import { makeEntryDragStartHandler, canDropAsAttachment, dropAsAttachment } from '../../../renderer/dragAndDrop';
 import ConfirmDialog from '../../dialogs/ConfirmDialog';
 import { RenameInput } from './RenameInput';
 import { SelectionCheckbox } from './SelectionCheckbox';
+import { useDropTarget } from './useDropTarget';
 import type { RenameState, DeleteState } from './types';
 import {
   ENTRY_OUTER,
@@ -14,6 +15,7 @@ import {
   ENTRY_HEADER_ROW,
   ENTRY_HEADER_EXPANDED,
   ENTRY_NAME_SPAN,
+  ENTRY_HEADER_ROW_DROP,
 } from '../../../renderer/styles';
 
 interface EntryShellProps {
@@ -91,14 +93,29 @@ export function EntryShell({
   'data-testid': dataTestId,
 }: EntryShellProps) {
   const { inputRef: renameInputRef, newName, setNewName, saving: renameSaving, handleKeyDown, handleSave } = rename;
+
+  // Drop target: an entry dragged onto this file becomes one of its attachments,
+  // creating the file's `.attach` folder on demand. Every file-type entry gets
+  // this by virtue of rendering through the shell.
+  const drop = useDropTarget(
+    payload => canDropAsAttachment(payload, entry.path),
+    payload => void dropAsAttachment(payload, entry.path)
+  );
+
   return (
     <div
       data-testid={dataTestId}
       className={clsx(ENTRY_OUTER, isHighlighted && ENTRY_HIGHLIGHTED, className)}
     >
+      {/* Drop handlers sit on the header row, not the outer wrapper, so dragging
+          across an expanded entry's body doesn't light the row up. */}
       <div
-        className={clsx(ENTRY_HEADER_ROW, expandedAffectsHeader && isExpanded && ENTRY_HEADER_EXPANDED)}
+        className={clsx(
+          drop.isDragOver ? ENTRY_HEADER_ROW_DROP : ENTRY_HEADER_ROW,
+          expandedAffectsHeader && isExpanded && ENTRY_HEADER_EXPANDED,
+        )}
         onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
+        {...drop.dropProps}
       >
         {!isAttachment && (
           <SelectionCheckbox

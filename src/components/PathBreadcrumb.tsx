@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { clsx } from 'clsx';
 import { HomeIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
-import { useAS, setPendingIndexTreeReveal, setCurrentView, deleteItems } from '../store';
+import { useAS, setPendingIndexTreeReveal, setCurrentView } from '../store';
 import {
   ENTRY_DND_MIME,
   parseDragPayload,
   canDropInto,
-  moveEntryIntoFolder,
-  reloadExpandedTreeFolder,
+  completeEntryDrop,
 } from '../renderer/dragAndDrop';
+import { ENTRY_DROP_TARGET } from '../renderer/styles';
 import { joinPath, splitPathSegments, isPathInside } from '../renderer/pathUtil';
 import { logger } from '../shared/logUtil';
 
@@ -56,27 +56,19 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
       if (dragOverPath !== folderPath) setDragOverPath(folderPath);
     },
     onDragLeave: () => setDragOverPath(prev => (prev === folderPath ? null : prev)),
-    onDrop: (e: React.DragEvent) => void (async () => {
+    onDrop: (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
       setDragOverPath(null);
 
+      // Read the drag payload synchronously — the DataTransfer is only valid
+      // during the event dispatch, before any await.
       const payload = parseDragPayload(e.dataTransfer.getData(ENTRY_DND_MIME));
       if (!payload || !canDropInto(payload, folderPath)) return;
 
-      const result = await moveEntryIntoFolder(payload, folderPath);
-      if (!result.success) return;
-
-      deleteItems([payload.path]);
-      await reloadExpandedTreeFolder(folderPath);
-      await reloadExpandedTreeFolder(result.sourceFolder);
-
-      // Only the currently-browsed folder (the rightmost breadcrumb) is shown in the BrowseView;
-      // refresh it if the drop changed its contents (item moved into or out of it).
-      if (folderPath === normalizedCurrent || result.sourceFolder === normalizedCurrent) {
-        onRefreshDirectory?.();
-      }
-    })().catch(err => logger.error('Failed to move item into folder:', err)),
+      completeEntryDrop(payload, folderPath, onRefreshDirectory)
+        .catch(err => logger.error('Failed to move item into folder:', err));
+    },
   });
 
   return (
@@ -92,10 +84,10 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
         {...dropProps(normalizedRoot)}
         data-testid="breadcrumb-home-button"
         className={clsx(
-          'p-2 text-slate-400 hover:bg-slate-700 border rounded cursor-pointer flex-shrink-0 transition-colors',
+          'p-2 border border-transparent rounded cursor-pointer flex-shrink-0 transition-colors',
           dragOverPath === normalizedRoot
-            ? 'bg-blue-600/60 border-blue-400'
-            : 'border-transparent hover:border-slate-500',
+            ? `text-white ${ENTRY_DROP_TARGET}`
+            : 'text-slate-400 hover:bg-slate-700 hover:border-slate-500',
         )}
         aria-label="Go to root folder"
         title="Go to root folder"
@@ -120,10 +112,10 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
               {...dropProps(segmentPath)}
               data-testid={`breadcrumb-segment-${part}`}
               className={clsx(
-                'px-2 py-1 text-slate-200 hover:bg-slate-700 border rounded cursor-pointer no-underline break-all transition-colors',
+                'px-2 py-1 border border-transparent rounded cursor-pointer no-underline break-all transition-colors',
                 isDragOver
-                  ? 'bg-blue-600/60 border-blue-400'
-                  : 'border-transparent hover:border-slate-500',
+                  ? `text-white ${ENTRY_DROP_TARGET}`
+                  : 'text-slate-200 hover:bg-slate-700 hover:border-slate-500',
               )}
             >
               {part}

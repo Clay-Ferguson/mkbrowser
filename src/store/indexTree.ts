@@ -176,3 +176,11 @@ export function setIndexYaml(indexYaml: AppState['indexYaml']): void {
 export function getIndexTreeRoot(): FileNode | null {
   return getState().indexTreeRoot;
 }
+
+/**
+ * Whether the folder currently being browsed has an .INDEX.yaml (Document Mode),
+ * read without subscribing (for use in async callbacks).
+ */
+export function getHasIndexFile(): boolean {
+  return getState().hasIndexFile;
+}

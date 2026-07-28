@@ -11,10 +11,13 @@ import {
   setPendingScrollToFile,
   setPendingEditFile,
   setPendingExpandFile,
+  setAppError,
+  getCurrentPath,
+  getHasIndexFile,
 } from '../store';
 import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
 import { pasteFromClipboard } from './clipboard';
-import { getFileName, getParentPath, joinPath } from './pathUtil';
+import { getFileName, getParentPath, joinPath, isSamePath } from './pathUtil';
 import { toErrorMessage } from '../shared/logUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 
@@ -23,6 +26,39 @@ import { ATTACH_SUFFIX } from '../shared/specialFiles';
  * Called with a message on failure, or null to clear a previously shown error.
  */
 type SetError = (e: string | null) => void;
+
+/**
+ * Returns the attachment folder path for `filePath` (`<filePath>.attach`), creating
+ * it on disk if it does not yet exist. When the file lives in the folder currently
+ * being browsed and that folder uses index ordering, the new attach folder is also
+ * inserted into .INDEX.yaml immediately after its parent file, so it does not get
+ * appended to the end of the document by the next reconcile.
+ *
+ * The index insert is skipped for a file that is *not* in the browsed folder (a file
+ * nested inside another .attach folder), where `hasIndexFile` says nothing about the
+ * file's own folder.
+ *
+ * @param filePath - Absolute path of the file that owns the attachments.
+ * @returns The attachment folder path, or null if creation failed (error already reported).
+ */
+export async function ensureAttachFolder(filePath: string): Promise<string | null> {
+  const attachFolderPath = `${filePath}${ATTACH_SUFFIX}`;
+  const exists = await api.pathExists(attachFolderPath);
+  if (exists) return attachFolderPath;
+
+  const result = await api.createFolder(attachFolderPath);
+  if (!result.success) {
+    setAppError(result.error || 'Failed to create attachment folder');
+    return null;
+  }
+
+  const parentFolder = getParentPath(filePath);
+  if (getHasIndexFile() && isSamePath(parentFolder, getCurrentPath())) {
+    const fileName = getFileName(filePath);
+    await api.insertIntoIndexYaml(parentFolder, `${fileName}${ATTACH_SUFFIX}`, fileName);
+  }
+  return attachFolderPath;
+}
 
 /**
  * Moves all cut items in the store into the given folder, then reconciles the index

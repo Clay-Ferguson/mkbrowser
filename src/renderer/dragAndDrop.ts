@@ -2,7 +2,15 @@ import type React from 'react';
 import { api } from './api';
 import type { FileNode } from '../shared/types';
 import { pasteCutItems } from './edit';
-import { getIndexTreeRoot, expandIndexTreeNode } from '../store';
+import { ensureAttachFolder } from './fileOpsUtil';
+import {
+  getIndexTreeRoot,
+  expandIndexTreeNode,
+  deleteItems,
+  setAppError,
+  getCurrentPath,
+  requestDirectoryRefresh,
+} from '../store';
 import { getParentPath, isPathInside, isSamePath } from './pathUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { logger } from '../shared/logUtil';
@@ -119,6 +127,95 @@ export async function moveEntryIntoFolder(payload: DragPayload, destFolder: stri
   }
 
   return { success: true, sourceFolder };
+}
+
+/**
+ * Returns true if the dragged payload can legally become an attachment of the file at
+ * `filePath` — i.e. be dropped into that file's `.attach` folder.
+ *
+ * Only the "onto itself" case is specific to attachments (without this check, dragging a
+ * file onto its own row would create `<file>.attach` and move the file inside it). Every
+ * other rule follows from the destination being `<filePath>.attach`, so they are delegated
+ * to {@link canDropInto}: dragging `X.md.attach` back onto `X.md` is a drop onto itself,
+ * an item already attached to the file has that folder as its parent, and a folder can
+ * never be dropped onto a file it contains.
+ */
+export function canDropAsAttachment(payload: DragPayload, filePath: string): boolean {
+  if (isSamePath(payload.path, filePath)) return false;
+  return canDropInto(payload, `${filePath}${ATTACH_SUFFIX}`);
+}
+
+/**
+ * Finishes a drag-and-drop move that {@link canDropInto} has already approved: performs the
+ * move, then brings every affected view back in step with the filesystem. Shared by all four
+ * drop targets (browse-view folders and files, index tree folders, breadcrumb segments) so
+ * they differ only in how they compute the destination folder.
+ *
+ * @param payload - The file/folder being moved.
+ * @param destFolder - Absolute path of the folder to move it into.
+ * @param onRefreshDirectory - Reloads the browse view. Callers that have this as a prop should
+ *   pass it (it refreshes without a loading flash); otherwise the store-level request is used.
+ * @param alsoAffects - A further folder whose listing this drop changed, beyond the source and
+ *   destination. Used for attachment drops, where a newly created `.attach` folder appears in
+ *   the *parent* folder — neither end of the move.
+ */
+export async function completeEntryDrop(
+  payload: DragPayload,
+  destFolder: string,
+  onRefreshDirectory?: () => void,
+  alsoAffects?: string
+): Promise<void> {
+  const result = await moveEntryIntoFolder(payload, destFolder);
+  if (!result.success) {
+    // Nothing moved, so no refresh follows to clear this. Reporting it matters most
+    // for the common name-collision case, which otherwise looks like a dead drop.
+    setAppError(result.error || 'Failed to move item');
+    return;
+  }
+
+  // Drop the moved item from the store so the browse view stops showing it at its old path.
+  deleteItems([payload.path]);
+
+  await reloadExpandedTreeFolder(destFolder);
+  await reloadExpandedTreeFolder(result.sourceFolder);
+
+  const currentPath = getCurrentPath();
+  const affectsBrowseView =
+    isSamePath(destFolder, currentPath) ||
+    isSamePath(result.sourceFolder, currentPath) ||
+    (alsoAffects !== undefined && isSamePath(alsoAffects, currentPath));
+  if (affectsBrowseView) {
+    if (onRefreshDirectory) {
+      onRefreshDirectory();
+    } else {
+      requestDirectoryRefresh();
+    }
+  }
+}
+
+/**
+ * Moves a dragged file or folder into the attachment folder of the file at `filePath`,
+ * creating that `.attach` folder (and registering it in .INDEX.yaml) if it does not exist yet.
+ *
+ * The folder is created before the move is attempted. A name collision is impossible in a
+ * folder that was just created, so the only way this leaves an empty `.attach` behind is a
+ * genuine filesystem error during the rename — not worth a compensating delete.
+ *
+ * @param payload - The file/folder being attached.
+ * @param filePath - Absolute path of the file that will own the attachment.
+ * @param onRefreshDirectory - See {@link completeEntryDrop}.
+ */
+export async function dropAsAttachment(
+  payload: DragPayload,
+  filePath: string,
+  onRefreshDirectory?: () => void
+): Promise<void> {
+  const attachFolderPath = await ensureAttachFolder(filePath);
+  if (!attachFolderPath) return; // ensureAttachFolder already reported the failure
+
+  // A brand-new .attach folder is itself a new row in the file's own folder, which is
+  // neither the source nor the destination of the move — hence the alsoAffects argument.
+  await completeEntryDrop(payload, attachFolderPath, onRefreshDirectory, getParentPath(filePath));
 }
 
 /**
