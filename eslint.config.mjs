@@ -347,4 +347,20 @@ export default tseslint.config(
       "@typescript-eslint/no-deprecated": "error",
     },
   },
+
+  // Detect if someone has probably entered a full path into an e2e test, which we don't allow
+  // because path needs to be relative.
+  {
+    files: ["tests/e2e/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/^\\/(home|Users|mnt)\\//]",
+          message:
+            "Hard-coded absolute machine path in an e2e spec. Derive it from __dirname (repo-relative) or os.tmpdir() instead.",
+        },
+      ],
+    },
+  },
 );

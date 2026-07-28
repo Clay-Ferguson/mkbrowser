@@ -45,8 +45,20 @@ The fixture setup (`tests/fixtures/setup.ts`) exports:
 |--------|-------------|
 | `setupTestData()` | Wipes `test-data/` and writes all fixture files. Call in `beforeAll()`. |
 | `teardownTestData()` | Removes `test-data/` entirely. Optional cleanup for `afterAll()`. |
-| `TEST_DATA_DIR` | Absolute path to the `test-data/` directory. |
+| `TEST_DATA_DIR` | Absolute path to the fixture data directory. Defaults to `<repoRoot>/test-data`, but the `MKB_TEST_DATA_DIR` env var overrides it (see below). |
 | `rel(...segments)` | Helper to build OS-correct relative paths for assertions. |
+
+### Relocating the fixture data — `MKB_TEST_DATA_DIR`
+
+`TEST_DATA_DIR` honors the `MKB_TEST_DATA_DIR` env var and falls back to
+`<repoRoot>/test-data` when it is unset. This exists because some filesystems do
+not record a file birth time, and a few tests assert `createdTime > 0` — notably
+the virtiofs share used by the KVM dev VM (see `KVM_SETUP_DEV_TOOLS.md`), where
+`statx` reports no birth time at all. Pointing the fixtures at a local filesystem
+(`export MKB_TEST_DATA_DIR=/tmp/mkb-test-data`) fixes those failures.
+
+The override covers only the Vitest fixtures. It does **not** affect the
+Playwright e2e suite, which browses the checked-in `mkbrowser-test/` folder.
 
 The fixture files include ~50 `.md` and `.txt` files across multiple subdirectories, with content designed to cover various search scenarios: unique markers, duplicate content, repeated terms, case variations, deeply nested paths, special characters, timestamps, and non-searchable file types (`.json`, `.yaml`, `.jpg`).
 

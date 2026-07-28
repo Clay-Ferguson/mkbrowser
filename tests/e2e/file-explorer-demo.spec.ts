@@ -2,11 +2,14 @@ import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
 import { takeScreenshot, writeNarration, demoClick, demoRightClick, findActionBarByFileName, logScreenshotSummary, cleanupScreenshots, resetSettings } from './helpers/mediaUtils';
 
-// Override testDataPath so the app starts browsing /home/clay/ferguson
+// Override testDataPath so the app browses the mkbrowser repo itself rather than
+// the usual mkbrowser-test fixture folder — this demo needs a real, deeply nested
+// markdown document (docs/USER_GUIDE.md) to show off the tree's heading expansion.
+// Resolved from __dirname so it works on any clone, at any location.
 const test = baseTest.extend({
   // eslint-disable-next-line no-empty-pattern
   testDataPath: async ({}, use) => {
-    await use('/home/clay/ferguson');
+    await use(path.join(__dirname, '../../'));
   },
 });
 
@@ -23,7 +26,7 @@ test.describe('File Explorer Tree Demo', () => {
     // Wait for initial load
     await mainWindow.waitForTimeout(2000);
 
-    // Verify the tree is visible and we are browsing /home/clay/ferguson
+    // Verify the tree is visible and we are browsing the repo folder
     const tree = mainWindow.getByTestId('file-explorer-tree');
     await expect(tree).toBeVisible({ timeout: 10000 });
 
@@ -35,32 +38,6 @@ test.describe('File Explorer Tree Demo', () => {
 The tree panel on the left-hand side of the app shows your file system as a navigable hierarchy of folders and files.`
     );
 
-    // --- Click the "projects" folder ---
-    const projectsFolder = tree.getByText('projects').first();
-    await projectsFolder.scrollIntoViewIfNeeded();
-    await takeScreenshot(mainWindow, projectsFolder, screenshotDir, step++, 'about-to-click-projects');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Let's click the projects folder to expand it.`
-    );
-
-    await demoClick(projectsFolder);
-    await mainWindow.waitForTimeout(800);
-
-    // --- Click the "mkbrowser" folder ---
-    const mkbrowserFolder = tree.getByText('mkbrowser').first();
-    await mkbrowserFolder.scrollIntoViewIfNeeded();
-    await takeScreenshot(mainWindow, mkbrowserFolder, screenshotDir, step++, 'about-to-click-mkbrowser');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Next we'll expand the mkbrowser folder.`
-    );
-
-    await demoClick(mkbrowserFolder);
-    await mainWindow.waitForTimeout(800);
-
     // --- Click the "docs" folder ---
     const docsFolder = tree.getByText('docs').first();
     await docsFolder.scrollIntoViewIfNeeded();
@@ -68,7 +45,8 @@ The tree panel on the left-hand side of the app shows your file system as a navi
     writeNarration(
       screenshotDir,
       step++,
-      `Here we can see the docs folder. Let's click to expand it.`
+      `Any folder in the tree can be expanded with a single click.
+Here we can see the docs folder. Let's click to expand it.`
     );
 
     await demoClick(docsFolder);

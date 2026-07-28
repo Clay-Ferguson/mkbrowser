@@ -96,7 +96,7 @@ Both are saved to `screenshots/<test-name>/` with sequential 3-digit numbering (
 - **Kokoro TTS**: Must be cloned and set up in a sibling folder (`../kocreator`) before running demo tests
 - **One-time setup**:
   ```bash
-  cd ~/ferguson/projects  # Or wherever your mkbrowser folder is
+  cd /path/to/parent-of-mkbrowser  # The folder that CONTAINS your mkbrowser clone
   git clone https://github.com/hexgrad/kokoro kokoro
   cd kokoro
   ./setup-kokoro.sh  # Install Kokoro TTS engine and voice models
@@ -343,7 +343,7 @@ Kokoro TTS is a fast, local neural text-to-speech engine. The Kokoro project mus
 
 1. Clone the Kokoro repository as a sibling to the mkbrowser folder:
    ```bash
-   cd ~/ferguson/projects  # Or wherever your mkbrowser folder is located
+   cd /path/to/parent-of-mkbrowser  # The folder that CONTAINS your mkbrowser clone
    git clone https://github.com/hexgrad/kokoro kokoro
    ```
 
@@ -450,7 +450,7 @@ The complete workflow from test creation to video generation:
 1. **Prerequisites** (one-time setup):
    ```bash
    # Clone Kokoro TTS as a sibling project
-   cd ~/ferguson/projects  # Or wherever your mkbrowser folder is
+   cd /path/to/parent-of-mkbrowser  # The folder that CONTAINS your mkbrowser clone
    git clone https://github.com/hexgrad/kokoro kokoro
    cd kocreator
    ./setup-kokoro.sh    # Install Kokoro TTS engine
@@ -647,7 +647,7 @@ Install system dependencies via:
 
 Install Kokoro TTS (one-time):
 ```bash
-cd ~/ferguson/projects  # Or wherever your mkbrowser folder is
+cd /path/to/parent-of-mkbrowser  # The folder that CONTAINS your mkbrowser clone
 git clone https://github.com/hexgrad/kokoro kokoro
 cd kokoro
 ./setup-kocreator.sh
@@ -717,7 +717,7 @@ cd kokoro
 - **Symptoms**: Video generation script fails with "Kokoro TTS not found" error
 - **Solution**: 
   ```bash
-  cd ~/ferguson/projects  # Or wherever your mkbrowser folder is
+  cd /path/to/parent-of-mkbrowser  # The folder that CONTAINS your mkbrowser clone
   git clone https://github.com/hexgrad/kokoro kokoro
   cd kocreator
   ./setup-kokoro.sh

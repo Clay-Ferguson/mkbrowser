@@ -3,7 +3,8 @@ import * as path from 'path';
 import { test as baseTest, expect } from './fixtures/electronApp';
 import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSummary, cleanupScreenshots, findActionBarByFileName, resetSettings } from './helpers/mediaUtils';
 
-const federalistPath = '/home/clay/ferguson/projects/mkbrowser/mkbrowser-test/federalist-papers';
+// Resolved from __dirname so the spec works on any clone, at any location.
+const federalistPath = path.join(__dirname, '../../mkbrowser-test/federalist-papers');
 const indexYamlPath = `${federalistPath}/.INDEX.yaml`;
 const aboutFederalistPath = `${federalistPath}/about-federalist-papers.md`;
 

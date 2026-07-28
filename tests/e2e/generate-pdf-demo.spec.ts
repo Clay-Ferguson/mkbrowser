@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
 import { takeScreenshot, writeNarration, demoClick, setCheckbox, insertText, logScreenshotSummary, cleanupScreenshots, addExternalFile, cleanupTestDataFiles, resetSettings } from './helpers/mediaUtils';
@@ -18,6 +20,10 @@ test.describe('Generate PDF Demo', () => {
     // Create subfolder based on test file name
     const testName = path.basename(__filename, '.spec.ts');
     const screenshotDir = path.join(__dirname, '../../screenshots', testName);
+
+    // The export below really runs, so the output folder has to really exist.
+    // A temp dir keeps that true on any machine without writing into the repo.
+    const exportDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkbrowser-export-'));
 
     cleanupScreenshots(screenshotDir);
     cleanupTestDataFiles();
@@ -146,13 +152,13 @@ and several options that control how MkBrowser assembles the exported document.`
 We'll type a path where MkBrowser will write the exported files.`
     );
 
-    await insertText(mainWindow, '/home/clay/exports', true, outputFolderInput);
+    await insertText(mainWindow, exportDir, true, outputFolderInput);
 
     await takeScreenshot(mainWindow, outputFolderInput, screenshotDir, step++, 'output-folder-entered');
     writeNarration(
       screenshotDir,
       step++,
-      `We've entered "/home/clay/exports" as the output folder.
+      `We've entered "${exportDir}" as the output folder.
 Next, let's enter a name for the exported file.`
     );
 

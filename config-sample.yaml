@@ -1,4 +1,16 @@
-browseFolder: /home/clay/ferguson
+# SAMPLE ONLY — nothing in the app ever reads this file.
+#
+# The live config lives in Electron's userData folder (see src/main/configMgr.ts):
+#   Linux:   ~/.config/mk-browser/config.yaml
+#   macOS:   ~/Library/Application Support/mk-browser/config.yaml
+#   Windows: %APPDATA%\mk-browser\config.yaml
+#
+# This copy is checked in purely as a readable reference for the shape of that
+# file — most usefully the `searchDefinitions` entries below, which are tedious to
+# write from scratch. `browseFolder` is intentionally left empty: it is a
+# machine-specific absolute path, and the app sets it for you when you pick a
+# folder (or from a folder passed on the command line).
+browseFolder: ''
 settings:
   fontSize: medium
   sortOrder: alphabetical
