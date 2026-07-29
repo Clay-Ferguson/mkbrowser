@@ -153,7 +153,12 @@ export function EntryShell({
         ) : (
           <span
             id={buildEntryHeaderId(entry.path)}
-            onClick={onToggleExpanded}
+            // Clicking the name toggles expansion — disabled while the editor is
+            // open, since collapsing the entry would tear down the editor holding
+            // the user's in-progress edit. The cursor override goes inline because
+            // nameClassName carries `cursor-pointer` and callers supply their own.
+            onClick={isEditing ? undefined : onToggleExpanded}
+            style={isEditing ? { cursor: 'default' } : undefined}
             className={nameClassName}
             title={nameTitle ?? formatFlyoverInfo(entry)}
           >
