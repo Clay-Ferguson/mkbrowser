@@ -10,6 +10,7 @@ import {
   cleanupTestDataFiles,
   resetSettings,
   findActionBarByFileName,
+  openEntryMenu,
 } from './helpers/mediaUtils';
 
 /**
@@ -19,9 +20,9 @@ import {
  *   1. Seeds a subfolder with a single markdown file that has no attachments.
  *   2. Places a known markdown string on the OS clipboard (via Electron's
  *      main-process clipboard module).
- *   3. Clicks the paste-clipboard-attachment button on the file's action bar,
- *      which creates a `<name>.md.attach/` folder and writes the clipboard text
- *      into a timestamp-named `.md` file inside it.
+ *   3. Picks "Paste Clipboard as Attachment" from the hamburger menu on the
+ *      file's action bar, which creates a `<name>.md.attach/` folder and writes
+ *      the clipboard text into a timestamp-named `.md` file inside it.
  *   4. Verifies the folder + file on disk and in the UI, and that the pasted
  *      markdown renders when navigating into the attachments folder.
  *   5. Pastes a second clipboard text onto the same file and confirms it lands
@@ -116,25 +117,22 @@ Here is a single markdown file with no attachments yet; let's use it to attach s
 Now we'll paste it as an attachment under our file.`
     );
 
-    // Locate the file's hover-revealed action bar and its paste-clipboard button.
-    // The icons fade in on hover with a delay (EntryActionBar.tsx: 400ms delay +
-    // 200ms opacity transition), so wait for the fade or screenshots capture
-    // invisible icons (toBeVisible() passes even at opacity 0).
+    // Locate the file's hover-revealed action bar and open its hamburger menu,
+    // where the paste-clipboard action now lives.
     let actionBar = findActionBarByFileName(mainContent, hostFileName);
-    await actionBar.hover();
-    await mainWindow.waitForTimeout(700);
-    let pasteButton = actionBar.getByTestId('entry-paste-clipboard-attachment-button');
-    await expect(pasteButton).toBeVisible();
+    let menu = await openEntryMenu(actionBar);
+    let pasteItem = menu.getByTestId('menu-entry-paste-clipboard-attachment');
+    await expect(pasteItem).toBeVisible();
 
-    await takeScreenshot(mainWindow, pasteButton, screenshotDir, step++, 'about-to-paste-first');
+    await takeScreenshot(mainWindow, pasteItem, screenshotDir, step++, 'about-to-paste-first');
     writeNarration(
       screenshotDir,
       step++,
-      `Hovering over the file reveals its action bar.
-This clipboard button pastes whatever is on the clipboard as an attachment under this file, creating an attachments folder if one doesn't exist yet.`
+      `Hovering over the file reveals its action bar, and its hamburger button opens a menu of further actions.
+"Paste Clipboard as Attachment" pastes whatever is on the clipboard as an attachment under this file, creating an attachments folder if one doesn't exist yet.`
     );
 
-    await demoClick(pasteButton, { force: true });
+    await demoClick(pasteItem);
 
     // Verify the attachments folder was created with exactly one timestamped .md
     // file whose content is the pasted clipboard text.
@@ -194,12 +192,11 @@ Its markdown renders just like any other file — here's the "Pasted Note One" h
     await electronApp.evaluate(({ clipboard }, text) => clipboard.writeText(text), clipText2);
 
     actionBar = findActionBarByFileName(mainContent, hostFileName);
-    await actionBar.hover();
-    await mainWindow.waitForTimeout(700);   // wait out the action-bar fade-in
-    pasteButton = actionBar.getByTestId('entry-paste-clipboard-attachment-button');
-    await expect(pasteButton).toBeVisible();
+    menu = await openEntryMenu(actionBar);
+    pasteItem = menu.getByTestId('menu-entry-paste-clipboard-attachment');
+    await expect(pasteItem).toBeVisible();
 
-    await takeScreenshot(mainWindow, pasteButton, screenshotDir, step++, 'about-to-paste-second');
+    await takeScreenshot(mainWindow, pasteItem, screenshotDir, step++, 'about-to-paste-second');
     writeNarration(
       screenshotDir,
       step++,
@@ -207,7 +204,7 @@ Its markdown renders just like any other file — here's the "Pasted Note One" h
 This time the attachments folder already exists, so the new file simply joins the first one.`
     );
 
-    await demoClick(pasteButton, { force: true });
+    await demoClick(pasteItem);
 
     // Verify the attachments folder now holds two timestamped .md files, one
     // with each payload's distinctive content.

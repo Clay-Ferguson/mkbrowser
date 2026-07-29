@@ -10,6 +10,7 @@ import {
   cleanupTestDataFiles,
   resetSettings,
   findActionBarByFileName,
+  openEntryMenu,
 } from './helpers/mediaUtils';
 
 /**
@@ -17,14 +18,14 @@ import {
  *
  * Exercises the full bookmarks lifecycle:
  *   1. Seeds a folder (with a file inside) and a standalone markdown file.
- *   2. Adds a bookmark to the folder via the entry action bar, accepting the
- *      default name from the naming dialog.
+ *   2. Adds a bookmark to the folder via "Add Bookmark" in the entry action
+ *      bar's hamburger menu, accepting the default name from the naming dialog.
  *   3. Adds a bookmark to the file, this time typing a custom display name.
  *   4. Navigates into the folder, then jumps back out using the file bookmark
  *      from the Index Tree panel's bookmarks menu.
  *   5. Renames a bookmark from the menu's pencil button.
  *   6. Deletes a bookmark from the menu's trash button.
- *   7. Removes the last bookmark by clicking the solid icon on the entry itself
+ *   7. Removes the last bookmark via "Remove Bookmark" on the entry itself
  *      (immediate, no confirmation), and confirms the menu is empty.
  *
  * This test is private (not part of the demo video set) — it still writes
@@ -88,29 +89,25 @@ test.describe('Private: Bookmarks', () => {
 Here we have a folder and a markdown file in our workspace — let's create a couple of bookmarks.`
     );
 
-    // The action-bar icons fade in on hover with a delay (EntryActionBar.tsx:
-    // 400ms delay + 200ms opacity transition), so after every hover we must
-    // wait for the fade to finish or screenshots capture invisible icons.
-    const hoverRevealMs = 700;
-
     // --- Bookmark the folder ---
-    // The folder entry is a hover-revealed action bar; find its row, hover to
-    // reveal the icons, then use the bookmark toggle.
+    // The folder entry has a hover-revealed action bar whose hamburger button
+    // opens the menu holding the bookmark action; openEntryMenu does the hover,
+    // waits out the fade-in, and opens it.
     const folderRow = mainContent.locator('div.group').filter({ hasText: folderName }).first();
-    await folderRow.hover();
-    await mainWindow.waitForTimeout(hoverRevealMs);
-    const folderBookmarkButton = folderRow.getByTestId('entry-action-bar').getByTestId('entry-bookmark-button');
-    await expect(folderBookmarkButton).toHaveAttribute('title', 'Add bookmark');
+    const folderActionBar = folderRow.getByTestId('entry-action-bar');
+    let menu = await openEntryMenu(folderActionBar);
+    let folderBookmarkMenuItem = menu.getByTestId('menu-entry-bookmark');
+    await expect(folderBookmarkMenuItem).toHaveText('Add Bookmark');
 
-    await takeScreenshot(mainWindow, folderBookmarkButton, screenshotDir, step++, 'about-to-bookmark-folder');
+    await takeScreenshot(mainWindow, folderBookmarkMenuItem, screenshotDir, step++, 'about-to-bookmark-folder');
     writeNarration(
       screenshotDir,
       step++,
-      `Hovering over the folder reveals a row of action icons.
-The bookmark icon is the hollow ribbon. Let's click it to bookmark this folder.`
+      `Hovering over the folder reveals a row of action icons, ending in a hamburger button that opens this menu.
+"Add Bookmark" is the item we want. Let's click it to bookmark this folder.`
     );
 
-    await demoClick(folderBookmarkButton, { force: true });
+    await demoClick(folderBookmarkMenuItem);
 
     // The naming dialog appears, pre-filled with the folder's name.
     const nameInput = mainWindow.getByTestId('bookmark-name-input');
@@ -127,36 +124,38 @@ We can accept the default name or type our own. For the folder, we'll keep the d
 
     await demoClick(mainWindow.getByTestId('bookmark-dialog-save-button'));
 
-    // The entry's bookmark icon turns solid; its title flips to "Remove bookmark".
-    await expect(folderBookmarkButton).toHaveAttribute('title', 'Remove bookmark');
+    // The menu item flips to "Remove Bookmark" — that label is now how the
+    // entry reports its own bookmark state. The mouse moved to the dialog's
+    // Save button, so the action bar faded out; re-open the menu to see it.
+    menu = await openEntryMenu(folderActionBar);
+    folderBookmarkMenuItem = menu.getByTestId('menu-entry-bookmark');
+    await expect(folderBookmarkMenuItem).toHaveText('Remove Bookmark');
 
-    // The mouse moved to the dialog's Save button, so the action bar has faded
-    // out again — re-hover so the now-solid icon is visible in the screenshot.
-    await folderRow.hover();
-    await mainWindow.waitForTimeout(hoverRevealMs);
-    await takeScreenshot(mainWindow, folderBookmarkButton, screenshotDir, step++, 'folder-bookmarked');
+    await takeScreenshot(mainWindow, folderBookmarkMenuItem, screenshotDir, step++, 'folder-bookmarked');
     writeNarration(
       screenshotDir,
       step++,
-      `The folder is now bookmarked — notice the ribbon icon has turned solid blue.
-That solid icon is your at-a-glance indicator that an item is already bookmarked.`
+      `The folder is now bookmarked — the menu item has flipped to "Remove Bookmark".
+That label is how you tell, at a glance, that an item is already bookmarked.`
     );
+
+    // Close the menu before moving on to the next entry.
+    await mainWindow.keyboard.press('Escape');
 
     // --- Bookmark the file, with a custom name ---
     const fileActionBar = findActionBarByFileName(mainContent, fileName);
-    await fileActionBar.hover();
-    await mainWindow.waitForTimeout(hoverRevealMs);
-    const fileBookmarkButton = fileActionBar.getByTestId('entry-bookmark-button');
-    await expect(fileBookmarkButton).toHaveAttribute('title', 'Add bookmark');
+    menu = await openEntryMenu(fileActionBar);
+    let fileBookmarkMenuItem = menu.getByTestId('menu-entry-bookmark');
+    await expect(fileBookmarkMenuItem).toHaveText('Add Bookmark');
 
-    await takeScreenshot(mainWindow, fileBookmarkButton, screenshotDir, step++, 'about-to-bookmark-file');
+    await takeScreenshot(mainWindow, fileBookmarkMenuItem, screenshotDir, step++, 'about-to-bookmark-file');
     writeNarration(
       screenshotDir,
       step++,
-      `Now let's bookmark the markdown file the same way, by clicking the bookmark icon in its action bar.`
+      `Now let's bookmark the markdown file the same way, from "Add Bookmark" in its own action-bar menu.`
     );
 
-    await demoClick(fileBookmarkButton, { force: true });
+    await demoClick(fileBookmarkMenuItem);
 
     await expect(nameInput).toBeVisible();
     // This time, replace the default with a friendlier custom label.
@@ -171,17 +170,21 @@ We've typed "${fileBookmarkName}" — a bookmark's name is just a friendly label
     );
 
     await demoClick(mainWindow.getByTestId('bookmark-dialog-save-button'));
-    await expect(fileBookmarkButton).toHaveAttribute('title', 'Remove bookmark');
 
-    // Re-hover after the dialog click so the solid icon is visible again.
-    await fileActionBar.hover();
-    await mainWindow.waitForTimeout(hoverRevealMs);
-    await takeScreenshot(mainWindow, fileBookmarkButton, screenshotDir, step++, 'file-bookmarked');
+    // Re-open the menu after the dialog click to see the flipped label.
+    menu = await openEntryMenu(fileActionBar);
+    fileBookmarkMenuItem = menu.getByTestId('menu-entry-bookmark');
+    await expect(fileBookmarkMenuItem).toHaveText('Remove Bookmark');
+
+    await takeScreenshot(mainWindow, fileBookmarkMenuItem, screenshotDir, step++, 'file-bookmarked');
     writeNarration(
       screenshotDir,
       step++,
       `Both items are now bookmarked. Next, let's see how bookmarks help us navigate.`
     );
+
+    // Close the menu before navigating.
+    await mainWindow.keyboard.press('Escape');
 
     // --- Navigate into the folder so our location differs from the root ---
     await demoClick(mainContent.getByText(folderName, { exact: true }));
@@ -322,22 +325,29 @@ Deleting a bookmark never touches the underlying file or folder — it only remo
     await expect(fileBookmarkItem).toHaveCount(0);
 
     // --- Remove the last bookmark from the entry itself (no dialog) ---
-    await fileActionBar.hover();
-    await mainWindow.waitForTimeout(hoverRevealMs);
-    await expect(fileBookmarkButton).toHaveAttribute('title', 'Remove bookmark');
-    await takeScreenshot(mainWindow, fileBookmarkButton, screenshotDir, step++, 'about-to-unbookmark-file');
+    menu = await openEntryMenu(fileActionBar);
+    fileBookmarkMenuItem = menu.getByTestId('menu-entry-bookmark');
+    await expect(fileBookmarkMenuItem).toHaveText('Remove Bookmark');
+    await takeScreenshot(mainWindow, fileBookmarkMenuItem, screenshotDir, step++, 'about-to-unbookmark-file');
     writeNarration(
       screenshotDir,
       step++,
-      `Finally, we can remove a bookmark right from the item's own action bar.
-Clicking a solid bookmark icon removes the bookmark immediately — no dialog, no confirmation.`
+      `Finally, we can remove a bookmark right from the item's own action-bar menu.
+Clicking "Remove Bookmark" removes it immediately — no dialog, no confirmation.`
     );
 
-    await demoClick(fileBookmarkButton, { force: true });
+    await demoClick(fileBookmarkMenuItem);
 
-    // The icon flips back to the hollow "Add bookmark" state with no dialog.
-    await expect(fileBookmarkButton).toHaveAttribute('title', 'Add bookmark');
+    // Re-open the menu: the item flips back to "Add Bookmark", and removing a
+    // bookmark raised no naming dialog on the way.
     await expect(mainWindow.getByTestId('bookmark-name-input')).toHaveCount(0);
+    menu = await openEntryMenu(fileActionBar);
+    fileBookmarkMenuItem = menu.getByTestId('menu-entry-bookmark');
+    await expect(fileBookmarkMenuItem).toHaveText('Add Bookmark');
+    await expect(mainWindow.getByTestId('bookmark-name-input')).toHaveCount(0);
+
+    // Close the entry menu before opening the bookmarks menu.
+    await mainWindow.keyboard.press('Escape');
 
     // Reopen the menu and confirm it is now empty.
     await demoClick(bookmarksMenuButton);
@@ -347,7 +357,7 @@ Clicking a solid bookmark icon removes the bookmark immediately — no dialog, n
     writeNarration(
       screenshotDir,
       step++,
-      `The bookmark icon is hollow again, and the bookmarks menu shows "No bookmarks".
+      `The entry's menu item reads "Add Bookmark" again, and the bookmarks menu shows "No bookmarks".
 We've now added, navigated, renamed, and deleted bookmarks — the full lifecycle.`
     );
 

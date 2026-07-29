@@ -300,6 +300,49 @@ export function findActionBarByFileName(scope: Page | Locator, fileName: string)
 }
 
 /**
+ * The action-bar icons fade in on hover with a delay (EntryActionBar.tsx:
+ * 400ms delay + 200ms opacity transition), so after every hover we must wait
+ * for the fade to finish or screenshots capture invisible icons
+ * (`toBeVisible()` passes even at opacity 0).
+ */
+export const ACTION_BAR_FADE_MS = 700;
+
+/**
+ * Opens an entry's hamburger ("More actions") popup menu, which holds the entry
+ * actions that don't have their own icon button.
+ *
+ * Hovers the action bar, waits out the fade-in, then clicks the hamburger. The
+ * returned Locator is resolved on the *page*, not inside `actionBar`: the menu
+ * renders outside the action-bar subtree, in the browser's top layer. Only one
+ * entry menu can be open at a time, so the page-level lookup is unambiguous.
+ *
+ * @param actionBar - The entry's `entry-action-bar` Locator
+ * @returns A Locator for the open `entry-popup-menu`
+ *
+ * @example
+ * const menu = await openEntryMenu(findActionBarByFileName(mainContent, 'notes.md'));
+ * await demoClick(menu.getByTestId('menu-entry-view-file'));
+ */
+export async function openEntryMenu(actionBar: Locator): Promise<Locator> {
+  const page = actionBar.page();
+
+  // Nudge the pointer somewhere neutral before hovering. Chromium keeps a stale
+  // :hover after a modal <dialog> closes (BookmarkDialog, ConfirmDialog, …) and
+  // only recomputes it on a genuine pointer move — and hover() is a no-op move
+  // as far as that recomputation is concerned. Without this, the action bar
+  // stays at opacity 0 / pointer-events: none, so the click below silently hits
+  // the faded-out wrapper and the menu never opens.
+  await page.mouse.move(5, 5);
+
+  await actionBar.hover();
+  await page.waitForTimeout(ACTION_BAR_FADE_MS);
+  await demoClick(actionBar.getByTestId('entry-menu-button'), { force: true });
+  const menu = page.getByTestId('entry-popup-menu');
+  await menu.waitFor({ state: 'visible', timeout: 10000 });
+  return menu;
+}
+
+/**
  * Returns a Locator scoped to the currently-active tab/view.
  *
  * Every visited view stays mounted in the DOM (App.tsx toggles visibility with

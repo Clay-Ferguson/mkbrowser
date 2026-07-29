@@ -7,6 +7,11 @@ interface EntryPopupMenuProps {
   onOpenExternal: () => void;
   /** When omitted, the "View File" item is hidden (e.g. this file is already the one on screen). */
   onViewFile?: () => void;
+  /** When omitted, the "Paste Clipboard as Attachment" item is hidden. */
+  onPasteClipboardAsAttachment?: () => void;
+  /** Drives the bookmark item's label between add and remove. */
+  isBookmarked: boolean;
+  onToggleBookmark: () => void;
 }
 
 /**
@@ -19,6 +24,9 @@ export default function EntryPopupMenu({
   onClose,
   onOpenExternal,
   onViewFile,
+  onPasteClipboardAsAttachment,
+  isBookmarked,
+  onToggleBookmark,
 }: EntryPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose} align="right" data-testid="entry-popup-menu">
@@ -34,6 +42,18 @@ export default function EntryPopupMenu({
           onClick={() => { onViewFile(); onClose(); }}
         />
       )}
+      {onPasteClipboardAsAttachment && (
+        <PopupMenuItem
+          label="Paste Clipboard as Attachment"
+          data-testid="menu-entry-paste-clipboard-attachment"
+          onClick={() => { onPasteClipboardAsAttachment(); onClose(); }}
+        />
+      )}
+      <PopupMenuItem
+        label={isBookmarked ? 'Remove Bookmark' : 'Add Bookmark'}
+        data-testid="menu-entry-bookmark"
+        onClick={() => { onToggleBookmark(); onClose(); }}
+      />
     </PopupMenu>
   );
 }

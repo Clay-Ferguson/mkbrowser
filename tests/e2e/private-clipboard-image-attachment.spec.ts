@@ -10,6 +10,7 @@ import {
   cleanupTestDataFiles,
   resetSettings,
   findActionBarByFileName,
+  openEntryMenu,
 } from './helpers/mediaUtils';
 
 /**
@@ -22,9 +23,9 @@ import {
  *   2. Places a real PNG image on the OS clipboard (via Electron's main-process
  *      clipboard + nativeImage modules), loaded from the checked-in fixture
  *      images in `mkbrowser-test/images/`.
- *   3. Clicks the paste-clipboard-attachment button on the file's action bar,
- *      which creates a `<name>.md.attach/` folder and writes the clipboard image
- *      into a timestamp-named `.png` file inside it.
+ *   3. Picks "Paste Clipboard as Attachment" from the hamburger menu on the
+ *      file's action bar, which creates a `<name>.md.attach/` folder and writes
+ *      the clipboard image into a timestamp-named `.png` file inside it.
  *   4. Verifies the folder + PNG file on disk (magic bytes) and in the UI, and
  *      that the image renders inline when navigating into the attachments folder.
  *   5. Pastes a second image onto the same file and confirms it lands in the
@@ -146,25 +147,22 @@ Here is a single markdown file with no attachments yet; imagine you've just take
 Now we'll paste it as an attachment under our file.`
     );
 
-    // Locate the file's hover-revealed action bar and its paste-clipboard button.
-    // The icons fade in on hover with a delay (EntryActionBar.tsx: 400ms delay +
-    // 200ms opacity transition), so wait for the fade or screenshots capture
-    // invisible icons (toBeVisible() passes even at opacity 0).
+    // Locate the file's hover-revealed action bar and open its hamburger menu,
+    // where the paste-clipboard action now lives.
     let actionBar = findActionBarByFileName(mainContent, hostFileName);
-    await actionBar.hover();
-    await mainWindow.waitForTimeout(700);
-    let pasteButton = actionBar.getByTestId('entry-paste-clipboard-attachment-button');
-    await expect(pasteButton).toBeVisible();
+    let menu = await openEntryMenu(actionBar);
+    let pasteItem = menu.getByTestId('menu-entry-paste-clipboard-attachment');
+    await expect(pasteItem).toBeVisible();
 
-    await takeScreenshot(mainWindow, pasteButton, screenshotDir, step++, 'about-to-paste-first');
+    await takeScreenshot(mainWindow, pasteItem, screenshotDir, step++, 'about-to-paste-first');
     writeNarration(
       screenshotDir,
       step++,
-      `Hovering over the file reveals its action bar.
-This clipboard button pastes whatever is on the clipboard as an attachment under this file, creating an attachments folder if one doesn't exist yet.`
+      `Hovering over the file reveals its action bar, and its hamburger button opens a menu of further actions.
+"Paste Clipboard as Attachment" pastes whatever is on the clipboard as an attachment under this file, creating an attachments folder if one doesn't exist yet.`
     );
 
-    await demoClick(pasteButton, { force: true });
+    await demoClick(pasteItem);
 
     // Verify the attachments folder was created with exactly one timestamped
     // .png file that is a valid PNG (magic bytes + nonzero content).
@@ -232,12 +230,11 @@ It renders inline just like any other image in MkBrowser — here's the picture 
     expect(seeded2).toBe(true);
 
     actionBar = findActionBarByFileName(mainContent, hostFileName);
-    await actionBar.hover();
-    await mainWindow.waitForTimeout(700);   // wait out the action-bar fade-in
-    pasteButton = actionBar.getByTestId('entry-paste-clipboard-attachment-button');
-    await expect(pasteButton).toBeVisible();
+    menu = await openEntryMenu(actionBar);
+    pasteItem = menu.getByTestId('menu-entry-paste-clipboard-attachment');
+    await expect(pasteItem).toBeVisible();
 
-    await takeScreenshot(mainWindow, pasteButton, screenshotDir, step++, 'about-to-paste-second');
+    await takeScreenshot(mainWindow, pasteItem, screenshotDir, step++, 'about-to-paste-second');
     writeNarration(
       screenshotDir,
       step++,
@@ -245,7 +242,7 @@ It renders inline just like any other image in MkBrowser — here's the picture 
 This time the attachments folder already exists, so the new image simply joins the first one.`
     );
 
-    await demoClick(pasteButton, { force: true });
+    await demoClick(pasteItem);
 
     // Verify the attachments folder now holds two timestamped .png files, both
     // valid PNGs, and that the second is a newly-named file (not an overwrite).

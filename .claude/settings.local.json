@@ -8,7 +8,10 @@
       "Bash(npx eslint *)",
       "Bash(npm test *)",
       "Bash(xvfb-run -a npx playwright test tests/e2e/private-scratch-entry-menu.spec.ts)",
-      "Bash(npx playwright *)"
+      "Bash(npx playwright *)",
+      "Bash(node compiler-coverage.mjs src/components/entries/common/EntryActionBar.tsx src/components/menus/EntryPopupMenu.tsx)",
+      "Bash(python3 -)",
+      "Bash(npm run *)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

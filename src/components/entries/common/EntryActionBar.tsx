@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
-import { Bars3Icon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
-import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
+import { Bars3Icon, TrashIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon } from '@heroicons/react/24/outline';
 import { api } from '../../../renderer/api';
 import { getParentPath, getFileName, joinPath } from '../../../renderer/pathUtil';
 import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../renderer/styles';
@@ -33,18 +32,19 @@ interface EntryActionBarProps {
   className?: string;
   /** When true, hides the "Reveal in folder tree" button */
   isAttachment?: boolean;
-  /** When provided, shows a clipboard paste button that pastes clipboard content as an attachment */
+  /** When provided, adds a menu item that pastes clipboard content as an attachment */
   onPasteClipboardAsAttachment?: () => void;
   /** Whether this entry is a folder (affects bookmark default name) */
   isFolder?: boolean;
 }
 
 /**
- * Reusable action button bar rendered on hover over an entry. Shows buttons
- * for: delete, reveal in folder tree, add/remove bookmark, paste clipboard as
- * attachment (when the prop is provided), move up/down (only in
- * indexed/document mode, when the move handlers are provided), and a trailing
- * hamburger button opening EntryPopupMenu with the less-used actions.
+ * Reusable action button bar rendered on hover over an entry. Shows icon
+ * buttons for: delete, reveal in folder tree, and move up/down (only in
+ * indexed/document mode, when the move handlers are provided), plus a trailing
+ * hamburger button opening EntryPopupMenu — which holds the remaining actions
+ * (open with OS app, view file, paste clipboard as attachment, bookmark) as
+ * text items, so the hover bar doesn't grow unbounded.
  */
 export function EntryActionBar({
   path,
@@ -73,8 +73,7 @@ export function EntryActionBar({
   const isViewingThisFile = browseFileName !== null && joinPath(currentPath, browseFileName) === path;
 
   // Removing a bookmark is immediate; adding one opens a dialog so the user can give it a name.
-  const handleBookmarkClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleBookmarkClick = () => {
     if (isBookmarked) {
       toggleBookmark(path);
       onSaveSettings();
@@ -147,30 +146,6 @@ export function EntryActionBar({
           <ViewfinderCircleIcon className="w-5 h-5" />
         </button>
       )}
-      <button
-        type="button"
-        onClick={handleBookmarkClick}
-        className={BUTTON_CLASS_BLUE}
-        title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
-        data-testid="entry-bookmark-button"
-      >
-        {isBookmarked ? (
-          <BookmarkSolidIcon className="w-5 h-5 text-blue-400" />
-        ) : (
-          <BookmarkOutlineIcon className="w-5 h-5" />
-        )}
-      </button>
-      {onPasteClipboardAsAttachment && (
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onPasteClipboardAsAttachment(); }}
-          className={BUTTON_CLASS_BLUE}
-          title="Paste Clipboard as Attachment under this file"
-          data-testid="entry-paste-clipboard-attachment-button"
-        >
-          <ClipboardDocumentIcon className="w-5 h-5" />
-        </button>
-      )}
       {onMoveUp && (
         <button
           type="button"
@@ -235,6 +210,9 @@ export function EntryActionBar({
           onClose={() => setShowMenu(false)}
           onOpenExternal={handleOpenExternal}
           onViewFile={isViewingThisFile ? undefined : handleViewFile}
+          onPasteClipboardAsAttachment={onPasteClipboardAsAttachment}
+          isBookmarked={isBookmarked}
+          onToggleBookmark={handleBookmarkClick}
         />
       </div>
     )}
