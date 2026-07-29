@@ -33,6 +33,8 @@ interface EntryShellProps {
   isExpanded: boolean;
   isSelected: boolean;
   isRenaming: boolean;
+  /** True while the entry's editor is open — suppresses right-click rename (from useEditMode) */
+  isEditing?: boolean;
   rename: RenameState;
   del: DeleteState;
 
@@ -79,6 +81,7 @@ export function EntryShell({
   isExpanded,
   isSelected,
   isRenaming,
+  isEditing = false,
   rename,
   del,
   onToggleExpanded,
@@ -114,7 +117,11 @@ export function EntryShell({
           drop.isDragOver ? ENTRY_HEADER_ROW_DROP : ENTRY_HEADER_ROW,
           expandedAffectsHeader && isExpanded && ENTRY_HEADER_EXPANDED,
         )}
-        onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
+        // Right-click renames — but not while the entry's editor is open: entering
+        // rename mode there swaps the name for the rename input and hides the edit
+        // toolbar out from under an in-progress edit. No handler at all while
+        // editing, so the event is left alone rather than preventDefault'd.
+        onContextMenu={isEditing ? undefined : (e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
         {...drop.dropProps}
       >
         {!isAttachment && (

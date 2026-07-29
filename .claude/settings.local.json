@@ -11,7 +11,8 @@
       "Bash(npx playwright *)",
       "Bash(node compiler-coverage.mjs src/components/entries/common/EntryActionBar.tsx src/components/menus/EntryPopupMenu.tsx)",
       "Bash(python3 -)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(node compiler-coverage.mjs)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

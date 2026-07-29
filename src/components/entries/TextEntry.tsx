@@ -133,6 +133,7 @@ function TextEntry(props: TextEntryProps) {
         isExpanded={isExpanded}
         isSelected={isSelected}
         isRenaming={isRenaming}
+        isEditing={edit.isEditing}
         rename={rename}
         del={del}
         onToggleExpanded={handleToggleExpanded}
