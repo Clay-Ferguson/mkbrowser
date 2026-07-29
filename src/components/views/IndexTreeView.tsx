@@ -8,6 +8,7 @@ import { getIconForFileExtension, isImageFile } from '../../shared/fileTypes';
 import type { FileIconType } from '../../shared/fileTypes';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
+import CreateFileDialog from '../dialogs/CreateFileDialog';
 import CreateFolderDialog from '../dialogs/CreateFolderDialog';
 import RenameDialog from '../dialogs/RenameDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -25,6 +26,8 @@ import {
   renameItem,
   clearAllCutItems,
   navigateToBrowserPath,
+  requestDirectoryRefresh,
+  setAppError,
   setBrowseFile,
   setHighlightItem,
   setIndexTreeWidth,
@@ -43,10 +46,12 @@ import {
   makeTreeNodes as makeNodes,
   findTreeNodeByPath as findNodeByPath,
 } from '../../renderer/dragAndDrop';
+import { createFileOp } from '../../renderer/fileOpsUtil';
+import { generateTimestampFileName } from '../../shared/timeUtil';
 import { extractHeadingTree } from '../../shared/tocUtil';
 import { scrollElementIntoView } from '../../renderer/entryDom';
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
-import { ensureTrailingSep, getFileName, getParentPath, isPathInside, joinPath, splitPathSegments } from '../../renderer/pathUtil';
+import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
 import { parseFrontMatter } from '../../shared/frontMatterUtil';
 
 const INDENT_SIZE = 20;
@@ -199,6 +204,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     path: string;
     isDirectory: boolean;
     onBrowse: () => void;
+    onNewFile?: () => void;
     onNewFolder?: () => void;
     onRename?: () => void;
     onDelete?: () => void;
@@ -207,6 +213,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     onCopyPath?: () => void;
     onCopyRelativePath?: () => void;
   } | null>(null);
+  const [createFileParent, setCreateFileParent] = useState<string | null>(null);
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
@@ -418,6 +425,66 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     });
   };
 
+  /**
+   * Creates a file in `folderPath` and leaves the browse view showing that folder
+   * with the new file in it (opened for editing, courtesy of createFileOp).
+   *
+   * The create runs *before* the navigation on purpose: navigating is what makes
+   * App load the folder, so by the time that single load happens the file (and its
+   * .INDEX.yaml entry) already exist — the listing never renders without it, and no
+   * second refresh is needed. Navigating is still worth doing when the folder is
+   * already the current one (it drops single-file mode back to the listing, so the
+   * new file is actually on screen), but it leaves `currentPath` untouched and so
+   * triggers no load — hence the explicit reload request in that case.
+   *
+   * @param insertAtIndex - Document Mode position for the new file, or null in an
+   *   ordinary folder (where the index isn't involved at all).
+   */
+  const createFileInFolder = async (fileName: string, folderPath: string, insertAtIndex: number | null) => {
+    await createFileOp(
+      fileName,
+      folderPath,
+      insertAtIndex,
+      // Only read when insertAtIndex > 0, to name the entry to insert after; we
+      // only ever insert at the top, so there is no sibling to resolve.
+      [],
+      () => {
+        navigateToBrowserPath(folderPath);
+        if (isSamePath(folderPath, currentPath)) requestDirectoryRefresh();
+      },
+      setAppError,
+      () => setCreateFileParent(null),
+    );
+
+    // Show the new file in the tree too, if its folder is expanded there.
+    await reloadExpandedTreeFolder(folderPath);
+  };
+
+  /**
+   * "New File" on a folder node. A Document Mode folder (one with an .INDEX.yaml)
+   * gets the file immediately, timestamp-named and spliced in at ordinal 0 — the
+   * same thing BrowseView's topmost "Insert File Here" bar does. Any other folder
+   * gets the name prompt that BrowseView's "Create File" button shows, and is
+   * navigated to first so the dialog is confirmed over the folder it writes into.
+   */
+  const handleNewFile = (folderPath: string) => {
+    runAndLogFailure('Failed to create file:', async () => {
+      const indexYaml = await api.readIndexYaml(folderPath);
+      if (!indexYaml) {
+        navigateToBrowserPath(folderPath);
+        setCreateFileParent(folderPath);
+        return;
+      }
+      await createFileInFolder(generateTimestampFileName(), folderPath, 0);
+    });
+  };
+
+  const handleCreateFile = (fileName: string) => {
+    const parentPath = createFileParent;
+    if (!parentPath) return;
+    runAndLogFailure('Failed to create file:', () => createFileInFolder(fileName, parentPath, null));
+  };
+
   const handleCreateFolder = (folderName: string) => {
     const parentPath = createFolderParent;
     if (!parentPath) return;
@@ -613,6 +680,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       onRename: () => setRenameTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       onDelete: () => setDeleteTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       ...(node.isDirectory ? {
+        onNewFile: () => handleNewFile(node.path),
         onNewFolder: () => setCreateFolderParent(node.path),
       } : {}),
       ...(hasCutItems && node.isDirectory ? {
@@ -726,6 +794,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           isDirectory={contextMenu.isDirectory}
           onClose={() => setContextMenu(null)}
           onBrowse={contextMenu.onBrowse}
+          onNewFile={contextMenu.onNewFile}
           onNewFolder={contextMenu.onNewFolder}
           onRename={contextMenu.onRename}
           onDelete={contextMenu.onDelete}
@@ -733,6 +802,12 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           onPasteLink={contextMenu.onPasteLink}
           onCopyPath={contextMenu.onCopyPath}
           onCopyRelativePath={contextMenu.onCopyRelativePath}
+        />
+      )}
+      {createFileParent && (
+        <CreateFileDialog
+          onCreate={handleCreateFile}
+          onCancel={() => setCreateFileParent(null)}
         />
       )}
       {createFolderParent && (

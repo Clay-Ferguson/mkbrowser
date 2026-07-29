@@ -91,6 +91,8 @@ Clicking either button opens the standard create dialog. On confirmation, the ne
 
 The header-level create buttons (previously the only way to create files/folders) are hidden in indexed mode because the inline insert bars replace them.
 
+The index tree's right-click **New File** item (`IndexTreeView.tsx`) is a shortcut into the same two behaviors, chosen by whether the right-clicked folder has an `.INDEX.yaml`: a document folder gets a timestamp-named file created immediately at ordinal 0 (exactly what the topmost insert bar does), any other folder gets the usual name prompt. Either way the file is created *before* the browse view is navigated to that folder, so the single directory load the navigation triggers already includes it.
+
 
 ## Reconciliation
 

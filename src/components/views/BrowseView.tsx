@@ -390,14 +390,24 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         }
       }
 
-      // Handle pending edit (e.g., from search results edit button)
+      // Handle pending edit (e.g., from search results edit button, or a "New
+      // File" from the index tree). The item only enters the store once the load
+      // for its folder has finished, and this effect can fire before that when
+      // the request came with a navigation to a *different* folder — so wait for
+      // the item rather than consuming the request against a missing one (which
+      // would silently drop the edit). Once the pending file's folder is no
+      // longer the one being browsed it can never arrive, so drop it then.
       if (pendingEditFile && pendingEditView === 'browser') {
         const editFile = pendingEditFile;
-        editTimer = setTimeout(() => {
-          setItemExpanded(editFile, true);
-          setItemEditing(editFile, true);
+        if (useAS.getState().items.has(editFile)) {
+          editTimer = setTimeout(() => {
+            setItemExpanded(editFile, true);
+            setItemEditing(editFile, true);
+            clearPendingEditFile();
+          }, 100);
+        } else if (!isSamePath(getParentPath(editFile), currentPath)) {
           clearPendingEditFile();
-        }, 100);
+        }
       }
 
       // Handle pending expand (e.g., a file pasted from the clipboard). The item
