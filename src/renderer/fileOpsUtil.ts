@@ -383,6 +383,8 @@ async function createItemOp(
  * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after creation.
  * @param onSetError - Callback invoked with an error message if the creation fails.
  * @param onCloseDialog - Callback invoked to close the "new file" dialog.
+ * @param initialContent - Content to seed the new file with. Defaults to empty; the index
+ *   tree's "New TODO" uses it to pre-fill calendar + tag front matter.
  */
 export async function createFileOp(
   fileName: string,
@@ -391,7 +393,8 @@ export async function createFileOp(
   sortedEntries: FileEntry[],
   onRefreshDirectory: () => void,
   onSetError: SetError,
-  onCloseDialog: () => void
+  onCloseDialog: () => void,
+  initialContent = ''
 ): Promise<void> {
   if (!currentPath) return;
   await createItemOp(
@@ -399,7 +402,7 @@ export async function createFileOp(
     currentPath,
     insertAtIndex,
     sortedEntries,
-    (filePath) => api.createFile(filePath, ''),
+    (filePath) => api.createFile(filePath, initialContent),
     'Failed to create file',
     onRefreshDirectory,
     onSetError,

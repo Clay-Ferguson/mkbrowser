@@ -47,6 +47,8 @@ import {
   findTreeNodeByPath as findNodeByPath,
 } from '../../renderer/dragAndDrop';
 import { createFileOp } from '../../renderer/fileOpsUtil';
+import { injectCalendarFrontMatter } from '../../shared/calendarUtil';
+import { insertTagIntoText } from '../../shared/tagUtil';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { extractHeadingTree } from '../../shared/tocUtil';
 import { scrollElementIntoView } from '../../renderer/entryDom';
@@ -103,6 +105,22 @@ function renderFileIcon(iconType: FileIconType) {
 
 function isAnyExpanded(nodes: TreeNode[]): boolean {
   return nodes.some(n => n.isExpanded);
+}
+
+/** The single hashtag a "New TODO" file is born with. */
+const TODO_TAG = 'todo';
+
+/**
+ * Seed content for a "New TODO": front matter that makes the file both a calendar
+ * entry (a `due` property, plus the `start`/`duration` that accompany it) and a
+ * tagged todo. Both halves are produced by the same helpers the editor's own
+ * "add calendar info" and tag-insert actions use, so a TODO created here is
+ * indistinguishable from one assembled by hand. The tag block is built first and
+ * the calendar keys prepended above it — that order is a plain text splice, where
+ * the reverse would round-trip the calendar values through a YAML re-dump.
+ */
+function buildTodoContent(): string {
+  return injectCalendarFrontMatter(insertTagIntoText('', TODO_TAG), false);
 }
 
 /**
@@ -205,6 +223,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     isDirectory: boolean;
     onBrowse: () => void;
     onNewFile?: () => void;
+    onNewTodo?: () => void;
     onNewFolder?: () => void;
     onRename?: () => void;
     onDelete?: () => void;
@@ -213,7 +232,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     onCopyPath?: () => void;
     onCopyRelativePath?: () => void;
   } | null>(null);
-  const [createFileParent, setCreateFileParent] = useState<string | null>(null);
+  // Folder awaiting a name for a new file, together with the content that file
+  // will be seeded with (empty for "New File", TODO front matter for "New TODO").
+  const [createFileParent, setCreateFileParent] = useState<{ folderPath: string; initialContent: string } | null>(null);
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
@@ -439,8 +460,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    *
    * @param insertAtIndex - Document Mode position for the new file, or null in an
    *   ordinary folder (where the index isn't involved at all).
+   * @param initialContent - Seed content for the file ('' for a plain new file).
    */
-  const createFileInFolder = async (fileName: string, folderPath: string, insertAtIndex: number | null) => {
+  const createFileInFolder = async (fileName: string, folderPath: string, insertAtIndex: number | null, initialContent: string) => {
     await createFileOp(
       fileName,
       folderPath,
@@ -454,6 +476,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       },
       setAppError,
       () => setCreateFileParent(null),
+      initialContent,
     );
 
     // Show the new file in the tree too, if its folder is expanded there.
@@ -461,28 +484,31 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   };
 
   /**
-   * "New File" on a folder node. A Document Mode folder (one with an .INDEX.yaml)
-   * gets the file immediately, timestamp-named and spliced in at ordinal 0 — the
-   * same thing BrowseView's topmost "Insert File Here" bar does. Any other folder
-   * gets the name prompt that BrowseView's "Create File" button shows, and is
-   * navigated to first so the dialog is confirmed over the folder it writes into.
+   * Backs the "New File" and "New TODO" context-menu items, which differ only in
+   * what the new file is seeded with. A Document Mode folder (one with an
+   * .INDEX.yaml) gets the file immediately, timestamp-named and spliced in at
+   * ordinal 0 — the same thing BrowseView's topmost "Insert File Here" bar does.
+   * Any other folder gets the name prompt that BrowseView's "Create File" button
+   * shows, and is navigated to first so the dialog is confirmed over the folder it
+   * writes into.
    */
-  const handleNewFile = (folderPath: string) => {
+  const startNewFile = (folderPath: string, initialContent: string) => {
     runAndLogFailure('Failed to create file:', async () => {
       const indexYaml = await api.readIndexYaml(folderPath);
       if (!indexYaml) {
         navigateToBrowserPath(folderPath);
-        setCreateFileParent(folderPath);
+        setCreateFileParent({ folderPath, initialContent });
         return;
       }
-      await createFileInFolder(generateTimestampFileName(), folderPath, 0);
+      await createFileInFolder(generateTimestampFileName(), folderPath, 0, initialContent);
     });
   };
 
   const handleCreateFile = (fileName: string) => {
-    const parentPath = createFileParent;
-    if (!parentPath) return;
-    runAndLogFailure('Failed to create file:', () => createFileInFolder(fileName, parentPath, null));
+    const pending = createFileParent;
+    if (!pending) return;
+    runAndLogFailure('Failed to create file:', () =>
+      createFileInFolder(fileName, pending.folderPath, null, pending.initialContent));
   };
 
   const handleCreateFolder = (folderName: string) => {
@@ -652,7 +678,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
   /**
    * Shows the context menu for a file or directory row. Available actions depend
-   * on node type: directories get Browse/New Folder/Rename/Delete and (when cut
+   * on node type: directories get Browse/New File/New TODO/New Folder/Rename/Delete and (when cut
    * items exist) Paste; files get Browse/Rename/Delete and (when a markdown file
    * is being edited) "Paste Link", which inserts a relative Markdown link at the
    * active editor's cursor — using the file's front-matter `id` field as a comment
@@ -680,7 +706,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       onRename: () => setRenameTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       onDelete: () => setDeleteTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       ...(node.isDirectory ? {
-        onNewFile: () => handleNewFile(node.path),
+        onNewFile: () => startNewFile(node.path, ''),
+        onNewTodo: () => startNewFile(node.path, buildTodoContent()),
         onNewFolder: () => setCreateFolderParent(node.path),
       } : {}),
       ...(hasCutItems && node.isDirectory ? {
@@ -795,6 +822,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           onClose={() => setContextMenu(null)}
           onBrowse={contextMenu.onBrowse}
           onNewFile={contextMenu.onNewFile}
+          onNewTodo={contextMenu.onNewTodo}
           onNewFolder={contextMenu.onNewFolder}
           onRename={contextMenu.onRename}
           onDelete={contextMenu.onDelete}
