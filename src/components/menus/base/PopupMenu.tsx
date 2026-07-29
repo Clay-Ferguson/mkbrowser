@@ -17,6 +17,13 @@ export interface PopupMenuProps {
   onClose: () => void;
   /** When true, click-outside and Escape dismissal are suppressed (e.g. while a sub-dialog is open) */
   disableClose?: boolean;
+  /**
+   * Which of the menu's corners lines up with the anchor. 'left' (default) puts
+   * the menu's top-left under the anchor's bottom-left; 'right' puts its
+   * top-right under the anchor's bottom-right — the natural choice for a button
+   * sitting at the right end of a toolbar. Ignored when `mousePosition` is used.
+   */
+  align?: 'left' | 'right';
   children: ReactNode;
   /** Optional extra inline styles merged onto the menu container */
   style?: React.CSSProperties;
@@ -29,7 +36,7 @@ export interface PopupMenuProps {
  * API) and positions itself below an anchor element or at mouse coordinates.
  * Handles click-outside dismiss, Escape key, and viewport edge-clipping.
  */
-export default function PopupMenu({ anchorRef, mousePosition, onClose, disableClose = false, children, style: extraStyle, 'data-testid': dataTestId }: PopupMenuProps) {
+export default function PopupMenu({ anchorRef, mousePosition, onClose, disableClose = false, align = 'left', children, style: extraStyle, 'data-testid': dataTestId }: PopupMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
@@ -82,11 +89,18 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
         if (!anchor) return;
         const anchorRect = anchor.getBoundingClientRect();
         top = anchorRect.bottom + ANCHOR_GAP;
-        left = anchorRect.left;
 
-        // If menu overflows right edge, align menu's right edge with anchor's right edge
-        if (left + menuRect.width > viewportWidth - VIEWPORT_MARGIN) {
+        // The menu has already been laid out at its natural (content-driven)
+        // width by this point, so menuRect.width lets us anchor the right edge
+        // without the caller having to know how wide the menu is.
+        if (align === 'right') {
           left = anchorRect.right - menuRect.width;
+        } else {
+          left = anchorRect.left;
+          // If menu overflows right edge, align menu's right edge with anchor's right edge
+          if (left + menuRect.width > viewportWidth - VIEWPORT_MARGIN) {
+            left = anchorRect.right - menuRect.width;
+          }
         }
       }
 
@@ -129,7 +143,7 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
     };
-  }, [anchorRef, mouseX, mouseY]);
+  }, [anchorRef, mouseX, mouseY, align]);
 
   // Click-outside and Escape dismiss
   useEffect(() => {

@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { ArrowTopRightOnSquareIcon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { useRef, useState } from 'react';
+import { Bars3Icon, TrashIcon, BookmarkIcon as BookmarkOutlineIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { BookmarkIcon as BookmarkSolidIcon } from '@heroicons/react/24/solid';
 import { api } from '../../../renderer/api';
 import { getParentPath, getFileName, joinPath } from '../../../renderer/pathUtil';
-import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_CYAN, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../renderer/styles';
+import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../renderer/styles';
 import { toggleBookmark, addBookmark, toggleItemExpanded, setCurrentView, useAS, setPendingIndexTreeReveal, setHighlightItem, setBrowseFile } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
+import EntryPopupMenu from '../../menus/EntryPopupMenu';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
@@ -40,9 +41,10 @@ interface EntryActionBarProps {
 
 /**
  * Reusable action button bar rendered on hover over an entry. Shows buttons
- * for: delete, open with OS app, reveal in folder tree, add/remove bookmark,
- * paste clipboard as attachment (when the prop is provided), and move
- * up/down (only in indexed/document mode, when the move handlers are provided).
+ * for: delete, reveal in folder tree, add/remove bookmark, paste clipboard as
+ * attachment (when the prop is provided), move up/down (only in
+ * indexed/document mode, when the move handlers are provided), and a trailing
+ * hamburger button opening EntryPopupMenu with the less-used actions.
  */
 export function EntryActionBar({
   path,
@@ -63,6 +65,8 @@ export function EntryActionBar({
   const browseFileName = useAS(s => s.browseFileName);
   const currentPath = useAS(s => s.currentPath);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   // In single-file browsing mode this exact file is already the one on screen,
   // so the "View File" button would be a no-op — hide it.
@@ -89,15 +93,13 @@ export function EntryActionBar({
     setShowBookmarkDialog(false);
   };
 
-  const handleOpenExternal = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleOpenExternal = () => {
     void api.openExternal(path);
   };
 
   // Switch to single-file browsing of this file — the same effect as clicking
   // the file's row in the index tree (see IndexTreeView's handleNodeClick).
-  const handleViewFile = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleViewFile = () => {
     setHighlightItem(path);
     setBrowseFile(getParentPath(path), getFileName(path));
   };
@@ -113,7 +115,12 @@ export function EntryActionBar({
       />
     )}
     <div data-testid="entry-action-bar" className={`flex items-center gap-1 ${className}`}>
-      <div className="opacity-0 pointer-events-none [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:pointer-events-auto group-hover:[transition:opacity_200ms_ease_400ms] flex items-center gap-1">
+      {/* While the popup menu is open the bar stays visible even if the pointer
+          leaves the entry — otherwise the menu's own anchor would fade out from
+          under it. */}
+      <div className={showMenu
+        ? 'opacity-100 pointer-events-auto flex items-center gap-1'
+        : 'opacity-0 pointer-events-none [transition:opacity_150ms_ease] group-hover:opacity-100 group-hover:pointer-events-auto group-hover:[transition:opacity_200ms_ease_400ms] flex items-center gap-1'}>
       <button
         type="button"
         onClick={onDeleteClick}
@@ -124,26 +131,6 @@ export function EntryActionBar({
       >
         <TrashIcon className="w-5 h-5" />
       </button>
-      <button
-        type="button"
-        onClick={handleOpenExternal}
-        className={BUTTON_CLASS_CYAN}
-        title="Open with OS App"
-        data-testid="entry-open-external-button"
-      >
-        <ArrowTopRightOnSquareIcon className="w-5 h-5" />
-      </button>
-      {!isViewingThisFile && (
-        <button
-          type="button"
-          onClick={handleViewFile}
-          className={BUTTON_CLASS_BLUE}
-          title="View File"
-          data-testid="entry-view-file-button"
-        >
-          <EyeIcon className="w-5 h-5" />
-        </button>
-      )}
       {!isAttachment && settings.indexTreeWidth !== 'hidden' && (
         <button
           type="button"
@@ -220,8 +207,37 @@ export function EntryActionBar({
           <ArrowDownIcon className="w-5 h-5" />
         </button>
       )}
+      {/* Always last: the overflow menu for actions without a dedicated icon. */}
+      <button
+        ref={menuButtonRef}
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setShowMenu(prev => !prev); }}
+        className={BUTTON_CLASS_NORMAL}
+        title="More actions"
+        aria-label="More actions"
+        data-testid="entry-menu-button"
+      >
+        <Bars3Icon className="w-5 h-5" />
+      </button>
       </div>
     </div>
+    {/* Rendered outside the hover-fade wrapper (a display:contents pass-through,
+        so it adds no layout) and with propagation stopped, so menu clicks don't
+        reach the entry header's context-menu/expand handlers. */}
+    {showMenu && (
+      <div
+        className="contents"
+        onClick={(e) => e.stopPropagation()}
+        onContextMenu={(e) => e.stopPropagation()}
+      >
+        <EntryPopupMenu
+          anchorRef={menuButtonRef}
+          onClose={() => setShowMenu(false)}
+          onOpenExternal={handleOpenExternal}
+          onViewFile={isViewingThisFile ? undefined : handleViewFile}
+        />
+      </div>
+    )}
     </>
   );
 }
