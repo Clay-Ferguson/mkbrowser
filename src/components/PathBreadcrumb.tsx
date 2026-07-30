@@ -74,10 +74,8 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
   return (
     <div data-testid="path-breadcrumb" className="flex flex-wrap items-center gap-1 text-base">
       {/* Always rendered and always clickable, including when already at the
-          root. Navigating to the root you are on is a harmless no-op for the
-          folder listing, but it is the way out of single-file browsing (see
-          BrowseFile) — where the breadcrumb otherwise offers nothing to click,
-          since the only other segment is the folder holding the browsed file. */}
+          root: navigating to the root you are already on is a harmless no-op,
+          and keeping the button live means it is still a drop target there. */}
       <button
         type="button"
         onClick={() => onNavigate(normalizedRoot)}

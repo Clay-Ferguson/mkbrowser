@@ -6,9 +6,7 @@ import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
-import PathBreadcrumb from '../PathBreadcrumb';
 import {
-  setCurrentPath,
   setItemExpanded,
   useAS,
 } from '../../store';
@@ -49,6 +47,13 @@ interface BrowseFileProps {
  * insert bars, selection toolbar) are simply not passed, and the entries hide
  * them accordingly.
  *
+ * Deliberately renders **no breadcrumbs**, unlike BrowseView. Their absence is
+ * the visual cue that this is single-file mode: with a breadcrumb header this
+ * view is pixel-identical to a folder listing that happens to hold one file,
+ * which reads as "where did my other files go?". Exits are the index tree
+ * (clicking a folder, or its "Browse" context-menu item) and, in
+ * 'expanded-edit' mode, ending the edit.
+ *
  * Editing is always maximized here, but for one of two reasons, which
  * `browseFileMode` tells apart:
  *
@@ -63,7 +68,6 @@ interface BrowseFileProps {
  *   collapsing it (or ending the edit) returns to the listing.
  */
 function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }: BrowseFileProps) {
-  const rootPath = useAS(s => s.rootPath);
   const currentPath = useAS(s => s.currentPath);
   const browseFileName = useAS(s => s.browseFileName);
   const browseFileMode = useAS(s => s.browseFileMode);
@@ -106,12 +110,6 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
     }
   }, [entryPath]);
 
-  // Breadcrumb navigation drops back to the folder listing: setCurrentPath
-  // clears browseFileName, which is what swaps BrowseView back in.
-  const navigateTo = (path: string) => {
-    setCurrentPath(path);
-  };
-
   // Rename/delete completion reconciles the index yaml (the file may be listed
   // in it) before reloading the folder, matching BrowseView's handler.
   const handleRefresh = () => {
@@ -125,18 +123,7 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Breadcrumbs live outside the scroll container, as in BrowseView, so
-          they stay put while the file scrolls. */}
-      <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
-        <div data-testid="browse-file-header-breadcrumbs" className="flex items-center gap-3 min-w-0">
-          <PathBreadcrumb
-            rootPath={rootPath}
-            currentPath={currentPath}
-            onNavigate={navigateTo}
-            onRefreshDirectory={onRefreshDirectory}
-          />
-        </div>
-      </header>
+      {/* No breadcrumb header on purpose — see the component doc above. */}
 
       {/* The flexPane class chain converts this into a nested flex column so a
           maximized CodeMirror fills the pane and owns the only scrollbar — the

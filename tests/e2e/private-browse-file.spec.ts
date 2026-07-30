@@ -26,8 +26,9 @@ import {
  *   2. Click-to-edit still works there. This is the assertion that matters:
  *      the entry components render their own CodeMirror, so editing is meant
  *      to work identically outside the list. Verified through to disk.
- *   3. Breadcrumb navigation exits single-file mode (setCurrentPath clears
- *      browseFileName), restoring the folder listing.
+ *   3. Single-file mode renders NO breadcrumbs. That absence is the whole
+ *      visual distinction from a folder listing holding one file, so it is
+ *      asserted rather than left to look right.
  *   4. "Browse" on a file returns to the listing, and clicking a folder in the
  *      tree navigates rather than entering single-file mode.
  *
@@ -49,9 +50,8 @@ test.describe('Private: Browse File', () => {
     // while single-file mode is active (that's how we know the listing really
     // was replaced rather than merely scrolled).
     //
-    // These live in a subfolder so Phase 3 exercises a breadcrumb exit that
-    // actually changes folders; Phase 3b then covers the root-level case,
-    // where the home button is the only clickable segment there is.
+    // These live in a subfolder so the browsed file is never at the root —
+    // the listing we return to in Phase 4 is a real folder listing.
     const folderName = 'my-browse-folder';
     const folderPath = path.join(testDataPath, folderName);
     const targetName = 'my-browse-target.md';
@@ -131,15 +131,18 @@ Let's pull one of them up on its own.`
     // beneath it until that node is expanded in turn.
     await expect(tree.getByText('Browse Target', { exact: true })).toBeVisible({ timeout: 10000 });
 
-    // The breadcrumb still tracks the containing folder.
-    await expect(mainWindow.getByTestId('browse-file-header-breadcrumbs')).toBeVisible();
+    // No breadcrumbs here — this pane must not look like a folder listing that
+    // happens to contain one file. BrowseView renders the breadcrumb, so
+    // asserting absence app-wide (not scoped to the pane) also proves BrowseView
+    // itself is gone.
+    await expect(mainWindow.getByTestId('path-breadcrumb')).toHaveCount(0);
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'single-file-view');
     writeNarration(
       screenshotDir,
       step++,
       `The pane now shows just this one file, already expanded so its content is right there.
-The other file in the folder is gone from view, and the breadcrumb above still shows the folder we're in.`
+The other file in the folder is gone from view, and the breadcrumb path is gone too — that missing header is how you can tell at a glance that you're looking at one file rather than a folder.`
     );
 
     // --- Phase 2: click-to-edit works here too ------------------------------
@@ -200,69 +203,16 @@ We've typed a new line at the end. Let's save it.`
       `Saved — the new line is on disk. Editing a file works the same whether you reached it through the folder listing or on its own.`
     );
 
-    // --- Phase 3: breadcrumb returns to the folder listing ------------------
-    // Clicking the breadcrumb's home button changes currentPath, which clears
-    // the single-file selection and brings the listing back.
-    await demoClick(mainWindow.getByTestId('breadcrumb-home-button'));
-
-    await expect(mainWindow.getByTestId('browser-main-content')).toBeVisible({ timeout: 10000 });
-    await expect(mainWindow.getByTestId('browse-file-main-content')).toHaveCount(0);
-    await expect(listing.getByText(folderName, { exact: true })).toBeVisible({ timeout: 10000 });
-
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'back-to-listing-via-breadcrumb');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `Clicking home in the breadcrumb took us straight back to a full folder listing — single-file mode is over.`
-    );
-
-    // --- Phase 3b: the same exit works for a file AT the root --------------
-    // The home button is deliberately live even when you are already at the
-    // root: for a root-level file the breadcrumb has no other clickable
-    // segment, so without it single-file mode would have no breadcrumb exit.
-    const rootFileName = 'my-browse-root-file.md';
-    fs.writeFileSync(
-      path.join(testDataPath, rootFileName),
-      `# Root Level File\n\nBrowsed from the root folder.\n`
-    );
-    await demoClick(mainWindow.getByTestId('refresh-button'));
-
-    await demoClick(tree.getByText(rootFileName, { exact: true }).first());
-
-    const rootSingle = mainWindow.getByTestId('browse-file-main-content');
-    await expect(rootSingle).toBeVisible({ timeout: 10000 });
-    await expect(rootSingle.getByRole('heading', { name: 'Root Level File' })).toBeVisible({ timeout: 10000 });
-
-    // Home is present and enabled even though we are already at the root.
-    const homeAtRoot = mainWindow.getByTestId('breadcrumb-home-button');
-    await expect(homeAtRoot).toBeVisible();
-    await expect(homeAtRoot).toBeEnabled();
-
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'root-level-file-single-view');
-    writeNarration(
-      screenshotDir,
-      step++,
-      `This file lives at the top level, so the breadcrumb has no folder segment to click.
-The home button stays available anyway, which is what gets you back to the listing from here.`
-    );
-
-    await demoClick(homeAtRoot);
-
-    await expect(mainWindow.getByTestId('browser-main-content')).toBeVisible({ timeout: 10000 });
-    await expect(mainWindow.getByTestId('browse-file-main-content')).toHaveCount(0);
-
-    fs.rmSync(path.join(testDataPath, rootFileName), { force: true });
-
-    // --- Phase 4: "Browse" exits; clicking a FOLDER does not enter ---------
-    // Re-enter single-file mode with a click, then leave it via the tree's
-    // "Browse" item.
-    await demoClick(tree.getByText(targetName, { exact: true }).first());
-    await expect(mainWindow.getByTestId('browse-file-main-content')).toBeVisible({ timeout: 10000 });
-
+    // --- Phase 3: "Browse" exits; clicking a FOLDER does not enter ---------
+    // With no breadcrumb in this view, the tree's "Browse" item is the exit
+    // from single-file mode: it navigates to the file's folder, and any
+    // currentPath change clears browseFileName.
     await demoRightClick(tree.getByText(targetName, { exact: true }).first());
     await demoClick(mainWindow.getByTestId('browse-to-folder'));
     await expect(mainWindow.getByTestId('browser-main-content')).toBeVisible({ timeout: 10000 });
     await expect(mainWindow.getByTestId('browse-file-main-content')).toHaveCount(0);
+    // The breadcrumb comes back with the listing — it belongs to BrowseView.
+    await expect(mainWindow.getByTestId('path-breadcrumb')).toBeVisible();
 
     // Clicking a FOLDER row still just expands/collapses it in the tree — only
     // files enter single-file mode.
@@ -275,16 +225,16 @@ The home button stays available anyway, which is what gets you back to the listi
       screenshotDir,
       step++,
       `Clicking a folder in the tree behaves as it always has — it expands and collapses, and never takes over the pane.
-Single-file browsing is a file-only gesture, and "Browse" or the breadcrumb always gets you back to the listing.`
+Single-file browsing is a file-only gesture, and right-clicking a file and choosing "Browse" gets you back to the folder listing.`
     );
 
-    // --- Phase 5: the folder listing kept its own editor preference ---------
+    // --- Phase 4: the folder listing kept its own editor preference ---------
     // Single-file mode forces expansion via a prop, NOT by writing the global
     // `expandedEditor` setting. So editing from the listing must still offer
     // the expand/collapse toggle — if this fails, BrowseFile leaked its
     // always-expanded behavior into the user's saved preference.
     //
-    // Phase 4's "Browse" already navigated into the seeded folder, so the
+    // Phase 3's "Browse" already navigated into the seeded folder, so the
     // listing is showing its contents here.
     await expect(listing.getByText(targetName, { exact: true })).toBeVisible({ timeout: 10000 });
 

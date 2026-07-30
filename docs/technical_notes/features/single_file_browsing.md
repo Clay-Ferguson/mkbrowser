@@ -8,7 +8,8 @@
 * [Routing in `App.tsx` — Swap, Not Hide](#routing-in-apptsx--swap-not-hide)
 * [Entering Single-File Mode: Tree Click](#entering-single-file-mode-tree-click)
 * [Entering Single-File Mode: Expanded Editing](#entering-single-file-mode-expanded-editing)
-* [Leaving Single-File Mode: Breadcrumbs](#leaving-single-file-mode-breadcrumbs)
+* [Leaving Single-File Mode: The Index Tree](#leaving-single-file-mode-the-index-tree)
+* [No Breadcrumbs Here — On Purpose](#no-breadcrumbs-here--on-purpose)
 * [What `BrowseFile` Renders](#what-browsefile-renders)
 * [Always-Expanded Editing (`alwaysExpandedEditor`)](#always-expanded-editing-alwaysexpandededitor)
 * [Heading Clicks in Single-File Mode](#heading-clicks-in-single-file-mode)
@@ -42,7 +43,7 @@ It holds a bare **name**, not a path, and is always resolved against `currentPat
 
 The consequence to rely on: **`browseFileName` can never name a file outside the folder currently in `currentPath`.** `BrowseFile` therefore resolves its entry by a plain `entries.find(e => e.name === browseFileName && !e.isDirectory)` against the already-loaded listing, with no path juggling.
 
-`setCurrentPath` has one non-obvious branch. It early-returns when the path is unchanged — but in single-file mode "navigate to the folder I am already in" is a *meaningful* request (it is the common case, since the breadcrumb's last segment is the folder holding the browsed file). So that early-return path calls `clearBrowseFile()` before returning. Removing that line silently breaks the main way out of single-file mode.
+`setCurrentPath` has one non-obvious branch. It early-returns when the path is unchanged — but in single-file mode "navigate to the folder I am already in" is a *meaningful* request (it is the common case, since the browsed file usually lives in `currentPath`). So that early-return path calls `clearBrowseFile()` before returning. Removing that line silently breaks a way out of single-file mode.
 
 ## Why: `browseFileMode`
 
@@ -50,8 +51,8 @@ The consequence to rely on: **`browseFileName` can never name a file outside the
 
 | Mode | Entered by | Editor toggle | Ends by |
 |---|---|---|---|
-| `'browse'` | tree click, bookmark, `EntryActionBar`'s "View File" | **hidden** (`alwaysExpandedEditor`) | breadcrumb / tree "Browse" only — editing does not exit |
-| `'expanded-edit'` | starting an edit in the folder listing with `settings.expandedEditor` on | **visible** | the edit ending (save/cancel), collapsing the toggle, or a breadcrumb |
+| `'browse'` | tree click, bookmark, `EntryActionBar`'s "View File" | **hidden** (`alwaysExpandedEditor`) | tree "Browse" / a folder bookmark only — editing does not exit |
+| `'expanded-edit'` | starting an edit in the folder listing with `settings.expandedEditor` on | **visible** | the edit ending (save/cancel), collapsing the toggle, or navigating |
 
 It is **only meaningful while `browseFileName` is non-null**. `setBrowseFile` always writes it, so a value left over from a previous single-file session can never be read stale — which is why the actions that clear `browseFileName` do not have to clear it too.
 
@@ -104,17 +105,29 @@ The expand/collapse toggle goes through `toggleExpandedEditor(path)` (view slice
 
 > **Why this design.** Expanded editing used to be a class chain on `BrowseView` itself, driven by a scan of the items map for "something is editing". That map is global and long-lived, so the flag stayed true after navigating away from the file being edited: the listing fell back to showing every entry while the maximize classes stayed on, and every row became an equal-share flex item. Deriving layout from a global edit-state scan is the bug; the fix is that no view derives layout from edit state at all any more. Do not add such a scan back — `summarizeItems` in `BrowseView.tsx` carries the same warning.
 
-## Leaving Single-File Mode: Breadcrumbs
+## Leaving Single-File Mode: The Index Tree
 
-`BrowseFile` renders `PathBreadcrumb` in a non-scrolling header, exactly as `BrowseView` does. Its `onNavigate` is just `setCurrentPath(path)` — which clears `browseFileName` and therefore swaps `BrowseView` back in at the clicked folder. **No breadcrumb-specific exit logic exists**; the exit falls out of the state rule above.
+Every exit is a navigation, and **no exit-specific logic exists** — it all falls out of the state rule above (any `currentPath` change clears `browseFileName`, and `navigateToBrowserPath` clears it unconditionally so re-navigating to the folder you are already in works too).
 
-The home (root) button is always rendered and always clickable, *including when already at the root*. That is otherwise pointless for a folder listing, but it is what guarantees single-file mode always has a visible exit: when the browsed file sits in the root folder, the home button is the only segment there is to click. Do not "optimize" it back to disabled-at-root.
+| Exit | Mechanism |
+|---|---|
+| Tree context menu → **Browse** (on the file, or on any folder) | `navigateToBrowserPath` |
+| A **folder** bookmark | `navigateToBrowserPath` |
+| Ending an `'expanded-edit'` session (save/cancel, or collapsing the toggle) | `setItemEditing` / `toggleExpandedEditor` — `'expanded-edit'` mode only |
 
-The other exit is the tree context menu's existing **Browse** item, which navigates to a folder listing.
+Note what is *not* an exit: clicking a folder row in the tree only expands/collapses it, and clicking another file swaps which file is browsed rather than leaving the mode.
+
+## No Breadcrumbs Here — On Purpose
+
+`BrowseFile` deliberately renders **no `PathBreadcrumb`**, and this is the one visible difference between it and `BrowseView`. With a breadcrumb header the two views are pixel-identical whenever a folder holds exactly one file, so a user who has forgotten they clicked a tree file reads the pane as "my other files vanished" — the breadcrumb actively reinforces the misreading by naming a folder whose contents are not what is on screen. Its absence is the cue that this is one file, not a listing.
+
+The cost, accepted knowingly: the pane itself offers no way back, so the exits are the tree ones tabulated above. If a visible in-pane exit is ever wanted, add an explicit control (a "back to folder" button calling `navigateToBrowserPath(currentPath)`) — do **not** bring the breadcrumb back.
+
+An e2e phase asserts `path-breadcrumb` has count 0 while single-file mode is active (`private-browse-file.spec.ts`), so a re-added breadcrumb fails the suite.
 
 ## What `BrowseFile` Renders
 
-- **Header**: `PathBreadcrumb` only, outside the scroll container.
+- **Header**: none — no breadcrumbs (see above).
 - **Body**: the same entry-type ternary the listing uses, minus the directory branch — `isMarkdown → isImageFile → isTextFile → GenericEntry`.
 - **Omitted props**: index-order move handlers (`onMoveUp`/`onMoveDown`/…) and `documentMode`. `EntryActionBar` renders items purely by callback presence, so omitting them hides those buttons — that is the whole mechanism, no flags needed.
 - `ImageEntry` gets `allImages={[entry]}`; that prop only feeds the fullscreen viewer's prev/next, and with one file on screen the file is the whole set.
@@ -159,6 +172,7 @@ Things to preserve when touching this area:
 6. `BrowseFile` is the only place a maximized editor lives. `BrowseView` renders a folder listing and nothing else — no edit-driven layout, no edit-driven scroll bookkeeping.
 7. No view derives layout from a scan of the items map for edit state. The map is global and long-lived; such a flag goes stale the moment the user navigates away.
 8. `browseFileMode` is written only by `setBrowseFile` and the two routing rules. It is read only while `browseFileName` is non-null.
+9. `BrowseFile` renders no breadcrumb. It is the only visual signal that the pane holds one file rather than a folder listing.
 
 ## Code Locations
 
@@ -174,7 +188,7 @@ Things to preserve when touching this area:
 | Folder listing pane | `src/components/views/BrowseView.tsx` |
 | Tree click → single-file mode | `src/components/views/IndexTreeView.tsx` (`handleNodeClick`) |
 | Heading click / in-place scroll | `src/components/views/IndexTreeView.tsx` (`handleHeadingClick`) |
-| Always-clickable home button | `src/components/PathBreadcrumb.tsx` |
+| Breadcrumb (rendered by `BrowseView`, never by `BrowseFile`) | `src/components/PathBreadcrumb.tsx` |
 | `alwaysExpandedEditor` prop | `src/components/entries/common/types.ts`, `MarkdownEntry.tsx`, `TextEntry.tsx`, `EntryEditToolbar.tsx` |
 | e2e coverage — single-file browsing | `tests/e2e/private-browse-file.spec.ts` |
 | e2e coverage — expanded editing | `tests/e2e/private-expanded-edit.spec.ts` |

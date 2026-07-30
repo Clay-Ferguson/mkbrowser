@@ -59,15 +59,15 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     setCurrentPath: (path) => {
       if (get().currentPath === path) {
         // Same folder, so nothing to navigate — but while browsing a single
-        // file this still means "show me this folder's listing", and it is the
-        // common case: the breadcrumb's last segment IS the folder holding the
-        // browsed file, so without this a breadcrumb click would do nothing.
+        // file this still means "show me this folder's listing", which is the
+        // browsed file's own folder in the common case. Without this, such a
+        // request would silently do nothing.
         get().clearBrowseFile();
         return;
       }
       // browseFileName names a file inside currentPath, so it cannot survive a
-      // path change — clearing it here is also what makes breadcrumb clicks
-      // drop back to the folder listing without any extra wiring.
+      // path change — clearing it here is also what makes any navigation drop
+      // back to the folder listing without any extra wiring.
       const newState: Partial<AppState> = { currentPath: path, browseFileName: null };
       const clearedItems = withSelectionsCleared(get().items);
       if (clearedItems) {
@@ -109,8 +109,8 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
 
     /**
      * Display a single file on its own, in place of the folder listing, in one
-     * state update: the file's folder becomes `currentPath` (so PathBreadcrumb
-     * keeps working unchanged) and `browseFileName` records which file.
+     * state update: the file's folder becomes `currentPath` and
+     * `browseFileName` records which file.
      *
      * Note this sets `currentPath` directly rather than delegating to
      * `setCurrentPath`, which would clear `browseFileName` right back out.

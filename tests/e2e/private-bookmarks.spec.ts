@@ -5,6 +5,7 @@ import {
   takeScreenshot,
   writeNarration,
   demoClick,
+  demoRightClick,
   logScreenshotSummary,
   cleanupScreenshots,
   cleanupTestDataFiles,
@@ -239,16 +240,17 @@ They're sorted alphabetically by their display name, so you can always find them
       screenshotDir,
       step++,
       `In one click, the app opened our bookmarked file on its own, with nothing else competing for the view.
-Bookmarks are a fast way to teleport around your workspace. Click any breadcrumb above the file to return to the folder listing.`
+Bookmarks are a fast way to teleport around your workspace. Right-click the file in the tree and choose "Browse" to return to the folder listing.`
     );
 
     // Back to the folder listing — the remaining steps drive the file's entry
-    // action bar, which is scoped to BrowseView's `mainContent`. The home
-    // button is the exit from single-file mode and lands on the root, which is
-    // where the bookmarked file lives.
-    await demoClick(
-      mainWindow.getByTestId('browse-file-header-breadcrumbs').getByTestId('breadcrumb-home-button')
-    );
+    // action bar, which is scoped to BrowseView's `mainContent`. Single-file
+    // mode deliberately renders no breadcrumbs, so the exit is the tree's
+    // "Browse" item on the file: it navigates to the file's folder, which here
+    // is the root the bookmarked file lives in.
+    const tree = mainWindow.getByTestId('file-explorer-tree');
+    await demoRightClick(tree.getByText(fileName, { exact: true }).first());
+    await demoClick(mainWindow.getByTestId('browse-to-folder'));
     await expect(mainContent.getByText(fileName).first()).toBeVisible({ timeout: 10000 });
 
     // --- Rename the folder bookmark from the menu ---

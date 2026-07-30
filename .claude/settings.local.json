@@ -12,7 +12,10 @@
       "Bash(node compiler-coverage.mjs src/components/entries/common/EntryActionBar.tsx src/components/menus/EntryPopupMenu.tsx)",
       "Bash(python3 -)",
       "Bash(npm run *)",
-      "Bash(node compiler-coverage.mjs)"
+      "Bash(node compiler-coverage.mjs)",
+      "Bash(node compiler-coverage.mjs src/components/views/BrowseFile.tsx)",
+      "Bash(npx vite *)",
+      "Bash(xvfb-run -a npx playwright test tests/e2e/private-browse-file.spec.ts --reporter=line)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

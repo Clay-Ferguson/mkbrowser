@@ -5,6 +5,7 @@ import {
   takeScreenshot,
   writeNarration,
   demoClick,
+  demoRightClick,
   logScreenshotSummary,
   cleanupScreenshots,
   cleanupTestDataFiles,
@@ -26,10 +27,10 @@ import {
  *   3. Collapsing returns to the listing with the editor still open.
  *   4. With the preference on, click-to-edit routes straight to BrowseFile, and
  *      both Save and Cancel drop back to the listing.
- *   5. Clicking a breadcrumb mid-edit lands on a folder listing with normal row
- *      spacing — the regression guard for the bug that motivated this design,
- *      where a stale "something is editing" flag turned every row of the
- *      destination folder into an equal-share flex item.
+ *   5. Navigating to another folder mid-edit lands on a folder listing with
+ *      normal row spacing — the regression guard for the bug that motivated
+ *      this design, where a stale "something is editing" flag turned every row
+ *      of the destination folder into an equal-share flex item.
  *
  * `expandedEditor` is left ON at the end deliberately — each test runs against a
  * throwaway user-data dir (see `createSeededUserDataDir`), so nothing leaks into
@@ -50,9 +51,9 @@ test.describe('Private: Expanded Editing', () => {
 
     // --- Seed on disk ------------------------------------------------------
     // A parent folder holding three markdown files plus a subfolder. The three
-    // files are the row-spacing sample for the breadcrumb phase: the parent is
-    // where a breadcrumb click from inside the subfolder lands, which is exactly
-    // the original bug's repro ("click a breadcrumb while editing").
+    // files are the row-spacing sample for the navigate-away phase: the parent
+    // is where Phase 5 lands from inside the subfolder, which is exactly the
+    // original bug's repro ("navigate to another folder while editing").
     const parentName = 'my-expand-folder';
     const parentPath = path.join(testDataPath, parentName);
     const subName = 'my-expand-sub';
@@ -223,17 +224,23 @@ The collapse button is still there whenever we want the folder listing back.`
 
     // (Cancel's exit was already covered before Phase 4.)
 
-    // --- Phase 5: a breadcrumb click mid-edit — the original bug ------------
+    // --- Phase 5: navigating away mid-edit — the original bug ---------------
     // Expanded editing used to be a class chain on the folder listing itself,
     // driven by a scan of the global items map. Navigating away with a file
     // still open for editing left that flag stuck on while the listing fell
     // back to showing every entry, so each row became an equal-share flex item.
-    // Now the breadcrumb simply clears single-file mode; the listing it lands on
+    // Now the navigation simply clears single-file mode; the listing it lands on
     // has never heard of editing.
+    //
+    // The gesture is the tree's "Browse" on the parent folder — BrowseFile has
+    // no breadcrumbs, so the tree is how you leave the maximized editor for
+    // another folder.
     await demoClick(targetEntry.getByRole('heading', { name: 'Expand Target' }));
     await expect(single).toBeVisible({ timeout: 10000 });
 
-    await demoClick(mainWindow.getByTestId(`breadcrumb-segment-${parentName}`));
+    const tree = mainWindow.getByTestId('file-explorer-tree');
+    await demoRightClick(tree.getByText(parentName, { exact: true }).first());
+    await demoClick(mainWindow.getByTestId('browse-to-folder'));
 
     await expect(listing).toBeVisible({ timeout: 10000 });
     await expect(single).toHaveCount(0);
@@ -263,11 +270,11 @@ The collapse button is still there whenever we want the folder listing back.`
     // maximized editor used to hide them to give itself the space.
     await expect(mainWindow.getByTestId('browser-header-actions')).toBeVisible();
 
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'breadcrumb-exit-normal-spacing');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'navigate-away-normal-spacing');
     writeNarration(
       screenshotDir,
       step++,
-      `Clicking a breadcrumb while the maximized editor was open took us to the parent folder, whose listing renders exactly as it should — rows stacked tightly, no leftover editor layout.`
+      `Browsing to the parent folder while the maximized editor was open took us to a listing that renders exactly as it should — rows stacked tightly, no leftover editor layout.`
     );
 
     // --- Cleanup -----------------------------------------------------------
