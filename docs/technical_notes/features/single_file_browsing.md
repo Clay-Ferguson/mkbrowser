@@ -111,6 +111,7 @@ Every exit is a navigation, and **no exit-specific logic exists** — it all fal
 
 | Exit | Mechanism |
 |---|---|
+| The **Browse Folder** link, top-right of the pane | `navigateToBrowserPath(currentPath)` |
 | Tree context menu → **Browse** (on the file, or on any folder) | `navigateToBrowserPath` |
 | A **folder** bookmark | `navigateToBrowserPath` |
 | Ending an `'expanded-edit'` session (save/cancel, or collapsing the toggle) | `setItemEditing` / `toggleExpandedEditor` — `'expanded-edit'` mode only |
@@ -121,13 +122,17 @@ Note what is *not* an exit: clicking a folder row in the tree only expands/colla
 
 `BrowseFile` deliberately renders **no `PathBreadcrumb`**, and this is the one visible difference between it and `BrowseView`. With a breadcrumb header the two views are pixel-identical whenever a folder holds exactly one file, so a user who has forgotten they clicked a tree file reads the pane as "my other files vanished" — the breadcrumb actively reinforces the misreading by naming a folder whose contents are not what is on screen. Its absence is the cue that this is one file, not a listing.
 
-The cost, accepted knowingly: the pane itself offers no way back, so the exits are the tree ones tabulated above. If a visible in-pane exit is ever wanted, add an explicit control (a "back to folder" button calling `navigateToBrowserPath(currentPath)`) — do **not** bring the breadcrumb back.
+What the breadcrumb *was* genuinely useful for here — "take me back to the folder this file is in" — is kept as a single **Browse Folder** text link, right-aligned above the entry and outside the scroll container (`data-testid="browse-folder-link"`). It calls `navigateToBrowserPath(currentPath)`, which is the whole implementation: `currentPath` already *is* the containing folder, and that action clears `browseFileName` unconditionally, so navigating to the folder you are already "in" works. Styled as bare text in amber (`text-amber-500`, matching the folder icon color) so it reads as a link, not a header. Its `title` is `Open Folder <name>`, which doubles as the way to see which folder the file lives in — the one piece of information the breadcrumb carried.
 
-An e2e phase asserts `path-breadcrumb` has count 0 while single-file mode is active (`private-browse-file.spec.ts`), so a re-added breadcrumb fails the suite.
+The link is **hidden while the file is being edited** (`!editing`, the same store read that drives the maximized layout): offering "leave for the folder listing" mid-edit is not what this view should be doing, and the row would otherwise eat space off the top of a maximized editor.
+
+Do **not** grow this back into a breadcrumb. A path trail is what made the two views look alike; one right-aligned link does not.
+
+An e2e phase asserts `path-breadcrumb` has count 0 while single-file mode is active, and exits through the link (`private-browse-file.spec.ts`), so a re-added breadcrumb fails the suite.
 
 ## What `BrowseFile` Renders
 
-- **Header**: none — no breadcrumbs (see above).
+- **Header**: no breadcrumbs — just the right-aligned **Browse Folder** link (see above), outside the scroll container.
 - **Body**: the same entry-type ternary the listing uses, minus the directory branch — `isMarkdown → isImageFile → isTextFile → GenericEntry`.
 - **Omitted props**: index-order move handlers (`onMoveUp`/`onMoveDown`/…) and `documentMode`. `EntryActionBar` renders items purely by callback presence, so omitting them hides those buttons — that is the whole mechanism, no flags needed.
 - `ImageEntry` gets `allImages={[entry]}`; that prop only feeds the fullscreen viewer's prev/next, and with one file on screen the file is the whole set.
@@ -172,7 +177,7 @@ Things to preserve when touching this area:
 6. `BrowseFile` is the only place a maximized editor lives. `BrowseView` renders a folder listing and nothing else — no edit-driven layout, no edit-driven scroll bookkeeping.
 7. No view derives layout from a scan of the items map for edit state. The map is global and long-lived; such a flag goes stale the moment the user navigates away.
 8. `browseFileMode` is written only by `setBrowseFile` and the two routing rules. It is read only while `browseFileName` is non-null.
-9. `BrowseFile` renders no breadcrumb. It is the only visual signal that the pane holds one file rather than a folder listing.
+9. `BrowseFile` renders no breadcrumb — its absence is the only visual signal that the pane holds one file rather than a folder listing. The **Browse Folder** link replaces its usefulness, not its form.
 
 ## Code Locations
 

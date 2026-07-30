@@ -7,11 +7,13 @@ import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
 import {
+  navigateToBrowserPath,
   setItemExpanded,
   useAS,
 } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
+import { getFileName } from '../../renderer/pathUtil';
 
 /**
  * Fire-and-forget runner for the rename/delete refresh handler (an entry
@@ -50,9 +52,12 @@ interface BrowseFileProps {
  * Deliberately renders **no breadcrumbs**, unlike BrowseView. Their absence is
  * the visual cue that this is single-file mode: with a breadcrumb header this
  * view is pixel-identical to a folder listing that happens to hold one file,
- * which reads as "where did my other files go?". Exits are the index tree
- * (clicking a folder, or its "Browse" context-menu item) and, in
- * 'expanded-edit' mode, ending the edit.
+ * which reads as "where did my other files go?". In place of them a single
+ * "Browse Folder" text link sits top-right — the one thing the breadcrumb was
+ * actually useful for here (leave for the containing folder's listing), without
+ * the path header that made the two views look alike. The other exits are the
+ * index tree's "Browse" context-menu item and, in 'expanded-edit' mode, ending
+ * the edit.
  *
  * Editing is always maximized here, but for one of two reasons, which
  * `browseFileMode` tells apart:
@@ -84,19 +89,21 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
   // re-read, and its ItemData is guaranteed to exist.
   const entry = entries.find((e) => e.name === browseFileName && !e.isDirectory);
 
-  // Editing here is ALWAYS expanded — the entry already owns the whole pane, so
-  // a non-expanded editor would just waste it. Scoped to this view's one entry,
-  // never to a "something in the store is editing" scan: the items map is
-  // global and long-lived, so such a scan goes stale the moment the user
-  // navigates elsewhere with a file still open for editing.
-  const expandedEditing = useAS(s => (entry ? (s.items.get(entry.path)?.editing ?? false) : false));
+  // Is this view's one file open for editing? Drives both the maximized layout
+  // (editing here is ALWAYS expanded — the entry already owns the whole pane, so
+  // a non-expanded editor would just waste it) and hiding the Browse Folder
+  // link. Scoped to this view's one entry, never to a "something in the store is
+  // editing" scan: the items map is global and long-lived, so such a scan goes
+  // stale the moment the user navigates elsewhere with a file still open for
+  // editing.
+  const editing = useAS(s => (entry ? (s.items.get(entry.path)?.editing ?? false) : false));
 
   // Plain-text files fill the pane at all times, editing or not: TextEntry's CodeMirror
   // would otherwise cap itself at ~60% of the scroll area (a sensible limit for a row in
   // the folder listing, wasted space for the one file that owns this view). Markdown keeps
   // its natural, page-scrolled height unless it is being edited.
   const fillsPane = !!entry && !entry.isMarkdown && !isImageFile(entry.name) && (isTextFile(entry.name) || isPdfFile(entry.name));
-  const flexPane = expandedEditing || fillsPane;
+  const flexPane = editing || fillsPane;
 
   // The folder's images, in listing order — the fullscreen viewer's navigation set.
   const folderImages = entries.filter((e) => !e.isDirectory && isImageFile(e.name));
@@ -109,6 +116,19 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
       setItemExpanded(entryPath, true);
     }
   }, [entryPath]);
+
+  // The containing folder, for the link's label. currentPath is the folder
+  // holding the browsed file (setBrowseFile sets the two together), so its last
+  // segment is the name to show — falling back to the path itself for a
+  // filesystem root, whose last segment is empty.
+  const folderName = getFileName(currentPath) || currentPath;
+
+  // Leaves single-file mode for the containing folder's listing —
+  // navigateToBrowserPath clears browseFileName unconditionally, so this works
+  // even though currentPath is already that folder.
+  const handleBrowseFolder = () => {
+    navigateToBrowserPath(currentPath);
+  };
 
   // Rename/delete completion reconciles the index yaml (the file may be listed
   // in it) before reloading the folder, matching BrowseView's handler.
@@ -123,7 +143,38 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* No breadcrumb header on purpose — see the component doc above. */}
+      {/* No breadcrumb header on purpose — see the component doc above. Just
+          this one text link, outside the scroll container so it stays put while
+          the file scrolls. Amber to match the folder icon color used in the
+          listing and the tree.
+
+          Hidden while the file is being edited: leaving mid-edit is not an
+          offer this view should be making, and the editor is maximized then, so
+          the row would only be taking space off the top of it.
+
+          The two nested wrappers duplicate <main>'s horizontal padding and the
+          width classes of the entry's own wrapper below, so `justify-end` puts
+          the link exactly on the entry's right edge. Copying the chain is what
+          makes that hold in every contentWidth mode: the entry is centred by
+          `mx-auto` inside a max-width, so its right edge moves with the pane
+          width and no fixed margin could line up with it. */}
+      {!editing && (
+        <div className="flex-shrink-0 pr-3 pl-3">
+          <div className={flexPane ? 'w-full px-4' : getContentWidthClasses(settings.contentWidth)}>
+            <div className="flex justify-end pt-1 pb-1">
+              <button
+                type="button"
+                onClick={handleBrowseFolder}
+                data-testid="browse-folder-link"
+                className="text-sm text-amber-500 hover:text-amber-400 hover:underline cursor-pointer bg-transparent border-0 p-0"
+                title={`Open Folder ${folderName}`}
+              >
+                Browse Folder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* The flexPane class chain converts this into a nested flex column so a
           maximized CodeMirror fills the pane and owns the only scrollbar — the
