@@ -42,7 +42,6 @@ import {
   setCalendarLoading,
   setCurrentPath,
   navigateToBrowserPath,
-  clearPendingScrollToFile,
   clearPendingEditFile,
   setPendingEditFile,
   clearPendingExpandFile,
@@ -61,7 +60,8 @@ import {
   type ItemData,
   type SearchDefinition,
 } from '../../store';
-import { scrollItemIntoView, scrollElementIntoView } from '../../renderer/entryDom';
+import { scrollElementIntoView } from '../../renderer/entryDom';
+import { usePendingItemScroll } from './usePendingItemScroll';
 import { isImageFile, isTextFile, isPdfFile, sortEntries } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
 import { generateTimestampFileName } from '../../shared/timeUtil';
@@ -311,7 +311,15 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const sortButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Handle pending scroll after directory loads, or restore scroll position on folder navigation
+  // Consumes pendingScrollToFile before the browser paints the commit that
+  // renders the target entry, so the listing never appears at the wrong scroll
+  // offset first. Everything else that has to wait for the DOM (the heading
+  // scroll, the per-folder position restore, pending edit/expand) stays in the
+  // passive effect below, where a frame of delay is invisible anyway.
+  usePendingItemScroll();
+
+  // Restore scroll position on folder navigation, and handle the remaining
+  // pending requests once the directory has loaded
   useEffect(() => {
     if (loading) return;
 
@@ -357,36 +365,30 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
     // Short timeout just for DOM to settle after React render
     const settleTimer = setTimeout(() => {
-      // logger.log('[BrowseView] scroll effect fired — pendingScrollToFile:', pendingScrollToFile, 'pendingScrollToHeadingSlug:', pendingScrollToHeadingSlug);
-      if (pendingScrollToFile) {
-        // Scroll to specific file (e.g., from search results or index tree heading).
-        // The target element only exists once the destination folder's entries
-        // have rendered. When navigating to a *different* folder this effect
-        // fires once prematurely (before the load starts), so only consume the
-        // pending request once the element is actually found and scrolled —
-        // otherwise the real attempt (after the load) never runs.
-        const scrolled = scrollItemIntoView(pendingScrollToFile, false);
-        if (scrolled) {
-          // Leave pendingScrollToHeadingSlug set — this clear re-runs the
-          // effect, and the next run handles the heading scroll below.
-          clearPendingScrollToFile();
-        }
-      } else if (pendingScrollToHeadingSlug) {
-        // Set alongside pendingScrollToFile; reached once the file scroll above
-        // has succeeded and consumed its flag. Fire-and-forget: the scroller
-        // itself polls for the heading to render (no fixed delay) and keeps it
-        // centered while late-loading content reflows the page, self-cancelling
-        // on user input / element removal / timeout — so it deliberately isn't
-        // tied to this effect's cleanup, and the flag is consumed immediately.
-        scrollElementIntoView(pendingScrollToHeadingSlug, true);
-        clearPendingScrollToHeadingSlug();
-      } else if (isNewFolder || isFirstMount) {
-        // Restore the saved scroll position for the folder we navigated to (or
-        // the one we were already in, when remounting).
-        const savedPosition = getBrowserScrollPosition(currentPath);
-        const mainContainer = mainContainerRef.current;
-        if (mainContainer) {
-          mainContainer.scrollTo({ top: savedPosition, behavior: 'instant' });
+      // Nothing here consumes pendingScrollToFile: that request is handled
+      // pre-paint by usePendingItemScroll (a layout effect), which is what
+      // keeps the listing from ever painting at the wrong offset. It is still
+      // read here as a gate, because both branches below would fight a scroll
+      // that has not landed yet — and consuming it re-runs this effect, so
+      // neither branch is missed.
+      if (!pendingScrollToFile) {
+        if (pendingScrollToHeadingSlug) {
+          // Set alongside pendingScrollToFile; reached once that file scroll has
+          // succeeded and consumed its flag. Fire-and-forget: the scroller
+          // itself polls for the heading to render (no fixed delay) and keeps it
+          // centered while late-loading content reflows the page, self-cancelling
+          // on user input / element removal / timeout — so it deliberately isn't
+          // tied to this effect's cleanup, and the flag is consumed immediately.
+          scrollElementIntoView(pendingScrollToHeadingSlug, true);
+          clearPendingScrollToHeadingSlug();
+        } else if (isNewFolder || isFirstMount) {
+          // Restore the saved scroll position for the folder we navigated to (or
+          // the one we were already in, when remounting).
+          const savedPosition = getBrowserScrollPosition(currentPath);
+          const mainContainer = mainContainerRef.current;
+          if (mainContainer) {
+            mainContainer.scrollTo({ top: savedPosition, behavior: 'instant' });
+          }
         }
       }
 

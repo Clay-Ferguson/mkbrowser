@@ -18,7 +18,15 @@
       "Bash(xvfb-run -a npx playwright test tests/e2e/private-browse-file.spec.ts --reporter=line)",
       "Bash(node compiler-coverage.mjs src/components/views/IndexTreeView.tsx)",
       "Bash(node compiler-coverage.mjs src/components/views/SearchResultsView.tsx)",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "Bash(node compiler-coverage.mjs src/components/views/usePendingItemScroll.ts)",
+      "Bash(node compiler-coverage.mjs src/components/views/BrowseView.tsx)",
+      "Read(//mnt/projects/**)",
+      "Read(//mnt/projects/mkbrowser-test/**)",
+      "Bash(timeout 120 node /tmp/claude-1000/-mnt-projects-mkbrowser/bca7ded0-00b6-40fa-96cc-8cb0c69802ad/scratchpad/verify-scroll.js)",
+      "Bash(timeout 150 node /tmp/claude-1000/-mnt-projects-mkbrowser/bca7ded0-00b6-40fa-96cc-8cb0c69802ad/scratchpad/verify-scroll.js)",
+      "Bash(timeout 150 node /tmp/claude-1000/-mnt-projects-mkbrowser/bca7ded0-00b6-40fa-96cc-8cb0c69802ad/scratchpad/verify-restore.js)",
+      "Bash(git stash *)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

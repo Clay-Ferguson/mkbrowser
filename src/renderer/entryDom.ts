@@ -51,37 +51,33 @@ const computeCenteredScrollTop = (container: HTMLElement, element: HTMLElement):
 };
 
 /**
- * Scrolls an item into view within the main content area.
+ * Scrolls a file entry into view within the main content area.
  * Uses manual scroll calculation to avoid scrollIntoView's side effect
  * of scrolling all ancestors (which can break the layout in Electron).
+ *
+ * The scroll is always instant: the caller (`usePendingItemScroll`) runs this
+ * from a layout effect, i.e. *before* the browser paints the commit that
+ * created the element, so the very first frame the user sees is already at the
+ * final position. A smooth scroll would defeat that entirely.
+ *
+ * `settle` additionally pins the item there while content that loads after the
+ * commit (markdown bodies, images, mermaid) reflows the page above it — the
+ * layout effect only fires when this component re-renders, and a *child*
+ * finishing its own load is not such a render. See beginSettleCorrections.
  *
  * Returns `true` if the target element was found (and scrolled), `false`
  * otherwise. Callers use this to avoid consuming a pending-scroll request
  * before the target folder's entries have actually rendered.
  */
-export const scrollItemIntoView = (filePath: string, highlight = false): boolean => {
+export const scrollItemIntoView = (filePath: string, highlight = false, settle = false): boolean => {
   const targetId = buildEntryHeaderId(filePath);
   const element = document.getElementById(targetId);
   if (!element) return false;
 
-  // Find the scrollable main container that actually contains this element.
-  // Using element.closest('main') (rather than a global document.querySelector)
-  // is important because inactive views stay mounted (display:none) and also
-  // render their own <main>; a global query could grab a hidden one.
-  const scrollContainer = element.closest('main');
-  if (!scrollContainer) {
-    if (highlight) temporaryHighlightItem(element);
-    // Fallback to scrollIntoView if container not found
-    element.scrollIntoView({ block: 'center' });
-    return true;
-  }
-
-  if (highlight) temporaryHighlightItem(element);
-
-  scrollContainer.scrollTo({
-    top: computeCenteredScrollTop(scrollContainer, element),
-    behavior: 'instant'
-  });
+  const scrollContainer = centerScrollOnElement(element, highlight, 'instant');
+  // A null container means the scrollIntoView fallback ran; there is nothing to
+  // observe or re-center against, so the settle phase is simply skipped.
+  if (settle && scrollContainer) beginSettleCorrections(element, scrollContainer, 'instant');
   return true;
 };
 
@@ -144,15 +140,17 @@ export const scrollElementIntoView = (elementId: string, highlight: boolean): vo
 };
 
 /**
- * Highlights the element and smooth-scrolls it to the center of its <main>
- * container. Returns the container, or null when none was found (in which
- * case a plain scrollIntoView fallback was used).
+ * Highlights the element and scrolls it to the center of its <main> container.
+ * Returns the container, or null when none was found (in which case a plain
+ * scrollIntoView fallback was used).
  */
-const centerScrollOnElement = (element: HTMLElement, highlight: boolean): HTMLElement | null => {
+const centerScrollOnElement = (element: HTMLElement, highlight: boolean, behavior: ScrollBehavior): HTMLElement | null => {
   if (highlight) temporaryHighlightItem(element);
 
-  // See scrollItemIntoView: resolve the container from the target element so we
-  // don't accidentally pick a hidden, still-mounted view's <main>.
+  // Resolve the container from the target element (rather than a global
+  // document.querySelector) so we don't accidentally pick a hidden,
+  // still-mounted view's <main> — inactive views stay mounted with
+  // display:none and render their own.
   const scrollContainer = element.closest('main');
   if (!scrollContainer) {
     element.scrollIntoView({ block: 'center' });
@@ -161,7 +159,7 @@ const centerScrollOnElement = (element: HTMLElement, highlight: boolean): HTMLEl
 
   scrollContainer.scrollTo({
     top: computeCenteredScrollTop(scrollContainer, element),
-    behavior: 'smooth'
+    behavior
   });
   return scrollContainer;
 };
@@ -172,14 +170,35 @@ const beginSettledScroll = (element: HTMLElement, highlight: boolean): void => {
   // then stop — no correction phase, no listeners to clean up.
   if (!DYNAMIC_SCROLL_TO_ELEMENT) {
     setTimeout(() => {
-      if (element.isConnected) centerScrollOnElement(element, highlight);
+      if (element.isConnected) centerScrollOnElement(element, highlight, 'smooth');
     }, ONE_SHOT_SCROLL_DELAY_MS);
     return;
   }
 
-  const scrollContainer = centerScrollOnElement(element, highlight);
+  const scrollContainer = centerScrollOnElement(element, highlight, 'smooth');
   if (!scrollContainer) return;
 
+  beginSettleCorrections(element, scrollContainer, 'smooth');
+};
+
+/**
+ * Keeps `element` centered in `scrollContainer` while the page settles, for
+ * SETTLE_WINDOW_MS after an initial centering scroll that the caller has
+ * already performed.
+ *
+ * Content rendered asynchronously above the target (markdown bodies, mermaid,
+ * KaTeX, images whose dimensions couldn't be pre-reserved) shifts the target
+ * after that first scroll, so a ResizeObserver re-scrolls whenever the layout
+ * changes during the window. `behavior` should match how the caller scrolled:
+ * corrections to an instant, pre-paint scroll must themselves be instant, or
+ * every reflow would animate the page out from under a user who never asked
+ * for a scroll.
+ *
+ * Fire-and-forget: self-cancels when the user intervenes (wheel, touch,
+ * scrollbar drag, key press), when the target leaves the DOM (navigation), and
+ * when the window elapses — callers don't need to clean it up.
+ */
+const beginSettleCorrections = (element: HTMLElement, scrollContainer: HTMLElement, behavior: ScrollBehavior): void => {
   // Everything in the settle phase (event listeners, observer, timer) tears
   // down through this one controller, whichever cancellation path fires first.
   const controller = new AbortController();
@@ -205,7 +224,7 @@ const beginSettledScroll = (element: HTMLElement, highlight: boolean): void => {
     }
     const desired = computeCenteredScrollTop(scrollContainer, element);
     if (Math.abs(scrollContainer.scrollTop - desired) > SETTLE_TOLERANCE_PX) {
-      scrollContainer.scrollTo({ top: desired, behavior: 'smooth' });
+      scrollContainer.scrollTo({ top: desired, behavior });
     }
   });
   signal.addEventListener('abort', () => observer.disconnect(), { once: true });
