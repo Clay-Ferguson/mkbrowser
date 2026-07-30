@@ -892,7 +892,18 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           const isSh = isShellScript(node);
           const isDragOver = node.isDirectory && dragOverPath === node.path;
 
-          let className = 'flex items-center gap-1 py-0.5 whitespace-nowrap select-none';
+          // The highlighted FILE gets a 2px purple border instead of the solid
+          // purple background the folders wear, so the tree reads at a glance:
+          // solid purple = the folders on the way to what is on screen, purple
+          // outline = the file itself. A highlighted *folder* keeps the solid
+          // background — it is still a folder.
+          const isHighlightedFile = node.path === highlightItem && !node.isDirectory;
+
+          // That border replaces the row's vertical padding rather than adding to
+          // it (2px a side either way), so the highlighted row is exactly as tall
+          // as every other row and the tree does not shift when the highlight
+          // moves.
+          let className = `flex items-center gap-1 ${isHighlightedFile ? 'py-0' : 'py-0.5'} whitespace-nowrap select-none`;
           // The drop highlight replaces the row's normal colors rather than being
           // appended to them: every branch below carries a `hover:bg-…`, and a variant
           // beats a plain `bg-…` of equal specificity, so an appended drop background
@@ -900,6 +911,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           // `border-l-2 border-transparent` is kept because it occupies layout space.
           if (isDragOver) {
             className += ` text-white border-l-2 border-transparent cursor-pointer ${ENTRY_DROP_TARGET}`;
+          } //
+          else if (isHighlightedFile) {
+            // `border-2` on all four sides, so no separate `border-l-2` here.
+            className += ' text-white border-2 border-purple-500 hover:bg-slate-700 cursor-pointer';
           } //
           else if (node.path === highlightItem) {
             className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
