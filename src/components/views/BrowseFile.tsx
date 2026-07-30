@@ -13,7 +13,7 @@ import {
 } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
-import { getFileName } from '../../renderer/pathUtil';
+import { getFileName, getParentPath } from '../../renderer/pathUtil';
 
 /**
  * Fire-and-forget runner for the rename/delete refresh handler (an entry
@@ -76,6 +76,7 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
   const currentPath = useAS(s => s.currentPath);
   const browseFileName = useAS(s => s.browseFileName);
   const browseFileMode = useAS(s => s.browseFileMode);
+  const highlightItem = useAS(s => s.highlightItem);
   const settings = useAS(s => s.settings);
 
   // See the two modes above. In 'expanded-edit' mode `settings.expandedEditor`
@@ -126,8 +127,21 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
   // Leaves single-file mode for the containing folder's listing —
   // navigateToBrowserPath clears browseFileName unconditionally, so this works
   // even though currentPath is already that folder.
+  //
+  // The listing is also scrolled to the highlighted file, exactly as clicking a
+  // search result does: every route into single-file browsing (index tree click,
+  // bookmark, an entry's "view file" action) sets highlightItem to the file it
+  // opens, so leaving lands on that file rather than at the top of a folder the
+  // user may have scrolled deep into.
+  //
+  // Guarded to a highlight inside this folder: BrowseView consumes
+  // pendingScrollToFile only once it finds the element, so a path from another
+  // folder would linger and hijack a later navigation there.
   const handleBrowseFolder = () => {
-    navigateToBrowserPath(currentPath);
+    const scrollToFile = highlightItem && getParentPath(highlightItem) === currentPath
+      ? highlightItem
+      : undefined;
+    navigateToBrowserPath(currentPath, scrollToFile);
   };
 
   // Rename/delete completion reconciles the index yaml (the file may be listed

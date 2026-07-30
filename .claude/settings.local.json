@@ -16,7 +16,9 @@
       "Bash(node compiler-coverage.mjs src/components/views/BrowseFile.tsx)",
       "Bash(npx vite *)",
       "Bash(xvfb-run -a npx playwright test tests/e2e/private-browse-file.spec.ts --reporter=line)",
-      "Bash(node compiler-coverage.mjs src/components/views/IndexTreeView.tsx)"
+      "Bash(node compiler-coverage.mjs src/components/views/IndexTreeView.tsx)",
+      "Bash(node compiler-coverage.mjs src/components/views/SearchResultsView.tsx)",
+      "Bash(npx vitest *)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

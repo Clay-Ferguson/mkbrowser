@@ -618,9 +618,17 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       // Cancel and save-and-close both land here with editing=false, so both
       // exit. Save-and-keep-editing leaves `editing` alone, which correctly
       // keeps the user in the maximized editor.
+      //
+      // Leaving also queues the scroll that puts the just-edited file back in
+      // view, the same request a search-result click and BrowseFile's "Browse
+      // Folder" link make: the listing this drops back into is the one the user
+      // left, which may be scrolled anywhere, so without it the highlighted file
+      // can land off screen. `path` is known to live in `currentPath` —
+      // isExpandedEditOf checks exactly that — so BrowseView is guaranteed to
+      // find the element and consume the request.
       const routing = editing
         ? enterExpandedEditPatch(state, path)
-        : (isExpandedEditOf(state, path) ? { browseFileName: null } : null);
+        : (isExpandedEditOf(state, path) ? { browseFileName: null, pendingScrollToFile: path } : null);
 
       set({
         items: newItems,

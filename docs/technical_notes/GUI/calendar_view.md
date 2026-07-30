@@ -38,8 +38,8 @@ so the calendar stays stable while the user browses elsewhere.
 
 ### Search source — snapshot
 
-The **Calendar View** button in the SearchResultsView header
-(`data-testid="search-calendar-view-button"`), sitting beside the Graph View button —
+The **Calendar** button in the SearchResultsView header
+(`data-testid="search-calendar-view-button"`), sitting beside the Graph button —
 the two are parallel affordances offering alternate renderings of one result set (see
 `folder_graph.md`). `handleShowCalendar()` in
 `src/components/views/SearchResultsView.tsx` records the `search` source and calls

@@ -205,7 +205,7 @@ connect them up to a common root.
 
 ### Entry point
 
-A right-justified **Graph View** button in the `SearchResultsView` header
+A right-justified **Graph** button in the `SearchResultsView` header
 (`src/components/views/SearchResultsView.tsx`). When clicked it:
 
 1. Calls `buildFolderGraphFromSearchResults(searchResults)` to construct a

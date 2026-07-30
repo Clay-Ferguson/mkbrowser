@@ -53,7 +53,7 @@ const browseState = () => {
 describe('expanded-editor routing', () => {
   beforeEach(() => {
     clearCache();
-    useAS.setState({ browseFileName: null, browseFileMode: 'browse' });
+    useAS.setState({ browseFileName: null, browseFileMode: 'browse', pendingScrollToFile: null });
     seed();
   });
 
@@ -107,6 +107,31 @@ describe('expanded-editor routing', () => {
       setItemEditing(NOTE, true);
       setItemEditing(NOTE, false);
       expect(useAS.getState().browseFileName).toBeNull();
+    });
+
+    it('queues a scroll to the edited file, so the listing lands on it', () => {
+      // The listing dropped back into is the one the user left, which may be
+      // scrolled anywhere; BrowseView consumes this to bring the file it
+      // highlights back into view.
+      browseFolder(true);
+      setItemEditing(NOTE, true);
+      setItemEditing(NOTE, false);
+      expect(useAS.getState().pendingScrollToFile).toBe(NOTE);
+      expect(useAS.getState().highlightItem).toBe(NOTE);
+    });
+
+    it('queues no scroll when the edit stayed inline in the listing', () => {
+      browseFolder(false);
+      setItemEditing(NOTE, true);
+      setItemEditing(NOTE, false);
+      expect(useAS.getState().pendingScrollToFile).toBeNull();
+    });
+
+    it('queues no scroll when an unrelated edit ends', () => {
+      browseFolder(true);
+      setItemEditing(NOTE, true);
+      setItemEditing(ELSEWHERE, false);
+      expect(useAS.getState().pendingScrollToFile).toBeNull();
     });
 
     it('stays in single-file mode when a "browse" edit ends', () => {

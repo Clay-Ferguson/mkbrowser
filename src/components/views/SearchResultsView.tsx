@@ -32,8 +32,8 @@ interface SearchResultsViewProps {
  * file cards. Each card shows the relative path and match count, and provides
  * Edit (navigate to browser and open the file for editing) and Delete buttons.
  * The results can also be rendered two other ways: as a folder graph via the
- * "Graph View" button, and — for the subset of results that are calendar files —
- * on the Calendar tab via the "Calendar View" button. The active sort order (file
+ * "Graph" button, and — for the subset of results that are calendar files —
+ * on the Calendar tab via the "Calendar" button. The active sort order (file
  * name, created time, or modified time) and direction are read from the store and
  * applied client-side on each render.
  */
@@ -211,7 +211,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                 data-testid="search-graph-view-button"
               >
                 <ShareIcon className="w-4 h-4" />
-                Graph View
+                Graph
               </button>
               <button
                 type="button"
@@ -222,7 +222,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                 data-testid="search-calendar-view-button"
               >
                 <CalendarDaysIcon className="w-4 h-4" />
-                Calendar View
+                Calendar
               </button>
             </div>
           </div>
@@ -267,9 +267,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                 onClick={() => handleResultClick(result.path)}
                 className={`bg-slate-800 rounded-lg ${borderClass} px-2 py-1.5 transition-colors cursor-pointer`}
               >
-                <div className="flex items-start gap-2">
+                <div className="flex items-center gap-2">
                   {/* File icon */}
-                  <DocumentTextIcon className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <DocumentTextIcon className="w-5 h-5 text-blue-400 flex-shrink-0" />
 
                   {/* File path */}
                   <div className="flex-1 min-w-0">
