@@ -106,6 +106,7 @@ export default function CalendarView() {
   const settings = useAS(s => s.settings);
   const calendarSource = useAS(s => s.calendarSource);
   const watcherWarning = useAS(s => s.calendarWatcherWarning);
+  const highlightItem = useAS(s => s.highlightItem);
   const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
 
   const handleViewChange = (v: View) => {
@@ -228,6 +229,15 @@ export default function CalendarView() {
             .rbc-today { background: #1d3a5c !important; }
             .rbc-event { background: #3b82f6; border-color: #2563eb; border-radius: 4px; }
             .rbc-event:focus { outline: 2px solid #60a5fa; }
+            /* The highlighted file's purple border (matching ENTRY_HIGHLIGHTED in BrowseView).
+               react-big-calendar puts this class wherever it renders an event, so this one rule
+               covers every view: the event div in month/week/day (and the "show more" popup), and
+               the whole row in agenda. !important on purpose — the library styles events per view
+               with more specific selectors of its own (.rbc-day-slot .rbc-event, for one, sets a
+               1px border in the time grid), and this rule has to win in all of them without our
+               encoding which selectors those happen to be. NOTE: no backticks in this block — it
+               is a template literal, and one would end the string mid-stylesheet. */
+            .mk-event-highlighted { border: 2px solid #a855f7 !important; }
             .rbc-selected { background: #2563eb !important; }
             .rbc-toolbar button { color: #e2e8f0; border-color: #475569; background: #0f172a; }
             .rbc-toolbar button:hover { background: #1e3a5f; color: #fff; }
@@ -254,6 +264,11 @@ export default function CalendarView() {
             onView={handleViewChange}
             onNavigate={(d) => setCalendarViewTime(new Date(d))}
             onSelectEvent={handleSelectEvent}
+            // The library's own per-event styling hook — the one place that works identically
+            // across all five views, so nothing here depends on how any of them render.
+            eventPropGetter={(event: CalendarEvent) =>
+              event.filePath && event.filePath === highlightItem ? { className: 'mk-event-highlighted' } : {}
+            }
             selectable
             onSelectSlot={handleSelectSlot}
             tooltipAccessor={(event: CalendarEvent) => {

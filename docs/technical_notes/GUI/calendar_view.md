@@ -222,7 +222,17 @@ reads the state fields above via `useAS` selectors, and:
   already the calendar folder no reload would otherwise happen, and the pending-edit
   request would silently target a path that isn't rendered.
 - Applies a dark theme to react-big-calendar via an inline `<style>` block, and shows each
-  event's body snippet (first 5 lines, ≤400 chars) as a native tooltip.
+  event's body snippet (first 5 lines, ≤400 chars) as a native tooltip. **That block is a
+  template literal — a backtick anywhere in it (even inside a CSS comment) ends the string and
+  silently produces a renderer that throws on first paint.**
+- Marks the store's `highlightItem` file with the same purple border BrowseView draws
+  (`ENTRY_HIGHLIGHTED`), via `eventPropGetter` — the library's own per-event styling hook, and
+  the one mechanism that behaves identically in all five views, so nothing here depends on how
+  any of them render. It returns the `mk-event-highlighted` class, whose rule needs
+  `!important`: rbc styles events per view with more specific selectors of its own (e.g. the
+  time grid's `.rbc-day-slot .rbc-event` sets a 1px border, which otherwise wins in
+  week/work-week/day). Verified in month, week, day, and agenda — agenda is worth re-checking
+  after any change here, since it puts the class on a table row rather than an event div.
 
 Other calendar-authoring entry points outside this view: the editor context menu's "Make
 Calendar Item" / "Make Repeating Calendar Item" (`injectCalendarFrontMatter`), and the

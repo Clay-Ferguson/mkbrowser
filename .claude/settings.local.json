@@ -35,7 +35,11 @@
       "Bash(npm view *)",
       "Bash(npm ls *)",
       "Bash(node compiler-coverage.mjs src/components/entries/MarkdownEntry.tsx)",
-      "Bash(node compiler-coverage.mjs src/components/PropsDisplay.tsx)"
+      "Bash(node compiler-coverage.mjs src/components/PropsDisplay.tsx)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/react-big-calendar/package.json'\\).version\\)\")",
+      "Bash(node compiler-coverage.mjs src/components/views/CalendarView.tsx)",
+      "Bash(node *)",
+      "Bash(git checkout *)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"
