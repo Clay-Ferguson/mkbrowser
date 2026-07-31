@@ -227,7 +227,7 @@ export default function CalendarView() {
             .rbc-day-bg { background: #1e293b; }
             .rbc-day-bg.rbc-off-range-bg { background: #0f172a; }
             .rbc-today { background: #1d3a5c !important; }
-            .rbc-event { background: #3b82f6; border-color: #2563eb; border-radius: 4px; }
+            .rbc-event { background: #1d4ed8; border-color: #1e40af; border-radius: 4px; }
             .rbc-event:focus { outline: 2px solid #60a5fa; }
             /* The highlighted file's purple border (matching ENTRY_HIGHLIGHTED in BrowseView).
                react-big-calendar puts this class wherever it renders an event, so this one rule
@@ -237,12 +237,24 @@ export default function CalendarView() {
                1px border in the time grid), and this rule has to win in all of them without our
                encoding which selectors those happen to be. NOTE: no backticks in this block — it
                is a template literal, and one would end the string mid-stylesheet. */
-            .mk-event-highlighted { border: 2px solid #a855f7 !important; }
+            .mk-event-highlighted { border: 3px solid #a855f7 !important; }
             .rbc-selected { background: #2563eb !important; }
-            .rbc-toolbar button { color: #e2e8f0; border-color: #475569; background: #0f172a; }
-            .rbc-toolbar button:hover { background: #1e3a5f; color: #fff; }
-            .rbc-toolbar button.rbc-active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
-            .rbc-toolbar button.rbc-active:hover { background: #2563eb; }
+            /* Toolbar buttons. rbc styles :hover, :focus and :active with light greys of its own
+               (#e6e6e6 and friends), at a higher specificity than a bare ".rbc-toolbar button" —
+               so every state it names has to be named here too, or the button flashes white while
+               pressed and stays white while it holds focus after the click. Each selector below
+               matches or exceeds the specificity of rbc's counterpart and wins the tie by coming
+               later in the document. box-shadow: none drops rbc's inset "pressed" shadow. */
+            .rbc-toolbar button,
+            .rbc-toolbar button:focus,
+            .rbc-toolbar button:active,
+            .rbc-toolbar button:active:focus { color: #e2e8f0; border-color: #475569; background-color: #0f172a; box-shadow: none; }
+            .rbc-toolbar button:hover,
+            .rbc-toolbar button:active:hover { color: #fff; border-color: #475569; background-color: #1e3a5f; }
+            .rbc-toolbar button.rbc-active,
+            .rbc-toolbar button.rbc-active:focus,
+            .rbc-toolbar button.rbc-active:active { color: #fff; border-color: #3b82f6; background-color: #3b82f6; box-shadow: none; }
+            .rbc-toolbar button.rbc-active:hover { border-color: #2563eb; background-color: #2563eb; }
             .rbc-month-row { border-color: #334155; }
             .rbc-date-cell { color: #94a3b8; }
             .rbc-date-cell.rbc-now { color: #60a5fa; font-weight: 700; }
