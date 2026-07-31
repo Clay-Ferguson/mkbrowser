@@ -17,7 +17,6 @@ import IndexTreeView from './components/views/IndexTreeView';
 import AppTabButtons from './components/AppTabButtons';
 import {
   syncDirectoryItems,
-  setSearchResults,
   getSettings,
   setCurrentView,
   setCurrentPath,
@@ -36,11 +35,12 @@ import {
   // to react-hooks/exhaustive-deps and be demanded in every effect's dep array.
   setAppError as setError,
 } from './store';
-import type { AppView } from './shared/types';
+import type { AppView, SearchDefinition } from './shared/types';
 import type { CalendarEventResult, AppConfig } from './shared/shared';
 import { toCalendarEvents } from './shared/calendarUtil';
 import type { FileNode } from './store';
 import { loadConfig } from './renderer/config';
+import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
 import { applyGlobalHighlight, getGlobalHighlightText } from './renderer/globalHighlight';
 import { logger } from './shared/logUtil';
@@ -404,16 +404,19 @@ function App() {
 
   const handleSearchHashtag = (hashtag: string, ctrlKey: boolean) => {
     if (!currentPath) return;
+    // Ctrl-click searches for the hashtag as an advanced expression (whole-tag
+    // match) rather than as literal text.
+    const definition: SearchDefinition = {
+      name: '',
+      searchText: ctrlKey ? `$("${hashtag}")` : hashtag,
+      searchTarget: 'content',
+      searchMode: ctrlKey ? 'advanced' : 'literal',
+      sortBy: 'modified-time',
+      sortDirection: 'desc',
+    };
     void (async () => {
       try {
-        if (ctrlKey) {
-          const advancedQuery = `$("${hashtag}")`;
-          const results = await api.searchFolder(currentPath, advancedQuery, 'advanced', 'content');
-          setSearchResults(results, advancedQuery, currentPath, 'modified-time', 'desc', '');
-        } else {
-          const results = await api.searchFolder(currentPath, hashtag, 'literal', 'content');
-          setSearchResults(results, hashtag, currentPath, 'modified-time', 'desc', '');
-        }
+        await executeSearch(currentPath, definition);
         setCurrentView('search-results');
       } catch (err) {
         setError('Search failed: ' + errorMessage(err));

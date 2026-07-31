@@ -1,4 +1,4 @@
-import type { HighlightedSearchResult, SearchResultItem, SearchSortBy, SearchSortDirection } from '../shared/types';
+import type { HighlightedSearchResult, SearchDefinition, SearchResultItem, SearchSortBy, SearchSortDirection } from '../shared/types';
 import { getState } from './core';
 import type { StoreSet } from './core';
 
@@ -20,6 +20,7 @@ export interface SearchSlice {
     sortDirection?: SearchSortDirection,
     searchName?: string
   ) => void;
+  setLastSearchDefinition: (definition: SearchDefinition | null) => void;
   clearSearchResults: () => void;
 }
 
@@ -44,6 +45,12 @@ export function createSearchSlice(set: StoreSet): SearchSlice {
         ...(sortDirection !== undefined && { searchSortDirection: sortDirection }),
       }),
 
+    /**
+     * Record the parameters that produced the current results, so the search
+     * can be re-executed from scratch (the Search Results refresh button).
+     */
+    setLastSearchDefinition: (definition) => set({ lastSearchDefinition: definition }),
+
     /** Clear search results. */
     clearSearchResults: () =>
       set({
@@ -53,6 +60,7 @@ export function createSearchSlice(set: StoreSet): SearchSlice {
         searchName: '',
         searchSortBy: 'modified-time',
         searchSortDirection: 'desc',
+        lastSearchDefinition: null,
       }),
   };
 }
@@ -73,6 +81,10 @@ export function setSearchResults(
   searchName?: string
 ): void {
   getState().setSearchResults(results, query, folder, sortBy, sortDirection, searchName);
+}
+
+export function setLastSearchDefinition(definition: SearchDefinition | null): void {
+  getState().setLastSearchDefinition(definition);
 }
 
 export function clearSearchResults(): void {

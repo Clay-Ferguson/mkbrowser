@@ -90,6 +90,7 @@ const initialState: AppState = {
   searchResults: [],
   searchSortBy: 'modified-time',
   searchSortDirection: 'desc',
+  lastSearchDefinition: null,
   settings: defaultSettings,
   highlightItem: null,
   pendingEditFile: null,

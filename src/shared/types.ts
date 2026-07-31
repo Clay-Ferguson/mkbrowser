@@ -376,6 +376,15 @@ export interface AppState {
   searchSortDirection: SearchSortDirection;
 
   /**
+   * The complete parameter set that produced the current search results, kept
+   * so the Search Results view can re-run the identical search on refresh
+   * (`searchQuery`/`searchName` alone don't carry the target, type, or the
+   * EXIF/most-recent/calendar flags). Null until a search has been executed.
+   * For an ad-hoc search the `name` is empty, same as `searchName`.
+   */
+  lastSearchDefinition: SearchDefinition | null;
+
+  /**
    * Application settings (persisted to config file)
    */
   settings: AppSettings;

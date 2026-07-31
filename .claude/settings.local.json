@@ -26,7 +26,12 @@
       "Bash(timeout 120 node /tmp/claude-1000/-mnt-projects-mkbrowser/bca7ded0-00b6-40fa-96cc-8cb0c69802ad/scratchpad/verify-scroll.js)",
       "Bash(timeout 150 node /tmp/claude-1000/-mnt-projects-mkbrowser/bca7ded0-00b6-40fa-96cc-8cb0c69802ad/scratchpad/verify-scroll.js)",
       "Bash(timeout 150 node /tmp/claude-1000/-mnt-projects-mkbrowser/bca7ded0-00b6-40fa-96cc-8cb0c69802ad/scratchpad/verify-restore.js)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(timeout 200 node /tmp/claude-1000/-mnt-projects-mkbrowser/bca7ded0-00b6-40fa-96cc-8cb0c69802ad/scratchpad/verify-settle.js)",
+      "Bash(sed -i \"s|const DATA=path.join\\(__dirname,'settle-data'\\);|const DATA=path.join\\(__dirname,'scroll-data'\\);|\" probe.js)",
+      "Bash(timeout 90 node probe.js)",
+      "Bash(sed -i \"s|await win.getByText\\('Browse', { exact: true }\\).first\\(\\).click\\(\\);|await win.getByTestId\\('browse-to-folder'\\).click\\(\\);|\" verify-settle.js)",
+      "Bash(timeout 200 node verify-settle.js)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

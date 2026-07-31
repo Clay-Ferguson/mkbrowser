@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, ShareIcon, CalendarDaysIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, ShareIcon, CalendarDaysIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import {
@@ -18,6 +18,7 @@ import {
   useAS,
 } from '../../store';
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
+import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { getContentWidthClasses, BUTTON_CLASS_BLUE, BUTTON_CLASS_RED } from '../../renderer/styles';
@@ -33,7 +34,8 @@ interface SearchResultsViewProps {
  * Edit (navigate to browser and open the file for editing) and Delete buttons.
  * The results can also be rendered two other ways: as a folder graph via the
  * "Graph" button, and — for the subset of results that are calendar files —
- * on the Calendar tab via the "Calendar" button. The active sort order (file
+ * on the Calendar tab via the "Calendar" button. The refresh button re-runs the
+ * search that produced the list, discarding the current results entirely. The active sort order (file
  * name, created time, or modified time) and direction are read from the store and
  * applied client-side on each render.
  */
@@ -46,8 +48,10 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const highlightedSearchResult = useAS(s => s.highlightedSearchResult);
   const searchSortBy = useAS(s => s.searchSortBy);
   const searchSortDirection = useAS(s => s.searchSortDirection);
+  const lastSearchDefinition = useAS(s => s.lastSearchDefinition);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Sort results based on the selected sort option and direction
   const sortedResults = [...searchResults].sort((a, b) => {
@@ -182,6 +186,26 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
       });
   };
 
+  /**
+   * Re-executes the search that produced this list. Files may have been
+   * edited, created, renamed, or deleted since it ran, so nothing here is
+   * patched up: `executeSearch` scans the same folder with the same stored
+   * parameters and overwrites the results outright. Disabled when no search
+   * definition was recorded (results restored some other way).
+   */
+  const handleRefresh = () => {
+    const definition = lastSearchDefinition;
+    if (!definition || !searchFolder || refreshing) return;
+    setRefreshing(true);
+    void executeSearch(searchFolder, definition)
+      .catch((err: unknown) => {
+        logger.error('Failed to refresh search results:', err);
+      })
+      .finally(() => {
+        setRefreshing(false);
+      });
+  };
+
   const handleShowGraph = () => {
     if (searchResults.length === 0) return;
     setFolderGraph(buildFolderGraphFromSearchResults(searchResults));
@@ -223,6 +247,17 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
               >
                 <CalendarDaysIcon className="w-4 h-4" />
                 Calendar
+              </button>
+              {/* Refresh: re-runs the search from scratch (icon only) */}
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={!lastSearchDefinition || refreshing}
+                className="flex items-center p-1.5 text-slate-200 bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                title="Re-run this search"
+                data-testid="search-refresh-button"
+              >
+                <ArrowPathIcon className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>

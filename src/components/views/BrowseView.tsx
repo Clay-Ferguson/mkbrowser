@@ -45,7 +45,6 @@ import {
   clearPendingEditFile,
   setPendingEditFile,
   clearPendingExpandFile,
-  setSearchResults,
   setSortOrder,
   setBrowserScrollPosition,
   getBrowserScrollPosition,
@@ -66,7 +65,7 @@ import { isImageFile, isTextFile, isPdfFile, sortEntries } from '../../shared/fi
 import { getContentWidthClasses } from '../../renderer/styles';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { hasHumanMd } from '../../shared/ai/aiPatterns';
-import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig } from '../../renderer/searchUtil';
+import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, executeSearch } from '../../renderer/searchUtil';
 import { buildReplaceResultMessage } from '../../shared/searchHelpers';
 import { pasteIntoFolder, ensureAttachFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
 import { getFileName, getParentPath, isSamePath } from '../../renderer/pathUtil';
@@ -678,27 +677,23 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
     setShowSearchDialog(false);
 
+    const definition: SearchDefinition = {
+      name: options.searchName || '',
+      searchText: options.query,
+      searchTarget: options.searchMode,
+      searchMode: options.searchType,
+      sortBy: options.sortBy,
+      sortDirection: options.sortDirection,
+      searchImageExif: options.searchImageExif,
+      mostRecent: options.mostRecent,
+      calendarItemsOnly: options.calendarItemsOnly,
+    };
+
     runOp(async () => {
       if (options.searchName) {
-        const definition: SearchDefinition = {
-          name: options.searchName,
-          searchText: options.query,
-          searchTarget: options.searchMode,
-          searchMode: options.searchType,
-          sortBy: options.sortBy,
-          sortDirection: options.sortDirection,
-          searchImageExif: options.searchImageExif,
-          mostRecent: options.mostRecent,
-          calendarItemsOnly: options.calendarItemsOnly,
-        };
         await saveSearchDefinitionToConfig(definition);
       }
-
-      // Decode {{nl}} tokens back to spaces for actual search execution
-      const searchQuery = options.query.replace(/\{\{nl\}\}/g, ' ');
-
-      const results = await api.searchFolder(currentPath, searchQuery, options.searchType, options.searchMode, options.searchImageExif, options.mostRecent, options.calendarItemsOnly);
-      setSearchResults(results, options.query, currentPath, options.sortBy, options.sortDirection, options.searchName || '');
+      await executeSearch(currentPath, definition);
       setCurrentView('search-results');
     }, 'Search failed: ', onSetError);
   };
@@ -791,20 +786,10 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const handleRunSearch = (definition: SearchDefinition) => {
     if (!currentPath) return;
-    void (async () => {
-      const searchQuery = definition.searchText.replace(/\{\{nl\}\}/g, ' ');
-      const results = await api.searchFolder(
-        currentPath,
-        searchQuery,
-        definition.searchMode,
-        definition.searchTarget,
-        definition.searchImageExif,
-        definition.mostRecent,
-        definition.calendarItemsOnly
-      );
-      setSearchResults(results, definition.searchText, currentPath, definition.sortBy, definition.sortDirection, definition.name);
+    runOp(async () => {
+      await executeSearch(currentPath, definition);
       setCurrentView('search-results');
-    })();
+    }, 'Search failed: ', onSetError);
   };
 
   const handleEditSearch = (definition: SearchDefinition) => {

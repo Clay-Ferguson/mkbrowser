@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { Bars3Icon } from '@heroicons/react/24/outline';
-import { showTab, hideTab, setCurrentView, useAS, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, setSearchResults, type AppView } from '../store';
+import { showTab, hideTab, setCurrentView, useAS, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, clearSearchResults, type AppView } from '../store';
 import { isAiThreadByEntries } from '../shared/ai/aiPatterns';
 import { getParentPath, isPathInside } from '../renderer/pathUtil';
 import type { FileEntry } from '../global';
@@ -76,7 +76,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
 
   const closeHandlers: Partial<Record<AppView, () => void>> = {
     'thread': makeCloseHandler('thread', () => hideTab('thread')),
-    'search-results': makeCloseHandler('search-results', () => setSearchResults([], '', '')),
+    'search-results': makeCloseHandler('search-results', () => clearSearchResults()),
     'folder-analysis': makeCloseHandler('folder-analysis', () => setFolderAnalysis(null)),
     'folder-graph': makeCloseHandler('folder-graph', () => setFolderGraph(null)),
     'settings': makeCloseHandler('settings', () => hideTab('settings')),
