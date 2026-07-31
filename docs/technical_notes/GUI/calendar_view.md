@@ -229,6 +229,14 @@ Calendar Item" / "Make Repeating Calendar Item" (`injectCalendarFrontMatter`), a
 calendar icon / clickable `due`,`start`,`duration`,`rrule` properties on a MarkdownEntry,
 which open `EditCalendarDialog`.
 
+The `due` pill is the one exception to "a pill click opens the dialog": `PropsDisplay` makes
+the value half of every pill separately clickable (`onPropValueClick`, which falls back to
+`onPropClick` for keys it doesn't special-case), and MarkdownEntry uses that so clicking the
+*date* jumps here instead of opening the editor dialog — `openCalendarAtDate` in
+`src/renderer/calendarNav.ts` sets `calendarViewTime`, shows/selects the calendar tab, and
+loads the entry's parent folder unless a folder-sourced calendar for that same folder is
+already loaded (its watcher keeps it current, so re-scanning would only flash the spinner).
+
 ## Testing
 
 - `tests/calendar.test.ts` — front-matter parsing, `loadCalendarEntryForFile`,

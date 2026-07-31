@@ -154,6 +154,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
     * [Adding a Start Time and Duration](#adding-a-start-time-and-duration)
   * [Navigating the Calendar](#navigating-the-calendar)
   * [Jumping to a File](#jumping-to-a-file)
+  * [Jumping to a Date from a File](#jumping-to-a-date-from-a-file)
   * [What Gets Scanned](#what-gets-scanned-1)
   * [Recurring Events](#recurring-events)
 <!-- /TOC -->
@@ -1524,6 +1525,15 @@ Your current view mode and the date you are viewing are both remembered automati
 ## Jumping to a File
 
 Click any event on the calendar to jump directly to that file in the Browse View. MkBrowser will switch to the Browse tab and scroll the file into view, making it easy to open and edit the corresponding Markdown file.
+
+## Jumping to a Date from a File
+
+The property pills shown above a Markdown file in the Browse View are split into two halves — the property name on the left and its value on the right — and for a `due` property the two halves do different things:
+
+- **Click the name (`due`)** to open the date picker dialog and *change* the date.
+- **Click the value (the date itself)** to *go look at* that date: MkBrowser opens the Calendar tab scrolled to that date, scanning the file's own folder for calendar items.
+
+Every other property pill behaves the same no matter which half you click.
 
 ## What Gets Scanned
 

@@ -31,7 +31,11 @@
       "Bash(sed -i \"s|const DATA=path.join\\(__dirname,'settle-data'\\);|const DATA=path.join\\(__dirname,'scroll-data'\\);|\" probe.js)",
       "Bash(timeout 90 node probe.js)",
       "Bash(sed -i \"s|await win.getByText\\('Browse', { exact: true }\\).first\\(\\).click\\(\\);|await win.getByTestId\\('browse-to-folder'\\).click\\(\\);|\" verify-settle.js)",
-      "Bash(timeout 200 node verify-settle.js)"
+      "Bash(timeout 200 node verify-settle.js)",
+      "Bash(npm view *)",
+      "Bash(npm ls *)",
+      "Bash(node compiler-coverage.mjs src/components/entries/MarkdownEntry.tsx)",
+      "Bash(node compiler-coverage.mjs src/components/PropsDisplay.tsx)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

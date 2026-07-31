@@ -32,6 +32,8 @@ import PropsDisplay from '../PropsDisplay';
 import MarkdownView from './MarkdownView';
 import { logger } from '../../shared/logUtil';
 import { getParentPath } from '../../renderer/pathUtil';
+import { openCalendarAtDate } from '../../renderer/calendarNav';
+import { extractTimestamp } from '../../shared/timeUtil';
 import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
 import { trackScrollbarPress, pressStartedOnScrollbar } from '../../renderer/scrollbarPress';
 import { HUMAN_FILENAME, AI_FILENAME } from '../../shared/specialFiles';
@@ -86,6 +88,19 @@ async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<v
 
 /** Front-matter properties that EditCalendarDialog owns — clicking any of them opens that dialog. */
 const CALENDAR_PROPS = new Set(['due', 'start', 'duration', 'rrule']);
+
+/** The one property whose two pill halves do different things (edit vs. show on the calendar). */
+const DUE_PROP = 'due';
+
+/**
+ * Tooltip for the value half of a pill, spelling out that a `due` date is clickable in its own
+ * right. Module-level: PropsDisplay calls it per pill, and there's nothing from the component to
+ * close over.
+ */
+function propValueTitle(key: string, value: string): string | undefined {
+  if (key !== DUE_PROP || Number.isNaN(extractTimestamp(value))) return undefined;
+  return 'Show this date in the Calendar view';
+}
 
 
 /**
@@ -453,6 +468,23 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     })();
   };
 
+  /**
+   * Click on the *value* half of a pill. Only `due` behaves differently there: it jumps to that
+   * date on the Calendar tab, so the key half ("due") stays the way to edit the date and the value
+   * half becomes the way to go look at it. Everything else — including a `due` whose value doesn't
+   * parse as a date — falls through to the normal whole-pill behavior.
+   */
+  const clickOnPropValue = (key: string, value: string): void => {
+    if (key === DUE_PROP) {
+      const timestamp = extractTimestamp(value);
+      if (!Number.isNaN(timestamp)) {
+        openCalendarAtDate(getParentPath(entry.path), new Date(timestamp));
+        return;
+      }
+    }
+    clickOnProp(key);
+  };
+
   const clickOnTag = (): void => {
     if (edit.isEditing) {
       setTagsVisible(true);
@@ -474,6 +506,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       props={meta.props}
       onTagClick={clickOnTag}
       onPropClick={clickOnProp}
+      onPropValueClick={clickOnPropValue}
+      propValueTitle={propValueTitle}
     />
   ) : null;
 
@@ -565,6 +599,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                     })();
                   }}
                   onPropClick={clickOnProp}
+                  onPropValueClick={clickOnPropValue}
+                  propValueTitle={propValueTitle}
                 />
               )}
               <MarkdownView
