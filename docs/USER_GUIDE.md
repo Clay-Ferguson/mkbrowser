@@ -759,7 +759,17 @@ You can save frequently used searches for quick access later.
 
 Once saved, your search definitions appear in the **Search** menu on the application's main menu bar (sorted alphabetically). Simply click a saved search to execute it immediately.
 
-**Tip:** Hold **Ctrl** while clicking a search menu item to open the Search dialog with that definition pre-filled. This allows you to review the search parameters before running it, or to edit and update the saved definition.
+**Tip:** You can right-click a search menu item to open the Search dialog with that definition pre-filled. This allows you to review the search parameters before running it, or to edit and update the saved definition.
+
+## Search Tips
+### Find Recent Edits
+To create a search definition that displays all of the files underneath a given folder, ordering them reverse chronologically, create a search definition that has: 
+
+- empty search text field 
+- "Recent Files" checkbox selected
+- Sort Results By: File Modification Time
+- Direction: DESC (newest first)
+
 
 # Replace in Files
 
