@@ -473,11 +473,15 @@ function MarkdownEntry(props: MarkdownEntryProps) {
    * date on the Calendar tab, so the key half ("due") stays the way to edit the date and the value
    * half becomes the way to go look at it. Everything else — including a `due` whose value doesn't
    * parse as a date — falls through to the normal whole-pill behavior.
+   *
+   * The jump also highlights this file, so its purple border says which entry the user left from
+   * once they come back to the Browse View.
    */
   const clickOnPropValue = (key: string, value: string): void => {
     if (key === DUE_PROP) {
       const timestamp = extractTimestamp(value);
       if (!Number.isNaN(timestamp)) {
+        setHighlightItem(entry.path);
         openCalendarAtDate(getParentPath(entry.path), new Date(timestamp));
         return;
       }

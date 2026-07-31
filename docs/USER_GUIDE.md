@@ -1531,7 +1531,7 @@ Click any event on the calendar to jump directly to that file in the Browse View
 The property pills shown above a Markdown file in the Browse View are split into two halves — the property name on the left and its value on the right — and for a `due` property the two halves do different things:
 
 - **Click the name (`due`)** to open the date picker dialog and *change* the date.
-- **Click the value (the date itself)** to *go look at* that date: MkBrowser opens the Calendar tab scrolled to that date, scanning the file's own folder for calendar items.
+- **Click the value (the date itself)** to *go look at* that date: MkBrowser opens the Calendar tab scrolled to that date, scanning the file's own folder for calendar items. The file you clicked also becomes the highlighted file, so its purple border reminds you where you left off when you return to the Browse View.
 
 Every other property pill behaves the same no matter which half you click.
 
