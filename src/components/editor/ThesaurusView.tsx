@@ -172,14 +172,16 @@ function ThesaurusView({ onSaveSettings }: ThesaurusViewProps) {
                 {result.synonyms.map((synonym) => (
                   // Clicking inserts the synonym just past the word the cursor is in — it
                   // never replaces it, see `insertSynonymAfterWord`. The pointer cursor and
-                  // the brighter hover are the only affordance saying so, since a pill
-                  // otherwise looks exactly like a label.
+                  // the hover are the only affordance saying so, since a pill otherwise
+                  // looks exactly like a label. Hover moves the BORDER only: with hundreds
+                  // of pills on screen at once, lighting up a whole background under the
+                  // mouse is glare rather than feedback.
                   <button
                     key={synonym}
                     type="button"
                     onClick={() => handleSynonymClick(synonym)}
                     title={`Insert "${synonym}" after the word`}
-                    className="px-2 py-0.5 shrink-0 rounded-md text-sm leading-5 bg-blue-600/50 hover:bg-blue-500/80 text-blue-100 hover:text-white border border-slate-400/60 hover:border-slate-300 select-none whitespace-nowrap cursor-pointer transition-colors"
+                    className="px-2 py-0.5 shrink-0 rounded-md text-sm leading-5 bg-blue-700/50 text-blue-100 border border-slate-400/60 hover:border-slate-200 select-none whitespace-nowrap cursor-pointer transition-colors"
                     style={{ fontFamily: MONO_FONT_STACK }}
                   >
                     {synonym}

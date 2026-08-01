@@ -350,7 +350,7 @@ Publishing the word and claiming the strip being the *same event* is what makes 
 
 Because it is an ordinary `view.dispatch`, the insertion flows through CodeMirror's `updateListener` into the debounced `onChange` like any keystroke — it lands in the store's edit buffer, saves normally, and undoes with Ctrl+Z.
 
-The pills carry `cursor-pointer`, a brighter `hover:` background, and a title; the `tabIndex={-1}` they had while inert is **gone**, so they are keyboard reachable now that they do something.
+The pills carry `cursor-pointer`, a title, and a `hover:` that brightens the **border only** — with hundreds of pills on screen, a background that lights up under the mouse reads as glare rather than as feedback. The `tabIndex={-1}` they had while inert is **gone**, so they are keyboard reachable now that they do something.
 
 ## Testing
 
