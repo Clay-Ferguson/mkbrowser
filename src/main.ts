@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, ExifWriteResult } from './shared/shared';
+import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, ExifWriteResult, ThesaurusLookup } from './shared/shared';
 
 import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
@@ -19,6 +19,7 @@ import { loadCalendarEvents, loadCalendarEventsForFiles, type CalendarEventResul
 import { startCalendarWatcher, stopCalendarWatcher } from './main/calendarWatcher';
 import { scanFolderTree, type FolderGraphResult } from './main/folderGraph';
 import { loadTags } from './main/tagLoader';
+import { lookupThesaurus } from './main/thesaurusUtil';
 import type { TagCategory } from './shared/tagUtil';
 import { handleAskAI, handleRewriteContent, handleRewriteContentSection, handleReplyToAI, gatherThreadEntries, friendlyAIError } from './main/ai/aiUtil';
 import { hasScriptedAnswer, queueScriptedAnswer } from './main/ai/langGraph';
@@ -201,6 +202,21 @@ function setupIpcHandlers(): void {
     ]);
 
     return { affData, dicData };
+  });
+
+  // Thesaurus lookup for the editor's synonym pane. The data file is read and indexed
+  // lazily on the first call (see thesaurusUtil), so users who never open the editor
+  // never pay for it. A missing or corrupt file resolves to no synonyms rather than
+  // rejecting — the pane simply stays empty instead of surfacing an error mid-edit.
+  ipcMain.handle('lookup-thesaurus', async (_event, word: string): Promise<ThesaurusLookup> => {
+    return lookupThesaurus(word, {
+      resourcesPath: process.resourcesPath,
+      appPath: app.getAppPath(),
+      isPackaged: app.isPackaged,
+    }).catch((err: unknown) => {
+      logger.error('Thesaurus lookup failed:', err);
+      return { lemma: null, synonyms: [] };
+    });
   });
 
   // Get the in-memory config (no file I/O after startup)

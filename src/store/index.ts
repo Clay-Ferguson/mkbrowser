@@ -13,3 +13,4 @@ export * from './calendar';
 export * from './indexTree';
 export * from './scroll';
 export * from './view';
+export * from './thesaurus';

@@ -14,7 +14,7 @@ import { shell } from '@codemirror/legacy-modes/mode/shell';
 import Typo from 'typo-js';
 import { getGlobalHighlightText } from '../../renderer/globalHighlight';
 import AlertDialog from '../dialogs/AlertDialog';
-import { useAS } from '../../store';
+import { useAS, setThesaurusWord } from '../../store';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../renderer/editor/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../renderer/editor/editorDateUtil';
@@ -22,6 +22,7 @@ import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterA
 import { headingSizeExtensions } from '../../renderer/editor/editorHeadingUtil';
 import { markdownHighlightStyle } from '../../renderer/editor/editorMarkdownHighlight';
 import { minimalDiff } from '../../renderer/editor/editorDiffUtil';
+import { createThesaurusPlugin } from '../../renderer/editor/editorThesaurusUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
 import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
@@ -118,6 +119,16 @@ function scrollFirstChunkIntoView(view: EditorView | null): void {
   if (first !== undefined) {
     view.dispatch({ effects: EditorView.scrollIntoView(first.fromB, { y: 'center' }) });
   }
+}
+
+/**
+ * Whether `language` is a programming language rather than prose. Both the spell checker
+ * and the thesaurus are skipped for these — neither has anything useful to say about
+ * source code. Module-level so the mount effect can consult it while building the
+ * extension list and again when deciding whether to load the dictionary.
+ */
+function isCodeLanguage(language: CodeMirrorEditorProps['language']): boolean {
+  return language === 'javascript' || language === 'typescript' || language === 'python' || language === 'shell';
 }
 
 const searchMatchTheme = EditorView.theme({
@@ -521,6 +532,12 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       datePlugin,
       dateTheme,
       dateTooltipExtension,
+      // Publishes the word under the cursor (once it has been still for a moment) to the
+      // store, where ThesaurusView picks it up. Live prose editors only: a read-only view
+      // has no cursor the user is placing deliberately, and code has no use for synonyms.
+      // The plugin itself no-ops unless this editor has focus, so the several editors a
+      // folder listing can have mounted at once never compete over the pane.
+      ...(cfg.readOnly || isCodeLanguage(cfg.language) ? [] : [createThesaurusPlugin(setThesaurusWord)]),
       // customRenderPlugin, <-- Keep for future use
       // customRenderTheme, <-- Keep for future use
       EditorView.lineWrapping,
@@ -697,8 +714,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     };
 
     // Skip spell checking for code languages or read-only views
-    const isCodeLanguage = cfg.language === 'javascript' || cfg.language === 'typescript' || cfg.language === 'python' || cfg.language === 'shell';
-    if (isCodeLanguage || cfg.readOnly) {
+    if (isCodeLanguage(cfg.language) || cfg.readOnly) {
       // Returns the useEffect cleanup (unsubscribe) defined above.
       return cleanup;
     }

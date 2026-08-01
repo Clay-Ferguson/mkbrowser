@@ -75,7 +75,7 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     icon: './icon-256',
-    extraResource: ['./icon-256.png', './resources/pdf-export', './resources/dictionaries'],
+    extraResource: ['./icon-256.png', './resources/pdf-export', './resources/dictionaries', './resources/thesaurus'],
     ignore: (file: string) => {
       if (!file) return false; // the app root itself
       if (!PACKAGED_PATHS.some((prefix) => file === prefix || file.startsWith(`${prefix}/`))) {

@@ -26,6 +26,10 @@
     "tests/**/*.ts",
     // Ambient declarations (window.electronAPI) that src/ modules imported by
     // tests rely on; tsconfig.json's include covers this for the main project.
-    "src/global.d.ts"
+    "src/global.d.ts",
+    // Likewise for typo-js, which ships no types: the thesaurus tests import
+    // editorThesaurusUtil, which reaches spellChecker.ts (and so `typo-js`) for
+    // the word tokenizer the thesaurus and spell checker share.
+    "src/renderer/typo-js.d.ts"
   ]
 }

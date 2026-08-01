@@ -542,6 +542,17 @@ export interface AppState {
    */
   aiConfig: AiConfigState;
 
+  /**
+   * The word under the editor cursor that the thesaurus pane should show synonyms for,
+   * or null for none. Written by the editor's idle-cursor plugin (see
+   * `editorThesaurusUtil`) and read by `ThesaurusView`, which is the only reason it lives
+   * in the store: the pane is rendered by `BrowseFile` while CodeMirror sits two levels
+   * down inside the entry component, so there is no prop path between them.
+   *
+   * Holds only the word — the synonym lookup is the pane's own concern. Not persisted.
+   */
+  thesaurusWord: string | null;
+
 }
 
 /**

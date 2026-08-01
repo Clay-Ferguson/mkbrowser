@@ -6,6 +6,7 @@ import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
+import ThesaurusView from '../editor/ThesaurusView';
 import {
   navigateToBrowserPath,
   setItemExpanded,
@@ -231,6 +232,13 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
           )}
         </div>
       </main>
+
+      {/* Synonyms for the word under the editor cursor. A sibling of <main> rather than
+          something inside the entry, so it sits below the editor as a fixed strip the
+          maximized CodeMirror simply gets shorter by, instead of scrolling away with the
+          document. Editing only: with no cursor in a document it would have nothing to
+          say, and it would be taking height off a file the user is only reading. */}
+      {editing && <ThesaurusView />}
     </div>
   );
 }

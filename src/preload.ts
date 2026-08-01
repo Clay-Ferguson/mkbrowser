@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
     ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
+  lookupThesaurus: (word: string) => ipcRenderer.invoke('lookup-thesaurus', word),
   readDirectory: (dirPath: string) => ipcRenderer.invoke('read-directory', dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke('read-file', filePath),
   readFileWithMtime: (filePath: string) => ipcRenderer.invoke('read-file-with-mtime', filePath),

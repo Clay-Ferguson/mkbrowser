@@ -321,11 +321,26 @@ export interface AIUsageWithCosts {
   totalEstimatedCost: number;
 }
 
+/**
+ * Result of a thesaurus lookup for the editor's synonym pane.
+ *
+ * The thesaurus is keyed by root words, so a lookup for an inflected word ("walked") is
+ * answered from its root ("walk"). `lemma` reports which entry the synonyms actually came
+ * from — the word as typed when it had its own entry, the root when it did not, and null
+ * when nothing was found at all.
+ */
+export interface ThesaurusLookup {
+  lemma: string | null;
+  /** Synonyms for `lemma`, strongest first. Empty when `lemma` is null. */
+  synonyms: string[];
+}
+
 export interface ElectronAPI {
   /** Platform path separator: '\\' on Windows, '/' elsewhere. */
   pathSep: string;
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
+  lookupThesaurus: (word: string) => Promise<ThesaurusLookup>;
   getConfig: () => Promise<AppConfig>;
   updateConfig: (updates: Partial<AppConfig>) => Promise<void>;
   selectFolder: () => Promise<string | null>;
