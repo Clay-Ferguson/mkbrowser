@@ -8,6 +8,15 @@
 //
 //     node build-thesaurus.mjs
 //
+// ⚠️ IF YOU CHANGE THE PARSING OR OUTPUT LOGIC BELOW, RE-RUN THIS AND COMMIT THE RESULT.
+// Nothing verifies that the committed `moby.txt.gz` was produced by the current version of
+// this file. The unit tests exercise these functions against small synthetic inputs and
+// separately assert properties of the shipped file, but neither would notice that
+// regenerating would now produce different bytes — so the code and the data can silently
+// drift apart. The reader (`src/main/thesaurusUtil.ts`) is delimiter-driven and holds no
+// byte offsets, so line content and ordering can change freely; what must stay in sync is
+// the FORMAT CONTRACT described below.
+//
 // Source: https://www.gutenberg.org/files/3202/files/mthesaur.txt (~24 MB). Moby Thesaurus
 // II was placed in the PUBLIC DOMAIN by its author, Grady Ward, so the derived file ships
 // with the app under no conditions at all.

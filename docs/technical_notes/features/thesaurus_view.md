@@ -72,7 +72,7 @@ Moby's known cost, accepted deliberately: entries are **alphabetical with no rel
 
 ## The Data File and Its Generator
 
-- **`build-thesaurus.mjs`** (repo root) — the generator. Its header documents the source URL, licensing, input/output formats, and the reasoning; **that information is not duplicated here.** Read the file itself before modifying the pipeline.
+- **`build-thesaurus.mjs`** (repo root) — the generator. Its header documents the source URLs, licensing, and the derivation rules (which of AGID's annotations are honored, and why); **that reasoning is not duplicated here.** Read the file itself before modifying the pipeline.
 - **`resources/thesaurus/moby.txt.gz`** — the generated, **committed** data file. 9.4 MB gzipped (~25 MB raw). It holds two kinds of line in one namespace: 30,195 synonym entries (2,519,306 synonyms, average 83 per word, nothing capped or filtered) and 36,512 inflection aliases (see [Finding the Root Word](#finding-the-root-word)).
 
 Two things about the generator that matter operationally:
@@ -81,6 +81,37 @@ Two things about the generator that matter operationally:
 2. It lives at the repo root alongside `compiler-coverage.mjs` and `bundle-fingerprint.mjs`, matching the convention that root `.mjs` tools are untyped and unlinted (see the `files` globs in `eslint.config.mjs`).
 
 `moby.txt.gz` must remain the **only** file under `resources/thesaurus/`. A unit test asserts this, because earlier iterations shipped `thesaurus.txt.gz` (MyThes) and `lemmas.txt.gz` (WordNet exception lists) and a leftover would make it ambiguous which source is live.
+
+### The file format
+
+This is the contract between `build-thesaurus.mjs` (writer) and `src/main/thesaurusUtil.ts` (reader) — the one thing that must stay in sync between them. Gzipped UTF-8 text, one record per line, sorted by key. Two kinds of line share a single namespace, told apart by whether the value begins with `=`:
+
+Five consecutive lines from the shipped file, truncated at the right (tabs shown as `→`):
+
+```
+hug→abduct,accost,accueil,address,adhere,adhere to,agglomerate,around,bear,bear hug,…
+huge→Atlantean,Brobdingnagian,Cyclopean,Gargantuan,Herculean,Homeric,abysmal,…
+hugeness→ampleness,amplitude,boundlessness,bulk,enormity,enormousness,expanse,…
+hugenesses→=hugeness
+huger→=huge
+```
+
+| | |
+|---|---|
+| **Synonym line** | `word` TAB `syn1,syn2,syn3…` — the key holds the synonyms directly |
+| **Alias line** | `form` TAB `=root` — an inflected form pointing at the entry that holds them |
+
+Rules the reader depends on:
+
+- **Tab separates key from value; the first tab wins.** No synonym contains a tab (verified against the upstream Moby file).
+- **Comma separates synonyms.** No synonym contains a comma. Multi-word synonyms are ordinary values (`walk of life`, `take the air`).
+- **`=` is reserved as the alias marker.** Verified absent from Moby in both positions — no key and no synonym list begins with it.
+- **Keys are lowercased; synonyms keep their original case** (so `Brobdingnagian` displays properly while lookup stays case-insensitive).
+- **No positional dependency whatsoever.** The reader does `split('\n')` → `indexOf('\t')` → `slice()`, and holds no byte offsets or line numbers. Adding, removing, or reordering lines is always safe; the sort order is for human diffability, not correctness.
+
+That last point is why a regenerated file with different content can be dropped in without touching any code. What *would* break the reader is changing a delimiter, the alias marker, or the one-record-per-line shape.
+
+⚠️ **Nothing verifies that the committed `moby.txt.gz` was produced by the current `build-thesaurus.mjs`.** If you change the generator's parsing or output logic, re-run it and commit the result — the tests will not catch the drift (see [Gotchas](#gotchas)).
 
 ## Packaging the Data
 
@@ -286,6 +317,7 @@ The e2e spec is the only thing that exercises plugin → store → IPC → data 
 
 ## Gotchas
 
+- **The committed data file can silently drift from the generator.** Nothing checks that `moby.txt.gz` was produced by the current `build-thesaurus.mjs`. The unit tests exercise its parser functions against small synthetic inputs and separately assert properties of the shipped file, but neither notices that regenerating would now yield different bytes. Change the generator's logic → re-run it → commit the output.
 - **Picking e2e test words is not obvious.** `shouted` looks like a good lemmatization test but has its own Moby entry (as an adjective) and never reaches `findRoot`. Verify a candidate is genuinely absent from the data before asserting on it.
 - **`tsconfig.node.json` has a thesaurus-specific entry.** `tests/thesaurusWordAtCursor.test.ts` imports `editorThesaurusUtil`, which reaches `spellChecker.ts` and so `typo-js` (which ships no types). That project's `include` therefore lists `src/renderer/typo-js.d.ts` alongside `src/global.d.ts`. Removing it breaks `npm run lint` at the *second* `tsc` only.
 - **Do not clear `result` when `word` becomes null.** The `react-hooks/set-state-in-effect` lint rule rejects a synchronous `setState` in an effect body. The render already keys off `word`, so the stale result is simply not displayed.
