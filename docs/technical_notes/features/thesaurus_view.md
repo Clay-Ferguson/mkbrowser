@@ -3,6 +3,7 @@
 <!-- TOC -->
 
 * [Overview](#overview)
+* [The On/Off Switch (`enableThesaurus`)](#the-onoff-switch-enablethesaurus)
 * [Why Moby, and What Was Rejected](#why-moby-and-what-was-rejected)
 * [The Data File and Its Generator](#the-data-file-and-its-generator)
 * [Packaging the Data](#packaging-the-data)
@@ -13,7 +14,7 @@
 * [Wiring Into `CodeMirrorEditor`](#wiring-into-codemirroreditor)
 * [The Store Slice, and Why It Exists](#the-store-slice-and-why-it-exists)
 * [`ThesaurusView` Rendering](#thesaurusview-rendering)
-* [Not Yet Implemented: Click-to-Replace](#not-yet-implemented-click-to-replace)
+* [Clicking a Pill: Insert, Never Replace](#clicking-a-pill-insert-never-replace)
 * [Testing](#testing)
 * [Gotchas](#gotchas)
 * [Invariants](#invariants)
@@ -23,9 +24,11 @@
 
 ## Overview
 
-While a file is open for editing in **single-file mode** (`BrowseFile.tsx`), a strip below the editor shows synonyms for the word under the cursor, as clickable-looking pills.
+While a file is open for editing in **single-file mode** (`BrowseFile.tsx`), a strip below the editor shows synonyms for the word under the cursor, as pills. Clicking one inserts it into the document after that word — it never replaces it (see [Clicking a Pill](#clicking-a-pill-insert-never-replace)).
 
 There is no gesture to invoke it. The user clicks a word (or simply stops typing), and after ~2 seconds of stillness the synonyms appear. The strip is mounted **only while editing** and only by `BrowseFile` — inline edits in the folder listing (`BrowseView`) render no strip at all.
+
+A checkbox in the strip's corner turns the whole feature off, persistently — see [The On/Off Switch](#the-onoff-switch-enablethesaurus).
 
 The data flows one way, across the whole three-process boundary:
 
@@ -42,6 +45,24 @@ CodeMirror ViewPlugin (idle timer)          src/renderer/editor/editorThesaurusU
 ```
 
 Only the **word** travels through the store. The lookup itself happens in `ThesaurusView`, which is deliberate: an editor with no strip mounted never causes the data file to be read at all.
+
+## The On/Off Switch (`enableThesaurus`)
+
+A checkbox in the strip's top-left corner is the feature's master switch, backed by `settings.enableThesaurus` (a `boolean`, defaulting to **true**) and persisted to `config.yaml` like any other setting.
+
+**Off means off, not hidden.** The whole point of the switch is that the idle plugin costs something on every keystroke, so nothing may run when it is unchecked:
+
+| Layer | What the flag does |
+|---|---|
+| `createThesaurusPlugin` | `schedule()` returns without arming a timer, so no `setTimeout`, no word scan, no report. `report()` re-checks, because the user can uncheck the box during a 2-second countdown already in flight. |
+| `setEnableThesaurus` | Clears `thesaurusWord` in the same `set()` — one atomic patch, per the single-store rule. |
+| `ThesaurusView` | The lookup effect returns early, so the main process is never asked to read the 25 MB data file. |
+
+**The flag is passed to the plugin as a getter, not a value.** `createThesaurusPlugin(setThesaurusWord, () => getSettings().enableThesaurus)` — the extension list is built **once at mount** and never reconfigured (see [Wiring Into `CodeMirrorEditor`](#wiring-into-codemirroreditor)), and the checkbox that flips the flag sits in the pane below that very editor. A captured value would leave the setting inert until the next edit began. This is also the reason `schedule()` clears `lastReported` while disabled: the store's word was cleared too, so returning to the same word must not be suppressed as a repeat.
+
+There is no reactive channel from the store *into* the plugin, so **re-enabling takes effect on the next cursor move or keystroke** rather than instantly. That is a deliberate non-feature: adding one would mean reconfiguring a compartment on a setting almost nobody toggles twice.
+
+The strip therefore stays mounted whenever editing, whatever the flag says — with the pills gone it is one row tall, which is the only place the switch can live. (`BrowseFile` still mounts it only while editing, so the setting is reachable only from an open editor.)
 
 ## Why Moby, and What Was Rejected
 
@@ -213,7 +234,7 @@ export interface ThesaurusLookup {
 }
 ```
 
-`lemma` exists so the UI can be honest that a cursor on `walked` is showing `walk`'s synonyms. It matters more once pills are clickable, since inserting a base form into an inflected position is a grammar mismatch the user should see coming.
+`lemma` exists so the UI can be honest that a cursor on `walked` is showing `walk`'s synonyms — a base form next to an inflected one is a grammar mismatch the user should see coming when they click a pill.
 
 The main handler **swallows errors** and resolves `{ lemma: null, synonyms: [] }` after logging. A missing or corrupt data file leaves the pane empty rather than surfacing an error dialog mid-edit.
 
@@ -245,12 +266,14 @@ The `ViewPlugin` returned by `createThesaurusPlugin`:
 The plugin is added to the mount-time extension list in `src/components/editor/CodeMirrorEditor.tsx` (~line 540), gated:
 
 ```ts
-...(cfg.readOnly || isCodeLanguage(cfg.language) ? [] : [createThesaurusPlugin(setThesaurusWord)]),
+...(cfg.readOnly || isCodeLanguage(cfg.language)
+  ? []
+  : [createThesaurusPlugin(setThesaurusWord, () => getSettings().enableThesaurus)]),
 ```
 
 `isCodeLanguage()` is a **module-level helper** added for this feature; it replaced an inline `const` that the spell-check gate used, so both gates now share one definition. Module-level because the React Compiler does not compile plain functions.
 
-The editor view is built **once on mount** from `mountConfigRef`, so this gating is decided per editor instance and never reconfigured. That is correct here: edit mode and view mode are different `CodeMirrorEditor` instances (`key="edit"`).
+The editor view is built **once on mount** from `mountConfigRef`, so this gating is decided per editor instance and never reconfigured. That is correct here: edit mode and view mode are different `CodeMirrorEditor` instances (`key="edit"`). It is also exactly why `enableThesaurus` is handed over as a getter rather than a value — see [The On/Off Switch](#the-onoff-switch-enablethesaurus).
 
 ## The Store Slice, and Why It Exists
 
@@ -271,7 +294,7 @@ export function setThesaurusWord(word: string | null): void   // thin wrapper
 
 `src/components/editor/ThesaurusView.tsx`. Mounted by `BrowseFile.tsx` as `{editing && <ThesaurusView />}` — a **sibling of `<main>`**, not a child, so it is a fixed strip the maximized CodeMirror simply gets shorter by, rather than something that scrolls away with the document.
 
-Four render states, each with a `data-testid`:
+Two columns: the on/off checkbox (`thesaurus-enabled`), which is always there, and the content area, which is rendered only when enabled. Four content states, each with a `data-testid`:
 
 | State | testid |
 |---|---|
@@ -279,6 +302,10 @@ Four render states, each with a `data-testid`:
 | Lookup in flight, nothing shown yet | `thesaurus-loading` |
 | Word found nothing | `thesaurus-empty` |
 | Pills | `thesaurus-synonyms` (container), `thesaurus-label` (the lemma chip) |
+
+The two are a flex row rather than one wrap flow so the switch stays in the corner while the pills reflow past it; `items-start` plus a pill-sized line box on the label is what lines the checkbox up with the *first* row of pills instead of centring it against eight rows. Note that the column costs the pill area ~110px of width, so the same word wraps into more rows than it did before the checkbox existed.
+
+`onSaveSettings` is a prop (from `BrowseFile`, which already receives it) rather than an `api.updateConfig` call of its own, matching how every other persisted toggle in the entry components works.
 
 **Stale handling.** While a new word's lookup is in flight, the *previous* result stays on screen (`result` still holds the old word) and is dimmed via `stale ? ' opacity-50' : ''`. A cursor crossing a sentence would otherwise blank the strip repeatedly, which is more distracting than briefly stale pills.
 
@@ -295,23 +322,49 @@ A pill is `1.625rem` tall (a `text-sm` `leading-5` line = 1.25rem, plus `py-0.5`
 
 **Performance is fine at the extremes and was measured, not assumed.** Moby's largest entries are enormous (`cut` = 1446, `set` = 1151, `turn` = 1107, `run` = 1023; 738 entries exceed 300). Rendering 1446 pills showed no measurable difference from a small entry in the running app, so there is **no render cap** — matching the "maximum coverage" requirement.
 
-## Not Yet Implemented: Click-to-Replace
+## Clicking a Pill: Insert, Never Replace
 
-The pills are **already `<button type="button">`** elements specifically so that this is a one-line addition. They currently carry `tabIndex={-1}` and `cursor-default` because they are inert; **drop the `tabIndex` when the handler lands**, or they will be unreachable by keyboard.
+Clicking a pill **inserts** the synonym just past the word the cursor is in, leaving the original word alone. `the witness replied` + a click on `answer` becomes `the witness replied answer`, and the user deletes whichever word they don't want.
 
-To finish it, the click needs to reach back into the CodeMirror instance and replace the word under the cursor. Note the direction of the problem: the existing store channel is editor → strip, and this needs strip → editor. `CodeMirrorEditorHandle` already exposes `insertAtCursor(text)`, but `BrowseFile` has no reference to the entry's editor ref — expect to add an editor-handle registry, or route the replacement through the store the other way.
+This is a product decision, not a stepping stone to replacement:
 
-Also worth deciding at that point: what to insert when the pills are a *lemma's* synonyms (cursor on `walked`, pill says `stride`). Inserting the bare form produces "the witness stride". The `lemma` field in `ThesaurusLookup` is what tells you this case is active.
+- **Moby's lists are unranked breadth** (see [Why Moby](#why-moby-and-what-was-rejected)), so a mis-click is not unlikely — and replacing would silently destroy the user's prose with no preview.
+- **The lemma problem disappears.** A cursor on `walked` shows `walk`'s synonyms, so *replacing* would produce "the witness stride". Inserting puts the base form next to the inflected one, where the mismatch is visible and the user fixes it while deleting the original anyway.
+- The cost is one manual deletion; the benefit is that no click can ever lose text.
+
+### Where it goes
+
+`synonymInsertPos(state)` — the first whitespace at or after the cursor, else the end of the line. Scanning only the current line is complete rather than a shortcut: a line ends at either a line break (whitespace, so the scan stops there regardless) or the end of the document. It takes an `EditorState` for the same reason `thesaurusWordAtCursor` does — unit-testable with no DOM.
+
+The rule is followed literally at punctuation: `he replied,` inserts *after* the comma. That keeps `replied,` deletable as one unit.
+
+A **leading space is part of the inserted text**, or `walked` + `stride` would come out `walkedstride`. The cursor lands after the insertion and `view.focus()` returns focus to the editor (the click moved it to the pill), so typing carries straight on.
+
+### Getting back into the editor
+
+The store channel runs editor → strip only, and a click needs strip → editor. That direction is a **module-level `sourceView: EditorView | null`** in `editorThesaurusUtil.ts`, set from the plugin's `report()` at the moment it publishes a word and cleared when it reports `null` or is destroyed.
+
+Publishing the word and claiming the strip being the *same event* is what makes this safe: the pills on screen and `sourceView` cannot disagree, because one assignment produces both. With several editors mounted, the focus guard in `report()` has already picked the right one. A module-level reference rather than store state because nothing renders off it — as state it would be a field whose every write triggers a pointless re-render.
+
+`insertSynonymAfterWord(synonym)` returns `false` when there is no view (the editor went away between render and click); `ThesaurusView` logs and does nothing, since there is nothing to tell the user.
+
+Because it is an ordinary `view.dispatch`, the insertion flows through CodeMirror's `updateListener` into the debounced `onChange` like any keystroke — it lands in the store's edit buffer, saves normally, and undoes with Ctrl+Z.
+
+The pills carry `cursor-pointer`, a brighter `hover:` background, and a title; the `tabIndex={-1}` they had while inert is **gone**, so they are keyboard reachable now that they do something.
 
 ## Testing
 
 | File | Covers |
 |---|---|
 | `tests/thesaurus.test.ts` | `parseMoby`/`parseAgid`/`buildAliases`/`serialize` from the generator; `parseThesaurus`, `findRoot` (rules *and* aliases), `lookupThesaurus`; assertions on the **shipped** data file, including that no alias dangles or chains |
-| `tests/thesaurusWordAtCursor.test.ts` | `thesaurusWordAtCursor` against bare `EditorState`s — word boundaries, front matter, minimum length |
+| `tests/thesaurusWordAtCursor.test.ts` | `thesaurusWordAtCursor` and `synonymInsertPos` against bare `EditorState`s — word boundaries, front matter, minimum length; insert offsets at word edges, on whitespace, at line and document ends |
 | `tests/e2e/private-thesaurus.spec.ts` | The whole chain in the packaged app |
 
-The e2e spec is the only thing that exercises plugin → store → IPC → data file → render together. It asserts: no strip while browsing; strip appears on edit; an **inflected** word (`replied`) is answered from its root with the `reply` label; moving the cursor swaps the pills and the label disappears for a word with its own entry; the strip stays under 35% of the pane height; ending the edit removes it.
+The e2e spec is the only thing that exercises plugin → store → IPC → data file → render together. It asserts: no strip while browsing; strip appears on edit; an **inflected** word (`replied`) is answered from its root with the `reply` label; moving the cursor swaps the pills and the label disappears for a word with its own entry; the strip stays under half the pane height (a runaway guard on the `PILL_ROWS` cap, not a pixel spec); unchecking the box mid-edit drops the pills and shrinks the strip while the checkbox survives, and re-checking it brings synonyms back on the next cursor move; clicking a pill inserts that word into the document after the looked-up word; ending the edit removes it.
+
+Two things the checkbox phase depends on: clicking the checkbox **takes focus out of the editor**, so focus must be clicked back before any keystroke (the plugin reports only from the focused editor); and the re-enable step must move the cursor, since nothing pushes the setting into the running plugin.
+
+The pill-click phase **undoes its own insertion** (Ctrl+Z) before the final phase, and must: `TextEntry` ignores Escape while the buffer differs from the file, so a modified document would strand the "ending the edit removes the strip" assertion. The undo doubles as a check that the insertion is an ordinary entry in CodeMirror's history.
 
 ⚠️ **`npm run package` before running e2e after any `src/` change.** `tests/e2e/global-setup.ts` only builds when the bundle is *missing* — it does not detect staleness, so you will silently test old code.
 
@@ -330,10 +383,12 @@ The e2e spec is the only thing that exercises plugin → store → IPC → data 
 2. `moby.txt.gz` is generated only by `build-thesaurus.mjs`, and is committed.
 3. `findRoot` returns the word itself whenever it is a synonym entry, before any alias or rule is consulted.
 4. Every alias target is a real synonym entry, never another alias; a form with its own Moby entry is never aliased away. (Both asserted by unit test.)
-5. Only `thesaurusWord` (a string or null) crosses the store; synonyms never do.
-6. The idle plugin reports only from the focused editor.
-7. `ThesaurusView` is mounted only while editing, only by `BrowseFile`.
-8. Adding a package for this feature requires human authorization (`AGENTS.md`) — none is currently used.
+5. Only `thesaurusWord` (a string or null) crosses the store; synonyms never do. The return path (a clicked pill) does not use the store at all — it is `sourceView`.
+6. The idle plugin reports only from the focused editor, and `sourceView` is set from that same report, so the editor a pill inserts into is always the one its word came from.
+7. A clicked pill only ever **adds** text. Nothing in this feature deletes or replaces any of the user's prose.
+8. `ThesaurusView` is mounted only while editing, only by `BrowseFile` — and once mounted it renders its on/off checkbox unconditionally, since that is the only control that can turn the feature back on.
+9. With `settings.enableThesaurus` false, no timer is armed, no word is scanned, and no lookup is issued.
+10. Adding a package for this feature requires human authorization (`AGENTS.md`) — none is currently used.
 
 ## Code Locations
 
@@ -347,12 +402,15 @@ The e2e spec is the only thing that exercises plugin → store → IPC → data 
 | `src/preload.ts` | Bridge method (~line 14) |
 | `src/shared/shared.ts` | `ThesaurusLookup`, `ElectronAPI.lookupThesaurus` |
 | `src/shared/types.ts` | `AppState.thesaurusWord` |
+| `src/shared/shared.ts` | `AppSettings.enableThesaurus` |
+| `src/main/configSchema.ts` | `enableThesaurus` default (`true`) + zod field |
+| `src/store/settings.ts` | `setEnableThesaurus` (clears `thesaurusWord` when switched off) |
 | `src/store/thesaurus.ts` | The slice + `setThesaurusWord` wrapper |
-| `src/store/core.ts` | Slice registration, `thesaurusWord: null` initial state |
+| `src/store/core.ts` | Slice registration, `thesaurusWord: null` initial state, `enableThesaurus: true` default |
 | `src/store/index.ts` | Barrel re-export |
-| `src/renderer/editor/editorThesaurusUtil.ts` | Idle `ViewPlugin`, `thesaurusWordAtCursor` |
+| `src/renderer/editor/editorThesaurusUtil.ts` | Idle `ViewPlugin`, `thesaurusWordAtCursor`, `sourceView` + `synonymInsertPos` / `insertSynonymAfterWord` |
 | `src/components/editor/CodeMirrorEditor.tsx` | Extension wiring (~line 540), `isCodeLanguage` (~line 130) |
-| `src/components/editor/ThesaurusView.tsx` | The strip |
-| `src/components/views/BrowseFile.tsx` | Mounts the strip (~line 241) |
+| `src/components/editor/ThesaurusView.tsx` | The strip, the on/off checkbox, the pill click handler |
+| `src/components/views/BrowseFile.tsx` | Mounts the strip, passes `onSaveSettings` (~line 241) |
 | `src/components/editor/spellChecker.ts` | Source of the shared `wordAt` tokenizer |
 | `tsconfig.node.json` | `typo-js.d.ts` include needed by the thesaurus tests |

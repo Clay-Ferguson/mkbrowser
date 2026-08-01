@@ -65,7 +65,8 @@
       "Bash(curl -sL -m 180 -o infl.txt \"https://raw.githubusercontent.com/en-wl/wordlist/master/agid/infl.txt\")",
       "Bash(curl -sL -m 120 -o corpus1.txt \"https://www.gutenberg.org/files/1342/1342-0.txt\")",
       "Bash(curl -sL -m 120 -o corpus2.txt \"https://www.gutenberg.org/files/2701/2701-0.txt\")",
-      "Bash(echo \"LINT EXIT: $?\")"
+      "Bash(echo \"LINT EXIT: $?\")",
+      "Bash(grep *)"
     ],
     "additionalDirectories": [
       "/home/clay/ferguson/projects/kocreator"

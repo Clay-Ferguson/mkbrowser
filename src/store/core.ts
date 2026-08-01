@@ -54,6 +54,7 @@ export const defaultSettings: AppSettings = {
   showPropsInEditor: true,
   expandedEditor: false,
   imageSize: DEFAULT_IMAGE_SIZE,
+  enableThesaurus: true,
 };
 
 /**

@@ -130,6 +130,13 @@ export interface AppSettings {
    * for the pixel heights.
    */
   imageSize: ImageSize;
+  /**
+   * Master switch for the cursor-driven synonym strip below the editor. When
+   * false the strip shows only its own on/off checkbox, and nothing upstream of
+   * it runs: the editor's idle plugin never arms its timer, so no work happens
+   * while the user types.
+   */
+  enableThesaurus: boolean;
 }
 
 /** Supported AI providers. Single source of truth for both the {@link AIProvider}

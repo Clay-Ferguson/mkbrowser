@@ -26,6 +26,7 @@ export interface SettingsSlice {
   setCalendarItemsFolder: (calendarItemsFolder: string) => void;
   setIndexTreeWidth: (indexTreeWidth: IndexTreeWidth) => void;
   setImageSize: (imageSize: ImageSize) => void;
+  setEnableThesaurus: (enableThesaurus: boolean) => void;
   toggleBookmark: (filePath: string) => boolean;
   addBookmark: (filePath: string, name: string) => void;
   updateBookmarkName: (filePath: string, name: string) => void;
@@ -80,6 +81,17 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
 
     /** Update the inline image display size setting. */
     setImageSize: (imageSize) => set({ settings: { ...get().settings, imageSize } }),
+
+    /**
+     * Turn the editor's synonym strip on or off. Switching it off also drops any
+     * word the idle plugin had already published, so re-enabling starts from a
+     * clean strip rather than showing synonyms for wherever the cursor last sat.
+     */
+    setEnableThesaurus: (enableThesaurus) =>
+      set({
+        settings: { ...get().settings, enableThesaurus },
+        ...(enableThesaurus ? null : { thesaurusWord: null }),
+      }),
 
     /**
      * Toggle bookmark for a file path.
@@ -184,6 +196,10 @@ export function setIndexTreeWidth(indexTreeWidth: IndexTreeWidth): void {
 
 export function setImageSize(imageSize: ImageSize): void {
   getState().setImageSize(imageSize);
+}
+
+export function setEnableThesaurus(enableThesaurus: boolean): void {
+  getState().setEnableThesaurus(enableThesaurus);
 }
 
 export function toggleBookmark(filePath: string): boolean {

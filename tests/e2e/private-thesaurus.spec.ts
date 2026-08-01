@@ -28,7 +28,14 @@ import {
  *      for an inflected word, which is answered from its base form.
  *   3. Moving the cursor to a different word replaces them. This is the assertion that
  *      matters most: a strip that shows the first word forever would pass a weaker test.
- *   4. Ending the edit takes the strip away again.
+ *   4. The checkbox turns the whole feature off and back on, live, mid-edit — the one
+ *      control the strip has, and the only proof that the editor plugin honors the
+ *      setting rather than having captured its value when the editor mounted.
+ *   5. Clicking a pill inserts that synonym after the word, back in the editor. This is
+ *      the strip → editor direction, which no other test can reach: the store channel
+ *      only runs editor → strip, so the click depends on the plugin having handed over a
+ *      live `EditorView`.
+ *   6. Ending the edit takes the strip away again.
  *
  * This test is private (not part of the demo video set) — it still writes
  * screenshots/narration per the shared conventions, but its purpose is
@@ -158,15 +165,75 @@ The thesaurus is indexed by base words, so there's no entry for "replied" itself
       `Move the cursor to another word — here, "beautiful" at the top of the file — and the strip follows along, swapping in synonyms for that word instead. This one has its own entry, so there's no base form to point out and the whole strip is synonyms.`
     );
 
-    // The editor still owns the screen: the strip is meant to be unobtrusive, roughly three
-    // rows of pills. If its height ever ran away, this is what would catch it.
+    // The editor still owns the screen. This is a runaway guard, not a pixel spec: the
+    // strip's ceiling is `PILL_ROWS` (8) rows of pills plus its padding, and the fraction
+    // below is that ceiling with a little room, so only a change that defeats the scroll
+    // cap trips it. The bound is deliberately loose of what this word actually renders —
+    // the "Thesaurus" checkbox occupies a column, so the pills wrap sooner than the strip's
+    // full width would suggest, and the row count is content- and width-dependent.
     const paneBox = await single.boundingBox();
     const stripBox = await thesaurus.boundingBox();
     expect(paneBox).not.toBeNull();
     expect(stripBox).not.toBeNull();
-    expect(stripBox!.height).toBeLessThan(paneBox!.height * 0.35);
+    expect(stripBox!.height).toBeLessThan(paneBox!.height * 0.5);
 
-    // --- Phase 5: end the edit ----------------------------------------------
+    // --- Phase 5: the on/off checkbox ---------------------------------------
+    // Turning it off has to work on the editor that is already open: the extension list is
+    // built once when CodeMirror mounts, so an implementation that captured the flag there
+    // would leave the pills up (or, worse, keep scanning) until the next edit.
+    const enableCheckbox = mainWindow.getByTestId('thesaurus-enabled');
+    await demoClick(enableCheckbox);
+
+    // The pills go, the checkbox stays — it is the only way back on, which is why the strip
+    // collapses to one row instead of unmounting.
+    await expect(mainWindow.getByTestId('thesaurus-synonyms')).toHaveCount(0);
+    await expect(thesaurus).toBeVisible();
+    await expect(enableCheckbox).not.toBeChecked();
+    const offBox = await thesaurus.boundingBox();
+    expect(offBox).not.toBeNull();
+    expect(offBox!.height).toBeLessThan(stripBox!.height);
+
+    await takeScreenshot(mainWindow, thesaurus, screenshotDir, step++, 'thesaurus-turned-off');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Unchecking the box switches the thesaurus off entirely — the synonyms are gone and the strip shrinks to the checkbox itself, which is all that's left to turn it back on. Nothing is looked up while it's off, and the choice is remembered between sessions.`
+    );
+
+    // Back on: the plugin re-arms on the next cursor move. Clicking the checkbox took focus
+    // out of the editor, so focus has to go back before the keystroke — and the plugin only
+    // reports from the focused editor anyway.
+    await demoClick(enableCheckbox);
+    await expect(enableCheckbox).toBeChecked();
+    await demoClick(single.locator('.cm-content'));
+    await mainWindow.keyboard.press('Control+End');
+    await expect(synonyms.getByRole('button', { name: 'answer', exact: true })).toBeVisible({ timeout: 15000 });
+
+    // --- Phase 6: click a pill ----------------------------------------------
+    // The click has to travel back into the CodeMirror instance the pills came from, which
+    // is the one direction the store channel does not run — so nothing but an end-to-end
+    // test covers it. The cursor is at the end of the document (Control+End, above), inside
+    // "replied", so "answer" lands just past that word rather than replacing it.
+    await demoClick(synonyms.getByRole('button', { name: 'answer', exact: true }));
+
+    const editorText = single.locator('.cm-content');
+    await expect(editorText).toContainText('the witness replied answer');
+
+    await takeScreenshot(mainWindow, single, screenshotDir, step++, 'synonym-inserted');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `Clicking a pill drops that word into the document, right after the word we looked up. It doesn't replace anything — both words are left on the page, and you delete whichever one you don't want. A mis-click can never cost you text.`
+    );
+
+    // Undo, so the edit is unmodified again and the Escape below cancels it. (An entry with
+    // unsaved changes deliberately ignores Escape, which would strand the next phase.) This
+    // doubles as a check that the insertion is an ordinary undoable edit and not something
+    // spliced in behind CodeMirror's history.
+    await mainWindow.keyboard.press('Control+z');
+    await expect(editorText).not.toContainText('answer');
+
+    // --- Phase 7: end the edit ----------------------------------------------
     // Escape cancels an unmodified edit, which unmounts the editor — and with it the strip.
     await mainWindow.keyboard.press('Escape');
     await expect(mainWindow.getByTestId('thesaurus-view')).toHaveCount(0, { timeout: 10000 });

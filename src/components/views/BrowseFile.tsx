@@ -238,7 +238,7 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
           maximized CodeMirror simply gets shorter by, instead of scrolling away with the
           document. Editing only: with no cursor in a document it would have nothing to
           say, and it would be taking height off a file the user is only reading. */}
-      {editing && <ThesaurusView />}
+      {editing && <ThesaurusView onSaveSettings={onSaveSettings} />}
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { shell } from '@codemirror/legacy-modes/mode/shell';
 import Typo from 'typo-js';
 import { getGlobalHighlightText } from '../../renderer/globalHighlight';
 import AlertDialog from '../dialogs/AlertDialog';
-import { useAS, setThesaurusWord } from '../../store';
+import { useAS, setThesaurusWord, getSettings } from '../../store';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../renderer/editor/editorHashtagUtil';
 import { datePlugin, dateTheme, dateTooltipExtension } from '../../renderer/editor/editorDateUtil';
@@ -536,8 +536,12 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // store, where ThesaurusView picks it up. Live prose editors only: a read-only view
       // has no cursor the user is placing deliberately, and code has no use for synonyms.
       // The plugin itself no-ops unless this editor has focus, so the several editors a
-      // folder listing can have mounted at once never compete over the pane.
-      ...(cfg.readOnly || isCodeLanguage(cfg.language) ? [] : [createThesaurusPlugin(setThesaurusWord)]),
+      // folder listing can have mounted at once never compete over the pane. The enabled
+      // flag is passed as a getter, not a value: this list is built once at mount, and the
+      // checkbox that flips the flag sits in the pane the plugin feeds.
+      ...(cfg.readOnly || isCodeLanguage(cfg.language)
+        ? []
+        : [createThesaurusPlugin(setThesaurusWord, () => getSettings().enableThesaurus)]),
       // customRenderPlugin, <-- Keep for future use
       // customRenderTheme, <-- Keep for future use
       EditorView.lineWrapping,

@@ -46,6 +46,7 @@ export const defaultSettings: AppSettings = {
   showPropsInEditor: true,
   expandedEditor: false,
   imageSize: DEFAULT_IMAGE_SIZE,
+  enableThesaurus: true,
 };
 
 /** Returns a fresh `AppSettings` with independent copies of all mutable arrays. */
@@ -176,6 +177,7 @@ const AppSettingsSchema = z
     // An unrecognized value (including the abandoned top-level imageSize's old
     // 'small'/'large' meaning) falls back to the default rather than erroring.
     imageSize: z.enum(['small', 'medium', 'large']).catch(defaultSettings.imageSize),
+    enableThesaurus: z.boolean().catch(defaultSettings.enableThesaurus),
   })
   .loose();
 

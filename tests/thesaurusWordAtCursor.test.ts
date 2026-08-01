@@ -1,6 +1,7 @@
 /**
- * Tests for the cursor→word step of the thesaurus feature
- * (src/renderer/editor/editorThesaurusUtil.ts).
+ * Tests for the two cursor-position rules of the thesaurus feature
+ * (src/renderer/editor/editorThesaurusUtil.ts): the cursor→word step that decides what is
+ * looked up, and the cursor→offset step that decides where a clicked synonym lands.
  *
  * This is the part of the feature the user actually feels: park the cursor on a word and
  * synonyms for THAT word appear. Getting the boundary wrong (off by one at either end,
@@ -10,7 +11,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { EditorState } from '@codemirror/state';
-import { thesaurusWordAtCursor, MIN_THESAURUS_WORD_LENGTH } from '../src/renderer/editor/editorThesaurusUtil';
+import { thesaurusWordAtCursor, synonymInsertPos, MIN_THESAURUS_WORD_LENGTH } from '../src/renderer/editor/editorThesaurusUtil';
 
 /** An editor state holding `doc` with the cursor at offset `pos`. */
 function stateAt(doc: string, pos: number): EditorState {
@@ -72,5 +73,61 @@ describe('thesaurusWordAtCursor', () => {
     expect(thesaurusWordAtCursor(stateAt('', 0))).toBeNull();
     const doc = 'ending word';
     expect(thesaurusWordAtCursor(stateAt(doc, doc.length))).toBe('word');
+  });
+});
+
+/**
+ * Clicking a pill inserts the synonym *after* the word rather than replacing it, so this
+ * offset is the whole behaviour: land it one character early and the insertion splits a
+ * word in half. The rule is "first whitespace at or after the cursor, else end of line".
+ */
+describe('synonymInsertPos', () => {
+  /** The document as it would read after clicking a pill for `synonym`. */
+  function afterInsert(doc: string, pos: number, synonym: string): string {
+    const at = synonymInsertPos(stateAt(doc, pos));
+    if (at === null) return doc;
+    return doc.slice(0, at) + ' ' + synonym + doc.slice(at);
+  }
+
+  it('inserts past the end of the word the cursor is inside', () => {
+    const doc = 'the witness replied to me';
+    expect(afterInsert(doc, doc.indexOf('plied'), 'answered'))
+      .toBe('the witness replied answered to me');
+  });
+
+  it('inserts past the word from either of its edges', () => {
+    const doc = 'the witness replied to me';
+    const start = doc.indexOf('replied');
+    expect(synonymInsertPos(stateAt(doc, start))).toBe(start + 'replied'.length);
+    expect(synonymInsertPos(stateAt(doc, start + 'replied'.length))).toBe(start + 'replied'.length);
+  });
+
+  it('inserts at the cursor when it already sits on whitespace', () => {
+    const doc = 'one two';
+    expect(afterInsert(doc, 3, 'x')).toBe('one x two');
+  });
+
+  it('stops at the end of the line, not the end of the document', () => {
+    // The scan never has to cross a line: the break is itself whitespace.
+    const doc = 'first line\nsecond line';
+    expect(afterInsert(doc, doc.indexOf('irst'), 'initial')).toBe('first initial line\nsecond line');
+    const lastWord = doc.indexOf('line', 11);
+    expect(afterInsert(doc, lastWord, 'row')).toBe('first line\nsecond line row');
+  });
+
+  it('inserts at the end of the document when no whitespace follows', () => {
+    const doc = 'trailing word';
+    expect(afterInsert(doc, doc.length, 'term')).toBe('trailing word term');
+  });
+
+  it('keeps punctuation attached to the original word', () => {
+    // Following the whitespace rule literally: a trailing comma belongs to the word being
+    // replaced, so the synonym goes after it and the user deletes "replied," as one unit.
+    const doc = 'he replied, softly';
+    expect(afterInsert(doc, doc.indexOf('plied'), 'answered')).toBe('he replied, answered softly');
+  });
+
+  it('handles an empty document', () => {
+    expect(synonymInsertPos(stateAt('', 0))).toBe(0);
   });
 });
