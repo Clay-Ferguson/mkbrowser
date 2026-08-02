@@ -105,26 +105,26 @@ function ThesaurusView() {
 
   return (
     <div
-      className="flex-shrink-0 border-t border-slate-600 bg-slate-800 px-4 py-2"
+      className="flex-shrink-0 border-t border-slate-600 bg-slate-800"
       data-testid="thesaurus-view"
     >
       {word === null ? (
-        <span className="text-sm text-slate-500" data-testid="thesaurus-idle">
+        <span className="text-sm text-slate-500 px-2 py-2" data-testid="thesaurus-idle">
           Place the cursor on a word to see synonyms.
         </span>
       ) : result === null ? (
-        <span className="text-sm text-slate-500" data-testid="thesaurus-loading">
+        <span className="text-sm text-slate-500 px-2 py-2" data-testid="thesaurus-loading">
           Looking up &quot;{word}&quot;…
         </span>
       ) : result.synonyms.length === 0 ? (
-        <span className="text-sm text-slate-500" data-testid="thesaurus-empty">
+        <span className="text-sm text-slate-500 px-2 py-2" data-testid="thesaurus-empty">
           No synonyms for &quot;{result.word}&quot;.
         </span>
       ) : (
         <div
           // pr-2 keeps the pills off the scrollbar this container grows when the
           // entry is long enough to hit PILL_AREA_MAX_HEIGHT.
-          className={`flex flex-wrap gap-1.5 overflow-y-auto pr-2${stale ? ' opacity-50' : ''}`}
+          className={`flex flex-wrap gap-1.5 overflow-y-auto px-2 py-2${stale ? ' opacity-50' : ''}`}
           style={{ maxHeight: PILL_AREA_MAX_HEIGHT }}
           data-testid="thesaurus-synonyms"
           title={`Synonyms for "${result.lemma ?? result.word}"`}
