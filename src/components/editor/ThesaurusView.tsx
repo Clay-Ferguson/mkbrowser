@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../../renderer/api';
 import { useAS } from '../../store';
 import { logger } from '../../shared/logUtil';
@@ -51,6 +51,7 @@ function ThesaurusView() {
   const word = useAS(s => s.thesaurusWord);
   const enabled = useAS(s => s.settings.enableThesaurus);
   const [result, setResult] = useState<ThesaurusResult | null>(null);
+  const pillAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Switched off: no lookup, and therefore no reason for the main process to read the
@@ -81,6 +82,17 @@ function ThesaurusView() {
 
     return () => { cancelled = true; };
   }, [word, enabled]);
+
+  // A new lookup replaces every pill, so any scroll position carried over from the previous
+  // word is meaningless — a large entry (Moby's biggest run to 1446 synonyms) would leave the
+  // user parked mid-list of a word the cursor has already left, looking at row 8 of something
+  // else. `result` is a fresh object per lookup, so this fires exactly when the content is
+  // replaced and never on an unrelated re-render. Runs even when the pill area is not
+  // currently rendered (idle/empty/loading), where the ref is simply null.
+  useEffect(() => {
+    const el = pillAreaRef.current;
+    if (el !== null) el.scrollTop = 0;
+  }, [result]);
 
   // The click travels back into the CodeMirror instance the pills came from, which the
   // idle plugin holds a reference to (the store channel only runs editor → strip). A
@@ -122,6 +134,7 @@ function ThesaurusView() {
         </span>
       ) : (
         <div
+          ref={pillAreaRef}
           // pr-2 keeps the pills off the scrollbar this container grows when the
           // entry is long enough to hit PILL_AREA_MAX_HEIGHT.
           className={`flex flex-wrap gap-1.5 overflow-y-auto px-2 py-2${stale ? ' opacity-50' : ''}`}
@@ -129,19 +142,6 @@ function ThesaurusView() {
           data-testid="thesaurus-synonyms"
           title={`Synonyms for "${result.lemma ?? result.word}"`}
         >
-          {/* Names the entry the pills came from, but ONLY when it is not the word under
-              the cursor — a cursor on "walked" is answered from "walk", and the user
-              should see that rather than wonder why the tenses don't match. It rides
-              inside the wrap flow rather than in a column of its own, so nothing but
-              synonyms occupies the strip whenever there is nothing to disclose. */}
-          {!stale && result.lemma !== null && result.lemma !== result.word && (
-            <span
-              className="self-center shrink-0 pr-1 text-xs uppercase tracking-wide text-slate-500 select-none"
-              data-testid="thesaurus-label"
-            >
-              {result.lemma}
-            </span>
-          )}
           {result.synonyms.map((synonym) => (
             // Clicking inserts the synonym just past the word the cursor is in — it
             // never replaces it, see `insertSynonymAfterWord`. The pointer cursor and

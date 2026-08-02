@@ -333,6 +333,8 @@ The component takes **no props**. It reads `thesaurusWord` and `settings.enableT
 
 **The lemma chip.** Rendered only when `result.lemma !== result.word` — i.e. only when there is a base form to disclose. It sits **inside the wrap flow**, not in a column of its own, so when there is nothing to disclose the strip is 100% synonyms. (Two earlier versions put fixed chrome in a column to its left — first a permanent "THESAURUS" label, then the on/off checkbox. Both were removed; the pills now get the full width.)
 
+**Scroll position resets on every new entry.** The pill area scrolls once an entry exceeds `PILL_ROWS` rows (see **Height** below), and a scroll offset left over from the previous word means nothing for the next one — a cursor moving from `cut` (1446 synonyms) to a short entry would otherwise leave the strip parked partway down a list it no longer shows. A `useEffect` keyed on `result` sets `scrollTop = 0` via a ref on the wrap container. Keyed on the `result` **object**, which `setResult` replaces once per completed lookup, so it fires exactly when the pills are replaced and never on an unrelated re-render — notably not while the strip is merely `stale`, where the old pills are still the ones on screen. The ref is null in the idle/loading/empty states, which is why the effect null-checks rather than assuming the container exists.
+
 **Height.**
 
 ```ts
