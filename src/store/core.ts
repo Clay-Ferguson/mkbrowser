@@ -54,7 +54,8 @@ export const defaultSettings: AppSettings = {
   showPropsInEditor: true,
   expandedEditor: false,
   imageSize: DEFAULT_IMAGE_SIZE,
-  enableThesaurus: true,
+  // Off by default — see the note on the same field in `configSchema.ts`.
+  enableThesaurus: false,
 };
 
 /**

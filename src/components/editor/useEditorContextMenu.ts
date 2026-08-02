@@ -6,7 +6,8 @@ import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { hasDueProperty, injectCalendarFrontMatter } from '../../shared/calendarUtil';
 import { isMarkdownFile } from '../../shared/fileTypes';
 import { buildMarkdownLinks } from '../../renderer/linkUtil';
-import { useAS } from '../../store';
+import { api } from '../../renderer/api';
+import { useAS, getSettings, setEnableThesaurus } from '../../store';
 import { wordAt, type SpellingSuggestion } from './spellChecker';
 
 export interface ContextMenuState {
@@ -24,6 +25,13 @@ interface UseEditorContextMenuProps {
   onSave?: () => void;
   onMakeCalendarItem?: () => void;
   onMakeRepeatingCalendarItem?: () => void;
+  /**
+   * Whether this editor is one the thesaurus plugin was installed into — live prose only,
+   * the same gate `CodeMirrorEditor` applies when building its extension list. False here
+   * hides the Enable/Disable Thesaurus item, since toggling a setting no plugin is reading
+   * would do nothing.
+   */
+  thesaurusCapable?: boolean;
 }
 
 /**
@@ -32,16 +40,23 @@ interface UseEditorContextMenuProps {
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
  * top of the menu. Also exposes save-in-place, cut/copy/paste, select-all, timestamp/date
- * insertion, and — for Markdown files — "Paste Link" and calendar-item creation actions.
+ * insertion, the thesaurus on/off switch, and — for Markdown files — "Paste Link" and
+ * calendar-item creation actions.
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
- * `canPasteLink`, `canSave`, `calendarAlreadyExists`).
+ * `canPasteLink`, `canSave`, `canToggleThesaurus`, `thesaurusEnabled`,
+ * `calendarAlreadyExists`).
  */
-export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onSave, onMakeCalendarItem, onMakeRepeatingCalendarItem }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onSave, onMakeCalendarItem, onMakeRepeatingCalendarItem, thesaurusCapable = false }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
   const [calendarAlreadyExists, setCalendarAlreadyExists] = useState(false);
   const selectedLinkItems = useAS(s => s.selectedLinkItems);
+  const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
+  // Only `BrowseFile` (single-file mode) mounts the synonym strip, and that is what
+  // `browseFileName` being set means. Offering the switch in a folder-listing inline editor
+  // would turn the feature on with nowhere for the synonyms to appear.
+  const singleFileMode = useAS(s => s.browseFileName !== null);
 
   const closeContextMenu = () => {
     setContextMenu(prev => ({ ...prev, visible: false }));
@@ -251,6 +266,26 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
     view.focus();
   };
 
+  // The thesaurus master switch (`settings.enableThesaurus`). It lives here rather than in
+  // the strip itself so that "off" can mean the strip renders nothing at all — a checkbox
+  // inside it would have to keep a row of chrome on screen to stay clickable.
+  //
+  // The setting is persisted directly rather than through an `onSaveSettings` prop:
+  // `CodeMirrorEditor` has no such prop, and this matches how `BookmarksPopupMenu` writes
+  // its own settings change.
+  //
+  // Handing focus back to the editor is not just tidiness — the idle plugin schedules on
+  // `focusChanged`, so it is what re-arms the countdown when the feature is switched on
+  // mid-edit. Synonyms appear a couple of seconds later with no further gesture.
+  const handleToggleThesaurus = () => {
+    const view = viewRef.current;
+    setEnableThesaurus(!thesaurusEnabled);
+    closeContextMenu();
+    view?.focus();
+    void api.updateConfig({ settings: getSettings() })
+      .catch((err: unknown) => logger.error('Failed to save thesaurus setting:', err));
+  };
+
   // Shared implementation for both calendar-item variants. Aborts with an alert if a
   // 'due' property already exists in the front matter; otherwise injects the calendar
   // front matter and invokes the parent callback (used to trigger a save).
@@ -326,6 +361,9 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
     handleSpellingSuggestion,
     handleInsertTimestamp,
     handleInsertDate,
+    handleToggleThesaurus,
+    canToggleThesaurus: thesaurusCapable && singleFileMode,
+    thesaurusEnabled,
     handleMakeCalendarItem,
     handleMakeRepeatingCalendarItem,
     isMarkdown,

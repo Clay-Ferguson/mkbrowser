@@ -131,10 +131,11 @@ export interface AppSettings {
    */
   imageSize: ImageSize;
   /**
-   * Master switch for the cursor-driven synonym strip below the editor. When
-   * false the strip shows only its own on/off checkbox, and nothing upstream of
-   * it runs: the editor's idle plugin never arms its timer, so no work happens
-   * while the user types.
+   * Master switch for the cursor-driven synonym strip below the editor, toggled
+   * from the editor's right-click menu and off by default. When false the strip
+   * is not rendered at all (the editor keeps that height), and nothing upstream
+   * of it runs either: the editor's idle plugin never arms its timer, so no work
+   * happens while the user types.
    */
   enableThesaurus: boolean;
 }

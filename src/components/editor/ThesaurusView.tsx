@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../renderer/api';
-import { useAS, setEnableThesaurus } from '../../store';
+import { useAS } from '../../store';
 import { logger } from '../../shared/logUtil';
-import { MONO_FONT_STACK, CHECKBOX_CLASS } from '../../renderer/styles';
+import { MONO_FONT_STACK } from '../../renderer/styles';
 import { insertSynonymAfterWord } from '../../renderer/editor/editorThesaurusUtil';
 
 /**
@@ -18,19 +18,15 @@ import { insertSynonymAfterWord } from '../../renderer/editor/editorThesaurusUti
  * mounted (an inline edit in the folder listing) never causes the thesaurus data file to be
  * read at all.
  *
- * The checkbox in the corner is the feature's master switch (`settings.enableThesaurus`,
- * persisted to config.yaml). It stays mounted when the feature is off — it is the only way
- * back on — so the strip collapses to one short row rather than disappearing. Turning it
- * off is a real off: the idle plugin stops arming its timer, so nothing is scanned or
+ * `settings.enableThesaurus` is the feature's master switch, and off means **gone**: this
+ * renders nothing at all, so the editor above it keeps every pixel. The switch itself lives
+ * in the editor's right-click menu (see `useEditorContextMenu`) rather than here, precisely
+ * so that turning the feature off can take the whole strip with it. Off is also a real off
+ * further up the chain — the idle plugin stops arming its timer, so nothing is scanned or
  * looked up while the user types.
  *
  * Rendered only by `BrowseFile`, and only while editing.
  */
-
-interface ThesaurusViewProps {
-  /** Persists `settings` to config.yaml — the checkbox has to survive a restart. */
-  onSaveSettings: () => void;
-}
 
 /** What is currently on screen: the word looked up under the cursor, and what came back. */
 interface ThesaurusResult {
@@ -51,7 +47,7 @@ const PILL_ROWS = 8;
 // `settings.fontSize`, since the pills are text-sm regardless of the editor's font.
 const PILL_AREA_MAX_HEIGHT = `calc(${PILL_ROWS} * 1.625rem + ${PILL_ROWS - 1} * 0.375rem)`;
 
-function ThesaurusView({ onSaveSettings }: ThesaurusViewProps) {
+function ThesaurusView() {
   const word = useAS(s => s.thesaurusWord);
   const enabled = useAS(s => s.settings.enableThesaurus);
   const [result, setResult] = useState<ThesaurusResult | null>(null);
@@ -86,11 +82,6 @@ function ThesaurusView({ onSaveSettings }: ThesaurusViewProps) {
     return () => { cancelled = true; };
   }, [word, enabled]);
 
-  const handleToggleEnabled = (checked: boolean) => {
-    setEnableThesaurus(checked);
-    onSaveSettings();
-  };
-
   // The click travels back into the CodeMirror instance the pills came from, which the
   // idle plugin holds a reference to (the store channel only runs editor → strip). A
   // failure here means that editor is gone, in which case there is nothing to insert into
@@ -107,91 +98,70 @@ function ThesaurusView({ onSaveSettings }: ThesaurusViewProps) {
   // briefly stale pills. `stale` dims them so what is showing is honest.
   const stale = result !== null && result.word !== word;
 
+  // Switched off: no strip in the DOM at all, so the editor above simply gets that height
+  // back. This is the whole reason the on/off control moved to the editor's context menu —
+  // a switch living in here would have to keep a row of chrome on screen to be clickable.
+  if (!enabled) return null;
+
   return (
     <div
       className="flex-shrink-0 border-t border-slate-600 bg-slate-800 px-4 py-2"
       data-testid="thesaurus-view"
     >
-      {/* Two columns rather than one wrap flow: the switch has to stay put in the corner
-          while the pills reflow past it. `items-start` plus the pill's own line box on the
-          label is what puts the checkbox on the first row of pills instead of centred
-          against eight rows of them. */}
-      <div className="flex items-start gap-3">
-        <label
-          className="flex shrink-0 items-center gap-1.5 py-0.5 text-xs uppercase leading-5 tracking-wide text-slate-400 select-none cursor-pointer"
-          title="Show synonyms for the word under the cursor"
+      {word === null ? (
+        <span className="text-sm text-slate-500" data-testid="thesaurus-idle">
+          Place the cursor on a word to see synonyms.
+        </span>
+      ) : result === null ? (
+        <span className="text-sm text-slate-500" data-testid="thesaurus-loading">
+          Looking up &quot;{word}&quot;…
+        </span>
+      ) : result.synonyms.length === 0 ? (
+        <span className="text-sm text-slate-500" data-testid="thesaurus-empty">
+          No synonyms for &quot;{result.word}&quot;.
+        </span>
+      ) : (
+        <div
+          // pr-2 keeps the pills off the scrollbar this container grows when the
+          // entry is long enough to hit PILL_AREA_MAX_HEIGHT.
+          className={`flex flex-wrap gap-1.5 overflow-y-auto pr-2${stale ? ' opacity-50' : ''}`}
+          style={{ maxHeight: PILL_AREA_MAX_HEIGHT }}
+          data-testid="thesaurus-synonyms"
+          title={`Synonyms for "${result.lemma ?? result.word}"`}
         >
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => handleToggleEnabled(e.target.checked)}
-            className={CHECKBOX_CLASS}
-            data-testid="thesaurus-enabled"
-          />
-          Thesaurus
-        </label>
-
-        {/* Off: the label above is the whole strip, one row tall. Everything below it —
-            the lookup, the pills, and the editor plugin feeding them — is inert. */}
-        {enabled && (
-          <div className="min-w-0 flex-1">
-            {word === null ? (
-              <span className="text-sm text-slate-500" data-testid="thesaurus-idle">
-                Place the cursor on a word to see synonyms.
-              </span>
-            ) : result === null ? (
-              <span className="text-sm text-slate-500" data-testid="thesaurus-loading">
-                Looking up &quot;{word}&quot;…
-              </span>
-            ) : result.synonyms.length === 0 ? (
-              <span className="text-sm text-slate-500" data-testid="thesaurus-empty">
-                No synonyms for &quot;{result.word}&quot;.
-              </span>
-            ) : (
-              <div
-                // pr-2 keeps the pills off the scrollbar this container grows when the
-                // entry is long enough to hit PILL_AREA_MAX_HEIGHT.
-                className={`flex flex-wrap gap-1.5 overflow-y-auto pr-2${stale ? ' opacity-50' : ''}`}
-                style={{ maxHeight: PILL_AREA_MAX_HEIGHT }}
-                data-testid="thesaurus-synonyms"
-                title={`Synonyms for "${result.lemma ?? result.word}"`}
-              >
-                {/* Names the entry the pills came from, but ONLY when it is not the word under
-                    the cursor — a cursor on "walked" is answered from "walk", and the user
-                    should see that rather than wonder why the tenses don't match. It rides
-                    inside the wrap flow rather than in a column of its own, so nothing but
-                    synonyms occupies the strip whenever there is nothing to disclose. */}
-                {!stale && result.lemma !== null && result.lemma !== result.word && (
-                  <span
-                    className="self-center shrink-0 pr-1 text-xs uppercase tracking-wide text-slate-500 select-none"
-                    data-testid="thesaurus-label"
-                  >
-                    {result.lemma}
-                  </span>
-                )}
-                {result.synonyms.map((synonym) => (
-                  // Clicking inserts the synonym just past the word the cursor is in — it
-                  // never replaces it, see `insertSynonymAfterWord`. The pointer cursor and
-                  // the hover are the only affordance saying so, since a pill otherwise
-                  // looks exactly like a label. Hover moves the BORDER only: with hundreds
-                  // of pills on screen at once, lighting up a whole background under the
-                  // mouse is glare rather than feedback.
-                  <button
-                    key={synonym}
-                    type="button"
-                    onClick={() => handleSynonymClick(synonym)}
-                    title={`Insert "${synonym}" after the word`}
-                    className="px-2 py-0.5 shrink-0 rounded-md text-sm leading-5 bg-blue-700/50 text-blue-100 border border-slate-400/60 hover:border-slate-200 select-none whitespace-nowrap cursor-pointer transition-colors"
-                    style={{ fontFamily: MONO_FONT_STACK }}
-                  >
-                    {synonym}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          {/* Names the entry the pills came from, but ONLY when it is not the word under
+              the cursor — a cursor on "walked" is answered from "walk", and the user
+              should see that rather than wonder why the tenses don't match. It rides
+              inside the wrap flow rather than in a column of its own, so nothing but
+              synonyms occupies the strip whenever there is nothing to disclose. */}
+          {!stale && result.lemma !== null && result.lemma !== result.word && (
+            <span
+              className="self-center shrink-0 pr-1 text-xs uppercase tracking-wide text-slate-500 select-none"
+              data-testid="thesaurus-label"
+            >
+              {result.lemma}
+            </span>
+          )}
+          {result.synonyms.map((synonym) => (
+            // Clicking inserts the synonym just past the word the cursor is in — it
+            // never replaces it, see `insertSynonymAfterWord`. The pointer cursor and
+            // the hover are the only affordance saying so, since a pill otherwise
+            // looks exactly like a label. Hover moves the BORDER only: with hundreds
+            // of pills on screen at once, lighting up a whole background under the
+            // mouse is glare rather than feedback.
+            <button
+              key={synonym}
+              type="button"
+              onClick={() => handleSynonymClick(synonym)}
+              title={`Insert "${synonym}" after the word`}
+              className="px-2 py-0.5 shrink-0 rounded-md text-sm leading-5 bg-blue-700/50 text-blue-100 border border-slate-400/60 hover:border-slate-200 select-none whitespace-nowrap cursor-pointer transition-colors"
+              style={{ fontFamily: MONO_FONT_STACK }}
+            >
+              {synonym}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

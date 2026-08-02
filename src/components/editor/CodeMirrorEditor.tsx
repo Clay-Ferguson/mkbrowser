@@ -457,6 +457,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     handleSpellingSuggestion,
     handleInsertTimestamp,
     handleInsertDate,
+    handleToggleThesaurus,
+    canToggleThesaurus,
+    thesaurusEnabled,
     handleMakeCalendarItem,
     handleMakeRepeatingCalendarItem,
     isMarkdown,
@@ -470,6 +473,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     onSave: onSaveKeepEditing !== undefined && !reviewing ? handleContextMenuSave : undefined,
     onMakeCalendarItem,
     onMakeRepeatingCalendarItem,
+    // The same gate the extension list below applies: the menu offers the thesaurus switch
+    // only on editors that actually have the plugin installed.
+    thesaurusCapable: !readOnly && !isCodeLanguage(language),
   });
 
   // Build the EditorView exactly once, on mount, from the mountConfigRef snapshot (see its
@@ -538,7 +544,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // The plugin itself no-ops unless this editor has focus, so the several editors a
       // folder listing can have mounted at once never compete over the pane. The enabled
       // flag is passed as a getter, not a value: this list is built once at mount, and the
-      // checkbox that flips the flag sits in the pane the plugin feeds.
+      // context-menu item that flips the flag belongs to this same editor.
       ...(cfg.readOnly || isCodeLanguage(cfg.language)
         ? []
         : [createThesaurusPlugin(setThesaurusWord, () => getSettings().enableThesaurus)]),
@@ -978,6 +984,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         onSpellingSuggestion={handleSpellingSuggestion}
         onInsertTimestamp={handleInsertTimestamp}
         onInsertDate={handleInsertDate}
+        onToggleThesaurus={handleToggleThesaurus}
+        canToggleThesaurus={canToggleThesaurus}
+        thesaurusEnabled={thesaurusEnabled}
         onMakeCalendarItem={handleMakeCalendarItem}
         onMakeRepeatingCalendarItem={handleMakeRepeatingCalendarItem}
         isMarkdown={isMarkdown}

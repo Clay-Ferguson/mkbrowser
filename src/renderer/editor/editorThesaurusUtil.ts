@@ -119,10 +119,10 @@ export function insertSynonymAfterWord(synonym: string): boolean {
  * when the pane should show nothing.
  *
  * `isEnabled` is read fresh on every keystroke rather than captured once, because the
- * user's on/off checkbox lives in the pane below this very editor — the extension list is
- * built once at mount and never reconfigured, so a value baked in here would leave the
- * setting inert until the next edit. When it returns false no timer is even armed, which
- * is the point: turning the feature off has to cost nothing while the user types.
+ * user's on/off switch is an item in this very editor's right-click menu — the extension
+ * list is built once at mount and never reconfigured, so a value baked in here would leave
+ * the setting inert until the next edit. When it returns false no timer is even armed,
+ * which is the point: turning the feature off has to cost nothing while the user types.
  *
  * Two further guards keep the reports meaningful:
  * - **Focus.** Only the focused editor reports. Several editors can be mounted at once

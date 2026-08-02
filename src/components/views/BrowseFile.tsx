@@ -237,8 +237,10 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
           something inside the entry, so it sits below the editor as a fixed strip the
           maximized CodeMirror simply gets shorter by, instead of scrolling away with the
           document. Editing only: with no cursor in a document it would have nothing to
-          say, and it would be taking height off a file the user is only reading. */}
-      {editing && <ThesaurusView onSaveSettings={onSaveSettings} />}
+          say, and it would be taking height off a file the user is only reading. It also
+          renders nothing at all unless `settings.enableThesaurus` is on (the editor's
+          right-click menu toggles that), so the strip costs no height when unused. */}
+      {editing && <ThesaurusView />}
     </div>
   );
 }

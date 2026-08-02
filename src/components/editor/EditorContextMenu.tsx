@@ -17,6 +17,11 @@ interface EditorContextMenuProps {
   onSpellingSuggestion: (suggestion: string) => void;
   onInsertTimestamp: () => void;
   onInsertDate: () => void;
+  onToggleThesaurus: () => void;
+  /** Whether the thesaurus item is shown — only where the synonym strip can actually appear. */
+  canToggleThesaurus: boolean;
+  /** Current state of `settings.enableThesaurus`, which is what the item's wording flips on. */
+  thesaurusEnabled: boolean;
   onMakeCalendarItem?: () => void;
   onMakeRepeatingCalendarItem?: () => void;
   isMarkdown?: boolean;
@@ -29,8 +34,9 @@ const VIEWPORT_MARGIN = 8;
  * Floating context menu for the CodeMirror editor. Renders at the right-click coordinates,
  * clamped so it stays fully within the viewport. Includes Save (writes the file without
  * leaving edit mode), standard edit actions (cut/copy/paste, select all), timestamp/date
- * insertion, optional spell-check suggestions, and Markdown-only items (Paste Link, calendar
- * item creation). Closes on outside click, scroll, or Escape.
+ * insertion, optional spell-check suggestions, the thesaurus on/off switch, and
+ * Markdown-only items (Paste Link, calendar item creation). Closes on outside click,
+ * scroll, or Escape.
  */
 export function EditorContextMenu({
   contextMenu,
@@ -45,6 +51,9 @@ export function EditorContextMenu({
   onSpellingSuggestion,
   onInsertTimestamp,
   onInsertDate,
+  onToggleThesaurus,
+  canToggleThesaurus,
+  thesaurusEnabled,
   onMakeCalendarItem,
   onMakeRepeatingCalendarItem,
   isMarkdown,
@@ -233,6 +242,23 @@ export function EditorContextMenu({
         <span>Insert Date</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+D</span>
       </button>
+      {/* The synonym strip's only control. Its own group: it changes a persisted setting
+          rather than touching the document, unlike everything above it. */}
+      {canToggleThesaurus && (
+        <>
+          <div className="border-t border-slate-600 my-1" />
+          <button
+            type="button"
+            role="menuitem"
+            tabIndex={-1}
+            onClick={onToggleThesaurus}
+            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+            data-testid="editor-toggle-thesaurus"
+          >
+            {thesaurusEnabled ? 'Disable Thesaurus' : 'Enable Thesaurus'}
+          </button>
+        </>
+      )}
       {isMarkdown && (
         <>
           <div className="border-t border-slate-600 my-1" />

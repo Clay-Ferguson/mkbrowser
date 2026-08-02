@@ -46,7 +46,9 @@ export const defaultSettings: AppSettings = {
   showPropsInEditor: true,
   expandedEditor: false,
   imageSize: DEFAULT_IMAGE_SIZE,
-  enableThesaurus: true,
+  // Off by default: the synonym strip renders nothing at all while it is off, so a fresh
+  // install gets the full editor height. It is opted into from the editor's right-click menu.
+  enableThesaurus: false,
 };
 
 /** Returns a fresh `AppSettings` with independent copies of all mutable arrays. */

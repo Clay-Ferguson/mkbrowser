@@ -5,6 +5,7 @@ import {
   takeScreenshot,
   writeNarration,
   demoClick,
+  demoRightClick,
   logScreenshotSummary,
   cleanupScreenshots,
   cleanupTestDataFiles,
@@ -14,28 +15,33 @@ import {
 /**
  * Private E2E Test: Thesaurus strip
  *
- * While a file is open for editing in single-file mode, a strip below the editor shows
- * synonyms for the word under the cursor — with no gesture from the user beyond parking
- * the cursor there for a moment.
+ * Once the feature is switched on from the editor's right-click menu, a strip below the
+ * editor shows synonyms for the word under the cursor — with no further gesture from the
+ * user beyond parking the cursor there for a moment.
  *
  * Almost none of that is checkable by unit tests: the word travels from a CodeMirror view
  * plugin, through the store, into a component that looks it up over IPC, in a process that
  * has to find a ~2 MB data file shipped in `resources/`. This test is the only thing that
  * exercises the whole chain, so it covers:
  *
- *   1. The strip appears only while editing — absent when merely browsing the file.
- *   2. Parking the cursor on a word produces that word's synonyms, unprompted — including
+ *   1. Nothing is rendered until the feature is enabled — not while browsing, and not on
+ *      opening the editor either, since `enableThesaurus` is off by default.
+ *   2. "Enable Thesaurus" in the editor's context menu brings the strip up mid-edit. That
+ *      it works on the already-open editor is the point: the extension list is built once
+ *      when CodeMirror mounts, so an implementation that captured the flag there would
+ *      leave the strip inert until the next edit.
+ *   3. Parking the cursor on a word produces that word's synonyms, unprompted — including
  *      for an inflected word, which is answered from its base form.
- *   3. Moving the cursor to a different word replaces them. This is the assertion that
+ *   4. Moving the cursor to a different word replaces them. This is the assertion that
  *      matters most: a strip that shows the first word forever would pass a weaker test.
- *   4. The checkbox turns the whole feature off and back on, live, mid-edit — the one
- *      control the strip has, and the only proof that the editor plugin honors the
- *      setting rather than having captured its value when the editor mounted.
- *   5. Clicking a pill inserts that synonym after the word, back in the editor. This is
+ *   5. "Disable Thesaurus" takes the strip out of the DOM entirely — the editor gets that
+ *      height back rather than keeping a row of chrome around — and re-enabling brings the
+ *      synonyms back.
+ *   6. Clicking a pill inserts that synonym after the word, back in the editor. This is
  *      the strip → editor direction, which no other test can reach: the store channel
  *      only runs editor → strip, so the click depends on the plugin having handed over a
  *      live `EditorView`.
- *   6. Ending the edit takes the strip away again.
+ *   7. Ending the edit takes the strip away again.
  *
  * This test is private (not part of the demo video set) — it still writes
  * screenshots/narration per the shared conventions, but its purpose is
@@ -107,23 +113,35 @@ test.describe('Private: Thesaurus', () => {
       `We're browsing a single text file. There's no thesaurus in sight — it belongs to editing, not reading.`
     );
 
-    // --- Phase 2: start editing --------------------------------------------
+    // --- Phase 2: start editing, then switch the thesaurus on ----------------
     await demoClick(single.locator('.cm-content'));
     await expect(mainWindow.getByTestId('entry-save-button')).toBeVisible({ timeout: 10000 });
 
-    // The strip is there the moment editing starts, telling the user what to do rather
-    // than sitting blank and unexplained.
+    // Still nothing: the feature is off by default, and off means the strip is not in the
+    // DOM at all, so the editor keeps the full height of the pane.
     const thesaurus = mainWindow.getByTestId('thesaurus-view');
+    await expect(thesaurus).toHaveCount(0);
+
+    // Turning it on has to work on the editor that is already open: the extension list is
+    // built once when CodeMirror mounts, so an implementation that captured the flag there
+    // would leave the strip inert (or, worse, keep scanning while off) until the next edit.
+    await demoRightClick(single.locator('.cm-content'));
+    const toggleThesaurus = mainWindow.getByTestId('editor-toggle-thesaurus');
+    await expect(toggleThesaurus).toHaveText('Enable Thesaurus');
+    await demoClick(toggleThesaurus);
+
     await expect(thesaurus).toBeVisible({ timeout: 10000 });
 
-    await takeScreenshot(mainWindow, thesaurus, screenshotDir, step++, 'editing-thesaurus-idle');
+    await takeScreenshot(mainWindow, thesaurus, screenshotDir, step++, 'editing-thesaurus-enabled');
     writeNarration(
       screenshotDir,
       step++,
-      `Opening the editor brings up a slim strip along the bottom. It's the thesaurus, waiting for us to put the cursor on a word.`
+      `Right-click in the editor and pick "Enable Thesaurus". A slim strip appears along the bottom, waiting for us to put the cursor on a word. Until we ask for it, it takes up no room at all.`
     );
 
     // --- Phase 3: park the cursor on an inflected word ----------------------
+    // The menu item handed focus back to the editor when it closed, so this keystroke goes
+    // to the document — and the plugin only reports from the editor that has focus.
     // Control+End lands just past "replied", the last word in the document. The plugin waits
     // for the cursor to be still for ~2s, so the assertion's own timeout is what waits.
     await mainWindow.keyboard.press('Control+End');
@@ -168,44 +186,43 @@ The thesaurus is indexed by base words, so there's no entry for "replied" itself
     // The editor still owns the screen. This is a runaway guard, not a pixel spec: the
     // strip's ceiling is `PILL_ROWS` (8) rows of pills plus its padding, and the fraction
     // below is that ceiling with a little room, so only a change that defeats the scroll
-    // cap trips it. The bound is deliberately loose of what this word actually renders —
-    // the "Thesaurus" checkbox occupies a column, so the pills wrap sooner than the strip's
-    // full width would suggest, and the row count is content- and width-dependent.
+    // cap trips it. The bound is deliberately loose of what this word actually renders,
+    // since the row count is content- and width-dependent.
     const paneBox = await single.boundingBox();
     const stripBox = await thesaurus.boundingBox();
     expect(paneBox).not.toBeNull();
     expect(stripBox).not.toBeNull();
     expect(stripBox!.height).toBeLessThan(paneBox!.height * 0.5);
 
-    // --- Phase 5: the on/off checkbox ---------------------------------------
-    // Turning it off has to work on the editor that is already open: the extension list is
-    // built once when CodeMirror mounts, so an implementation that captured the flag there
-    // would leave the pills up (or, worse, keep scanning) until the next edit.
-    const enableCheckbox = mainWindow.getByTestId('thesaurus-enabled');
-    await demoClick(enableCheckbox);
+    // --- Phase 5: switch it back off, and on again ---------------------------
+    // Off is a real off in both directions: the setting stops the plugin scanning, and the
+    // strip leaves the DOM rather than collapsing to a row of chrome. Nothing but the
+    // context menu can bring it back, which is the whole reason the switch lives there.
+    await demoRightClick(single.locator('.cm-content'));
+    await expect(toggleThesaurus).toHaveText('Disable Thesaurus');
+    await demoClick(toggleThesaurus);
 
-    // The pills go, the checkbox stays — it is the only way back on, which is why the strip
-    // collapses to one row instead of unmounting.
-    await expect(mainWindow.getByTestId('thesaurus-synonyms')).toHaveCount(0);
-    await expect(thesaurus).toBeVisible();
-    await expect(enableCheckbox).not.toBeChecked();
-    const offBox = await thesaurus.boundingBox();
-    expect(offBox).not.toBeNull();
-    expect(offBox!.height).toBeLessThan(stripBox!.height);
+    await expect(thesaurus).toHaveCount(0);
+    // The editor grew into the space the strip was using.
+    const grownPaneBox = await single.boundingBox();
+    expect(grownPaneBox).not.toBeNull();
+    expect(grownPaneBox!.height).toBeGreaterThan(paneBox!.height);
 
-    await takeScreenshot(mainWindow, thesaurus, screenshotDir, step++, 'thesaurus-turned-off');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'thesaurus-turned-off');
     writeNarration(
       screenshotDir,
       step++,
-      `Unchecking the box switches the thesaurus off entirely — the synonyms are gone and the strip shrinks to the checkbox itself, which is all that's left to turn it back on. Nothing is looked up while it's off, and the choice is remembered between sessions.`
+      `"Disable Thesaurus" in the same menu switches it off entirely — the strip disappears and the editor grows back into the space. Nothing is looked up while it's off, and the choice is remembered between sessions.`
     );
 
-    // Back on: the plugin re-arms on the next cursor move. Clicking the checkbox took focus
-    // out of the editor, so focus has to go back before the keystroke — and the plugin only
-    // reports from the focused editor anyway.
-    await demoClick(enableCheckbox);
-    await expect(enableCheckbox).toBeChecked();
-    await demoClick(single.locator('.cm-content'));
+    // Back on again. The menu item hands focus back to the editor, and that focus change is
+    // itself what re-arms the idle plugin — so the cursor move below is answered normally
+    // without the user having to click into the document first.
+    await demoRightClick(single.locator('.cm-content'));
+    await expect(toggleThesaurus).toHaveText('Enable Thesaurus');
+    await demoClick(toggleThesaurus);
+    await expect(thesaurus).toBeVisible();
+
     await mainWindow.keyboard.press('Control+End');
     await expect(synonyms.getByRole('button', { name: 'answer', exact: true })).toBeVisible({ timeout: 15000 });
 
