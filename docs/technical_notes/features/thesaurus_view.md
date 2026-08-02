@@ -8,6 +8,7 @@
 * [The Data File and Its Generator](#the-data-file-and-its-generator)
 * [Packaging the Data](#packaging-the-data)
 * [Main Process: `thesaurusUtil.ts`](#main-process-thesaurusutilts)
+  * [Ordering: single words first](#ordering-single-words-first)
 * [Finding the Root Word](#finding-the-root-word)
 * [The IPC Surface](#the-ipc-surface)
 * [Renderer: Detecting the Word Under the Cursor](#renderer-detecting-the-word-under-the-cursor)
@@ -91,6 +92,8 @@ Key findings, each verified empirically:
 
 Moby's known cost, accepted deliberately: entries are **alphabetical with no relevance ranking**, so visible noise is unavoidable (`huge` leads with *Atlantean, Brobdingnagian, Cyclopean*). This was an explicit product decision — breadth over ordering.
 
+The one reordering applied on top is `singleWordsFirst` (see [Ordering](#ordering-single-words-first)), which groups rather than ranks — it needs no notion of relevance, which is exactly why it is safe here where every ranking attempt above failed.
+
 ## The Data File and Its Generator
 
 - **`build-thesaurus.mjs`** (repo root) — the generator. Its header documents the source URLs, licensing, and the derivation rules (which of AGID's annotations are honored, and why); **that reasoning is not duplicated here.** Read the file itself before modifying the pipeline.
@@ -161,6 +164,16 @@ For Playwright, `tests/e2e/global-setup.ts` copies `resources/` into `.vite/buil
 
 Because the cache is a module singleton, **tests that exercise `lookupThesaurus` against a temp fixture poison it for later tests in the same file.** The shipped-data tests deliberately call `parseThesaurus`/`findRoot` directly instead of going through `lookupThesaurus`.
 
+### Ordering: single words first
+
+`singleWordsFirst(synonyms)` puts the plain one-word synonyms ahead of the **compound** ones — anything containing a space *or* a hyphen — keeping Moby's alphabetical order within each group. Moby mixes them freely, so a large entry otherwise scatters *take the air*, *walk of life* and *good-looking* through eight rows of wrapped pills, pushing the short, drop-in-ready options out of view. Of the 2.5 M shipped synonyms, 501k contain a space and a further 66k contain a hyphen but no space, so the hyphen arm is doing real work rather than covering a rarity.
+
+A **single pass into two arrays, concatenated** — not a sort. It is O(n) rather than O(n log n), tests each string once instead of once per comparison, and preserves the within-group order outright instead of leaning on the sort being stable.
+
+The test is `s.includes(' ') || s.includes('-')`, and **not** a precompiled `/[ -]/`, which is the counter-intuitive part. Measured over every shipped synonym (2.5 M strings, average 8.7 characters), the two scans ran ~35% faster than the precompiled regex and ~45% faster than an inline one: at that length the regex engine's per-character loop costs more than running the SIMD single-character search twice, and there is no regex object involved at all. (`indexOf` measured a further ~5% faster still and was passed over — that is noise at 1446 items, and `includes` reads better.)
+
+It runs in `lookupThesaurus`, on the array `split(',')` has just built, so the ordering is a property of `ThesaurusLookup` that every caller gets rather than something the pane does at render. The alternative — two arrays all the way to the renderer, so nothing is ever joined — buys one array allocation per lookup at the cost of a wider IPC type and a second `.map()` in the JSX. Not worth it at 1446 items, which is the largest entry Moby has.
+
 ## Finding the Root Word
 
 **Moby is keyed by root words only.** It has `walk` but not `walked`, `take` but not `took`. Prose is mostly inflected, so without a reduction step the strip goes blank on most verbs — measured at **41% of prose tokens** finding nothing with exact matching alone.
@@ -230,6 +243,7 @@ export interface ThesaurusLookup {
   /** The entry the synonyms came from: the word as typed when it had its own
    *  entry, the root when it did not, null when nothing was found. */
   lemma: string | null;
+  /** Single words first, compounds (space or hyphen) after; alphabetical within each. */
   synonyms: string[];
 }
 ```
@@ -356,7 +370,7 @@ The pills carry `cursor-pointer`, a title, and a `hover:` that brightens the **b
 
 | File | Covers |
 |---|---|
-| `tests/thesaurus.test.ts` | `parseMoby`/`parseAgid`/`buildAliases`/`serialize` from the generator; `parseThesaurus`, `findRoot` (rules *and* aliases), `lookupThesaurus`; assertions on the **shipped** data file, including that no alias dangles or chains |
+| `tests/thesaurus.test.ts` | `parseMoby`/`parseAgid`/`buildAliases`/`serialize` from the generator; `parseThesaurus`, `findRoot` (rules *and* aliases), `singleWordsFirst`, `lookupThesaurus`; assertions on the **shipped** data file, including that no alias dangles or chains |
 | `tests/thesaurusWordAtCursor.test.ts` | `thesaurusWordAtCursor` and `synonymInsertPos` against bare `EditorState`s — word boundaries, front matter, minimum length; insert offsets at word edges, on whitespace, at line and document ends |
 | `tests/e2e/private-thesaurus.spec.ts` | The whole chain in the packaged app |
 
@@ -397,7 +411,7 @@ The pill-click phase **undoes its own insertion** (Ctrl+Z) before the final phas
 | `build-thesaurus.mjs` | One-time generator; read its header before touching the pipeline |
 | `resources/thesaurus/moby.txt.gz` | The committed data file (9.4 MB): synonym entries + inflection aliases |
 | `forge.config.ts` | `extraResource` entry that ships the folder |
-| `src/main/thesaurusUtil.ts` | Load/cache, `parseThesaurus`, `findRoot`, `lookupThesaurus` |
+| `src/main/thesaurusUtil.ts` | Load/cache, `parseThesaurus`, `findRoot`, `singleWordsFirst`, `lookupThesaurus` |
 | `src/main.ts` | `lookup-thesaurus` IPC handler (~line 211) |
 | `src/preload.ts` | Bridge method (~line 14) |
 | `src/shared/shared.ts` | `ThesaurusLookup`, `ElectronAPI.lookupThesaurus` |

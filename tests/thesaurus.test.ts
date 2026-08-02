@@ -16,7 +16,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { describe, it, expect } from 'vitest';
 import { parseMoby, parseAgid, buildAliases, serialize } from '../build-thesaurus.mjs';
-import { parseThesaurus, findRoot, lookupThesaurus } from '../src/main/thesaurusUtil';
+import { parseThesaurus, findRoot, lookupThesaurus, singleWordsFirst } from '../src/main/thesaurusUtil';
 
 describe('parseMoby', () => {
   it('keys each line by its root word and keeps the rest as synonyms', () => {
@@ -281,22 +281,53 @@ describe('findRoot with alias lines', () => {
   });
 });
 
+describe('singleWordsFirst', () => {
+  it('moves multi-word phrases behind the single words', () => {
+    expect(singleWordsFirst(['walk of life', 'stride', 'take the air', 'amble']))
+      .toEqual(['stride', 'amble', 'walk of life', 'take the air']);
+  });
+
+  it('moves hyphenated terms behind the single words too', () => {
+    // A hyphen makes a compound just as a space does — both are things the user is less
+    // likely to want to drop straight into a sentence, so both fall to the back.
+    expect(singleWordsFirst(['first-rate', 'lovely', 'good-looking', 'fair']))
+      .toEqual(['lovely', 'fair', 'first-rate', 'good-looking']);
+  });
+
+  it('preserves the original order within each group', () => {
+    // Moby entries are alphabetical and have no relevance ranking, so that order is all
+    // there is to keep — a partition keeps it without depending on a stable sort.
+    // Spaces and hyphens land in the same bucket, interleaved as they were.
+    expect(singleWordsFirst(['a b', 'apple', 'c-d', 'banana', 'e f', 'cherry']))
+      .toEqual(['apple', 'banana', 'cherry', 'a b', 'c-d', 'e f']);
+  });
+
+  it('handles the all-words, all-compound and empty cases', () => {
+    expect(singleWordsFirst(['one', 'two'])).toEqual(['one', 'two']);
+    expect(singleWordsFirst(['on the nose', 'well-nigh'])).toEqual(['on the nose', 'well-nigh']);
+    expect(singleWordsFirst([])).toEqual([]);
+  });
+});
+
 describe('lookupThesaurus', () => {
   // A stand-in for the packaged resources tree, holding a small thesaurus.
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkbrowser-thesaurus-'));
   fs.mkdirSync(path.join(dir, 'thesaurus'), { recursive: true });
   fs.writeFileSync(
     path.join(dir, 'thesaurus', 'moby.txt.gz'),
-    zlib.gzipSync(Buffer.from('quick\tspeedy,fast\nbig\tlarge\nwalk\tstride\ntook\t=take\ntake\tgrab\n', 'utf-8')),
+    zlib.gzipSync(Buffer.from('quick\tspeedy,in nothing flat,fast\nbig\tlarge\nwalk\tstride\ntook\t=take\ntake\tgrab\n', 'utf-8')),
   );
   const paths = { resourcesPath: dir, appPath: dir, isPackaged: true };
 
-  it('returns the synonyms in file order, reporting the word itself as the root', async () => {
-    expect(await lookupThesaurus('quick', paths)).toEqual({ lemma: 'quick', synonyms: ['speedy', 'fast'] });
+  it('returns single words before phrases, reporting the word itself as the root', async () => {
+    // "in nothing flat" sits between the two words in the file; the pane gets it last.
+    expect(await lookupThesaurus('quick', paths))
+      .toEqual({ lemma: 'quick', synonyms: ['speedy', 'fast', 'in nothing flat'] });
   });
 
   it('matches case-insensitively and ignores surrounding whitespace', async () => {
-    expect(await lookupThesaurus('  Quick ', paths)).toEqual({ lemma: 'quick', synonyms: ['speedy', 'fast'] });
+    expect(await lookupThesaurus('  Quick ', paths))
+      .toEqual({ lemma: 'quick', synonyms: ['speedy', 'fast', 'in nothing flat'] });
   });
 
   it('answers an inflected word from its root, and says which', async () => {

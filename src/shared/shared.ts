@@ -338,7 +338,14 @@ export interface AIUsageWithCosts {
  */
 export interface ThesaurusLookup {
   lemma: string | null;
-  /** Synonyms for `lemma`, strongest first. Empty when `lemma` is null. */
+  /**
+   * Synonyms for `lemma`. Empty when `lemma` is null.
+   *
+   * Ordered plain single words first, compound terms (anything with a space or a hyphen)
+   * after, alphabetical within each group. There is no relevance ranking to order them by —
+   * Moby publishes none — so this puts the drop-in-ready single words where the user is
+   * looking. See `singleWordsFirst`.
+   */
   synonyms: string[];
 }
 
