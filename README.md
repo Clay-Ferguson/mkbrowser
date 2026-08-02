@@ -32,6 +32,7 @@ A comprehensive list of what MkBrowser can do. See the [User Guide](docs/USER_GU
 | In-place editing | Edit Markdown/text with a CodeMirror 6 editor, with save/cancel flow. |
 | Multiple concurrent edits | Several files can be open for editing at once. |
 | Editor keyboard shortcuts | `Ctrl+S` save & exit, `Ctrl+Q` abandon changes, `Esc` exit (when unchanged). |
+| Thesaurus | Optional offline synonym strip under the editor; click a word to insert it after the one at the cursor. |
 | Expand Editor | Full-width, distraction-free editing surface that hides other entries. |
 | Automatic Table of Contents | A `<!-- TOC -->` placeholder is regenerated from headings on every save. |
 | Tag Picker | Add/remove front-matter hashtags via checkboxes while editing (Obsidian-compatible). |

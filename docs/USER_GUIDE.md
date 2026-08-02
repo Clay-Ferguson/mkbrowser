@@ -17,6 +17,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Editing Files](#editing-files)
     * [Inserting Links to Other Files](#inserting-links-to-other-files)
     * [Editor Keyboard Shortcuts](#editor-keyboard-shortcuts)
+    * [Thesaurus](#thesaurus)
   * [Automatic Table of Contents Generation](#automatic-table-of-contents-generation)
   * [Tag Picker](#tag-picker)
     * [Category behavior](#category-behavior)
@@ -263,6 +264,31 @@ While the code editor has focus, the following keyboard shortcuts are available:
 | `Esc` | Exit editing — only works if you have **not** made any changes to the file. |
 | `Ctrl+Q` | Abandon editing — discards all unsaved changes and exits without prompting. |
 | `Ctrl+S` | Save and exit — saves your changes to disk and returns to the rendered view. |
+
+### Thesaurus
+
+While you are writing, MkBrowser can show synonyms for the word your cursor is in, as a strip of clickable words along the bottom of the editor. It works entirely offline — no internet connection and no AI are involved.
+
+**Turning it on.** The thesaurus is **off by default**. To enable it, right-click inside the editor and choose **Enable Thesaurus**. The same menu item then reads **Disable Thesaurus** and turns it back off. The setting is remembered between sessions.
+
+The menu item appears only where the strip can actually be shown:
+
+- You must be editing a file that you opened **by itself** — either by clicking it in the **Index Tree** panel, or with **View File** in the file's menu. The strip is not shown for the inline editors in the normal folder listing.
+- The file must be prose (Markdown or text). Source-code files and read-only views don't offer it.
+
+**Using it.** Click a word, or just stop typing for a couple of seconds, and the synonyms for that word appear. Move the cursor to another word and the list follows along. There is nothing to press — the list refreshes on its own whenever you pause.
+
+**Clicking a word inserts it — it never replaces anything.** Clicking a synonym drops it into your document immediately *after* the word you were on, and leaves your original word alone. So `the witness replied` plus a click on `answer` gives you:
+
+```
+the witness replied answer
+```
+
+You then delete whichever of the two you don't want. This is deliberate: nothing you click can ever destroy text you wrote, and you get to see both words side by side before choosing. The insertion is an ordinary edit, so `Ctrl+Z` undoes it and the file saves normally.
+
+**Inflected words.** The thesaurus is organized by root words, so putting the cursor on `walked` looks up `walk`. When that happens, a small label at the start of the strip shows you which word the synonyms actually came from. That label is a reminder that the suggestions are in their base form — clicking `stride` on `walked` inserts `stride`, not `strode`, and you fix the ending as you delete the original word. When the word you're on has its own entry, no label is shown.
+
+**Long lists.** The word list is broad rather than curated, so common words can return hundreds of synonyms — single words come first, followed by multi-word phrases, alphabetically within each group. The strip is capped at a few rows tall and scrolls if there are more; it never grows to take over the editor. Because the lists aren't ranked by relevance, expect some odd or archaic entries mixed in — the trade-off is that you get far more options than a typical built-in thesaurus offers.
 
 ## Automatic Table of Contents Generation
 
