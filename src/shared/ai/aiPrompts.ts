@@ -28,15 +28,36 @@ export function buildSystemPrompt(persona?: string): string {
 }
 
 export const AI_REWRITE_PROMPT = //
-`Rewrite and improve the following content (in the <content> tag). \
+`Rewrite and improve the text inside the <content> tag. \
 Fix grammar, improve clarity, and enhance readability while preserving the original meaning and general structure. \
-Return ONLY the rewritten content — no preamble, no explanation, no markdown code fences, no wrapping. \
+Return ONLY the rewritten text that replaces what was inside <content> — no preamble, no explanation, no markdown code fences, no tags, and nothing that came from outside <content>. \
 Just the improved text.`;
 
+/**
+ * Sits between the `<context>` block and the rewrite instruction whenever surrounding
+ * material is supplied — the rest of the current file on a selection rewrite, sibling
+ * documents when full document context is enabled, or both. It explains the `<context>`
+ * wrapper that `runRewrite` builds around them.
+ *
+ * Worded to read *after* the block it describes, since `runRewrite` puts the context
+ * first and the instructions last (see the ordering comment there). Shared by both
+ * rewrite prompts, which it can be because `<content>` marks the text to rewrite on
+ * both paths.
+ */
+export const AI_REWRITE_CONTEXT_NOTE = //
+`In the text above, the <content> tag holding the text to rewrite is nested inside a larger \
+<context> tag holding the document around it — like this:
+
+<context>...<content>rewrite this</content>...</context>
+
+Everything inside <context> but outside <content> is there only so your rewrite stays \
+coherent with the surrounding document. It is NOT part of what you are rewriting: never \
+repeat, continue, or include any of it in your response. Your reply must contain nothing \
+but the replacement for what was inside <content>.`;
+
 export const AI_REWRITE_SELECTION_PROMPT = //
-`The following content (in the <content> tag) contains a region wrapped in <rewrite_region> tags. \
-Rewrite and improve ONLY the text inside the <rewrite_region> tags. \
-Use the surrounding content for context to ensure coherence, but do NOT include any of the surrounding content in your response. \
+`Rewrite and improve the selected text (in the <content> tag). \
+It is an excerpt from a larger document, so it may begin or end mid-sentence — rewrite it as the excerpt it is, without completing or trimming it to fit a sentence boundary. \
 Fix grammar, improve clarity, and enhance readability while preserving the original meaning and general structure. \
-Return ONLY the rewritten text that should replace the <rewrite_region> content — no preamble, no explanation, no markdown code fences, no wrapping, no <rewrite_region> tags. \
-Just the improved text for that region.`;
+Return ONLY the rewritten excerpt, which will replace the selection exactly as you return it — no preamble, no explanation, no markdown code fences, no tags, and nothing that came from outside <content>. \
+Just the improved text.`;

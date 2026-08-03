@@ -11,10 +11,11 @@ import { HumanMessage, AIMessage, type BaseMessage } from '@langchain/core/messa
 import { getConfig } from '../configMgr';
 import { recordUsage } from './usageTracker';
 import { getActiveModel, getActiveProvider } from './aiModel';
-import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT } from '../../shared/ai/aiPrompts';
+import { DEFAULT_AI_REWRITE_PERSONA, AI_REWRITE_PROMPT, AI_REWRITE_SELECTION_PROMPT, AI_REWRITE_CONTEXT_NOTE } from '../../shared/ai/aiPrompts';
 import { preprocessPrompt, type PreprocessResult } from './promptPreprocess';
 import { ALLOW_DEEP_AGENTS, invokeDeepAgent, streamDeepAgent } from './deepAgent';
 import { readIndexYaml } from '../indexUtil';
+import { splitFrontMatter, assembleFrontMatter } from '../../shared/frontMatterUtil';
 import { HUMAN_FILENAME, AI_FILENAME, THINK_FILENAME } from '../../shared/specialFiles';
 import { invokeAI, streamAI, resolveActivePersona, hasScriptedAnswer, type AIUsageInfo, type AIInvokeResult, type StreamCallbacks } from './langGraph';
 import { logger } from '../../shared/logUtil';
@@ -296,9 +297,27 @@ export async function handleAskAI(
 }
 
 /**
+ * Drop a leading YAML front-matter block. Front matter is metadata, not prose — it is kept
+ * out of every part of a rewrite prompt (the text being rewritten, the rest of its file, and
+ * sibling documents alike), since it only distracts the model and wastes tokens.
+ *
+ * Uses {@link splitFrontMatter} rather than `parseFrontMatter` deliberately: a block whose
+ * YAML doesn't parse is still front matter and still shouldn't reach the model, and nothing
+ * here needs the parsed values.
+ */
+function stripFrontMatter(text: string): string {
+  return splitFrontMatter(text)?.body ?? text;
+}
+
+/**
  * Builds above/below document context from sibling md/txt files ordered by .INDEX.yaml.
  * Skips the current file and non-markdown/text files. Returns empty strings if the index
- * can't be read or fullDocContext is disabled.
+ * can't be read, fullDocContext is disabled, or no sibling yielded any text.
+ *
+ * Each half carries its own blank-line separator so callers can concatenate it directly
+ * against the rest of the prompt. {@link runRewrite} is what wraps these in `<context>`,
+ * since it also holds the other kind of surrounding material — the rest of the current
+ * file, when only a selection is being rewritten.
  */
 async function buildDocumentContext(
   filePath: string,
@@ -320,7 +339,7 @@ async function buildDocumentContext(
 
   const readFile = async (name: string): Promise<string> => {
     try {
-      return await fs.readFile(path.join(folderPath, name), 'utf8');
+      return stripFrontMatter(await fs.readFile(path.join(folderPath, name), 'utf8')).trim();
     } catch {
       return '';
     }
@@ -387,7 +406,12 @@ async function invokeRewrite(
  * — or a clean error when the user cancels before any content streams.
  *
  * @param promptInstruction  The leading instruction (e.g. {@link AI_REWRITE_PROMPT}).
- * @param innerContent       The text placed inside the `<content>` tags.
+ * @param innerContent       The text placed inside the `<content>` tags — i.e. exactly
+ *                           the text to be rewritten, and nothing else.
+ * @param localContext       For a selection rewrite, the rest of the current file split
+ *                           around the selection. It joins the sibling documents inside
+ *                           `<context>`, so `<content>` means the same thing on both
+ *                           paths and no third level of tags is needed.
  */
 async function runRewrite(
   promptInstruction: string,
@@ -398,6 +422,7 @@ async function runRewrite(
   signal?: AbortSignal,
   onStreamDone?: () => void,
   onStreamError?: (err: unknown) => void,
+  localContext?: { before: string; after: string },
 ): Promise<{ content: string; usage?: AIUsageInfo } | { error: string }> {
   // Resolve the persona. It's woven into the system prompt by the invocation
   // layer (see resolveActivePersona/buildSystemPrompt), so it's no longer
@@ -407,8 +432,27 @@ async function runRewrite(
 
   const { aboveContent, belowContent } = await buildDocumentContext(filePath, hasIndexFile);
 
+  // Everything surrounding the text to rewrite, in document order: sibling documents on
+  // the outside, the rest of the current file (selection rewrites only) on the inside.
+  const before = aboveContent + (localContext?.before ?? '');
+  const after = (localContext?.after ?? '') + belowContent;
+
+  // A selection can begin or end mid-line, so its tags hug the text exactly rather than
+  // introducing newlines the splice would have to account for.
+  const contentBlock = localContext
+    ? `<content>${innerContent}</content>`
+    : `<content>\n${innerContent}\n</content>`;
+
+  // Ordering matters as much as the tags here. When there is surrounding material the
+  // context comes FIRST and the instructions come last, so the final thing the model
+  // reads is "rewrite only <content>" rather than a wall of sibling prose — leading with
+  // the instruction instead makes models rewrite the entire context. Without surrounding
+  // material there is no <context> block (and no note explaining one), and the content is
+  // short enough that the instruction can lead as before.
   const prompt: PreprocessResult = {
-    text: `${promptInstruction}\n\n${aboveContent}<content>\n${innerContent}\n</content>${belowContent}`,
+    text: before || after
+      ? `<context>\n${before}${contentBlock}${after}\n</context>\n\n${AI_REWRITE_CONTEXT_NOTE}\n\n${promptInstruction}`
+      : `${promptInstruction}\n\n${contentBlock}`,
     images: [],
   };
 
@@ -443,9 +487,14 @@ export async function handleRewriteContent(
   onStreamDone?: () => void,
   onStreamError?: (err: unknown) => void,
 ): Promise<{ rewrittenContent: string; usage?: AIUsageInfo } | { error: string }> {
+  // Send only the body, then put the front matter back verbatim: the returned string
+  // replaces the whole file, so dropping the block here would delete the file's
+  // properties the moment the user accepts the rewrite.
+  const frontMatter = splitFrontMatter(content);
+
   const result = await runRewrite(
     AI_REWRITE_PROMPT,
-    content,
+    frontMatter?.body ?? content,
     filePath,
     hasIndexFile,
     streamCallbacks,
@@ -455,14 +504,18 @@ export async function handleRewriteContent(
   );
   if ('error' in result) return result;
 
-  return { rewrittenContent: result.content, usage: result.usage };
+  const rewrittenContent = frontMatter
+    ? assembleFrontMatter(frontMatter.yamlStr, result.content)
+    : result.content;
+
+  return { rewrittenContent, usage: result.usage };
 }
 
 /**
  * Rewrite a selected region of content using the configured AI rewrite prompt.
- * The full file content is sent for context, with <rewrite_region> tags marking the
- * portion to rewrite. The AI returns only the rewritten portion, which is spliced
- * back into the full content using the original character offsets.
+ * Only the selection goes in `<content>`; the text on either side of it is sent as
+ * surrounding context (see {@link runRewrite}). The AI returns only the rewritten
+ * selection, which is spliced back in using the original character offsets.
  */
 export async function handleRewriteContentSection(
   content: string,
@@ -475,23 +528,18 @@ export async function handleRewriteContentSection(
   onStreamDone?: () => void,
   onStreamError?: (err: unknown) => void,
 ): Promise<{ rewrittenContent: string; usage?: AIUsageInfo } | { error: string }> {
-  // Build content with <rewrite_region> tags wrapping the selected portion
-  const textWithSelection =
-    content.slice(0, selectionFrom) +
-    '<rewrite_region>' +
-    content.slice(selectionFrom, selectionTo) +
-    '</rewrite_region>' +
-    content.slice(selectionTo);
-
   const result = await runRewrite(
     AI_REWRITE_SELECTION_PROMPT,
-    textWithSelection,
+    content.slice(selectionFrom, selectionTo),
     filePath,
     hasIndexFile,
     streamCallbacks,
     signal,
     onStreamDone,
     onStreamError,
+    // Splicing below uses offsets into the original `content`, so stripping front matter
+    // from the context shown to the model can't disturb it.
+    { before: stripFrontMatter(content.slice(0, selectionFrom)), after: content.slice(selectionTo) },
   );
   if ('error' in result) return result;
 
