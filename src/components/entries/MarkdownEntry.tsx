@@ -271,9 +271,12 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     runWithStreamingDialog,
   } = useAiStreamingDialog({ onError: setAiErrorMessage });
 
+  // `endEdit` closes the edit session once the answer is in — see onAskAI for why
+  // that can't happen before the request instead.
+  //
   // Promise .finally() instead of try/finally: the React Compiler bails out on
   // any try statement with a finalizer, which would de-optimize this component.
-  const handleAskAi = async (promptContent?: string) => {
+  const handleAskAi = async (promptContent: string | undefined, endEdit: boolean) => {
     const textToSend = promptContent || content;
     if (!textToSend) return;
     setIsAiLoading(true);
@@ -290,6 +293,11 @@ function MarkdownEntry(props: MarkdownEntryProps) {
           } else {
             navigateToBrowserPath(result.responseFolder);
           }
+          // Deliberately after the navigation, never before it: navigating has
+          // already cleared browseFileName, so setItemEditing's expanded-edit
+          // routing is a no-op here and can't queue a pendingScrollToFile for the
+          // folder we just left (which would linger until it is next opened).
+          if (endEdit) handleCancelEdit();
         });
       }
     }).finally(() => setIsAiLoading(false));
@@ -309,14 +317,25 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     void replyToAiAndNavigate(entry.path, view).finally(() => setIsReplyLoading(false));
   };
 
+  // Saves the file and sends it to the AI, ending the edit session only once the
+  // answer is ready (together with the navigation to the response folder).
+  //
+  // The editor deliberately stays open for the duration — save-and-close here is
+  // what broke expanded-editor mode. Maximized editing is hosted by BrowseFile
+  // (see store/expandedEdit.ts), so ending the edit routes straight back to the
+  // folder listing, unmounting this component mid-request and taking the
+  // streaming dialog and the deferred navigation down with it: the answer landed
+  // on disk but the user saw neither.
   const onAskAI = () => {
     void (async () => {
-      await edit.handleSave();
-      // Read at call time: on success the save cleared editContent and committed the saved
-      // text to item.content; on failure editContent still holds the (flushed) edit buffer.
-      // This render's edit.editContent may be missing the final pre-save keystrokes.
+      const saved = await handleSaveKeepEditing();
+      // Read at call time: the save re-seeds editContent from what actually landed on
+      // disk, and this render's edit.editContent may be missing the final pre-save
+      // keystrokes (the editor flushes its debounced onChange on the button click).
       const latest = useAS.getState().items.get(entry.path);
-      await handleAskAi(latest?.editContent ?? latest?.content ?? edit.editContent);
+      // Close the editor afterwards only if the save succeeded — after a failed write
+      // the edit buffer is the only copy of the user's text.
+      await handleAskAi(latest?.editContent ?? latest?.content ?? edit.editContent, saved);
     })();
   };
   
