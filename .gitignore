@@ -103,6 +103,9 @@ out/
 # Editor directories
 .idea/
 
+# Claude Code local (per-developer) settings
+.claude/settings.local.json
+
 # OS files
 Thumbs.db
 
