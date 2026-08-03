@@ -4,6 +4,7 @@ import { ChatAnthropic } from "@langchain/anthropic";
 import { getConfig } from '../configMgr';
 import type { AIModelConfig } from '../../shared/shared';
 import { createDebugLog } from "./aiLog";
+import { aiFileLogCallbacks } from "./aiFileLog";
 
 const debugLog = createDebugLog('aiModel');
 
@@ -169,25 +170,32 @@ export function getActiveModelConfig(): { provider: AIProvider; model: string; l
 
 /**
  * Create the appropriate LangChain chat model based on the active config.
+ *
+ * `aiFileLogCallbacks` is attached here as a *constructor* callback, which
+ * makes it apply to every invocation of the returned model — and it survives
+ * both `.bindTools()` and being handed to `createDeepAgent({ model })`. Since
+ * all four invocation paths (invokeAI/streamAI/invokeDeepAgent/streamDeepAgent)
+ * build their model here, this one line is the entire wiring for the on-disk
+ * prompt/response log. See aiFileLog.ts.
  */
 export function createChatModel() {
   const { provider, model, llamacppBaseUrl } = getActiveModelConfig();
   debugLog('createChatModel → provider:', provider, 'model:', model);
   if (provider === 'LLAMACPP') {
     // Local server — no API key required.
-    return new ChatOpenAI({ model, configuration: { baseURL: llamacppBaseUrl } });
+    return new ChatOpenAI({ model, configuration: { baseURL: llamacppBaseUrl }, callbacks: aiFileLogCallbacks });
   }
   if (provider === 'OPENAI') {
     warnIfApiKeyMissing('OPENAI_API_KEY');
-    return new ChatOpenAI({ model });
+    return new ChatOpenAI({ model, callbacks: aiFileLogCallbacks });
   }
   if (provider === 'GOOGLE') {
     warnIfApiKeyMissing('GOOGLE_API_KEY');
     // maxRetries: 2 to fail faster on quota/auth errors instead of silently retrying many times
-    return new ChatGoogleGenerativeAI({ model, maxRetries: 2 });
+    return new ChatGoogleGenerativeAI({ model, maxRetries: 2, callbacks: aiFileLogCallbacks });
   }
   warnIfApiKeyMissing('ANTHROPIC_API_KEY');
-  return new ChatAnthropic({ model });
+  return new ChatAnthropic({ model, callbacks: aiFileLogCallbacks });
 }
 
 /**

@@ -603,7 +603,7 @@ function AISettingsView() {
                   />
                   {aiRewriteMode && (
                     <CheckboxField
-                      label="Rewrite using Full Doc Context"
+                      label="Rewrite using Full Doc Context (Document-Type Folders Only)"
                       checked={fullDocContext}
                       onChange={(checked) => {
                         void saveAiConfigField({ fullDocContext: checked });

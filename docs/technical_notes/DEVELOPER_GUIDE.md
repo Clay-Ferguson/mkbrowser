@@ -27,6 +27,9 @@
   * [Adding a new piece of state — checklist](#adding-a-new-piece-of-state--checklist)
   * [Rules of thumb (the short list)](#rules-of-thumb-the-short-list)
   * [Local AI Model Inference Troubleshooting](#local-ai-model-inference-troubleshooting)
+* [AI Interaction Logging](#ai-interaction-logging)
+  * [How it hooks into LangChain](#how-it-hooks-into-langchain)
+  * [Things to preserve if you touch it](#things-to-preserve-if-you-touch-it)
 * [React Compiler](#react-compiler)
   * [The coding standard (the short list)](#the-coding-standard-the-short-list)
   * [What a "bailout" is and why we care](#what-a-bailout-is-and-why-we-care)
@@ -313,6 +316,46 @@ Local inference runs against a `llama-server` that **you** start and manage your
 
 1) In `deepAgents.ts` set `USE_DEEP_AGENTS` variable to false. There's currently no way to alter this without an app rebuild.
 2) Launch `llama-server` with `--reasoning off`, which makes the model run without reasoniong and so it's tryign to do less and can therefore complete inference in a shorter amount of time with less GPU/CPU power.
+
+## AI Interaction Logging
+
+Every LLM round-trip is mirrored to disk as a pair of Markdown files, so that when an AI feature misbehaves there is something to inspect afterwards. The debug `console.log` lines from `createDebugLog` (`src/main/ai/aiLog.ts`) never include prompt or response bodies; this does.
+
+**Location:** `~/.config/mk-browser/logs/ai` on Linux — Electron's `app.getPath('logs')` plus an `ai` subfolder, resolved lazily in `logDir()`. It sits beside the `config.yaml` and `ai-usage.json` this app already writes under `userData`, and stays correct on macOS/Windows.
+
+**Filenames** are `YYYY-MM-DD--HH-MM-SS-mmm-<kind>.md`, in local time:
+
+```
+2026-08-02--14-30-05-123-prompt.md     the fully-assembled prompt
+2026-08-02--14-30-05-123-response.md   the model's reply  (or -error.md on failure)
+```
+
+Both files of a pair carry the round-trip's **start** timestamp, so a sorted listing reads chronologically and keeps each pair adjacent. Two round-trips that begin in the same millisecond (Deep Agents runs sub-agents concurrently) are separated by handing out a strictly increasing millisecond; files are additionally written with the `wx` flag and the stamp bumped on `EEXIST`, so an existing log is never clobbered.
+
+**One pair per round-trip, not per user request.** In agentic mode the model loops through the ToolNode, and each iteration is logged separately — pair N+1's prompt contains the tool result produced during pair N. This is deliberate: it shows exactly what the model saw each time it was asked. A tool-heavy request can easily produce five or ten pairs, and there is **no retention policy** — the folder grows forever by design.
+
+### How it hooks into LangChain
+
+`src/main/ai/aiFileLog.ts` is a plain `BaseCallbackHandler` — LangChain's own open-source callback layer, the same extension point LangSmith is built on. We use that layer directly and deliberately do **not** enable LangSmith: nothing sets `LANGCHAIN_TRACING_V2` / `LANGCHAIN_API_KEY` / `LANGSMITH_*`, and LangChain only attaches its `LangChainTracer` when those env vars are present, so no data leaves the machine. There is no `langsmith` package and no new dependency of any kind (`@langchain/core` was already in `dependencies`).
+
+The handler is attached as a **constructor callback** in `createChatModel()` (`src/main/ai/aiModel.ts`) — one `callbacks: aiFileLogCallbacks` argument on each of the four provider constructors is the *entire* wiring. Constructor callbacks apply to every invocation of that model and survive both `.bindTools()` (which returns a `RunnableBinding` around the same instance) and being handed to `createDeepAgent({ model })`. Since all four invocation paths — `invokeAI` / `streamAI` (`langGraph.ts`) and `invokeDeepAgent` / `streamDeepAgent` (`deepAgent.ts`) — build their model there, this covers all of them, including the two that pass no `RunnableConfig` at all. **Add a fifth AI path and it is logged automatically**, provided it gets its model from `createChatModel()`.
+
+Three callbacks do the work:
+
+| Callback | Writes | Notes |
+|---|---|---|
+| `handleChatModelStart` | `-prompt.md` | Fires with the message array as the provider is about to receive it — system prompt, history, tool results, current human message. This is the real final prompt, not a reconstruction. |
+| `handleLLMEnd` | `-response.md` | Fires once per round-trip. For **streaming** calls LangChain aggregates the chunks before calling it, so streaming and non-streaming need no special handling. |
+| `handleLLMError` | `-error.md` | A failed call still leaves its prompt on disk next to the error. |
+
+`runId` pairs a start with its end; a `Map<runId, RunState>` carries the shared timestamp across, pruned after 10 minutes so a dropped end event can't leak.
+
+### Things to preserve if you touch it
+
+- **Logging must never break or slow an AI call.** Every handler body is wrapped in try/catch that reports via `logger` and swallows; writes go through a serial queue (`enqueueLogWrite`, mirroring the one in `usageTracker.ts`) and the handler sets `awaitHandlers = false` so LangChain doesn't block the model on our disk I/O.
+- **Base64 image payloads are replaced with a `[image: image/png, 148231 bytes base64 omitted]` placeholder.** One screenshot is megabytes of base64 that would bury the actual prompt.
+- **We render messages by hand rather than using `getBufferString`** from `@langchain/core/messages` — that helper flattens content and drops tool calls entirely, and tool calls are the most useful thing in the file when debugging an agentic loop.
+- **To turn it off:** flip `const AI_FILE_LOG = false` at the top of `aiFileLog.ts` and rebuild, matching the `DEBUG` flag style used in `aiLog.ts`, `deepAgent.ts`, and `tools.ts`.
 
 ## React Compiler
 
