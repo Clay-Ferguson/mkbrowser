@@ -382,7 +382,6 @@ The pills carry `cursor-pointer`, a title, and a `hover:` that brightens the **b
 |---|---|
 | `tests/thesaurus.test.ts` | `parseMoby`/`parseAgid`/`buildAliases`/`serialize` from the generator; `parseThesaurus`, `findRoot` (rules *and* aliases), `singleWordsFirst`, `lookupThesaurus`; assertions on the **shipped** data file, including that no alias dangles or chains |
 | `tests/thesaurusWordAtCursor.test.ts` | `thesaurusWordAtCursor` and `synonymInsertPos` against bare `EditorState`s — word boundaries, front matter, minimum length; insert offsets at word edges, on whitespace, at line and document ends |
-| `tests/e2e/private-thesaurus.spec.ts` | The whole chain in the packaged app |
 
 The e2e spec is the only thing that exercises plugin → store → IPC → data file → render together. It asserts: no strip while browsing, and none on entering the editor either (the default is off); **Enable Thesaurus** in the context menu brings it up on the already-open editor; an **inflected** word (`replied`) is answered from its root with the `reply` label; moving the cursor swaps the pills and the label disappears for a word with its own entry; the strip stays under half the pane height (a runaway guard on the `PILL_ROWS` cap, not a pixel spec); **Disable Thesaurus** removes the strip from the DOM entirely and the editor pane grows by that height, and re-enabling brings synonyms back; clicking a pill inserts that word into the document after the looked-up word; ending the edit removes it.
 
