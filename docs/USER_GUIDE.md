@@ -1336,15 +1336,19 @@ Mention several bird species, and say which ones are year-round residents.
 They are a big part of what makes the region feel alive.
 ```
 
-When you click **Rewrite**, the AI follows the instruction — in the example above, it expands the prose with actual bird species — and returns the finished text with the interjection consumed rather than copied through. The `<ai>` block is a note to the AI about the writing; it is not meant to survive into the final document.
+When you click **Rewrite**, the AI follows the instruction — in the example above, it expands the prose with actual bird species — and returns the improved text with **the `<ai>` block left exactly as you wrote it**, in the same spot.
+
+That last part is deliberate: your interjections are meant to *live in the document*. Because the AI copies them through untouched instead of consuming them, you can look at the result, adjust the wording of an interjection, and run **Rewrite** again — as many rounds as you like. Think of them as standing directions to your co-author rather than one-time commands, and they stay available for the next pass.
+
+When you're finished with an interjection, delete it yourself. Nothing in MkBrowser removes it for you, so an `<ai>` block will remain in the saved file until you take it out.
 
 #### Tips
 
 - **Use it anywhere, as often as you like.** Interjections are positional: put each one next to the passage it applies to, and use several in one file if you have several instructions.
 - **Write the instruction plainly.** "Add a concrete example here", "cut this section in half", "explain this for a non-technical reader" — anything you'd say to a human co-author works.
-- **Review the diff.** The diff review editor shows exactly what the AI did with your instruction, including the removal of the `<ai>` block. If something wasn't followed the way you wanted, click **Cancel Rewrite**, reword the interjection, and try again.
-- **Interjections are for whole-file rewrites.** They are part of the instructions sent by the full-file **Rewrite** button. When you rewrite only a selection, the AI is told to rewrite the selected excerpt as-is, so an `<ai>` block is not guaranteed to be treated as an instruction there.
-- **Nothing removes the tag but the rewrite.** If you type an interjection and then save without rewriting, the `<ai>` block stays in your file exactly as you typed it. Delete it yourself if you decide not to use it.
+- **Iterate.** If a result isn't what you wanted, you don't have to retype anything: the interjection is still sitting there in the text. Sharpen the wording and rewrite again.
+- **Review the diff.** The diff review editor shows exactly what the AI did with your instruction. Your `<ai>` blocks should appear unchanged in the diff — if one comes back reworded or missing, click **Cancel Rewrite** and try again.
+- **Works with both kinds of rewrite.** Interjections are understood on a full-file **Rewrite** and on an **AI Rewrite Selection** alike. On a selection rewrite, put the `<ai>` block *inside the text you select* — everything outside the selection is treated as read-only context that the AI is told to ignore, so an interjection left outside it has no effect.
 
 ### Rewriting a Selection
 
@@ -1358,6 +1362,8 @@ Instead of rewriting the entire file, you can select a specific portion of text 
 6. Accept or cancel as usual.
 
 This is especially useful for long documents where you want to improve a single paragraph or section without affecting the rest of the file.
+
+[AI interjections](#ai-interjections-the-ai-tag) work here too — just be sure the `<ai>` block falls inside the text you select.
 
 ### Full Document Context
 
