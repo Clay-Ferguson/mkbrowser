@@ -30,8 +30,21 @@ export function buildSystemPrompt(persona?: string): string {
 export const AI_REWRITE_PROMPT = //
 `Rewrite and improve the text inside the <content> tag. \
 Fix grammar, improve clarity, and enhance readability while preserving the original meaning and general structure. \
-Return ONLY the rewritten text that replaces what was inside <content> — no preamble, no explanation, no markdown code fences, no tags, and nothing that came from outside <content>. \
-Just the improved text.`;
+Return ONLY the rewritten text that replaces what was inside <content> — no preamble, no explanation, and nothing that came from outside <content>. \
+Just the improved text. \
+\
+If you see an <AI>-tag interjection in the content you are to interpret that as \
+additional instructions to follow during your rewrite, to help you know what to write. For example, 
+in the following <content> prompt it contains an AI interjection and you would follow it by 
+adding bird species to the rewritten prose: \
+<content> \
+There are numerous birds in the Tennessee Valley Area. \
+<ai> \
+AI: Mention several bird species... \
+</ai> \
+</content> \
+\
+`;
 
 /**
  * Sits between the `<context>` block and the rewrite instruction whenever surrounding
@@ -57,7 +70,9 @@ but the replacement for what was inside <content>.`;
 
 export const AI_REWRITE_SELECTION_PROMPT = //
 `Rewrite and improve the selected text (in the <content> tag). \
-It is an excerpt from a larger document, so it may begin or end mid-sentence — rewrite it as the excerpt it is, without completing or trimming it to fit a sentence boundary. \
+It is an excerpt from a larger document, so it may begin or end mid-sentence — rewrite it as the excerpt it is, without completing \
+or trimming it to fit a sentence boundary. \
 Fix grammar, improve clarity, and enhance readability while preserving the original meaning and general structure. \
-Return ONLY the rewritten excerpt, which will replace the selection exactly as you return it — no preamble, no explanation, no markdown code fences, no tags, and nothing that came from outside <content>. \
+Return ONLY the rewritten excerpt, which will replace the selection exactly as you return it — no preamble, no explanation, \
+no markdown code fences, no tags, and nothing that came from outside <content>. \
 Just the improved text.`;

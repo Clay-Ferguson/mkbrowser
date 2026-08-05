@@ -127,6 +127,7 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [AI Rewrite](#ai-rewrite)
     * [Enabling AI Rewrite](#enabling-ai-rewrite)
     * [How to use Rewrite](#how-to-use-rewrite)
+    * [AI Interjections (the `<ai>` tag)](#ai-interjections-the-ai-tag)
     * [Rewriting a Selection](#rewriting-a-selection)
     * [Full Document Context](#full-document-context)
       * [What it does](#what-it-does)
@@ -1318,6 +1319,32 @@ Once enabled, the **Rewrite** button appears in the editor toolbar whenever you 
    - Click **Accept All** to replace your editor content with the rewritten version.
    - Click **Cancel Rewrite** to discard the suggestions and keep your original text.
 6. After accepting, you can continue editing or click **Save** to write the file to disk.
+
+### AI Interjections (the `<ai>` tag)
+
+Sometimes you don't just want the AI to polish what you wrote — you want to *tell it something* about the rewrite it's about to do: expand this part, add examples here, keep this paragraph short. You can do that inline, right where it matters, by placing an **`<ai>` interjection** in your content.
+
+An interjection is a block wrapped in `<ai>` and `</ai>` tags. Everything inside it is read as **instructions to the AI**, not as text to be rewritten:
+
+```markdown
+There are numerous birds in the Tennessee Valley area.
+
+<ai>
+Mention several bird species, and say which ones are year-round residents.
+</ai>
+
+They are a big part of what makes the region feel alive.
+```
+
+When you click **Rewrite**, the AI follows the instruction — in the example above, it expands the prose with actual bird species — and returns the finished text with the interjection consumed rather than copied through. The `<ai>` block is a note to the AI about the writing; it is not meant to survive into the final document.
+
+#### Tips
+
+- **Use it anywhere, as often as you like.** Interjections are positional: put each one next to the passage it applies to, and use several in one file if you have several instructions.
+- **Write the instruction plainly.** "Add a concrete example here", "cut this section in half", "explain this for a non-technical reader" — anything you'd say to a human co-author works.
+- **Review the diff.** The diff review editor shows exactly what the AI did with your instruction, including the removal of the `<ai>` block. If something wasn't followed the way you wanted, click **Cancel Rewrite**, reword the interjection, and try again.
+- **Interjections are for whole-file rewrites.** They are part of the instructions sent by the full-file **Rewrite** button. When you rewrite only a selection, the AI is told to rewrite the selected excerpt as-is, so an `<ai>` block is not guaranteed to be treated as an instruction there.
+- **Nothing removes the tag but the rewrite.** If you type an interjection and then save without rewriting, the `<ai>` block stays in your file exactly as you typed it. Delete it yourself if you decide not to use it.
 
 ### Rewriting a Selection
 
