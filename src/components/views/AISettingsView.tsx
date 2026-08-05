@@ -504,10 +504,6 @@ function AISettingsView() {
                           data-testid="llamacpp-base-url-input"
                         />
                       </div>
-                      <p className="text-xs italic text-slate-400">
-                        MkBrowser only connects to this URL — you are responsible for starting and
-                        stopping the llama-server process yourself.
-                      </p>
                     </div>
                   )}
                 </div>

@@ -345,7 +345,9 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       // Omitted when the editor is always expanded — the toggle would be a
       // no-op, so the button is hidden rather than shown doing nothing.
       onToggleExpandedEditor={alwaysExpandedEditor ? undefined : handleToggleExpandedEditor}
-      showRewrite={!item?.reviewing && aiRewriteMode}
+      // HUMAN.md is the user's own prompt to the AI — rewriting it with AI
+      // would defeat its purpose, so the button never appears while editing it.
+      showRewrite={!item?.reviewing && aiRewriteMode && !isHumanFile}
       onAiRewrite={handleAiRewrite}
       rewriteDisabled={edit.saving || isRewriting}
       isRewriting={isRewriting}
