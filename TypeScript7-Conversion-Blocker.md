@@ -1,6 +1,6 @@
 # TypeScript 7 — Why We Haven't Upgraded Yet
 
-**Investigated:** 2026-07-13
+**Investigated:** 2026-07-13 · **Re-checked:** 2026-08-06 (still blocked — see below)
 **Decision:** Stay on TypeScript 6.0.3. Revisit when `typescript-eslint` supports TS 7.x.
 **Blocker:** `typescript-eslint` (all packages) — its peer range explicitly excludes TypeScript 7.
 
@@ -182,6 +182,45 @@ Trading a 3-second typecheck speedup for that is a bad deal.
 | **Wait for typescript-eslint** | ✅ **Chosen.** Stay on 6.0.3, upgrade in one clean step later. |
 
 ---
+
+## Re-check log
+
+### 2026-08-06 — still blocked, and the reason is deeper than "the linter hasn't caught up"
+
+Ran the same check again:
+
+```
+$ npm view typescript-eslint@latest peerDependencies
+{ eslint: '^8.57.0 || ^9.0.0 || ^10.0.0', typescript: '>=4.8.4 <6.1.0' }
+```
+
+`typescript-eslint` had moved `8.63.0 → 8.66.0` in the intervening weeks, but the `<6.1.0` ceiling is
+**byte-for-byte unchanged** (checked `@latest` and `@canary` — same range on both). Our installed tree is
+still `typescript@6.0.3` / `typescript-eslint@8.64.0`.
+
+Dug into *why* it hasn't moved, since a plain version bump felt like it should have picked this up by now:
+
+- **TypeScript 7.0 shipped with no programmatic/JS API at all.** Per Microsoft's own announcement:
+  "TypeScript 7.0 is here, it does not ship with an API." A stable API is targeted for **7.1**
+  (~3-4 months out on their usual cadence). `typescript-eslint` has nothing to bind against yet — this
+  isn't a case of the maintainers being slow to bump a peer range, there's no API to consume.
+- `typescript-eslint`'s own tracking issue for tsgo/TS7 support,
+  [#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940), is open but labeled
+  "blocked by external API." Maintainers also flag a second, independent obstacle: ESLint's parser
+  interface is synchronous, but tsgo will be consumed via WASM/native bindings (async by nature) —
+  they describe this as "many months away," not a near-term fix.
+- A direct ask for TS 7.0.2 support,
+  [#12518](https://github.com/typescript-eslint/typescript-eslint/issues/12518), was **closed as
+  "not planned."**
+- Microsoft has published **`@typescript/typescript6`** — a compat package that re-exports the 6.0 API
+  (with a `tsc6` binary to avoid the bin collision) — as the officially sanctioned stopgap for exactly this
+  transition. This is the same shape as the "Side-by-side" option we already rejected below; it isn't a new
+  workaround to consider, just confirmation that the split-compiler approach is Microsoft's intended bridge,
+  not a hack we invented. We're still opting to wait rather than run it.
+
+**Net effect on the decision: unchanged.** If anything the wait is now better justified — this doesn't
+resolve until TS 7.1 ships a stable API *and* typescript-eslint builds support against it *and* the
+ESLint async-parser problem is solved. None of those have a committed date yet.
 
 ## When to revisit
 
