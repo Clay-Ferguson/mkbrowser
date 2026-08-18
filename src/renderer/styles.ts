@@ -67,12 +67,23 @@ const SIZE_LG = 'px-6 py-3 font-medium rounded-lg';
 
 // --- Color variants ------------------------------------------------------
 // Solid fills. `btn-fg` is the one foreground that sits on all of them.
-const FILL_BLUE = 'text-btn-fg bg-btn-blue hover:bg-btn-blue-hover';
-const FILL_RED = 'text-btn-fg bg-btn-red hover:bg-btn-red-hover';
-const FILL_GREEN = 'text-btn-fg bg-btn-green hover:bg-btn-green-hover';
-const FILL_PURPLE = 'text-btn-fg bg-btn-purple hover:bg-btn-purple-hover';
-const FILL_NEUTRAL = 'text-btn-neutral-fg bg-btn-neutral hover:bg-btn-neutral-hover';
+//
+// These deliberately do NOT change on hover. A labelled button ("Save",
+// "Cancel", "Delete") already reads as a button from its fill alone, and
+// brightening an already-vivid fill under the pointer looked worse, not
+// clearer. Icon buttons are the exception — an icon needs the extra hover
+// signal — so the few icon buttons built on a solid fill opt in by appending
+// the matching HOVER_* piece below.
+const FILL_BLUE = 'text-btn-fg bg-btn-blue';
+const FILL_RED = 'text-btn-fg bg-btn-red';
+const FILL_GREEN = 'text-btn-fg bg-btn-green';
+const FILL_PURPLE = 'text-btn-fg bg-btn-purple';
+const FILL_NEUTRAL = 'text-btn-neutral-fg bg-btn-neutral';
 const FILL_NEUTRAL_OUTLINED = `${FILL_NEUTRAL} border border-btn-neutral-border`;
+
+// Opt-in hover lift for solid-fill *icon* buttons (see above).
+const HOVER_BLUE = 'hover:bg-btn-blue-hover';
+const HOVER_NEUTRAL = 'hover:bg-btn-neutral-hover';
 
 // Ghost: transparent until hovered. `GHOST` idles neutral and picks up the
 // accent on hover; `TINT_*` idles already colored (the icon's color carries
@@ -102,10 +113,10 @@ export const BUTTON_CLASS_XS = `${BTN} ${SIZE_ICON_XS} text-btn-neutral-fg hover
 
 /** Icon-sized button with the neutral fill (icon-only toolbar action that still
  *  needs a visible chip, e.g. the search-results Refresh). */
-export const BUTTON_CLASS_ICON_NEUTRAL = `${BTN} ${SIZE_ICON} ${FILL_NEUTRAL}`;
+export const BUTTON_CLASS_ICON_NEUTRAL = `${BTN} ${SIZE_ICON} ${FILL_NEUTRAL} ${HOVER_NEUTRAL}`;
 
 /** Solid icon button (colored background, for primary icon actions). */
-export const BUTTON_CLASS_ICON_SOLID_BLUE = `${BTN} flex-shrink-0 p-1 rounded ${FILL_BLUE}`;
+export const BUTTON_CLASS_ICON_SOLID_BLUE = `${BTN} flex-shrink-0 p-1 rounded ${FILL_BLUE} ${HOVER_BLUE}`;
 
 /** Icon button floated over image content — a black scrim, so it stays legible
  *  whatever the image underneath happens to be. */
@@ -140,8 +151,9 @@ export const BUTTON_CLASS_LG_BLUE = `${BTN} w-full ${SIZE_LG} ${FILL_BLUE}`;
 // --- Toggle / selected states --------------------------------------------
 /** The "on" half of a two-state button (selected day, selected list row). */
 export const BUTTON_CLASS_TOGGLE_ON = 'text-btn-fg bg-btn-blue';
-/** The "off" half when the control reads as a filled pill. */
-export const BUTTON_CLASS_TOGGLE_OFF = 'text-btn-label bg-btn-neutral hover:bg-btn-neutral-hover';
+/** The "off" half when the control reads as a filled pill. Static on hover,
+ *  like every other labelled button on a solid fill. */
+export const BUTTON_CLASS_TOGGLE_OFF = 'text-btn-label bg-btn-neutral';
 /** The "off" half when the control reads as a plain row. */
 export const BUTTON_CLASS_TOGGLE_OFF_GHOST = 'text-btn-label hover:bg-btn-ghost-bg';
 

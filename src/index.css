@@ -35,7 +35,10 @@
   /* -- Foreground used on top of any solid `btn-*` fill -- */
   --color-btn-fg: #f1f5f9;
 
-  /* -- Solid fills: oklch(0.57 0.19 H), hover ~0.075 lighter. -- */
+  /* -- Solid fills: oklch(0.57 0.19 H), hover ~0.075 lighter.
+        The `-hover` values are consumed only by the handful of *icon* buttons
+        built on a solid fill. Labelled buttons ("Save", "Cancel") hold their
+        resting color under the pointer — see FILL_* in renderer/styles.ts. -- */
   --color-btn-blue: #1e72e4;          /* H 258 — primary / confirm  */
   --color-btn-blue-hover: #398afe;
   --color-btn-red: #d03739;           /* H 25  — destructive        */
