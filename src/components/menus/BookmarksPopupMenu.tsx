@@ -146,7 +146,7 @@ export default function BookmarksPopupMenu({
                 <div className={`${MENU_ROW_ACTIONS} ml-4`}>
                   <button
                     type="button"
-                    className={`${MENU_ICON_BTN} hover:text-slate-100`}
+                    className={`${MENU_ICON_BTN} hover:text-btn-ghost-hover`}
                     title="Edit bookmark"
                     onClick={(e) => { e.stopPropagation(); setEditingBookmark(bookmark); }}
                     data-testid={`bookmark-edit-button-${name}`}
@@ -155,7 +155,7 @@ export default function BookmarksPopupMenu({
                   </button>
                   <button
                     type="button"
-                    className={`${MENU_ICON_BTN} hover:text-red-400`}
+                    className={`${MENU_ICON_BTN} hover:text-btn-accent-red`}
                     title="Delete bookmark"
                     onClick={(e) => { e.stopPropagation(); handleDelete(fullPath); }}
                     data-testid={`bookmark-delete-button-${name}`}

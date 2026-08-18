@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
-import { ENTRY_DROP_TARGET } from '../../renderer/styles';
+import { BUTTON_CLASS_XS, ENTRY_DROP_TARGET } from '../../renderer/styles';
 import { logger } from '../../shared/logUtil';
 import { getIconForFileExtension, isImageFile } from '../../shared/fileTypes';
 import type { FileIconType } from '../../shared/fileTypes';
@@ -763,7 +763,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           ref={bookmarksButtonRef}
           type="button"
           onClick={toggleBookmarksMenu}
-          className="ml-1 p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
+          className={`${BUTTON_CLASS_XS} ml-1`}
           title="Bookmarks menu"
           data-testid="bookmarks-menu-button"
         >
@@ -774,7 +774,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           type="button"
           onClick={collapseAllIndexTreeNodes}
           disabled={!isAnyExpanded(treeRoot.children)}
-          className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+          className={BUTTON_CLASS_XS}
           title="Collapse All"
           data-testid="file-explorer-tree-collapse"
         >
@@ -786,7 +786,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           <button
             type="button"
             onClick={handleNarrowTree}
-            className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
+            className={BUTTON_CLASS_XS}
             title="Narrow tree"
             data-testid="file-explorer-tree-narrow"
           >
@@ -797,7 +797,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           <button
             type="button"
             onClick={handleWidenTree}
-            className="p-0.5 text-slate-200 hover:text-white hover:bg-slate-700 rounded"
+            className={BUTTON_CLASS_XS}
             title="Widen tree"
             data-testid="file-explorer-tree-widen"
           >

@@ -13,7 +13,7 @@ import {
   useAS,
 } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
-import { getContentWidthClasses } from '../../renderer/styles';
+import { BUTTON_CLASS_LINK_AMBER, getContentWidthClasses } from '../../renderer/styles';
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
 
 /**
@@ -181,7 +181,7 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
                 type="button"
                 onClick={handleBrowseFolder}
                 data-testid="browse-folder-link"
-                className="text-sm text-amber-500 hover:text-amber-400 hover:underline cursor-pointer bg-transparent border-0 p-0"
+                className={`${BUTTON_CLASS_LINK_AMBER} text-sm hover:underline bg-transparent border-0 p-0`}
                 title={`Open Folder ${folderName}`}
               >
                 Browse Folder

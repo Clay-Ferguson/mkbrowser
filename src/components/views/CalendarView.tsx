@@ -10,6 +10,7 @@ import type { CalendarEvent, CalendarSource, CalendarViewType } from '../../shar
 import { logger } from '../../shared/logUtil';
 import { getFileName, getParentPath, joinPath } from '../../renderer/pathUtil';
 import NewCalendarFileDialog from '../dialogs/NewCalendarFileDialog';
+import { BUTTON_CLASS_LINK_AMBER } from '../../renderer/styles';
 
 /** Formats a Date as MM/DD/YYYY for use in the `due:` front-matter field. */
 function formatDueDate(d: Date): string {
@@ -195,7 +196,7 @@ export default function CalendarView() {
           <span className="flex-shrink-0" aria-hidden="true">⚠</span>
           <span className="flex-1">{watcherWarning}</span>
           <button
-            className="flex-shrink-0 text-amber-300 hover:text-amber-100"
+            className={`${BUTTON_CLASS_LINK_AMBER} flex-shrink-0`}
             onClick={() => setCalendarWatcherWarning(null)}
             title="Dismiss"
           >

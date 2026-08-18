@@ -8,7 +8,7 @@ import {
   canDropInto,
   completeEntryDrop,
 } from '../renderer/dragAndDrop';
-import { ENTRY_DROP_TARGET } from '../renderer/styles';
+import { BREADCRUMB_IDLE, BREADCRUMB_SEGMENT_IDLE, ENTRY_DROP_TARGET } from '../renderer/styles';
 import { joinPath, splitPathSegments, isPathInside } from '../renderer/pathUtil';
 import { logger } from '../shared/logUtil';
 
@@ -85,7 +85,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
           'p-2 border border-transparent rounded cursor-pointer flex-shrink-0 transition-colors',
           dragOverPath === normalizedRoot
             ? `text-white ${ENTRY_DROP_TARGET}`
-            : 'text-slate-400 hover:bg-slate-700 hover:border-slate-500',
+            : BREADCRUMB_IDLE,
         )}
         aria-label="Go to root folder"
         title="Go to root folder"
@@ -113,7 +113,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
                 'px-2 py-1 border border-transparent rounded cursor-pointer no-underline break-all transition-colors',
                 isDragOver
                   ? `text-white ${ENTRY_DROP_TARGET}`
-                  : 'text-slate-200 hover:bg-slate-700 hover:border-slate-500',
+                  : BREADCRUMB_SEGMENT_IDLE,
               )}
             >
               {part}
@@ -130,7 +130,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
             setCurrentView('browser');
             setPendingIndexTreeReveal(currentPath);
           }}
-          className="p-2 text-slate-400 hover:bg-slate-700 border border-transparent hover:border-slate-500 rounded cursor-pointer flex-shrink-0 transition-colors"
+          className={`p-2 border border-transparent rounded cursor-pointer flex-shrink-0 transition-colors ${BREADCRUMB_IDLE}`}
           aria-label="Reveal in folder tree"
           title="Reveal in folder tree"
           data-testid="breadcrumb-reveal-tree-button"

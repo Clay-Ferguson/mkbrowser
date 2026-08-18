@@ -28,7 +28,7 @@ import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
 import { createFontSizeTheme } from './editorTheme';
 import { logger } from '../../shared/logUtil';
-import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN } from '../../renderer/styles';
+import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN, BUTTON_CLASS_SM_NEUTRAL } from '../../renderer/styles';
 
 // Delay before auto-focusing / scrolling to a line after mount. Lets CodeMirror finish its
 // initial layout so focus and scrollIntoView land on correctly measured content.
@@ -951,7 +951,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           <button
             type="button"
             onClick={handleReviewCancel}
-            className="px-3 py-1 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors"
+            className={BUTTON_CLASS_SM_NEUTRAL}
             data-testid="diff-cancel-button"
           >
             Cancel Rewrite

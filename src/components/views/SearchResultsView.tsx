@@ -21,7 +21,7 @@ import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
 import { toCalendarEvents } from '../../shared/calendarUtil';
-import { getContentWidthClasses, BUTTON_CLASS_BLUE, BUTTON_CLASS_RED } from '../../renderer/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, getContentWidthClasses } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 
 interface SearchResultsViewProps {
@@ -230,7 +230,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                 type="button"
                 onClick={handleShowGraph}
                 disabled={searchResults.length === 0}
-                className="flex items-center gap-1.5 px-3 py-1 text-sm text-slate-200 bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className={`${BUTTON_CLASS_SM_NEUTRAL} flex items-center gap-1.5`}
                 title="View search results as folder graph"
                 data-testid="search-graph-view-button"
               >
@@ -241,7 +241,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                 type="button"
                 onClick={handleShowCalendar}
                 disabled={searchResults.length === 0}
-                className="flex items-center gap-1.5 px-3 py-1 text-sm text-slate-200 bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className={`${BUTTON_CLASS_SM_NEUTRAL} flex items-center gap-1.5`}
                 title="View the calendar items among the search results"
                 data-testid="search-calendar-view-button"
               >
@@ -253,7 +253,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                 type="button"
                 onClick={handleRefresh}
                 disabled={!lastSearchDefinition || refreshing}
-                className="flex items-center p-1.5 text-slate-200 bg-slate-700 hover:bg-slate-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className={`${BUTTON_CLASS_ICON_NEUTRAL} flex items-center`}
                 title="Re-run this search"
                 data-testid="search-refresh-button"
               >

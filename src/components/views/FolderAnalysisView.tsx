@@ -2,6 +2,7 @@ import { HashtagIcon } from '@heroicons/react/24/outline';
 import {
   useAS,
 } from '../../store';
+import { BUTTON_CLASS_ROW } from '../../renderer/styles';
 
 interface FolderAnalysisViewProps {
   onSearchHashtag: (hashtag: string, ctrlKey: boolean) => void;
@@ -55,7 +56,7 @@ function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
                   key={entry.tag}
                   type="button"
                   onClick={(e) => onSearchHashtag(entry.tag, e.ctrlKey)}
-                  className="w-full flex items-center justify-between py-1.5 px-3 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer text-left"
+                  className={BUTTON_CLASS_ROW}
                   title={`Search for ${entry.tag} (Ctrl+click for advanced search)`}
                 >
                   <span className="text-blue-400 font-mono text-sm">{entry.tag}</span>

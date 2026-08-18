@@ -12,7 +12,7 @@ import ConfirmDialog from '../dialogs/ConfirmDialog';
 import AlertDialog from '../dialogs/AlertDialog';
 import CheckboxField from '../dialogs/common/CheckboxField';
 import NameInputDialog from '../dialogs/common/NameInputDialog';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_RED, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, BUTTON_CLASS_GREEN, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_RED, BUTTON_CLASS_RED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
 
 const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
@@ -314,7 +314,7 @@ function AISettingsView() {
                   <button
                     type="button"
                     onClick={() => setShowResetConfirm(true)}
-                    className="text-sm text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                    className={`${BUTTON_CLASS_LINK_RED} text-sm`}
                   >
                     Reset
                   </button>
@@ -396,7 +396,7 @@ function AISettingsView() {
                     <button
                       type="button"
                       onClick={() => setModelTableExpanded((v) => !v)}
-                      className="flex items-center gap-2 text-slate-300 text-sm font-medium hover:text-slate-100 transition-colors"
+                      className={`${BUTTON_CLASS_LINK} flex items-center gap-2 text-sm font-medium`}
                     >
                       <ChevronRightIcon
                         className={clsx('w-4 h-4 transition-transform', modelTableExpanded && 'rotate-90')}
@@ -413,7 +413,7 @@ function AISettingsView() {
                           type="button"
                           onClick={handleCreateModel}
                           title="Create new model"
-                          className="p-1.5 text-slate-400 hover:text-green-400 hover:bg-slate-700 rounded transition-colors"
+                          className={BUTTON_CLASS_GREEN}
                           data-testid="ai-settings-create-model-button"
                         >
                           <PlusIcon className="w-5 h-5" />

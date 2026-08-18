@@ -39,25 +39,149 @@ export const RADIO_FIELD_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-600`;
 // Larger slate-700 checkbox used by the Settings views (composed with CheckboxField).
 export const SETTINGS_CHECKBOX_CLASS = 'w-5 h-5 bg-slate-700 border border-slate-600 rounded text-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer';
 
-export const BUTTON_CLASS_NORMAL = 'p-1.5 text-slate-400 hover:text-white      hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
-export const BUTTON_CLASS_CYAN =   'p-1.5 text-slate-400 hover:text-cyan-400   hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
-export const BUTTON_CLASS_RED =    'p-1.5 text-slate-400 hover:text-red-400    hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
-export const BUTTON_CLASS_BLUE =   'p-1.5 text-slate-400 hover:text-blue-400   hover:bg-slate-700 rounded transition-colors disabled:opacity-50 cursor-pointer';
+/* ==========================================================================
+   BUTTONS — every button color in the app is defined here.
 
-// Large dialog action buttons
-export const BUTTON_CLASS_DLG_CANCEL = 'px-4 py-2 text-sm text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded transition-colors cursor-pointer';
-export const BUTTON_CLASS_DLG_BLUE   = 'px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-export const BUTTON_CLASS_DLG_GREEN  = 'px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-export const BUTTON_CLASS_DLG_RED    = 'px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+   Components must not spell a raw Tailwind color on a button (`bg-blue-600`,
+   `text-red-400`, …). Reuse one of the constants below, or add a new one built
+   from the shared size/variant pieces. The colors themselves are the `btn-*`
+   theme colors declared in `src/index.css` (@theme), so the whole button theme
+   can be re-skinned by editing that one block.
 
-// Small inline action buttons
-export const BUTTON_CLASS_SM_BLUE   = 'px-3 py-1 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-export const BUTTON_CLASS_SM_RED    = 'px-3 py-1 text-sm text-white bg-red-600 hover:bg-red-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-export const BUTTON_CLASS_SM_PURPLE = 'px-3 py-1 text-sm text-white bg-purple-600 hover:bg-purple-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
-export const BUTTON_CLASS_SM_GREEN  = 'px-3 py-1 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+   Composition: every export is `${BTN} ${size} ${variant}` — `BTN` carries the
+   behavior (transition, cursor, disabled treatment), the size pieces carry
+   padding/rounding/type scale, and the variant pieces carry color only.
+   ========================================================================== */
 
-// Solid blue icon button (blue background, for primary icon actions)
-export const BUTTON_CLASS_ICON_SOLID_BLUE = 'flex-shrink-0 p-1 bg-blue-600 hover:bg-blue-700 rounded transition-colors cursor-pointer';
+/** Behavior shared by every button, regardless of size or color. */
+const BTN = 'transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+
+// --- Sizes ---------------------------------------------------------------
+const SIZE_ICON = 'p-1.5 rounded';          // icon-only action-bar button
+const SIZE_ICON_TB = 'p-1 rounded-lg';      // icon-only toolbar button (denser)
+const SIZE_ICON_XS = 'p-0.5 rounded';       // icon-only tree/panel header button
+const SIZE_SM = 'px-3 py-1 text-sm rounded';
+const SIZE_BAR = 'px-3 py-1.5 text-sm font-medium rounded-lg';
+const SIZE_DLG = 'px-4 py-2 text-sm rounded';
+const SIZE_LG = 'px-6 py-3 font-medium rounded-lg';
+
+// --- Color variants ------------------------------------------------------
+// Solid fills. `btn-fg` is the one foreground that sits on all of them.
+const FILL_BLUE = 'text-btn-fg bg-btn-blue hover:bg-btn-blue-hover';
+const FILL_RED = 'text-btn-fg bg-btn-red hover:bg-btn-red-hover';
+const FILL_GREEN = 'text-btn-fg bg-btn-green hover:bg-btn-green-hover';
+const FILL_PURPLE = 'text-btn-fg bg-btn-purple hover:bg-btn-purple-hover';
+const FILL_NEUTRAL = 'text-btn-neutral-fg bg-btn-neutral hover:bg-btn-neutral-hover';
+const FILL_NEUTRAL_OUTLINED = `${FILL_NEUTRAL} border border-btn-neutral-border`;
+
+// Ghost: transparent until hovered. `GHOST` idles neutral and picks up the
+// accent on hover; `TINT_*` idles already colored (the icon's color carries
+// meaning at rest, e.g. amber = folder).
+const GHOST = 'text-btn-ghost hover:bg-btn-ghost-bg';
+const TINT_BLUE = 'text-btn-accent-blue hover:text-btn-accent-blue-hover hover:bg-btn-ghost-bg';
+const TINT_AMBER = 'text-btn-accent-amber hover:text-btn-accent-amber-hover hover:bg-btn-ghost-bg';
+const TINT_GREEN = 'text-btn-accent-green hover:text-btn-accent-green-hover hover:bg-btn-ghost-bg';
+const TINT_RED = 'text-btn-accent-red hover:text-btn-accent-red-hover hover:bg-btn-ghost-bg';
+
+// --- Icon buttons: neutral at rest, accent-colored on hover --------------
+export const BUTTON_CLASS_NORMAL = `${BTN} ${SIZE_ICON} ${GHOST} hover:text-btn-ghost-hover`;
+export const BUTTON_CLASS_CYAN = `${BTN} ${SIZE_ICON} ${GHOST} hover:text-btn-accent-cyan`;
+export const BUTTON_CLASS_RED = `${BTN} ${SIZE_ICON} ${GHOST} hover:text-btn-accent-red`;
+export const BUTTON_CLASS_BLUE = `${BTN} ${SIZE_ICON} ${GHOST} hover:text-btn-accent-blue`;
+export const BUTTON_CLASS_GREEN = `${BTN} ${SIZE_ICON} ${GHOST} hover:text-btn-accent-green`;
+
+// --- Toolbar icon buttons (denser; the BrowseView / IndexInsertBar row) ---
+export const BUTTON_CLASS_TB_NORMAL = `${BTN} ${SIZE_ICON_TB} ${GHOST} hover:text-btn-ghost-hover`;
+export const BUTTON_CLASS_TB_BLUE = `${BTN} ${SIZE_ICON_TB} ${TINT_BLUE}`;
+export const BUTTON_CLASS_TB_AMBER = `${BTN} ${SIZE_ICON_TB} ${TINT_AMBER}`;
+export const BUTTON_CLASS_TB_GREEN = `${BTN} ${SIZE_ICON_TB} ${TINT_GREEN}`;
+export const BUTTON_CLASS_TB_RED = `${BTN} ${SIZE_ICON_TB} ${TINT_RED}`;
+
+/** Smallest icon button — tree/panel header controls. */
+export const BUTTON_CLASS_XS = `${BTN} ${SIZE_ICON_XS} text-btn-neutral-fg hover:text-btn-ghost-hover hover:bg-btn-ghost-bg disabled:hover:bg-transparent`;
+
+/** Icon-sized button with the neutral fill (icon-only toolbar action that still
+ *  needs a visible chip, e.g. the search-results Refresh). */
+export const BUTTON_CLASS_ICON_NEUTRAL = `${BTN} ${SIZE_ICON} ${FILL_NEUTRAL}`;
+
+/** Solid icon button (colored background, for primary icon actions). */
+export const BUTTON_CLASS_ICON_SOLID_BLUE = `${BTN} flex-shrink-0 p-1 rounded ${FILL_BLUE}`;
+
+/** Icon button floated over image content — a black scrim, so it stays legible
+ *  whatever the image underneath happens to be. */
+const SCRIM = `${BTN} rounded-full bg-btn-scrim hover:bg-btn-scrim-hover text-white/70 hover:text-white`;
+export const BUTTON_CLASS_SCRIM = `${SCRIM} p-1`;
+/** Same, at the larger hit size the fullscreen image viewer uses. */
+export const BUTTON_CLASS_SCRIM_LG = `${SCRIM} p-2`;
+
+// --- Small inline action buttons -----------------------------------------
+export const BUTTON_CLASS_SM_BLUE = `${BTN} ${SIZE_SM} ${FILL_BLUE}`;
+export const BUTTON_CLASS_SM_RED = `${BTN} ${SIZE_SM} ${FILL_RED}`;
+export const BUTTON_CLASS_SM_GREEN = `${BTN} ${SIZE_SM} ${FILL_GREEN}`;
+export const BUTTON_CLASS_SM_PURPLE = `${BTN} ${SIZE_SM} ${FILL_PURPLE}`;
+export const BUTTON_CLASS_SM_NEUTRAL = `${BTN} ${SIZE_SM} ${FILL_NEUTRAL}`;
+
+// --- Toolbar (selection bar) action buttons ------------------------------
+export const BUTTON_CLASS_BAR_BLUE = `${BTN} ${SIZE_BAR} ${FILL_BLUE}`;
+export const BUTTON_CLASS_BAR_RED = `${BTN} ${SIZE_BAR} ${FILL_RED}`;
+export const BUTTON_CLASS_BAR_NEUTRAL = `${BTN} ${SIZE_BAR} ${FILL_NEUTRAL_OUTLINED}`;
+
+// --- Large dialog action buttons -----------------------------------------
+export const BUTTON_CLASS_DLG_CANCEL = `${BTN} ${SIZE_DLG} ${FILL_NEUTRAL}`;
+export const BUTTON_CLASS_DLG_BLUE = `${BTN} ${SIZE_DLG} ${FILL_BLUE}`;
+export const BUTTON_CLASS_DLG_GREEN = `${BTN} ${SIZE_DLG} ${FILL_GREEN}`;
+export const BUTTON_CLASS_DLG_RED = `${BTN} ${SIZE_DLG} ${FILL_RED}`;
+/** Dialog-sized neutral button with a border, for standalone settings actions. */
+export const BUTTON_CLASS_DLG_OUTLINED = `${BTN} px-4 py-2 text-sm rounded-lg ${FILL_NEUTRAL_OUTLINED}`;
+
+/** Full-width primary call to action (the empty-state "Select Folder"). */
+export const BUTTON_CLASS_LG_BLUE = `${BTN} w-full ${SIZE_LG} ${FILL_BLUE}`;
+
+// --- Toggle / selected states --------------------------------------------
+/** The "on" half of a two-state button (selected day, selected list row). */
+export const BUTTON_CLASS_TOGGLE_ON = 'text-btn-fg bg-btn-blue';
+/** The "off" half when the control reads as a filled pill. */
+export const BUTTON_CLASS_TOGGLE_OFF = 'text-btn-label bg-btn-neutral hover:bg-btn-neutral-hover';
+/** The "off" half when the control reads as a plain row. */
+export const BUTTON_CLASS_TOGGLE_OFF_GHOST = 'text-btn-label hover:bg-btn-ghost-bg';
+
+// --- Text-only ("link") buttons ------------------------------------------
+export const BUTTON_CLASS_LINK = `${BTN} text-btn-label hover:text-btn-label-hover`;
+export const BUTTON_CLASS_LINK_MUTED = `${BTN} text-btn-ghost hover:text-btn-ghost-hover`;
+export const BUTTON_CLASS_LINK_RED = `${BTN} text-btn-ghost hover:text-btn-accent-red`;
+export const BUTTON_CLASS_LINK_AMBER = `${BTN} text-btn-accent-amber hover:text-btn-accent-amber-hover`;
+
+/** Dialog title-bar close ("×") button. */
+export const BUTTON_CLASS_DLG_CLOSE = `${BTN} flex items-center justify-center w-7 h-7 text-2xl font-bold leading-none rounded-md border-2 text-btn-ghost hover:text-btn-ghost-hover border-btn-border hover:border-btn-border-hover`;
+
+/** Dropdown caret welded to the right edge of an EditableCombobox input. */
+export const BUTTON_CLASS_COMBO_TOGGLE = `${BTN} px-2 rounded-r border bg-btn-input-bg border-btn-input-border hover:bg-btn-input-bg-hover focus:outline-none focus:border-btn-focus`;
+
+/** "Copy" button revealed on hover over a fenced code block. */
+export const BUTTON_CLASS_CODE_COPY = `${BTN} absolute top-2 right-2 p-1.5 rounded bg-btn-neutral/80 hover:bg-btn-neutral-hover text-btn-ghost hover:text-btn-ghost-hover opacity-0 group-hover:opacity-100`;
+
+/** Full-width clickable list row (folder analysis hashtag list). */
+export const BUTTON_CLASS_ROW = `${BTN} w-full flex items-center justify-between py-1.5 px-3 rounded-lg text-left hover:bg-btn-row-hover`;
+
+/** Chip / pill button (thesaurus synonyms). */
+export const BUTTON_CLASS_CHIP = `${BTN} px-2 py-0.5 shrink-0 rounded-md text-sm leading-5 whitespace-nowrap select-none bg-btn-chip text-btn-label-hover border border-btn-border hover:border-btn-border-hover`;
+
+// --- Editor context menu items -------------------------------------------
+const EDITOR_MENU_ITEM_BASE = 'w-full px-4 py-2 text-left text-sm transition-colors';
+export const EDITOR_MENU_ITEM = `${EDITOR_MENU_ITEM_BASE} cursor-pointer text-btn-neutral-fg hover:bg-btn-menu-hover`;
+export const EDITOR_MENU_ITEM_ACCENT = `${EDITOR_MENU_ITEM_BASE} cursor-pointer text-btn-accent-blue hover:bg-btn-menu-hover`;
+export const EDITOR_MENU_ITEM_DISABLED = `${EDITOR_MENU_ITEM_BASE} text-btn-label-off cursor-not-allowed`;
+
+// --- Path breadcrumb -----------------------------------------------------
+/** Resting colors for a breadcrumb button (the drag-over state swaps in
+ *  ENTRY_DROP_TARGET instead, so these are the "not a drop target" half). */
+export const BREADCRUMB_IDLE = 'text-btn-ghost hover:bg-btn-ghost-bg hover:border-btn-border';
+export const BREADCRUMB_SEGMENT_IDLE = 'text-btn-neutral-fg hover:bg-btn-ghost-bg hover:border-btn-border';
+
+// --- App tab bar ---------------------------------------------------------
+const TAB_BASE = 'flex items-center text-base font-medium transition-colors cursor-pointer border-b-4';
+export const TAB_BUTTON_ACTIVE = `${TAB_BASE} text-btn-label-hover border-btn-accent-blue`;
+export const TAB_BUTTON_IDLE = `${TAB_BASE} text-btn-ghost hover:text-btn-neutral-fg border-transparent`;
 
 // Stacking level for modal/popup layers (dialogs, popup menus, fullscreen
 // overlays, context menus). Z_MODAL must stay above CodeMirror's internal
@@ -116,7 +240,7 @@ export const ENTRY_DROP_TARGET = 'relative z-10 bg-blue-600/60 outline outline-2
 export const ENTRY_HEADER_ROW_DROP = `${ENTRY_HEADER_ROW_LAYOUT} ${ENTRY_DROP_TARGET}`;
 export const ENTRY_CONTENT_AREA = 'px-6 py-4';
 export const ENTRY_LOADING = 'text-slate-400 text-sm';
-export const ENTRY_EDITOR_ICON_BTN = 'p-1 text-slate-200 hover:text-slate-100 hover:bg-slate-600 rounded transition-colors cursor-pointer';
+export const ENTRY_EDITOR_ICON_BTN = `${BTN} p-1 rounded text-btn-neutral-fg hover:text-btn-ghost-hover hover:bg-btn-ghost-bg`;
 export const RENAME_INPUT_CLASS = 'flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm';
 
 // Popup menu structural classes
@@ -124,19 +248,19 @@ export const RENAME_INPUT_CLASS = 'flex-1 bg-slate-900 text-slate-200 px-2 py-1 
 // so they clear CodeMirror's internal panels/tooltips without needing Z_MODAL.
 export const MENU_CONTAINER    = `fixed bg-slate-800 border-2 border-slate-400 rounded-lg shadow-xl p-2 min-w-[180px] max-w-xs`;
 export const MENU_ITEM_BASE    = 'w-full text-left py-2 text-sm transition-colors flex items-center gap-2';
-export const MENU_ITEM_ENABLED = 'text-slate-200 hover:bg-blue-800 cursor-pointer';
-export const MENU_ITEM_DISABLED = 'text-slate-500 cursor-not-allowed';
+export const MENU_ITEM_ENABLED = 'text-btn-neutral-fg hover:bg-btn-menu-hover cursor-pointer';
+export const MENU_ITEM_DISABLED = 'text-btn-label-off cursor-not-allowed';
 export const MENU_DIVIDER      = 'border-t border-slate-500 my-1';
 // Row with inline action buttons revealed on hover (e.g. bookmark rows)
-export const MENU_ROW          = 'flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-800 group';
-export const MENU_ICON_BTN     = 'p-1 rounded text-slate-400 hover:bg-blue-700 cursor-pointer';
+export const MENU_ROW          = 'flex items-center gap-1 px-2 py-1 rounded hover:bg-btn-menu-hover group';
+export const MENU_ICON_BTN     = 'p-1 rounded text-btn-ghost hover:bg-btn-menu-icon-hover cursor-pointer';
 // Primary clickable label within a MENU_ROW (icon + truncated text)
-export const MENU_ROW_LABEL    = 'flex items-center gap-2 flex-1 text-left text-sm text-slate-200 cursor-pointer min-w-0';
+export const MENU_ROW_LABEL    = 'flex items-center gap-2 flex-1 text-left text-sm text-btn-neutral-fg cursor-pointer min-w-0';
 // Action button cluster revealed on row hover (sits beside MENU_ROW_LABEL)
 export const MENU_ROW_ACTIONS  = 'flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity pl-2';
 // Icon sizing inside menu rows
 export const MENU_ROW_ICON     = 'w-4 h-4 flex-shrink-0';
 export const MENU_ACTION_ICON  = 'w-3.5 h-3.5';
 // Folder vs. file icon colors used in menu rows
-export const MENU_FOLDER_ICON  = 'text-amber-400';
-export const MENU_FILE_ICON    = 'text-blue-400';
+export const MENU_FOLDER_ICON  = 'text-btn-accent-amber';
+export const MENU_FILE_ICON    = 'text-btn-accent-blue';

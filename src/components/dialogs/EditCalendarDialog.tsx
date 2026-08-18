@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import { DayPicker } from 'react-day-picker';
 import Dialog from './common/Dialog';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_TOGGLE_OFF, BUTTON_CLASS_TOGGLE_ON, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
 import 'react-day-picker/style.css';
 import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, parseDueStr, formatDueDate, RRuleProps } from '../../shared/calendarUtil';
 
@@ -179,9 +179,7 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
                         data-testid={`calendar-day-button-${day.toLowerCase()}`}
                         className={clsx(
                           'w-8 h-7 text-xs rounded transition-colors',
-                          byday.includes(day)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600',
+                          byday.includes(day) ? BUTTON_CLASS_TOGGLE_ON : BUTTON_CLASS_TOGGLE_OFF,
                         )}
                       >
                         {day}

@@ -1,4 +1,5 @@
 import { DocumentPlusIcon, FolderPlusIcon } from '@heroicons/react/24/outline';
+import { BUTTON_CLASS_TB_AMBER, BUTTON_CLASS_TB_BLUE } from '../renderer/styles';
 
 interface IndexInsertBarProps {
   onInsertFile: () => void;
@@ -21,7 +22,7 @@ function IndexInsertBar({ onInsertFile, onInsertFolder }: IndexInsertBarProps) {
           type="button"
           data-testid="insert-file-here"
           onClick={onInsertFile}
-          className="p-1.5 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+          className={BUTTON_CLASS_TB_BLUE}
           title="Insert file here"
         >
           <DocumentPlusIcon className="w-5 h-5" />
@@ -30,7 +31,7 @@ function IndexInsertBar({ onInsertFile, onInsertFolder }: IndexInsertBarProps) {
           type="button"
           data-testid="insert-folder-here"
           onClick={onInsertFolder}
-          className="p-1.5 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+          className={BUTTON_CLASS_TB_AMBER}
           title="Insert folder here"
         >
           <FolderPlusIcon className="w-5 h-5" />

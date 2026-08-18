@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import TagsEditorDialog from '../dialogs/TagsEditorDialog';
 import CheckboxField from '../dialogs/common/CheckboxField';
-import { SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_OUTLINED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
 import type { ImageSize } from '../../shared/shared';
 import {
   setFontSize,
@@ -277,7 +277,7 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
           <button
             type="button"
             onClick={() => setShowTagsEditor(true)}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 rounded-lg transition-colors cursor-pointer"
+            className={BUTTON_CLASS_DLG_OUTLINED}
             data-testid="settings-edit-hashtags-button"
           >
             Edit Hashtags

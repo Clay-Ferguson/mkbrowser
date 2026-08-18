@@ -5,7 +5,7 @@ import { serializeTagsToYaml } from '../../shared/tagUtil';
 import type { TagCategory, HashtagDefinition } from '../../shared/tagUtil';
 import { fetchTags } from '../../renderer/tagApi';
 import Dialog from './common/Dialog';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_LINK_MUTED, BUTTON_CLASS_LINK_RED, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
 
 interface EditorTag {
   id: string;
@@ -223,7 +223,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                   type="button"
                   title="Add Category"
                   onClick={addCategory}
-                  className="text-slate-400 hover:text-slate-100 text-lg leading-none cursor-pointer transition-colors"
+                  className={`${BUTTON_CLASS_LINK_MUTED} text-lg leading-none`}
                   data-testid="tags-editor-add-category-button"
                 >
                   ＋
@@ -270,7 +270,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                       type="button"
                       title="Rename"
                       onClick={() => startRename(cat)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-slate-200 text-xl px-2 cursor-pointer flex-shrink-0"
+                      className={`${BUTTON_CLASS_LINK_MUTED} opacity-0 group-hover:opacity-100 text-xl px-2 flex-shrink-0`}
                       data-testid={`tags-editor-category-edit-button-${cat.id}`}
                     >
                       ✎
@@ -280,7 +280,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                       title={cat.tags.length > 0 ? 'Remove all tags first' : 'Delete category'}
                       onClick={() => { if (cat.tags.length === 0) deleteCategory(cat.id); }}
                       disabled={cat.tags.length > 0}
-                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 text-xl px-2 cursor-pointer flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-slate-400"
+                      className={`${BUTTON_CLASS_LINK_RED} opacity-0 group-hover:opacity-100 text-xl px-2 flex-shrink-0 disabled:hover:text-btn-ghost`}
                       data-testid={`tags-editor-category-delete-button-${cat.id}`}
                     >
                       ✕
@@ -304,7 +304,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                       type="button"
                       title="Add Tag"
                       onClick={() => addTag(selectedCat.id)}
-                      className="text-slate-400 hover:text-slate-100 text-lg leading-none cursor-pointer transition-colors"
+                      className={`${BUTTON_CLASS_LINK_MUTED} text-lg leading-none`}
                       data-testid="tags-editor-add-tag-button"
                     >
                       ＋
@@ -338,7 +338,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                           type="button"
                           title="Delete tag"
                           onClick={() => deleteTag(selectedCat.id, tag.id)}
-                          className="mt-1 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 text-xl px-2 cursor-pointer flex-shrink-0 transition-opacity"
+                          className={`${BUTTON_CLASS_LINK_RED} mt-1 opacity-0 group-hover:opacity-100 text-xl px-2 flex-shrink-0`}
                           data-testid={`tags-editor-tag-delete-button-${tag.id}`}
                         >
                           ✕

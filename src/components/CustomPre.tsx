@@ -3,6 +3,7 @@ import type { ExtraProps } from 'react-markdown';
 import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
 import { logger } from '../shared/logUtil';
 import { nodeToString } from '../renderer/reactUtil';
+import { BUTTON_CLASS_CODE_COPY } from '../renderer/styles';
 
 /**
  * Custom <pre> renderer for react-markdown that adds a copy-to-clipboard button.
@@ -51,7 +52,7 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
       // The parent entry enters edit mode on mouseup (MarkdownEntry.tsx), not click,
       // so the copy button has to stop that event specifically.
       onMouseUp={(e) => e.stopPropagation()}
-      className="absolute top-2 right-2 p-1.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+      className={BUTTON_CLASS_CODE_COPY}
       title={copied ? 'Copied!' : 'Copy code'}
     >
       {copied ? (

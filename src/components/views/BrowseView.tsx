@@ -62,7 +62,7 @@ import {
 import { scrollElementIntoView } from '../../renderer/entryDom';
 import { usePendingItemScroll } from './usePendingItemScroll';
 import { isImageFile, isTextFile, isPdfFile, sortEntries } from '../../shared/fileTypes';
-import { getContentWidthClasses } from '../../renderer/styles';
+import { BUTTON_CLASS_BAR_BLUE, BUTTON_CLASS_BAR_RED, BUTTON_CLASS_TB_AMBER, BUTTON_CLASS_TB_BLUE, BUTTON_CLASS_TB_NORMAL, getContentWidthClasses } from '../../renderer/styles';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { hasHumanMd } from '../../shared/ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, executeSearch } from '../../renderer/searchUtil';
@@ -906,7 +906,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             <button
               type="button"
               onClick={handleCutClick}
-              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
+              className={BUTTON_CLASS_BAR_BLUE}
               title="Cut selected items"
               data-testid="cut-button"
             >
@@ -919,7 +919,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(true)}
-              className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
+              className={BUTTON_CLASS_BAR_RED}
               title="Delete selected items"
               data-testid="delete-button"
             >
@@ -932,7 +932,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             <button
               type="button"
               onClick={() => clearAllCutItems()}
-              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
+              className={BUTTON_CLASS_BAR_BLUE}
               title="Undo cut (cancel pending move)"
               data-testid="undo-cut-button"
             >
@@ -946,7 +946,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               <button
                 type="button"
                 onClick={handleOpenCreateDialog}
-                className="p-1 text-blue-400 hover:text-blue-300 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                className={BUTTON_CLASS_TB_BLUE}
                 title="Create file"
                 data-testid="create-file-button"
               >
@@ -955,7 +955,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
               <button
                 type="button"
                 onClick={handleOpenCreateFolderDialog}
-                className="p-1 text-amber-500 hover:text-amber-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+                className={BUTTON_CLASS_TB_AMBER}
                 title="Create folder"
                 data-testid="create-folder-button"
               >
@@ -969,7 +969,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             type="button"
             ref={editButtonRef}
             onClick={() => setShowEditMenu(prev => !prev)}
-            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className={BUTTON_CLASS_TB_NORMAL}
             title="Edit"
             data-testid="edit-menu-button"
           >
@@ -981,7 +981,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             type="button"
             ref={toolsButtonRef}
             onClick={() => setShowToolsMenu(prev => !prev)}
-            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className={BUTTON_CLASS_TB_NORMAL}
             title="Tools"
             data-testid="tools-menu-button"
           >
@@ -992,7 +992,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           <button
             type="button"
             onClick={handleShowCalendar}
-            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className={BUTTON_CLASS_TB_NORMAL}
             title="Show Calendar"
             data-testid="calendar-button"
           >
@@ -1004,7 +1004,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             type="button"
             ref={sortButtonRef}
             onClick={() => setShowSortMenu(prev => !prev)}
-            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className={BUTTON_CLASS_TB_NORMAL}
             title="Sort order"
             data-testid="sort-menu-button"
           >
@@ -1015,7 +1015,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           <button
             type="button"
             onClick={handlePasteFromClipboard}
-            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className={BUTTON_CLASS_TB_NORMAL}
             title="Paste from clipboard"
             data-testid="paste-clipboard-button"
           >
@@ -1027,7 +1027,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             type="button"
             ref={searchButtonRef}
             onClick={() => setShowSearchMenu(prev => !prev)}
-            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className={BUTTON_CLASS_TB_NORMAL}
             title="Search"
             data-testid="search-menu-button"
           >
@@ -1039,7 +1039,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             <button
               type="button"
               onClick={expandAllItems}
-              className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+              className={BUTTON_CLASS_TB_NORMAL}
               title="Expand all"
               data-testid="expand-all-button"
             >
@@ -1052,7 +1052,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             <button
               type="button"
               onClick={collapseAllItems}
-              className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+              className={BUTTON_CLASS_TB_NORMAL}
               title="Collapse all"
               data-testid="collapse-all-button"
             >
@@ -1064,7 +1064,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           <button
             type="button"
             onClick={handleRefresh}
-            className="p-1 text-slate-400 hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+            className={BUTTON_CLASS_TB_NORMAL}
             title="Refresh"
             data-testid="refresh-button"
           >

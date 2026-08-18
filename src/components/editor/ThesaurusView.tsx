@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../../renderer/api';
 import { useAS } from '../../store';
 import { logger } from '../../shared/logUtil';
-import { MONO_FONT_STACK } from '../../renderer/styles';
+import { BUTTON_CLASS_CHIP, MONO_FONT_STACK } from '../../renderer/styles';
 import { insertSynonymAfterWord } from '../../renderer/editor/editorThesaurusUtil';
 
 /**
@@ -154,7 +154,7 @@ function ThesaurusView() {
               type="button"
               onClick={() => handleSynonymClick(synonym)}
               title={`Insert "${synonym}" after the word`}
-              className="px-2 py-0.5 shrink-0 rounded-md text-sm leading-5 bg-blue-700/50 text-blue-100 border border-slate-400/60 hover:border-slate-200 select-none whitespace-nowrap cursor-pointer transition-colors"
+              className={BUTTON_CLASS_CHIP}
               style={{ fontFamily: MONO_FONT_STACK }}
             >
               {synonym}

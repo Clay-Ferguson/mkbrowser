@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { Z_MODAL } from '../../renderer/styles';
+import { EDITOR_MENU_ITEM, EDITOR_MENU_ITEM_ACCENT, EDITOR_MENU_ITEM_DISABLED, Z_MODAL } from '../../renderer/styles';
 import type { ContextMenuState } from './useEditorContextMenu';
 
 interface EditorContextMenuProps {
@@ -126,7 +126,7 @@ export function EditorContextMenu({
             role="menuitem"
             tabIndex={-1}
             onClick={onSave}
-            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+            className={EDITOR_MENU_ITEM}
             data-testid="editor-save"
           >
             Save
@@ -151,7 +151,7 @@ export function EditorContextMenu({
                 role="menuitem"
                 tabIndex={-1}
                 onClick={() => onSpellingSuggestion(suggestion)}
-                className="w-full px-4 py-2 text-left text-sm text-blue-300 hover:bg-slate-700"
+                className={EDITOR_MENU_ITEM_ACCENT}
               >
                 {suggestion}
               </button>
@@ -169,7 +169,7 @@ export function EditorContextMenu({
         role="menuitem"
         tabIndex={-1}
         onClick={onCut}
-        className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+        className={`${EDITOR_MENU_ITEM} flex items-center justify-between`}
       >
         <span>Cut</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+X</span>
@@ -179,7 +179,7 @@ export function EditorContextMenu({
         role="menuitem"
         tabIndex={-1}
         onClick={onCopy}
-        className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+        className={`${EDITOR_MENU_ITEM} flex items-center justify-between`}
       >
         <span>Copy</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+C</span>
@@ -189,7 +189,7 @@ export function EditorContextMenu({
         role="menuitem"
         tabIndex={-1}
         onClick={onPaste}
-        className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+        className={`${EDITOR_MENU_ITEM} flex items-center justify-between`}
       >
         <span>Paste</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+V</span>
@@ -201,10 +201,7 @@ export function EditorContextMenu({
           tabIndex={-1}
           onClick={onPasteLink}
           disabled={!canPasteLink}
-          className={clsx(
-            'w-full px-4 py-2 text-left text-sm flex items-center justify-between',
-            canPasteLink ? 'text-slate-200 hover:bg-slate-700' : 'text-slate-500 cursor-not-allowed',
-          )}
+          className={clsx('flex items-center justify-between', canPasteLink ? EDITOR_MENU_ITEM : EDITOR_MENU_ITEM_DISABLED)}
           data-testid="editor-paste-link"
         >
           <span>Paste Link</span>
@@ -216,7 +213,7 @@ export function EditorContextMenu({
         role="menuitem"
         tabIndex={-1}
         onClick={onSelectAll}
-        className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+        className={`${EDITOR_MENU_ITEM} flex items-center justify-between`}
       >
         <span>Select All</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+A</span>
@@ -227,7 +224,7 @@ export function EditorContextMenu({
         role="menuitem"
         tabIndex={-1}
         onClick={onInsertTimestamp}
-        className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+        className={`${EDITOR_MENU_ITEM} flex items-center justify-between`}
       >
         <span>Insert Timestamp</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+T</span>
@@ -237,7 +234,7 @@ export function EditorContextMenu({
         role="menuitem"
         tabIndex={-1}
         onClick={onInsertDate}
-        className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between"
+        className={`${EDITOR_MENU_ITEM} flex items-center justify-between`}
       >
         <span>Insert Date</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+D</span>
@@ -252,7 +249,7 @@ export function EditorContextMenu({
             role="menuitem"
             tabIndex={-1}
             onClick={onToggleThesaurus}
-            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+            className={EDITOR_MENU_ITEM}
             data-testid="editor-toggle-thesaurus"
           >
             {thesaurusEnabled ? 'Hide Thesaurus' : 'Show Thesaurus'}
@@ -267,7 +264,7 @@ export function EditorContextMenu({
             role="menuitem"
             tabIndex={-1}
             onClick={onMakeRepeatingCalendarItem}
-            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+            className={EDITOR_MENU_ITEM}
           >
             Calendar Item (Reps)
           </button>
@@ -276,7 +273,7 @@ export function EditorContextMenu({
             role="menuitem"
             tabIndex={-1}
             onClick={onMakeCalendarItem}
-            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700"
+            className={EDITOR_MENU_ITEM}
           >
             Calendar Item
           </button>

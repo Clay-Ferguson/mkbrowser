@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
-import { Z_MODAL } from '../../renderer/styles';
+import { BUTTON_CLASS_SCRIM_LG, Z_MODAL } from '../../renderer/styles';
 import type { FileEntry as FileEntryType } from '../../global';
 import { setHighlightItem, setPendingScrollToFile, deleteItems, useAS, setItemSelected } from '../../store';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -186,7 +186,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
             type="button"
             onClick={(e) => browse.onExifClick(e, currentPath, currentName)}
             disabled={browse.exifLoading}
-            className="fixed top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors z-10"
+            className={`${BUTTON_CLASS_SCRIM_LG} fixed top-2 right-2 z-10`}
             title="View EXIF metadata"
             data-testid="fullscreen-image-exif-button"
           >

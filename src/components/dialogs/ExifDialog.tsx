@@ -4,7 +4,7 @@ import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import Dialog from './common/Dialog';
 import AlertDialog from './AlertDialog';
-import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../renderer/styles';
 import type { ExifData, ExifSection, ExifWriteResult } from '../../shared/shared';
 
 /**
@@ -311,7 +311,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
               <button
                 type="button"
                 onClick={handleAddDescription}
-                className="px-3 py-2 text-sm text-white bg-green-600 hover:bg-green-500 rounded transition-colors mr-auto"
+                className={`${BUTTON_CLASS_DLG_GREEN} mr-auto`}
                 title="Add description field for storing text"
                 data-testid="exif-add-description-button"
               >
@@ -329,7 +329,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-4 py-2 text-sm text-white bg-slate-600 hover:bg-slate-500 rounded transition-colors"
+                className={BUTTON_CLASS_DLG_CANCEL}
                 disabled={saving}
                 data-testid="exif-dialog-edit-cancel-button"
               >

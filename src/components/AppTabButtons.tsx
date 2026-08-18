@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { clsx } from 'clsx';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import { showTab, hideTab, setCurrentView, useAS, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, clearSearchResults, type AppView } from '../store';
 import { isAiThreadByEntries } from '../shared/ai/aiPatterns';
@@ -8,6 +7,7 @@ import type { FileEntry } from '../global';
 import appLogo from '../../public/icon-256.png';
 import FilePopupMenu from './menus/FilePopupMenu';
 import SystemPopupMenu from './menus/SystemPopupMenu';
+import { BUTTON_CLASS_BAR_NEUTRAL, BUTTON_CLASS_LINK_MUTED, BUTTON_CLASS_TB_NORMAL, BUTTON_CLASS_XS, TAB_BUTTON_ACTIVE, TAB_BUTTON_IDLE } from '../renderer/styles';
 
 interface TabConfig {
   id: AppView;
@@ -103,7 +103,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
         ref={logoRef}
         type="button"
         onClick={() => setShowFileMenu((prev) => !prev)}
-        className="flex-shrink-0 cursor-pointer rounded-lg p-0.5 hover:bg-slate-700 transition-colors"
+        className={`${BUTTON_CLASS_XS} flex-shrink-0`}
         aria-label="File menu"
         title="File menu"
         data-testid="app-logo"
@@ -146,12 +146,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
               data-testid={`tab-button-${tab.id}`}
               type="button"
               onClick={() => setCurrentView(tab.id)}
-              className={clsx(
-                'flex items-center text-base font-medium transition-colors cursor-pointer',
-                currentView === tab.id
-                  ? 'text-slate-100 border-b-4 border-blue-500'
-                  : 'text-slate-400 hover:text-slate-200 border-b-4 border-transparent',
-              )}
+              className={currentView === tab.id ? TAB_BUTTON_ACTIVE : TAB_BUTTON_IDLE}
             >
               {tab.label}
             </button>
@@ -160,7 +155,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
                 type="button"
                 data-testid={`tab-close-${tab.id}`}
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
-                className="mb-1 ml-1 text-2xl text-slate-400 hover:text-slate-100 transition-colors cursor-pointer leading-none"
+                className={`${BUTTON_CLASS_LINK_MUTED} mb-1 ml-1 text-2xl leading-none`}
                 aria-label={`Close ${tab.label} tab`}
                 title={`Close ${tab.label} tab`}
               >
@@ -175,7 +170,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
           ref={systemMenuRef}
           type="button"
           onClick={() => setShowSystemMenu((prev) => !prev)}
-          className="p-1 text-slate-400 hover:text-slate-100 hover:bg-slate-700 rounded transition-colors cursor-pointer"
+          className={BUTTON_CLASS_TB_NORMAL}
           aria-label="System menu"
           title="System menu"
           data-testid="system-menu-button"
@@ -186,7 +181,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
           <button
             type="button"
             onClick={navigateUp}
-            className="px-3 py-1 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 border border-gray-400 rounded-lg transition-colors cursor-pointer"
+            className={BUTTON_CLASS_BAR_NEUTRAL}
             title="Go up one level"
             data-testid="navigate-up-button"
           >

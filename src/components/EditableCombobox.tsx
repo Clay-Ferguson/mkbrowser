@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { clsx } from 'clsx';
+import { BUTTON_CLASS_COMBO_TOGGLE } from '../renderer/styles';
 
 export interface ComboboxOption {
   value: string;
@@ -204,7 +205,7 @@ function EditableCombobox({
           type="button"
           onClick={toggleDropdown}
           disabled={options.length === 0}
-          className="px-2 bg-slate-900 border border-slate-600 rounded-r hover:bg-slate-800 focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className={BUTTON_CLASS_COMBO_TOGGLE}
           tabIndex={-1}
           aria-label="Toggle dropdown"
           data-testid="combobox-toggle-button"

@@ -1,3 +1,5 @@
+import { BUTTON_CLASS_DLG_CLOSE } from '../../../renderer/styles';
+
 interface DlgHeaderProps {
   title: string;
   onClose: () => void;
@@ -18,7 +20,7 @@ const DlgHeader = ({ title, onClose, titleId }: DlgHeaderProps) => (
     <button
       type="button"
       onClick={onClose}
-      className="text-slate-400 hover:text-slate-200 cursor-pointer flex items-center justify-center w-7 h-7 text-2xl font-bold border-2 border-slate-500 hover:border-slate-300 rounded-md leading-none"
+      className={BUTTON_CLASS_DLG_CLOSE}
       aria-label="Close"
     >
       ×

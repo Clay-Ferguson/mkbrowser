@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../../renderer/api';
 import Dialog from './common/Dialog';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_RED } from '../../renderer/styles';
 
 interface StreamingDialogProps {
   /** Dismiss (hide) the dialog. Does not touch the in-flight AI request — used
@@ -156,7 +157,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
             <button
               type="button"
               onClick={handleStop}
-              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded cursor-pointer"
+              className={BUTTON_CLASS_DLG_RED}
               data-testid="streaming-dialog-stop-button"
             >
               Stop
@@ -165,7 +166,7 @@ function StreamingDialog({ onClose, onCancel }: StreamingDialogProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white text-sm rounded cursor-pointer"
+              className={BUTTON_CLASS_DLG_CANCEL}
               data-testid="streaming-dialog-close-button"
             >
               Close

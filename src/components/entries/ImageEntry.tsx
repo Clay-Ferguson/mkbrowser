@@ -15,6 +15,7 @@ import {
   EntryShell,
   type BaseEntryProps,
 } from './common';
+import { BUTTON_CLASS_SCRIM } from '../../renderer/styles';
 
 interface ImageEntryProps extends BaseEntryProps {
   allImages: FileEntryType[];
@@ -131,7 +132,7 @@ function ImageEntry(props: ImageEntryProps) {
                 type="button"
                 onClick={(e) => handleExifClick(e, entry.path, entry.name)}
                 disabled={exifLoading}
-                className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white/70 hover:text-white rounded-full transition-colors"
+                className={`${BUTTON_CLASS_SCRIM} absolute top-2 right-2`}
                 title="View EXIF metadata"
               >
                 <InformationCircleIcon className="w-5 h-5" />

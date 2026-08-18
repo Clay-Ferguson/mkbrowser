@@ -44,6 +44,7 @@ import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
 import { applyGlobalHighlight, getGlobalHighlightText } from './renderer/globalHighlight';
 import { logger } from './shared/logUtil';
+import { BUTTON_CLASS_LG_BLUE } from './renderer/styles';
 
 async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isDirectory || !node.isExpanded) return node;
@@ -449,7 +450,7 @@ function App() {
           <button
             type="button"
             onClick={handleSelectFolder}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors"
+            className={BUTTON_CLASS_LG_BLUE}
             data-testid="select-folder-button"
           >
             Select Folder

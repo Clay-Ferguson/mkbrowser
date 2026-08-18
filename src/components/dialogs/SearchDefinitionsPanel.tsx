@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 import { ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import type { SearchDefinition } from '../../shared/types';
-import { DLG_LABEL_CLASS, DLG_INPUT_CLASS } from '../../renderer/styles';
+import { BUTTON_CLASS_TB_GREEN, BUTTON_CLASS_TB_RED, BUTTON_CLASS_TOGGLE_OFF_GHOST, BUTTON_CLASS_TOGGLE_ON, DLG_INPUT_CLASS, DLG_LABEL_CLASS } from '../../renderer/styles';
 
 interface SearchDefinitionsPanelProps {
   searchName: string;
@@ -45,7 +45,7 @@ function SearchDefinitionsPanel({
             disabled={!hasName}
             data-testid="save-search-button"
             title="Save search definition"
-            className="p-1 rounded text-green-400 hover:text-green-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className={BUTTON_CLASS_TB_GREEN}
           >
             <ArrowDownTrayIcon className="w-4 h-4" />
           </button>
@@ -55,7 +55,7 @@ function SearchDefinitionsPanel({
             disabled={!hasName}
             data-testid="delete-search-button"
             title="Delete search definition"
-            className="p-1 rounded text-red-400 hover:text-red-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className={BUTTON_CLASS_TB_RED}
           >
             <TrashIcon className="w-4 h-4" />
           </button>
@@ -73,9 +73,7 @@ function SearchDefinitionsPanel({
                   onClick={() => onSelect(def)}
                   className={clsx(
                     'w-full text-left px-3 py-1.5 rounded text-sm whitespace-nowrap overflow-hidden text-ellipsis',
-                    searchName === def.name
-                      ? 'bg-blue-600 text-white'
-                      : 'text-slate-300 hover:bg-slate-700',
+                    searchName === def.name ? BUTTON_CLASS_TOGGLE_ON : BUTTON_CLASS_TOGGLE_OFF_GHOST,
                   )}
                   title={def.name}
                 >

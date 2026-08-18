@@ -53,6 +53,15 @@ src/components/
 
 Entry components compose shared hooks from `entries/common/` and render `EntryActionBar`, `RenameInput`, `SelectionCheckbox` for consistent UX. New entry types should follow this composition pattern.
 
+## Button Colors (single source of truth)
+Every button color lives in **`src/index.css`** as `btn-*` theme colors inside `@theme`
+(authored in oklch so each hue shares the same lightness/chroma and reads as one family).
+Components never spell a raw Tailwind color on a button (`bg-blue-600`, `text-red-400`, …) —
+they use a `BUTTON_CLASS_*` constant from **`src/renderer/styles.ts`**, which is composed
+from shared size pieces (`SIZE_ICON`, `SIZE_SM`, `SIZE_BAR`, `SIZE_DLG`, `SIZE_LG`) and
+color-only variant pieces (`FILL_*`, `GHOST`, `TINT_*`) that reference only `btn-*` colors.
+To re-theme all buttons, edit the `@theme` block in `src/index.css` and nothing else.
+
 ## Menu → IPC → Renderer Event Pattern
 Native menu actions (cut, paste, delete, etc.) flow as:
 1. `src/main.ts` — menu click sends event via `mainWindow.webContents.send('event-name')`

@@ -3,6 +3,98 @@
 
 @theme {
   --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+
+  /* ==========================================================================
+     BUTTON COLOR THEME — the single source of truth for every button color.
+
+     Nothing in `src/**.tsx` should name a raw Tailwind color for a button.
+     Buttons are built from the class strings in `src/renderer/styles.ts`, and
+     those strings only ever reference the `btn-*` colors defined below. To
+     re-theme every button in the app, edit these values and nothing else.
+
+     The palette is authored in oklch — L = lightness, C = chroma (how vivid),
+     H = hue (which color). Every hue in a group is held at the same L and C, so
+     they read as the same "weight" of color; that shared weight is what makes
+     them a family rather than the four unrelated Tailwind ramps that clashed.
+
+     Chroma is pushed close to what sRGB can actually render, so these are
+     genuinely vivid. Where a hue hits the gamut ceiling before the others do,
+     it takes the highest value it can render (green caps out well below blue
+     and red, which is why its L is nudged up instead — the same compromise
+     Tailwind's own ramp makes). Asking for more chroma than the ceiling does
+     not fail loudly: it silently clips to a different color and breaks the
+     family, so raise L and C together rather than C alone.
+
+     Three groups:
+       btn-<hue>          solid fills, white-ish text on top   (L ~.57, C ~.19)
+       btn-accent-<hue>   icon/label tints on a dark ground    (L ~.70, C ~.17)
+       btn-ghost/neutral  the uncolored chrome (slate ramp)
+     Each has a matching `-hover` one step lighter.
+     ========================================================================== */
+
+  /* -- Foreground used on top of any solid `btn-*` fill -- */
+  --color-btn-fg: #f1f5f9;
+
+  /* -- Solid fills: oklch(0.57 0.19 H), hover ~0.075 lighter. -- */
+  --color-btn-blue: #1e72e4;          /* H 258 — primary / confirm  */
+  --color-btn-blue-hover: #398afe;
+  --color-btn-red: #d03739;           /* H 25  — destructive        */
+  --color-btn-red-hover: #ef4c4b;
+  --color-btn-green: #069645;         /* H 150, L .59 (see above)   */
+  --color-btn-green-hover: #1db055;
+  --color-btn-purple: #8b54d4;        /* H 300 — AI actions         */
+  --color-btn-purple-hover: #a269f3;
+
+  /* -- Neutral fill (Cancel / secondary). Kept on the slate ramp so it
+        matches the panels and dialogs it sits in. -- */
+  --color-btn-neutral: #334155;
+  --color-btn-neutral-hover: #475569;
+  --color-btn-neutral-border: #475569;
+
+  /* -- Ghost buttons: transparent until hovered (icon bars, toolbars) -- */
+  --color-btn-ghost: #94a3b8;         /* idle icon / label          */
+  --color-btn-ghost-hover: #e2e8f0;   /* hovered icon / label       */
+  --color-btn-ghost-bg: #334155;      /* hover background           */
+
+  /* -- Accent tints: oklch(0.70 0.17 H), hover ~0.09 lighter. Amber and cyan
+        sit at L .80 — those hues cannot reach this chroma any lower. Used for
+        colored icons and text-only buttons on a dark ground. -- */
+  --color-btn-accent-blue: #5d9eff;
+  --color-btn-accent-blue-hover: #90bcfe;
+  --color-btn-accent-red: #f66d67;
+  --color-btn-accent-red-hover: #f7a098;
+  --color-btn-accent-green: #37bb62;
+  --color-btn-accent-green-hover: #88ce97;
+  --color-btn-accent-purple: #b082f7;
+  --color-btn-accent-purple-hover: #c5abf4;
+  --color-btn-accent-amber: #fbab0b;  /* folder-colored actions     */
+  --color-btn-accent-amber-hover: #ffd295;
+  --color-btn-accent-cyan: #0ed4f6;
+  --color-btn-accent-cyan-hover: #94eaff;
+
+  /* -- Menu rows: a desaturated blue wash, quiet enough to sit under text -- */
+  --color-btn-menu-hover: #315d9d;
+  --color-btn-menu-icon-hover: #3e71bc;
+
+  /* -- Chips / pills (thesaurus synonyms and similar) -- */
+  --color-btn-chip: #3a69ad;
+
+  /* -- Label / border / surface neutrals used by button chrome -- */
+  --color-btn-neutral-fg: #e2e8f0;    /* text on the neutral fill    */
+  --color-btn-label: #cbd5e1;         /* text-only button label      */
+  --color-btn-label-hover: #f1f5f9;
+  --color-btn-label-off: #64748b;     /* disabled menu item          */
+  --color-btn-border: #64748b;        /* outlines on chips / close   */
+  --color-btn-border-hover: #cbd5e1;
+  --color-btn-row-hover: #1e293b;     /* full-width list-row hover   */
+  --color-btn-input-bg: #0f172a;      /* button welded to an input   */
+  --color-btn-input-bg-hover: #1e293b;
+  --color-btn-input-border: #475569;
+  --color-btn-focus: #5d9eff;         /* focus ring / focus border   */
+
+  /* -- Scrim buttons floated over image content -- */
+  --color-btn-scrim: rgb(0 0 0 / 0.5);
+  --color-btn-scrim-hover: rgb(0 0 0 / 0.7);
 }
 
 /* Fat scrollbars - wider and easier to click */
