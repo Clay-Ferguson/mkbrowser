@@ -68,7 +68,7 @@ function FolderEntry(props: FolderEntryProps) {
         onContextMenu={(e) => { e.preventDefault(); if (!isRenaming) rename.handleRenameClick(e); }}
         {...drop.dropProps}
         className={clsx(
-          'w-full flex items-center gap-3 px-2 py-0 transition-colors text-left cursor-pointer',
+          'w-full flex items-center gap-3 px-2 py-0.5 transition-colors text-left cursor-pointer',
           drop.isDragOver ? ENTRY_DROP_TARGET : 'bg-transparent hover:bg-blue-700/70',
         )}
       >

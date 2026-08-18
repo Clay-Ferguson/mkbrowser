@@ -214,7 +214,7 @@ export const DLG_FOOTER_CLASS = 'flex justify-end gap-3';
 export const ENTRY_OUTER = 'bg-slate-800 group overflow-hidden';
 export const ENTRY_HIGHLIGHTED = 'border-2 border-purple-500 relative z-10';
 /** Layout half of the entry header row, shared by its normal and drop-target states. */
-const ENTRY_HEADER_ROW_LAYOUT = 'flex items-center gap-3 px-2 py-0 transition-colors';
+const ENTRY_HEADER_ROW_LAYOUT = 'flex items-center gap-3 px-2 py-0.5 transition-colors';
 export const ENTRY_HEADER_ROW = `${ENTRY_HEADER_ROW_LAYOUT} bg-blue-800/50 group-hover:bg-blue-700/70`;
 export const ENTRY_HEADER_EXPANDED = 'border border-slate-500';
 export const ENTRY_NAME_SPAN = 'text-slate-300 font-medium truncate flex-1 cursor-pointer no-underline';
