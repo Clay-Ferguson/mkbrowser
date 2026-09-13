@@ -45,6 +45,8 @@ import {
   clearPendingEditFile,
   setPendingEditFile,
   clearPendingExpandFile,
+  setPendingScrollToFile,
+  setPendingExpandFile,
   setSortOrder,
   setBrowserScrollPosition,
   getBrowserScrollPosition,
@@ -68,7 +70,8 @@ import { hasHumanMd } from '../../shared/ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, executeSearch } from '../../renderer/searchUtil';
 import { buildReplaceResultMessage } from '../../shared/searchHelpers';
 import { pasteIntoFolder, ensureAttachFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
-import { getFileName, getParentPath, isSamePath } from '../../renderer/pathUtil';
+import { getFileName, getParentPath, isSamePath, joinPath } from '../../renderer/pathUtil';
+import { canDropAsAttachment, dropAsAttachment } from '../../renderer/dragAndDrop';
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
@@ -521,6 +524,26 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       if (!attachFolderPath) return;
       await pasteFromClipboardOp(attachFolderPath, onRefreshDirectory, onSetError);
     }, 'Failed to paste as attachment: ', onSetError);
+  };
+
+  // Moves (not copies) a file chosen with the OS picker into `filePath`'s attach folder,
+  // via the same path as a drag-and-drop attach. The picker runs first, so cancelling
+  // never leaves an empty .attach folder behind.
+  const doAttachFromFile = (filePath: string) => {
+    runOp(async () => {
+      const sourcePath = await api.selectFile('Select a file to attach');
+      if (!sourcePath) return;
+      const payload = { path: sourcePath, name: getFileName(sourcePath), isDirectory: false };
+      if (!canDropAsAttachment(payload, filePath)) {
+        onSetError('That file cannot be attached here: it is this file itself, or is already attached to it.');
+        return;
+      }
+      const moved = await dropAsAttachment(payload, filePath, onRefreshDirectory);
+      if (!moved) return; // dropAsAttachment already reported the failure
+      const newPath = joinPath(`${filePath}${ATTACH_SUFFIX}`, payload.name);
+      setPendingScrollToFile(newPath);
+      setPendingExpandFile(newPath);
+    }, 'Failed to attach file: ', onSetError);
   };
 
   const performDelete = () => {
@@ -1136,7 +1159,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                         )}
                       </>
                     ) : entry.isMarkdown ? (
-                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} documentMode={hasIndexFile} />
+                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} onAttachFromFile={doAttachFromFile} documentMode={hasIndexFile} />
                     ) : isImageFile(entry.name) ? (
                       <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
                     ) : isTextFile(entry.name) ? (

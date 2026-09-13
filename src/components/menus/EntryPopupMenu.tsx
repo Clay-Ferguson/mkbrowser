@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
+import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
 interface EntryPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
@@ -9,6 +9,8 @@ interface EntryPopupMenuProps {
   onViewFile?: () => void;
   /** When omitted, the "Attach from Clipboard" item is hidden. */
   onPasteClipboardAsAttachment?: () => void;
+  /** When omitted, the "Attach File" item is hidden. */
+  onAttachFromFile?: () => void;
   /** Drives the bookmark item's label between add and remove. */
   isBookmarked: boolean;
   onToggleBookmark: () => void;
@@ -17,7 +19,8 @@ interface EntryPopupMenuProps {
 /**
  * Popup menu for the hamburger button on an entry's EntryActionBar. Holds the
  * per-entry actions that don't warrant a dedicated icon button, keeping the
- * hover bar from growing unbounded. Text-only by design — no icons.
+ * hover bar from growing unbounded. Text-only by design — no icons. The
+ * "Attach" items sit at the bottom, below a divider.
  */
 export default function EntryPopupMenu({
   anchorRef,
@@ -25,9 +28,11 @@ export default function EntryPopupMenu({
   onOpenExternal,
   onViewFile,
   onPasteClipboardAsAttachment,
+  onAttachFromFile,
   isBookmarked,
   onToggleBookmark,
 }: EntryPopupMenuProps) {
+  const hasAttachItems = !!(onPasteClipboardAsAttachment || onAttachFromFile);
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose} align="right" data-testid="entry-popup-menu">
       <PopupMenuItem
@@ -42,6 +47,12 @@ export default function EntryPopupMenu({
           onClick={() => { onViewFile(); onClose(); }}
         />
       )}
+      <PopupMenuItem
+        label={isBookmarked ? 'Remove Bookmark' : 'Add Bookmark'}
+        data-testid="menu-entry-bookmark"
+        onClick={() => { onToggleBookmark(); onClose(); }}
+      />
+      {hasAttachItems && <PopupMenuDivider />}
       {onPasteClipboardAsAttachment && (
         <PopupMenuItem
           label="Attach from Clipboard"
@@ -49,11 +60,13 @@ export default function EntryPopupMenu({
           onClick={() => { onPasteClipboardAsAttachment(); onClose(); }}
         />
       )}
-      <PopupMenuItem
-        label={isBookmarked ? 'Remove Bookmark' : 'Add Bookmark'}
-        data-testid="menu-entry-bookmark"
-        onClick={() => { onToggleBookmark(); onClose(); }}
-      />
+      {onAttachFromFile && (
+        <PopupMenuItem
+          label="Attach File"
+          data-testid="menu-entry-attach-from-file"
+          onClick={() => { onAttachFromFile(); onClose(); }}
+        />
+      )}
     </PopupMenu>
   );
 }

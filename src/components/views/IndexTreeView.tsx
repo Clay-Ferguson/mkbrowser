@@ -600,9 +600,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     if (!payload || !node.isDirectory) return;
     if (!canDropInto(payload, node.path)) return;
 
-    runAndLogFailure('Failed to move item into folder:', () =>
-      completeEntryDrop(payload, node.path, onRefreshDirectory)
-    );
+    runAndLogFailure('Failed to move item into folder:', async () => {
+      await completeEntryDrop(payload, node.path, onRefreshDirectory);
+    });
   };
 
   const handleDragOverFolder = (node: FileNode, e: React.DragEvent) => {

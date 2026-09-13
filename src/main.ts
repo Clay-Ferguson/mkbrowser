@@ -255,6 +255,19 @@ function setupIpcHandlers(): void {
     return null;
   });
 
+  // Open file selection dialog (single file)
+  ipcMain.handle('select-file', async (_event, title: string): Promise<string | null> => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      title,
+      defaultPath: folderPickerDefaultPath(),
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      return result.filePaths[0]!;
+    }
+    return null;
+  });
+
   // Read directory contents
   ipcMain.handle('read-directory', async (_event, dirPath: string): Promise<FileEntry[]> => {
     return readDirectory(dirPath, getConfig().aiEnabled ?? false);

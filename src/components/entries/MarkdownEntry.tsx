@@ -56,6 +56,7 @@ interface MarkdownEntryProps extends BaseEntryProps {
   view: AppView;
   onPasteAsAttachment?: (filePath: string) => void;
   onPasteClipboardAsAttachment?: (filePath: string) => void;
+  onAttachFromFile?: (filePath: string) => void;
   isAttachment?: boolean;
 }
 
@@ -148,7 +149,7 @@ async function saveCalendarProps(path: string, newContent: string): Promise<void
  * In document mode, timestamp-based file names are hidden from the header row.
  */
 function MarkdownEntry(props: MarkdownEntryProps) {
-  const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, isAttachment = false, alwaysExpandedEditor = false } = props;
+  const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, onAttachFromFile, isAttachment = false, alwaysExpandedEditor = false } = props;
   const item = useAS(s => s.items.get(entry.path));
   const hasCutItems = useAS(s => hasAnyCutItems(s.items));
 
@@ -420,6 +421,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         className="-mr-1.5"
         isAttachment={isAttachment}
         onPasteClipboardAsAttachment={onPasteClipboardAsAttachment ? () => onPasteClipboardAsAttachment(entry.path) : undefined}
+        onAttachFromFile={onAttachFromFile ? () => onAttachFromFile(entry.path) : undefined}
       />
       {hasCutItems && onPasteAsAttachment && !entry.hasAttachFolder && (
         <button

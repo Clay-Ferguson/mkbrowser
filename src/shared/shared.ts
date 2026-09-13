@@ -359,7 +359,8 @@ export interface ElectronAPI {
   getConfig: () => Promise<AppConfig>;
   updateConfig: (updates: Partial<AppConfig>) => Promise<void>;
   selectFolder: () => Promise<string | null>;
-  readDirectory: (dirPath: string) => Promise<FileEntry[]>;
+  /** Shows the OS single-file picker; resolves to the chosen path, or null if cancelled. */
+  selectFile: (title: string) => Promise<string | null>;  readDirectory: (dirPath: string) => Promise<FileEntry[]>;
   readFile: (filePath: string) => Promise<ReadFileResult>;
   readFileWithMtime: (filePath: string) => Promise<FileReadResult>;
   readExif: (filePath: string) => Promise<ExifData>;

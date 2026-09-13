@@ -34,6 +34,8 @@ interface EntryActionBarProps {
   isAttachment?: boolean;
   /** When provided, adds a menu item that pastes clipboard content as an attachment */
   onPasteClipboardAsAttachment?: () => void;
+  /** When provided, adds a menu item that attaches a file chosen with the OS file picker */
+  onAttachFromFile?: () => void;
   /** Whether this entry is a folder (affects bookmark default name) */
   isFolder?: boolean;
 }
@@ -43,7 +45,7 @@ interface EntryActionBarProps {
  * buttons for: delete, reveal in folder tree, and move up/down (only in
  * indexed/document mode, when the move handlers are provided), plus a trailing
  * hamburger button opening EntryPopupMenu — which holds the remaining actions
- * (open with OS app, view file, attach from clipboard, bookmark) as
+ * (open with OS app, view file, bookmark, attach from clipboard/file) as
  * text items, so the hover bar doesn't grow unbounded.
  */
 export function EntryActionBar({
@@ -59,6 +61,7 @@ export function EntryActionBar({
   className = '',
   isAttachment = false,
   onPasteClipboardAsAttachment,
+  onAttachFromFile,
   isFolder = false,
 }: EntryActionBarProps) {
   const settings = useAS(s => s.settings);
@@ -211,6 +214,7 @@ export function EntryActionBar({
           onOpenExternal={handleOpenExternal}
           onViewFile={isViewingThisFile ? undefined : handleViewFile}
           onPasteClipboardAsAttachment={onPasteClipboardAsAttachment}
+          onAttachFromFile={onAttachFromFile}
           isBookmarked={isBookmarked}
           onToggleBookmark={handleBookmarkClick}
         />

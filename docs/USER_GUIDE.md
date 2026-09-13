@@ -397,6 +397,8 @@ Dragging works in both directions between the **folder tree** (the panel on the 
 - **From the tree → the browse view**: drag a file or folder icon in the tree and drop it onto any folder shown in the main panel.
 - **Onto the breadcrumbs**: drop onto any segment of the breadcrumb path (including the home/root icon) to move the item into that folder. This is a quick way to move an item "up" into a parent of the folder you're currently browsing.
 
+- **Onto a file**: drop onto a file row in the main panel to make the item an **attachment** of that file (see [File Attachments](#file-attachments)). The file's `.attach` folder is created automatically if needed.
+
 As you drag, an outline of the item follows the cursor, and the folder you're hovering over is highlighted to show where the item will land. The destination folder's contents refresh automatically wherever the change is visible.
 
 # Bookmarks
@@ -405,16 +407,14 @@ Bookmarks give you quick access to frequently visited files and folders. They ar
 
 ## Adding a Bookmark
 
-Every file and folder in the browse list has a **bookmark icon** (a flag/ribbon outline) that appears in its action bar. Click it to bookmark that item:
+Hover over any file or folder in the browse list, click its **More actions** (☰) button, and choose **Add Bookmark**:
 
 1. A dialog appears asking you to give the bookmark a name. The item's filename is pre-filled as a default.
 2. Enter a name and click **Save** (or press `Enter`).
 
-The icon turns solid blue to indicate the item is bookmarked.
-
 ## Removing a Bookmark
 
-Click the solid blue bookmark icon on any bookmarked item to remove it immediately — no confirmation required.
+For a bookmarked item, the same menu shows **Remove Bookmark** instead. Choosing it removes the bookmark immediately — no confirmation required.
 
 ## Navigating with Bookmarks
 
@@ -602,14 +602,23 @@ For any Markdown file named, for example, `my-notes.md`, you can create a compan
 
 ## Adding Attachments
 
-The easiest way to attach files to a document is using the **Cut and Paste** workflow:
+There are several ways to add attachments. With every one of them, MkBrowser automatically creates the `.attach` folder if it does not already exist.
+
+**From the file's menu.** Hover over a Markdown file and click its **More actions** (☰) button. The two attach items are at the bottom of the menu, below a divider:
+
+- **Attach File** opens your system's file picker. The file you choose is **moved** (not copied) into the attachment folder, so it disappears from its original location. If the attachment folder already contains a file with the same name, nothing is moved and an error is shown. If you cancel the picker, nothing changes.
+- **Attach from Clipboard** saves whatever is on the clipboard (an image or text) as a new, timestamp-named file in the attachment folder.
+
+**By drag and drop.** Drag any file or folder by its icon and drop it onto a file row. The item is moved into that file's attachment folder. See [Drag and Drop](#drag-and-drop).
+
+**By cut and paste.** This is handy for attaching several files at once:
 
 1. Select the files you want to attach by clicking their checkboxes.
 2. Click the **Cut** button that appears at the top of the page to mark them for moving.
 3. Navigate to the folder that contains the Markdown file you want to attach them to.
 4. Click the **paperclip** icon that appears next to the Markdown file.
 
-MkBrowser will automatically create the `.attach` folder if it does not already exist, then move the cut files into it. Once the `.attach` folder exists, a **Paste** icon appears directly on it, so you can paste additional files into it at any time using the normal paste workflow.
+Once the `.attach` folder exists, a **Paste** icon appears directly on it, so you can paste additional files into it at any time using the normal paste workflow.
 
 ## Renaming
 

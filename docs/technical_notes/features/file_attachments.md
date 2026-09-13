@@ -120,6 +120,17 @@ The `onPasteAsAttachment` handler lives in `BrowseView.tsx` (`doPasteAsAttachmen
 
 ---
 
+## Entry Menu: Attach from Clipboard / Attach File (`src/components/menus/EntryPopupMenu.tsx`)
+
+The hamburger menu on a `MarkdownEntry` row ends with two attach items, separated from the other items by a divider. Both create the attach folder on demand via `ensureAttachFolder`:
+
+- **Attach from Clipboard** — `doPasteClipboardAsAttachment` in `BrowseView.tsx` calls `pasteFromClipboardOp(attachFolderPath, …)`, which writes the clipboard image/text as a timestamp-named file.
+- **Attach File** — `doAttachFromFile` in `BrowseView.tsx` shows the OS file picker (`api.selectFile` → IPC `select-file`) **before** anything touches the disk, so cancelling leaves no empty attach folder behind. The chosen file is then **moved** (not copied) into the attach folder through the same path as a drag-and-drop attach: `canDropAsAttachment` validates it and `dropAsAttachment` (`src/renderer/dragAndDrop.ts`) creates the folder and performs the move with `completeEntryDrop`. That shares the drop's name-collision refusal, index reconciliation, store pruning, and view refresh, so a file picked from the folder being browsed disappears from its old spot. On success the moved file is scrolled to and expanded. Because the move is a rename, it fails for a file on a different filesystem than the attach folder.
+
+Both end by reconciling the attach folder's index and refreshing the view.
+
+---
+
 ## Creating the Folder: `ensureAttachFolder` (`src/renderer/fileOpsUtil.ts`)
 
 The single place an attach folder comes into existence. Given a file path it:

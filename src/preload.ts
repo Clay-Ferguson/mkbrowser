@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getConfig: () => ipcRenderer.invoke('get-config'),
   updateConfig: (updates: Partial<AppConfig>) => ipcRenderer.invoke('update-config', updates),
   selectFolder: () => ipcRenderer.invoke('select-folder'),
-  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
+  selectFile: (title: string) => ipcRenderer.invoke('select-file', title),  searchAndReplace: (folderPath: string, searchText: string, replaceText: string) =>
     ipcRenderer.invoke('search-and-replace', folderPath, searchText, replaceText),
   loadDictionary: () => ipcRenderer.invoke('load-dictionary'),
   lookupThesaurus: (word: string) => ipcRenderer.invoke('lookup-thesaurus', word),

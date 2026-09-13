@@ -174,18 +174,19 @@ export function affectsBrowseListing(folder: string, currentPath: string): boole
  * @param destFolder - Absolute path of the folder to move it into.
  * @param onRefreshDirectory - Reloads the browse view. Callers that have this as a prop should
  *   pass it (it refreshes without a loading flash); otherwise the store-level request is used.
+ * @returns True if the item was moved (failures are already reported via setAppError).
  */
 export async function completeEntryDrop(
   payload: DragPayload,
   destFolder: string,
   onRefreshDirectory?: () => void
-): Promise<void> {
+): Promise<boolean> {
   const result = await moveEntryIntoFolder(payload, destFolder);
   if (!result.success) {
     // Nothing moved, so no refresh follows to clear this. Reporting it matters most
     // for the common name-collision case, which otherwise looks like a dead drop.
     setAppError(result.error || 'Failed to move item');
-    return;
+    return false;
   }
 
   // Drop the moved item from the store so the browse view stops showing it at its old path.
@@ -202,6 +203,7 @@ export async function completeEntryDrop(
       requestDirectoryRefresh();
     }
   }
+  return true;
 }
 
 /**
@@ -215,16 +217,17 @@ export async function completeEntryDrop(
  * @param payload - The file/folder being attached.
  * @param filePath - Absolute path of the file that will own the attachment.
  * @param onRefreshDirectory - See {@link completeEntryDrop}.
+ * @returns True if the item was moved (failures are already reported via setAppError).
  */
 export async function dropAsAttachment(
   payload: DragPayload,
   filePath: string,
   onRefreshDirectory?: () => void
-): Promise<void> {
+): Promise<boolean> {
   const attachFolderPath = await ensureAttachFolder(filePath);
-  if (!attachFolderPath) return; // ensureAttachFolder already reported the failure
+  if (!attachFolderPath) return false; // ensureAttachFolder already reported the failure
 
-  await completeEntryDrop(payload, attachFolderPath, onRefreshDirectory);
+  return completeEntryDrop(payload, attachFolderPath, onRefreshDirectory);
 }
 
 /**
