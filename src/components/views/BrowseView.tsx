@@ -950,6 +950,19 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             </button>
           )}
 
+          {/* Paste button - shown whenever items are cut; pastes into the folder being browsed */}
+          {hasCutItems && currentPath && (
+            <button
+              type="button"
+              onClick={() => doPasteIntoFolder(currentPath)}
+              className={BUTTON_CLASS_BAR_BLUE}
+              title="Paste cut items into this folder"
+              data-testid="paste-button"
+            >
+              Paste
+            </button>
+          )}
+
           {/* Undo Cut button - shown whenever items are cut */}
           {hasCutItems && (
             <button
