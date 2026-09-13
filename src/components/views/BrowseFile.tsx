@@ -6,15 +6,20 @@ import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
+import FolderEntry from '../entries/FolderEntry';
 import ThesaurusView from '../editor/ThesaurusView';
+import AttachFolderContents from './AttachFolderContents';
 import {
   navigateToBrowserPath,
+  setCurrentPath,
   setItemExpanded,
   useAS,
 } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { BUTTON_CLASS_LINK_AMBER, getContentWidthClasses } from '../../renderer/styles';
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
+import { pasteIntoFolder } from '../../renderer/fileOpsUtil';
+import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 /**
  * Fire-and-forget runner for the rename/delete refresh handler (an entry
@@ -72,6 +77,12 @@ interface BrowseFileProps {
  *   `expandedEditor` preference was on, and that preference is what maximizes
  *   the entry. So `alwaysExpandedEditor` is NOT passed: the toggle appears, and
  *   collapsing it (or ending the edit) returns to the listing.
+ *
+ * Attachments: when the file has a sibling `<name>.attach` folder, that folder
+ * row and its contents are rendered below the entry with the same components
+ * and indentation BrowseView uses (`FolderEntry` + `AttachFolderContents`), so
+ * a file's attachments are visible here just as they are in the listing. They
+ * are hidden while editing, when the maximized editor owns the whole pane.
  */
 function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }: BrowseFileProps) {
   const currentPath = useAS(s => s.currentPath);
@@ -90,6 +101,14 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
   // store via syncDirectoryItems), so the entry is found here rather than
   // re-read, and its ItemData is guaranteed to exist.
   const entry = entries.find((e) => e.name === browseFileName && !e.isDirectory);
+
+  // The file's attachment folder, if it has one. readDirectory pre-loads its
+  // contents into `attachments`, so like the entry itself it needs no extra read.
+  // A cut attach folder is hidden, matching BrowseView's filtering of cut rows.
+  const attachFolder = entry?.hasAttachFolder
+    ? entries.find((e) => e.isDirectory && e.name === `${entry.name}${ATTACH_SUFFIX}`)
+    : undefined;
+  const attachFolderCut = useAS(s => (attachFolder ? (s.items.get(attachFolder.path)?.isCut ?? false) : false));
 
   // Is this view's one file open for editing? Drives both the maximized layout
   // (editing here is ALWAYS expanded — the entry already owns the whole pane, so
@@ -143,6 +162,15 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
       ? highlightItem
       : undefined;
     navigateToBrowserPath(currentPath, scrollToFile);
+  };
+
+  // Pastes cut items into a folder shown here — the attach folder or a folder
+  // nested inside it. Reads the item map non-reactively: this view has no other
+  // use for it, and subscribing would re-render the pane on every store write.
+  const handlePasteIntoFolder = (folderPath: string) => {
+    runOp(async () => {
+      await pasteIntoFolder(folderPath, useAS.getState().items, onSetError, onRefreshDirectory);
+    }, 'Failed to paste into folder: ', onSetError);
   };
 
   // Rename/delete completion reconciles the index yaml (the file may be listed
@@ -227,6 +255,28 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
                 <PDFEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
               ) : (
                 <GenericEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
+              )}
+            </div>
+          )}
+
+          {/* The file's attachments, laid out exactly as BrowseView lays them out
+              under a file: the indented `*.attach` folder row, then its contents
+              one level deeper. Hidden while editing (the maximized editor owns
+              the pane). When the entry fills the pane (text/PDF), this strip is
+              capped and scrolls on its own so the entry keeps most of the height. */}
+          {entry && attachFolder && !attachFolderCut && !editing && (
+            <div data-testid="browse-file-attachments" className={flexPane ? 'flex-shrink-0 max-h-[40%] overflow-y-auto pt-2' : 'pt-2'}>
+              <FolderEntry entry={attachFolder} onNavigate={setCurrentPath} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} onPasteIntoFolder={handlePasteIntoFolder} onRefreshDirectory={onRefreshDirectory} isAttachFolder={true} indentFolder={true} />
+              {attachFolder.attachments && (
+                <AttachFolderContents
+                  entries={attachFolder.attachments}
+                  level={1}
+                  onNavigate={setCurrentPath}
+                  onRename={handleRefresh}
+                  onDelete={handleRefresh}
+                  onSaveSettings={onSaveSettings}
+                  onPasteIntoFolder={handlePasteIntoFolder}
+                />
               )}
             </div>
           )}

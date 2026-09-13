@@ -136,6 +136,7 @@ An e2e phase asserts `path-breadcrumb` has count 0 while single-file mode is act
 - **Body**: the same entry-type ternary the listing uses, minus the directory branch — `isMarkdown → isImageFile → isTextFile → GenericEntry`.
 - **Omitted props**: index-order move handlers (`onMoveUp`/`onMoveDown`/…) and `documentMode`. `EntryActionBar` renders items purely by callback presence, so omitting them hides those buttons — that is the whole mechanism, no flags needed.
 - `ImageEntry` gets `allImages={[entry]}`; that prop only feeds the fullscreen viewer's prev/next, and with one file on screen the file is the whole set.
+- **Attachments**: if the file has a sibling `<name>.attach` folder, that folder row and its contents are rendered below the entry using the same `FolderEntry` + `AttachFolderContents` pair `BrowseView` uses (`data-testid="browse-file-attachments"`). They are hidden while editing. For files that fill the pane (text/PDF), the block is height-capped and scrolls independently. See `file_attachments.md` § Single-File Mode.
 - **Auto-expand**: an effect on `[entry?.path]` calls `setItemExpanded(path, true)`. A single-file view whose one entry sat collapsed would be a dead end.
 - **Not found**: if the name resolves to nothing (deleted externally, load in flight), it renders a placeholder rather than throwing.
 

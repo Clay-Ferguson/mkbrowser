@@ -98,6 +98,21 @@ BrowseView has two rendering paths: Document Mode (`.INDEX.yaml`-ordered) and no
 
 This prevents the user from inserting items between a file and its attachment folder.
 
+**Shared renderer** — `AttachFolderContents` lives in its own file, `src/components/views/AttachFolderContents.tsx`, because both right-hand panes render attachments with it (see the next section).
+
+---
+
+## Single-File Mode (`src/components/views/BrowseFile.tsx`)
+
+Clicking a file in the index tree replaces the folder listing with `BrowseFile`, which shows just that one file (see `single_file_browsing.md`). Without special handling the file's attachments would be invisible there, since the `.attach` folder is a separate listing entry rather than part of the file's own entry.
+
+So when the browsed entry has `hasAttachFolder`, `BrowseFile` finds the sibling `<name>.attach` entry in the already-loaded listing and renders it below the file exactly as `BrowseView` does: a `FolderEntry` with `isAttachFolder` and `indentFolder` (the italic `*.attach` row), followed by `AttachFolderContents` at `level={1}`. No extra IPC is needed, because `readDirectory` has already pre-loaded the folder's `attachments`.
+
+- **Hidden while editing**, since the maximized editor owns the whole pane then. Also hidden while the attach folder itself is cut, matching `BrowseView`'s filtering of cut rows.
+- **Text/PDF files** fill the pane even in view mode. For those, the attachments block is capped at 40% of the height and scrolls on its own, so the entry keeps most of the pane.
+- **Handlers**: rename/delete use `BrowseFile`'s reconcile-then-refresh handler. Clicking the folder row navigates into it (`setCurrentPath`, which also leaves single-file mode). Paste goes through `pasteIntoFolder`.
+- The file entry itself still gets none of the attach-creation callbacks (`onPasteAsAttachment`, etc.); those remain listing-only.
+
 ---
 
 ## Paperclip Button (`src/components/entries/MarkdownEntry.tsx`)
@@ -226,6 +241,8 @@ This means attachment files participate in search, bulk selection, and other glo
 | `src/shared/shared.ts` | `FileEntry.attachments` and `FileEntry.hasAttachFolder` fields |
 | `src/main/fileUtil.ts` | Pre-loads attach folder contents and sets `hasAttachFolder` during directory scan |
 | `src/components/views/BrowseView.tsx` | Renders attach folders inline; `doPasteAsAttachment` handler |
+| `src/components/views/AttachFolderContents.tsx` | Recursive renderer for an attach folder's contents, shared by both panes |
+| `src/components/views/BrowseFile.tsx` | Shows the browsed file's attach folder and contents in single-file mode |
 | `src/renderer/fileOpsUtil.ts` | `ensureAttachFolder` — the one place an `.attach` folder is created |
 | `src/renderer/dragAndDrop.ts` | `canDropAsAttachment`, `dropAsAttachment`, and the shared `completeEntryDrop` |
 | `src/components/entries/common/EntryShell.tsx` | Makes every file-type entry a drop target for attachments |

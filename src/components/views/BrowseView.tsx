@@ -26,6 +26,7 @@ import ExportDialog from '../dialogs/ExportDialog';
 import type { ExportOptions } from '../dialogs/ExportDialog';
 import AlertDialog from '../dialogs/AlertDialog';
 import PathBreadcrumb from '../PathBreadcrumb';
+import AttachFolderContents from './AttachFolderContents';
 import {
   clearAllSelections,
   selectItemsByPaths,
@@ -85,65 +86,6 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
  */
 function runOp(op: () => Promise<void>, errorPrefix: string, onError: (msg: string | null) => void): void {
   op().catch((err: unknown) => onError(errorPrefix + (err instanceof Error ? err.message : String(err))));
-}
-
-interface AttachFolderContentsProps {
-  entries: FileEntry[];
-  level: number;
-  onNavigate: (path: string) => void;
-  onRename: () => void;
-  onDelete: () => void;
-  onSaveSettings: () => void;
-  onPasteIntoFolder?: (folderPath: string) => void;
-}
-
-/**
- * Recursively renders the contents of an attachment folder (a sibling folder
- * whose name ends with the ATTACH_SUFFIX convention). Entries are indented by
- * `level` so they visually nest under their parent markdown file. Directories
- * inside the attachment folder are rendered recursively; files are dispatched
- * to the appropriate entry component by type.
- */
-function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder }: AttachFolderContentsProps) {
-  const items = useAS(s => s.items);
-  const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
-  if (visibleEntries.length === 0) return null;
-  const allImages = visibleEntries.filter(e => !e.isDirectory && isImageFile(e.name));
-
-  return (
-    <div style={{ paddingLeft: `${level * 32}px` }}>
-      {visibleEntries.map(entry => (
-        <div key={entry.path}>
-          {entry.isDirectory ? (
-            <>
-              <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={onPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
-              {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
-                <AttachFolderContents
-                  entries={entry.attachments}
-                  level={level + 1}
-                  onNavigate={onNavigate}
-                  onRename={onRename}
-                  onDelete={onDelete}
-                  onSaveSettings={onSaveSettings}
-                  onPasteIntoFolder={onPasteIntoFolder}
-                />
-              )}
-            </>
-          ) : entry.isMarkdown ? (
-            <MarkdownEntry entry={entry} view="browser" onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
-          ) : isImageFile(entry.name) ? (
-            <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
-          ) : isTextFile(entry.name) ? (
-            <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
-          ) : isPdfFile(entry.name) ? (
-            <PDFEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
-          ) : (
-            <GenericEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
-          )}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 /**
