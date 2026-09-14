@@ -1,6 +1,6 @@
 # TypeScript 7 — Why We Haven't Upgraded Yet
 
-**Investigated:** 2026-07-13 · **Re-checked:** 2026-08-06 (still blocked — see below)
+**Investigated:** 2026-07-13 · **Re-checked:** 2026-08-06, 2026-09-14 (still blocked — see below)
 **Decision:** Stay on TypeScript 6.0.3. Revisit when `typescript-eslint` supports TS 7.x.
 **Blocker:** `typescript-eslint` (all packages) — its peer range explicitly excludes TypeScript 7.
 
@@ -222,15 +222,66 @@ Dug into *why* it hasn't moved, since a plain version bump felt like it should h
 resolve until TS 7.1 ships a stable API *and* typescript-eslint builds support against it *and* the
 ESLint async-parser problem is solved. None of those have a committed date yet.
 
+### 2026-09-14 — still blocked; no movement on either prerequisite
+
+**npm registry:**
+
+```
+$ npm view typescript dist-tags
+{ latest: '7.0.2', rc: '7.0.1-rc', beta: '6.0.0-beta', next: '7.1.0-dev.20260913.1', ... }
+
+$ npm view typescript-eslint dist-tags
+{ latest: '8.70.0', canary: '8.70.1-alpha.0' }
+
+$ npm view typescript-eslint@latest peerDependencies      # same on @canary
+{ eslint: '^8.57.0 || ^9.0.0 || ^10.0.0', typescript: '>=4.8.4 <6.1.0' }
+```
+
+- `typescript-eslint` moved `8.66.0 → 8.70.0`; the `<6.1.0` ceiling is **still unchanged** on both
+  `latest` and `canary`.
+- **TS 7.1 has not shipped** — no beta or RC tag yet, only nightly `7.1.0-dev` builds. Microsoft still
+  targets "autumn 2026". The `7.1` milestone on `microsoft/typescript-go` shows ~95% complete (1 open / 21
+  closed) with no due date. That repo was **archived on 2026-09-01** (work consolidated back into the main
+  TypeScript repo), so that milestone is no longer a useful progress signal going forward.
+- The nightly `typescript@next` still exposes its API only under `./unstable/*` subpaths; the main
+  entry is still just `./lib/version.cjs`. No stable API yet.
+- `typescript-eslint` issue [#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)
+  is still open; nothing announced about a TS 7 timeline. `@typescript/typescript6` is at `6.0.2`.
+
+**New finding: we already have two TypeScript versions installed — a second obstacle to "one TS
+everywhere."** `npm ls typescript` shows:
+
+```
+typescript@6.0.3                     <- ours (root devDependency)
+typescript@5.4.5                     <- nested, NOT ours:
+  @electron-forge/cli@7.11.2
+   └ @electron-forge/core@7.11.2
+      └ @electron-forge/template-webpack-typescript@7.11.2   (typescript: "~5.4.5")
+```
+
+Forge 7's `core` hard-depends on its project-scaffolding templates, and the webpack TS template pins its
+own TypeScript. It's only used by `electron-forge init`, never by our build, so it's harmless — but it means
+a TS 7 upgrade on Forge 7 would still leave a `5.4.5` copy in `node_modules`. **Forge 8** (currently
+`8.0.0-alpha.10`; `latest` is still `7.11.2`) removes the templates from `@electron-forge/core`'s
+dependencies, which would eliminate it. So the true "single TS version" upgrade also needs Forge 8 stable
+(or an npm `overrides` entry — not recommended, since it would force a version the template wasn't built for).
+
+**Net effect on the decision: unchanged.** Still waiting on TS 7.1 (stable API) → typescript-eslint support,
+and now also noting Forge 8 as a prerequisite for a genuinely single-version tree.
+
 ## When to revisit
 
 Re-check periodically:
 
 ```bash
 npm view typescript-eslint@latest peerDependencies
+npm view typescript dist-tags                  # has 7.1 shipped?
+npm view @electron-forge/cli dist-tags         # is Forge 8 'latest'? (drops nested typescript@5.4.5)
+npm ls typescript                              # how many TS copies are installed?
 ```
 
 **The upgrade is unblocked when that `typescript` range admits `7.x`** (i.e. the `<6.1.0` ceiling is lifted).
+For a truly single-version tree, Forge 8 must also be stable (see the 2026-09-14 entry).
 
 At that point the upgrade should be close to trivial, because we already proved the code compiles clean:
 
