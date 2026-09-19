@@ -44,6 +44,7 @@ import {
   makeEntryDragStartHandler,
   reloadExpandedTreeFolder,
   makeTreeNodes as makeNodes,
+  mergeTreeNodes as mergeNodes,
   findTreeNodeByPath as findNodeByPath,
 } from '../../renderer/dragAndDrop';
 import { createFileOp } from '../../renderer/fileOpsUtil';
@@ -300,7 +301,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         if (!node.isExpanded || node.children === null) {
           try {
             const entries = await api.readDirectory(ancestorPath);
-            expandIndexTreeNode(ancestorPath, makeNodes(entries));
+            expandIndexTreeNode(ancestorPath, mergeNodes(entries, node.children));
           } catch {
             return;
           }
@@ -392,7 +393,9 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
     try {
       const entries = await api.readDirectory(node.path);
-      expandIndexTreeNode(node.path, makeNodes(entries));
+      // mergeNodes, not makeNodes: a collapsed folder keeps its loaded children, so
+      // re-expanding it restores whatever was open underneath instead of flattening it.
+      expandIndexTreeNode(node.path, mergeNodes(entries, node.children));
     } catch {
       // leave node collapsed on error
     }

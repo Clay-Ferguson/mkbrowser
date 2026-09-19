@@ -1,6 +1,6 @@
 import type React from 'react';
 import { api } from './api';
-import type { FileNode } from '../shared/types';
+import type { FileNode, TreeNode } from '../shared/types';
 import { pasteCutItems } from './edit';
 import { ensureAttachFolder } from './fileOpsUtil';
 import {
@@ -248,6 +248,41 @@ export function makeTreeNodes(
   }));
 }
 
+/**
+ * Rebuilds a folder node's children from a fresh directory listing while carrying over
+ * the expansion state (and already-loaded children) of every node that survived the
+ * refresh, matched by path. Without this, re-reading a folder would hand back all-new
+ * `makeTreeNodes` nodes — collapsed, children null — and silently tear down whatever the
+ * user had opened underneath it (issue: paste into a tree folder collapsed the tree).
+ *
+ * Entries that are new on disk come in collapsed; nodes that disappeared are dropped.
+ * `indexOrder` always comes from the fresh listing, since that is what just changed.
+ *
+ * @param entries - The directory listing to rebuild from.
+ * @param previousChildren - The node's current children, or null if it had none loaded.
+ */
+export function mergeTreeNodes(
+  entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>,
+  previousChildren: TreeNode[] | null | undefined
+): FileNode[] {
+  const fresh = makeTreeNodes(entries);
+  if (!previousChildren || previousChildren.length === 0) return fresh;
+
+  // Heading nodes (no isDirectory) can't match a directory entry, so they never
+  // participate in the merge.
+  const oldByPath = new Map<string, FileNode>();
+  for (const child of previousChildren) {
+    if ('isDirectory' in child) oldByPath.set(child.path, child as FileNode);
+  }
+
+  return fresh.map(node => {
+    const existing = oldByPath.get(node.path);
+    // A path that changed kind (file <-> folder) must not inherit the old children.
+    if (!existing || existing.isDirectory !== node.isDirectory) return node;
+    return { ...node, isExpanded: existing.isExpanded, children: existing.children };
+  });
+}
+
 /** Depth-first search for a directory/file node by absolute path within the tree. */
 export function findTreeNodeByPath(root: FileNode, path: string): FileNode | null {
   if (root.path === path) return root;
@@ -274,7 +309,7 @@ export async function reloadExpandedTreeFolder(folderPath: string): Promise<void
   if (!node?.isExpanded) return;
   try {
     const entries = await api.readDirectory(folderPath);
-    expandIndexTreeNode(folderPath, makeTreeNodes(entries));
+    expandIndexTreeNode(folderPath, mergeTreeNodes(entries, node.children));
   } catch (err) {
     // Leave the tree as-is; a stale node is better than tearing down the expanded view.
     logger.error(`Failed to reload tree folder ${folderPath}:`, err);

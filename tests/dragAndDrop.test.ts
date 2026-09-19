@@ -9,8 +9,10 @@ import {
   canDropAsAttachment,
   affectsBrowseListing,
   parseDragPayload,
+  mergeTreeNodes,
   type DragPayload,
 } from '../src/renderer/dragAndDrop';
+import type { FileNode } from '../src/shared/types';
 
 function file(path: string): DragPayload {
   const name = path.slice(path.lastIndexOf('/') + 1);
@@ -152,5 +154,79 @@ describe('parseDragPayload', () => {
     expect(parseDragPayload('')).toBeNull();
     expect(parseDragPayload('{not json')).toBeNull();
     expect(parseDragPayload('{"path":"/root/a/x.md"}')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mergeTreeNodes — refreshing a folder's children without collapsing the tree
+// ---------------------------------------------------------------------------
+
+function entry(path: string, isDirectory: boolean, indexOrder?: number) {
+  return {
+    path,
+    name: path.slice(path.lastIndexOf('/') + 1),
+    isDirectory,
+    ...(indexOrder !== undefined ? { indexOrder } : {}),
+  };
+}
+
+function node(path: string, isDirectory: boolean, isExpanded: boolean, children: FileNode[] | null): FileNode {
+  return {
+    path,
+    name: path.slice(path.lastIndexOf('/') + 1),
+    isDirectory,
+    isExpanded,
+    isLoading: false,
+    children,
+  };
+}
+
+describe('mergeTreeNodes', () => {
+  it('keeps the expansion state and loaded children of surviving folders', () => {
+    const grandchild = node('/root/a/deep', true, true, []);
+    const previous = [node('/root/a', true, true, [grandchild])];
+
+    const merged = mergeTreeNodes([entry('/root/a', true), entry('/root/new.md', false)], previous);
+
+    expect(merged).toHaveLength(2);
+    expect(merged[0]!.isExpanded).toBe(true);
+    expect(merged[0]!.children).toEqual([grandchild]);
+    // The item that just appeared on disk comes in collapsed and unloaded.
+    expect(merged[1]!.isExpanded).toBe(false);
+    expect(merged[1]!.children).toBeNull();
+  });
+
+  it('drops nodes that are no longer on disk (e.g. the source of a move)', () => {
+    const previous = [node('/root/a', true, true, []), node('/root/moved.md', false, false, null)];
+
+    const merged = mergeTreeNodes([entry('/root/a', true)], previous);
+
+    expect(merged.map(n => n.path)).toEqual(['/root/a']);
+  });
+
+  it('takes indexOrder from the fresh listing, not the stale node', () => {
+    const stale: FileNode = { ...node('/root/a.md', false, false, null), indexOrder: 5 };
+
+    const [reordered] = mergeTreeNodes([entry('/root/a.md', false, 0)], [stale]);
+    expect(reordered!.indexOrder).toBe(0);
+
+    // An entry that left the index loses its ordinal rather than keeping the old one.
+    const [unindexed] = mergeTreeNodes([entry('/root/a.md', false)], [stale]);
+    expect(unindexed).not.toHaveProperty('indexOrder');
+  });
+
+  it('does not let a path that changed kind inherit the old children', () => {
+    const previous = [node('/root/x', true, true, [node('/root/x/child.md', false, false, null)])];
+
+    const [replaced] = mergeTreeNodes([entry('/root/x', false)], previous);
+
+    expect(replaced!.isExpanded).toBe(false);
+    expect(replaced!.children).toBeNull();
+  });
+
+  it('returns freshly collapsed nodes when there is nothing to merge with', () => {
+    expect(mergeTreeNodes([entry('/root/a', true)], null)).toEqual([
+      node('/root/a', true, false, null),
+    ]);
   });
 });
