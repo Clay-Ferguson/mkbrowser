@@ -26,10 +26,13 @@ import {
  *   2. Click-to-edit still works there. This is the assertion that matters:
  *      the entry components render their own CodeMirror, so editing is meant
  *      to work identically outside the list. Verified through to disk.
- *   3. Single-file mode renders NO breadcrumbs. That absence is the whole
- *      visual distinction from a folder listing holding one file, so it is
- *      asserted rather than left to look right. The "Browse Folder" link that
- *      stands in for them exits to the containing folder's listing.
+ *   3. Single-file mode renders the breadcrumb header, and its segments are
+ *      live exits: clicking one navigates to that folder's listing rather
+ *      than sitting inert over a single file. Both the rightmost segment (the
+ *      file's own folder) and the home icon are exercised. The non-clickable
+ *      "Listing Hidden" badge beside the breadcrumb is asserted present at
+ *      every point, editing included — it is the only thing telling the user
+ *      the folder listing is not what they are looking at.
  *   4. "Browse" on a file returns to the listing too, and clicking a folder in
  *      the tree navigates rather than entering single-file mode.
  *
@@ -132,25 +135,29 @@ Let's pull one of them up on its own.`
     // beneath it until that node is expanded in turn.
     await expect(tree.getByText('Browse Target', { exact: true })).toBeVisible({ timeout: 10000 });
 
-    // No breadcrumbs here — this pane must not look like a folder listing that
-    // happens to contain one file. BrowseView renders the breadcrumb, so
-    // asserting absence app-wide (not scoped to the pane) also proves BrowseView
-    // itself is gone.
-    await expect(mainWindow.getByTestId('path-breadcrumb')).toHaveCount(0);
+    // The breadcrumb header is here too, exactly as in the folder listing — it
+    // is how you jump to an ancestor folder in one click without first leaving
+    // single-file mode. Scoped to BrowseFile's own header so this can't pass on
+    // a stray BrowseView breadcrumb (BrowseView is already asserted gone above).
+    await expect(mainWindow.getByTestId('browse-file-breadcrumbs')
+      .getByTestId('path-breadcrumb')).toBeVisible();
+    await expect(mainWindow.getByTestId('path-breadcrumb')).toHaveCount(1);
 
-    // What stands in for it: one text link, top-right, whose tooltip names the
-    // folder the browsed file lives in.
-    const browseFolderLink = mainWindow.getByTestId('browse-folder-link');
-    await expect(browseFolderLink).toBeVisible();
-    await expect(browseFolderLink).toHaveAttribute('title', `Open Folder ${folderName}`);
+    // Beside it, right-aligned: the badge saying the folder listing is not what
+    // this pane is showing. Plain text on purpose — the breadcrumb does the
+    // navigating now — so it is asserted to have no button role to click.
+    const listingHidden = mainWindow.getByTestId('listing-hidden-indicator');
+    await expect(listingHidden).toBeVisible();
+    await expect(listingHidden).toHaveText('Listing Hidden');
+    await expect(mainWindow.getByRole('button', { name: 'Listing Hidden' })).toHaveCount(0);
 
-    await takeScreenshot(mainWindow, browseFolderLink, screenshotDir, step++, 'single-file-view');
+    await takeScreenshot(mainWindow, listingHidden, screenshotDir, step++, 'single-file-view');
     writeNarration(
       screenshotDir,
       step++,
       `The pane now shows just this one file, already expanded so its content is right there.
-The other file in the folder is gone from view, and the breadcrumb path is gone too — that missing header is how you can tell at a glance that you're looking at one file rather than a folder.
-In its place is the small "Browse Folder" link in the top right, which takes you back to the folder this file lives in. Hovering it tells you which folder that is.`
+The other file in the folder is gone from view, but the breadcrumb path stays at the top — click any part of it to jump straight to that folder.
+Over on the right, "Listing Hidden" is a standing reminder that you're looking at one file rather than the folder's contents.`
     );
 
     // --- Phase 2: click-to-edit works here too ------------------------------
@@ -161,9 +168,10 @@ In its place is the small "Browse Folder" link in the top right, which takes you
     const saveButton = mainWindow.getByTestId('entry-save-button');
     await expect(saveButton).toBeVisible({ timeout: 10000 });
 
-    // The Browse Folder link is hidden while editing — walking out of the pane
-    // is not an offer to make mid-edit, and the maximized editor wants the room.
-    await expect(browseFolderLink).toHaveCount(0);
+    // The badge stays put while editing. It costs no height (the breadcrumb
+    // keeps the header row on screen either way), and the reminder is worth as
+    // much mid-edit as it is while reading.
+    await expect(listingHidden).toBeVisible();
 
     const editorContent = single.locator('.cm-content');
     await editorContent.click();
@@ -208,8 +216,8 @@ We've typed a new line at the end. Let's save it.`
       expect(onDisk).toContain('Edited in single-file mode.');
     }).toPass({ timeout: 10000 });
 
-    // Editing over, the link is back — Phase 3 leaves through it.
-    await expect(browseFolderLink).toBeVisible({ timeout: 10000 });
+    // Editing over, the badge is still there — it never went away.
+    await expect(listingHidden).toBeVisible({ timeout: 10000 });
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'saved-in-single-file-view');
     writeNarration(
@@ -218,11 +226,13 @@ We've typed a new line at the end. Let's save it.`
       `Saved — the new line is on disk. Editing a file works the same whether you reached it through the folder listing or on its own.`
     );
 
-    // --- Phase 3: the "Browse Folder" link exits ----------------------------
-    // The one in-pane exit. It navigates to the folder already in currentPath,
-    // which only works because navigateToBrowserPath clears browseFileName
-    // unconditionally rather than early-returning on an unchanged path.
-    await demoClick(browseFolderLink);
+    // --- Phase 3: the breadcrumb's own folder segment exits -----------------
+    // The rightmost segment is the folder already in currentPath, so this is
+    // the exit that only works because navigateToBrowserPath clears
+    // browseFileName unconditionally rather than early-returning on an
+    // unchanged path. Nothing else in the header is clickable, which is why
+    // this is the in-pane way back to the listing.
+    await demoClick(mainWindow.getByTestId(`breadcrumb-segment-${folderName}`));
 
     await expect(mainWindow.getByTestId('browser-main-content')).toBeVisible({ timeout: 10000 });
     await expect(mainWindow.getByTestId('browse-file-main-content')).toHaveCount(0);
@@ -230,11 +240,33 @@ We've typed a new line at the end. Let's save it.`
     await expect(listing.getByText(siblingName, { exact: true })).toBeVisible({ timeout: 10000 });
     await expect(mainWindow.getByTestId('path-breadcrumb')).toBeVisible();
 
-    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'back-to-listing-via-link');
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'back-to-listing-via-breadcrumb-folder');
     writeNarration(
       screenshotDir,
       step++,
-      `One click on "Browse Folder" and we're back in the folder listing, with both files showing again.`
+      `One click on the folder's own name in the breadcrumb and we're back in the folder listing, with both files showing again.`
+    );
+
+    // --- Phase 3b: an ANCESTOR segment exits too ----------------------------
+    // The reason the breadcrumb is rendered here at all: from single-file mode
+    // it jumps straight to an ancestor folder's listing, with no stop at the
+    // containing folder first. The home button is the strictest version of
+    // that — it lands on a DIFFERENT folder (the root), so a no-op would show.
+    await demoClick(tree.getByText(targetName, { exact: true }).first());
+    await expect(mainWindow.getByTestId('browse-file-main-content')).toBeVisible({ timeout: 10000 });
+
+    await demoClick(mainWindow.getByTestId('breadcrumb-home-button'));
+
+    await expect(mainWindow.getByTestId('browser-main-content')).toBeVisible({ timeout: 10000 });
+    await expect(mainWindow.getByTestId('browse-file-main-content')).toHaveCount(0);
+    // At the root: the seeded folder is a row in the listing again.
+    await expect(listing.getByText(folderName, { exact: true })).toBeVisible({ timeout: 10000 });
+
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'back-to-root-via-breadcrumb');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `The breadcrumb works from single-file mode as well: clicking the home icon took us straight out to the top folder, skipping the folder the file was in.`
     );
 
     // --- Phase 4: "Browse" exits too; clicking a FOLDER does not enter ------
@@ -247,7 +279,7 @@ We've typed a new line at the end. Let's save it.`
     await demoClick(mainWindow.getByTestId('browse-to-folder'));
     await expect(mainWindow.getByTestId('browser-main-content')).toBeVisible({ timeout: 10000 });
     await expect(mainWindow.getByTestId('browse-file-main-content')).toHaveCount(0);
-    // The breadcrumb comes back with the listing — it belongs to BrowseView.
+    // The breadcrumb is still there — both views render one.
     await expect(mainWindow.getByTestId('path-breadcrumb')).toBeVisible();
 
     // Clicking a FOLDER row still just expands/collapses it in the tree — only

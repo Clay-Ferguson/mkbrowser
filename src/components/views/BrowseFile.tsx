@@ -8,6 +8,7 @@ import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
 import FolderEntry from '../entries/FolderEntry';
 import ThesaurusView from '../editor/ThesaurusView';
+import PathBreadcrumb from '../PathBreadcrumb';
 import AttachFolderContents from './AttachFolderContents';
 import {
   navigateToBrowserPath,
@@ -16,8 +17,8 @@ import {
   useAS,
 } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
-import { BUTTON_CLASS_LINK_AMBER, getContentWidthClasses } from '../../renderer/styles';
-import { getFileName, getParentPath } from '../../renderer/pathUtil';
+import { getContentWidthClasses } from '../../renderer/styles';
+import { getParentPath } from '../../renderer/pathUtil';
 import { pasteIntoFolder } from '../../renderer/fileOpsUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
@@ -55,15 +56,22 @@ interface BrowseFileProps {
  * insert bars, selection toolbar) are simply not passed, and the entries hide
  * them accordingly.
  *
- * Deliberately renders **no breadcrumbs**, unlike BrowseView. Their absence is
- * the visual cue that this is single-file mode: with a breadcrumb header this
- * view is pixel-identical to a folder listing that happens to hold one file,
- * which reads as "where did my other files go?". In place of them a single
- * "Browse Folder" text link sits top-right — the one thing the breadcrumb was
- * actually useful for here (leave for the containing folder's listing), without
- * the path header that made the two views look alike. The other exits are the
- * index tree's "Browse" context-menu item and, in 'expanded-edit' mode, ending
- * the edit.
+ * Renders the same `PathBreadcrumb` header BrowseView does, at all times —
+ * editing included. It used to render none, so that a missing path header
+ * marked single-file mode apart from a folder listing that happens to hold one
+ * file; in practice the breadcrumb is the fastest way to jump to any ancestor
+ * folder, and that outweighs the cue. Every segment is a live exit from
+ * single-file mode, including the rightmost one — `navigateToBrowserPath`
+ * clears `browseFileName` unconditionally, so "go to the folder I am already
+ * in" works, and that segment is the way back to the listing. The other exits
+ * are the index tree's "Browse" context-menu item and, in 'expanded-edit' mode,
+ * ending the edit.
+ *
+ * Right-aligned in the same header, a **"Listing Hidden"** badge carries what
+ * the breadcrumb cannot: that this pane holds one file rather than a folder's
+ * contents. It is plain, non-interactive text — it replaced a "Browse Folder"
+ * link that the clickable breadcrumb made redundant — and it is always shown,
+ * so the reminder never goes missing.
  *
  * Editing is always maximized here, but for one of two reasons, which
  * `browseFileMode` tells apart:
@@ -86,6 +94,7 @@ interface BrowseFileProps {
  */
 function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }: BrowseFileProps) {
   const currentPath = useAS(s => s.currentPath);
+  const rootPath = useAS(s => s.rootPath);
   const browseFileName = useAS(s => s.browseFileName);
   const browseFileMode = useAS(s => s.browseFileMode);
   const highlightItem = useAS(s => s.highlightItem);
@@ -110,10 +119,10 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
     : undefined;
   const attachFolderCut = useAS(s => (attachFolder ? (s.items.get(attachFolder.path)?.isCut ?? false) : false));
 
-  // Is this view's one file open for editing? Drives both the maximized layout
+  // Is this view's one file open for editing? Drives the maximized layout
   // (editing here is ALWAYS expanded — the entry already owns the whole pane, so
-  // a non-expanded editor would just waste it) and hiding the Browse Folder
-  // link. Scoped to this view's one entry, never to a "something in the store is
+  // a non-expanded editor would just waste it) and hides the attachments strip.
+  // Scoped to this view's one entry, never to a "something in the store is
   // editing" scan: the items map is global and long-lived, so such a scan goes
   // stale the moment the user navigates elsewhere with a file still open for
   // editing.
@@ -138,30 +147,27 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
     }
   }, [entryPath]);
 
-  // The containing folder, for the link's label. currentPath is the folder
-  // holding the browsed file (setBrowseFile sets the two together), so its last
-  // segment is the name to show — falling back to the path itself for a
-  // filesystem root, whose last segment is empty.
-  const folderName = getFileName(currentPath) || currentPath;
-
-  // Leaves single-file mode for the containing folder's listing —
-  // navigateToBrowserPath clears browseFileName unconditionally, so this works
-  // even though currentPath is already that folder.
+  // A breadcrumb segment click: go to that folder's listing. Leaving
+  // single-file mode is implicit — navigateToBrowserPath always clears
+  // browseFileName — so even the rightmost segment (this file's own folder) is
+  // a live exit rather than a no-op. That segment is THE way back to the
+  // listing; nothing else in this header is clickable any more.
   //
   // The listing is also scrolled to the highlighted file, exactly as clicking a
   // search result does: every route into single-file browsing (index tree click,
-  // bookmark, an entry's "view file" action) sets highlightItem to the file it
-  // opens, so leaving lands on that file rather than at the top of a folder the
-  // user may have scrolled deep into.
+  // bookmark, an entry's "View File" action) sets highlightItem to the file it
+  // opens, so going back to its folder lands on that file rather than at the top
+  // of a folder the user may have scrolled deep into.
   //
-  // Guarded to a highlight inside this folder: BrowseView consumes
-  // pendingScrollToFile only once it finds the element, so a path from another
-  // folder would linger and hijack a later navigation there.
-  const handleBrowseFolder = () => {
-    const scrollToFile = highlightItem && getParentPath(highlightItem) === currentPath
+  // Guarded to a highlight inside the folder being navigated to — in practice
+  // only the rightmost segment matches. BrowseView consumes pendingScrollToFile
+  // only once it finds the element, so a path belonging to another folder would
+  // linger and hijack a later navigation there.
+  const handleBreadcrumbNavigate = (path: string) => {
+    const scrollToFile = highlightItem && getParentPath(highlightItem) === path
       ? highlightItem
       : undefined;
-    navigateToBrowserPath(currentPath, scrollToFile);
+    navigateToBrowserPath(path, scrollToFile);
   };
 
   // Pastes cut items into a folder shown here — the attach folder or a folder
@@ -186,38 +192,50 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* No breadcrumb header on purpose — see the component doc above. Just
-          this one text link, outside the scroll container so it stays put while
-          the file scrolls. Amber to match the folder icon color used in the
-          listing and the tree.
+      {/* Header: breadcrumbs on the left, the "Listing Hidden" badge on the
+          right — the same "path trail left, status right" shape BrowseView's
+          header has, and outside the scroll container so it stays put while the
+          file scrolls.
 
-          Hidden while the file is being edited: leaving mid-edit is not an
-          offer this view should be making, and the editor is maximized then, so
-          the row would only be taking space off the top of it.
+          The breadcrumb renders at ALL times, editing included, and is the only
+          interactive thing up here. Clicking any segment leaves single-file mode
+          for that folder's listing, because navigateToBrowserPath clears
+          browseFileName unconditionally — and that includes the rightmost
+          segment, which is this file's own folder, so it doubles as "back to the
+          listing I came from".
 
-          The two nested wrappers duplicate <main>'s horizontal padding and the
-          width classes of the entry's own wrapper below, so `justify-end` puts
-          the link exactly on the entry's right edge. Copying the chain is what
-          makes that hold in every contentWidth mode: the entry is centred by
-          `mx-auto` inside a max-width, so its right edge moves with the pane
-          width and no fixed margin could line up with it. */}
-      {!editing && (
-        <div className="flex-shrink-0 pr-3 pl-3">
-          <div className={flexPane ? 'w-full px-4' : getContentWidthClasses(settings.contentWidth)}>
-            <div className="flex justify-end pt-1 pb-1">
-              <button
-                type="button"
-                onClick={handleBrowseFolder}
-                data-testid="browse-folder-link"
-                className={`${BUTTON_CLASS_LINK_AMBER} text-sm hover:underline bg-transparent border-0 p-0`}
-                title={`Open Folder ${folderName}`}
-              >
-                Browse Folder
-              </button>
-            </div>
-          </div>
+          The badge beside it is plain text, deliberately NOT a link: the
+          breadcrumb already does the navigating, and a second control saying the
+          same thing was redundant. What is left is the one job the breadcrumb
+          cannot do — telling the user that what they are looking at is one file
+          and not a folder listing, which is otherwise only inferable from the
+          pane holding a single entry. It is therefore shown unconditionally,
+          editing included; it costs no height, since the breadcrumb keeps this
+          header row on screen regardless.
+
+          `whitespace-nowrap` keeps "Listing Hidden" on one line: the header is
+          `flex-wrap` (for narrow panes and deep paths), and without it the badge
+          is the thing that breaks, stacking "Hidden" under "Listing". */}
+      <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
+        <div data-testid="browse-file-breadcrumbs" className="flex items-center gap-3 min-w-0">
+          <PathBreadcrumb
+            rootPath={rootPath}
+            currentPath={currentPath}
+            onNavigate={handleBreadcrumbNavigate}
+            onRefreshDirectory={onRefreshDirectory}
+          />
         </div>
-      )}
+
+        <div className="flex-1 flex items-center justify-end">
+          <span
+            data-testid="listing-hidden-indicator"
+            className="text-amber-400 font-bold text-sm whitespace-nowrap"
+            title="You are viewing a single file — the folder listing is hidden. Click a folder in the path above to go back to it."
+          >
+            Listing Hidden
+          </span>
+        </div>
+      </header>
 
       {/* The flexPane class chain converts this into a nested flex column so a
           maximized CodeMirror fills the pane and owns the only scrollbar — the
