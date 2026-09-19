@@ -17,6 +17,8 @@ interface IndexTreeContextMenuProps {
   onRename?: () => void;
   /** When provided, a "Delete" item is shown. */
   onDelete?: () => void;
+  /** When provided, a "Cut" item is shown. */
+  onCut?: () => void;
   /** When provided, a "Paste into Folder" item is shown. */
   onPaste?: () => void;
   /** When provided, a "Paste Link" item is shown. */
@@ -34,7 +36,7 @@ interface IndexTreeContextMenuProps {
  * three create items are fenced off in their own divider section, since they add
  * to the folder's *contents* rather than acting on the clicked node itself.
  */
-export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onNewFile, onNewTodo, onNewFolder, onRename, onDelete, onPaste, onPasteLink, onCopyPath, onCopyRelativePath }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onNewFile, onNewTodo, onNewFolder, onRename, onDelete, onCut, onPaste, onPasteLink, onCopyPath, onCopyRelativePath }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       <PopupMenuItem
@@ -74,6 +76,13 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
         <PopupMenuItem
           label="Delete"
           onClick={() => { onDelete(); onClose(); }}
+        />
+      )}
+      {onCut && (
+        <PopupMenuItem
+          label="Cut"
+          onClick={() => { onCut(); onClose(); }}
+          data-testid="tree-cut"
         />
       )}
       {onPaste && (

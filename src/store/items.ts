@@ -12,7 +12,7 @@ import type { StoreSet, StoreGet } from './core';
 // Items - actions and hooks for the items Map
 // ============================================================================
 
-interface IncomingItem {
+export interface IncomingItem {
   path: string;
   name: string;
   isDirectory: boolean;
@@ -126,6 +126,7 @@ export interface ItemsSlice {
   expandAllItems: () => void;
   collapseAllItems: () => void;
   cutSelectedItems: () => void;
+  cutSingleItem: (item: IncomingItem) => void;
   clearAllCutItems: () => void;
   renameItem: (oldPath: string, newPath: string, newName: string) => boolean;
   deleteItems: (paths: string[]) => void;
@@ -399,6 +400,32 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       }
 
       if (!hasChanges) return;
+
+      set({ items: newItems });
+    },
+
+    /**
+     * Cut exactly one item, which may not be in the store yet — the IndexTree can
+     * cut a file in a folder the user has never browsed, and paste resolves its
+     * targets from the items Map. The caller supplies the item's real stat data
+     * (from a directory listing) rather than a placeholder, so that a later load
+     * of that folder merges into this entry instead of treating it as a replaced
+     * file and wiping the pending cut.
+     *
+     * Any previously cut items are un-cut first: this is a single-item cut, so it
+     * starts a new pending move rather than joining one already in progress —
+     * which a cut from a different folder could not legally join anyway (paste
+     * requires every cut item to share one source folder).
+     */
+    cutSingleItem: (item) => {
+      const newItems = new Map(get().items);
+
+      for (const [path, existing] of newItems) {
+        if (existing.isCut) newItems.set(path, { ...existing, isCut: false });
+      }
+
+      const merged = mergeItem(newItems.get(item.path), item);
+      newItems.set(item.path, { ...merged, isCut: true, isSelected: false });
 
       set({ items: newItems });
     },
@@ -776,6 +803,10 @@ export function cutSelectedItems(): void {
   getState().cutSelectedItems();
 }
 
+export function cutSingleItem(item: IncomingItem): void {
+  getState().cutSingleItem(item);
+}
+
 export function clearAllCutItems(): void {
   getState().clearAllCutItems();
 }
@@ -970,5 +1001,30 @@ export function hasAnyCutItems(items: Map<string, ItemData>): boolean {
     }
   }
   hasAnyCutItemsCache.set(items, result);
+  return result;
+}
+
+/**
+ * Memo cache for getCutPaths, keyed on map identity for the same reason as
+ * {@link hasAnyCutItemsCache} — and additionally so the returned Set is
+ * referentially stable, which is what lets a component subscribe to it with a
+ * direct `useAS` selector without re-rendering on every unrelated store write.
+ */
+const cutPathsCache = new WeakMap<Map<string, ItemData>, ReadonlySet<string>>();
+
+/**
+ * The paths of all currently cut items. Pure helper for direct selectors:
+ * `useAS(s => getCutPaths(s.items))`. Unlike {@link hasAnyCutItems} it tracks
+ * *which* items are cut, so a view that hides cut entries re-renders when the
+ * cut set changes even though "something is cut" stayed true throughout.
+ */
+export function getCutPaths(items: Map<string, ItemData>): ReadonlySet<string> {
+  const cached = cutPathsCache.get(items);
+  if (cached) return cached;
+  const result = new Set<string>();
+  for (const [path, item] of items) {
+    if (item.isCut) result.add(path);
+  }
+  cutPathsCache.set(items, result);
   return result;
 }

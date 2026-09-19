@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useAS } from '../src/store/core';
 import {
   clearCache,
+  cutSingleItem,
   deleteItems,
   getCutItems,
+  getCutPaths,
   getItem,
   isCacheValid,
   renameItem,
@@ -381,5 +383,72 @@ describe('renameItem / deleteItems — path-holding slices stay in sync', () => 
 
       expect(useAS.getState().selectedLinkItems).toEqual(['/other/x.md']);
     });
+  });
+});
+
+describe('cutSingleItem — cutting one item from the index tree', () => {
+  beforeEach(() => {
+    clearCache();
+  });
+
+  it('cuts an item that was never in the store', () => {
+    const unvisited = '/notes/unvisited/deep.md';
+
+    cutSingleItem(entry(unvisited));
+
+    expect(getCutItems().map(i => i.path)).toEqual([unvisited]);
+    expect(getItem(unvisited)?.name).toBe('deep.md');
+  });
+
+  it('replaces a pending cut rather than joining it', () => {
+    seedCutNote();
+    const other = '/other/elsewhere.md';
+
+    cutSingleItem(entry(other));
+
+    // Paste requires one shared source folder, so the earlier cut is released.
+    expect(getCutItems().map(i => i.path)).toEqual([other]);
+    expect(getItem(NOTE)?.isCut).toBe(false);
+  });
+
+  it('keeps the cut across a later load of the folder', () => {
+    const file = '/notes/tree-only.md';
+    cutSingleItem(entry(file, { createdTime: 2000 }));
+
+    // The real stat data recorded at cut time means this load is a plain merge,
+    // not the replaced-file path that would wipe the pending cut.
+    syncDirectoryItems(DIR, [entry(file, { createdTime: 2000 })]);
+
+    expect(getItem(file)?.isCut).toBe(true);
+  });
+
+  it('clears any selection on the item it cuts', () => {
+    syncDirectoryItems(DIR, [entry(NOTE)]);
+    setItemSelected(NOTE, true);
+
+    cutSingleItem(entry(NOTE));
+
+    expect(getItem(NOTE)?.isSelected).toBe(false);
+    expect(getItem(NOTE)?.isCut).toBe(true);
+  });
+});
+
+describe('getCutPaths', () => {
+  beforeEach(() => {
+    clearCache();
+  });
+
+  it('reports which items are cut, not merely that some are', () => {
+    seedCutNote();
+    expect([...getCutPaths(useAS.getState().items)]).toEqual([NOTE]);
+
+    cutSingleItem(entry('/notes/other.md'));
+    expect([...getCutPaths(useAS.getState().items)]).toEqual(['/notes/other.md']);
+  });
+
+  it('returns a stable set for the same items map, so selectors do not thrash', () => {
+    seedCutNote();
+    const { items } = useAS.getState();
+    expect(getCutPaths(items)).toBe(getCutPaths(items));
   });
 });

@@ -14,7 +14,7 @@ import RenameDialog from '../dialogs/RenameDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import {
   useAS,
-  hasAnyCutItems,
+  getCutPaths,
   setIndexTreeRoot,
   expandIndexTreeNode,
   collapseIndexTreeNode,
@@ -22,6 +22,7 @@ import {
   clearPendingIndexTreeReveal,
   getIndexTreeRoot,
   getCutItems,
+  cutSingleItem,
   deleteItems,
   renameItem,
   clearAllCutItems,
@@ -35,6 +36,7 @@ import {
   setPendingScrollToHeadingSlug,
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
+import type { FileEntry } from '../../shared/shared';
 import { pasteCutItems } from '../../renderer/edit';
 import {
   ENTRY_DND_MIME,
@@ -56,6 +58,7 @@ import { scrollElementIntoView } from '../../renderer/entryDom';
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
 import { parseFrontMatter } from '../../shared/frontMatterUtil';
+import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 const INDENT_SIZE = 20;
 
@@ -133,7 +136,7 @@ function buildTodoContent(): string {
  */
 function flattenVisible(
   nodes: TreeNode[],
-  cutPaths: Set<string>,
+  cutPaths: ReadonlySet<string>,
   foldersOnTop: boolean,
   depth = 0
 ): Array<{ node: TreeNode; depth: number }> {
@@ -206,7 +209,11 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const treeRoot = useAS(s => s.indexTreeRoot);
   const settings = useAS(s => s.settings);
   const pendingReveal = useAS(s => s.pendingIndexTreeReveal);
-  const hasCutItems = useAS(s => hasAnyCutItems(s.items));
+  // Subscribing to the cut *paths* (not just "is anything cut") keeps the tree in
+  // step when one pending cut replaces another: the boolean would stay true
+  // across that swap and leave the newly cut node still on screen.
+  const cutPaths = useAS(s => getCutPaths(s.items));
+  const hasCutItems = cutPaths.size > 0;
   const highlightItem = useAS(s => s.highlightItem);
   const browseFileName = useAS(s => s.browseFileName);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -228,6 +235,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     onNewFolder?: () => void;
     onRename?: () => void;
     onDelete?: () => void;
+    onCut?: () => void;
     onPaste?: () => void;
     onPasteLink?: () => void;
     onCopyPath?: () => void;
@@ -239,6 +247,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   const [createFolderParent, setCreateFolderParent] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
+  // File whose cut would strand an attachments folder, held while the user confirms.
+  const [cutOrphanAttachTarget, setCutOrphanAttachTarget] = useState<FileEntry | null>(null);
   const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
   useEffect(() => {
@@ -405,7 +415,8 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    * Moves all cut items into `node`'s folder via rename. Applied partially on
    * disk failure — only the files that actually moved are removed from the store
    * and reconciled with .INDEX.yaml, so the UI never desyncs from disk. The cut
-   * flag is cleared only when every item moved successfully.
+   * flag is cleared only when every item moved successfully, and any failure is
+   * reported.
    */
   // Fire-and-forget UI handler: sync signature with the async body run through
   // runAndLogFailure so failures are reported instead of leaking an unhandled
@@ -445,7 +456,50 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
       if (result.success) {
         clearAllCutItems();
+        return;
       }
+
+      // Rejected outright (pasting into the item's own folder or a subfolder of
+      // itself, a name collision) or only partly applied — either way the reason
+      // has to reach the user, who is otherwise left with a menu click that did
+      // nothing. Items that failed to move stay cut at their source.
+      setAppError(result.error || 'Failed to paste items');
+    });
+  };
+
+  /**
+   * Cuts the right-clicked node, arming the paste actions everywhere else in the
+   * app. The tree has no multi-select, so this is always a single item and always
+   * starts a fresh pending move (see cutSingleItem).
+   *
+   * The item is taken from its parent's directory listing rather than built from
+   * the tree node, for two reasons: the store entry needs the file's real
+   * mtime/birthtime (a placeholder would look like a different file to the next
+   * directory load, which would drop the pending cut), and the tree node may not
+   * be in the items Map at all when its folder was never browsed. The same
+   * listing also reveals an attachments folder — never shown in the tree — that a
+   * cut would leave behind, which the user confirms first, as BrowseView does.
+   */
+  // Fire-and-forget UI handler: sync signature with the async body run through
+  // runAndLogFailure so failures are reported instead of leaking an unhandled
+  // rejection.
+  const handleCutNode = (node: FileNode) => {
+    runAndLogFailure('Failed to cut item:', async () => {
+      const parentPath = getParentPath(node.path);
+      const entries = await api.readDirectory(parentPath);
+      const entry = entries.find(e => isSamePath(e.path, node.path));
+      if (!entry) {
+        setAppError(`Cannot cut "${node.name}" because it no longer exists.`);
+        return;
+      }
+
+      const attachName = `${node.name}${ATTACH_SUFFIX}`;
+      if (!node.isDirectory && entries.some(e => e.isDirectory && e.name === attachName)) {
+        setCutOrphanAttachTarget(entry);
+        return;
+      }
+
+      cutSingleItem(entry);
     });
   };
 
@@ -713,6 +767,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         onNewTodo: () => startNewFile(node.path, buildTodoContent()),
         onNewFolder: () => setCreateFolderParent(node.path),
       } : {}),
+      onCut: () => handleCutNode(node),
       ...(hasCutItems && node.isDirectory ? {
         onPaste: () => handlePasteIntoFolder(node),
       } : {}),
@@ -756,7 +811,6 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     );
   }
 
-  const cutPaths = new Set(getCutItems().map(item => item.path));
   const rows = flattenVisible(treeRoot.children, cutPaths, settings.foldersOnTop);
   return (
     <div data-testid="file-explorer-tree" className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-900`}>
@@ -829,6 +883,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
           onNewFolder={contextMenu.onNewFolder}
           onRename={contextMenu.onRename}
           onDelete={contextMenu.onDelete}
+          onCut={contextMenu.onCut}
           onPaste={contextMenu.onPaste}
           onPasteLink={contextMenu.onPasteLink}
           onCopyPath={contextMenu.onCopyPath}
@@ -862,6 +917,17 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
             : `Delete file "${deleteTarget.name}"?`}
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+      {cutOrphanAttachTarget && (
+        <ConfirmDialog
+          message={`"${cutOrphanAttachTarget.name}" has an attachments folder, which the tree does not show and a cut leaves behind. Cut the file without its attachments?`}
+          onConfirm={() => {
+            const entry = cutOrphanAttachTarget;
+            setCutOrphanAttachTarget(null);
+            cutSingleItem(entry);
+          }}
+          onCancel={() => setCutOrphanAttachTarget(null)}
         />
       )}
       <div ref={containerRef} className="flex-1 overflow-auto pl-2 pr-2 pt-2">
