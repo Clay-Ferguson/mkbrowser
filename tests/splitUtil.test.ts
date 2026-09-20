@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/utils/fileSplitJoin/splitUtil.ts — transactional splitFile.
+ * Unit tests for src/renderer/splitUtil.ts — transactional splitFile.
  *
  * Exercises the happy path, the delimiter/empty-part semantics, and the
  * fail-safe rollback behavior, all against an in-memory mock filesystem.

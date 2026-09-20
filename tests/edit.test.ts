@@ -1,5 +1,5 @@
 /**
- * Unit tests for src/utils/edit.ts — paste, delete, split/join validation logic.
+ * Unit tests for src/renderer/edit.ts — paste, delete, split/join validation logic.
  * All async dependencies are injected via callbacks so no filesystem is needed.
  */
 import { describe, it, expect } from 'vitest';

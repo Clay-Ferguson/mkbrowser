@@ -27,24 +27,26 @@ import { logger } from '../shared/logUtil';
  *    `readdir` failure throw (see its doc comment): its only caller wraps it and
  *    must surface that as a real error rather than silently export an empty file.
  *
- *  - **Mutators** (`reconcileIndexedFiles`, `writeIndexOptions`,
- *    `moveInIndexYaml`, `moveToEdgeInIndexYaml`, `insertIntoIndexYaml`,
- *    `renameInIndexYaml`, `validateAttachFolderLocation`) return
- *    `{ success: boolean; error?: string }` (`IndexMutationResult`) and never
- *    throw — every failure is caught and returned so the caller decides whether
- *    to surface it. A documented no-op (e.g. renaming an entry that isn't
+ *  - **Mutators** (`reconcileIndexedFiles`, `moveInIndexYaml`,
+ *    `moveToEdgeInIndexYaml`, `insertIntoIndexYaml`, `renameInIndexYaml`)
+ *    return `{ success: boolean; error?: string }` (`IndexMutationResult`) and
+ *    never throw — every failure is caught and returned so the caller decides
+ *    whether to surface it. A documented no-op (e.g. renaming an entry that isn't
  *    present, or reconciling a non-Document-Mode folder) is a `{ success: true }`,
- *    not a failure. The best-effort, self-healing mutators (`renameInIndexYaml`,
- *    `validateAttachFolderLocation`) additionally log on failure because their
- *    callers intentionally don't surface the result — the on-disk action already
- *    succeeded and the next reconcile heals the index.
+ *    not a failure. The best-effort, self-healing mutator `renameInIndexYaml`
+ *    additionally logs on failure because its caller intentionally doesn't
+ *    surface the result — the on-disk action already succeeded and the next
+ *    reconcile heals the index. `recordFrontMatterIdInIndex` is best-effort in
+ *    the same way but returns nothing at all.
  *
  *    Hard invariant: no mutator ever writes over an `.INDEX.yaml` that exists
- *    but cannot be loaded (unreadable, malformed YAML, invalid structure). The
- *    ordering in `files` is the one thing that can't be reconstructed, and a
- *    hand edit may still recover the file. Mutators that would otherwise
- *    create/rebuild an index fail with `corruptIndex: true` in that case, which
- *    the IPC layer (main.ts) surfaces to the user as a blocking error dialog.
+ *    but cannot be loaded (unreadable, malformed YAML, invalid structure, or a
+ *    `version` newer than this build understands). The ordering in `files` is
+ *    the one thing that can't be reconstructed, and a hand edit may still
+ *    recover the file. Mutators that would otherwise create/rebuild an index
+ *    fail with `corruptIndex: true` in that case, which the IPC layer (main.ts)
+ *    surfaces to the user as a blocking error dialog. This is enforced by using
+ *    `readIndexYamlChecked` (never `readIndexYaml`) in every writing path.
  */
 
 const generateId = customAlphabet('0123456789ABCDEF', 9);
@@ -227,6 +229,26 @@ function corruptIndexFailure(readError: string): IndexMutationResult {
 }
 
 /**
+ * The .INDEX.yaml schema version this build writes and understands.
+ *
+ * The format carried no version field before this was introduced, so an index
+ * without one is by definition the original layout — which is still version 1.
+ * That is why a missing `version` *defaults* to 1 rather than being an error:
+ * every pre-existing file on disk is a valid version 1 file, and the field is
+ * added to it the next time anything rewrites it.
+ *
+ * The field earns its keep in one direction: a *newer* build that changes the
+ * layout bumps this constant, and every build (including this one) refuses to
+ * mutate an index declaring a version above its own — see
+ * {@link unsupportedVersionError}. Without that guard, an older build would
+ * happily rewrite a future file in the old layout and silently destroy whatever
+ * the new layout added. Readers are deliberately *not* guarded (see
+ * {@link readIndexYaml}): displaying a future file's ordering as best we can is
+ * harmless, writing to it is not.
+ */
+export const CURRENT_INDEX_VERSION = 1;
+
+/**
  * Runtime schema for .INDEX.yaml. The file is plain text on the user's disk that
  * can be hand-edited, synced, merged, or corrupted by external tools, so its
  * parsed contents are untrusted and `js-yaml`'s `load()` returns `unknown`.
@@ -236,6 +258,7 @@ function corruptIndexFailure(readError: string): IndexMutationResult {
  * validation and the compile-time types can never drift out of sync.
  *
  * Tolerance rules — a corrupt index should degrade cleanly, never throw:
+ *  - a missing / non-numeric `version` → CURRENT_INDEX_VERSION (see above)
  *  - a `files` value that isn't an array → empty list
  *  - individual entries that aren't `{ name: string }` → dropped (good ones kept)
  *  - a missing / non-object `options` → empty options
@@ -248,6 +271,12 @@ const IndexEntrySchema = z.object({
 });
 
 const IndexYamlSchema = z.object({
+  version: z
+    .number()
+    .int()
+    .positive()
+    .catch(CURRENT_INDEX_VERSION)
+    .default(CURRENT_INDEX_VERSION),
   files: z
     .array(z.unknown())
     .transform((arr) =>
@@ -289,35 +318,65 @@ export type IndexReadResult =
   | { status: 'error'; error: string };
 
 /**
- * Reads and parses .INDEX.yaml from dirPath, reporting *why* it couldn't be
- * loaded rather than collapsing every failure to null (see IndexReadResult).
+ * The refusal message for an index that declares a schema version this build
+ * doesn't understand. Phrased as a load failure because that is how every
+ * mutator already treats it (corruptIndexFailure → blocking dialog), and the
+ * user's remedy is the same: update the app, or fix the file by hand.
+ */
+function unsupportedVersionError(version: number): string {
+  return `declares version ${version}, but this build understands at most version ${CURRENT_INDEX_VERSION}`;
+}
+
+/**
+ * Reads and parses .INDEX.yaml from dirPath *without* the version check, so both
+ * the tolerant reader and the guarded one share exactly one read/parse path.
  * ENOENT is the expected "not Document Mode" case and stays silent; any other
  * failure is logged at warn level.
  */
-export async function readIndexYamlChecked(dirPath: string): Promise<IndexReadResult> {
+async function readIndexYamlRaw(dirPath: string): Promise<IndexReadResult> {
   const indexFilePath = indexPathFor(dirPath);
   let content: string;
   try {
     content = await fs.promises.readFile(indexFilePath, 'utf8');
   } catch (err) {
     if (isENOENT(err)) return { status: 'absent' };
-    logger.warn(`readIndexYamlChecked: cannot read "${indexFilePath}": ${err}`);
+    logger.warn(`readIndexYaml: cannot read "${indexFilePath}": ${err}`);
     return { status: 'error', error: err instanceof Error ? err.message : String(err) };
   }
   let loaded: unknown;
   try {
     loaded = loadYaml(content);
   } catch (err) {
-    logger.warn(`readIndexYamlChecked: cannot parse "${indexFilePath}": ${err}`);
+    logger.warn(`readIndexYaml: cannot parse "${indexFilePath}": ${err}`);
     return { status: 'error', error: err instanceof Error ? err.message : String(err) };
   }
   const data = parseIndexYaml(loaded);
   if (!data) {
     const error = 'top-level YAML value is not an object (empty, scalar, or list document)';
-    logger.warn(`readIndexYamlChecked: invalid "${indexFilePath}": ${error}`);
+    logger.warn(`readIndexYaml: invalid "${indexFilePath}": ${error}`);
     return { status: 'error', error };
   }
   return { status: 'ok', data };
+}
+
+/**
+ * Reads and parses .INDEX.yaml from dirPath, reporting *why* it couldn't be
+ * loaded rather than collapsing every failure to null (see IndexReadResult).
+ *
+ * This is the reader **every mutator must use**, because it additionally refuses
+ * an index whose declared `version` is newer than this build understands
+ * (see CURRENT_INDEX_VERSION). Rewriting such a file in the older layout would
+ * silently discard whatever the newer layout added, which is the same
+ * unrecoverable data loss the corrupt-index refusal exists to prevent.
+ */
+export async function readIndexYamlChecked(dirPath: string): Promise<IndexReadResult> {
+  const result = await readIndexYamlRaw(dirPath);
+  if (result.status === 'ok' && result.data.version > CURRENT_INDEX_VERSION) {
+    const error = unsupportedVersionError(result.data.version);
+    logger.warn(`readIndexYamlChecked: "${indexPathFor(dirPath)}" ${error}`);
+    return { status: 'error', error };
+  }
+  return result;
 }
 
 /**
@@ -325,9 +384,14 @@ export async function readIndexYamlChecked(dirPath: string): Promise<IndexReadRe
  * null if the file doesn't exist or can't be parsed. For read-only callers where
  * "no usable index" is all that matters; mutators must use readIndexYamlChecked
  * instead so an existing-but-unloadable index is never mistaken for a missing one.
+ *
+ * Deliberately **not** version-guarded: a future-version index still has a
+ * `files` list, and ordering the view by it is strictly better than silently
+ * falling back to alphabetical. Only *writing* such a file is dangerous, and
+ * that path goes through readIndexYamlChecked.
  */
 export async function readIndexYaml(dirPath: string): Promise<IndexYaml | null> {
-  const result = await readIndexYamlChecked(dirPath);
+  const result = await readIndexYamlRaw(dirPath);
   return result.status === 'ok' ? result.data : null;
 }
 
@@ -823,6 +887,14 @@ export async function reconcileIndexedFiles(
           logger.warn(`reconcileIndexedFiles: invalid "${indexFilePath}", refusing to touch it: ${error}`);
           return corruptIndexFailure(error);
         }
+        // Same guard readIndexYamlChecked applies; reconcile parses the raw
+        // content itself (it needs the verbatim text for the unchanged-write
+        // check below), so it has to make the version check on its own.
+        if (parsed.version > CURRENT_INDEX_VERSION) {
+          const error = unsupportedVersionError(parsed.version);
+          logger.warn(`reconcileIndexedFiles: "${indexFilePath}" ${error}, refusing to touch it`);
+          return corruptIndexFailure(error);
+        }
         existingFiles = parsed.files;
         existingOptions = parsed.options;
       }
@@ -839,7 +911,10 @@ export async function reconcileIndexedFiles(
         nameToStat,
       });
 
-      const newContent = dump({ files, options: existingOptions }, YAML_DUMP_OPTS);
+      const newContent = dump(
+        { version: CURRENT_INDEX_VERSION, files, options: existingOptions },
+        YAML_DUMP_OPTS,
+      );
       if (newContent !== existingIndexContent) {
         await writeFileAtomic(indexFilePath, newContent);
       }
@@ -849,35 +924,6 @@ export async function reconcileIndexedFiles(
       // structured error rather than rejecting, so the IPC caller (e.g. the
       // "enable custom ordering" path) can report it. See issue 016.
       logger.warn(`reconcileIndexedFiles: failed for "${dirPath}": ${err}`);
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
-    }
-  });
-}
-
-/**
- * Writes the options section of .INDEX.yaml, preserving the files array.
- * Creates the file when absent; refuses (with `corruptIndex`) when it exists
- * but can't be loaded, since writing "fresh" would wipe the custom ordering.
- */
-export async function writeIndexOptions(
-  dirPath: string,
-  options: IndexOptions,
-): Promise<IndexMutationResult> {
-  // Serialized per-directory (withIndexLock) so the read-modify-write can't
-  // interleave with another index mutation and clobber the files list. See issue 013.
-  return withIndexLock(dirPath, async () => {
-    const indexFilePath = indexPathFor(dirPath);
-    try {
-      const read = await readIndexYamlChecked(dirPath);
-      if (read.status === 'error') return corruptIndexFailure(read.error);
-      const existing = read.status === 'ok' ? read.data : null;
-      const updated: IndexYaml = {
-        files: existing?.files ?? [],
-        options: { ...existing?.options, ...options },
-      };
-      await writeFileAtomic(indexFilePath, dump(updated, YAML_DUMP_OPTS));
-      return { success: true };
-    } catch (err) {
       return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   });
@@ -926,38 +972,6 @@ function reorderAttachFolders(files: IndexEntry[]): IndexEntry[] {
 }
 
 /**
- * Reads .INDEX.yaml and reorders any out-of-place "*.attach" folder entries so
- * each immediately follows its associated file. Writes back only if changed.
- */
-export async function validateAttachFolderLocation(
-  dirPath: string,
-): Promise<{ success: boolean; error?: string }> {
-  // Serialized per-directory (withIndexLock) so its read-modify-write can't
-  // interleave with another index mutation. See issue 013. (The move helpers
-  // don't call this — they fold the same reorder into their single write.)
-  return withIndexLock(dirPath, async () => {
-    const indexFilePath = indexPathFor(dirPath);
-    try {
-      const indexYaml = await readIndexYaml(dirPath);
-      if (!indexYaml?.files) return { success: true }; // not Document Mode — nothing to reorder
-
-      const reordered = reorderAttachFolders(indexYaml.files);
-      if (reordered === indexYaml.files) return { success: true }; // no change
-
-      await writeFileAtomic(
-        indexFilePath,
-        dump({ ...indexYaml, files: reordered }, YAML_DUMP_OPTS),
-      );
-      return { success: true };
-    } catch (err) {
-      // Best-effort; record the failed reorder but don't throw.
-      logger.warn(`validateAttachFolderLocation: failed to reorder "${indexFilePath}": ${err}`);
-      return { success: false, error: err instanceof Error ? err.message : String(err) };
-    }
-  });
-}
-
-/**
  * Moves an entry up or down one position in .INDEX.yaml by swapping it with its neighbor.
  */
 export async function moveInIndexYaml(
@@ -967,9 +981,9 @@ export async function moveInIndexYaml(
 ): Promise<IndexMutationResult> {
   // Serialized per-directory (withIndexLock) so concurrent moves/inserts can't
   // lose each other's update. The attach-folder reorder is folded into this
-  // function's single write (via reorderAttachFolders) rather than a second
-  // read-modify-write through validateAttachFolderLocation — fewer disk ops and,
-  // since validateAttachFolderLocation also takes the lock, no self-deadlock.
+  // function's single write (via reorderAttachFolders) rather than done as a
+  // second read-modify-write — fewer disk ops, and no risk of a follow-up
+  // helper deadlocking on the lock this call already holds.
   return withIndexLock(dirPath, async () => {
     const indexFilePath = indexPathFor(dirPath);
     try {
@@ -1017,8 +1031,8 @@ export async function moveToEdgeInIndexYaml(
   edge: 'top' | 'bottom',
 ): Promise<IndexMutationResult> {
   // Serialized per-directory (withIndexLock); the attach reorder is folded into
-  // the single write here rather than a follow-up validateAttachFolderLocation
-  // call (which would re-read/re-write and, sharing the lock, deadlock). See issue 013.
+  // the single write here rather than a follow-up call that would re-read,
+  // re-write, and — sharing this lock — deadlock. See issue 013.
   return withIndexLock(dirPath, async () => {
     const indexFilePath = indexPathFor(dirPath);
     try {
@@ -1200,8 +1214,13 @@ export async function recordFrontMatterIdInIndex(filePath: string, fileId: strin
   await withIndexLock(dirPath, async () => {
     const indexFilePath = indexPathFor(dirPath);
     try {
-      const indexYaml = await readIndexYaml(dirPath);
-      if (!indexYaml) return; // no longer Document Mode — nothing to record
+      // The guarded reader: this writes, so it must not touch an index whose
+      // version (or structure) this build doesn't understand. A refusal is a
+      // silent no-op here by design — the file already carries the id, and the
+      // caller intentionally doesn't surface this result.
+      const read = await readIndexYamlChecked(dirPath);
+      if (read.status !== 'ok') return; // not Document Mode, unloadable, or too new
+      const indexYaml = read.data;
       const entry = indexYaml.files.find((f) => f.name === fileName);
       if (entry) {
         entry.id = fileId;
@@ -1228,7 +1247,7 @@ export async function renameInIndexYaml(
   dirPath: string,
   oldName: string,
   newName: string,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<IndexMutationResult> {
   // Serialized per-directory (withIndexLock). The rename handler can call this
   // twice in a row (the file, then its .attach folder) on the same directory;
   // the lock makes the second read see the first's write instead of racing it.
@@ -1236,8 +1255,13 @@ export async function renameInIndexYaml(
   return withIndexLock(dirPath, async () => {
     const indexFilePath = indexPathFor(dirPath);
     try {
-      const indexYaml = await readIndexYaml(dirPath);
-      if (!indexYaml?.files) return { success: true }; // not Document Mode — nothing to rename
+      // The guarded reader: this writes, so an index that exists but can't be
+      // loaded (or declares a newer version) must be left alone rather than
+      // rewritten in a layout we understand. See readIndexYamlChecked.
+      const read = await readIndexYamlChecked(dirPath);
+      if (read.status === 'absent') return { success: true }; // not Document Mode — nothing to rename
+      if (read.status === 'error') return corruptIndexFailure(read.error);
+      const indexYaml = read.data;
       const entry = indexYaml.files.find((f) => f.name === oldName);
       if (!entry) return { success: true }; // no such entry — nothing to rename
       entry.name = newName;
@@ -1352,7 +1376,10 @@ export async function insertIntoIndexYaml(
     try {
       const read = await readIndexYamlChecked(dirPath);
       if (read.status === 'error') return corruptIndexFailure(read.error);
-      const indexYaml = read.status === 'ok' ? read.data : { files: [], options: {} };
+      const indexYaml: IndexYaml =
+        read.status === 'ok'
+          ? read.data
+          : { version: CURRENT_INDEX_VERSION, files: [], options: {} };
       const files = indexYaml.files;
 
       const newEntry = await buildEntryForName(dirPath, newName);

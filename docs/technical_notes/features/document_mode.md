@@ -5,6 +5,7 @@
 * [Overview](#overview)
 * [The `.INDEX.yaml` File](#the-indexyaml-file)
   * [Example](#example)
+  * [Schema Version](#schema-version)
 * [Enabling Custom Ordering](#enabling-custom-ordering)
 * [Insert Bars](#insert-bars)
 * [Reconciliation](#reconciliation)
@@ -34,14 +35,16 @@ The document-editing controls (insert bars, selection checkboxes, and the orderi
 
 ## The `.INDEX.yaml` File
 
-`.INDEX.yaml` is a hidden YAML file placed directly inside the directory it controls. It has two top-level keys:
+`.INDEX.yaml` is a hidden YAML file placed directly inside the directory it controls. It has three top-level keys:
 
+- **`version`** — the schema version this file uses (`CURRENT_INDEX_VERSION`, currently `1`). See [Schema Version](#schema-version).
 - **`files`** — an ordered list of entries. Each entry has at minimum a `name` field (the exact filename or folder name as it appears on disk). Markdown files also carry an `id` field — a 9-character uppercase hex string used as a stable identity across renames. Non-markdown files (images, PDFs, txt) carry `create_time` and `size` fields instead, forming a best-effort `createTime:size:ext` fingerprint for rename detection (see [Stable Identity](#stable-identity-via-front-matter-ids)).
-- **`options`** _(optional)_ — a map of directory-level settings. It is reserved for future per-directory settings and is preserved across reconciliation.
+- **`options`** _(optional)_ — a map of directory-level settings. It is reserved for future per-directory settings and is preserved across reconciliation. Nothing currently writes it.
 
 ### Example
 
 ```yaml
+version: 1
 files:
   - name: Introduction.md
     id: A1B2C3D4E
@@ -64,6 +67,14 @@ Key points:
 - **Order is authoritative** — the display order in the app exactly follows the sequence in this file.
 - **Hidden entries are excluded** — files and folders whose names begin with `.` (including `.INDEX.yaml` itself) are never listed.
 - **`options` is preserved across reconciliation** — when `reconcileIndexedFiles` rewrites `.INDEX.yaml`, it reads the existing `options` block and writes it back unchanged, so directory settings are never lost.
+
+### Schema Version
+
+The format originally carried no `version` key, so a file without one is by definition the original layout — which *is* version 1. A missing (or non-numeric) `version` therefore **defaults** to `CURRENT_INDEX_VERSION` rather than being an error, and the key is added to a pre-existing file the next time anything rewrites it. No migration step is needed.
+
+The field exists for one direction only: a future build that changes the layout bumps `CURRENT_INDEX_VERSION`, and **every build refuses to write an index declaring a version above its own**. Without that guard an older build would cheerfully rewrite a newer file in the old layout, silently discarding whatever the new layout added — the same unrecoverable data loss the corrupt-index refusal exists to prevent, so it is surfaced the same way (`corruptIndex: true` → blocking dialog).
+
+Readers are deliberately **not** guarded. `readIndexYaml` (used by the directory listing, export, and AI document context) accepts any version, because a future file still has a `files` list and ordering the view by it beats silently falling back to alphabetical. Only the writing paths go through `readIndexYamlChecked`, which is where the version check lives.
 
 ## Enabling Custom Ordering
 
@@ -98,63 +109,91 @@ The index tree's right-click **New File** item (`IndexTreeView.tsx`) is a shortc
 
 ### Purpose
 
-Reconciliation keeps `.INDEX.yaml` consistent with the actual contents of the directory. It handles three concerns:
+Reconciliation keeps `.INDEX.yaml` consistent with the actual contents of the directory — which can be changed at any time by tools other than MkBrowser. It handles five concerns:
 
 1. **ID assignment** — every markdown file should have a unique `id` in its YAML front matter.
-2. **Rename detection** — if a markdown file is renamed on disk, its `id` (which persists in the front matter) lets the index entry's `name` be updated to match the new filename.
+2. **Rename detection** — if a markdown file is renamed on disk, its `id` (which persists in the front matter) lets the index entry's `name` be updated to match the new filename. Non-markdown files use the fingerprint path instead.
 3. **New-entry detection** — files or folders present on disk but absent from the index are appended to the end of the index.
+4. **Deletion** — entries whose file no longer exists on disk are dropped.
+5. **Orphan healing** — an entry whose `id` no longer matches any file, but whose name is still on disk and unclaimed, is re-bound to that file in place (adopting its current id) rather than being dropped and re-appended. This is what keeps a hand-edited front-matter `id` from producing two entries for one file.
 
 ### When Reconciliation Runs
 
-Reconciliation is triggered in two situations:
+`reconcileIndexedFiles` takes one flag, `createIfMissing`, which has only two callers' worth of meaning:
 
 | Trigger | `createIfMissing` | Effect |
 |---|---|---|
-| **Folder navigation** (`currentPath` changes) | `false` | Reconciles existing index; does nothing if no `.INDEX.yaml` |
 | **Enable Document Mode** clicked | `true` | Creates `.INDEX.yaml` if absent, then reconciles |
+| **Everything else** (folder navigation, refresh, and the file operations below) | `false` | Reconciles an existing index; does nothing if no `.INDEX.yaml` |
 
 Importantly, reconciliation does **not** run on every file-operation refresh (create, rename) — for performance, not safety. The insert bars call `insertIntoIndexYaml` directly and do not trigger reconciliation. Operations that remove or add files, however, do keep the index in sync themselves rather than waiting for the next navigation: delete, paste (both folders), clipboard paste, and **Join** call `reconcileIndexedFiles` explicitly after they mutate the disk (for Join, that drops the merged-away sources' entries while the surviving target keeps its entry and position), and **Split** splices its `-01` … `-NN` parts into the index directly after the original file's entry via `insertIntoIndexYaml` and then reconciles — the reconcile re-points the original's entry to the new `-00` file in place via its front-matter id (which travels with part 0's content) — so the parts keep the original file's document position instead of being appended at the end. (Concurrency safety is handled separately by the per-directory lock described below, so even if two index operations do overlap they can no longer corrupt the index.)
 
 ### Algorithm (`reconcileIndexedFiles`, and other helpers)
 
-Located in `src/utils/indexUtil.ts`.
+Located in `src/main/indexUtil.ts`.
 
 ```
-1. Read .INDEX.yaml from disk.
+1. Read .INDEX.yaml from disk (raw text — the verbatim bytes are needed for step 8).
    - If it does not exist and createIfMissing = false → return immediately.
    - If it does not exist and createIfMissing = true → start with an empty files list.
+   - If it exists but is unreadable / malformed / declares a newer `version`
+     → refuse with corruptIndex: true. Never rebuild over it.
 
 2. Read all non-hidden directory entries (files + folders).
 
-3. For each markdown file in the directory:
-   a. Parse its YAML front matter.
-   b. If it already has an `id`, record it in nameToId / idToName maps.
-   c. If it has no `id`, generate a 9-char uppercase hex ID (nanoid customAlphabet),
-      write it into the file's front matter, and record it in the maps.
+3. Build identity for every visible entry (`ensureMarkdownIds`,
+   `buildNonMarkdownFingerprints`):
+   - Markdown: parse front matter; record an existing `id`, or generate a
+     9-char uppercase hex ID (nanoid customAlphabet) and write it into the file.
+     IDs must be unique within the directory — on a duplicate (e.g. a copy/paste
+     that carried its source's front matter) the OLDEST file keeps the id and the
+     newer one is re-keyed, so the original keeps its entry and position.
+     Every id write is a guarded compare-and-swap: the file is re-read and
+     byte-compared first, so an editor save landing in between is never clobbered.
+   - Non-markdown: stat into a `createTime:size:ext` fingerprint.
 
-4. Walk the existing index entries and reconcile each one:
-   - Entry has `id`:
-       Look up the id in idToName.
-       If found → set entry.name to the actual filename (handles renames).
-                 → mark the name as handled.
-       If not found → file was deleted; keep the entry for now (see TODO).
-   - Entry has no `id`:
-       Mark its name as handled.
-       If a matching markdown file exists in nameToId → assign the id to the entry.
+4. Reconcile each existing index entry (`reconcileEntries`):
+   - Entry has `id` → look it up in idToName.
+       Found     → set entry.name to the actual filename (handles renames), mark handled.
+       Not found → deferred to step 5.
+   - Entry has a fingerprint → match it against the disk fingerprints, but ONLY
+     when it maps 1:1 (exactly one entry and one file share it). Ambiguous
+     fingerprints fall back to name-only matching and never re-point, so a
+     collision can't bind an entry to the wrong file. A name-matched entry has
+     its stored fingerprint refreshed from the current stat, otherwise one
+     content edit would permanently disable rename detection for that file.
+   - Entry has neither (folder, or an old entry predating fingerprints)
+       → match by name; adopt the file's id if it now has one.
 
-5. For every visible directory entry whose name is not yet in handledNames,
-   append a new entry to the files list (with id if it is a markdown file).
+5. Adoption pass: an entry whose `id` matched nothing, but whose NAME is still on
+   disk and unclaimed, is that same file with a hand-edited or removed
+   front-matter id. Re-bind the entry to it and adopt the file's current id —
+   preserving the entry's position. (Without this the index would end up holding
+   two entries for one file, showing it twice in the UI.)
 
-6. Write the updated files list back to .INDEX.yaml.
+6. Drop entries for files that no longer exist: an entry is kept if it matched by
+   id or was adopted; an id entry that matched neither is dropped even when its
+   name is still visible (that name belongs to the entry holding the file's id).
+   Everything else is judged on whether its name is still on disk.
+
+7. Append every visible entry not yet handled (`appendNewEntries`), with identity
+   seeded, at the END of the list.
+
+8. Dump `{ version, files, options }` and write it back — but only if the result
+   differs from the verbatim text read in step 1, so an unchanged reconcile does
+   no disk write at all.
 ```
 
 ### `insertIntoIndexYaml`
 
-Also in `src/utils/indexUtil.ts`. Used by the insert bars to add a single new entry at a specific position without re-running the full reconcile:
+Also in `src/main/indexUtil.ts`. Used by the insert bars to add a single new entry at a specific position without re-running the full reconcile:
 
-1. Read the current `.INDEX.yaml`.
-2. Find the entry named `insertAfterName` in the files list.
-3. Splice the new entry immediately after it (or unshift to position 0 if `insertAfterName` is `null`).
+1. Read the current `.INDEX.yaml` (via `readIndexYamlChecked` — it writes, so a corrupt or too-new index is refused rather than rebuilt).
+2. Build the new entry with `buildEntryForName`, which seeds its identity immediately: a front-matter `id` for a markdown file, a `create_time`+`size` fingerprint for another file, name only for a folder. So the entry is complete from the moment it is inserted, not just after the next reconcile.
+3. Place it:
+   - `insertAfterName === null` → unshift to position 0 (the topmost insert bar).
+   - `insertAfterName` found → splice immediately after it.
+   - `insertAfterName` not found → push to the end (a safe fallback; the next reconcile leaves it where it is).
 4. Write the updated list back.
 
 Existing `id` fields on all other entries are preserved.
@@ -164,9 +203,11 @@ Existing `id` fields on all other entries are preserved.
 
 Every function that changes `.INDEX.yaml` follows the same shape: **read** the file → **modify** the parsed `files`/`options` in memory → **`writeFileAtomic`** the whole thing back. `writeFileAtomic` (temp file + rename) guarantees the *final write* is atomic, so a reader never sees a half-written file. It does **not**, on its own, make the surrounding read-modify-write atomic *as a unit*: two operations on the same directory could both read the old index and then each write back its own version, and the later write would silently drop the earlier one's change (a lost update). Because the UI can fire these in quick succession (an insert right before a move, rapid move clicks), that was a real hazard.
 
-To close it, all mutating operations are funneled through **`withIndexLock(dirPath, fn)`** (`src/utils/indexUtil.ts`). It is a per-directory promise-chain mutex: each operation waits for the previous one on the *same* `.INDEX.yaml` to settle before it reads, so reads and writes for a given directory never interleave. Different directories never block each other, everything runs in the single Electron main process (so no OS-thread locking is needed), and the stored chain promise never rejects, so one failed mutation can't break serialization for the next. The functions wrapped by it are `insertIntoIndexYaml`, `moveInIndexYaml`, `moveToEdgeInIndexYaml`, `renameInIndexYaml`, `writeIndexOptions`, `validateAttachFolderLocation`, `recordFrontMatterIdInIndex`, and `reconcileIndexedFiles`.
+To close it, all mutating operations are funneled through **`withIndexLock(dirPath, fn)`** (`src/main/indexUtil.ts`). It is a per-directory promise-chain mutex: each operation waits for the previous one on the *same* `.INDEX.yaml` to settle before it reads, so reads and writes for a given directory never interleave. Different directories never block each other, everything runs in the single Electron main process (so no OS-thread locking is needed), and the stored chain promise never rejects, so one failed mutation can't break serialization for the next. The functions wrapped by it are `insertIntoIndexYaml`, `moveInIndexYaml`, `moveToEdgeInIndexYaml`, `renameInIndexYaml`, `recordFrontMatterIdInIndex`, and `reconcileIndexedFiles`.
 
-One consequence: a locked function must not call another locked function on the same directory (it would deadlock on its own lock). So `moveInIndexYaml` and `moveToEdgeInIndexYaml` no longer call `validateAttachFolderLocation` as a follow-up step — they fold the same attach-folder reorder (`reorderAttachFolders`) into their own single write. This also removes a gratuitous second disk write.
+One consequence: a locked function must not call another locked function on the same directory (it would deadlock on its own lock). That is why `moveInIndexYaml` and `moveToEdgeInIndexYaml` fold the attach-folder reorder (`reorderAttachFolders`) into their own single write instead of delegating it to a separate locked pass. This also removes a gratuitous second disk write.
+
+A second rule follows from the "never write over an index we can't understand" invariant: **every writing path reads through `readIndexYamlChecked`, never `readIndexYaml`.** The checked reader is the one that reports an existing-but-unloadable index (and a too-new [`version`](#schema-version)) as an error rather than collapsing it to "absent", which is what stops a mutator from rebuilding over user ordering it couldn't parse.
 
 ### Front-Matter IDs on Save (`ensureFrontMatterIdIfIndexed` / `recordFrontMatterIdInIndex`)
 
@@ -202,7 +243,7 @@ Unlike a front-matter `id`, **this fingerprint is not guaranteed unique**:
 - **Collisions are real.** Two files of the same type with the same byte size and the same (rounded) creation time produce identical fingerprints — common for empty files (`size === 0`), batch exports, or two copies of the same asset created together.
 - **`birthtimeMs` is unreliable.** It is not supported on every Linux filesystem (some ext variants, network/overlay mounts), where Node returns `0`. When birthtime is `0` for every file, the time component is constant and fingerprints collapse to `0:size:ext`, sharply increasing collisions.
 
-Because a wrong re-point silently corrupts the index (an entry bound to the wrong file, the genuine file dropped), reconciliation treats a fingerprint as a trustworthy rename signal **only when it maps one-to-one**: exactly one index entry and exactly one disk file share it. When a fingerprint is ambiguous (claimed by more than one entry and/or matching more than one disk file), reconciliation falls back to **name-only matching** and never re-points — so an entry stays bound to its own file. The trade-off is that a rename among colliding files may be missed (the old entry is dropped and the renamed file re-appended as a new entry), which is a safe, non-destructive failure mode. This logic lives in `reconcileEntries` (`src/utils/indexUtil.ts`); see issue 009.
+Because a wrong re-point silently corrupts the index (an entry bound to the wrong file, the genuine file dropped), reconciliation treats a fingerprint as a trustworthy rename signal **only when it maps one-to-one**: exactly one index entry and exactly one disk file share it. When a fingerprint is ambiguous (claimed by more than one entry and/or matching more than one disk file), reconciliation falls back to **name-only matching** and never re-points — so an entry stays bound to its own file. The trade-off is that a rename among colliding files may be missed (the old entry is dropped and the renamed file re-appended as a new entry), which is a safe, non-destructive failure mode. This logic lives in `reconcileEntries` (`src/main/indexUtil.ts`); see issue 009.
 
 
 
@@ -210,12 +251,15 @@ Because a wrong re-point silently corrupts the index (an entry bound to the wron
 
 | Concern                                                             | File |
 |---|---|
-| Reconcile, insert-into-index, and write-options logic               | `src/utils/indexUtil.ts` |
+| Reconcile, insert-into-index, move, rename, and identity logic      | `src/main/indexUtil.ts` |
+| `.INDEX.yaml` filename constant (`INDEX_FILENAME`)                  | `src/shared/specialFiles.ts` |
 | IPC handlers (`reconcile-indexed-files`, `insert-into-index-yaml`)  | `src/main.ts` |
 | Preload bridge                                                      | `src/preload.ts` |
-| API type declarations                                               | `src/global.d.ts` |
+| API type declarations (`ElectronAPI`)                               | `src/shared/shared.ts` |
 | BrowseView — insert bars, indexed-mode rendering, useEffects        | `src/components/views/BrowseView.tsx` |
 | Edit menu ("Enable Document Mode" item)                             | `src/components/menus/EditPopupMenu.tsx` |
-| Directory reading + indexOrder injection                            | `src/utils/fileUtils.ts` |
+| Directory reading + indexOrder injection                            | `src/main/fileUtil.ts` |
+| Export ordering (`getSortedDirEntries` consumer)                    | `src/main/exportUtil.ts` |
+| Atomic write primitive (`writeFileAtomic`)                          | `src/main/atomicWrite.ts` |
 
 

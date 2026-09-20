@@ -201,9 +201,9 @@ This is done unconditionally in the main process so that the rename always stays
 
 ---
 
-## Document Mode Ordering (`src/utils/indexUtil.ts`)
+## Document Mode Ordering (`src/main/indexUtil.ts`)
 
-When entries are reordered via Move Up / Move Down in Document Mode, an attach folder can end up in the wrong position in `.INDEX.yaml`. `validateAttachFolderLocation(dirPath)` is called after every move operation to restore correct ordering.
+When entries are reordered via Move Up / Move Down in Document Mode, an attach folder can end up in the wrong position in `.INDEX.yaml`. The invariant — every `<file>.attach` entry sits immediately after `<file>` — is restored by `reorderAttachFolders`, which `moveInIndexYaml` and `moveToEdgeInIndexYaml` each fold into their own single write.
 
 **`reorderAttachFolders(files: IndexEntry[]): IndexEntry[]`** (private helper):
 
@@ -212,9 +212,7 @@ When entries are reordered via Move Up / Move Down in Document Mode, an attach f
 3. Appends any orphaned attach entries (attach folders with no matching parent — edge case) at the end.
 4. Detects whether any change occurred by comparing names position-by-position; returns the original array reference unchanged if nothing moved, so the caller can skip the file write.
 
-**`validateAttachFolderLocation(dirPath)`** (exported):
-
-Reads `.INDEX.yaml`, calls `reorderAttachFolders`, and writes back only if the returned array is a different reference (i.e., something changed).
+It is deliberately *not* a separate exported pass. An earlier `validateAttachFolderLocation(dirPath)` did the reorder as a follow-up read-modify-write, but since it also took the per-directory index lock, calling it from an already-locked move would deadlock (see `document_mode.md` § Atomic, Serialized Index Updates). Folding the reorder into the move's existing write removes both the deadlock and a gratuitous second disk write.
 
 ---
 
@@ -249,5 +247,5 @@ This means attachment files participate in search, bulk selection, and other glo
 | `src/components/entries/common/useDropTarget.ts` | Drag-over highlight state + drop handlers for a single row |
 | `src/components/entries/MarkdownEntry.tsx` | Paperclip button (`PaperClipIcon`) shown when cut items exist and no attach folder yet |
 | `src/components/entries/FolderEntry.tsx` | `isAttachFolder` prop; hides name text on hover, hides move buttons, hides row in read-only Document Mode |
-| `src/main/indexUtil.ts` | `validateAttachFolderLocation` and `reorderAttachFolders` — keeps `.INDEX.yaml` ordering correct after moves |
+| `src/main/indexUtil.ts` | `reorderAttachFolders` — keeps `.INDEX.yaml` ordering correct after moves |
 | `src/main.ts` | IPC `renameFile` handler automatically renames the sibling `.attach` folder |

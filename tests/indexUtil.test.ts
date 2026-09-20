@@ -9,15 +9,14 @@ import {
   reconcileIndexedFiles,
   reconcileEntries,
   appendNewEntries,
-  writeIndexOptions,
   moveInIndexYaml,
   moveToEdgeInIndexYaml,
   insertIntoIndexYaml,
   renameInIndexYaml,
   getSortedDirEntries,
-  validateAttachFolderLocation,
   ensureFrontMatterIdIfIndexed,
   recordFrontMatterIdInIndex,
+  CURRENT_INDEX_VERSION,
 } from '../src/main/indexUtil';
 import type { IndexEntry, IndexOptions } from '../src/main/indexUtil';
 import { readDirectory } from '../src/main/fileUtil';
@@ -25,7 +24,7 @@ import { parseFrontMatter } from '../src/shared/frontMatterUtil';
 import { INDEX_FILENAME } from '../src/shared/specialFiles';
 import { logger } from '../src/shared/logUtil';
 
-type IndexData = { files: IndexEntry[]; options: IndexOptions };
+type IndexData = { version?: number; files: IndexEntry[]; options: IndexOptions };
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -172,12 +171,6 @@ describe('corrupt .INDEX.yaml is never overwritten', () => {
     return fs.readFileSync(indexPath(), 'utf8');
   }
 
-  it('writeIndexOptions refuses and leaves the file untouched', async () => {
-    const result = await writeIndexOptions(tmpDir, { pinned: true });
-    expect(result).toMatchObject({ success: false, corruptIndex: true });
-    expect(indexBytes()).toBe(CORRUPT);
-  });
-
   it('insertIntoIndexYaml refuses and leaves the file untouched', async () => {
     const result = await insertIntoIndexYaml(tmpDir, 'a.md', null);
     expect(result).toMatchObject({ success: false, corruptIndex: true });
@@ -275,23 +268,123 @@ describe('malformed .INDEX.yaml is normalized, not trusted', () => {
 });
 
 // ---------------------------------------------------------------------------
-// writeIndexOptions
+// Schema version
+//
+// The format carried no `version` key before it was introduced, so a file
+// without one is a valid version 1 file. The field exists so that a FUTURE
+// build which changes the layout can be detected: any build refuses to *write*
+// an index declaring a version above its own, because rewriting it in the older
+// layout would silently discard whatever the newer layout added. Reads stay
+// tolerant so a future file's ordering is still usable.
 // ---------------------------------------------------------------------------
 
-describe('writeIndexOptions', () => {
-  it('creates .INDEX.yaml with options when none exists', async () => {
-    const result = await writeIndexOptions(tmpDir, { pinned: true });
-    expect(result.success).toBe(true);
-    const data = readIndex();
-    expect(data.options?.pinned).toBe(true);
+describe('.INDEX.yaml schema version', () => {
+  it('defaults a version-less (pre-version) index to the current version', async () => {
+    writeIndex({ files: [{ name: 'a.md' }], options: {} });
+    const result = await readIndexYaml(tmpDir);
+    expect(result?.version).toBe(CURRENT_INDEX_VERSION);
   });
 
-  it('merges options into existing .INDEX.yaml preserving files', async () => {
-    writeIndex({ files: [{ name: 'a.md' }], options: { pinned: false } });
-    await writeIndexOptions(tmpDir, { pinned: true });
+  it('falls back to the current version for a non-numeric version', async () => {
+    writeIndex({ version: 'banana', files: [{ name: 'a.md' }], options: {} });
+    const result = await readIndexYaml(tmpDir);
+    expect(result?.version).toBe(CURRENT_INDEX_VERSION);
+  });
+
+  it('stamps the version onto the file when reconcile writes it', async () => {
+    touchFile('a.md');
+    await reconcileIndexedFiles(tmpDir, true);
+    expect(readIndex().version).toBe(CURRENT_INDEX_VERSION);
+  });
+
+  it('adds the version to a pre-existing version-less index on the next write', async () => {
+    touchFile('a.md');
+    touchFile('b.md');
+    writeIndex({ files: [{ name: 'a.md' }, { name: 'b.md' }], options: {} });
+    expect(readIndex().version).toBeUndefined();
+
+    await moveInIndexYaml(tmpDir, 'b.md', 'up');
     const data = readIndex();
-    expect(data.options.pinned).toBe(true);
-    expect(data.files[0].name).toBe('a.md');
+    expect(data.version).toBe(CURRENT_INDEX_VERSION);
+    // The migration must not disturb the ordering it was preserving.
+    expect(data.files.map((f: IndexEntry) => f.name)).toEqual(['b.md', 'a.md']);
+  });
+
+  it('readIndexYaml stays tolerant of a future version so ordering still works', async () => {
+    touchFile('b.md');
+    touchFile('a.md');
+    writeIndex({
+      version: CURRENT_INDEX_VERSION + 1,
+      files: [{ name: 'b.md' }, { name: 'a.md' }],
+      options: {},
+    });
+    const result = await readIndexYaml(tmpDir);
+    expect(result?.files.map((f) => f.name)).toEqual(['b.md', 'a.md']);
+    // ...and the index order is still applied rather than falling back to alphabetical.
+    const names = (await getSortedDirEntries(tmpDir)).map((e) => e.name);
+    expect(names).toEqual(['b.md', 'a.md']);
+  });
+
+  it('readIndexYamlChecked rejects a future version', async () => {
+    writeIndex({ version: CURRENT_INDEX_VERSION + 1, files: [{ name: 'a.md' }], options: {} });
+    const result = await readIndexYamlChecked(tmpDir);
+    expect(result.status).toBe('error');
+  });
+
+  describe('mutators refuse a future-version index and leave it byte-for-byte intact', () => {
+    let original: string;
+
+    beforeEach(() => {
+      touchFile('a.md');
+      touchFile('b.md');
+      writeIndex({
+        version: CURRENT_INDEX_VERSION + 1,
+        files: [{ name: 'a.md' }, { name: 'b.md' }],
+        options: {},
+      });
+      original = fs.readFileSync(indexPath(), 'utf8');
+    });
+
+    function indexBytes() {
+      return fs.readFileSync(indexPath(), 'utf8');
+    }
+
+    it('reconcileIndexedFiles refuses', async () => {
+      for (const createIfMissing of [false, true]) {
+        const result = await reconcileIndexedFiles(tmpDir, createIfMissing);
+        expect(result).toMatchObject({ success: false, corruptIndex: true });
+        expect(indexBytes()).toBe(original);
+      }
+    });
+
+    it('move operations refuse', async () => {
+      expect(await moveInIndexYaml(tmpDir, 'b.md', 'up')).toMatchObject({
+        success: false,
+        corruptIndex: true,
+      });
+      expect(await moveToEdgeInIndexYaml(tmpDir, 'b.md', 'top')).toMatchObject({
+        success: false,
+        corruptIndex: true,
+      });
+      expect(indexBytes()).toBe(original);
+    });
+
+    it('insertIntoIndexYaml refuses', async () => {
+      const result = await insertIntoIndexYaml(tmpDir, 'c.md', null);
+      expect(result).toMatchObject({ success: false, corruptIndex: true });
+      expect(indexBytes()).toBe(original);
+    });
+
+    it('renameInIndexYaml refuses', async () => {
+      const result = await renameInIndexYaml(tmpDir, 'a.md', 'z.md');
+      expect(result).toMatchObject({ success: false, corruptIndex: true });
+      expect(indexBytes()).toBe(original);
+    });
+
+    it('recordFrontMatterIdInIndex silently leaves it alone', async () => {
+      await recordFrontMatterIdInIndex(path.join(tmpDir, 'a.md'), 'ABCDEF123');
+      expect(indexBytes()).toBe(original);
+    });
   });
 });
 
@@ -563,30 +656,32 @@ describe('moveToEdgeInIndexYaml', () => {
 });
 
 // ---------------------------------------------------------------------------
-// validateAttachFolderLocation
+// reorderAttachFolders (exercised through the move operations)
+//
+// The invariant — every "<file>.attach" entry sits immediately after <file> —
+// is enforced inside the single write of each move operation rather than by a
+// separate pass, so it is tested through those operations.
 // ---------------------------------------------------------------------------
 
-describe('validateAttachFolderLocation', () => {
-  it('reorders attach folder to follow its parent file', async () => {
+describe('attach-folder ordering is repaired by move operations', () => {
+  it('pulls an out-of-place attach entry back to follow its parent file', async () => {
     writeIndex({
       files: [{ name: 'a.md.attach' }, { name: 'a.md' }, { name: 'b.md' }],
     });
-    await validateAttachFolderLocation(tmpDir);
+    expect(await moveInIndexYaml(tmpDir, 'b.md', 'up')).toMatchObject({ success: true });
     const names = readIndex().files.map((f: IndexEntry) => f.name);
-    const aIdx = names.indexOf('a.md');
-    const attachIdx = names.indexOf('a.md.attach');
-    expect(attachIdx).toBe(aIdx + 1);
+    expect(names.indexOf('a.md.attach')).toBe(names.indexOf('a.md') + 1);
   });
 
-  it('leaves correctly ordered attach folders unchanged', async () => {
+  it('keeps a correctly ordered attach entry adjacent across a move', async () => {
     writeIndex({
       files: [{ name: 'a.md' }, { name: 'a.md.attach' }, { name: 'b.md' }],
     });
-    const before = fs.statSync(indexPath()).mtimeMs;
-    await validateAttachFolderLocation(tmpDir);
-    const after = fs.statSync(indexPath()).mtimeMs;
-    // File should not be rewritten
-    expect(after).toBe(before);
+    expect(await moveToEdgeInIndexYaml(tmpDir, 'a.md', 'bottom')).toMatchObject({
+      success: true,
+    });
+    const names = readIndex().files.map((f: IndexEntry) => f.name);
+    expect(names.indexOf('a.md.attach')).toBe(names.indexOf('a.md') + 1);
   });
 });
 

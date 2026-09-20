@@ -486,7 +486,7 @@ export interface AppState {
    * Parsed contents of .INDEX.yaml for the current directory.
    * Null when no index file exists or has not yet been loaded.
    */
-  indexYaml: { files?: { name: string; id?: string }[]; options?: Record<string, unknown> } | null;
+  indexYaml: { version?: number; files?: { name: string; id?: string }[]; options?: Record<string, unknown> } | null;
 
   /**
    * Full paths of files/folders captured by the "Copy Link" action, used to

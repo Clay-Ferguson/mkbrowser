@@ -7,7 +7,7 @@ import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteRes
 
 import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, writeIndexOptions, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml, withIndexLock, type IndexMutationResult } from './main/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml, withIndexLock, type IndexMutationResult } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
 import { writeFileAtomic } from './main/atomicWrite';
 import { processTOC } from './shared/tocUtil';
@@ -578,11 +578,6 @@ function setupIpcHandlers(): void {
   // Read .INDEX.yaml for a directory
   ipcMain.handle('read-index-yaml', async (_event, dirPath: string) => {
     return readIndexYaml(dirPath);
-  });
-
-  // Write options section of .INDEX.yaml
-  ipcMain.handle('write-index-options', async (_event, dirPath: string, options: Record<string, unknown>): Promise<{ success: boolean; error?: string }> => {
-    return alertIfCorruptIndex(dirPath, await writeIndexOptions(dirPath, options));
   });
 
   // Search and replace in files recursively

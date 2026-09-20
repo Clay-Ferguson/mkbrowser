@@ -419,6 +419,5 @@ export interface ElectronAPI {
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;
   moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') => Promise<{ success: boolean; error?: string }>;
   reconcileIndexedFiles: (dirPath: string, createIfMissing?: boolean) => Promise<{ success: boolean; error?: string }>;
-  readIndexYaml: (dirPath: string) => Promise<{ files?: { name: string; id?: string }[]; options?: Record<string, unknown> } | null>;
-  writeIndexOptions: (dirPath: string, options: Record<string, unknown>) => Promise<{ success: boolean; error?: string }>;
+  readIndexYaml: (dirPath: string) => Promise<{ version?: number; files?: { name: string; id?: string }[]; options?: Record<string, unknown> } | null>;
 }
