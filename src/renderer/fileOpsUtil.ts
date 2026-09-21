@@ -19,6 +19,7 @@ import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles 
 import { pasteFromClipboard } from './clipboard';
 import { getFileName, getParentPath, joinPath, isSamePath } from './pathUtil';
 import { toErrorMessage } from '../shared/logUtil';
+import { generateTimestampFileName } from '../shared/timeUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 
 /**
@@ -58,6 +59,49 @@ export async function ensureAttachFolder(filePath: string): Promise<string | nul
     await api.insertIntoIndexYaml(parentFolder, `${fileName}${ATTACH_SUFFIX}`, fileName);
   }
   return attachFolderPath;
+}
+
+/**
+ * Creates a brand-new, empty Markdown file inside `filePath`'s attach folder (creating
+ * that folder on demand) and queues the edit that drops the user straight into the
+ * editor for it. This is the one-click "start writing an attachment" path, as opposed
+ * to {@link ensureAttachFolder}'s other callers, which attach something that already
+ * exists.
+ *
+ * The name follows the same timestamp convention as a new file inserted into a
+ * document, so no naming dialog is needed and two clicks in a row can't collide.
+ *
+ * @param filePath - Absolute path of the file that will own the attachment.
+ * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after creation.
+ * @param onSetError - Callback invoked with an error message if the creation fails.
+ */
+export async function createAttachmentFileOp(
+  filePath: string,
+  onRefreshDirectory: () => void,
+  onSetError: SetError
+): Promise<void> {
+  const attachFolderPath = await ensureAttachFolder(filePath);
+  if (!attachFolderPath) return; // ensureAttachFolder already reported the failure
+
+  const newFilePath = joinPath(attachFolderPath, generateTimestampFileName());
+  const result = await api.createFile(newFilePath, '');
+  if (!result.success) {
+    onSetError(result.error || 'Failed to create attachment file');
+    return;
+  }
+
+  try {
+    await api.reconcileIndexedFiles(attachFolderPath, false);
+  } catch (err: unknown) {
+    onSetError('Failed to update index after creating attachment: ' + toErrorMessage(err));
+    return;
+  }
+
+  setPendingScrollToFile(newFilePath);
+  // Drive expand+edit off the refresh-completion effect in BrowseView (which acts once
+  // the new attachment is actually rendered) rather than a fixed timing assumption.
+  setPendingEditFile(newFilePath);
+  onRefreshDirectory();
 }
 
 /**

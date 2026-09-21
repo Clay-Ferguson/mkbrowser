@@ -39,6 +39,26 @@ export interface BaseEntryProps {
 }
 
 /**
+ * The attach-menu callbacks a *file* entry offers through the hamburger menu on
+ * its EntryActionBar. Every file type gets all three — the `<file>.attach`
+ * convention is keyed off the whole filename, so an image or a PDF owns
+ * attachments exactly as a Markdown file does.
+ *
+ * Each takes the owning file's path, because the handlers live in BrowseView
+ * (which knows the folder and its index) and are shared verbatim by every entry
+ * in the listing. Folders deliberately have none of these: a folder is already
+ * an attachment destination through its own Paste button.
+ */
+export interface AttachMenuProps {
+  /** Writes the clipboard (image or text) into this file's attach folder. */
+  onPasteClipboardAsAttachment?: (filePath: string) => void;
+  /** Moves a file chosen with the OS picker into this file's attach folder. */
+  onAttachFromFile?: (filePath: string) => void;
+  /** Creates a new empty Markdown attachment and opens it for editing. */
+  onCreateAttachment?: (filePath: string) => void;
+}
+
+/**
  * Return type for useEntryCore hook
  */
 export interface EntryCoreState {

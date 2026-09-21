@@ -4,10 +4,12 @@ import {
   useToggleExpanded,
   EntryActionBar,
   EntryShell,
+  bindAttachMenu,
   type BaseEntryProps,
+  type AttachMenuProps,
 } from './common';
 
-type GenericEntryProps = BaseEntryProps;
+type GenericEntryProps = BaseEntryProps & AttachMenuProps;
 
 /**
  * Entry component for files with no dedicated renderer (not Markdown, text, or image).
@@ -48,6 +50,7 @@ function GenericEntry(props: GenericEntryProps) {
           onMoveToBottom={onMoveToBottom}
           className="-mr-1.5"
           isAttachment={isAttachment}
+          {...bindAttachMenu(entry.path, props)}
         />
       }
     />

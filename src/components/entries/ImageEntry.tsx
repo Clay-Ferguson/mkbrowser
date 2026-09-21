@@ -13,11 +13,13 @@ import {
   useToggleExpanded,
   EntryActionBar,
   EntryShell,
+  bindAttachMenu,
   type BaseEntryProps,
+  type AttachMenuProps,
 } from './common';
 import { BUTTON_CLASS_SCRIM } from '../../renderer/styles';
 
-interface ImageEntryProps extends BaseEntryProps {
+interface ImageEntryProps extends BaseEntryProps, AttachMenuProps {
   allImages: FileEntryType[];
   isAttachment?: boolean;
 }
@@ -108,6 +110,7 @@ function ImageEntry(props: ImageEntryProps) {
             onMoveToBottom={onMoveToBottom}
             className="-mr-1.5"
             isAttachment={isAttachment}
+            {...bindAttachMenu(entry.path, props)}
           />
         }
       >

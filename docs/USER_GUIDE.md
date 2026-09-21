@@ -594,20 +594,21 @@ Third part
 
 # File Attachments
 
-MkBrowser lets you associate files — images, PDFs, spreadsheets, or any other files — directly with a Markdown document. These associated files are called **attachments**, and they live in a special folder that MkBrowser automatically recognizes.
+MkBrowser lets you associate files — images, PDFs, spreadsheets, or any other files — directly with another file. These associated files are called **attachments**, and they live in a special folder that MkBrowser automatically recognizes. Any file can own attachments, not just Markdown ones: an image, a PDF or a spreadsheet can have its own attachments too.
 
 ## How Attachments Work
 
-For any Markdown file named, for example, `my-notes.md`, you can create a companion folder named `my-notes.md.attach` in the same directory. MkBrowser will treat everything inside that folder as an attachment belonging to `my-notes.md`. In **Document Mode**, attachments are displayed inline, directly below their associated file, so it is easy to see what belongs together.
+For any file named, for example, `my-notes.md`, you can create a companion folder named `my-notes.md.attach` in the same directory. MkBrowser will treat everything inside that folder as an attachment belonging to `my-notes.md`. The rule is the same for every file type — `diagram.png` uses `diagram.png.attach`, `report.pdf` uses `report.pdf.attach` — because the whole filename, extension included, gets the `.attach` suffix. In **Document Mode**, attachments are displayed inline, directly below their associated file, so it is easy to see what belongs together.
 
 ## Adding Attachments
 
 There are several ways to add attachments. With every one of them, MkBrowser automatically creates the `.attach` folder if it does not already exist.
 
-**From the file's menu.** Hover over a Markdown file and click its **More actions** (☰) button. The two attach items are at the bottom of the menu, below a divider:
+**From the file's menu.** Hover over any file — Markdown, image, text, PDF or anything else — and click its **More actions** (☰) button. The three attach items are at the bottom of the menu, below a divider:
 
 - **Attach File** opens your system's file picker. The file you choose is **moved** (not copied) into the attachment folder, so it disappears from its original location. If the attachment folder already contains a file with the same name, nothing is moved and an error is shown. If you cancel the picker, nothing changes.
 - **Attach from Clipboard** saves whatever is on the clipboard (an image or text) as a new, timestamp-named file in the attachment folder.
+- **Create Attachment** creates a brand-new, empty Markdown attachment and opens it in the editor immediately, so you can start typing and click **Save**. The file is given a timestamp-based name; rename it afterwards with the **Rename** button if you want a different one. Use this when the attachment doesn't exist yet — the other two items attach something you already have.
 
 **By drag and drop.** Drag any file or folder by its icon and drop it onto a file row. The item is moved into that file's attachment folder. See [Drag and Drop](#drag-and-drop).
 
@@ -616,13 +617,13 @@ There are several ways to add attachments. With every one of them, MkBrowser aut
 1. Select the files you want to attach by clicking their checkboxes.
 2. Click the **Cut** button that appears at the top of the page to mark them for moving.
 3. Navigate to the folder that contains the Markdown file you want to attach them to.
-4. Click the **paperclip** icon that appears next to the Markdown file.
+4. Click the **paperclip** icon that appears next to the Markdown file. (The paperclip is offered on Markdown files only; to attach cut items to a file of another type, paste them into its `.attach` folder, or drag them onto its row.)
 
 Once the `.attach` folder exists, a **Paste** icon appears directly on it, so you can paste additional files into it at any time using the normal paste workflow.
 
 ## Renaming
 
-If you rename a Markdown file using the rename button, MkBrowser automatically renames its `.attach` folder to match, so the association is never broken.
+If you rename a file using the rename button, MkBrowser automatically renames its `.attach` folder to match, so the association is never broken.
 
 ## Viewing Attachments
 

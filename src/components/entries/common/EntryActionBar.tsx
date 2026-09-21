@@ -6,6 +6,7 @@ import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../
 import { toggleBookmark, addBookmark, toggleItemExpanded, setCurrentView, useAS, setPendingIndexTreeReveal, setHighlightItem, setBrowseFile } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 import EntryPopupMenu from '../../menus/EntryPopupMenu';
+import type { AttachMenuProps } from './types';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
@@ -36,6 +37,8 @@ interface EntryActionBarProps {
   onPasteClipboardAsAttachment?: () => void;
   /** When provided, adds a menu item that attaches a file chosen with the OS file picker */
   onAttachFromFile?: () => void;
+  /** When provided, adds a menu item that creates a new empty Markdown attachment and edits it */
+  onCreateAttachment?: () => void;
   /** Whether this entry is a folder (affects bookmark default name) */
   isFolder?: boolean;
 }
@@ -45,7 +48,8 @@ interface EntryActionBarProps {
  * buttons for: delete, reveal in folder tree, and move up/down (only in
  * indexed/document mode, when the move handlers are provided), plus a trailing
  * hamburger button opening EntryPopupMenu — which holds the remaining actions
- * (open with OS app, view file, bookmark, attach from clipboard/file) as
+ * (open with OS app, view file, bookmark, attach from clipboard/file, create
+ * attachment) as
  * text items, so the hover bar doesn't grow unbounded.
  */
 export function EntryActionBar({
@@ -62,6 +66,7 @@ export function EntryActionBar({
   isAttachment = false,
   onPasteClipboardAsAttachment,
   onAttachFromFile,
+  onCreateAttachment,
   isFolder = false,
 }: EntryActionBarProps) {
   const settings = useAS(s => s.settings);
@@ -215,6 +220,7 @@ export function EntryActionBar({
           onViewFile={isViewingThisFile ? undefined : handleViewFile}
           onPasteClipboardAsAttachment={onPasteClipboardAsAttachment}
           onAttachFromFile={onAttachFromFile}
+          onCreateAttachment={onCreateAttachment}
           isBookmarked={isBookmarked}
           onToggleBookmark={handleBookmarkClick}
         />
@@ -222,6 +228,28 @@ export function EntryActionBar({
     )}
     </>
   );
+}
+
+/**
+ * Binds an entry's {@link AttachMenuProps} — which take the owning file's path, since
+ * one set of handlers in BrowseView serves the whole listing — to the zero-argument
+ * form EntryActionBar passes down to its menu. Every file entry spreads the result
+ * into its EntryActionBar, so the three items behave identically on Markdown, image,
+ * text, PDF and generic rows, and a handler left out by the caller stays undefined
+ * (which hides that menu item).
+ *
+ * A plain module-level function rather than a hook: the React Compiler doesn't
+ * compile these, and the entry components call it during render.
+ */
+export function bindAttachMenu(
+  path: string,
+  { onPasteClipboardAsAttachment, onAttachFromFile, onCreateAttachment }: AttachMenuProps
+) {
+  return {
+    onPasteClipboardAsAttachment: onPasteClipboardAsAttachment && (() => onPasteClipboardAsAttachment(path)),
+    onAttachFromFile: onAttachFromFile && (() => onAttachFromFile(path)),
+    onCreateAttachment: onCreateAttachment && (() => onCreateAttachment(path)),
+  };
 }
 
 /**

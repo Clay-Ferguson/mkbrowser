@@ -5,10 +5,12 @@ import {
   useToggleExpanded,
   EntryActionBar,
   EntryShell,
+  bindAttachMenu,
   type BaseEntryProps,
+  type AttachMenuProps,
 } from './common';
 
-type PDFEntryProps = BaseEntryProps;
+type PDFEntryProps = BaseEntryProps & AttachMenuProps;
 
 /**
  * Entry component for PDF files. Expands to render the document inline via
@@ -53,6 +55,7 @@ function PDFEntry(props: PDFEntryProps) {
           onMoveToBottom={onMoveToBottom}
           className="-mr-1.5"
           isAttachment={isAttachment}
+          {...bindAttachMenu(entry.path, props)}
         />
       }
     >

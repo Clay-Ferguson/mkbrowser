@@ -18,13 +18,15 @@ import {
   EntryActionBar,
   EntryEditToolbar,
   EntryShell,
+  bindAttachMenu,
   type BaseEntryProps,
+  type AttachMenuProps,
 } from './common';
 import { getTextFileLanguage } from '../../shared/fileTypes';
 import { ENTRY_CONTENT_AREA, ENTRY_LOADING } from '../../renderer/styles';
 
 
-type TextEntryProps = BaseEntryProps;
+type TextEntryProps = BaseEntryProps & AttachMenuProps;
 
 /**
  * Entry component for plain-text files. Expands inline to show a read-only CodeMirror view;
@@ -119,6 +121,7 @@ function TextEntry(props: TextEntryProps) {
       onMoveToBottom={onMoveToBottom}
       className="-mr-1.5"
       isAttachment={isAttachment}
+      {...bindAttachMenu(entry.path, props)}
     />
   );
 

@@ -46,17 +46,17 @@ import {
   EntryActionBar,
   EntryEditToolbar,
   EntryShell,
+  bindAttachMenu,
   type BaseEntryProps,
+  type AttachMenuProps,
 } from './common';
 import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../renderer/styles';
 
 
-interface MarkdownEntryProps extends BaseEntryProps {
+interface MarkdownEntryProps extends BaseEntryProps, AttachMenuProps {
   entry: FileEntry;
   view: AppView;
   onPasteAsAttachment?: (filePath: string) => void;
-  onPasteClipboardAsAttachment?: (filePath: string) => void;
-  onAttachFromFile?: (filePath: string) => void;
   isAttachment?: boolean;
 }
 
@@ -145,11 +145,12 @@ async function saveCalendarProps(path: string, newContent: string): Promise<void
  * - Reply (creates a new HUMAN.md for the next conversation turn; only shown for AI.md files)
  * - Tags panel and front-matter properties display/editing
  * - Calendar-info editing via a dedicated dialog
- * - Paste-as-attachment workflows (both cut-items and clipboard)
+ * - Paste-as-attachment workflows (both cut-items and clipboard), plus creating
+ *   a brand-new Markdown attachment to edit on the spot
  * In document mode, timestamp-based file names are hidden from the header row.
  */
 function MarkdownEntry(props: MarkdownEntryProps) {
-  const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, onPasteClipboardAsAttachment, onAttachFromFile, isAttachment = false, alwaysExpandedEditor = false } = props;
+  const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, isAttachment = false, alwaysExpandedEditor = false } = props;
   const item = useAS(s => s.items.get(entry.path));
   const hasCutItems = useAS(s => hasAnyCutItems(s.items));
 
@@ -420,8 +421,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         onMoveToBottom={onMoveToBottom}
         className="-mr-1.5"
         isAttachment={isAttachment}
-        onPasteClipboardAsAttachment={onPasteClipboardAsAttachment ? () => onPasteClipboardAsAttachment(entry.path) : undefined}
-        onAttachFromFile={onAttachFromFile ? () => onAttachFromFile(entry.path) : undefined}
+        {...bindAttachMenu(entry.path, props)}
       />
       {hasCutItems && onPasteAsAttachment && !entry.hasAttachFolder && (
         <button

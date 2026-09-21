@@ -1,6 +1,7 @@
 // Types
 export type {
   BaseEntryProps,
+  AttachMenuProps,
   EntryCoreState,
   RenameState,
   DeleteState,
@@ -25,7 +26,7 @@ export { useDropTarget } from './useDropTarget';
 export type { DropTargetState } from './useDropTarget';
 
 // Components
-export { EntryActionBar, useToggleExpanded } from './EntryActionBar';
+export { EntryActionBar, bindAttachMenu, useToggleExpanded } from './EntryActionBar';
 export { EntryEditToolbar } from './EntryEditToolbar';
 export { RenameInput } from './RenameInput';
 export { SelectionCheckbox } from './SelectionCheckbox';

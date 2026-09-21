@@ -70,9 +70,9 @@ import { generateTimestampFileName } from '../../shared/timeUtil';
 import { hasHumanMd } from '../../shared/ai/aiPatterns';
 import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, executeSearch } from '../../renderer/searchUtil';
 import { buildReplaceResultMessage } from '../../shared/searchHelpers';
-import { pasteIntoFolder, ensureAttachFolder, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
+import { pasteIntoFolder, ensureAttachFolder, createAttachmentFileOp, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
 import { getFileName, getParentPath, isSamePath, joinPath } from '../../renderer/pathUtil';
-import { canDropAsAttachment, dropAsAttachment } from '../../renderer/dragAndDrop';
+import { affectsBrowseListing, canDropAsAttachment, dropAsAttachment } from '../../renderer/dragAndDrop';
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
@@ -341,8 +341,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       // for its folder has finished, and this effect can fire before that when
       // the request came with a navigation to a *different* folder — so wait for
       // the item rather than consuming the request against a missing one (which
-      // would silently drop the edit). Once the pending file's folder is no
-      // longer the one being browsed it can never arrive, so drop it then.
+      // would silently drop the edit). Once the pending file's folder is one this
+      // listing doesn't render it can never arrive, so drop it then — a test of
+      // affectsBrowseListing rather than folder equality, because a newly created
+      // attachment lives in a .attach folder below currentPath yet is rendered as
+      // a row here.
       if (pendingEditFile && pendingEditView === 'browser') {
         const editFile = pendingEditFile;
         if (useAS.getState().items.has(editFile)) {
@@ -351,7 +354,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
             setItemEditing(editFile, true);
             clearPendingEditFile();
           }, 100);
-        } else if (!isSamePath(getParentPath(editFile), currentPath)) {
+        } else if (!affectsBrowseListing(getParentPath(editFile), currentPath)) {
           clearPendingEditFile();
         }
       }
@@ -486,6 +489,26 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       setPendingScrollToFile(newPath);
       setPendingExpandFile(newPath);
     }, 'Failed to attach file: ', onSetError);
+  };
+
+  // Creates a brand-new empty Markdown attachment and puts the user straight into
+  // editing it — the from-scratch counterpart to doAttachFromFile's "attach a file
+  // that already exists". No dialog: the file is timestamp-named like any inserted
+  // new file, and the user renames it afterwards if they want to.
+  const doCreateAttachment = (filePath: string) => {
+    runOp(async () => {
+      await createAttachmentFileOp(filePath, onRefreshDirectory, onSetError);
+    }, 'Failed to create attachment: ', onSetError);
+  };
+
+  // The three attach menu items are identical on every file type — the
+  // `<file>.attach` convention is keyed off the whole filename, so an image or a
+  // PDF owns attachments exactly as a Markdown file does. Spread as one group so
+  // the listing can't drift into offering them on some rows but not others.
+  const attachMenuHandlers = {
+    onPasteClipboardAsAttachment: doPasteClipboardAsAttachment,
+    onAttachFromFile: doAttachFromFile,
+    onCreateAttachment: doCreateAttachment,
   };
 
   const performDelete = () => {
@@ -1114,15 +1137,15 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
                         )}
                       </>
                     ) : entry.isMarkdown ? (
-                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} onPasteClipboardAsAttachment={doPasteClipboardAsAttachment} onAttachFromFile={doAttachFromFile} documentMode={hasIndexFile} />
+                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} {...attachMenuHandlers} documentMode={hasIndexFile} />
                     ) : isImageFile(entry.name) ? (
-                      <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                      <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
                     ) : isTextFile(entry.name) ? (
-                      <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                      <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
                     ) : isPdfFile(entry.name) ? (
-                      <PDFEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                      <PDFEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
                     ) : (
-                      <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} />
+                      <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
                     )}
                     {hasIndexFile && !sortedEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
                       <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />

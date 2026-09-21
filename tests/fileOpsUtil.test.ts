@@ -1,6 +1,6 @@
 /**
- * Orchestration-layer tests for splitSelectedFile / joinSelectedFiles in
- * fileOpsUtil.ts.
+ * Orchestration-layer tests for splitSelectedFile / joinSelectedFiles /
+ * createAttachmentFileOp in fileOpsUtil.ts.
  *
  * The underlying algorithms (splitUtil.ts, joinUtil.ts) and the index
  * primitives (indexUtil.ts) are tested elsewhere; what lives here is the glue
@@ -11,6 +11,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ItemData } from '../src/shared/types';
+import { TIMESTAMP_FILENAME_RE } from '../src/shared/timeUtil';
 
 vi.mock('../src/store', () => ({
   deleteItems: vi.fn(),
@@ -20,6 +21,9 @@ vi.mock('../src/store', () => ({
   setPendingScrollToFile: vi.fn(),
   setPendingEditFile: vi.fn(),
   setPendingExpandFile: vi.fn(),
+  setAppError: vi.fn(),
+  getCurrentPath: vi.fn(() => '/docs'),
+  getHasIndexFile: vi.fn(() => false),
 }));
 
 vi.mock('../src/renderer/api', () => ({
@@ -30,6 +34,7 @@ vi.mock('../src/renderer/api', () => ({
     readFile: vi.fn(),
     writeFile: vi.fn(),
     createFile: vi.fn(),
+    createFolder: vi.fn(),
     renameFile: vi.fn(),
     pathExists: vi.fn(),
     deleteFile: vi.fn(),
@@ -39,8 +44,8 @@ vi.mock('../src/renderer/api', () => ({
   },
 }));
 
-import { splitSelectedFile, joinSelectedFiles } from '../src/renderer/fileOpsUtil';
-import { clearAllSelections } from '../src/store';
+import { splitSelectedFile, joinSelectedFiles, createAttachmentFileOp } from '../src/renderer/fileOpsUtil';
+import { clearAllSelections, setPendingEditFile, setPendingScrollToFile, getCurrentPath, getHasIndexFile } from '../src/store';
 import { api } from '../src/renderer/api';
 
 function makeItem(path: string, name: string, isDirectory = false): ItemData {
@@ -88,6 +93,9 @@ function seedIndexApiDefaults() {
 beforeEach(() => {
   vi.resetAllMocks();
   seedIndexApiDefaults();
+  // resetAllMocks clears the factory implementations of the store getters too.
+  vi.mocked(getCurrentPath).mockReturnValue('/docs');
+  vi.mocked(getHasIndexFile).mockReturnValue(false);
 });
 
 // ---------------------------------------------------------------------------
@@ -279,6 +287,64 @@ describe('joinSelectedFiles (Document Mode index sync)', () => {
     expect(onSetError).toHaveBeenCalledWith(expect.stringMatching(/failed to write/i));
     expect(store['/docs/b.md']).toBe('beta'); // sources preserved
     expect(api.reconcileIndexedFiles).not.toHaveBeenCalled();
+    expect(onRefreshDirectory).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createAttachmentFileOp — new-attachment-from-scratch flow
+// ---------------------------------------------------------------------------
+
+describe('createAttachmentFileOp', () => {
+  it('creates the attach folder and an empty timestamped .md inside it, then queues the edit', async () => {
+    const { store } = seedFs({ '/docs/notes.md': 'body' });
+    vi.mocked(api.createFolder).mockImplementation(async (p) => {
+      store[p] = '';
+      return { success: true };
+    });
+    vi.mocked(getHasIndexFile).mockReturnValue(true);
+    const onSetError = vi.fn();
+    const onRefreshDirectory = vi.fn();
+
+    await createAttachmentFileOp('/docs/notes.md', onRefreshDirectory, onSetError);
+
+    expect(api.createFolder).toHaveBeenCalledWith('/docs/notes.md.attach');
+    // Document Mode: the folder is registered right after the file it belongs to.
+    expect(api.insertIntoIndexYaml).toHaveBeenCalledWith('/docs', 'notes.md.attach', 'notes.md');
+
+    const created = Object.keys(store).filter((p) => p.startsWith('/docs/notes.md.attach/'));
+    expect(created).toHaveLength(1);
+    expect(created[0]!.slice('/docs/notes.md.attach/'.length)).toMatch(TIMESTAMP_FILENAME_RE);
+    expect(store[created[0]!]).toBe('');
+
+    expect(api.reconcileIndexedFiles).toHaveBeenCalledWith('/docs/notes.md.attach', false);
+    expect(setPendingScrollToFile).toHaveBeenCalledWith(created[0]);
+    expect(setPendingEditFile).toHaveBeenCalledWith(created[0]);
+    expect(onRefreshDirectory).toHaveBeenCalled();
+    expect(onSetError).not.toHaveBeenCalled();
+  });
+
+  it('reuses an existing attach folder', async () => {
+    seedFs({ '/docs/notes.md': 'body', '/docs/notes.md.attach': '' });
+    const onRefreshDirectory = vi.fn();
+
+    await createAttachmentFileOp('/docs/notes.md', onRefreshDirectory, vi.fn());
+
+    expect(api.createFolder).not.toHaveBeenCalled();
+    expect(setPendingEditFile).toHaveBeenCalled();
+    expect(onRefreshDirectory).toHaveBeenCalled();
+  });
+
+  it('reports a failed file creation and queues no edit', async () => {
+    seedFs({ '/docs/notes.md': 'body', '/docs/notes.md.attach': '' });
+    vi.mocked(api.createFile).mockResolvedValue({ success: false, error: 'disk full' });
+    const onSetError = vi.fn();
+    const onRefreshDirectory = vi.fn();
+
+    await createAttachmentFileOp('/docs/notes.md', onRefreshDirectory, onSetError);
+
+    expect(onSetError).toHaveBeenCalledWith('disk full');
+    expect(setPendingEditFile).not.toHaveBeenCalled();
     expect(onRefreshDirectory).not.toHaveBeenCalled();
   });
 });

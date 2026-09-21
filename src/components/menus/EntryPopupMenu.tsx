@@ -11,6 +11,8 @@ interface EntryPopupMenuProps {
   onPasteClipboardAsAttachment?: () => void;
   /** When omitted, the "Attach File" item is hidden. */
   onAttachFromFile?: () => void;
+  /** When omitted, the "Create Attachment" item is hidden. */
+  onCreateAttachment?: () => void;
   /** Drives the bookmark item's label between add and remove. */
   isBookmarked: boolean;
   onToggleBookmark: () => void;
@@ -29,10 +31,11 @@ export default function EntryPopupMenu({
   onViewFile,
   onPasteClipboardAsAttachment,
   onAttachFromFile,
+  onCreateAttachment,
   isBookmarked,
   onToggleBookmark,
 }: EntryPopupMenuProps) {
-  const hasAttachItems = !!(onPasteClipboardAsAttachment || onAttachFromFile);
+  const hasAttachItems = !!(onPasteClipboardAsAttachment || onAttachFromFile || onCreateAttachment);
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose} align="right" data-testid="entry-popup-menu">
       <PopupMenuItem
@@ -65,6 +68,13 @@ export default function EntryPopupMenu({
           label="Attach File"
           data-testid="menu-entry-attach-from-file"
           onClick={() => { onAttachFromFile(); onClose(); }}
+        />
+      )}
+      {onCreateAttachment && (
+        <PopupMenuItem
+          label="Create Attachment"
+          data-testid="menu-entry-create-attachment"
+          onClick={() => { onCreateAttachment(); onClose(); }}
         />
       )}
     </PopupMenu>
