@@ -7,11 +7,11 @@ interface EntryPopupMenuProps {
   onOpenExternal: () => void;
   /** When omitted, the "View File" item is hidden (e.g. this file is already the one on screen). */
   onViewFile?: () => void;
-  /** When omitted, the "Attach from Clipboard" item is hidden. */
+  /** When omitted, the "Attach: Clipboard" item is hidden. */
   onPasteClipboardAsAttachment?: () => void;
-  /** When omitted, the "Attach File" item is hidden. */
+  /** When omitted, the "Attach: Existing File" item is hidden. */
   onAttachFromFile?: () => void;
-  /** When omitted, the "Create Attachment" item is hidden. */
+  /** When omitted, the "Attach: New Markdown" item is hidden. */
   onCreateAttachment?: () => void;
   /** Drives the bookmark item's label between add and remove. */
   isBookmarked: boolean;
@@ -58,21 +58,21 @@ export default function EntryPopupMenu({
       {hasAttachItems && <PopupMenuDivider />}
       {onPasteClipboardAsAttachment && (
         <PopupMenuItem
-          label="Attach from Clipboard"
+          label="Attach: Clipboard"
           data-testid="menu-entry-paste-clipboard-attachment"
           onClick={() => { onPasteClipboardAsAttachment(); onClose(); }}
         />
       )}
       {onAttachFromFile && (
         <PopupMenuItem
-          label="Attach File"
+          label="Attach: Existing File"
           data-testid="menu-entry-attach-from-file"
           onClick={() => { onAttachFromFile(); onClose(); }}
         />
       )}
       {onCreateAttachment && (
         <PopupMenuItem
-          label="Create Attachment"
+          label="Attach: New Markdown"
           data-testid="menu-entry-create-attachment"
           onClick={() => { onCreateAttachment(); onClose(); }}
         />

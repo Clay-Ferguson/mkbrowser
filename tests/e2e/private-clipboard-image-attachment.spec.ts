@@ -17,13 +17,13 @@ import {
  * Private E2E Test: Attach Image from Clipboard
  *
  * The image-path sibling of private-clipboard-attachment.spec.ts (the text
- * path). Exercises the "Attach from Clipboard" feature when the OS
+ * path). Exercises the "Attach: Clipboard" feature when the OS
  * clipboard holds an image rather than text:
  *   1. Seeds a subfolder with a single markdown file that has no attachments.
  *   2. Places a real PNG image on the OS clipboard (via Electron's main-process
  *      clipboard + nativeImage modules), loaded from the checked-in fixture
  *      images in `mkbrowser-test/images/`.
- *   3. Picks "Attach from Clipboard" from the hamburger menu on the
+ *   3. Picks "Attach: Clipboard" from the hamburger menu on the
  *      file's action bar, which creates a `<name>.md.attach/` folder and writes
  *      the clipboard image into a timestamp-named `.png` file inside it.
  *   4. Verifies the folder + PNG file on disk (magic bytes) and in the UI, and
@@ -159,7 +159,7 @@ Now we'll paste it as an attachment under our file.`
       screenshotDir,
       step++,
       `Hovering over the file reveals its action bar, and its hamburger button opens a menu of further actions.
-"Attach from Clipboard" pastes whatever is on the clipboard as an attachment under this file, creating an attachments folder if one doesn't exist yet.`
+"Attach: Clipboard" pastes whatever is on the clipboard as an attachment under this file, creating an attachments folder if one doesn't exist yet.`
     );
 
     await demoClick(pasteItem);
@@ -262,7 +262,7 @@ This time the attachments folder already exists, so the new image simply joins t
       screenshotDir,
       step++,
       `The second paste reused the existing attachments folder, which now holds both pasted images side by side.
-That's how the "Attach from Clipboard" feature collects clipboard images under any file.`
+That's how the "Attach: Clipboard" feature collects clipboard images under any file.`
     );
 
     // Cleanup: clear the clipboard so later tests aren't affected by our seeded

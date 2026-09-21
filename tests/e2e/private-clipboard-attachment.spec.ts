@@ -14,13 +14,13 @@ import {
 } from './helpers/mediaUtils';
 
 /**
- * Private E2E Test: Attach from Clipboard
+ * Private E2E Test: Attach: Clipboard
  *
- * Exercises the "Attach from Clipboard" feature on a markdown entry:
+ * Exercises the "Attach: Clipboard" feature on a markdown entry:
  *   1. Seeds a subfolder with a single markdown file that has no attachments.
  *   2. Places a known markdown string on the OS clipboard (via Electron's
  *      main-process clipboard module).
- *   3. Picks "Attach from Clipboard" from the hamburger menu on the
+ *   3. Picks "Attach: Clipboard" from the hamburger menu on the
  *      file's action bar, which creates a `<name>.md.attach/` folder and writes
  *      the clipboard text into a timestamp-named `.md` file inside it.
  *   4. Verifies the folder + file on disk and in the UI, and that the pasted
@@ -40,7 +40,7 @@ import {
 // YYYY-MM-DD--HH-MM-SS-mmm.md
 const TIMESTAMP_MD_RE = /^\d{4}-\d{2}-\d{2}--\d{2}-\d{2}-\d{2}-\d{3}\.md$/;
 
-test.describe('Private: Attach from Clipboard', () => {
+test.describe('Private: Attach: Clipboard', () => {
   test('paste clipboard text as an attachment under a markdown file', async ({
     electronApp,
     mainWindow,
@@ -129,7 +129,7 @@ Now we'll paste it as an attachment under our file.`
       screenshotDir,
       step++,
       `Hovering over the file reveals its action bar, and its hamburger button opens a menu of further actions.
-"Attach from Clipboard" pastes whatever is on the clipboard as an attachment under this file, creating an attachments folder if one doesn't exist yet.`
+"Attach: Clipboard" pastes whatever is on the clipboard as an attachment under this file, creating an attachments folder if one doesn't exist yet.`
     );
 
     await demoClick(pasteItem);
@@ -221,7 +221,7 @@ This time the attachments folder already exists, so the new file simply joins th
       screenshotDir,
       step++,
       `The second paste reused the existing attachments folder, which now holds both pasted notes side by side.
-That's how the "Attach from Clipboard" feature collects clipboard content under any file.`
+That's how the "Attach: Clipboard" feature collects clipboard content under any file.`
     );
 
     // Cleanup: clear the clipboard so later tests aren't affected by our seeded

@@ -606,9 +606,9 @@ There are several ways to add attachments. With every one of them, MkBrowser aut
 
 **From the file's menu.** Hover over any file — Markdown, image, text, PDF or anything else — and click its **More actions** (☰) button. The three attach items are at the bottom of the menu, below a divider:
 
-- **Attach File** opens your system's file picker. The file you choose is **moved** (not copied) into the attachment folder, so it disappears from its original location. If the attachment folder already contains a file with the same name, nothing is moved and an error is shown. If you cancel the picker, nothing changes.
-- **Attach from Clipboard** saves whatever is on the clipboard (an image or text) as a new, timestamp-named file in the attachment folder.
-- **Create Attachment** creates a brand-new, empty Markdown attachment and opens it in the editor immediately, so you can start typing and click **Save**. The file is given a timestamp-based name; rename it afterwards with the **Rename** button if you want a different one. Use this when the attachment doesn't exist yet — the other two items attach something you already have.
+- **Attach: Existing File** opens your system's file picker. The file you choose is **moved** (not copied) into the attachment folder, so it disappears from its original location. If the attachment folder already contains a file with the same name, nothing is moved and an error is shown. If you cancel the picker, nothing changes.
+- **Attach: Clipboard** saves whatever is on the clipboard (an image or text) as a new, timestamp-named file in the attachment folder.
+- **Attach: New Markdown** creates a brand-new, empty Markdown attachment and opens it in the editor immediately, so you can start typing and click **Save**. The file is given a timestamp-based name; rename it afterwards with the **Rename** button if you want a different one. Use this when the attachment doesn't exist yet — the other two items attach something you already have.
 
 **By drag and drop.** Drag any file or folder by its icon and drop it onto a file row. The item is moved into that file's attachment folder. See [Drag and Drop](#drag-and-drop).
 

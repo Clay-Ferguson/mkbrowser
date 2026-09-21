@@ -48,8 +48,7 @@ interface EntryActionBarProps {
  * buttons for: delete, reveal in folder tree, and move up/down (only in
  * indexed/document mode, when the move handlers are provided), plus a trailing
  * hamburger button opening EntryPopupMenu — which holds the remaining actions
- * (open with OS app, view file, bookmark, attach from clipboard/file, create
- * attachment) as
+ * (open with OS app, view file, bookmark, and the three "Attach:" items) as
  * text items, so the hover bar doesn't grow unbounded.
  */
 export function EntryActionBar({
