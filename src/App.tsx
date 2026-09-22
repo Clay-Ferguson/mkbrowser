@@ -43,43 +43,31 @@ import { loadConfig } from './renderer/config';
 import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
 import { applyGlobalHighlight, getGlobalHighlightText } from './renderer/globalHighlight';
-import { isTreeVisibleEntry } from './renderer/dragAndDrop';
+import { mergeTreeNodes } from './renderer/dragAndDrop';
 import { logger } from './shared/logUtil';
 import { BUTTON_CLASS_LG_BLUE } from './renderer/styles';
 
+/**
+ * Re-reads every expanded directory node in the tree from disk, returning a new
+ * root. Child nodes come from `mergeTreeNodes`, the same builder the lazy expand
+ * and `reloadExpandedTreeFolder` use, so all four refresh paths agree on which
+ * entries a folder has (`.attach` folders filtered out), carry expansion state
+ * over by path, and apply the same file <-> folder kind guard. Building children
+ * by hand here instead is what let an attach folder reappear in the tree after a
+ * rename, until the next refresh through a builder swept it back out.
+ *
+ * Recursion is the one thing this adds over `mergeTreeNodes`: each merged child
+ * is refreshed too, so an expanded subtree is reloaded all the way down. Row
+ * order is not decided here — `flattenVisible` in IndexTreeView orders rows at
+ * render time, so builder order only survives for index-ordered (Document Mode)
+ * siblings, which it passes through from the listing.
+ */
 async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isDirectory || !node.isExpanded) return node;
   try {
-    // Same filter the lazy-expand path uses: attach folders are never tree rows,
-    // and rebuilding without it flashes them in until the next full tree rebuild.
-    const entries = (await api.readDirectory(node.path)).filter(isTreeVisibleEntry);
-    const oldByPath = new Map((node.children ?? []).map(c => [(c as FileNode).path, c as FileNode]));
-    const hasIndexOrder = entries.some(e => e.indexOrder !== undefined);
-    const sortedEntries = hasIndexOrder
-      ? entries
-      : [...entries].sort((a, b) => {
-          if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
-          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-        });
-    const newChildren: FileNode[] = sortedEntries.map(e => {
-      const existing = oldByPath.get(e.path);
-      if (existing) {
-        if (e.indexOrder !== undefined) return { ...existing, indexOrder: e.indexOrder };
-        if ('indexOrder' in existing) { const { indexOrder: _io, ...rest } = existing; return rest as FileNode; }
-        return existing;
-      }
-      return {
-        path: e.path,
-        name: e.name,
-        isDirectory: e.isDirectory,
-        isExpanded: false,
-        isLoading: false,
-        children: null,
-        ...(e.indexOrder !== undefined ? { indexOrder: e.indexOrder } : {}),
-      };
-    });
-    const refreshedChildren = await Promise.all(newChildren.map(refreshExpandedNodes));
-    return { ...node, children: refreshedChildren, isLoading: false };
+    const entries = await api.readDirectory(node.path);
+    const children = await Promise.all(mergeTreeNodes(entries, node.children).map(refreshExpandedNodes));
+    return { ...node, children, isLoading: false };
   } catch {
     return node;
   }

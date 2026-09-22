@@ -232,12 +232,11 @@ export async function dropAsAttachment(
 
 /**
  * Whether a directory entry may appear in the IndexTreeView at all. Attachment
- * (*.attach) folders never show there, so every path that builds tree children
- * filters with this one predicate — the lazy expand below and App's
- * `refreshExpandedNodes` rebuild alike. Keeping it in one place is what stops a
- * refresh that skips the filter from briefly revealing an attach folder.
+ * (*.attach) folders never show there. Local by design: `makeTreeNodes` is the
+ * only way tree children are built, so every caller gets this filter for free
+ * and no other module needs to remember to apply it.
  */
-export function isTreeVisibleEntry(entry: { name: string; isDirectory: boolean }): boolean {
+function isTreeVisibleEntry(entry: { name: string; isDirectory: boolean }): boolean {
   return !(entry.isDirectory && entry.name.endsWith(ATTACH_SUFFIX));
 }
 

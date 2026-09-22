@@ -193,23 +193,41 @@ Note the folder is created before the move is attempted. A name collision is imp
 
 ## The Index Tree Never Shows Attach Folders
 
-`IndexTreeView` is a navigation tree, so a `<file>.attach` folder is noise there — it is
-filtered out of every set of tree children by **`isTreeVisibleEntry`** (`src/renderer/dragAndDrop.ts`),
-the one predicate all tree-building paths share:
+`IndexTreeView` is a navigation tree, so a `<file>.attach` folder is noise there. Rather than
+filter at each call site, the tree has exactly **one** child-node builder —
+`makeTreeNodes` / `mergeTreeNodes` (`src/renderer/dragAndDrop.ts`) — and the filter lives inside
+it. Every path that puts children into the tree goes through it:
 
-- `makeTreeNodes` / `mergeTreeNodes` — the lazy expand, the reveal walk, and `reloadExpandedTreeFolder`
-- `refreshExpandedNodes` (`src/App.tsx`) — the full rebuild of every expanded node that
-  `refreshDirectory` runs
+| Path | Builder |
+|------|---------|
+| Root load, lazy expand, reveal walk (`IndexTreeView.tsx`) | `makeTreeNodes` / `mergeTreeNodes` |
+| `reloadExpandedTreeFolder` — drag-and-drop, cut/paste, rename, delete | `mergeTreeNodes` |
+| `refreshExpandedNodes` (`src/App.tsx`) — full rebuild behind `refreshDirectory` | `mergeTreeNodes` |
 
-The second one is easy to miss because it builds its child nodes itself (it carries `indexOrder`
-over and re-sorts) rather than calling `makeTreeNodes`. When it skipped the filter, renaming an item
-from the tree's context menu made the attach folder of the browsed folder pop into the tree — the
-rename handler calls `onRefreshDirectory` for the browsed folder, and that rebuild re-added the row
-that every other refresh path drops. It stayed until some other action rebuilt the tree through a
-filtered path.
+Membership and display order are decided in one place each, which is what keeps the tree from
+disagreeing with itself. The builder above decides **which entries exist**; `flattenVisible`
+(`IndexTreeView.tsx`) decides **what order rows appear in**, at render time — heading and
+index-ordered (Document Mode) sibling lists keep the order they were built with, and every other
+list is sorted there, with the folders-on-top setting applied. So no builder sorts, and a builder's
+order only reaches the screen for index-ordered siblings, where it is the listing's own order.
 
-Because the tree hides them, a cut of a file that owns attachments would silently strand the
-folder; `IndexTreeView` therefore confirms that case first (`cutOrphanAttachTarget`).
+**Why it is written this way.** `refreshExpandedNodes` originally built its child nodes by hand,
+and every difference from the shared builder was either a bug that appeared only after a
+`refreshDirectory` and then healed on the next collapse/expand, or dead code:
+
+- It had no attach filter, so renaming an item from the tree's context menu made the browsed
+  folder's attach folder pop into the tree (the rename handler calls `onRefreshDirectory`).
+- It re-sorted the already-sorted listing, which was pure dead work: `flattenVisible` re-sorts at
+  render anyway, so nothing downstream could observe the result.
+- It reused the previous node wholesale, missing `mergeTreeNodes`' guard that a path which
+  changed kind (file ↔ folder) must not inherit the old children.
+
+It now calls `mergeTreeNodes` and adds only the recursion into expanded children, which is the
+one thing genuinely specific to it. Any new tree refresh should do the same — if a future caller
+needs children, it calls the builder; it does not assemble `FileNode`s itself.
+
+Because the tree hides attach folders, a cut of a file that owns attachments would silently
+strand the folder; `IndexTreeView` therefore confirms that case first (`cutOrphanAttachTarget`).
 
 ---
 
@@ -286,5 +304,5 @@ This means attachment files participate in search, bulk selection, and other glo
 | `src/components/entries/FolderEntry.tsx` | `isAttachFolder` prop; hides name text on hover, hides move buttons, hides row in read-only Document Mode |
 | `src/main/indexUtil.ts` | `reorderAttachFolders` — keeps `.INDEX.yaml` ordering correct after moves |
 | `src/main.ts` | IPC `renameFile` handler automatically renames the sibling `.attach` folder |
-| `src/renderer/dragAndDrop.ts` | `isTreeVisibleEntry` — keeps `.attach` folders out of the index tree |
-| `src/App.tsx` | `refreshExpandedNodes` — rebuilds expanded tree nodes through that same filter |
+| `src/renderer/dragAndDrop.ts` | `makeTreeNodes` / `mergeTreeNodes` — the only builder of index-tree children; filters `.attach` folders out |
+| `src/App.tsx` | `refreshExpandedNodes` — recursive tree refresh, built on `mergeTreeNodes` |
