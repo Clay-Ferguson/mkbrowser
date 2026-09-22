@@ -191,6 +191,28 @@ Note the folder is created before the move is attempted. A name collision is imp
 
 ---
 
+## The Index Tree Never Shows Attach Folders
+
+`IndexTreeView` is a navigation tree, so a `<file>.attach` folder is noise there — it is
+filtered out of every set of tree children by **`isTreeVisibleEntry`** (`src/renderer/dragAndDrop.ts`),
+the one predicate all tree-building paths share:
+
+- `makeTreeNodes` / `mergeTreeNodes` — the lazy expand, the reveal walk, and `reloadExpandedTreeFolder`
+- `refreshExpandedNodes` (`src/App.tsx`) — the full rebuild of every expanded node that
+  `refreshDirectory` runs
+
+The second one is easy to miss because it builds its child nodes itself (it carries `indexOrder`
+over and re-sorts) rather than calling `makeTreeNodes`. When it skipped the filter, renaming an item
+from the tree's context menu made the attach folder of the browsed folder pop into the tree — the
+rename handler calls `onRefreshDirectory` for the browsed folder, and that rebuild re-added the row
+that every other refresh path drops. It stayed until some other action rebuilt the tree through a
+filtered path.
+
+Because the tree hides them, a cut of a file that owns attachments would silently strand the
+folder; `IndexTreeView` therefore confirms that case first (`cutOrphanAttachTarget`).
+
+---
+
 ## Rename Synchronization (`src/main.ts`)
 
 When the user renames a file via the rename input in `EntryActionBar`, the IPC handler for `renameFile` in `src/main.ts` automatically renames the sibling attach folder if one exists:
@@ -264,3 +286,5 @@ This means attachment files participate in search, bulk selection, and other glo
 | `src/components/entries/FolderEntry.tsx` | `isAttachFolder` prop; hides name text on hover, hides move buttons, hides row in read-only Document Mode |
 | `src/main/indexUtil.ts` | `reorderAttachFolders` — keeps `.INDEX.yaml` ordering correct after moves |
 | `src/main.ts` | IPC `renameFile` handler automatically renames the sibling `.attach` folder |
+| `src/renderer/dragAndDrop.ts` | `isTreeVisibleEntry` — keeps `.attach` folders out of the index tree |
+| `src/App.tsx` | `refreshExpandedNodes` — rebuilds expanded tree nodes through that same filter |

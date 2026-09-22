@@ -231,13 +231,24 @@ export async function dropAsAttachment(
 }
 
 /**
+ * Whether a directory entry may appear in the IndexTreeView at all. Attachment
+ * (*.attach) folders never show there, so every path that builds tree children
+ * filters with this one predicate — the lazy expand below and App's
+ * `refreshExpandedNodes` rebuild alike. Keeping it in one place is what stops a
+ * refresh that skips the filter from briefly revealing an attach folder.
+ */
+export function isTreeVisibleEntry(entry: { name: string; isDirectory: boolean }): boolean {
+  return !(entry.isDirectory && entry.name.endsWith(ATTACH_SUFFIX));
+}
+
+/**
  * Builds the IndexTreeView's lazily-loaded child nodes from a directory listing, omitting
  * Attachment (*.attach) folders, which are never shown in the tree.
  */
 export function makeTreeNodes(
   entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>
 ): FileNode[] {
-  return entries.filter(e => !(e.isDirectory && e.name.endsWith(ATTACH_SUFFIX))).map(e => ({
+  return entries.filter(isTreeVisibleEntry).map(e => ({
     path: e.path,
     name: e.name,
     isDirectory: e.isDirectory,

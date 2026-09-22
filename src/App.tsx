@@ -43,13 +43,16 @@ import { loadConfig } from './renderer/config';
 import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
 import { applyGlobalHighlight, getGlobalHighlightText } from './renderer/globalHighlight';
+import { isTreeVisibleEntry } from './renderer/dragAndDrop';
 import { logger } from './shared/logUtil';
 import { BUTTON_CLASS_LG_BLUE } from './renderer/styles';
 
 async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isDirectory || !node.isExpanded) return node;
   try {
-    const entries = await api.readDirectory(node.path);
+    // Same filter the lazy-expand path uses: attach folders are never tree rows,
+    // and rebuilding without it flashes them in until the next full tree rebuild.
+    const entries = (await api.readDirectory(node.path)).filter(isTreeVisibleEntry);
     const oldByPath = new Map((node.children ?? []).map(c => [(c as FileNode).path, c as FileNode]));
     const hasIndexOrder = entries.some(e => e.indexOrder !== undefined);
     const sortedEntries = hasIndexOrder
