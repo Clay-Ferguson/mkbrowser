@@ -10,6 +10,7 @@
 * [Entering Single-File Mode: Expanded Editing](#entering-single-file-mode-expanded-editing)
 * [Leaving Single-File Mode: The Index Tree](#leaving-single-file-mode-the-index-tree)
 * [The Header: Breadcrumb + "Listing Hidden" Badge](#the-header-breadcrumb--listing-hidden-badge)
+  * [Hidden While the Editor Is Maximized](#hidden-while-the-editor-is-maximized)
 * [What `BrowseFile` Renders](#what-browsefile-renders)
 * [Always-Expanded Editing (`alwaysExpandedEditor`)](#always-expanded-editing-alwaysexpandededitor)
 * [Heading Clicks in Single-File Mode](#heading-clicks-in-single-file-mode)
@@ -120,7 +121,7 @@ Note what is *not* an exit: clicking a folder row in the tree only expands/colla
 
 ## The Header: Breadcrumb + "Listing Hidden" Badge
 
-`BrowseFile` renders the same `PathBreadcrumb` header `BrowseView` does, **at all times**, with a **"Listing Hidden"** badge right-aligned beside it in that one header row — the same "path trail left, status right" shape the listing's header has. The header sits outside the scroll container, so it stays put while the file scrolls.
+While the file is being **read**, `BrowseFile` renders the same `PathBreadcrumb` header `BrowseView` does, with a **"Listing Hidden"** badge right-aligned beside it in that one header row — the same "path trail left, status right" shape the listing's header has. The header sits outside the scroll container, so it stays put while the file scrolls, and it is dropped entirely once the editor is maximized (see [below](#hidden-while-the-editor-is-maximized)).
 
 This is a reversal, in two steps. The view originally rendered *no* breadcrumb, on the theory that a missing path header was the visual cue telling single-file mode apart from a folder listing that happens to hold exactly one file, and a right-aligned **Browse Folder** link stood in for the one thing the breadcrumb was useful for. In practice the breadcrumb is the fastest way to reach *any* ancestor folder — one click, from wherever you are — and that outweighs the cue. Once it was back, the link was saying what the breadcrumb's rightmost segment already did, so it became the badge instead: the cue kept as words, with the navigation left to the breadcrumb. Anything relying on "no breadcrumb means single-file mode" is therefore wrong; use `browseFileName` (or the `browse-file-main-content` testid) instead.
 
@@ -128,13 +129,30 @@ This is a reversal, in two steps. The view originally rendered *no* breadcrumb, 
 
 The badge (`data-testid="listing-hidden-indicator"`) is a plain `<span>` — **not** a link, not a button, with no handler. Its whole job is the one thing the breadcrumb cannot do: say that this pane holds one file rather than a folder's contents, which is otherwise only inferable from the pane showing a single entry. Styled `text-amber-400 font-bold text-sm` so it reads as a standing status rather than something to click, and `whitespace-nowrap` so "Hidden" never stacks under "Listing" — the header is `flex-wrap` (for narrow panes and deep paths) and the badge is what would otherwise break.
 
-It is shown **unconditionally, editing included**. The old link was hidden during an edit because it ate space off a maximized editor and because offering "leave for the folder listing" mid-edit was wrong; neither applies now — the breadcrumb keeps this header row on screen regardless, so the badge costs no height, and it is not an offer to go anywhere.
+### Hidden While the Editor Is Maximized
 
-An e2e phase asserts the breadcrumb is visible inside `browse-file-breadcrumbs` while single-file mode is active, that the badge is present at every point (mid-edit included) and carries no button role, and exits twice — once through the breadcrumb's own folder segment, once through its home button (`private-browse-file.spec.ts`).
+The header row is rendered under `{!editorMaximized && ...}` — **both halves go together**, breadcrumb and badge. A maximized editor covers the entire right-hand pane, and neither half of that row is aimed at someone with a cursor in a document: the breadcrumb offers to navigate away mid-edit, and "Listing Hidden" answers a question ("where are my other files?") that an editor is not asking. So the editor gets the pane with nothing above it.
+
+```ts
+const editorMaximized = editing && (alwaysExpandedEditor || settings.expandedEditor);
+```
+
+That expression deliberately **mirrors the entries' own `maximized`** (`(settings.expandedEditor || alwaysExpandedEditor) && edit.isEditing`, in `MarkdownEntry` and `TextEntry`) rather than assuming the two agree, so they cannot drift. Within `BrowseFile` it is always equal to `editing` — `'browse'` mode forces `alwaysExpandedEditor`, and `'expanded-edit'` mode only exists while `settings.expandedEditor` is on — but writing it out states the actual rule: it is the *maximized* editor that hides the header, not editing as such.
+
+The distinction is worth keeping straight, because there are two editors:
+
+| Editor | Where it renders | Header |
+|---|---|---|
+| **Inline** — a row in the folder listing, editing in place | `BrowseView` | `BrowseView`'s own header stays; `BrowseFile` is not involved at all |
+| **Maximized** — the entry owns the whole pane | `BrowseFile` | hidden for the duration |
+
+Do not simplify the guard to "is anything being edited". The inline editor never reaches this component, and a future non-maximized editor here should keep its header.
+
+Two e2e specs cover it. `private-browse-file.spec.ts` asserts the breadcrumb visible inside `browse-file-breadcrumbs` while reading, the badge present and carrying no button role, then both gone once the editor opens and back after the save; it also exits twice, once through the breadcrumb's own folder segment and once through its home button. `private-expanded-edit.spec.ts` covers the `'expanded-edit'` half specifically: header gone while maximized, and `path-breadcrumb` visible again after collapsing back to the listing **with the edit still open inline** — the assertion that pins "maximized, not editing".
 
 ## What `BrowseFile` Renders
 
-- **Header**: `PathBreadcrumb` on the left and the right-aligned, non-interactive **"Listing Hidden"** badge — both always shown, editing included. See above. Outside the scroll container.
+- **Header**: `PathBreadcrumb` on the left and the right-aligned, non-interactive **"Listing Hidden"** badge — both shown while reading, both dropped while the editor is maximized. See above. Outside the scroll container.
 - **Body**: the same entry-type ternary the listing uses, minus the directory branch — `isMarkdown → isImageFile → isTextFile → GenericEntry`.
 - **Omitted props**: index-order move handlers (`onMoveUp`/`onMoveDown`/…) and `documentMode`. `EntryActionBar` renders items purely by callback presence, so omitting them hides those buttons — that is the whole mechanism, no flags needed.
 - `ImageEntry` gets `allImages={[entry]}`; that prop only feeds the fullscreen viewer's prev/next, and with one file on screen the file is the whole set.
@@ -181,6 +199,7 @@ Things to preserve when touching this area:
 7. No view derives layout from a scan of the items map for edit state. The map is global and long-lived; such a flag goes stale the moment the user navigates away.
 8. `browseFileMode` is written only by `setBrowseFile` and the two routing rules. It is read only while `browseFileName` is non-null.
 9. Both panes render a breadcrumb, so its presence says nothing about which mode is active — `browseFileName` is the only thing that does. Every breadcrumb segment in `BrowseFile` exits single-file mode, the rightmost one included, and the breadcrumb is the **only** interactive thing in that header: the "Listing Hidden" badge beside it is inert text and must stay that way, or the two start competing to mean the same thing.
+10. `BrowseFile`'s header is hidden by `editorMaximized`, never by `editing` alone, and breadcrumb and badge are hidden together. The inline editor in the folder listing keeps `BrowseView`'s header and never renders through `BrowseFile`.
 
 ## Code Locations
 

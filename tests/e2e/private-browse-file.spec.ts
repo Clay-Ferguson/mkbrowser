@@ -30,9 +30,11 @@ import {
  *      live exits: clicking one navigates to that folder's listing rather
  *      than sitting inert over a single file. Both the rightmost segment (the
  *      file's own folder) and the home icon are exercised. The non-clickable
- *      "Listing Hidden" badge beside the breadcrumb is asserted present at
- *      every point, editing included — it is the only thing telling the user
- *      the folder listing is not what they are looking at.
+ *      "Listing Hidden" badge beside the breadcrumb is asserted present while
+ *      reading — it is the only thing telling the user the folder listing is
+ *      not what they are looking at — and asserted GONE, along with the
+ *      breadcrumb, once the maximized editor takes the pane, then back after
+ *      the save.
  *   4. "Browse" on a file returns to the listing too, and clicking a folder in
  *      the tree navigates rather than entering single-file mode.
  *
@@ -157,7 +159,7 @@ Let's pull one of them up on its own.`
       step++,
       `The pane now shows just this one file, already expanded so its content is right there.
 The other file in the folder is gone from view, but the breadcrumb path stays at the top — click any part of it to jump straight to that folder.
-Over on the right, "Listing Hidden" is a standing reminder that you're looking at one file rather than the folder's contents.`
+Over on the right, "Listing Hidden" reminds you that you're looking at one file rather than the folder's contents.`
     );
 
     // --- Phase 2: click-to-edit works here too ------------------------------
@@ -168,10 +170,13 @@ Over on the right, "Listing Hidden" is a standing reminder that you're looking a
     const saveButton = mainWindow.getByTestId('entry-save-button');
     await expect(saveButton).toBeVisible({ timeout: 10000 });
 
-    // The badge stays put while editing. It costs no height (the breadcrumb
-    // keeps the header row on screen either way), and the reminder is worth as
-    // much mid-edit as it is while reading.
-    await expect(listingHidden).toBeVisible();
+    // The whole header row goes away once the maximized editor takes the pane —
+    // breadcrumb and badge both. Asserted as two separate absences because they
+    // are two elements inside one conditional: a refactor that splits them
+    // could plausibly drop one guard and keep the other.
+    await expect(listingHidden).toHaveCount(0);
+    await expect(mainWindow.getByTestId('browse-file-breadcrumbs')).toHaveCount(0);
+    await expect(mainWindow.getByTestId('path-breadcrumb')).toHaveCount(0);
 
     const editorContent = single.locator('.cm-content');
     await editorContent.click();
@@ -205,7 +210,8 @@ We've typed a new line at the end. Let's save it.`
     writeNarration(
       screenshotDir,
       step++,
-      `The editor fills the whole pane automatically — single-file mode is always expanded, so there's no expand/collapse button to bother with.`
+      `The editor fills the whole pane automatically — single-file mode is always expanded, so there's no expand/collapse button to bother with.
+Notice the breadcrumb path and the "Listing Hidden" note have stepped aside as well: while you're editing, the editor gets the whole pane.`
     );
 
     await demoClick(saveButton);
@@ -216,8 +222,10 @@ We've typed a new line at the end. Let's save it.`
       expect(onDisk).toContain('Edited in single-file mode.');
     }).toPass({ timeout: 10000 });
 
-    // Editing over, the badge is still there — it never went away.
+    // Editing over, the header is back — the hiding is tied to the editor being
+    // up, not to some state the edit leaves behind.
     await expect(listingHidden).toBeVisible({ timeout: 10000 });
+    await expect(mainWindow.getByTestId('browse-file-breadcrumbs')).toBeVisible();
 
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'saved-in-single-file-view');
     writeNarration(

@@ -136,6 +136,14 @@ We've typed a line without saving. Now let's maximize the editor.`
     // The unsaved buffer came through the remount intact.
     await expect(single.locator('.cm-content')).toContainText(unsavedLine);
 
+    // BrowseFile's header — breadcrumb and "Listing Hidden" badge — steps aside
+    // for the maximized editor. This is the mode where that matters most: the
+    // editor covers the entire right-hand pane, so nothing above it should be
+    // taking room or offering to navigate away mid-edit.
+    await expect(mainWindow.getByTestId('browse-file-breadcrumbs')).toHaveCount(0);
+    await expect(mainWindow.getByTestId('listing-hidden-indicator')).toHaveCount(0);
+    await expect(mainWindow.getByTestId('path-breadcrumb')).toHaveCount(0);
+
     // The editor really does fill the pane: the failure mode when the flex class
     // chain is wrong is a collapsed editor, not a missing one.
     await expect(async () => {
@@ -151,6 +159,7 @@ We've typed a line without saving. Now let's maximize the editor.`
       screenshotDir,
       step++,
       `The editor now owns the whole pane, and the line we typed came along with it.
+The breadcrumb path and the "Listing Hidden" note are gone while we're editing — the editor gets the pane to itself.
 The collapse button is still there whenever we want the folder listing back.`
     );
 
@@ -163,6 +172,10 @@ The collapse button is still there whenever we want the folder listing back.`
     await expect(saveButton).toBeVisible();
     await expect(listing.locator('.cm-content')).toContainText(unsavedLine);
     await expect(listing.getByText(siblingName, { exact: true })).toBeVisible();
+    // The breadcrumb is back, while the edit is STILL open — inline this time.
+    // That contrast is the point: it is the maximized editor that hides a
+    // header, not editing as such.
+    await expect(mainWindow.getByTestId('path-breadcrumb')).toBeVisible();
     // Collapsing wrote the preference back off — that is the whole point of the
     // toggle, and it is why Phase 4 has to turn it on again below.
     await expect(expandToggle).toHaveAttribute('title', 'Expand editor');

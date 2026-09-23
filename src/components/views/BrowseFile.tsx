@@ -56,22 +56,30 @@ interface BrowseFileProps {
  * insert bars, selection toolbar) are simply not passed, and the entries hide
  * them accordingly.
  *
- * Renders the same `PathBreadcrumb` header BrowseView does, at all times —
- * editing included. It used to render none, so that a missing path header
- * marked single-file mode apart from a folder listing that happens to hold one
- * file; in practice the breadcrumb is the fastest way to jump to any ancestor
- * folder, and that outweighs the cue. Every segment is a live exit from
- * single-file mode, including the rightmost one — `navigateToBrowserPath`
- * clears `browseFileName` unconditionally, so "go to the folder I am already
- * in" works, and that segment is the way back to the listing. The other exits
- * are the index tree's "Browse" context-menu item and, in 'expanded-edit' mode,
+ * While the file is being **read**, it renders the same `PathBreadcrumb` header
+ * BrowseView does. It used to render none, so that a missing path header marked
+ * single-file mode apart from a folder listing that happens to hold one file;
+ * in practice the breadcrumb is the fastest way to jump to any ancestor folder,
+ * and that outweighs the cue. Every segment is a live exit from single-file
+ * mode, including the rightmost one — `navigateToBrowserPath` clears
+ * `browseFileName` unconditionally, so "go to the folder I am already in"
+ * works, and that segment is the way back to the listing. The other exits are
+ * the index tree's "Browse" context-menu item and, in 'expanded-edit' mode,
  * ending the edit.
  *
  * Right-aligned in the same header, a **"Listing Hidden"** badge carries what
  * the breadcrumb cannot: that this pane holds one file rather than a folder's
  * contents. It is plain, non-interactive text — it replaced a "Browse Folder"
- * link that the clickable breadcrumb made redundant — and it is always shown,
- * so the reminder never goes missing.
+ * link that the clickable breadcrumb made redundant.
+ *
+ * That header — breadcrumb and badge both — is **hidden once the editor is
+ * maximized** over the pane (`editorMaximized`), which in this view means any
+ * edit session. The rule is about the maximized editor specifically, not
+ * editing in general: the folder listing's inline editor keeps BrowseView's own
+ * header and never renders through this component. A maximized editor should
+ * own the pane outright, and neither half of that row is for someone with a
+ * cursor in a document — one offers to navigate away mid-edit, the other
+ * answers a question about missing files that an editor is not asking.
  *
  * Editing is always maximized here, but for one of two reasons, which
  * `browseFileMode` tells apart:
@@ -121,12 +129,24 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
 
   // Is this view's one file open for editing? Drives the maximized layout
   // (editing here is ALWAYS expanded — the entry already owns the whole pane, so
-  // a non-expanded editor would just waste it) and hides the attachments strip.
+  // a non-expanded editor would just waste it), hides the attachments strip, and
+  // feeds `editorMaximized` below, which hides the header row.
   // Scoped to this view's one entry, never to a "something in the store is
   // editing" scan: the items map is global and long-lived, so such a scan goes
   // stale the moment the user navigates elsewhere with a file still open for
   // editing.
   const editing = useAS(s => (entry ? (s.items.get(entry.path)?.editing ?? false) : false));
+
+  // Is the editor currently maximized over the whole pane? This — not editing in
+  // general — is what hides the header. Mirrors the entries' own `maximized`
+  // (`(settings.expandedEditor || alwaysExpandedEditor) && isEditing`, in
+  // MarkdownEntry and TextEntry) rather than assuming it, so the two cannot
+  // drift. In practice it equals `editing` here, since 'browse' mode forces
+  // `alwaysExpandedEditor` and 'expanded-edit' mode exists only while
+  // `settings.expandedEditor` is on — but written this way the rule reads as
+  // what it is. The folder listing's inline editor is a separate thing entirely
+  // and never renders through this component.
+  const editorMaximized = editing && (alwaysExpandedEditor || settings.expandedEditor);
 
   // Plain-text files fill the pane at all times, editing or not: TextEntry's CodeMirror
   // would otherwise cap itself at ~60% of the scroll area (a sensible limit for a row in
@@ -197,45 +217,55 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
           header has, and outside the scroll container so it stays put while the
           file scrolls.
 
-          The breadcrumb renders at ALL times, editing included, and is the only
-          interactive thing up here. Clicking any segment leaves single-file mode
-          for that folder's listing, because navigateToBrowserPath clears
-          browseFileName unconditionally — and that includes the rightmost
-          segment, which is this file's own folder, so it doubles as "back to the
-          listing I came from".
+          The whole row is hidden once the editor is MAXIMIZED over the pane,
+          badge included — that is the specific case, not editing as such (the
+          listing's inline editor keeps BrowseView's header, and never reaches
+          this component). A maximized editor should own the pane outright, and
+          both halves of this header are aimed at a reader rather than an
+          editor: navigating away mid-edit is not an offer to make, and
+          "Listing Hidden" answers a question ("where are my other files?") that
+          nobody is asking with a cursor in a document. What is left is the
+          editor and nothing above it.
+
+          While reading, the breadcrumb is the only interactive thing up here.
+          Clicking any segment leaves single-file mode for that folder's
+          listing, because navigateToBrowserPath clears browseFileName
+          unconditionally — and that includes the rightmost segment, which is
+          this file's own folder, so it doubles as "back to the listing I came
+          from".
 
           The badge beside it is plain text, deliberately NOT a link: the
           breadcrumb already does the navigating, and a second control saying the
           same thing was redundant. What is left is the one job the breadcrumb
           cannot do — telling the user that what they are looking at is one file
           and not a folder listing, which is otherwise only inferable from the
-          pane holding a single entry. It is therefore shown unconditionally,
-          editing included; it costs no height, since the breadcrumb keeps this
-          header row on screen regardless.
+          pane holding a single entry.
 
           `whitespace-nowrap` keeps "Listing Hidden" on one line: the header is
           `flex-wrap` (for narrow panes and deep paths), and without it the badge
           is the thing that breaks, stacking "Hidden" under "Listing". */}
-      <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
-        <div data-testid="browse-file-breadcrumbs" className="flex items-center gap-3 min-w-0">
-          <PathBreadcrumb
-            rootPath={rootPath}
-            currentPath={currentPath}
-            onNavigate={handleBreadcrumbNavigate}
-            onRefreshDirectory={onRefreshDirectory}
-          />
-        </div>
+      {!editorMaximized && (
+        <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
+          <div data-testid="browse-file-breadcrumbs" className="flex items-center gap-3 min-w-0">
+            <PathBreadcrumb
+              rootPath={rootPath}
+              currentPath={currentPath}
+              onNavigate={handleBreadcrumbNavigate}
+              onRefreshDirectory={onRefreshDirectory}
+            />
+          </div>
 
-        <div className="flex-1 flex items-center justify-end">
-          <span
-            data-testid="listing-hidden-indicator"
-            className="text-amber-400 font-bold text-sm whitespace-nowrap"
-            title="You are viewing a single file — the folder listing is hidden. Click a folder in the path above to go back to it."
-          >
-            Listing Hidden
-          </span>
-        </div>
-      </header>
+          <div className="flex-1 flex items-center justify-end">
+            <span
+              data-testid="listing-hidden-indicator"
+              className="text-amber-400 font-bold text-sm whitespace-nowrap"
+              title="You are viewing a single file — the folder listing is hidden. Click a folder in the path above to go back to it."
+            >
+              Listing Hidden
+            </span>
+          </div>
+        </header>
+      )}
 
       {/* The flexPane class chain converts this into a nested flex column so a
           maximized CodeMirror fills the pane and owns the only scrollbar — the
