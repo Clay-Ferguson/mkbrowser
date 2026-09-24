@@ -40,7 +40,7 @@ Mark items done by changing `[ ]` to `[*]`.
 - [*] **Search and Replace disagree on case.** Search ignores case; Replace (`searchAndReplace.ts:87`) matches it exactly. Previewing with Search and then running Replace can give different counts.
 - [*] **Wildcard in File Names mode isn't anchored.** `*.md` also matches `notes.md.bak`, and `a*` matches any name containing an "a". Most people expect glob behaviour when matching file names.
 - [*] **The user guide documents a `ts` variable that doesn't exist.** (Found while fixing the Ctrl-click item.) The Advanced Search section describes `ts` as "the first date/timestamp found in the file" and uses it in `past(ts, 7)` / `future(ts, 30)`, but the sandbox defines no `ts`, so such a query throws a ReferenceError on every file (reported as a search error since the bug 2 fix).
-- [ ] **Delete confirms even when no saved search has that name.** The Delete button asks for confirmation for whatever name is typed, whether or not a saved search exists with it.
+- [*] **Delete confirms even when no saved search has that name.** The Delete button asks for confirmation for whatever name is typed, whether or not a saved search exists with it. (The Delete button is now disabled unless the typed name matches a saved search.)
 - [*] **Blank lines in a query collapse.** Consecutive newlines become a single `{{nl}}`, so blank lines are lost on save.
 
 - [*] **An advanced-query timeout blocked the main process for ~30 seconds, not 1.** (Found while fixing bug 2.) After the first file timed out, each of the up to 32 files already being read still ran the query for its own full 1s timeout. The predicate now fails immediately after the first timeout.

@@ -24,7 +24,10 @@ function SearchDefinitionsPanel({
   onRequestDelete,
 }: SearchDefinitionsPanelProps) {
   const sortedDefinitions = [...definitions].sort((a, b) => a.name.localeCompare(b.name));
-  const hasName = searchName.trim().length > 0;
+  const trimmedName = searchName.trim();
+  const hasName = trimmedName.length > 0;
+  // Delete only applies to an existing saved search (names are saved trimmed).
+  const isSavedName = definitions.some((def) => def.name === trimmedName);
 
   return (
     <div className="flex flex-col border-r border-slate-600 w-1/3">
@@ -52,7 +55,7 @@ function SearchDefinitionsPanel({
           <button
             type="button"
             onClick={onRequestDelete}
-            disabled={!hasName}
+            disabled={!isSavedName}
             data-testid="delete-search-button"
             title="Delete search definition"
             className={BUTTON_CLASS_TB_RED}

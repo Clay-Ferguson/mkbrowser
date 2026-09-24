@@ -330,7 +330,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
       {showDeleteConfirm && (
         <ConfirmDialog
-          message={`Are you sure you want to delete the search definition "${searchName}"?`}
+          message={`Are you sure you want to delete the search definition "${searchName.trim()}"?`}
           onConfirm={onConfirm}
           onCancel={() => setShowDeleteConfirm(false)}
         />
