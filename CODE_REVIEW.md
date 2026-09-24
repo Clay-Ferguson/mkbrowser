@@ -22,7 +22,7 @@ Mark items done by changing `[ ]` to `[*]`.
 - [*] **4. "Recent Files" treats file-name hits differently from content hits.**
   In content mode, file-name hits are removed from the list before the "500 newest" trim (`search.ts:602-610`). They are only trimmed by date when there are more than 500 of them (`:623`). So a Recent Files search returns name matches from anywhere in the tree, however old, while content matches are limited to recent files. Also, the 500 newest files are chosen after the name hits have been removed, so the content half can reach past the true 500 newest files.
 
-- [ ] **5. Editing a saved search with an empty query fills in unrelated text.**
+- [*] **5. Editing a saved search with an empty query fills in unrelated text.**
   `SearchDialog.tsx:69-71` treats an empty saved query as "no initial value" and falls back to the global highlight text. So opening a saved Recent Files search (empty text) shows your last literal search instead. Because a search with a name auto-saves (next item), clicking Search also overwrites the saved definition with that text.
 
 - [ ] **6. Clicking Search silently overwrites a saved search.**

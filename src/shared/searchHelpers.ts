@@ -48,6 +48,21 @@ export function compareSearchResults(
 }
 
 /**
+ * The query the Search dialog starts with. Editing a saved search always shows
+ * that search's own query — even an empty one (a Recent Files search with no
+ * text) — never the global highlight, or saving from the dialog would quietly
+ * replace the stored query with unrelated text. Only a brand-new search (no
+ * initial values) is prefilled with the current highlight text.
+ */
+export function initialSearchQuery(
+  initialValues: { searchQuery?: string } | undefined,
+  highlightText: string | null,
+): string {
+  if (initialValues) return initialValues.searchQuery ?? '';
+  return highlightText ?? '';
+}
+
+/**
  * Parse a newline-delimited ignored-paths string into a trimmed, non-empty array.
  */
 export function parseIgnoredPaths(raw: string): string[] {

@@ -1,9 +1,9 @@
 /**
- * Tests for the search result ordering (compareSearchResults in
+ * Tests for the pure search helpers (compareSearchResults, initialSearchQuery in
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults } from '../src/shared/searchHelpers';
+import { compareSearchResults, initialSearchQuery } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults } from '../src/store/search';
 import type { SearchDefinition } from '../src/shared/shared';
@@ -98,5 +98,23 @@ describe('search store slice', () => {
     clearSearchResults();
     expect(useAS.getState().searchTotalMatches).toBe(0);
     expect(useAS.getState().lastSearchDefinition).toBeNull();
+  });
+});
+
+describe('initialSearchQuery', () => {
+  it('prefills a new search with the highlight text', () => {
+    expect(initialSearchQuery(undefined, 'highlighted')).toBe('highlighted');
+    expect(initialSearchQuery(undefined, null)).toBe('');
+  });
+
+  it("keeps a saved search's empty query instead of the highlight", () => {
+    // Regression: `searchQuery || highlight` treated '' as missing, so editing a
+    // saved Recent Files search showed (and on save, stored) the last highlight.
+    expect(initialSearchQuery({ searchQuery: '' }, 'highlighted')).toBe('');
+  });
+
+  it("uses a saved search's own query", () => {
+    expect(initialSearchQuery({ searchQuery: 'saved text' }, 'highlighted')).toBe('saved text');
+    expect(initialSearchQuery({}, 'highlighted')).toBe('');
   });
 });

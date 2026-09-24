@@ -6,6 +6,7 @@ import CheckboxField from './common/CheckboxField';
 import RadioGroup from './common/RadioGroup';
 import type { SearchDefinition } from '../../shared/types';
 import * as globalHighlight from '../../renderer/globalHighlight';
+import { initialSearchQuery } from '../../shared/searchHelpers';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../renderer/styles';
 
 // Search's checkbox/radio inputs use a blue-500 accent (vs the blue-600 default
@@ -66,7 +67,7 @@ interface SearchDialogProps {
  */
 function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, initialValues, searchDefinitions }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState(
-    initialValues?.searchQuery || globalHighlight.getGlobalHighlightText() || ''
+    initialSearchQuery(initialValues, globalHighlight.getGlobalHighlightText())
   );
   const [searchName, setSearchName] = useState(initialValues?.searchName || '');
   const [searchType, setSearchType] = useState<SearchType>(initialValues?.searchType || 'literal');
