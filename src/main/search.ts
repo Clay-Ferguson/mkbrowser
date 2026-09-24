@@ -7,9 +7,11 @@
  * Two search modes ("Search Target" in the Search dialog):
  *  - 'content' — "File Contents+Names": a file is a hit when the query matches its
  *    NAME *or* its CONTENTS. Contents are only read for .md/.txt (plus images when
- *    searchImageExif is on), but the *name* half covers every file extension. The
- *    name test is pure CPU, so it runs first and short-circuits: a name-matched
- *    file is never read. Folders are never matched in this mode.
+ *    searchImageExif is on), but the *name* half covers every file extension —
+ *    except under mostRecent/calendarItemsOnly, where both halves run inside a
+ *    window drawn from those content files only. The name test is pure CPU, so it
+ *    runs first and short-circuits: a name-matched file is never read. Folders are
+ *    never matched in this mode.
  *  - 'filenames' — "File Names": names only, but including folder names.
  */
 import path from 'node:path';
@@ -453,7 +455,10 @@ async function buildResult(
  *   (file *and folder* names only)
  * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
  * @param searchImageExif - Whether to include image files and search their EXIF metadata
- * @param mostRecent   - Whether to limit search to the 500 most recently modified files
+ * @param mostRecent   - Whether to limit search to the 500 most recently modified files.
+ *   In 'content' mode those are the 500 newest content files (.md/.txt, plus images
+ *   with searchImageExif), and both name and content matching run inside that set;
+ *   in 'filenames' mode, the 500 newest files and folders.
  * @param calendarItemsOnly - Whether to restrict the search to calendar files (markdown
  *   with a parseable `due:` front-matter property). Applied *before* the mostRecent trim,
  *   and it also makes searchImageExif moot since an image can never be a calendar file.
@@ -586,16 +591,22 @@ export async function searchFolderWithTotal(
     // is a JavaScript expression written against file content: evaluating it
     // against a bare filename is meaningless for prop()/the date helpers, and a
     // negated expression (e.g. !$("draft")) would match nearly every file in the
-    // tree. So advanced searches behave exactly as they always have.
+    // tree. So advanced searches are content-only.
     const nameMatchActive = matchPredicate !== null && searchType !== 'advanced';
-    // Whether the crawl widens past the content-searchable extensions so that a
-    // .pdf/.zip/etc. can match by name. Not when calendarItemsOnly is on: "only
-    // calendar items" has to stay true, and nothing but markdown with a `due:`
-    // can be a calendar item — so there the name test applies only to the
-    // calendar file set. When this is false the crawl output is exactly what it
-    // was before names were searchable (advanced mode, and the empty-query
-    // mostRecent path, are therefore untouched).
-    const broadCrawl = nameMatchActive && !calendarItemsOnly;
+
+    // The candidate set is narrowed to a "window" when calendarItemsOnly or
+    // mostRecent is on, and BOTH halves of the search — name and content — then
+    // run inside that window. The window is always drawn from the content
+    // candidates (.md/.txt, plus images when searchImageExif is on), never from
+    // every file type: "only calendar items" must stay true, and the 500 newest
+    // must be the same 500 documents whether or not there is a query, without
+    // recently touched attachments/binaries taking slots from notes.
+    const narrowed = calendarItemsOnly || mostRecent;
+
+    // Other file types (.pdf, .zip, …) can match by name, so the crawl widens
+    // past the content candidates — but only when there is a name test and no
+    // window, since a window never includes them.
+    const broadCrawl = nameMatchActive && !narrowed;
 
     const api = new fdir()
       .withFullPaths()
@@ -603,41 +614,37 @@ export async function searchFolderWithTotal(
       .filter((filePath) => {
         const fileName = path.basename(filePath);
         if (shouldExcludePath(fileName, filePath)) return false;
-        // Every file is a name candidate; the content-side extension filter is
-        // applied when partitioning the crawl results below.
         if (broadCrawl) return true;
         return isContentCandidate(filePath, searchImageExif, calendarItemsOnly);
       })
       .crawl(folderPath);
 
     const crawled = await api.withPromise();
-
-    // Narrow the candidate set before searching, reusing the stats each filter
-    // captured (cached by path, fed to buildResult) so no file is stat'd twice:
-    //  - calendarItemsOnly: keep only calendar files, then — if mostRecent is
-    //    also on — the newest 500 *of those* (see filterCalendarFiles).
-    //  - mostRecent alone: the 500 most recently modified candidates. Applied to
-    //    the *content* candidates rather than to every crawled file, so a folder
-    //    full of recently-touched images/binaries can't crowd the .md/.txt files
-    //    out of the content search the way a shared trim would.
-    let filesToSearch = broadCrawl
+    const contentCandidates = broadCrawl
       ? crawled.filter(fp => isContentCandidate(fp, searchImageExif, calendarItemsOnly))
       : crawled;
-    let statCache: Map<string, StatTimes> | null = null;
+
+    // Build the window, reusing the stats each filter captured (cached by path,
+    // fed to buildResult) so no file is stat'd twice:
+    //  - calendarItemsOnly: the calendar files, then — with mostRecent — the
+    //    newest 500 *of those* (see filterCalendarFiles).
+    //  - mostRecent alone: the 500 most recently modified content candidates.
+    let candidateWindow: StatEntry[] | null = null;
     if (calendarItemsOnly) {
-      let entries = await filterCalendarFiles(filesToSearch, yamlCache);
-      if (mostRecent) entries = takeMostRecent(entries);
-      filesToSearch = entries.map(e => e.path);
-      statCache = new Map(entries.map(e => [e.path, e]));
+      candidateWindow = await filterCalendarFiles(contentCandidates, yamlCache);
+      if (mostRecent) candidateWindow = takeMostRecent(candidateWindow);
+    } else if (mostRecent) {
+      candidateWindow = await filterMostRecent(contentCandidates);
     }
+    const statCache = candidateWindow ? new Map<string, StatTimes>(candidateWindow.map(e => [e.path, e])) : null;
+    let filesToSearch = candidateWindow ? candidateWindow.map(e => e.path) : contentCandidates;
 
     // Name pass. Pure CPU and zero I/O, so it runs before anything is read: every
-    // hit here is a file the content pass below never has to open. With
-    // calendarItemsOnly the candidate set isn't known until the calendar pre-pass
-    // above has run, hence testing names against filesToSearch in that case.
+    // hit here is a file the content pass below never has to open. Without a
+    // candidateWindow, crawled includes the non-content file types (broadCrawl).
     const nameHits = new Map<string, number>();
     if (nameMatchActive && matchPredicate) {
-      for (const filePath of calendarItemsOnly ? filesToSearch : crawled) {
+      for (const filePath of candidateWindow ? filesToSearch : crawled) {
         const { matches, matchCount } = matchPredicate(path.basename(filePath));
         if (matches) nameHits.set(filePath, matchCount);
       }
@@ -648,36 +655,11 @@ export async function searchFolderWithTotal(
       filesToSearch = filesToSearch.filter(fp => !nameHits.has(fp));
     }
 
-    if (mostRecent && !calendarItemsOnly) {
-      const recent = await filterMostRecent(filesToSearch);
-      filesToSearch = recent.map(e => e.path);
-      statCache = new Map(recent.map(e => [e.path, e]));
-    }
-
-    // Build the name-match results. Under mostRecent these are trimmed to the
-    // MOST_RECENT_LIMIT newest *matches* — match-then-trim, the reverse of the
-    // filenames branch above. Trimming first would mean stat()ing every file in
-    // the tree, whereas the name test itself costs no I/O at all, so only the
-    // (small) hit set ever needs stats.
-    let nameEntries: { path: string; matchCount: number; cachedStat?: StatTimes }[] =
-      [...nameHits].map(([p, matchCount]) => ({
-        path: p,
-        matchCount,
-        cachedStat: statCache?.get(p),
-      }));
-    if (mostRecent && !calendarItemsOnly && nameEntries.length > MOST_RECENT_LIMIT) {
-      const recentHits = await filterMostRecent(nameEntries.map(e => e.path));
-      nameEntries = recentHits.map(e => ({
-        path: e.path,
-        matchCount: nameHits.get(e.path) ?? 1,
-        cachedStat: e,
-      }));
-    }
     const nameResults = await mapWithConcurrency(
-      nameEntries,
+      [...nameHits],
       SEARCH_FILE_CONCURRENCY,
-      async (entry): Promise<SearchResult> => ({
-        ...(await buildResult(folderPath, entry.path, entry.matchCount, entry.cachedStat)),
+      async ([filePath, matchCount]): Promise<SearchResult> => ({
+        ...(await buildResult(folderPath, filePath, matchCount, statCache?.get(filePath))),
         nameMatch: true,
       }),
     );

@@ -1447,6 +1447,76 @@ describe('today', () => {
 // ═══════════════════════════════════════════════════════════════════
 // mostRecent filter (filterMostRecent → buildResult cached-stat path)
 // ═══════════════════════════════════════════════════════════════════
+describe('mostRecent window is the same for name and content matches', () => {
+  // mtimes, newest first:
+  //   new-TARGET-0..4.md  (5 name matches)          ─┐ the 500 newest
+  //   filler-000..494.md  (495 files, no match)      ─┘ content files
+  //   old-content.md      (content match, rank 501)
+  //   old-TARGET.md       (name match, rank 502)
+  // plus report-TARGET.pdf (newest of all, but not a content file).
+  const NAME_HITS = 5;
+  const FILLERS = MOST_RECENT_LIMIT - NAME_HITS;
+  let dir: string;
+  const names = (results: { path: string }[]): string[] =>
+    results.map(r => path.basename(r.path)).sort();
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-recent-window-'));
+    const base = new Date('2026-01-01T00:00:00Z').getTime();
+    let t = 0;
+    const write = (name: string, body: string) => {
+      const fp = path.join(dir, name);
+      fs.writeFileSync(fp, body, 'utf-8');
+      const when = new Date(base + (t++) * 1000);
+      fs.utimesSync(fp, when, when);
+    };
+    // Oldest first.
+    write('old-TARGET.md', 'nothing here\n');
+    write('old-content.md', 'mentions TARGET in the body\n');
+    for (let i = 0; i < FILLERS; i++) write(`filler-${String(i).padStart(3, '0')}.md`, 'filler\n');
+    for (let i = 0; i < NAME_HITS; i++) write(`new-TARGET-${i}.md`, 'nothing here\n');
+    write('report-TARGET.pdf', 'binary-ish\n');
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('without Recent Files, every name and content match is found (including other file types)', async () => {
+    const results = await searchFolder(dir, 'TARGET', 'literal', 'content');
+    expect(names(results)).toEqual([
+      ...Array.from({ length: NAME_HITS }, (_, i) => `new-TARGET-${i}.md`),
+      'old-TARGET.md',
+      'old-content.md',
+      'report-TARGET.pdf',
+    ].sort());
+  });
+
+  it('with Recent Files, an old file matching by name is outside the window', async () => {
+    const results = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, true);
+    expect(names(results)).not.toContain('old-TARGET.md');
+  });
+
+  it('with Recent Files, name matches count toward the 500 (no content match from rank 501)', async () => {
+    const results = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, true);
+    expect(names(results)).toEqual(Array.from({ length: NAME_HITS }, (_, i) => `new-TARGET-${i}.md`).sort());
+  });
+
+  it('with Recent Files, non-content file types are outside the window', async () => {
+    const results = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, true);
+    expect(names(results)).not.toContain('report-TARGET.pdf');
+  });
+
+  it('the window is the same 500 files with and without a query', async () => {
+    const all = await searchFolder(dir, '', 'literal', 'content', [], false, true);
+    expect(all).toHaveLength(MOST_RECENT_LIMIT);
+    const windowNames = new Set(names(all));
+    const hits = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, true);
+    for (const n of names(hits)) expect(windowNames.has(n)).toBe(true);
+    expect(windowNames.has('old-content.md')).toBe(false);
+  });
+});
+
 describe('mostRecent filter', () => {
   // Build a throwaway tree with MOST_RECENT_LIMIT + 5 files, each given a
   // distinct, monotonically increasing mtime so "newest" is deterministic:
