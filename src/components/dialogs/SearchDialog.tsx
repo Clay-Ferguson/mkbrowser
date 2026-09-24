@@ -4,7 +4,7 @@ import Dialog from './common/Dialog';
 import SearchDefinitionsPanel from './SearchDefinitionsPanel';
 import CheckboxField from './common/CheckboxField';
 import RadioGroup from './common/RadioGroup';
-import type { SearchDefinition } from '../../shared/types';
+import type { SearchDefinition, SearchMatchType, SearchTarget, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import * as globalHighlight from '../../renderer/globalHighlight';
 import { initialSearchQuery } from '../../shared/searchHelpers';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../renderer/styles';
@@ -14,15 +14,10 @@ import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_IN
 const SEARCH_CHECKBOX_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-500 rounded disabled:opacity-50 disabled:cursor-not-allowed`;
 const SEARCH_RADIO_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-500`;
 
-export type SearchMode = 'content' | 'filenames';
-export type SearchType = 'literal' | 'wildcard' | 'advanced';
-export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
-export type SearchSortDirection = 'asc' | 'desc';
-
 export interface SearchOptions {
   query: string;
-  searchType: SearchType;
-  searchMode: SearchMode;
+  matchType: SearchMatchType;
+  target: SearchTarget;
   searchName: string;
   sortBy: SearchSortBy;
   sortDirection: SearchSortDirection;
@@ -34,8 +29,8 @@ export interface SearchOptions {
 export interface SearchDialogInitialValues {
   searchQuery?: string;
   searchName?: string;
-  searchType?: SearchType;
-  searchMode?: SearchMode;
+  matchType?: SearchMatchType;
+  target?: SearchTarget;
   sortBy?: SearchSortBy;
   sortDirection?: SearchSortDirection;
   searchImageExif?: boolean;
@@ -55,7 +50,7 @@ interface SearchDialogProps {
 /**
  * The full search dialog: a left panel of saved search definitions
  * (SearchDefinitionsPanel) and a right panel of search options — the query, the
- * target (file contents vs. names), the mode (literal/wildcard/advanced), the
+ * target (file contents vs. names), the match type (literal/wildcard/advanced), the
  * EXIF / recent-files / calendar-items-only toggles, and result sorting. It can
  * run a search (onSearch — which never saves, even when the search is named),
  * save the options as a named definition (onSave, the Save button), or delete one
@@ -71,8 +66,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     initialSearchQuery(initialValues, globalHighlight.getGlobalHighlightText())
   );
   const [searchName, setSearchName] = useState(initialValues?.searchName || '');
-  const [searchType, setSearchType] = useState<SearchType>(initialValues?.searchType || 'literal');
-  const [searchMode, setSearchMode] = useState<SearchMode>(initialValues?.searchMode || 'content');
+  const [matchType, setMatchType] = useState<SearchMatchType>(initialValues?.matchType || 'literal');
+  const [target, setTarget] = useState<SearchTarget>(initialValues?.target || 'content');
   const [sortBy, setSortBy] = useState<SearchSortBy>(initialValues?.sortBy || 'modified-time');
   const [sortDirection, setSortDirection] = useState<SearchSortDirection>(initialValues?.sortDirection || 'desc');
   const [searchImageExif, setSearchImageExif] = useState(initialValues?.searchImageExif ?? false);
@@ -96,8 +91,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const handleSelectSearchDefinition = (def: SearchDefinition) => {
     setSearchName(def.name);
     setSearchQuery(def.searchText);
-    setSearchType(def.searchMode);
-    setSearchMode(def.searchTarget);
+    setMatchType(def.matchType);
+    setTarget(def.target);
     setSortBy(def.sortBy);
     setSortDirection(def.sortDirection);
     setSearchImageExif(def.searchImageExif ?? false);
@@ -112,14 +107,14 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // The highlighter matches within single DOM text nodes, so it can't match
     // across a line break; highlight the query with its newlines flattened.
     const cleanedQuery = query.replace(/[\r\n]+/g, ' ');
-    globalHighlight.setGlobalHighlightText(searchType === 'literal' ? cleanedQuery : '');
-    onSearch({ query, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
+    globalHighlight.setGlobalHighlightText(matchType === 'literal' ? cleanedQuery : '');
+    onSearch({ query, matchType, target, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
   };
 
   const handleSave = () => {
     if (!searchName.trim()) return;
 
-    onSave({ query: searchQuery.trim(), searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
+    onSave({ query: searchQuery.trim(), matchType, target, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -164,10 +159,10 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           {/* Right panel: search options */}
           <div className="flex flex-col flex-1 p-6 overflow-y-auto min-h-0">
             <label className={DLG_LABEL_CLASS}>
-              {searchType === 'advanced'
+              {matchType === 'advanced'
                 ? 'JavaScript expression'
-                : searchType === 'wildcard'
-                  ? (searchMode === 'filenames'
+                : matchType === 'wildcard'
+                  ? (target === 'filenames'
                       ? 'File name pattern (* matches any characters; must match the whole name)'
                       : 'Search text (use * as wildcard, matches up to 25 characters)')
                   : 'Search text'}
@@ -180,7 +175,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               data-testid="search-query-input"
               rows={4}
               className={`w-full ${DLG_INPUT_CLASS_BASE} font-mono resize-none border-slate-600 focus:border-blue-500 min-h-[80px]`}
-              placeholder={searchType === 'advanced' ? 'Functions: $, tag, prop, past, future, today' : searchType === 'wildcard' ? (searchMode === 'filenames' ? '*.md' : 'intro*duction') : 'Enter search text...'}
+              placeholder={matchType === 'advanced' ? 'Functions: $, tag, prop, past, future, today' : matchType === 'wildcard' ? (target === 'filenames' ? '*.md' : 'intro*duction') : 'Enter search text...'}
             />
 
             <div className="flex items-center gap-6 mb-3 mt-3">
@@ -189,7 +184,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 checked={searchImageExif}
                 onChange={setSearchImageExif}
                 // Images can never be calendar items, so the two are mutually exclusive.
-                disabled={searchMode === 'filenames' || calendarItemsOnly}
+                disabled={target === 'filenames' || calendarItemsOnly}
                 testId="search-image-exif"
                 inputClassName={SEARCH_CHECKBOX_CLASS}
               />
@@ -207,7 +202,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 // Calendar-ness is a front-matter property, so it only means
                 // something for a content search (see searchFolder, which
                 // likewise ignores the flag in filenames mode).
-                disabled={searchMode === 'filenames'}
+                disabled={target === 'filenames'}
                 testId="search-calendar-items-only"
                 inputClassName={SEARCH_CHECKBOX_CLASS}
               />
@@ -215,9 +210,9 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
             <RadioGroup
               legend="Search Target"
-              name="searchMode"
-              value={searchMode}
-              onChange={setSearchMode}
+              name="target"
+              value={target}
+              onChange={setTarget}
               className="mb-3"
               inputClassName={SEARCH_RADIO_CLASS}
               options={[
@@ -228,9 +223,9 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
             <RadioGroup
               legend="Search Mode"
-              name="searchType"
-              value={searchType}
-              onChange={setSearchType}
+              name="matchType"
+              value={matchType}
+              onChange={setMatchType}
               className="mb-4"
               inputClassName={SEARCH_RADIO_CLASS}
               options={[
@@ -274,9 +269,9 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                   advanced expression is JavaScript evaluated against file content,
                   so it never matches names (in the 'filenames' target it is applied
                   to the name instead, which is why that branch comes first). */}
-              {searchMode === 'filenames' ? (
+              {target === 'filenames' ? (
                 <>Searches file and folder names recursively (case-insensitive).</>
-              ) : searchType === 'advanced' ? (
+              ) : matchType === 'advanced' ? (
                 <>Searches file contents only — advanced expressions never match file names.</>
               ) : calendarItemsOnly ? (
                 <>Searches only calendar items — .md files with a <code className="bg-slate-700 px-1 rounded">due:</code> front matter property — matching their contents or their file name (case-insensitive).</>
@@ -285,12 +280,12 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               ) : (
                 <>Searches the contents of .md and .txt files, plus every file name, recursively (case-insensitive).</>
               )}
-              {searchType === 'wildcard' && (searchMode === 'filenames' ? (
+              {matchType === 'wildcard' && (target === 'filenames' ? (
                 <> The pattern must match the whole name: <code className="bg-slate-700 px-1 rounded">*.md</code> finds names ending in .md, <code className="bg-slate-700 px-1 rounded">report*</code> names starting with &quot;report&quot;.</>
               ) : (
                 <> Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters.</>
               ))}
-              {searchType === 'advanced' && (
+              {matchType === 'advanced' && (
                 <> Uses the <code className="bg-slate-700 px-1 rounded">$(&quot;text&quot;)</code> function, <code className="bg-slate-700 px-1 rounded">tag(&quot;#name&quot;)</code> for a whole hashtag, <code className="bg-slate-700 px-1 rounded">prop(&quot;name&quot;)</code> for a front-matter property, or past(date), future(date), future(date, days), today(date) — e.g. <code className="bg-slate-700 px-1 rounded">past(prop(&quot;due&quot;, &quot;ts&quot;))</code>. Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code>.</>
               )}
               {' '}Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.
@@ -301,7 +296,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 <button
                   type="button"
                   onClick={() => {
-                    if (searchType === 'literal') {
+                    if (matchType === 'literal') {
                       const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
                       globalHighlight.setGlobalHighlightText(cleanedQuery || null);
                       requestAnimationFrame(() => globalHighlight.applyGlobalHighlight(cleanedQuery || null));

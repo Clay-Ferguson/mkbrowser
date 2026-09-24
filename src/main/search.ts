@@ -4,7 +4,7 @@
  * This module implements folder-level search across .md and .txt files,
  * supporting literal, wildcard, and advanced (JavaScript expression) search types.
  *
- * Two search modes ("Search Target" in the Search dialog):
+ * Two search targets ("Search Target" in the Search dialog):
  *  - 'content' — "File Contents+Names": a file is a hit when the query matches its
  *    NAME *or* its CONTENTS. Contents are only read for .md/.txt (plus images when
  *    searchImageExif is on), but the *name* half covers every file extension —
@@ -21,7 +21,7 @@ import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
 import { parseDateString, past, future, today } from '../shared/timeUtil';
 import { createContentSearcher, compareSearchResults } from '../shared/searchHelpers';
-import type { SearchSortBy, SearchSortDirection } from '../shared/shared';
+import type { SearchMatchType, SearchTarget, SearchSortBy, SearchSortDirection } from '../shared/shared';
 import { compileAdvancedQuery, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
 import { isCalendarFrontMatter } from '../shared/calendarUtil';
@@ -116,8 +116,6 @@ export interface SearchResult {
   isDirectory?: boolean;
 }
 
-export type SearchType = 'literal' | 'wildcard' | 'advanced';
-export type SearchMode = 'content' | 'filenames';
 /** Match predicate result */
 interface MatchResult {
   matches: boolean;
@@ -176,7 +174,7 @@ function createPropFunction(cache: YamlCache, content: string, filePath?: string
  */
 export function createMatchPredicate(
   queryStr: string,
-  type: SearchType,
+  type: SearchMatchType,
   cache: YamlCache = new Map()
 ): (content: string, filePath?: string) => MatchResult {
   if (type === 'advanced') {
@@ -468,8 +466,8 @@ async function buildResult(
  *
  * @param folderPath   - Root folder to search
  * @param query        - Search text or JavaScript expression (empty = match everything)
- * @param searchType   - 'literal' | 'wildcard' | 'advanced'
- * @param searchMode   - 'content' (file bodies OR file names — see the module header;
+ * @param matchType    - 'literal' | 'wildcard' | 'advanced'
+ * @param target       - 'content' (file bodies OR file names — see the module header;
  *   the name half is skipped for 'advanced', which stays content-only) or 'filenames'
  *   (file *and folder* names only)
  * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
@@ -494,8 +492,8 @@ async function buildResult(
 export async function searchFolderWithTotal(
   folderPath: string,
   query: string,
-  searchType: SearchType = 'literal',
-  searchMode: SearchMode = 'content',
+  matchType: SearchMatchType = 'literal',
+  target: SearchTarget = 'content',
   ignoredPaths: string[] = [],
   searchImageExif = false,
   mostRecent = false,
@@ -513,9 +511,9 @@ export async function searchFolderWithTotal(
   const hasQuery = query.trim().length > 0;
   const basePredicate: ((content: string, filePath?: string) => MatchResult) | null = !hasQuery
     ? null
-    : searchMode === 'filenames' && searchType === 'wildcard'
+    : target === 'filenames' && matchType === 'wildcard'
       ? createFileNameGlobPredicate(query)
-      : createMatchPredicate(query, searchType, yamlCache);
+      : createMatchPredicate(query, matchType, yamlCache);
 
   // Track advanced-query runtime errors. One file throwing is normal (the query
   // may assume front matter only some files have), but a query that threw on
@@ -537,7 +535,7 @@ export async function searchFolderWithTotal(
     return result;
   });
 
-  if (searchMode === 'filenames') {
+  if (target === 'filenames') {
     // Search file and folder names
     const filesApi = new fdir()
       .withFullPaths()
@@ -631,7 +629,7 @@ export async function searchFolderWithTotal(
     // against a bare filename is meaningless for prop()/the date helpers, and a
     // negated expression (e.g. !$("draft")) would match nearly every file in the
     // tree. So advanced searches are content-only.
-    const nameMatchActive = matchPredicate !== null && searchType !== 'advanced';
+    const nameMatchActive = matchPredicate !== null && matchType !== 'advanced';
 
     // The candidate set is narrowed to a "window" when calendarItemsOnly or
     // mostRecent is on, and BOTH halves of the search — name and content — then

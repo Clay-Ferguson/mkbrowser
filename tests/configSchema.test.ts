@@ -110,8 +110,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const good = {
       name: 'recent',
       searchText: 'foo',
-      searchTarget: 'content',
-      searchMode: 'literal',
+      target: 'content',
+      matchType: 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',
     };
@@ -129,8 +129,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const legacy = {
       name: 'TODOs - Today',
       searchText: "prop('tags')?.includes('todo')",
-      searchTarget: 'content',
-      searchMode: 'advanced',
+      target: 'content',
+      matchType: 'advanced',
       sortBy: 'line-time',
       sortDirection: 'desc',
       searchImageExif: false,
@@ -154,8 +154,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const legacy = {
       name: 'legacy',
       searchText: 'foo',
-      searchTarget: 'content',
-      searchMode: 'literal',
+      target: 'content',
+      matchType: 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',
       searchImageExif: false,
@@ -170,8 +170,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const def = {
       name: 'cal',
       searchText: 'standup',
-      searchTarget: 'content',
-      searchMode: 'literal',
+      target: 'content',
+      matchType: 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',
       searchImageExif: false,
@@ -186,8 +186,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const legacy = {
       name: 'multi',
       searchText: "$('a') &&{{nl}}$('b'){{nl}}{{nl}}|| $('c')",
-      searchTarget: 'content',
-      searchMode: 'advanced',
+      target: 'content',
+      matchType: 'advanced',
       sortBy: 'modified-time',
       sortDirection: 'desc',
     };
@@ -199,8 +199,8 @@ describe('parseConfigYaml — settings tolerance', () => {
     const def = {
       name: 'multi',
       searchText: 'line one\nline two',
-      searchTarget: 'content',
-      searchMode: 'literal',
+      target: 'content',
+      matchType: 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',
     };
@@ -208,12 +208,51 @@ describe('parseConfigYaml — settings tolerance', () => {
     expect(cfg?.settings?.searchDefinitions?.[0]).toEqual(def);
   });
 
+  it('migrates the legacy searchTarget/searchMode keys to target/matchType', () => {
+    const legacy = {
+      name: 'names',
+      searchText: '*.md',
+      searchTarget: 'filenames',
+      searchMode: 'wildcard',
+      sortBy: 'file-name',
+      sortDirection: 'asc',
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [legacy] } });
+    // The old keys are gone (not carried forward by the loose schema).
+    expect(cfg?.settings?.searchDefinitions).toEqual([{
+      name: 'names',
+      searchText: '*.md',
+      target: 'filenames',
+      matchType: 'wildcard',
+      sortBy: 'file-name',
+      sortDirection: 'asc',
+    }]);
+  });
+
+  it('prefers target/matchType over legacy keys when both are present', () => {
+    const def = {
+      name: 'both',
+      searchText: 'foo',
+      target: 'content',
+      matchType: 'advanced',
+      searchTarget: 'filenames',
+      searchMode: 'wildcard',
+      sortBy: 'modified-time',
+      sortDirection: 'desc',
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
+    const saved = cfg?.settings?.searchDefinitions?.[0] as unknown as Record<string, unknown>;
+    expect(saved).toMatchObject({ target: 'content', matchType: 'advanced' });
+    expect(saved).not.toHaveProperty('searchTarget');
+    expect(saved).not.toHaveProperty('searchMode');
+  });
+
   it('preserves unknown forward-compat keys on a searchDefinition (loose element schema)', () => {
     const def = {
       name: 'X',
       searchText: 'foo',
-      searchTarget: 'content',
-      searchMode: 'literal',
+      target: 'content',
+      matchType: 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',
       futureField: 'keep-me',

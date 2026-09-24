@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchSortBy, SearchSortDirection } from './shared/shared';
+import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchMatchType, SearchTarget, SearchSortBy, SearchSortDirection } from './shared/shared';
 
 import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
@@ -622,11 +622,11 @@ function setupIpcHandlers(): void {
   // to stop first. The cancelled request resolves with `cancelled: true` (not an
   // error: Electron logs every rejected handler) and the renderer drops it.
   const runExclusiveSearch = createExclusiveSearchRunner();
-  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchImageExif = false, mostRecent = false, calendarItemsOnly = false, sortBy: SearchSortBy = 'modified-time', sortDirection: SearchSortDirection = 'desc'): Promise<SearchOutcome> => {
+  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, matchType: SearchMatchType = 'literal', target: SearchTarget = 'content', searchImageExif = false, mostRecent = false, calendarItemsOnly = false, sortBy: SearchSortBy = 'modified-time', sortDirection: SearchSortDirection = 'desc'): Promise<SearchOutcome> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
       return await runExclusiveSearch((signal) =>
-        searchFolderWithTotal(folderPath, query, searchType, searchMode, ignoredPaths, searchImageExif, mostRecent, calendarItemsOnly, sortBy, sortDirection, signal));
+        searchFolderWithTotal(folderPath, query, matchType, target, ignoredPaths, searchImageExif, mostRecent, calendarItemsOnly, sortBy, sortDirection, signal));
     } catch (error) {
       if (error instanceof SearchCancelledError) return { results: [], totalMatches: 0, cancelled: true };
       logger.error('Error searching folder:', error);

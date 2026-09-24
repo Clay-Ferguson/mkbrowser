@@ -10,8 +10,10 @@ export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | '
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 /** Folder tree sidebar visibility and width options. */
 export type IndexTreeWidth = 'hidden' | 'narrow' | 'medium' | 'wide';
-export type SearchMode = 'content' | 'filenames';
-export type SearchType = 'literal' | 'wildcard' | 'advanced';
+/** What a search looks at: file contents (plus names), or file and folder names only. */
+export type SearchTarget = 'content' | 'filenames';
+/** How the query is matched: plain text, `*` wildcards, or a JavaScript expression. */
+export type SearchMatchType = 'literal' | 'wildcard' | 'advanced';
 export type SearchSortBy = 'modified-time' | 'created-time' | 'file-name';
 export type SearchSortDirection = 'asc' | 'desc';
 
@@ -75,9 +77,8 @@ export interface ImageDimensions {
 export interface SearchDefinition {
   name: string;
   searchText: string;
-  /** Search target: content or filenames. */
-  searchTarget: SearchMode;
-  searchMode: SearchType;
+  target: SearchTarget;
+  matchType: SearchMatchType;
   sortBy: SearchSortBy;
   /** Ascending (oldest first) or descending (newest first). */
   sortDirection: SearchSortDirection;
@@ -390,7 +391,7 @@ export interface ElectronAPI {
   openExternal: (filePath: string) => Promise<boolean>;
   openExternalUrl: (url: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean, calendarItemsOnly?: boolean, sortBy?: SearchSortBy, sortDirection?: SearchSortDirection) => Promise<SearchOutcome>;
+  searchFolder: (folderPath: string, query: string, matchType?: SearchMatchType, target?: SearchTarget, searchImageExif?: boolean, mostRecent?: boolean, calendarItemsOnly?: boolean, sortBy?: SearchSortBy, sortDirection?: SearchSortDirection) => Promise<SearchOutcome>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;

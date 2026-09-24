@@ -54,8 +54,8 @@ describe('search store slice', () => {
   const definition: SearchDefinition = {
     name: 'saved',
     searchText: 'needle',
-    searchTarget: 'content',
-    searchMode: 'literal',
+    target: 'content',
+    matchType: 'literal',
     sortBy: 'file-name',
     sortDirection: 'asc',
   };

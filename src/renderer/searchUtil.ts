@@ -63,8 +63,8 @@ export async function executeSearch(folder: string, definition: SearchDefinition
     outcome = await api.searchFolder(
       folder,
       definition.searchText,
-      definition.searchMode,
-      definition.searchTarget,
+      definition.matchType,
+      definition.target,
       definition.searchImageExif,
       definition.mostRecent,
       definition.calendarItemsOnly,

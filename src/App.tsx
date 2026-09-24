@@ -402,8 +402,8 @@ function App() {
     const definition: SearchDefinition = {
       name: '',
       searchText: ctrlKey ? `tag(${JSON.stringify(hashtag)})` : hashtag,
-      searchTarget: 'content',
-      searchMode: ctrlKey ? 'advanced' : 'literal',
+      target: 'content',
+      matchType: ctrlKey ? 'advanced' : 'literal',
       sortBy: 'modified-time',
       sortDirection: 'desc',
     };

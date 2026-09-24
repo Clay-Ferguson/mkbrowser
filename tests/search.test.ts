@@ -391,7 +391,7 @@ describe('content-loop error handling', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// 4. Filename Search (searchMode='filenames')
+// 4. Filename Search (target='filenames')
 // ═══════════════════════════════════════════════════════════════════
 describe('filename search', () => {
 
@@ -578,7 +578,7 @@ describe('filename search', () => {
 
 
 // ═══════════════════════════════════════════════════════════════════
-// 5. Content+Names search (searchMode='content')
+// 5. Content+Names search (target='content')
 //
 // 'content' mode is "File Contents+Names": a file is a hit when the query
 // matches its NAME *or* its CONTENTS. The name test is pure CPU while the

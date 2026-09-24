@@ -21,31 +21,31 @@ settings:
   searchDefinitions:
     - name: Timeline
       searchText: ''
-      searchTarget: content
-      searchMode: literal
+      target: content
+      matchType: literal
       sortBy: file-name
       sortDirection: desc
       searchImageExif: false
       mostRecent: true
     - name: TODOs
       searchText: prop('tags')?.includes('todo')
-      searchTarget: content
-      searchMode: advanced
+      target: content
+      matchType: advanced
       sortBy: modified-time
       sortDirection: desc
       mostRecent: false
     - name: TODOs - Today
       searchText: prop('tags')?.includes('todo') && today(prop('due','ts'))
-      searchTarget: content
-      searchMode: advanced
+      target: content
+      matchType: advanced
       sortBy: modified-time
       sortDirection: desc
       searchImageExif: false
       mostRecent: false
     - name: TODOs - Future
       searchText: prop('tags')?.includes('todo') && future(prop('due','ts'))
-      searchTarget: content
-      searchMode: advanced
+      target: content
+      matchType: advanced
       sortBy: modified-time
       sortDirection: desc
       searchImageExif: false
@@ -54,15 +54,15 @@ settings:
       searchText: |-
         prop('tags')?.includes('todo') &&
         past(prop('due','ts'))
-      searchTarget: content
-      searchMode: advanced
+      target: content
+      matchType: advanced
       sortBy: modified-time
       sortDirection: desc
       mostRecent: false
     - name: Political Free People Search
       searchText: $("political") && $("free people")
-      searchTarget: content
-      searchMode: advanced
+      target: content
+      matchType: advanced
       sortBy: modified-time
       sortDirection: desc
       searchImageExif: false

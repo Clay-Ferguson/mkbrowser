@@ -668,8 +668,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     const definition: SearchDefinition = {
       name: options.searchName || '',
       searchText: options.query,
-      searchTarget: options.searchMode,
-      searchMode: options.searchType,
+      target: options.target,
+      matchType: options.matchType,
       sortBy: options.sortBy,
       sortDirection: options.sortDirection,
       searchImageExif: options.searchImageExif,
@@ -715,8 +715,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     const definition: SearchDefinition = {
       name: options.searchName,
       searchText: options.query,
-      searchTarget: options.searchMode,
-      searchMode: options.searchType,
+      target: options.target,
+      matchType: options.matchType,
       sortBy: options.sortBy,
       sortDirection: options.sortDirection,
       searchImageExif: options.searchImageExif,
@@ -784,8 +784,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setSearchDialogInitialValues({
       searchQuery: definition.searchText,
       searchName: definition.name,
-      searchType: definition.searchMode,
-      searchMode: definition.searchTarget,
+      matchType: definition.matchType,
+      target: definition.target,
       sortBy: definition.sortBy,
       sortDirection: definition.sortDirection,
       searchImageExif: definition.searchImageExif,

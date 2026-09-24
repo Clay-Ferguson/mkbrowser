@@ -111,23 +111,36 @@ const nonNegNumber = z.preprocess(coerceNonNegativeNumber, z.number());
 //     added field (the way `searchImageExif` was once added to saved searches)
 //     is silently stripped on the next save until the schema is updated.
 
+/**
+ * Legacy migration: saved searches once stored the target (content/filenames)
+ * as `searchTarget` and the match type (literal/wildcard/advanced) as
+ * `searchMode`. Move them to `target` / `matchType` and drop the old keys, which
+ * `.loose()` would otherwise carry forward on every save. A value already under
+ * the new key wins.
+ */
+function migrateLegacySearchKeys(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return value;
+  const { searchTarget, searchMode, ...rest } = value as Record<string, unknown>;
+  return { target: searchTarget, matchType: searchMode, ...rest };
+}
+
 // Enum defaults mirror the SearchDialog form defaults.
-const SearchDefinitionSchema = z
+const SearchDefinitionSchema = z.preprocess(migrateLegacySearchKeys, z
   .object({
     name: z.string(),
     // Legacy migration: queries were once saved single-line with each newline
     // encoded as a `{{nl}}` token. They are now stored with real newlines (YAML
     // handles multi-line strings), so decode any old tokens on load.
     searchText: z.string().transform((s) => s.replace(/\{\{nl\}\}/g, '\n')),
-    searchTarget: z.enum(['content', 'filenames']).catch('content'),
-    searchMode: z.enum(['literal', 'wildcard', 'advanced']).catch('literal'),
+    target: z.enum(['content', 'filenames']).catch('content'),
+    matchType: z.enum(['literal', 'wildcard', 'advanced']).catch('literal'),
     sortBy: z.enum(['modified-time', 'created-time', 'file-name']).catch('modified-time'),
     sortDirection: z.enum(['asc', 'desc']).catch('desc'),
     searchImageExif: z.boolean().optional(),
     mostRecent: z.boolean().optional(),
     calendarItemsOnly: z.boolean().optional(),
   })
-  .loose();
+  .loose());
 
 const BookmarkSchema = z
   .object({

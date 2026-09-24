@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppConfig, ElectronAPI, CalendarEventResult, OcrTarget, SearchSortBy, SearchSortDirection } from './shared/shared';
+import type { AppConfig, ElectronAPI, CalendarEventResult, OcrTarget, SearchMatchType, SearchTarget, SearchSortBy, SearchSortDirection } from './shared/shared';
 
 // Expose protected methods to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean, calendarItemsOnly?: boolean, sortBy?: SearchSortBy, sortDirection?: SearchSortDirection) => ipcRenderer.invoke('search-folder', folderPath, query, searchType, searchMode, searchImageExif, mostRecent, calendarItemsOnly, sortBy, sortDirection),
+  searchFolder: (folderPath: string, query: string, matchType?: SearchMatchType, target?: SearchTarget, searchImageExif?: boolean, mostRecent?: boolean, calendarItemsOnly?: boolean, sortBy?: SearchSortBy, sortDirection?: SearchSortDirection) => ipcRenderer.invoke('search-folder', folderPath, query, matchType, target, searchImageExif, mostRecent, calendarItemsOnly, sortBy, sortDirection),
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),
   loadCalendarEventsForFiles: (filePaths: string[]) => ipcRenderer.invoke('load-calendar-events-for-files', filePaths),
