@@ -291,7 +291,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 <> Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters.</>
               ))}
               {searchType === 'advanced' && (
-                <> Uses the <code className="bg-slate-700 px-1 rounded">$(&quot;text&quot;)</code> function, <code className="bg-slate-700 px-1 rounded">tag(&quot;#name&quot;)</code> for a whole hashtag, or past(ts), future(ts), future(ts, days), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code>.</>
+                <> Uses the <code className="bg-slate-700 px-1 rounded">$(&quot;text&quot;)</code> function, <code className="bg-slate-700 px-1 rounded">tag(&quot;#name&quot;)</code> for a whole hashtag, <code className="bg-slate-700 px-1 rounded">prop(&quot;name&quot;)</code> for a front-matter property, or past(date), future(date), future(date, days), today(date) — e.g. <code className="bg-slate-700 px-1 rounded">past(prop(&quot;due&quot;, &quot;ts&quot;))</code>. Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code>.</>
               )}
               {' '}Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.
             </p>
