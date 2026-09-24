@@ -57,7 +57,8 @@ interface SearchDialogProps {
  * (SearchDefinitionsPanel) and a right panel of search options — the query, the
  * target (file contents vs. names), the mode (literal/wildcard/advanced), the
  * EXIF / recent-files / calendar-items-only toggles, and result sorting. It can
- * run a search (onSearch), save the options as a named definition (onSave), or delete one
+ * run a search (onSearch — which never saves, even when the search is named),
+ * save the options as a named definition (onSave, the Save button), or delete one
  * (onDeleteSearchDefinition, gated behind a ConfirmDialog).
  *
  * Newlines in the query are kept as real newlines all the way through (saved

@@ -793,8 +793,10 @@ To remove the highlight, open the **Search** menu and click **Clear Highlight**.
 You can save frequently used searches for quick access later.
 
 1. In the Search dialog, enter your search query and configure the options.
-2. Type a name for your search in the **Search Name** field.
-3. Click **Search** to execute and save the definition.
+2. Type a name for your search in the **Search Definition Name** field.
+3. Click the **Save** button (the download icon under the name) to save the definition. Saving with the name of an existing search updates that search.
+
+Clicking **Search** only runs the search — it never saves or changes a saved definition, even when a name is filled in. So you can load a saved search, adjust it for a one-off run, and search without changing what's saved.
 
 Once saved, your search definitions appear in the **Search** menu on the application's main menu bar (sorted alphabetically). Simply click a saved search to execute it immediately.
 

@@ -677,10 +677,11 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
       calendarItemsOnly: options.calendarItemsOnly,
     };
 
+    // Running a search never saves it — even when it has a name, which just
+    // labels the results. Saving (or updating) a definition is only ever done
+    // by the dialog's Save button, so a one-off tweak to a saved search can't
+    // silently overwrite it.
     runOp(async () => {
-      if (options.searchName) {
-        await saveSearchDefinitionToConfig(definition);
-      }
       await executeSearch(currentPath, definition);
       setCurrentView('search-results');
     }, 'Search failed: ', onSetError);

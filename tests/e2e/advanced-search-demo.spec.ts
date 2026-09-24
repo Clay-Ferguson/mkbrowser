@@ -151,7 +151,21 @@ Let's call it "Political Free People Search".`
       screenshotDir,
       step++,
       `The search has been named "Political Free People Search".
-MkBrowser will remember this search definition so we can reuse it at any time without retyping the query.`
+To save it, we click the Save button just below the name.`
+    );
+
+    // Save the definition (running a search never saves it)
+    const saveSearchButton = mainWindow.getByTestId('save-search-button');
+    await expect(saveSearchButton).toBeEnabled({ timeout: 5000 });
+    await takeScreenshot(mainWindow, saveSearchButton, screenshotDir, step++, 'about-to-save-search');
+    await demoClick(saveSearchButton);
+    await mainWindow.waitForTimeout(500);
+    await takeScreenshot(mainWindow, null, screenshotDir, step++, 'search-saved');
+    writeNarration(
+      screenshotDir,
+      step++,
+      `The search definition is saved.
+MkBrowser will remember it so we can reuse it at any time without retyping the query.`
     );
 
     // Execute the search

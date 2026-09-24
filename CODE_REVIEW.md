@@ -25,7 +25,7 @@ Mark items done by changing `[ ]` to `[*]`.
 - [*] **5. Editing a saved search with an empty query fills in unrelated text.**
   `SearchDialog.tsx:69-71` treats an empty saved query as "no initial value" and falls back to the global highlight text. So opening a saved Recent Files search (empty text) shows your last literal search instead. Because a search with a name auto-saves (next item), clicking Search also overwrites the saved definition with that text.
 
-- [ ] **6. Clicking Search silently overwrites a saved search.**
+- [*] **6. Clicking Search silently overwrites a saved search.**
   When the name field isn't empty, `handleSearch` saves before running (`BrowseView.tsx:680-683`). Load a saved search, tweak it for a one-off run, click Search, and the saved version is replaced with no confirmation.
 
 - [ ] **7. Overlapping searches can show the wrong results.**
