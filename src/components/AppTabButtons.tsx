@@ -47,7 +47,9 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
   const currentView = useAS(s => s.currentView);
   const folderAnalysis = useAS(s => s.folderAnalysis);
   const folderGraph = useAS(s => s.folderGraph);
-  const searchResults = useAS(s => s.searchResults);
+  // Non-null from the moment any search runs until the tab is closed, so the
+  // Search tab also shows a search that found nothing.
+  const hasSearched = useAS(s => s.lastSearchDefinition !== null);
   const currentPath = useAS(s => s.currentPath);
   const rootPath = useAS(s => s.rootPath);
   const logoRef = useRef<HTMLButtonElement>(null);
@@ -89,7 +91,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
 
   const visibleIds = new Set<AppView>([
     ...visibleTabs,
-    ...(searchResults.length > 0 ? ['search-results' as AppView] : []),
+    ...(hasSearched ? ['search-results' as AppView] : []),
     ...(folderAnalysis ? ['folder-analysis' as AppView] : []),
     ...(folderGraph ? ['folder-graph' as AppView] : []),
     ...(isInAiThread ? ['thread' as AppView] : []),

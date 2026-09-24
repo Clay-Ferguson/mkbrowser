@@ -95,8 +95,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     onNavigateToResult(folderPath, resultPath);
   };
 
-  // Detect if a search has actually been executed
-  const hasSearched = searchQuery.length > 0 || searchResults.length > 0;
+  // A search has run (even one that found nothing, or a Recent Files search
+  // with an empty query) whenever its definition is recorded.
+  const hasSearched = lastSearchDefinition !== null;
 
   // Get the folder name for display
   const folderName = getFileName(searchFolder) || searchFolder;
@@ -278,7 +279,9 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
         ) : searchResults.length === 0 ? (
           <div className="text-center py-12">
             <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-            <p className="text-slate-400">No results found for &quot;{searchQuery}&quot;</p>
+            <p className="text-slate-400">
+              {searchQuery ? <>No results found for &quot;{searchQuery}&quot;</> : 'No files found'}
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
