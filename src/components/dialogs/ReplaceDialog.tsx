@@ -58,7 +58,9 @@ function ReplaceDialog({ onReplace, onCancel }: ReplaceDialogProps) {
         </div>
 
         <p className="text-xs text-slate-500 mb-4">
-          Replaces all occurrences in .md and .txt files recursively.
+          Replaces all occurrences in .md and .txt files recursively. Matching is
+          case-sensitive and exact — unlike Search, which ignores case, so a
+          Search for the same text can find more matches than get replaced.
         </p>
 
         <div className={DLG_FOOTER_CLASS}>

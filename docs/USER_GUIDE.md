@@ -832,7 +832,7 @@ MkBrowser includes a **Replace in Files** feature that allows you to find and re
 - The replacement searches recursively through all subfolders.
 - Only `.md` and `.txt` files are processed.
 - All occurrences of the search text are replaced (not just the first occurrence in each file).
-- The search is **case-sensitive** and matches **exact text** only.
+- The search is **case-sensitive** and matches **exact text** only. Note that this differs from the Search feature, which ignores case — so searching for the same text there can show more matches than Replace in Files will change.
 - Files configured in your **Ignored Paths** setting (see Settings) are skipped.
 
 ## Results Summary
