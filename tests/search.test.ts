@@ -623,6 +623,20 @@ describe('content+names search', () => {
     expect(names(filenameResults)).toEqual(['target-folder']);
   });
 
+  it('flags folder results as folders and file results as files', async () => {
+    const folderResults = await searchFolder(dir, 'target-folder', 'literal', 'filenames');
+    expect(folderResults[0].isDirectory).toBe(true);
+
+    const fileResults = await searchFolder(dir, 'keep', 'literal', 'filenames');
+    expect(names(fileResults)).toEqual(['keep.md']);
+    expect(fileResults[0].isDirectory).toBeUndefined();
+
+    // Content mode never returns folders, so it never sets the flag.
+    for (const r of await searchFolder(dir, 'TARGET', 'literal', 'content')) {
+      expect(r.isDirectory).toBeUndefined();
+    }
+  });
+
   it('orders name matches and content matches together by the chosen sort', async () => {
     // No relevance grouping: a name match gets no special position, so bulk.md
     // (the one content match) sorts by name among the name matches.

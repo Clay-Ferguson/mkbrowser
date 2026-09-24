@@ -12,6 +12,8 @@ export function buildFolderGraphFromSearchResults(
   const sep = detectSeparator(results);
 
   const pathSegmentsList: string[][] = results.map(r => splitPath(r.path, sep));
+  // Folder results (from a File Names search) are drawn as folders, not leaves.
+  const folderResults = new Set(results.filter(r => r.isDirectory).map(r => r.path));
 
   const rootSegments = longestCommonPrefix(pathSegmentsList);
   const rootId = rootSegments.length === 0 ? '' : joinPath(rootSegments, sep);
@@ -26,7 +28,8 @@ export function buildFolderGraphFromSearchResults(
     depth: 0,
   });
 
-  for (const segments of pathSegmentsList) {
+  for (const [index, segments] of pathSegmentsList.entries()) {
+    const isFolderResult = folderResults.has(results[index]?.path ?? '');
     let parentId = rootId;
     for (let i = rootSegments.length; i < segments.length; i++) {
       const isLast = i === segments.length - 1;
@@ -36,7 +39,7 @@ export function buildFolderGraphFromSearchResults(
         nodesById.set(currentId, {
           id: currentId,
           name: segments[i] ?? '',
-          isDirectory: !isLast,
+          isDirectory: !isLast || isFolderResult,
           depth: i - rootSegments.length + 1,
         });
         links.push({ source: parentId, target: currentId });

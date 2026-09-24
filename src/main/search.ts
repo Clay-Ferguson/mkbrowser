@@ -112,6 +112,8 @@ export interface SearchResult {
    * contents were never read — so matchCount counts occurrences within the file
    * name, not within the body. The renderer shows "name match" rather than a count. */
   nameMatch?: boolean;
+  /** Set when the result is a folder (only 'filenames' mode returns folders). */
+  isDirectory?: boolean;
 }
 
 export type SearchType = 'literal' | 'wildcard' | 'advanced';
@@ -562,12 +564,12 @@ export async function searchFolderWithTotal(
     // a file: only the filesystem root reduces to bare separators, and that can
     // only appear as the (already dropped) search root.
     const resolvedRoot = path.resolve(folderPath);
-    const allEntries = [
-      ...files,
-      ...dirs
-        .filter(d => path.resolve(d) !== resolvedRoot)
-        .map(d => d.replace(/[/\\]+$/, '')),
-    ];
+    const dirEntries = dirs
+      .filter(d => path.resolve(d) !== resolvedRoot)
+      .map(d => d.replace(/[/\\]+$/, ''));
+    const allEntries = [...files, ...dirEntries];
+    // Folder results are flagged so the UI can tell them from files.
+    const dirSet = new Set(dirEntries);
 
     // When mostRecent is enabled, limit to the 500 most recently modified entries.
     // filterMostRecent already stat'd them, so cache the times by path and feed
@@ -589,13 +591,14 @@ export async function searchFolderWithTotal(
         signal?.throwIfAborted();
         const entryName = path.basename(entryPath);
         const cachedStat = statCache?.get(entryPath);
+        let matchCount = 1; // No query — every entry (mostRecent mode with empty query)
         if (matchPredicate) {
-          const { matches, matchCount } = matchPredicate(entryName);
-          if (!matches) return null;
-          return buildResult(folderPath, entryPath, matchCount, cachedStat);
+          const match = matchPredicate(entryName);
+          if (!match.matches) return null;
+          matchCount = match.matchCount;
         }
-        // No query — return all entries (mostRecent mode with empty query)
-        return buildResult(folderPath, entryPath, 1, cachedStat);
+        const result = await buildResult(folderPath, entryPath, matchCount, cachedStat);
+        return dirSet.has(entryPath) ? { ...result, isDirectory: true } : result;
       },
     );
     for (const r of entryResults) {

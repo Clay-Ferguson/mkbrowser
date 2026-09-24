@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, DocumentTextIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { BUTTON_CLASS_XS, ENTRY_DROP_TARGET } from '../../renderer/styles';
 import { logger } from '../../shared/logUtil';
-import { getIconForFileExtension, isImageFile } from '../../shared/fileTypes';
-import type { FileIconType } from '../../shared/fileTypes';
+import { isImageFile } from '../../shared/fileTypes';
+import FileTypeIcon from '../FileTypeIcon';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
 import IndexTreeContextMenu from '../menus/IndexTreeContextMenu';
 import CreateFileDialog from '../dialogs/CreateFileDialog';
@@ -93,16 +93,6 @@ function isMarkdownFile(node: FileNode): node is MarkdownFileNode {
 
 function isShellScript(node: FileNode): boolean {
   return !node.isDirectory && node.name.toLowerCase().endsWith('.sh');
-}
-
-function renderFileIcon(iconType: FileIconType) {
-  switch (iconType) {
-    case 'markdown': return <DocumentTextIcon className="w-5 h-5 text-blue-400 shrink-0" />;
-    case 'text':     return <DocumentTextIcon className="w-5 h-5 text-emerald-400 shrink-0" />;
-    case 'image':    return <PhotoIcon className="w-5 h-5 text-green-500 shrink-0" />;
-    case 'pdf':      return <DocumentTextIcon className="w-5 h-5 text-red-400 shrink-0" />;
-    default:         return <DocumentIcon className="w-5 h-5 text-slate-300 shrink-0" />;
-  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -1044,7 +1034,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
                   ? (node.isExpanded
                       ? <FolderOpenIcon className="w-5 h-5 text-amber-500" />
                       : <FolderIcon className="w-5 h-5 text-amber-500" />)
-                  : renderFileIcon(getIconForFileExtension(node.name))
+                  : <FileTypeIcon fileName={node.name} />
                 }
               </span>
               <span>{node.name}</span>

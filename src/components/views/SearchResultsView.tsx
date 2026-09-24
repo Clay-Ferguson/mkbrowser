@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, ShareIcon, CalendarDaysIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, TrashIcon, PencilSquareIcon, ShareIcon, CalendarDaysIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { FolderIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import {
@@ -24,6 +25,8 @@ import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilde
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, getContentWidthClasses } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
+import FileTypeIcon from '../FileTypeIcon';
+import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
 
 interface SearchResultsViewProps {
   onNavigateToResult: (folderPath: string, resultPath: string) => void;
@@ -285,6 +288,10 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
             {/* Results list */}
             {searchResults.map((result) => {
               const highlighted = isHighlighted(result.path);
+              // Edit opens the file's editor in the Browse view, which only
+              // Markdown and text files have — not folders, images, PDFs etc.
+              const fileName = getFileName(result.path);
+              const editable = !result.isDirectory && (isMarkdownFile(fileName) || isTextFile(fileName));
               const borderClass = highlighted
                 ? 'border-2 border-purple-500' : 'border border-slate-700 hover:border-slate-600';
 
@@ -295,8 +302,10 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                 className={`bg-slate-800 rounded-lg ${borderClass} px-2 py-1.5 transition-colors cursor-pointer`}
               >
                 <div className="flex items-center gap-2">
-                  {/* File icon */}
-                  <DocumentTextIcon className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                  {/* Folder or file-type icon */}
+                  {result.isDirectory
+                    ? <FolderIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                    : <FileTypeIcon fileName={fileName} />}
 
                   {/* File path */}
                   <div className="flex-1 min-w-0">
@@ -315,11 +324,14 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
                       : `${result.matchCount} match${result.matchCount !== 1 ? 'es' : ''}`}
                   </div>
 
-                  {/* Edit button */}
+                  {/* Edit button — hidden (but still taking its space, so the
+                      Delete buttons stay aligned) for results that can't be edited */}
                   <button
                     type="button"
                     onClick={(e) => handleEditClick(e, result.path)}
-                    className={BUTTON_CLASS_BLUE}
+                    disabled={!editable}
+                    aria-hidden={!editable}
+                    className={`${BUTTON_CLASS_BLUE}${editable ? '' : ' invisible'}`}
                     title="Edit file"
                   >
                     <PencilSquareIcon className="w-5 h-5" />

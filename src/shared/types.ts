@@ -205,6 +205,8 @@ export interface SearchResultItem {
    * contents were never read — matchCount counts occurrences within the file name
    * rather than the body. The results view shows "name match" instead of a count. */
   nameMatch?: boolean;
+  /** Set when the result is a folder (only 'filenames' mode returns folders). */
+  isDirectory?: boolean;
 }
 
 /**
