@@ -20,7 +20,7 @@ import SortPopupMenu from '../menus/SortPopupMenu';
 import CreateFileDialog from '../dialogs/CreateFileDialog';
 import CreateFolderDialog from '../dialogs/CreateFolderDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
-import SearchDialog, { type SearchOptions, type SearchDialogInitialValues } from '../dialogs/SearchDialog';
+import SearchDialog from '../dialogs/SearchDialog';
 import ReplaceDialog from '../dialogs/ReplaceDialog';
 import ExportDialog from '../dialogs/ExportDialog';
 import type { ExportOptions } from '../dialogs/ExportDialog';
@@ -154,7 +154,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const [showSearchDialog, setShowSearchDialog] = useState<boolean>(false);
   const [showReplaceDialog, setShowReplaceDialog] = useState<boolean>(false);
   const [replaceResultMessage, setReplaceResultMessage] = useState<string | null>(null);
-  const [searchDialogInitialValues, setSearchDialogInitialValues] = useState<SearchDialogInitialValues | undefined>(undefined);
+  const [searchDialogDefinition, setSearchDialogDefinition] = useState<SearchDefinition | undefined>(undefined);
   const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
   const [showToolsMenu, setShowToolsMenu] = useState<boolean>(false);
   const [showEditMenu, setShowEditMenu] = useState<boolean>(false);
@@ -656,26 +656,14 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   };
 
   const handleOpenSearchDialog = () => {
-    setSearchDialogInitialValues(undefined);
+    setSearchDialogDefinition(undefined);
     setShowSearchDialog(true);
   };
 
-  const handleSearch = (options: SearchOptions) => {
+  const handleSearch = (definition: SearchDefinition) => {
     if (!currentPath) return;
 
     setShowSearchDialog(false);
-
-    const definition: SearchDefinition = {
-      name: options.searchName || '',
-      searchText: options.query,
-      target: options.target,
-      matchType: options.matchType,
-      sortBy: options.sortBy,
-      sortDirection: options.sortDirection,
-      searchImageExif: options.searchImageExif,
-      mostRecent: options.mostRecent,
-      calendarItemsOnly: options.calendarItemsOnly,
-    };
 
     // Running a search never saves it — even when it has a name, which just
     // labels the results. Saving (or updating) a definition is only ever done
@@ -688,7 +676,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const handleCancelSearch = () => {
     setShowSearchDialog(false);
-    setSearchDialogInitialValues(undefined);
+    setSearchDialogDefinition(undefined);
   };
 
   const handleReplace = (searchText: string, replaceText: string) => {
@@ -710,19 +698,8 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     setShowReplaceDialog(false);
   };
 
-  const handleSaveSearchDefinition = (options: SearchOptions) => {
-    if (!options.searchName) return;
-    const definition: SearchDefinition = {
-      name: options.searchName,
-      searchText: options.query,
-      target: options.target,
-      matchType: options.matchType,
-      sortBy: options.sortBy,
-      sortDirection: options.sortDirection,
-      searchImageExif: options.searchImageExif,
-      mostRecent: options.mostRecent,
-      calendarItemsOnly: options.calendarItemsOnly,
-    };
+  const handleSaveSearchDefinition = (definition: SearchDefinition) => {
+    if (!definition.name) return;
     runOp(async () => {
       await saveSearchDefinitionToConfig(definition);
     }, 'Failed to save search: ', onSetError);
@@ -781,17 +758,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
 
   const handleEditSearch = (definition: SearchDefinition) => {
     setCurrentView('browser');
-    setSearchDialogInitialValues({
-      searchQuery: definition.searchText,
-      searchName: definition.name,
-      matchType: definition.matchType,
-      target: definition.target,
-      sortBy: definition.sortBy,
-      sortDirection: definition.sortDirection,
-      searchImageExif: definition.searchImageExif,
-      mostRecent: definition.mostRecent,
-      calendarItemsOnly: definition.calendarItemsOnly,
-    });
+    setSearchDialogDefinition(definition);
     setShowSearchDialog(true);
   };
 
@@ -1179,7 +1146,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
           onSave={handleSaveSearchDefinition}
           onCancel={handleCancelSearch}
           onDeleteSearchDefinition={handleDeleteSearchDefinition}
-          initialValues={searchDialogInitialValues}
+          initialDefinition={searchDialogDefinition}
           searchDefinitions={settings.searchDefinitions}
         />
       )}

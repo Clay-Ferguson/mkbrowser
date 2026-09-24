@@ -124,7 +124,7 @@ function migrateLegacySearchKeys(value: unknown): unknown {
   return { target: searchTarget, matchType: searchMode, ...rest };
 }
 
-// Enum defaults mirror the SearchDialog form defaults.
+// Enum defaults mirror the Search dialog defaults (newSearchDefinition in shared/searchHelpers.ts).
 const SearchDefinitionSchema = z.preprocess(migrateLegacySearchKeys, z
   .object({
     name: z.string(),

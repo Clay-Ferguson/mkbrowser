@@ -36,6 +36,7 @@ import {
   setAppError as setError,
 } from './store';
 import type { AppView, SearchDefinition } from './shared/types';
+import { newSearchDefinition } from './shared/searchHelpers';
 import type { CalendarEventResult, AppConfig } from './shared/shared';
 import { toCalendarEvents } from './shared/calendarUtil';
 import type { FileNode } from './store';
@@ -400,12 +401,8 @@ function App() {
     // which finds exactly the occurrences the Analysis tab counted. The tag is
     // JSON-encoded so any character in it is a valid JS string literal.
     const definition: SearchDefinition = {
-      name: '',
-      searchText: ctrlKey ? `tag(${JSON.stringify(hashtag)})` : hashtag,
-      target: 'content',
+      ...newSearchDefinition(ctrlKey ? `tag(${JSON.stringify(hashtag)})` : hashtag),
       matchType: ctrlKey ? 'advanced' : 'literal',
-      sortBy: 'modified-time',
-      sortDirection: 'desc',
     };
     void (async () => {
       try {

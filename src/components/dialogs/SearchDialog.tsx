@@ -4,9 +4,9 @@ import Dialog from './common/Dialog';
 import SearchDefinitionsPanel from './SearchDefinitionsPanel';
 import CheckboxField from './common/CheckboxField';
 import RadioGroup from './common/RadioGroup';
-import type { SearchDefinition, SearchMatchType, SearchTarget, SearchSortBy, SearchSortDirection } from '../../shared/types';
+import type { SearchDefinition, SearchSortBy, SearchSortDirection } from '../../shared/types';
 import * as globalHighlight from '../../renderer/globalHighlight';
-import { initialSearchQuery } from '../../shared/searchHelpers';
+import { initialSearchDefinition } from '../../shared/searchHelpers';
 import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_INPUT_CLASS_BASE, DLG_CHECK_RADIO_BASE } from '../../renderer/styles';
 
 // Search's checkbox/radio inputs use a blue-500 accent (vs the blue-600 default
@@ -14,65 +14,41 @@ import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_LABEL_CLASS, DLG_IN
 const SEARCH_CHECKBOX_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-500 rounded disabled:opacity-50 disabled:cursor-not-allowed`;
 const SEARCH_RADIO_CLASS = `${DLG_CHECK_RADIO_BASE} text-blue-500`;
 
-export interface SearchOptions {
-  query: string;
-  matchType: SearchMatchType;
-  target: SearchTarget;
-  searchName: string;
-  sortBy: SearchSortBy;
-  sortDirection: SearchSortDirection;
-  searchImageExif: boolean;
-  mostRecent: boolean;
-  calendarItemsOnly: boolean;
-}
-
-export interface SearchDialogInitialValues {
-  searchQuery?: string;
-  searchName?: string;
-  matchType?: SearchMatchType;
-  target?: SearchTarget;
-  sortBy?: SearchSortBy;
-  sortDirection?: SearchSortDirection;
-  searchImageExif?: boolean;
-  mostRecent?: boolean;
-  calendarItemsOnly?: boolean;
-}
-
 interface SearchDialogProps {
-  onSearch: (options: SearchOptions) => void;
-  onSave: (options: SearchOptions) => void;
+  onSearch: (definition: SearchDefinition) => void;
+  onSave: (definition: SearchDefinition) => void;
   onCancel: () => void;
   onDeleteSearchDefinition: (name: string) => void;
-  initialValues?: SearchDialogInitialValues;
+  /** The search to edit; omitted for a new search. */
+  initialDefinition?: SearchDefinition;
   searchDefinitions: SearchDefinition[];
 }
 
 /**
  * The full search dialog: a left panel of saved search definitions
  * (SearchDefinitionsPanel) and a right panel of search options — the query, the
- * target (file contents vs. names), the match type (literal/wildcard/advanced), the
- * EXIF / recent-files / calendar-items-only toggles, and result sorting. It can
- * run a search (onSearch — which never saves, even when the search is named),
- * save the options as a named definition (onSave, the Save button), or delete one
- * (onDeleteSearchDefinition, gated behind a ConfirmDialog).
+ * target (file contents vs. names), the match type (literal/wildcard/advanced),
+ * the EXIF / recent-files / calendar-items-only toggles, and result sorting. The
+ * form edits one SearchDefinition, which it can run (onSearch — which never
+ * saves, even when the search is named), save under its name (onSave, the Save
+ * button), or delete (onDeleteSearchDefinition, gated behind a ConfirmDialog).
  *
  * Newlines in the query are kept as real newlines all the way through (saved
  * definitions and the search itself). For literal searches the query is also
  * pushed into the globalHighlight module so matches stay highlighted in the
  * document view after the dialog closes.
  */
-function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, initialValues, searchDefinitions }: SearchDialogProps) {
-  const [searchQuery, setSearchQuery] = useState(
-    initialSearchQuery(initialValues, globalHighlight.getGlobalHighlightText())
+function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, initialDefinition, searchDefinitions }: SearchDialogProps) {
+  const [def, setDef] = useState(() =>
+    initialSearchDefinition(initialDefinition, globalHighlight.getGlobalHighlightText())
   );
-  const [searchName, setSearchName] = useState(initialValues?.searchName || '');
-  const [matchType, setMatchType] = useState<SearchMatchType>(initialValues?.matchType || 'literal');
-  const [target, setTarget] = useState<SearchTarget>(initialValues?.target || 'content');
-  const [sortBy, setSortBy] = useState<SearchSortBy>(initialValues?.sortBy || 'modified-time');
-  const [sortDirection, setSortDirection] = useState<SearchSortDirection>(initialValues?.sortDirection || 'desc');
-  const [searchImageExif, setSearchImageExif] = useState(initialValues?.searchImageExif ?? false);
-  const [mostRecent, setMostRecent] = useState(initialValues?.mostRecent ?? false);
-  const [calendarItemsOnly, setCalendarItemsOnly] = useState(initialValues?.calendarItemsOnly ?? false);
+  const { name: searchName, searchText: searchQuery, matchType, target, sortBy, sortDirection } = def;
+  const searchImageExif = def.searchImageExif ?? false;
+  const mostRecent = def.mostRecent ?? false;
+  const calendarItemsOnly = def.calendarItemsOnly ?? false;
+  /** A change handler that sets one field of the definition being edited. */
+  const set = <K extends keyof SearchDefinition>(key: K) => (value: SearchDefinition[K]) =>
+    setDef((d) => ({ ...d, [key]: value }));
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -88,16 +64,8 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     textarea.style.height = `${Math.max(minHeight, textarea.scrollHeight)}px`;
   }, [searchQuery]);
 
-  const handleSelectSearchDefinition = (def: SearchDefinition) => {
-    setSearchName(def.name);
-    setSearchQuery(def.searchText);
-    setMatchType(def.matchType);
-    setTarget(def.target);
-    setSortBy(def.sortBy);
-    setSortDirection(def.sortDirection);
-    setSearchImageExif(def.searchImageExif ?? false);
-    setMostRecent(def.mostRecent ?? false);
-    setCalendarItemsOnly(def.calendarItemsOnly ?? false);
+  const handleSelectSearchDefinition = (selected: SearchDefinition) => {
+    setDef(initialSearchDefinition(selected, null));
   };
 
   const handleSearch = () => {
@@ -108,17 +76,17 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
     // across a line break; highlight the query with its newlines flattened.
     const cleanedQuery = query.replace(/[\r\n]+/g, ' ');
     globalHighlight.setGlobalHighlightText(matchType === 'literal' ? cleanedQuery : '');
-    onSearch({ query, matchType, target, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
+    onSearch({ ...def, name: searchName.trim(), searchText: query });
   };
 
   const handleSave = () => {
     if (!searchName.trim()) return;
 
-    onSave({ query: searchQuery.trim(), matchType, target, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
+    onSave({ ...def, name: searchName.trim(), searchText: searchQuery.trim() });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setSearchQuery(e.target.value);
+    set('searchText')(e.target.value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -131,7 +99,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   const onConfirm = () => {
     if (searchName.trim()) {
       onDeleteSearchDefinition(searchName.trim());
-      setSearchName('');
+      set('name')('');
     }
     setShowDeleteConfirm(false);
   }
@@ -149,7 +117,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
           {/* Left panel: saved search definitions */}
           <SearchDefinitionsPanel
             searchName={searchName}
-            onSearchNameChange={setSearchName}
+            onSearchNameChange={set('name')}
             definitions={searchDefinitions}
             onSelect={handleSelectSearchDefinition}
             onSave={handleSave}
@@ -182,7 +150,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               <CheckboxField
                 label="Search Image EXIF"
                 checked={searchImageExif}
-                onChange={setSearchImageExif}
+                onChange={set('searchImageExif')}
                 // Images can never be calendar items, so the two are mutually exclusive.
                 disabled={target === 'filenames' || calendarItemsOnly}
                 testId="search-image-exif"
@@ -191,14 +159,14 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               <CheckboxField
                 label="Recent Files"
                 checked={mostRecent}
-                onChange={setMostRecent}
+                onChange={set('mostRecent')}
                 testId="search-most-recent"
                 inputClassName={SEARCH_CHECKBOX_CLASS}
               />
               <CheckboxField
                 label="Calendar Items"
                 checked={calendarItemsOnly}
-                onChange={setCalendarItemsOnly}
+                onChange={set('calendarItemsOnly')}
                 // Calendar-ness is a front-matter property, so it only means
                 // something for a content search (see searchFolder, which
                 // likewise ignores the flag in filenames mode).
@@ -212,7 +180,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               legend="Search Target"
               name="target"
               value={target}
-              onChange={setTarget}
+              onChange={set('target')}
               className="mb-3"
               inputClassName={SEARCH_RADIO_CLASS}
               options={[
@@ -225,7 +193,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               legend="Search Mode"
               name="matchType"
               value={matchType}
-              onChange={setMatchType}
+              onChange={set('matchType')}
               className="mb-4"
               inputClassName={SEARCH_RADIO_CLASS}
               options={[
@@ -240,7 +208,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 <label className="block text-xs text-slate-400 mb-1">Sort Results By</label>
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SearchSortBy)}
+                  onChange={(e) => set('sortBy')(e.target.value as SearchSortBy)}
                   data-testid="sort-by-select"
                   className={`${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`}
                 >
@@ -253,7 +221,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 <label className="block text-xs text-slate-400 mb-1">Direction</label>
                 <select
                   value={sortDirection}
-                  onChange={(e) => setSortDirection(e.target.value as SearchSortDirection)}
+                  onChange={(e) => set('sortDirection')(e.target.value as SearchSortDirection)}
                   data-testid="sort-direction-select"
                   className={`${DLG_INPUT_CLASS_BASE} border-slate-600 focus:border-blue-500`}
                 >

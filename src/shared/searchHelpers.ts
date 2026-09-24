@@ -4,7 +4,7 @@
  * live in `searchUtil.ts`.
  */
 
-import type { SearchSortBy, SearchSortDirection } from './shared';
+import type { SearchDefinition, SearchSortBy, SearchSortDirection } from './shared';
 import { HASHTAG_REGEX } from './regexPatterns';
 
 /** The fields of a search result that the result ordering reads. */
@@ -48,19 +48,40 @@ export function compareSearchResults(
   };
 }
 
+/** A new, unnamed search with the Search dialog's default options. */
+export function newSearchDefinition(searchText = ''): SearchDefinition {
+  return {
+    name: '',
+    searchText,
+    target: 'content',
+    matchType: 'literal',
+    sortBy: 'modified-time',
+    sortDirection: 'desc',
+    searchImageExif: false,
+    mostRecent: false,
+    calendarItemsOnly: false,
+  };
+}
+
 /**
- * The query the Search dialog starts with. Editing a saved search always shows
+ * The search the Search dialog starts with. Editing a saved search always shows
  * that search's own query — even an empty one (a Recent Files search with no
  * text) — never the global highlight, or saving from the dialog would quietly
  * replace the stored query with unrelated text. Only a brand-new search (no
- * initial values) is prefilled with the current highlight text.
+ * initial definition) is prefilled with the current highlight text. The
+ * optional flags are filled in, so everything the dialog produces has them.
  */
-export function initialSearchQuery(
-  initialValues: { searchQuery?: string } | undefined,
+export function initialSearchDefinition(
+  initial: SearchDefinition | undefined,
   highlightText: string | null,
-): string {
-  if (initialValues) return initialValues.searchQuery ?? '';
-  return highlightText ?? '';
+): SearchDefinition {
+  if (!initial) return newSearchDefinition(highlightText ?? '');
+  return {
+    ...initial,
+    searchImageExif: initial.searchImageExif ?? false,
+    mostRecent: initial.mostRecent ?? false,
+    calendarItemsOnly: initial.calendarItemsOnly ?? false,
+  };
 }
 
 /**

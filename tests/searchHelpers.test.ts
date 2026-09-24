@@ -1,9 +1,10 @@
 /**
- * Tests for the pure search helpers (compareSearchResults, initialSearchQuery in
+ * Tests for the pure search helpers (compareSearchResults, newSearchDefinition,
+ * initialSearchDefinition in
  * src/shared/searchHelpers.ts) and the search store slice (src/store/search.ts).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { compareSearchResults, initialSearchQuery } from '../src/shared/searchHelpers';
+import { compareSearchResults, newSearchDefinition, initialSearchDefinition } from '../src/shared/searchHelpers';
 import { useAS } from '../src/store/core';
 import { setSearchOutcome, removeSearchResult, clearSearchResults } from '../src/store/search';
 import type { SearchDefinition } from '../src/shared/shared';
@@ -101,20 +102,33 @@ describe('search store slice', () => {
   });
 });
 
-describe('initialSearchQuery', () => {
-  it('prefills a new search with the highlight text', () => {
-    expect(initialSearchQuery(undefined, 'highlighted')).toBe('highlighted');
-    expect(initialSearchQuery(undefined, null)).toBe('');
+describe('initialSearchDefinition', () => {
+  const saved = (searchText: string): SearchDefinition => ({
+    name: 'saved',
+    searchText,
+    target: 'filenames',
+    matchType: 'wildcard',
+    sortBy: 'file-name',
+    sortDirection: 'asc',
+    mostRecent: true,
+  });
+
+  it('prefills a new search with the highlight text and the default options', () => {
+    expect(initialSearchDefinition(undefined, 'highlighted')).toEqual(newSearchDefinition('highlighted'));
+    expect(initialSearchDefinition(undefined, null).searchText).toBe('');
   });
 
   it("keeps a saved search's empty query instead of the highlight", () => {
     // Regression: `searchQuery || highlight` treated '' as missing, so editing a
     // saved Recent Files search showed (and on save, stored) the last highlight.
-    expect(initialSearchQuery({ searchQuery: '' }, 'highlighted')).toBe('');
+    expect(initialSearchDefinition(saved(''), 'highlighted').searchText).toBe('');
   });
 
-  it("uses a saved search's own query", () => {
-    expect(initialSearchQuery({ searchQuery: 'saved text' }, 'highlighted')).toBe('saved text');
-    expect(initialSearchQuery({}, 'highlighted')).toBe('');
+  it("uses a saved search's own options, filling in the missing flags", () => {
+    expect(initialSearchDefinition(saved('*.md'), 'highlighted')).toEqual({
+      ...saved('*.md'),
+      searchImageExif: false,
+      calendarItemsOnly: false,
+    });
   });
 });
