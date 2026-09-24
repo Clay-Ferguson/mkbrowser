@@ -115,7 +115,10 @@ const nonNegNumber = z.preprocess(coerceNonNegativeNumber, z.number());
 const SearchDefinitionSchema = z
   .object({
     name: z.string(),
-    searchText: z.string(),
+    // Legacy migration: queries were once saved single-line with each newline
+    // encoded as a `{{nl}}` token. They are now stored with real newlines (YAML
+    // handles multi-line strings), so decode any old tokens on load.
+    searchText: z.string().transform((s) => s.replace(/\{\{nl\}\}/g, '\n')),
     searchTarget: z.enum(['content', 'filenames']).catch('content'),
     searchMode: z.enum(['literal', 'wildcard', 'advanced']).catch('literal'),
     sortBy: z.enum(['modified-time', 'created-time', 'file-name']).catch('modified-time'),

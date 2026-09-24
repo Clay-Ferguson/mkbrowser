@@ -1036,6 +1036,39 @@ describe('createMatchPredicate (direct function testing)', () => {
     expect(predicate('second file body', '/some/path.md').matches).toBe(false);
     expect(predicate('third file body').matchCount).toBe(0);
   });
+
+  // ── Multi-line queries ─────────────────────────────────────────────────────
+  it('literal predicate: multi-line query matches multi-line content', () => {
+    const predicate = createMatchPredicate('line one\nline two', 'literal');
+    expect(predicate('intro\nline one\nline two\noutro').matchCount).toBe(1);
+    // A space is not a newline — the query must not be flattened.
+    expect(predicate('line one line two').matches).toBe(false);
+  });
+
+  it('literal predicate: multi-line query matches CRLF and CR line endings', () => {
+    const predicate = createMatchPredicate('line one\nline two', 'literal');
+    expect(predicate('line one\r\nline two').matchCount).toBe(1);
+    expect(predicate('line one\rline two').matchCount).toBe(1);
+  });
+
+  it('literal predicate: CRLF in the query matches LF content', () => {
+    const predicate = createMatchPredicate('line one\r\nline two', 'literal');
+    expect(predicate('line one\nline two').matchCount).toBe(1);
+  });
+
+  it('wildcard predicate: multi-line query matches CRLF content', () => {
+    const predicate = createMatchPredicate('one*\nline t*o', 'wildcard');
+    expect(predicate('line one\r\nline two').matches).toBe(true);
+  });
+
+  it('advanced predicate: a line comment ends at its newline', () => {
+    // Before real newlines were kept, the newline became a space and the
+    // comment swallowed the `|| $('beta')` on the next line.
+    const predicate = createMatchPredicate("$('alpha') // first term\n|| $('beta')", 'advanced');
+    expect(predicate('only beta here').matches).toBe(true);
+    expect(predicate('only alpha here').matches).toBe(true);
+    expect(predicate('neither').matches).toBe(false);
+  });
 });
 
 // ── Section 9b: YAML front-matter cache (prop() + shared cache) ──────────────

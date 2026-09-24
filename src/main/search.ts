@@ -126,6 +126,21 @@ function wildcardToRegex(pattern: string): RegExp {
   return new RegExp(regexPattern, 'i');
 }
 
+/** Convert CRLF and lone-CR line endings to LF. */
+function normalizeLineEndings(text: string): string {
+  return text.replace(/\r\n?/g, '\n');
+}
+
+/**
+ * A multi-line query (the search dialog always produces LF newlines) must still
+ * match a file saved with CRLF line endings, so such queries compare against
+ * LF-normalized content. Single-line queries can't be affected by line endings,
+ * so they skip the extra pass over every file.
+ */
+function lineEndingNormalizer(queryStr: string): (content: string) => string {
+  return /[\r\n]/.test(queryStr) ? normalizeLineEndings : (content) => content;
+}
+
 /**
  * Returns a `prop(propPath, valType?)` function scoped to the given file content.
  * `propPath` supports dot-notation to drill into nested YAML objects.
@@ -198,8 +213,10 @@ export function createMatchPredicate(
     // matching file. It's derived purely from the query, and the single global
     // scan below counts matches and answers "did it match?" in one pass (no
     // separate `test`, no array of substrings materialized just to read .length).
-    const regex = new RegExp(wildcardToRegex(queryStr).source, 'gi');
-    return (content: string, _filePath?: string) => {
+    const regex = new RegExp(wildcardToRegex(normalizeLineEndings(queryStr)).source, 'gi');
+    const normalize = lineEndingNormalizer(queryStr);
+    return (rawContent: string, _filePath?: string) => {
+      const content = normalize(rawContent);
       regex.lastIndex = 0;
       let matchCount = 0;
       let match: RegExpExecArray | null;
@@ -216,7 +233,7 @@ export function createMatchPredicate(
     };
   } else {
     // Literal mode: case-insensitive text search
-    const queryLower = queryStr.toLowerCase();
+    const queryLower = normalizeLineEndings(queryStr).toLowerCase();
     // Guard the empty needle: indexOf('', idx) always returns idx (never -1) and
     // idx += 0 never advances, so the counting loop below would spin forever.
     // searchFolder gates this off via its hasQuery check, but createMatchPredicate
@@ -224,8 +241,9 @@ export function createMatchPredicate(
     if (queryLower.length === 0) {
       return () => ({ matches: false, matchCount: 0 });
     }
+    const normalize = lineEndingNormalizer(queryLower);
     return (content: string, _filePath?: string) => {
-      const contentLower = content.toLowerCase();
+      const contentLower = normalize(content).toLowerCase();
       let matchCount = 0;
       let searchIndex = 0;
       while ((searchIndex = contentLower.indexOf(queryLower, searchIndex)) !== -1) {

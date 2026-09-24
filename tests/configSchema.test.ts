@@ -182,6 +182,32 @@ describe('parseConfigYaml — settings tolerance', () => {
     expect(cfg?.settings?.searchDefinitions?.[0]).toEqual(def);
   });
 
+  it('decodes legacy {{nl}} tokens in a saved searchText into real newlines', () => {
+    const legacy = {
+      name: 'multi',
+      searchText: "$('a') &&{{nl}}$('b'){{nl}}{{nl}}|| $('c')",
+      searchTarget: 'content',
+      searchMode: 'advanced',
+      sortBy: 'modified-time',
+      sortDirection: 'desc',
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [legacy] } });
+    expect(cfg?.settings?.searchDefinitions?.[0]?.searchText).toBe("$('a') &&\n$('b')\n\n|| $('c')");
+  });
+
+  it('keeps real newlines in a saved searchText unchanged', () => {
+    const def = {
+      name: 'multi',
+      searchText: 'line one\nline two',
+      searchTarget: 'content',
+      searchMode: 'literal',
+      sortBy: 'modified-time',
+      sortDirection: 'desc',
+    };
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { searchDefinitions: [def] } });
+    expect(cfg?.settings?.searchDefinitions?.[0]).toEqual(def);
+  });
+
   it('preserves unknown forward-compat keys on a searchDefinition (loose element schema)', () => {
     const def = {
       name: 'X',

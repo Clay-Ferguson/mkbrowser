@@ -33,16 +33,15 @@ async function applySettings(
  * results and the parameters that produced them are always written together:
  * `lastSearchDefinition` is what lets the refresh re-run the identical search.
  *
- * `searchText` is stored as authored (`{{nl}}` tokens intact, since that is
- * what the search dialog round-trips) but decoded to spaces for the query
- * actually sent to the main process. Throws whatever the IPC call throws;
+ * `searchText` is sent exactly as authored, newlines included: a multi-line
+ * literal query matches multi-line text, and a `//` comment in a multi-line
+ * advanced query ends at its line. Throws whatever the IPC call throws;
  * callers report it.
  */
 export async function executeSearch(folder: string, definition: SearchDefinition): Promise<void> {
-  const query = definition.searchText.replace(/\{\{nl\}\}/g, ' ');
   const results = await api.searchFolder(
     folder,
-    query,
+    definition.searchText,
     definition.searchMode,
     definition.searchTarget,
     definition.searchImageExif,

@@ -51,7 +51,9 @@ settings:
       searchImageExif: false
       mostRecent: false
     - name: TODOs - Past
-      searchText: prop('tags')?.includes('todo') && {{nl}}past(prop('due','ts'))
+      searchText: |-
+        prop('tags')?.includes('todo') &&
+        past(prop('due','ts'))
       searchTarget: content
       searchMode: advanced
       sortBy: modified-time

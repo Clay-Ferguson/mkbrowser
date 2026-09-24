@@ -59,15 +59,14 @@ interface SearchDialogProps {
  * run a search (onSearch), save the options as a named definition (onSave), or delete one
  * (onDeleteSearchDefinition, gated behind a ConfirmDialog).
  *
- * Two cross-cutting behaviours worth knowing:
- *  - Newlines in the query are persisted as the `{{nl}}` token (definitions are
- *    single-line) and expanded back to real newlines when loaded/edited.
- *  - For literal searches the query is pushed into the globalHighlight module so
- *    matches stay highlighted in the document view after the dialog closes.
+ * Newlines in the query are kept as real newlines all the way through (saved
+ * definitions and the search itself). For literal searches the query is also
+ * pushed into the globalHighlight module so matches stay highlighted in the
+ * document view after the dialog closes.
  */
 function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, initialValues, searchDefinitions }: SearchDialogProps) {
   const [searchQuery, setSearchQuery] = useState(
-    initialValues?.searchQuery ? initialValues.searchQuery.replace(/\{\{nl\}\}/g, '\n') : (globalHighlight.getGlobalHighlightText() || '')
+    initialValues?.searchQuery || globalHighlight.getGlobalHighlightText() || ''
   );
   const [searchName, setSearchName] = useState(initialValues?.searchName || '');
   const [searchType, setSearchType] = useState<SearchType>(initialValues?.searchType || 'literal');
@@ -94,7 +93,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
 
   const handleSelectSearchDefinition = (def: SearchDefinition) => {
     setSearchName(def.name);
-    setSearchQuery(def.searchText.replace(/\{\{nl\}\}/g, '\n'));
+    setSearchQuery(def.searchText);
     setSearchType(def.searchMode);
     setSearchMode(def.searchTarget);
     setSortBy(def.sortBy);
@@ -105,21 +104,20 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
   };
 
   const handleSearch = () => {
-    const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
-    if (!cleanedQuery && !mostRecent) return;
+    const query = searchQuery.trim();
+    if (!query && !mostRecent) return;
 
-    const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
-
+    // The highlighter matches within single DOM text nodes, so it can't match
+    // across a line break; highlight the query with its newlines flattened.
+    const cleanedQuery = query.replace(/[\r\n]+/g, ' ');
     globalHighlight.setGlobalHighlightText(searchType === 'literal' ? cleanedQuery : '');
-    onSearch({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
+    onSearch({ query, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
   };
 
   const handleSave = () => {
     if (!searchName.trim()) return;
 
-    const persistedQuery = searchQuery.replace(/[\r\n]+/g, '{{nl}}').trim();
-
-    onSave({ query: persistedQuery, searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
+    onSave({ query: searchQuery.trim(), searchType, searchMode, searchName: searchName.trim(), sortBy, sortDirection, searchImageExif, mostRecent, calendarItemsOnly });
   };
 
   const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
