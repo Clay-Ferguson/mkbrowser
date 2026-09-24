@@ -43,11 +43,21 @@ export function wildcardToAnchoredRegex(pattern: string, caseInsensitive = true)
 }
 
 /**
+ * Remove trailing path separators (`/a/b/` → `/a/b`). A path made only of
+ * separators (the filesystem root) is returned unchanged rather than as ''.
+ */
+function stripTrailingSeparators(p: string): string {
+  return p.replace(/[\\/]+$/, '') || p;
+}
+
+/**
  * Convert an array of wildcard path patterns into anchored, case-insensitive
- * RegExp objects suitable for matching file/folder names or full paths.
+ * RegExp objects suitable for matching file/folder names or full paths. A
+ * trailing separator on a pattern (`archive/`) is dropped, since the paths it
+ * is matched against never carry one (see buildExcludePredicate).
  */
 export function buildIgnoredPatterns(paths: string[]): RegExp[] {
-  return paths.map(p => wildcardToAnchoredRegex(p));
+  return paths.map(p => wildcardToAnchoredRegex(stripTrailingSeparators(p)));
 }
 
 /**
@@ -55,6 +65,12 @@ export function buildIgnoredPatterns(paths: string[]): RegExp[] {
  * entries (leading dot) are always excluded, plus anything matching the
  * user-configured ignore patterns (matched against both the basename and the
  * full path). Patterns support `*` wildcards.
+ *
+ * The full path is matched without trailing separators. fdir hands directory
+ * paths to its `exclude` callback WITH one (`/notes/archive/`) while file
+ * paths, chokidar's paths and the patterns users write have none — so without
+ * this a full-path pattern like `/notes/archive` would never exclude the
+ * folder in an fdir crawl (yet would in the calendar watcher).
  */
 export function buildExcludePredicate(
   ignoredPaths: string[],
@@ -63,7 +79,8 @@ export function buildExcludePredicate(
   return (name: string, fullPath: string): boolean => {
     // Always exclude hidden files/folders (starting with '.')
     if (name.startsWith('.')) return true;
-    return patterns.some(p => p.test(name) || p.test(fullPath));
+    const normalizedPath = stripTrailingSeparators(fullPath);
+    return patterns.some(p => p.test(name) || p.test(normalizedPath));
   };
 }
 

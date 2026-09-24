@@ -725,6 +725,19 @@ describe('ignored paths', () => {
     expect(visible).toBeDefined();
   });
 
+  it('full-path folder exclusion: the absolute path of skipme/ excludes its subtree', async () => {
+    // fdir passes directory paths with a trailing separator; a full-path
+    // pattern (written without one) must still match the folder.
+    const skipmePath = path.join(TEST_DATA_DIR, 'ignored-test', 'skipme');
+    const results = await searchFolder(
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', [skipmePath]
+    );
+    const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
+    expect(hidden).toBeUndefined();
+    const visible = results.find(r => r.relativePath === rel('ignored-test', 'visible-file.md'));
+    expect(visible).toBeDefined();
+  });
+
   it('multiple ignored paths at once: both folder and file patterns combined', async () => {
     const results = await searchFolder(
       TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', ['skipme', 'also-skip.md']

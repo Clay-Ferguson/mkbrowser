@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildCalendarFilter } from '../src/shared/pathPattern';
+import { buildCalendarFilter, buildExcludePredicate } from '../src/shared/pathPattern';
 
 // buildCalendarFilter is the single predicate shared by the calendar's initial
 // crawl (fdir) and its live watcher (chokidar). These tests pin the behaviour the
@@ -49,5 +49,39 @@ describe('buildCalendarFilter', () => {
     expect(exclude('node_modules', '/vault/node_modules', true)).toBe(false);
     const ignored = buildCalendarFilter(['node_modules']);
     expect(ignored('node_modules', '/vault/node_modules', true)).toBe(true);
+  });
+});
+
+describe('buildExcludePredicate', () => {
+  it('excludes a folder by full path even with the trailing separator fdir passes', () => {
+    const exclude = buildExcludePredicate(['/notes/archive']);
+    expect(exclude('archive', '/notes/archive/')).toBe(true);
+    expect(exclude('archive', '/notes/archive')).toBe(true);
+    expect(exclude('archive', '/notes/archive\\')).toBe(true);
+  });
+
+  it('a pattern written with a trailing separator matches too', () => {
+    const exclude = buildExcludePredicate(['/notes/archive/']);
+    expect(exclude('archive', '/notes/archive/')).toBe(true);
+    const byName = buildExcludePredicate(['archive/']);
+    expect(byName('archive', '/anywhere/archive/')).toBe(true);
+  });
+
+  it('a full-path pattern does not exclude a different folder with a similar path', () => {
+    const exclude = buildExcludePredicate(['/notes/archive']);
+    expect(exclude('archive-2024', '/notes/archive-2024/')).toBe(false);
+    expect(exclude('archive', '/other/archive/')).toBe(false);
+  });
+
+  it('full-path wildcards still work', () => {
+    const exclude = buildExcludePredicate(['/notes/*/drafts']);
+    expect(exclude('drafts', '/notes/2024/drafts/')).toBe(true);
+  });
+
+  it('still matches by name and always excludes hidden entries', () => {
+    const exclude = buildExcludePredicate(['node_modules']);
+    expect(exclude('node_modules', '/proj/node_modules/')).toBe(true);
+    expect(exclude('.git', '/proj/.git/')).toBe(true);
+    expect(exclude('src', '/proj/src/')).toBe(false);
   });
 });
