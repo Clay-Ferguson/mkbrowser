@@ -37,3 +37,14 @@ export const api: ElectronAPI = new Proxy({} as ElectronAPI, {
     return bridge[prop as keyof ElectronAPI];
   },
 });
+
+/**
+ * The user-facing message from an error thrown by an IPC call. When a main
+ * process handler throws, Electron rejects `ipcRenderer.invoke` with the
+ * message `Error invoking remote method '<channel>': <Name>: <message>`; this
+ * strips that wrapper so only the handler's own message is shown.
+ */
+export function ipcErrorMessage(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.replace(/^Error invoking remote method '[^']*': (?:[A-Za-z]*Error: )?/, '');
+}

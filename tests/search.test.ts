@@ -6,7 +6,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import { searchFolder, createMatchPredicate, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/main/search';
-import { AdvancedQueryTimeoutError } from '../src/main/advancedQuery';
+import { AdvancedQueryTimeoutError, AdvancedQuerySyntaxError } from '../src/main/advancedQuery';
 import { createContentSearcher } from '../src/shared/searchHelpers';
 import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/shared/timeUtil';
 import { setupTestData, TEST_DATA_DIR, rel } from './fixtures/setup';
@@ -296,9 +296,33 @@ describe('advanced content search', () => {
 
   // ── 3d. Advanced edge cases ───────────────────────────────────────
   describe('advanced edge cases', () => {
-    it('syntax error in expression returns no matches (does not throw)', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, '$$$invalid(((syntax', 'advanced');
-      expect(results).toEqual([]);
+    it('syntax error in expression fails the search (not an empty result)', async () => {
+      await expect(searchFolder(TEST_DATA_DIR, '$$$invalid(((syntax', 'advanced'))
+        .rejects.toThrow(AdvancedQuerySyntaxError);
+    });
+
+    it('a query that throws on every file fails the search with the error', async () => {
+      // A typo'd helper name throws a ReferenceError on every file, which used
+      // to be indistinguishable from "no results".
+      await expect(searchFolder(TEST_DATA_DIR, "Prop('x')", 'advanced'))
+        .rejects.toThrow(/failed on every file.*ReferenceError: Prop is not defined/);
+    });
+
+    it('a query that throws on some files but not others is not an error', async () => {
+      // Files containing "banana" short-circuit the `||`; every other file
+      // throws on `prop('x').y`. The banana files still come back as results.
+      const results = await searchFolder(TEST_DATA_DIR, "$('banana') || prop('x').y", 'advanced');
+      expect(results.length).toBeGreaterThan(0);
+    });
+
+    it('a query that throws on every file in filenames mode also fails the search', async () => {
+      await expect(searchFolder(TEST_DATA_DIR, "Prop('x')", 'advanced', 'filenames'))
+        .rejects.toThrow(/failed on every file/);
+    });
+
+    it('a timed-out query fails the search', async () => {
+      await expect(searchFolder(TEST_DATA_DIR, '(() => { while (true) {} })()', 'advanced'))
+        .rejects.toThrow(AdvancedQueryTimeoutError);
     });
 
     it('expression that returns a nonzero number is truthy → match', async () => {
@@ -1020,21 +1044,11 @@ describe('createMatchPredicate (direct function testing)', () => {
     expect(result.matchCount).toBeGreaterThanOrEqual(1);
   });
 
-  it('advanced predicate: syntax error returns matches=false, matchCount=0', () => {
-    const predicate = createMatchPredicate('$$$invalid syntax{{{', 'advanced');
-    const result = predicate('any content here');
-    expect(result.matches).toBe(false);
-    expect(result.matchCount).toBe(0);
-  });
-
-  it('advanced predicate: malformed expression does not throw at build time and yields empty results', () => {
-    // The user expression is compiled once when the predicate is created. A
-    // syntax error must not throw here; it must produce an always-false
-    // predicate so the search yields an empty result set.
-    const predicate = createMatchPredicate('$$$invalid(((syntax', 'advanced');
-    expect(predicate('first file body').matches).toBe(false);
-    expect(predicate('second file body', '/some/path.md').matches).toBe(false);
-    expect(predicate('third file body').matchCount).toBe(0);
+  it('advanced predicate: syntax error throws when the predicate is created', () => {
+    // The user expression is compiled once, up front, so an invalid query fails
+    // before any file is read — and searchFolder reports it instead of "no results".
+    expect(() => createMatchPredicate('$$$invalid syntax{{{', 'advanced')).toThrow(AdvancedQuerySyntaxError);
+    expect(() => createMatchPredicate('$$$invalid(((syntax', 'advanced')).toThrow(/Invalid advanced search query/);
   });
 
   // ── Multi-line queries ─────────────────────────────────────────────────────
@@ -1196,9 +1210,21 @@ describe('advanced predicate with real helper implementations', () => {
   it('a runtime error evaluating one file is a non-match, not a crash', () => {
     const predicate = createMatchPredicate("prop('a').b.c === 1", 'advanced');
     // No front-matter → prop('a') is undefined → TypeError inside the sandbox.
-    expect(predicate('plain body, no front matter', '/x.md')).toEqual({ matches: false, matchCount: 0 });
+    expect(predicate('plain body, no front matter', '/x.md')).toEqual({
+      matches: false,
+      matchCount: 0,
+      error: expect.stringMatching(/^TypeError: /) as unknown as string,
+    });
     // The same predicate still works on a file where the expression evaluates.
     expect(predicate('---\na:\n  b:\n    c: 1\n---\nbody').matches).toBe(true);
+  });
+
+  it('after one timeout, later calls fail immediately without re-running the query', () => {
+    const predicate = createMatchPredicate('(() => { while (true) {} })()', 'advanced');
+    expect(() => predicate('first')).toThrow(AdvancedQueryTimeoutError);
+    const start = Date.now();
+    expect(() => predicate('second')).toThrow(AdvancedQueryTimeoutError);
+    expect(Date.now() - start).toBeLessThan(200);
   });
 
   it('a query timeout propagates out of the predicate (aborts the whole search)', () => {

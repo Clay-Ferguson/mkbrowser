@@ -15,6 +15,7 @@ import {
   setCalendarSource,
   setCalendarEvents,
   setCalendarLoading,
+  setAppError,
   useAS,
 } from '../../store';
 import { getFileName, getParentPath } from '../../renderer/pathUtil';
@@ -201,6 +202,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     void executeSearch(searchFolder, definition)
       .catch((err: unknown) => {
         logger.error('Failed to refresh search results:', err);
+        setAppError('Search failed: ' + (err instanceof Error ? err.message : String(err)));
       })
       .finally(() => {
         setRefreshing(false);

@@ -591,7 +591,7 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Search folder recursively for text in .md and .txt files
+  // Open a file with the OS default application
   ipcMain.handle('open-external', async (_event, filePath: string): Promise<boolean> => {
     try {
       const result = await shell.openPath(filePath);
@@ -616,13 +616,16 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Search folder recursively for text in .md and .txt files
   ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchImageExif = false, mostRecent = false, calendarItemsOnly = false): Promise<SearchResult[]> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
       return await searchFolder(folderPath, query, searchType, searchMode, ignoredPaths, searchImageExif, mostRecent, calendarItemsOnly);
     } catch (error) {
       logger.error('Error searching folder:', error);
-      return [];
+      // Propagate so the renderer can report why the search failed (e.g. an
+      // invalid or timed-out advanced query) instead of showing "No results".
+      throw error;
     }
   });
 

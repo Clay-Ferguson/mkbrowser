@@ -51,6 +51,24 @@ export class AdvancedQueryTimeoutError extends Error {
   }
 }
 
+/** Thrown by compileAdvancedQuery when the query is not a valid expression. */
+export class AdvancedQuerySyntaxError extends Error {
+  constructor(detail: string) {
+    super(`Invalid advanced search query: ${detail}`);
+    this.name = 'AdvancedQuerySyntaxError';
+  }
+}
+
+/** Thrown when the query throws while being evaluated against one file. The
+ * message is a plain string built inside the sandbox (see compileAdvancedQuery),
+ * so no sandbox object ever reaches host code. */
+export class AdvancedQueryRuntimeError extends Error {
+  constructor(detail: string) {
+    super(detail);
+    this.name = 'AdvancedQueryRuntimeError';
+  }
+}
+
 /** Defines $, prop, past, future, today inside the sandbox realm as wrappers
  * around the host dispatcher, then removes the dispatcher from the global so
  * query code can only reach it through these frozen wrappers. Runs once per
@@ -79,11 +97,10 @@ const BOOTSTRAP = `
 /**
  * Compile an advanced query expression into a sandboxed evaluator.
  *
- * Throws on a syntactically invalid expression (mirrors `new Function`, so the
- * caller's existing compile-error handling applies). The returned function
- * evaluates the expression against one file's helpers and returns its truthiness;
- * runtime errors in the query propagate to the caller, and a timeout surfaces as
- * AdvancedQueryTimeoutError.
+ * Throws AdvancedQuerySyntaxError on a syntactically invalid expression. The
+ * returned function evaluates the expression against one file's helpers and
+ * returns its truthiness; a runtime error in the query surfaces as
+ * AdvancedQueryRuntimeError, and a timeout as AdvancedQueryTimeoutError.
  */
 export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost) => boolean {
   // Compile FIRST so a syntax error throws before we bother building a context.
@@ -94,7 +111,35 @@ export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost
   // `$('apple') // match apple` — would swallow the `)` into the comment and turn
   // a valid expression into "Unexpected end of input". The newline is safe: it
   // sits inside the parens, so ASI cannot terminate the expression there.
-  const script = new vm.Script(`(${queryStr}\n);`, { filename: 'advanced-search-query' });
+  //
+  // The try/catch runs INSIDE the sandbox so a thrown value is turned into a
+  // string there, under the timeout watchdog. Reading `.message` (or calling
+  // String()) on a sandbox object from host code would run query-defined
+  // getters/toString with no timeout — `throw { get message() { for(;;); } }`
+  // would hang the main process. The script therefore only ever returns a
+  // boolean (the result) or a string (the error description): both primitives.
+  const source = `(() => {
+  try {
+    return !!(${queryStr}
+    );
+  } catch (e) {
+    try {
+      return e !== null && typeof e === 'object'
+        ? String(e.name) + ': ' + String(e.message)
+        : String(e);
+    } catch {
+      return 'Unknown error';
+    }
+  }
+})();`;
+  let script: vm.Script;
+  try {
+    script = new vm.Script(source, { filename: 'advanced-search-query' });
+  } catch (err) {
+    // A compile error comes from V8's parser, not from query code, so it's a
+    // host SyntaxError and safe to read.
+    throw new AdvancedQuerySyntaxError(err instanceof Error ? err.message : String(err));
+  }
 
   // Rebound before each evaluation; the dispatcher below closes over it.
   let host: AdvancedQueryHost | null = null;
@@ -144,8 +189,9 @@ export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost
 
   return (h: AdvancedQueryHost): boolean => {
     host = h;
+    let result: unknown;
     try {
-      return Boolean(script.runInContext(context, { timeout: EVAL_TIMEOUT_MS }));
+      result = script.runInContext(context, { timeout: EVAL_TIMEOUT_MS });
     } catch (err) {
       if ((err as NodeJS.ErrnoException)?.code === 'ERR_SCRIPT_EXECUTION_TIMEOUT') {
         throw new AdvancedQueryTimeoutError();
@@ -154,5 +200,7 @@ export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost
     } finally {
       host = null;
     }
+    if (typeof result === 'string') throw new AdvancedQueryRuntimeError(result);
+    return result === true;
   };
 }

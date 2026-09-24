@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { compileAdvancedQuery, AdvancedQueryTimeoutError, AdvancedQueryHost } from '../src/main/advancedQuery';
+import { compileAdvancedQuery, AdvancedQueryTimeoutError, AdvancedQuerySyntaxError, AdvancedQueryRuntimeError, AdvancedQueryHost } from '../src/main/advancedQuery';
 
 /** Host whose $ matches when content includes the text; prop reads from a map. */
 function makeHost(content = '', props: Record<string, unknown> = {}): AdvancedQueryHost {
@@ -69,6 +69,30 @@ describe('sandbox containment', () => {
   it('helpers cannot be overwritten from the query', () => {
     // Non-writable global: sloppy-mode assignment is a silent no-op.
     expect(evalQuery('($ = () => true, $("nope"))', makeHost('content'))).toBe(false);
+  });
+});
+
+describe('thrown values never run query code outside the watchdog', () => {
+  // Describing an error means reading its name/message, which runs any getters
+  // or toString the query defined. That happens inside the sandbox under the
+  // timeout, so a hostile error object times out instead of hanging the host.
+  it.each([
+    '(() => { throw { get message() { for (;;) {} } }; })()',
+    '(() => { throw { get name() { for (;;) {} } }; })()',
+    '(() => { throw { message: { toString() { for (;;) {} } } }; })()',
+    '(() => { throw new Proxy({}, { get() { for (;;) {} } }); })()',
+  ])('%s', (query) => {
+    expect(() => evalQuery(query)).toThrow(AdvancedQueryTimeoutError);
+  });
+
+  it('an error object whose getters throw is still described', () => {
+    expect(() => evalQuery('(() => { throw { get name() { throw 1; } }; })()')).toThrow('Unknown error');
+  });
+
+  it('a query cannot fake an error by returning a string', () => {
+    // Only the script's own catch block returns strings; a string result from
+    // the query is just a truthy value.
+    expect(evalQuery('"looks like an error"')).toBe(true);
   });
 });
 
@@ -136,7 +160,7 @@ describe('helper bridge', () => {
 
 describe('compile and evaluation semantics', () => {
   it('throws on a syntactically invalid expression', () => {
-    expect(() => compileAdvancedQuery('$$$invalid(((syntax')).toThrow();
+    expect(() => compileAdvancedQuery('$$$invalid(((syntax')).toThrow(AdvancedQuerySyntaxError);
   });
 
   it('compiles a query that ends with a line comment', () => {
@@ -154,7 +178,19 @@ describe('compile and evaluation semantics', () => {
   });
 
   it('propagates runtime errors in the query to the caller', () => {
-    expect(() => evalQuery('nonexistentFn()')).toThrow();
+    expect(() => evalQuery('nonexistentFn()')).toThrow(AdvancedQueryRuntimeError);
+    expect(() => evalQuery('nonexistentFn()')).toThrow('ReferenceError: nonexistentFn is not defined');
+  });
+
+  it('describes thrown non-Error values', () => {
+    expect(() => evalQuery('(() => { throw "plain string"; })()')).toThrow(/^plain string$/);
+    expect(() => evalQuery('(() => { throw 42; })()')).toThrow(/^42$/);
+  });
+
+  it('a host-side helper error reaches the caller as a runtime error', () => {
+    const host = makeHost();
+    host.$ = () => { throw new Error('host boom'); };
+    expect(() => evalQuery("$('x')", host)).toThrow('host boom');
   });
 
   it('reuses one compiled query across files with different hosts', () => {

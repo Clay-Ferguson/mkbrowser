@@ -13,7 +13,7 @@ Mark items done by changing `[ ]` to `[*]`.
   - **Advanced search:** a `//` comment on one line now comments out everything after it. The probe ran `$('hello') // c` + newline + `|| $('line')` and matched only the `hello` file. The `|| $('line')` half was silently ignored. `advancedQuery.ts:91-96` guards against this for a comment on the last line, but this decoding step brings the problem back for comments on earlier lines.
   - The results header also shows the raw `{{nl}}` tokens, because the store keeps `definition.searchText`.
 
-- [ ] **2. Search errors look like "No results found".**
+- [*] **2. Search errors look like "No results found".**
   The `search-folder` handler (`src/main.ts:619-626`) catches every error and returns `[]`. So an advanced query that times out (the case the `AdvancedQueryTimeoutError` code is built for) just shows an empty result list. So does an advanced query with a syntax error (`search.ts:166-173`), and so does any unexpected failure. The comment on `executeSearch` says it "throws whatever the IPC call throws; callers report it", and every caller has a `'Search failed: '` error path, but none of those paths can ever run.
 
 - [ ] **3. When there are more than 500 hits, the user's sort order doesn't decide which 500 are kept.**
@@ -42,10 +42,12 @@ Mark items done by changing `[ ]` to `[*]`.
 - [ ] **Delete confirms even when no saved search has that name.** The Delete button asks for confirmation for whatever name is typed, whether or not a saved search exists with it.
 - [*] **Blank lines in a query collapse.** Consecutive newlines become a single `{{nl}}`, so blank lines are lost on save.
 
+- [*] **An advanced-query timeout blocked the main process for ~30 seconds, not 1.** (Found while fixing bug 2.) After the first file timed out, each of the up to 32 files already being read still ran the query for its own full 1s timeout. The predicate now fails immediately after the first timeout.
+
 ## Stale docs and comments
 
 - [ ] `AGENTS.md` names `src/services/api.ts` and `src/types/shared.ts`. Neither exists; the real files are `src/renderer/api.ts` and `src/shared/shared.ts`, and the `vi.mock` path it gives is wrong for the same reason.
-- [ ] `main.ts:594`: the comment "Search folder recursively…" sits above the `open-external` handler.
+- [*] `main.ts:594`: the comment "Search folder recursively…" sits above the `open-external` handler.
 - [ ] `SearchResultsView.tsx:75` has a leftover `// console.log`.
 
 ## Simplification and architecture suggestions

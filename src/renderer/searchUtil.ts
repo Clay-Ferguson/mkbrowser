@@ -1,5 +1,5 @@
 import { getSettings, setSettings, setSearchResults, setLastSearchDefinition, type AppSettings, type SearchDefinition } from '../store';
-import { api } from './api';
+import { api, ipcErrorMessage } from './api';
 import { logger } from '../shared/logUtil';
 
 // Pure, process-neutral search helpers (parseIgnoredPaths, createContentSearcher,
@@ -35,8 +35,9 @@ async function applySettings(
  *
  * `searchText` is sent exactly as authored, newlines included: a multi-line
  * literal query matches multi-line text, and a `//` comment in a multi-line
- * advanced query ends at its line. Throws whatever the IPC call throws;
- * callers report it.
+ * advanced query ends at its line. Throws if the search fails (e.g. an
+ * invalid or timed-out advanced query), with the main process's message;
+ * callers report it. Earlier results are left in place.
  */
 export async function executeSearch(folder: string, definition: SearchDefinition): Promise<void> {
   const results = await api.searchFolder(
@@ -47,7 +48,9 @@ export async function executeSearch(folder: string, definition: SearchDefinition
     definition.searchImageExif,
     definition.mostRecent,
     definition.calendarItemsOnly
-  );
+  ).catch((err: unknown) => {
+    throw new Error(ipcErrorMessage(err));
+  });
   setSearchResults(results, definition.searchText, folder, definition.sortBy, definition.sortDirection, definition.name);
   setLastSearchDefinition(definition);
 }

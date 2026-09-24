@@ -19,7 +19,7 @@ import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
 import { parseDateString, past, future, today } from '../shared/timeUtil';
 import { createContentSearcher } from '../shared/searchHelpers';
-import { compileAdvancedQuery, AdvancedQueryTimeoutError } from './advancedQuery';
+import { compileAdvancedQuery, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
 import { isCalendarFrontMatter } from '../shared/calendarUtil';
 import { escapeRegexExceptWildcard, buildExcludePredicate } from '../shared/pathPattern';
@@ -117,6 +117,9 @@ export type SearchMode = 'content' | 'filenames';
 interface MatchResult {
   matches: boolean;
   matchCount: number;
+  /** Set (advanced mode only) when the query threw while being evaluated
+   * against this input, which then counts as a non-match. */
+  error?: string;
 }
 
 /** Convert wildcard pattern to regex (each * matches up to 25 chars) */
@@ -173,21 +176,17 @@ export function createMatchPredicate(
 ): (content: string, filePath?: string) => MatchResult {
   if (type === 'advanced') {
     // Compile the user expression ONCE, when the predicate is created — not once
-    // per file scanned. A syntax error in the query yields an always-false
-    // predicate rather than throwing or silently failing on every file.
-    let evalFunction: ReturnType<typeof compileAdvancedQuery>;
-    try {
-      evalFunction = compileAdvancedQuery(queryStr);
-    } catch (err) {
-      // The user's advanced query is syntactically invalid. We can't evaluate it,
-      // so the predicate matches nothing. Log at warn so an invalid query is
-      // distinguishable from a query that legitimately matched zero files.
-      // (Surfacing this to the UI as "invalid query" is tracked separately.)
-      logger.warn('search: invalid advanced query expression', queryStr, err);
-      return () => ({ matches: false, matchCount: 0 });
-    }
+    // per file scanned. A syntax error throws AdvancedQuerySyntaxError, which
+    // fails the whole search so the UI can report it.
+    const evalFunction = compileAdvancedQuery(queryStr);
+    // After one timeout, fail every later call immediately. The search runs up
+    // to SEARCH_FILE_CONCURRENCY files at once, and each in-flight file whose
+    // read completes after the first timeout would otherwise burn its own full
+    // EVAL_TIMEOUT_MS of main-process time before the abort takes effect.
+    let timedOut: AdvancedQueryTimeoutError | null = null;
 
     return (content: string, filePath?: string) => {
+      if (timedOut) throw timedOut;
       const { $, getMatchCount } = createContentSearcher(content);
       const prop = createPropFunction(cache, content, filePath);
       try {
@@ -198,14 +197,15 @@ export function createMatchPredicate(
           matchCount: matches ? Math.max(matchCount, 1) : 0,
         };
       } catch (err) {
-        // A timed-out query will time out on every file — abort the whole search
-        // instead of eating the timeout thousands of times.
-        if (err instanceof AdvancedQueryTimeoutError) throw err;
         // A runtime error while evaluating the (validly-compiled) query against
-        // this file's content — e.g. the expression references a property in a way
-        // that throws. Treat as a non-match for this file, but log it.
-        logger.debug('search: advanced query threw evaluating file', filePath ?? '(unknown)', err);
-        return { matches: false, matchCount: 0 };
+        // this file's content — e.g. `prop('a').b` on a file without `a`. Treat
+        // as a non-match for this file; searchFolder reports it if the query
+        // failed on every file. Anything else — notably AdvancedQueryTimeoutError,
+        // which would recur on every file — aborts the whole search.
+        if (err instanceof AdvancedQueryTimeoutError) timedOut = err;
+        if (!(err instanceof AdvancedQueryRuntimeError)) throw err;
+        logger.debug('search: advanced query threw evaluating file', filePath ?? '(unknown)', err.message);
+        return { matches: false, matchCount: 0, error: err.message };
       }
     };
   } else if (type === 'wildcard') {
@@ -470,7 +470,24 @@ export async function searchFolder(
   const results: SearchResult[] = [];
   const shouldExcludePath = buildExcludePredicate(ignoredPaths);
   const hasQuery = query.trim().length > 0;
-  const matchPredicate = hasQuery ? createMatchPredicate(query, searchType, yamlCache) : null;
+  const basePredicate = hasQuery ? createMatchPredicate(query, searchType, yamlCache) : null;
+
+  // Track advanced-query runtime errors. One file throwing is normal (the query
+  // may assume front matter only some files have), but a query that threw on
+  // EVERY file it was evaluated against — typically a typo such as `Prop(...)`
+  // — would otherwise look exactly like "no results".
+  let evaluatedCount = 0;
+  let errorCount = 0;
+  let firstError: string | undefined;
+  const matchPredicate = basePredicate && ((content: string, filePath?: string): MatchResult => {
+    const result = basePredicate(content, filePath);
+    evaluatedCount++;
+    if (result.error !== undefined) {
+      errorCount++;
+      firstError ??= result.error;
+    }
+    return result;
+  });
 
   if (searchMode === 'filenames') {
     // Search file and folder names
@@ -727,6 +744,10 @@ export async function searchFolder(
   // otherwise sink it below every content match and make it the first thing dropped
   // by the cap. Only 'content' mode ever sets nameMatch, so this is a no-op for
   // filenames mode.
+  if (evaluatedCount > 0 && errorCount === evaluatedCount) {
+    throw new Error(`Advanced search query failed on every file it was evaluated against: ${firstError}`);
+  }
+
   results.sort((a, b) =>
     (b.nameMatch ? 1 : 0) - (a.nameMatch ? 1 : 0) || b.matchCount - a.matchCount);
   return results.slice(0, SEARCH_RESULT_LIMIT);
