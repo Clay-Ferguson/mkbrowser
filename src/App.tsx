@@ -206,7 +206,6 @@ function App() {
   useEffect(() => {
     // Returns the useEffect cleanup: the unsubscribe fn from onCalendarFileChanged, which removes the 'calendar-file-changed' IPC listener on unmount.
     return api.onCalendarFileChanged((results: CalendarEventResult[], filePath: string) => {
-      // console.log('[App] onCalendarFileChanged fired', { filePath, count: results.length });
       updateCalendarEvent(filePath, toCalendarEvents(results));
     });
   }, []);
@@ -214,7 +213,6 @@ function App() {
   useEffect(() => {
     // Returns the useEffect cleanup: the unsubscribe fn from onCalendarFileDeleted, which removes the 'calendar-file-deleted' IPC listener on unmount.
     return api.onCalendarFileDeleted((deletedPath: string, isFolder: boolean) => {
-      // console.log('[App] onCalendarFileDeleted fired', { deletedPath, isFolder });
       if (isFolder) {
         deleteCalendarEventsUnderPath(deletedPath);
       } else {
