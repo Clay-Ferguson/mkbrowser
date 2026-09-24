@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, ExifWriteResult, ThesaurusLookup } from './shared/shared';
+import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchSortBy, SearchSortDirection } from './shared/shared';
 
 import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
@@ -13,7 +13,7 @@ import { writeFileAtomic } from './main/atomicWrite';
 import { processTOC } from './shared/tocUtil';
 import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
 import { parseIgnoredPaths } from './shared/searchHelpers';
-import { searchFolder, type SearchResult } from './main/search';
+import { searchFolderWithTotal } from './main/search';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './main/folderAnalysis';
 import { loadCalendarEvents, loadCalendarEventsForFiles, type CalendarEventResult } from './main/calendarLoader';
 import { startCalendarWatcher, stopCalendarWatcher } from './main/calendarWatcher';
@@ -617,10 +617,10 @@ function setupIpcHandlers(): void {
   });
 
   // Search folder recursively for text in .md and .txt files
-  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchImageExif = false, mostRecent = false, calendarItemsOnly = false): Promise<SearchResult[]> => {
+  ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchImageExif = false, mostRecent = false, calendarItemsOnly = false, sortBy: SearchSortBy = 'modified-time', sortDirection: SearchSortDirection = 'desc'): Promise<SearchOutcome> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
-      return await searchFolder(folderPath, query, searchType, searchMode, ignoredPaths, searchImageExif, mostRecent, calendarItemsOnly);
+      return await searchFolderWithTotal(folderPath, query, searchType, searchMode, ignoredPaths, searchImageExif, mostRecent, calendarItemsOnly, sortBy, sortDirection);
     } catch (error) {
       logger.error('Error searching folder:', error);
       // Propagate so the renderer can report why the search failed (e.g. an

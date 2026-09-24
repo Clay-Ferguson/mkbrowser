@@ -1,4 +1,4 @@
-import { getSettings, setSettings, setSearchResults, setLastSearchDefinition, type AppSettings, type SearchDefinition } from '../store';
+import { getSettings, setSettings, setSearchOutcome, type AppSettings, type SearchDefinition } from '../store';
 import { api, ipcErrorMessage } from './api';
 import { logger } from '../shared/logUtil';
 
@@ -40,19 +40,20 @@ async function applySettings(
  * callers report it. Earlier results are left in place.
  */
 export async function executeSearch(folder: string, definition: SearchDefinition): Promise<void> {
-  const results = await api.searchFolder(
+  const outcome = await api.searchFolder(
     folder,
     definition.searchText,
     definition.searchMode,
     definition.searchTarget,
     definition.searchImageExif,
     definition.mostRecent,
-    definition.calendarItemsOnly
+    definition.calendarItemsOnly,
+    definition.sortBy,
+    definition.sortDirection
   ).catch((err: unknown) => {
     throw new Error(ipcErrorMessage(err));
   });
-  setSearchResults(results, definition.searchText, folder, definition.sortBy, definition.sortDirection, definition.name);
-  setLastSearchDefinition(definition);
+  setSearchOutcome(folder, definition, outcome);
 }
 
 /**

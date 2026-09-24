@@ -274,6 +274,14 @@ export interface SearchResult {
   nameMatch?: boolean;
 }
 
+/** What a folder search returns over IPC: the results (capped, and ordered by
+ * the requested sort) plus how many matched before the cap was applied. */
+export interface SearchOutcome {
+  results: SearchResult[];
+  /** Total matches found; larger than `results.length` when the cap truncated. */
+  totalMatches: number;
+}
+
 export interface ReplaceResult {
   path: string;
   relativePath: string;
@@ -377,7 +385,7 @@ export interface ElectronAPI {
   openExternal: (filePath: string) => Promise<boolean>;
   openExternalUrl: (url: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
-  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean, calendarItemsOnly?: boolean) => Promise<SearchResult[]>;
+  searchFolder: (folderPath: string, query: string, searchType?: 'literal' | 'wildcard' | 'advanced', searchMode?: 'content' | 'filenames', searchImageExif?: boolean, mostRecent?: boolean, calendarItemsOnly?: boolean, sortBy?: SearchSortBy, sortDirection?: SearchSortDirection) => Promise<SearchOutcome>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;

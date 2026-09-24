@@ -4,6 +4,49 @@
  * live in `searchUtil.ts`.
  */
 
+import type { SearchSortBy, SearchSortDirection } from './shared';
+
+/** The fields of a search result that the result ordering reads. */
+interface SortableSearchResult {
+  relativePath: string;
+  modifiedTime?: number;
+  createdTime?: number;
+}
+
+/** Last path segment, for either separator. */
+function baseName(relativePath: string): string {
+  return relativePath.split(/[\\/]/).pop() || relativePath;
+}
+
+/**
+ * Comparator implementing the user's chosen result order (the Search dialog's
+ * "Sort Results By" and "Direction"). The single source of truth for it: the
+ * main process sorts with it before applying the result cap, so the results
+ * that are kept are the ones the chosen order puts first, and the results view
+ * sorts with it for display.
+ *
+ * File-name order compares base names, ignoring case. Time order treats a
+ * missing timestamp as 0 (oldest). Ties fall back to the relative path, so the
+ * order — and therefore which results survive the cap — is deterministic.
+ */
+export function compareSearchResults(
+  sortBy: SearchSortBy,
+  direction: SearchSortDirection,
+): (a: SortableSearchResult, b: SortableSearchResult) => number {
+  const sign = direction === 'asc' ? 1 : -1;
+  return (a, b) => {
+    let cmp: number;
+    if (sortBy === 'file-name') {
+      cmp = baseName(a.relativePath).localeCompare(baseName(b.relativePath), undefined, { sensitivity: 'base' });
+    } else if (sortBy === 'created-time') {
+      cmp = (a.createdTime || 0) - (b.createdTime || 0);
+    } else {
+      cmp = (a.modifiedTime || 0) - (b.modifiedTime || 0);
+    }
+    return sign * cmp || a.relativePath.localeCompare(b.relativePath);
+  };
+}
+
 /**
  * Parse a newline-delimited ignored-paths string into a trimmed, non-empty array.
  */

@@ -3,7 +3,7 @@ import { MagnifyingGlassIcon, DocumentTextIcon, TrashIcon, PencilSquareIcon, Sha
 import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import {
-  setSearchResults,
+  removeSearchResult,
   setHighlightItem,
   setHighlightedSearchResult,
   navigateToBrowserPath,
@@ -36,12 +36,14 @@ interface SearchResultsViewProps {
  * The results can also be rendered two other ways: as a folder graph via the
  * "Graph" button, and — for the subset of results that are calendar files —
  * on the Calendar tab via the "Calendar" button. The refresh button re-runs the
- * search that produced the list, discarding the current results entirely. The active sort order (file
- * name, created time, or modified time) and direction are read from the store and
- * applied client-side on each render.
+ * search that produced the list, discarding the current results entirely. The
+ * results arrive already sorted by the search's chosen order (file name, created
+ * time, or modified time, and direction); when the result cap truncated them, the
+ * header says "Showing N of M".
  */
 function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const searchResults = useAS(s => s.searchResults);
+  const searchTotalMatches = useAS(s => s.searchTotalMatches);
   const searchQuery = useAS(s => s.searchQuery);
   const searchFolder = useAS(s => s.searchFolder);
   const searchName = useAS(s => s.searchName);
@@ -54,26 +56,10 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const [deleting, setDeleting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Sort results based on the selected sort option and direction
-  const sortedResults = [...searchResults].sort((a, b) => {
-    if (searchSortBy === 'file-name') {
-      const nameA = getFileName(a.relativePath) || a.relativePath;
-      const nameB = getFileName(b.relativePath) || b.relativePath;
-      const cmp = nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
-      return searchSortDirection === 'asc' ? cmp : -cmp;
-    }
-    let timeA: number;
-    let timeB: number;
-    if (searchSortBy === 'created-time') {
-      timeA = a.createdTime || 0;
-      timeB = b.createdTime || 0;
-    } else {
-      timeA = a.modifiedTime || 0;
-      timeB = b.modifiedTime || 0;
-    }
-    return searchSortDirection === 'asc' ? timeA - timeB : timeB - timeA;
-  });
-  // console.log('Sorted results:', sortedResults);
+  // Results arrive already in the chosen order: the main process sorts them
+  // (with compareSearchResults) before applying the result cap, and deleting a
+  // result keeps the rest in place, so there is nothing to re-sort here.
+  const truncated = searchTotalMatches > searchResults.length;
 
   // Font size CSS class mapping
   const fontSizeClass = {
@@ -143,8 +129,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
         // as selected or referenced in memory
         deleteItems([target.path]);
         // Remove the deleted file from search results
-        const updatedResults = searchResults.filter(r => r.path !== target.path);
-        setSearchResults(updatedResults, searchQuery, searchFolder);
+        removeSearchResult(target.path);
       })
       .catch((err: unknown) => {
         logger.error('Failed to delete file:', err);
@@ -289,14 +274,16 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
           <div className="space-y-2">
             {/* Results count */}
             <div className="text-sm text-slate-300 mb-4">
-              {searchResults.length} file{searchResults.length !== 1 ? 's' : ''} found
+              {truncated
+                ? <>Showing {searchResults.length} of {searchTotalMatches.toLocaleString()} files found</>
+                : <>{searchResults.length} file{searchResults.length !== 1 ? 's' : ''} found</>}
               <span className="ml-2 text-slate-300">
                 • Sorted by {searchSortBy === 'file-name' ? 'file name' : searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortBy === 'file-name' ? (searchSortDirection === 'asc' ? 'A–Z' : 'Z–A') : (searchSortDirection === 'asc' ? 'oldest first' : 'newest first')})
               </span>
             </div>
 
             {/* Results list */}
-            {sortedResults.map((result) => {
+            {searchResults.map((result) => {
               const highlighted = isHighlighted(result.path);
               const borderClass = highlighted
                 ? 'border-2 border-purple-500' : 'border border-slate-700 hover:border-slate-600';

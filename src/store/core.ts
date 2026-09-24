@@ -92,6 +92,7 @@ const initialState: AppState = {
   searchFolder: '',
   searchName: '',
   searchResults: [],
+  searchTotalMatches: 0,
   searchSortBy: 'modified-time',
   searchSortDirection: 'desc',
   lastSearchDefinition: null,
@@ -138,7 +139,7 @@ const initialState: AppState = {
 export const useAS = create<StoreState>()((set, get) => ({
   ...initialState,
   ...createAiConfigSlice(set, get),
-  ...createSearchSlice(set),
+  ...createSearchSlice(set, get),
   ...createCalendarSlice(set, get),
   ...createIndexTreeSlice(set, get),
   ...createSettingsSlice(set, get),

@@ -16,7 +16,7 @@ Mark items done by changing `[ ]` to `[*]`.
 - [*] **2. Search errors look like "No results found".**
   The `search-folder` handler (`src/main.ts:619-626`) catches every error and returns `[]`. So an advanced query that times out (the case the `AdvancedQueryTimeoutError` code is built for) just shows an empty result list. So does an advanced query with a syntax error (`search.ts:166-173`), and so does any unexpected failure. The comment on `executeSearch` says it "throws whatever the IPC call throws; callers report it", and every caller has a `'Search failed: '` error path, but none of those paths can ever run.
 
-- [ ] **3. When there are more than 500 hits, the user's sort order doesn't decide which 500 are kept.**
+- [*] **3. When there are more than 500 hits, the user's sort order doesn't decide which 500 are kept.**
   `searchFolder` sorts by name-match first, then match count, then keeps the top 500 (`search.ts:712-714`). The renderer re-sorts those 500 by the chosen time or name. So a broad search sorted "newest first" can quietly drop the newest files. The UI shows "500 files found" and gives no sign that anything was cut off.
 
 - [ ] **4. "Recent Files" treats file-name hits differently from content hits.**
@@ -57,12 +57,12 @@ Mark items done by changing `[ ]` to `[*]`.
 - [ ] **3. Make the dialog work with a `SearchDefinition` directly.** Right now `BrowseView` converts `SearchOptions` to a `SearchDefinition` twice (`handleSearch`, `handleSaveSearchDefinition`), and back again in `handleEditSearch` and `handleSelectSearchDefinition`. That's four hand-written field-by-field copies, and each new option has to be added to all of them.
 - [ ] **4. Pass an options object instead of 8 arguments.** Change `searchFolder` and the IPC call to `searchFolder(folder, def)`, and have the handler return `{ results, truncated, error? }`. That fixes bugs 2 and 3 and lets the UI show "showing 500 of N".
 - [ ] **5. Simplify the content branch of `searchFolder` (`search.ts:538-701`).** It currently has the calendar pre-pass, a name pass, two separate recent-file trims and three places that build `statCache`. A straight pipeline would do the same job: crawl, then calendar filter, then one recent-file trim over all candidates, then match on name and content. It's easier to follow, fixes bug 4, and only adds a stat of files that are already being stat'd.
-- [ ] **6. Sort once, in the main process, before the cut-off**, using the user's `sortBy`/`sortDirection`. The renderer's sort can then go, or move to a tested pure function in `shared/`.
+- [*] **6. Sort once, in the main process, before the cut-off**, using the user's `sortBy`/`sortDirection`. The renderer's sort can then go, or move to a tested pure function in `shared/`.
 - [ ] **7. Add a request token or generation counter** to `executeSearch`, and ignore results from older requests (fixes bug 7).
 - [ ] **8. Small cleanups:**
   - [ ] `wildcardToRegex` builds a regex with the `i` flag only for `search.ts:201` to rebuild it with `gi`. Build it once.
   - [ ] `globalHighlight.escapeRegExp` duplicates `escapeRegexLiteral` in `pathPattern.ts`.
-  - [ ] `setSearchResults` takes 6 positional parameters.
+  - [*] `setSearchResults` takes 6 positional parameters. (Replaced by `setSearchOutcome` and `removeSearchResult`.)
 
 ## What looks solid
 

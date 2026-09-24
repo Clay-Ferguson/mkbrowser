@@ -366,6 +366,12 @@ export interface AppState {
   searchResults: SearchResultItem[];
 
   /**
+   * How many files matched the most recent search before the result cap. Larger
+   * than `searchResults.length` when the results were truncated.
+   */
+  searchTotalMatches: number;
+
+  /**
    * Sort order applied to the current search results
    */
   searchSortBy: SearchSortBy;

@@ -18,7 +18,8 @@ import { fdir } from 'fdir';
 import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
 import { parseDateString, past, future, today } from '../shared/timeUtil';
-import { createContentSearcher } from '../shared/searchHelpers';
+import { createContentSearcher, compareSearchResults } from '../shared/searchHelpers';
+import type { SearchSortBy, SearchSortDirection } from '../shared/shared';
 import { compileAdvancedQuery, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
 import { isCalendarFrontMatter } from '../shared/calendarUtil';
@@ -439,7 +440,10 @@ async function buildResult(
  * Results are always bounded: the returned array is capped at SEARCH_RESULT_LIMIT
  * and when `mostRecent` is set the candidate set is first reduced to the
  * MOST_RECENT_LIMIT newest files. So no query — empty or not — can return an
- * unbounded result set.
+ * unbounded result set. The results are sorted by `sortBy`/`sortDirection`
+ * BEFORE the cap, so the ones kept are the ones that order puts first (e.g. the
+ * 500 newest for "modification time, newest first"), and `totalMatches` says
+ * how many there were before the cap.
  *
  * @param folderPath   - Root folder to search
  * @param query        - Search text or JavaScript expression (empty = match everything)
@@ -454,9 +458,13 @@ async function buildResult(
  *   with a parseable `due:` front-matter property). Applied *before* the mostRecent trim,
  *   and it also makes searchImageExif moot since an image can never be a calendar file.
  *   Ignored in 'filenames' mode (the Search dialog disables the option there).
- * @returns Array of SearchResult sorted by matchCount descending, capped at SEARCH_RESULT_LIMIT
+ * @param sortBy        - Result order (see compareSearchResults); decides which
+ *   results survive the cap. Defaults to the Search dialog's default.
+ * @param sortDirection - 'asc' or 'desc'
+ * @returns The results in the requested order, capped at SEARCH_RESULT_LIMIT,
+ *   plus the total number of matches before the cap
  */
-export async function searchFolder(
+export async function searchFolderWithTotal(
   folderPath: string,
   query: string,
   searchType: SearchType = 'literal',
@@ -465,7 +473,9 @@ export async function searchFolder(
   searchImageExif = false,
   mostRecent = false,
   calendarItemsOnly = false,
-): Promise<SearchResult[]> {
+  sortBy: SearchSortBy = 'modified-time',
+  sortDirection: SearchSortDirection = 'desc',
+): Promise<{ results: SearchResult[]; totalMatches: number }> {
   const yamlCache: YamlCache = new Map();
   const results: SearchResult[] = [];
   const shouldExcludePath = buildExcludePredicate(ignoredPaths);
@@ -735,20 +745,20 @@ export async function searchFolder(
     }
   }
 
-  // Sort name matches first, then by match count (descending), then cap to the hard
-  // ceiling. The slice keeps the top SEARCH_RESULT_LIMIT (for an empty query every
-  // entry has matchCount 1, so it's an arbitrary-but-bounded subset).
-  //
-  // Name matches lead because a filename hit is the most relevant kind of hit and
-  // its matchCount — occurrences within a short file name, usually 1 — would
-  // otherwise sink it below every content match and make it the first thing dropped
-  // by the cap. Only 'content' mode ever sets nameMatch, so this is a no-op for
-  // filenames mode.
   if (evaluatedCount > 0 && errorCount === evaluatedCount) {
     throw new Error(`Advanced search query failed on every file it was evaluated against: ${firstError}`);
   }
 
-  results.sort((a, b) =>
-    (b.nameMatch ? 1 : 0) - (a.nameMatch ? 1 : 0) || b.matchCount - a.matchCount);
-  return results.slice(0, SEARCH_RESULT_LIMIT);
+  // Sort by the user's chosen order, THEN cap, so the kept results are the ones
+  // that order puts first — capping first would silently drop, say, the newest
+  // matches from a "newest first" search.
+  results.sort(compareSearchResults(sortBy, sortDirection));
+  return { results: results.slice(0, SEARCH_RESULT_LIMIT), totalMatches: results.length };
+}
+
+/** {@link searchFolderWithTotal} without the total: just the capped, sorted results. */
+export async function searchFolder(
+  ...args: Parameters<typeof searchFolderWithTotal>
+): Promise<SearchResult[]> {
+  return (await searchFolderWithTotal(...args)).results;
 }

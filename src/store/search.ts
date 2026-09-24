@@ -1,10 +1,16 @@
-import type { HighlightedSearchResult, SearchDefinition, SearchResultItem, SearchSortBy, SearchSortDirection } from '../shared/types';
+import type { HighlightedSearchResult, SearchDefinition, SearchResultItem } from '../shared/types';
 import { getState } from './core';
-import type { StoreSet } from './core';
+import type { StoreGet, StoreSet } from './core';
 
 // ============================================================================
 // Search - results, query, and the persistent result highlight
 // ============================================================================
+
+/** The outcome of one search run: the (capped) results and the total match count. */
+export interface SearchOutcomeData {
+  results: SearchResultItem[];
+  totalMatches: number;
+}
 
 /**
  * Actions owned by this slice. Composed into the single store's state type in
@@ -12,15 +18,8 @@ import type { StoreSet } from './core';
  */
 export interface SearchSlice {
   setHighlightedSearchResult: (result: HighlightedSearchResult | null) => void;
-  setSearchResults: (
-    results: SearchResultItem[],
-    query: string,
-    folder: string,
-    sortBy?: SearchSortBy,
-    sortDirection?: SearchSortDirection,
-    searchName?: string
-  ) => void;
-  setLastSearchDefinition: (definition: SearchDefinition | null) => void;
+  setSearchOutcome: (folder: string, definition: SearchDefinition, outcome: SearchOutcomeData) => void;
+  removeSearchResult: (path: string) => void;
   clearSearchResults: () => void;
 }
 
@@ -29,32 +28,42 @@ export interface SearchSlice {
  * (not a `const`) so it is hoisted and safe under the core ↔ slice import
  * cycle regardless of module load order.
  */
-export function createSearchSlice(set: StoreSet): SearchSlice {
+export function createSearchSlice(set: StoreSet, get: StoreGet): SearchSlice {
   return {
     /** Set the highlighted search result (for persistent highlighting). */
     setHighlightedSearchResult: (result) => set({ highlightedSearchResult: result }),
 
-    /** Set search results along with the query and folder they came from. */
-    setSearchResults: (results, query, folder, sortBy, sortDirection, searchName) =>
+    /**
+     * Publish a completed search: its results and total, plus the folder and
+     * definition that produced them (the definition is what lets the Search
+     * Results refresh re-run the identical search). One atomic write, so the
+     * results are never visible alongside another search's parameters.
+     */
+    setSearchOutcome: (folder, definition, outcome) =>
       set({
-        searchResults: results,
-        searchQuery: query,
+        searchResults: outcome.results,
+        searchTotalMatches: outcome.totalMatches,
+        searchQuery: definition.searchText,
         searchFolder: folder,
-        ...(searchName !== undefined && { searchName }),
-        ...(sortBy !== undefined && { searchSortBy: sortBy }),
-        ...(sortDirection !== undefined && { searchSortDirection: sortDirection }),
+        searchName: definition.name,
+        searchSortBy: definition.sortBy,
+        searchSortDirection: definition.sortDirection,
+        lastSearchDefinition: definition,
       }),
 
-    /**
-     * Record the parameters that produced the current results, so the search
-     * can be re-executed from scratch (the Search Results refresh button).
-     */
-    setLastSearchDefinition: (definition) => set({ lastSearchDefinition: definition }),
+    /** Drop one result (its file was deleted), keeping the total in step. */
+    removeSearchResult: (path) => {
+      const state = get();
+      const searchResults = state.searchResults.filter(r => r.path !== path);
+      if (searchResults.length === state.searchResults.length) return;
+      set({ searchResults, searchTotalMatches: Math.max(0, state.searchTotalMatches - 1) });
+    },
 
     /** Clear search results. */
     clearSearchResults: () =>
       set({
         searchResults: [],
+        searchTotalMatches: 0,
         searchQuery: '',
         searchFolder: '',
         searchName: '',
@@ -72,19 +81,12 @@ export function setHighlightedSearchResult(result: HighlightedSearchResult | nul
   getState().setHighlightedSearchResult(result);
 }
 
-export function setSearchResults(
-  results: SearchResultItem[],
-  query: string,
-  folder: string,
-  sortBy?: SearchSortBy,
-  sortDirection?: SearchSortDirection,
-  searchName?: string
-): void {
-  getState().setSearchResults(results, query, folder, sortBy, sortDirection, searchName);
+export function setSearchOutcome(folder: string, definition: SearchDefinition, outcome: SearchOutcomeData): void {
+  getState().setSearchOutcome(folder, definition, outcome);
 }
 
-export function setLastSearchDefinition(definition: SearchDefinition | null): void {
-  getState().setLastSearchDefinition(definition);
+export function removeSearchResult(path: string): void {
+  getState().removeSearchResult(path);
 }
 
 export function clearSearchResults(): void {

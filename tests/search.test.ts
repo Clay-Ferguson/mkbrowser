@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
-import { searchFolder, createMatchPredicate, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/main/search';
+import { searchFolder, searchFolderWithTotal, createMatchPredicate, MOST_RECENT_LIMIT, SEARCH_RESULT_LIMIT } from '../src/main/search';
 import { AdvancedQueryTimeoutError, AdvancedQuerySyntaxError } from '../src/main/advancedQuery';
 import { createContentSearcher } from '../src/shared/searchHelpers';
 import { extractTimestamp, past, future, today, NO_TIMESTAMP } from '../src/shared/timeUtil';
@@ -48,10 +48,11 @@ describe('literal content search', () => {
     expect(repeated?.matchCount).toBe(7);
   });
 
-  it('returns results sorted by matchCount descending', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'apple', 'literal');
+  it('returns results newest first by default (the Search dialog default)', async () => {
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    expect(results.length).toBeGreaterThan(1);
     for (let i = 1; i < results.length; i++) {
-      expect(results[i - 1].matchCount).toBeGreaterThanOrEqual(results[i].matchCount);
+      expect(results[i - 1].modifiedTime ?? 0).toBeGreaterThanOrEqual(results[i].modifiedTime ?? 0);
     }
   });
 
@@ -622,14 +623,13 @@ describe('content+names search', () => {
     expect(names(filenameResults)).toEqual(['target-folder']);
   });
 
-  it('sorts name matches ahead of content matches with a higher matchCount', async () => {
-    const results = await searchFolder(dir, 'TARGET', 'literal', 'content');
-    // bulk.md has 5 content matches but must still come last: without this, a
-    // name hit (count 1) would be the first thing dropped by SEARCH_RESULT_LIMIT.
-    expect(results.map(r => path.basename(r.path)).at(-1)).toBe('bulk.md');
-    for (const r of results.slice(0, -1)) {
-      expect(r.nameMatch).toBe(true);
-    }
+  it('orders name matches and content matches together by the chosen sort', async () => {
+    // No relevance grouping: a name match gets no special position, so bulk.md
+    // (the one content match) sorts by name among the name matches.
+    const results = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, false, false, 'file-name', 'asc');
+    const basenames = results.map(r => path.basename(r.path));
+    expect(basenames).toContain('bulk.md');
+    expect(basenames).toEqual([...basenames].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })));
   });
 
   it('wildcard queries match names too', async () => {
@@ -846,37 +846,25 @@ describe('result metadata', () => {
     }
   });
 
-  it('results sorted by name matches first, then matchCount descending (all modes)', async () => {
-    // The ordering contract: in 'content' mode name matches lead (a filename hit is
-    // the most relevant kind, and its name-scoped matchCount would otherwise sink it
-    // below every content hit and make it the first casualty of the result cap);
-    // within each group, matchCount descending.
-    const assertOrdered = (results: { matchCount: number; nameMatch?: boolean }[]) => {
+  it('results come back in the requested sort order (all modes)', async () => {
+    const byName = (r: { relativePath: string }) => path.basename(r.relativePath);
+    const cases = [
+      await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal', 'content', [], false, false, false, 'file-name', 'asc'),
+      await searchFolder(TEST_DATA_DIR, 'hel*', 'wildcard', 'content', [], false, false, false, 'file-name', 'asc'),
+      await searchFolder(TEST_DATA_DIR, 'entry', 'literal', 'filenames', [], false, false, false, 'file-name', 'asc'),
+    ];
+    for (const results of cases) {
+      expect(results.length).toBeGreaterThan(1);
       for (let i = 1; i < results.length; i++) {
-        const prev = results[i - 1];
-        const cur = results[i];
-        // A name match must never follow a content match.
-        expect(!!prev.nameMatch || !cur.nameMatch).toBe(true);
-        if (!!prev.nameMatch === !!cur.nameMatch) {
-          expect(prev.matchCount).toBeGreaterThanOrEqual(cur.matchCount);
-        }
+        expect(byName(results[i - 1]).localeCompare(byName(results[i]), undefined, { sensitivity: 'base' }))
+          .toBeLessThanOrEqual(0);
       }
-    };
-
-    // Content search (literal) — 'apple' matches no file name, so this is a pure
-    // matchCount ordering check.
-    assertOrdered(await searchFolder(TEST_DATA_DIR, 'apple', 'literal'));
-
-    // Content search (wildcard) — 'hel*' matches both names (hello-world.md,
-    // help-wanted.md) and contents, so it exercises the two-group ordering.
-    assertOrdered(await searchFolder(TEST_DATA_DIR, 'hel*', 'wildcard'));
-
-    // Filename search — never sets nameMatch, so ordering is matchCount only.
-    const filenameResults = await searchFolder(TEST_DATA_DIR, 'entry', 'literal', 'filenames');
-    for (const r of filenameResults) {
-      expect(r.nameMatch).toBeUndefined();
     }
-    assertOrdered(filenameResults);
+
+    const oldestFirst = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal', 'content', [], false, false, false, 'modified-time', 'asc');
+    for (let i = 1; i < oldestFirst.length; i++) {
+      expect(oldestFirst[i - 1].modifiedTime ?? 0).toBeLessThanOrEqual(oldestFirst[i].modifiedTime ?? 0);
+    }
   });
 });
 
@@ -1572,6 +1560,46 @@ describe('result cap', () => {
   it('caps a matching content search at SEARCH_RESULT_LIMIT', async () => {
     const results = await searchFolder(dir, 'CAP_MARKER', 'literal', 'content');
     expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
+  });
+
+  it('reports the total number of matches before the cap', async () => {
+    const { results, totalMatches } = await searchFolderWithTotal(dir, 'CAP_MARKER', 'literal', 'content');
+    expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
+    expect(totalMatches).toBe(TOTAL);
+  });
+
+  it('reports a total equal to the result count when nothing was cut', async () => {
+    const { results, totalMatches } = await searchFolderWithTotal(TEST_DATA_DIR, 'apple', 'literal');
+    expect(totalMatches).toBe(results.length);
+  });
+
+  it('keeps the results the chosen sort puts first', async () => {
+    // File names are zero-padded, so name order is f-00000 … f-00509. Sorting
+    // A–Z must keep the first 500; Z–A must keep the last 500.
+    const asc = await searchFolder(dir, 'CAP_MARKER', 'literal', 'content', [], false, false, false, 'file-name', 'asc');
+    expect(path.basename(asc[0].path)).toBe('f-00000.md');
+    expect(path.basename(asc.at(-1)!.path)).toBe(`f-${String(SEARCH_RESULT_LIMIT - 1).padStart(5, '0')}.md`);
+
+    const desc = await searchFolder(dir, 'CAP_MARKER', 'literal', 'content', [], false, false, false, 'file-name', 'desc');
+    expect(path.basename(desc[0].path)).toBe(`f-${String(TOTAL - 1).padStart(5, '0')}.md`);
+    expect(path.basename(desc.at(-1)!.path)).toBe(`f-${String(EXTRA).padStart(5, '0')}.md`);
+  });
+
+  it('keeps the newest matches for a newest-first search', async () => {
+    // Give the EXTRA highest-numbered files the oldest mtimes. Newest-first must
+    // then drop exactly those.
+    const old = new Date('2001-01-01T00:00:00Z');
+    const dropped = new Set<string>();
+    for (let i = SEARCH_RESULT_LIMIT; i < TOTAL; i++) {
+      const name = `f-${String(i).padStart(5, '0')}.md`;
+      fs.utimesSync(path.join(dir, name), old, old);
+      dropped.add(name);
+    }
+    const results = await searchFolder(dir, 'CAP_MARKER', 'literal', 'content', [], false, false, false, 'modified-time', 'desc');
+    expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
+    for (const r of results) {
+      expect(dropped.has(path.basename(r.path))).toBe(false);
+    }
   });
 
   it('bounds an empty query (mostRecent=false) at SEARCH_RESULT_LIMIT', async () => {
