@@ -1236,6 +1236,46 @@ describe('advanced predicate with real helper implementations', () => {
   });
 });
 
+describe('tag() whole-hashtag matching', () => {
+  const content = [
+    '#todo first line',
+    'mid-line #todo and #todo-later and #todos',
+    'not a tag: foo#todo, and #Todo differs in case',
+  ].join('\n');
+
+  it('counts only whole, exact tags', () => {
+    const { tag, getMatchCount } = createContentSearcher(content);
+    expect(tag('#todo')).toBe(true);
+    // Two whole #todo tags: line start and after whitespace. Not #todo-later,
+    // #todos, foo#todo (no whitespace before) or #Todo (different case).
+    expect(getMatchCount()).toBe(2);
+  });
+
+  it('accepts the tag with or without the leading #', () => {
+    expect(createContentSearcher(content).tag('todo-later')).toBe(true);
+    expect(createContentSearcher(content).tag('#todos')).toBe(true);
+  });
+
+  it('is case-sensitive, like the Folder Analysis counts', () => {
+    expect(createContentSearcher(content).tag('#Todo')).toBe(true);
+    expect(createContentSearcher('#Todo only').tag('#todo')).toBe(false);
+  });
+
+  it('a tag that only appears as a prefix of longer tags is not found', () => {
+    expect(createContentSearcher('#foobar #foo-bar').tag('#foo')).toBe(false);
+    expect(createContentSearcher('').tag('')).toBe(false);
+  });
+
+  it('works inside an advanced query, e.g. from a Ctrl+clicked hashtag', () => {
+    const predicate = createMatchPredicate('tag("#todo")', 'advanced');
+    expect(predicate('#todo item').matches).toBe(true);
+    expect(predicate('#todos only').matches).toBe(false);
+    const combined = createMatchPredicate("tag('#urgent') && !tag('#done')", 'advanced');
+    expect(combined('#urgent').matches).toBe(true);
+    expect(combined('#urgent #done').matches).toBe(false);
+  });
+});
+
 // ─── Section 10: createContentSearcher Unit Tests ───────────────────────────
 
 describe('createContentSearcher', () => {

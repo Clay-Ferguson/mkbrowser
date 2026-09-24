@@ -5,6 +5,7 @@
  */
 
 import type { SearchSortBy, SearchSortDirection } from './shared';
+import { HASHTAG_REGEX } from './regexPatterns';
 
 /** The fields of a search result that the result ordering reads. */
 interface SortableSearchResult {
@@ -73,14 +74,21 @@ export function parseIgnoredPaths(raw: string): string[] {
 }
 
 /**
- * Creates a search function that checks if content contains given text (case-insensitive)
- * and tracks the total number of matches found.
+ * Creates the content-matching helpers for an advanced query against one file,
+ * and tracks the total number of matches found:
+ *  - `$(text)` — the content contains `text` (case-insensitive substring).
+ *  - `tag(hashtag)` — the content contains exactly that hashtag as a whole tag:
+ *    `tag('#foo')` (or `tag('foo')`) matches `#foo` but not `#foobar`. Tags are
+ *    found with HASHTAG_REGEX, the same rule Folder Analysis counts with, and
+ *    compared case-sensitively as Analysis does — so a tag's search hits line up
+ *    with its count there.
  *
  * @param content - The text content to search within
- * @returns An object containing the search function and match count getter
+ * @returns The helpers and a match count getter
  */
 export function createContentSearcher(content: string): {
   $: (searchText: string) => boolean;
+  tag: (hashtag: string) => boolean;
   getMatchCount: () => number;
 } {
   const contentLower = content.toLowerCase();
@@ -108,9 +116,26 @@ export function createContentSearcher(content: string): {
     return false;
   };
 
+  // Occurrences of each hashtag in the content, built on the first tag() call
+  // (one scan, however many tags the query tests).
+  let tagCounts: Map<string, number> | null = null;
+  const tag = (hashtag: string): boolean => {
+    const wanted = hashtag.startsWith('#') ? hashtag : `#${hashtag}`;
+    if (!tagCounts) {
+      tagCounts = new Map();
+      // A private copy: HASHTAG_REGEX is a shared /g regex with mutable lastIndex.
+      for (const m of content.matchAll(new RegExp(HASHTAG_REGEX.source, 'g'))) {
+        tagCounts.set(m[0], (tagCounts.get(m[0]) ?? 0) + 1);
+      }
+    }
+    const count = tagCounts.get(wanted) ?? 0;
+    matchCount += count;
+    return count > 0;
+  };
+
   const getMatchCount = (): number => matchCount;
 
-  return { $, getMatchCount };
+  return { $, tag, getMatchCount };
 }
 
 /**

@@ -396,11 +396,14 @@ function App() {
 
   const handleSearchHashtag = (hashtag: string, ctrlKey: boolean) => {
     if (!currentPath) return;
-    // Ctrl-click searches for the hashtag as an advanced expression (whole-tag
-    // match) rather than as literal text.
+    // A plain click is a literal search: case-insensitive, substring (so #foo
+    // also finds #foobar), and it matches file names too. Ctrl+click runs the
+    // advanced tag() search instead — whole tag, case-sensitive, contents only —
+    // which finds exactly the occurrences the Analysis tab counted. The tag is
+    // JSON-encoded so any character in it is a valid JS string literal.
     const definition: SearchDefinition = {
       name: '',
-      searchText: ctrlKey ? `$("${hashtag}")` : hashtag,
+      searchText: ctrlKey ? `tag(${JSON.stringify(hashtag)})` : hashtag,
       searchTarget: 'content',
       searchMode: ctrlKey ? 'advanced' : 'literal',
       sortBy: 'modified-time',

@@ -174,7 +174,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
               data-testid="search-query-input"
               rows={4}
               className={`w-full ${DLG_INPUT_CLASS_BASE} font-mono resize-none border-slate-600 focus:border-blue-500 min-h-[80px]`}
-              placeholder={searchType === 'advanced' ? 'Functions: $, past, future, today' : searchType === 'wildcard' ? 'intro*duction' : 'Enter search text...'}
+              placeholder={searchType === 'advanced' ? 'Functions: $, tag, prop, past, future, today' : searchType === 'wildcard' ? 'intro*duction' : 'Enter search text...'}
             />
 
             <div className="flex items-center gap-6 mb-3 mt-3">
@@ -283,7 +283,7 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                 <> Use <code className="bg-slate-700 px-1 rounded">*</code> to match any characters.</>
               )}
               {searchType === 'advanced' && (
-                <> Uses the <code className="bg-slate-700 px-1 rounded">$(&quot;text&quot;)</code> function, or past(ts), future(ts), future(ts, days), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code>.</>
+                <> Uses the <code className="bg-slate-700 px-1 rounded">$(&quot;text&quot;)</code> function, <code className="bg-slate-700 px-1 rounded">tag(&quot;#name&quot;)</code> for a whole hashtag, or past(ts), future(ts), future(ts, days), today(ts). Combine with <code className="bg-slate-700 px-1 rounded">&&</code> and <code className="bg-slate-700 px-1 rounded">||</code>.</>
               )}
               {' '}Press <code className="bg-slate-700 px-1 rounded">Ctrl+Enter</code> to search.
             </p>

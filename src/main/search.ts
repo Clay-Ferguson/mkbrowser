@@ -190,10 +190,10 @@ export function createMatchPredicate(
 
     return (content: string, filePath?: string) => {
       if (timedOut) throw timedOut;
-      const { $, getMatchCount } = createContentSearcher(content);
+      const { $, tag, getMatchCount } = createContentSearcher(content);
       const prop = createPropFunction(cache, content, filePath);
       try {
-        const matches = evalFunction({ $, prop, past, future, today });
+        const matches = evalFunction({ $, tag, prop, past, future, today });
         const matchCount = getMatchCount();
         return {
           matches,

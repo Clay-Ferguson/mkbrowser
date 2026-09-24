@@ -5,7 +5,7 @@
  * folder-analysis, folder-graph and calendar-watcher modules.
  *
  * This module must NOT import Node.js or browser/React APIs so it can be
- * bundled into both the main and renderer processes (mirrors hashtagRegex.ts).
+ * bundled into both the main and renderer processes (mirrors regexPatterns.ts).
  */
 
 /** Characters with special meaning in a regex, including `*`. */

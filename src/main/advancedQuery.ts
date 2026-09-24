@@ -8,8 +8,8 @@
  *
  * The sandbox works because NO host object is ever reachable from the query:
  * every known vm escape starts from a host reference (host `Function` via
- * `someHostObject.constructor.constructor`, etc.). The search helpers ($, prop,
- * past, future, today) are defined *inside* the sandbox realm as thin wrappers
+ * `someHostObject.constructor.constructor`, etc.). The search helpers ($, tag,
+ * prop, past, future, today) are defined *inside* the sandbox realm as thin wrappers
  * that call a single host dispatcher, and only primitives cross the boundary in
  * either direction (objects from `prop` are JSON round-tripped; host errors are
  * re-thrown as primitive strings). The sandbox's own intrinsics (its `Function`,
@@ -35,6 +35,7 @@ const EVAL_TIMEOUT_MS = 1000;
 /** Host-side helpers the sandboxed query calls back into, rebound per file. */
 export interface AdvancedQueryHost {
   $: (searchText: string) => boolean;
+  tag: (hashtag: string) => boolean;
   prop: (propPath: string, valType?: 'string' | 'ts') => unknown;
   past: (timestamp: number, lookbackDays?: number) => boolean;
   future: (timestamp: number, lookaheadDays?: number) => boolean;
@@ -69,7 +70,7 @@ export class AdvancedQueryRuntimeError extends Error {
   }
 }
 
-/** Defines $, prop, past, future, today inside the sandbox realm as wrappers
+/** Defines $, tag, prop, past, future, today inside the sandbox realm as wrappers
  * around the host dispatcher, then removes the dispatcher from the global so
  * query code can only reach it through these frozen wrappers. Runs once per
  * compiled query. */
@@ -82,6 +83,7 @@ const BOOTSTRAP = `
     value: fn, writable: false, configurable: false, enumerable: true,
   });
   def('$', (text) => call('$', String(text)));
+  def('tag', (hashtag) => call('tag', String(hashtag)));
   def('past', (ts, days) => call('past', Number(ts), days === undefined ? undefined : Number(days)));
   def('future', (ts, days) => call('future', Number(ts), days === undefined ? undefined : Number(days)));
   def('today', (ts) => call('today', Number(ts)));
@@ -153,6 +155,8 @@ export function compileAdvancedQuery(queryStr: string): (host: AdvancedQueryHost
       switch (name) {
         case '$':
           return h.$(String(a0));
+        case 'tag':
+          return h.tag(String(a0));
         case 'past':
           return h.past(Number(a0), a1 === undefined ? undefined : Number(a1));
         case 'future':

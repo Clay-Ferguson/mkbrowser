@@ -706,6 +706,8 @@ In **Advanced Mode**, you can write JavaScript-like expressions to filter files.
 
 *   **`$('text')`**: Returns `true` if the file content contains the text "text" (case-insensitive).
     *   Example: `$('important')` finds files containing "important".
+*   **`tag('#name')`**: Returns `true` if the file content contains the hashtag `#name` as a whole tag — `tag('#todo')` matches `#todo` but not `#todos` or `#todo-later`. The `#` is optional (`tag('todo')` works too), and the match is case-sensitive. Tags are recognized exactly as the Folder Analysis counts them: a `#` at the start of a line or after whitespace, followed by a letter and then letters, digits, `_` or `-`.
+    *   Example: `tag('#urgent') && !tag('#done')` finds files tagged urgent but not done.
 *   **`ts`**: A pre-existing variable containing the first date/timestamp found in the file (format: MM/DD/YYYY). Returns a number representing the date in milliseconds, or 0 if no timestamp is found.
 *   **`past(date, lookbackDays?)`**: Returns `true` if the date is in the past. The optional `lookbackDays` parameter limits results to timestamps within the specified number of days ago (e.g., `past(ts, 7)` matches timestamps from the last 7 days).
 *   **`future(date, lookaheadDays?)`**: Returns `true` if the date is in the future. The optional `lookaheadDays` parameter limits results to timestamps within the specified number of days ahead (e.g., `future(ts, 30)` matches timestamps within the next 30 days).
@@ -882,8 +884,8 @@ After running an analysis, an **Analysis** tab appears in the tab bar at the top
 
 In the Analysis results list, every hashtag is a clickable button:
 
-- **Click** a hashtag to run a literal content search for that tag and switch to the Search Results tab.
-- **Ctrl+Click** a hashtag to run an advanced-mode search (`$("hashtag")`) instead, which uses the full expression evaluator and can be combined with other predicates.
+- **Click** a hashtag to run a literal search for its text and switch to the Search Results tab. Like any literal search, this matches the text anywhere (so `#foo` also finds `#foobar`), ignores case, and also matches file names.
+- **Ctrl+Click** a hashtag to search for exactly that tag instead: an advanced-mode `tag("#foo")` search, which finds only whole `#foo` tags in file contents — the same occurrences the Analysis counted. To combine a tag with other conditions, type a `tag(...)` expression yourself in the Search dialog's Advanced mode (see Advanced Search Predicates).
 
 # Folder Graph
 

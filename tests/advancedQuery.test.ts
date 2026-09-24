@@ -13,6 +13,7 @@ import { compileAdvancedQuery, AdvancedQueryTimeoutError, AdvancedQuerySyntaxErr
 function makeHost(content = '', props: Record<string, unknown> = {}): AdvancedQueryHost {
   return {
     $: (t) => content.includes(t),
+    tag: (t) => content.split(/\s+/).includes(t),
     prop: (path, valType) => (valType === 'ts' ? Number.NaN : props[path]),
     past: (ts) => !Number.isNaN(ts) && ts < Date.now(),
     future: (ts) => !Number.isNaN(ts) && ts > Date.now(),
@@ -114,6 +115,12 @@ describe('helper bridge', () => {
     expect(evalQuery("$('quick') && !$('zebra')", host)).toBe(true);
     expect(evalQuery("$('zebra') || $('fox')", host)).toBe(true);
     expect(evalQuery("$('zebra')", host)).toBe(false);
+  });
+
+  it('tag crosses the bridge and returns the host result', () => {
+    const host = makeHost('notes #todo here');
+    expect(evalQuery("tag('#todo')", host)).toBe(true);
+    expect(evalQuery("tag('#done')", host)).toBe(false);
   });
 
   it('prop returns primitives, nested objects, and arrays intact', () => {

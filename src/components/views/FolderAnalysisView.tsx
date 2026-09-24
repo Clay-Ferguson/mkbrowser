@@ -11,8 +11,9 @@ interface FolderAnalysisViewProps {
 /**
  * Displays the results of a folder hashtag analysis: total files scanned and a
  * sorted list of every unique hashtag with its occurrence count. Each hashtag is
- * a clickable button — a plain click triggers a file-name search, and Ctrl+click
- * triggers a line-by-line search via the `onSearchHashtag` callback.
+ * a clickable button (via the `onSearchHashtag` callback): a plain click runs a
+ * literal search (substring, so #foo also finds #foobar, and file names match
+ * too), and Ctrl+click runs an advanced tag("#foo") search for the whole tag.
  */
 function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
   const folderAnalysis = useAS(s => s.folderAnalysis);
@@ -36,7 +37,7 @@ function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
             Scanned <span className="text-slate-300 font-medium">{totalFiles}</span> file{totalFiles !== 1 ? 's' : ''} in{' '}
             <span className="text-slate-300 font-mono text-xs">{folderPath}</span>
           </p>
-          <p className="text-xs text-slate-500 mt-1">Click for File Search. CTRL-Click for Line-by-Line Search</p>
+          <p className="text-xs text-slate-500 mt-1">Click to search for the text. Ctrl+Click to search for the exact tag.</p>
         </div>
 
         {/* Hashtags section */}
@@ -57,7 +58,7 @@ function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
                   type="button"
                   onClick={(e) => onSearchHashtag(entry.tag, e.ctrlKey)}
                   className={BUTTON_CLASS_ROW}
-                  title={`Search for ${entry.tag} (Ctrl+click for advanced search)`}
+                  title={`Search for ${entry.tag} (Ctrl+click for the exact tag)`}
                 >
                   <span className="text-blue-400 font-mono text-sm">{entry.tag}</span>
                   <span className="text-slate-400 text-sm tabular-nums">
