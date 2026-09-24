@@ -391,7 +391,7 @@ export interface ElectronAPI {
   openExternal: (filePath: string) => Promise<boolean>;
   openExternalUrl: (url: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
-  searchFolder: (folderPath: string, query: string, matchType?: SearchMatchType, target?: SearchTarget, searchImageExif?: boolean, mostRecent?: boolean, calendarItemsOnly?: boolean, sortBy?: SearchSortBy, sortDirection?: SearchSortDirection) => Promise<SearchOutcome>;
+  searchFolder: (folderPath: string, definition: SearchDefinition) => Promise<SearchOutcome>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;
   loadCalendarEvents: (folderPath: string) => Promise<CalendarEventResult[]>;

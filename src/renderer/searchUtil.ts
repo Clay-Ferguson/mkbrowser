@@ -60,17 +60,7 @@ export async function executeSearch(folder: string, definition: SearchDefinition
   const searchId = ++latestSearchId;
   let outcome: SearchOutcome;
   try {
-    outcome = await api.searchFolder(
-      folder,
-      definition.searchText,
-      definition.matchType,
-      definition.target,
-      definition.searchImageExif,
-      definition.mostRecent,
-      definition.calendarItemsOnly,
-      definition.sortBy,
-      definition.sortDirection
-    );
+    outcome = await api.searchFolder(folder, definition);
   } catch (err) {
     if (searchId !== latestSearchId) return false;
     throw new Error(ipcErrorMessage(err));

@@ -50,6 +50,13 @@ describe('executeSearch', () => {
     expect(useAS.getState().searchResults.map(r => r.path)).toEqual(['/a.md']);
   });
 
+  it('sends the whole definition to the main process', async () => {
+    searchFolder.mockResolvedValueOnce(outcome('/a.md'));
+    const definition = { ...def('a'), matchType: 'wildcard' as const, mostRecent: true };
+    await executeSearch('/root', definition);
+    expect(searchFolder).toHaveBeenCalledWith('/root', definition);
+  });
+
   it('an older search that finishes last does not overwrite a newer one', async () => {
     const slow = deferred<SearchOutcome>();
     const fast = deferred<SearchOutcome>();

@@ -21,7 +21,7 @@ import * as ExifReader from 'exifreader';
 import { loadYaml } from '../shared/yamlUtil';
 import { parseDateString, past, future, today } from '../shared/timeUtil';
 import { createContentSearcher, compareSearchResults } from '../shared/searchHelpers';
-import type { SearchMatchType, SearchTarget, SearchSortBy, SearchSortDirection } from '../shared/shared';
+import type { SearchDefinition, SearchMatchType } from '../shared/shared';
 import { compileAdvancedQuery, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
 import { isCalendarFrontMatter } from '../shared/calendarUtil';
@@ -449,6 +449,16 @@ async function buildResult(
 }
 
 /**
+ * The options of a folder search: the fields of a saved search that shape it
+ * (all but its name and query), plus the ignored-path patterns and a signal
+ * that cancels it. A whole SearchDefinition can be passed as-is.
+ */
+export type SearchFolderOptions = Partial<Omit<SearchDefinition, 'name' | 'searchText'>> & {
+  ignoredPaths?: string[];
+  signal?: AbortSignal;
+};
+
+/**
  * Search a folder for files matching the given query.
  *
  * Empty-query contract: an empty/whitespace `query` is a deliberate "match every
@@ -466,24 +476,25 @@ async function buildResult(
  *
  * @param folderPath   - Root folder to search
  * @param query        - Search text or JavaScript expression (empty = match everything)
- * @param matchType    - 'literal' | 'wildcard' | 'advanced'
- * @param target       - 'content' (file bodies OR file names — see the module header;
+ * @param options      - Every field is optional and defaults to the Search dialog's default:
+ * - `matchType` — 'literal' | 'wildcard' | 'advanced'
+ * - `target` — 'content' (file bodies OR file names — see the module header;
  *   the name half is skipped for 'advanced', which stays content-only) or 'filenames'
  *   (file *and folder* names only)
- * @param ignoredPaths - Array of path patterns to exclude (supports wildcards)
- * @param searchImageExif - Whether to include image files and search their EXIF metadata
- * @param mostRecent   - Whether to limit search to the 500 most recently modified files.
+ * - `ignoredPaths` — path patterns to exclude (supports wildcards)
+ * - `searchImageExif` — whether to include image files and search their EXIF metadata
+ * - `mostRecent` — whether to limit search to the 500 most recently modified files.
  *   In 'content' mode those are the 500 newest content files (.md/.txt, plus images
  *   with searchImageExif), and both name and content matching run inside that set;
  *   in 'filenames' mode, the 500 newest files and folders.
- * @param calendarItemsOnly - Whether to restrict the search to calendar files (markdown
+ * - `calendarItemsOnly` — whether to restrict the search to calendar files (markdown
  *   with a parseable `due:` front-matter property). Applied *before* the mostRecent trim,
  *   and it also makes searchImageExif moot since an image can never be a calendar file.
  *   Ignored in 'filenames' mode (the Search dialog disables the option there).
- * @param sortBy        - Result order (see compareSearchResults); decides which
- *   results survive the cap. Defaults to the Search dialog's default.
- * @param sortDirection - 'asc' or 'desc'
- * @param signal        - Cancels the search: it is checked after each crawl and
+ * - `sortBy` — result order (see compareSearchResults); decides which
+ *   results survive the cap
+ * - `sortDirection` — 'asc' or 'desc'
+ * - `signal` — cancels the search: it is checked after each crawl and
  *   before each file is stat'd, read or matched, and an abort rejects the search
  *   with the signal's reason. Partial results are never returned.
  * @returns The results in the requested order, capped at SEARCH_RESULT_LIMIT,
@@ -492,15 +503,17 @@ async function buildResult(
 export async function searchFolderWithTotal(
   folderPath: string,
   query: string,
-  matchType: SearchMatchType = 'literal',
-  target: SearchTarget = 'content',
-  ignoredPaths: string[] = [],
-  searchImageExif = false,
-  mostRecent = false,
-  calendarItemsOnly = false,
-  sortBy: SearchSortBy = 'modified-time',
-  sortDirection: SearchSortDirection = 'desc',
-  signal?: AbortSignal,
+  {
+    matchType = 'literal',
+    target = 'content',
+    ignoredPaths = [],
+    searchImageExif = false,
+    mostRecent = false,
+    calendarItemsOnly = false,
+    sortBy = 'modified-time',
+    sortDirection = 'desc',
+    signal,
+  }: SearchFolderOptions = {},
 ): Promise<{ results: SearchResult[]; totalMatches: number }> {
   signal?.throwIfAborted();
   // fdir's withAbortSignal needs a real signal; one that never aborts stands in.

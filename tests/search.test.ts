@@ -19,7 +19,7 @@ beforeAll(async () => {
 describe('literal content search', () => {
   it('finds files containing a unique literal string', async () => {
     // "ALPHA-DUPLICATE-MARKER" appears only in the three duplicate files
-    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' });
 
     const paths = results.map(r => r.relativePath).sort();
     expect(paths).toEqual([
@@ -36,20 +36,20 @@ describe('literal content search', () => {
 
   it('is case-insensitive', async () => {
     // Search for "alpha-duplicate-marker" (lowercase) — should still find the 3 files
-    const results = await searchFolder(TEST_DATA_DIR, 'alpha-duplicate-marker', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'alpha-duplicate-marker', { matchType: 'literal' });
     expect(results).toHaveLength(3);
   });
 
   it('counts multiple occurrences within a file', async () => {
     // "apple" appears 7 times in multi-match/repeated.md
-    const results = await searchFolder(TEST_DATA_DIR, 'apple', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'apple', { matchType: 'literal' });
     const repeated = results.find(r => r.relativePath === rel('multi-match', 'repeated.md'));
     expect(repeated).toBeDefined();
     expect(repeated?.matchCount).toBe(7);
   });
 
   it('returns results newest first by default (the Search dialog default)', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' });
     expect(results.length).toBeGreaterThan(1);
     for (let i = 1; i < results.length; i++) {
       expect(results[i - 1].modifiedTime ?? 0).toBeGreaterThanOrEqual(results[i].modifiedTime ?? 0);
@@ -57,7 +57,7 @@ describe('literal content search', () => {
   });
 
   it('does not return files that have no match', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' });
     const noMatchFile = results.find(r => r.relativePath === rel('multi-match', 'no-match.md'));
     expect(noMatchFile).toBeUndefined();
   });
@@ -65,7 +65,7 @@ describe('literal content search', () => {
   it('only searches .md and .txt files for content', async () => {
     // "search" appears in data/config.json and data/settings.yaml, but those
     // should NOT be searched. It does appear in several .md/.txt files though.
-    const results = await searchFolder(TEST_DATA_DIR, 'should not appear', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'should not appear', { matchType: 'literal' });
     const jsonFile = results.find(r => r.relativePath === rel('data', 'config.json'));
     const yamlFile = results.find(r => r.relativePath === rel('data', 'settings.yaml'));
     expect(jsonFile).toBeUndefined();
@@ -74,14 +74,14 @@ describe('literal content search', () => {
 
   it('searches recursively through nested directories', async () => {
     // "recursive search" appears in nested/deep/structure/deep-file.md
-    const results = await searchFolder(TEST_DATA_DIR, 'recursive search', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'recursive search', { matchType: 'literal' });
     expect(results.length).toBeGreaterThanOrEqual(1);
     const deepFile = results.find(r => r.relativePath === rel('nested', 'deep', 'structure', 'deep-file.md'));
     expect(deepFile).toBeDefined();
   });
 
   it('returns empty array when no files match', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'xyzzy_nonexistent_string_42', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'xyzzy_nonexistent_string_42', { matchType: 'literal' });
     expect(results).toEqual([]);
   });
 
@@ -92,21 +92,21 @@ describe('literal content search', () => {
     // indexOf always returns 0 and never advances. Let's just verify no crash.
     // Actually, with empty string the loop would be infinite. Let's search for
     // a single space instead which is a reasonable edge case.
-    const results = await searchFolder(TEST_DATA_DIR, ' ', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, ' ', { matchType: 'literal' });
     // Most files contain spaces, so we should get many results
     expect(results.length).toBeGreaterThan(0);
   });
 
   it('finds matches in .txt files', async () => {
     // "Goroutines" appears twice (case-insensitive) in topics/programming/go.txt
-    const results = await searchFolder(TEST_DATA_DIR, 'Goroutines', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'Goroutines', { matchType: 'literal' });
     expect(results).toHaveLength(1);
     expect(results[0].relativePath).toBe(rel('topics', 'programming', 'go.txt'));
     expect(results[0].matchCount).toBe(2);
   });
 
   it('includes path and relativePath in results', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'banana', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'banana', { matchType: 'literal' });
     expect(results.length).toBeGreaterThanOrEqual(1);
     const r = results[0];
     expect(r.path).toContain(TEST_DATA_DIR);
@@ -127,7 +127,7 @@ describe('wildcard content search', () => {
     // hel*world matches hello-world.md's CONTENT ("Hello World", "hello world",
     // and "hello_world and helloWorld" merged into one greedy match = 3) *and* its
     // name, so the name half wins and the body is never read.
-    const results = await searchFolder(TEST_DATA_DIR, 'hel*world', 'wildcard');
+    const results = await searchFolder(TEST_DATA_DIR, 'hel*world', { matchType: 'wildcard' });
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
     expect(hw!.nameMatch).toBe(true);
@@ -140,7 +140,7 @@ describe('wildcard content search', () => {
 
   it('matches wildcard at start of pattern', async () => {
     // *world matches up to 25 chars before "world" — here in the file's name.
-    const results = await searchFolder(TEST_DATA_DIR, '*world', 'wildcard');
+    const results = await searchFolder(TEST_DATA_DIR, '*world', { matchType: 'wildcard' });
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
     expect(hw!.nameMatch).toBe(true);
@@ -148,7 +148,7 @@ describe('wildcard content search', () => {
 
   it('matches wildcard at end of pattern', async () => {
     // hello* matches "hello" followed by up to 25 chars.
-    const results = await searchFolder(TEST_DATA_DIR, 'hello*', 'wildcard');
+    const results = await searchFolder(TEST_DATA_DIR, 'hello*', { matchType: 'wildcard' });
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
     expect(hw!.nameMatch).toBe(true);
@@ -156,7 +156,7 @@ describe('wildcard content search', () => {
 
   it('matches multiple wildcards in pattern', async () => {
     // c*t*mat → /c.{0,25}t.{0,25}mat/i matches "cat sat on the mat"
-    const results = await searchFolder(TEST_DATA_DIR, 'c*t*mat', 'wildcard');
+    const results = await searchFolder(TEST_DATA_DIR, 'c*t*mat', { matchType: 'wildcard' });
     const mw = results.find(r => r.relativePath === rel('wildcard-testing', 'multi-wildcard.md'));
     expect(mw).toBeDefined();
     expect(mw?.matchCount).toBeGreaterThanOrEqual(1);
@@ -164,19 +164,19 @@ describe('wildcard content search', () => {
 
   it('enforces 25-char limit per wildcard segment', async () => {
     // ALPHA*OMEGA — gap is 28 chars ("_1234567890_1234567890_12345_"), exceeds 25-char limit
-    const noMatch = await searchFolder(TEST_DATA_DIR, 'ALPHA*OMEGA', 'wildcard');
+    const noMatch = await searchFolder(TEST_DATA_DIR, 'ALPHA*OMEGA', { matchType: 'wildcard' });
     const bndNo = noMatch.find(r => r.relativePath === rel('wildcard-testing', 'boundaries.md'));
     expect(bndNo).toBeUndefined();
 
     // Start*End — gap is 6 chars ("MARKER"), well within 25-char limit
-    const yesMatch = await searchFolder(TEST_DATA_DIR, 'Start*End', 'wildcard');
+    const yesMatch = await searchFolder(TEST_DATA_DIR, 'Start*End', { matchType: 'wildcard' });
     const bndYes = yesMatch.find(r => r.relativePath === rel('wildcard-testing', 'boundaries.md'));
     expect(bndYes).toBeDefined();
   });
 
   it('is case-insensitive', async () => {
     // HEL*WORLD (all caps) should match the same lowercase name as hel*world
-    const results = await searchFolder(TEST_DATA_DIR, 'HEL*WORLD', 'wildcard');
+    const results = await searchFolder(TEST_DATA_DIR, 'HEL*WORLD', { matchType: 'wildcard' });
     const hw = results.find(r => r.relativePath === rel('wildcard-testing', 'hello-world.md'));
     expect(hw).toBeDefined();
     expect(hw!.nameMatch).toBe(true);
@@ -187,7 +187,7 @@ describe('wildcard content search', () => {
     // times on one line" and "apple again on another line" — and its name
     // ("repeated.md") not at all, so this exercises the content half's counting.
     // `.` never matches a newline, so the two matches can't merge across lines.
-    const results = await searchFolder(TEST_DATA_DIR, 'apple*line', 'wildcard');
+    const results = await searchFolder(TEST_DATA_DIR, 'apple*line', { matchType: 'wildcard' });
     const repeated = results.find(r => r.relativePath === rel('multi-match', 'repeated.md'));
     expect(repeated).toBeDefined();
     expect(repeated!.nameMatch).toBeUndefined();
@@ -195,13 +195,13 @@ describe('wildcard content search', () => {
   });
 
   it('returns empty array when no files match', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'zzz*qqq*xyz', 'wildcard');
+    const results = await searchFolder(TEST_DATA_DIR, 'zzz*qqq*xyz', { matchType: 'wildcard' });
     expect(results).toEqual([]);
   });
 
   it('escapes special regex characters in query', async () => {
     // $19* should match "$19.99" in special-chars.md ($ is escaped, not treated as regex anchor)
-    const results = await searchFolder(TEST_DATA_DIR, '$19*', 'wildcard');
+    const results = await searchFolder(TEST_DATA_DIR, '$19*', { matchType: 'wildcard' });
     const sc = results.find(r => r.relativePath === rel('special-chars.md'));
     expect(sc).toBeDefined();
     expect(sc?.matchCount).toBeGreaterThanOrEqual(1);
@@ -209,7 +209,7 @@ describe('wildcard content search', () => {
 
   it('only searches .md and .txt files', async () => {
     // FAKE_BINARY_DATA_NOT_REAL_IMAGE exists only in images/photo.jpg — should not be found
-    const results = await searchFolder(TEST_DATA_DIR, 'FAKE_BINARY*', 'wildcard');
+    const results = await searchFolder(TEST_DATA_DIR, 'FAKE_BINARY*', { matchType: 'wildcard' });
     expect(results).toEqual([]);
   });
 });
@@ -221,7 +221,7 @@ describe('advanced content search', () => {
   describe('$() content searcher', () => {
     it('finds files containing a term via $() call', async () => {
       // "banana" appears in smoothie.txt and single-match.md
-      const results = await searchFolder(TEST_DATA_DIR, "$('banana')", 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, "$('banana')", { matchType: 'advanced' });
       expect(results.length).toBeGreaterThanOrEqual(2);
       const smoothie = results.find(r => r.relativePath === rel('recipes', 'smoothie.txt'));
       const singleMatch = results.find(r => r.relativePath === rel('multi-match', 'single-match.md'));
@@ -231,7 +231,7 @@ describe('advanced content search', () => {
 
     it('$() is case-insensitive', async () => {
       // "BANANA" (uppercase query) should still match "banana" in files
-      const results = await searchFolder(TEST_DATA_DIR, "$('BANANA')", 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, "$('BANANA')", { matchType: 'advanced' });
       expect(results.length).toBeGreaterThanOrEqual(2);
       const smoothie = results.find(r => r.relativePath === rel('recipes', 'smoothie.txt'));
       expect(smoothie).toBeDefined();
@@ -239,7 +239,7 @@ describe('advanced content search', () => {
 
     it('multiple $() with AND: finds files containing both terms', async () => {
       // webapp.md contains both "React" and "Node.js"
-      const results = await searchFolder(TEST_DATA_DIR, "$('React') && $('Node.js')", 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, "$('React') && $('Node.js')", { matchType: 'advanced' });
       expect(results.length).toBeGreaterThanOrEqual(1);
       const webapp = results.find(r => r.relativePath === rel('projects', 'webapp.md'));
       expect(webapp).toBeDefined();
@@ -250,7 +250,7 @@ describe('advanced content search', () => {
 
     it('multiple $() with OR: finds files containing either term', async () => {
       // rust.md has "Rust", go.txt has "Go"
-      const results = await searchFolder(TEST_DATA_DIR, "$('Rust') || $('Go')", 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, "$('Rust') || $('Go')", { matchType: 'advanced' });
       const rust = results.find(r => r.relativePath === rel('topics', 'programming', 'rust.md'));
       const go = results.find(r => r.relativePath === rel('topics', 'programming', 'go.txt'));
       expect(rust).toBeDefined();
@@ -260,7 +260,7 @@ describe('advanced content search', () => {
     it('negation: has one term but not another', async () => {
       // "search" appears in several files; "wildcard" also appears in some of them.
       // This finds files with "search" but NOT "wildcard".
-      const results = await searchFolder(TEST_DATA_DIR, "$('search') && !$('wildcard')", 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, "$('search') && !$('wildcard')", { matchType: 'advanced' });
       for (const r of results) {
         // none of the returned files should contain "wildcard"
         const content = fs.readFileSync(r.path, 'utf-8');
@@ -273,7 +273,7 @@ describe('advanced content search', () => {
     it('matchCount accumulates across multiple $() calls', async () => {
       // webapp.md: "React" appears 2x ("React for the frontend", "React Native" is in mobile-app.md)
       // Actually let's use webapp.md: $('React') + $('Node.js') — React appears 1x, Node.js appears 1x → matchCount = 2
-      const results = await searchFolder(TEST_DATA_DIR, "$('React') && $('Node.js')", 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, "$('React') && $('Node.js')", { matchType: 'advanced' });
       const webapp = results.find(r => r.relativePath === rel('projects', 'webapp.md'));
       expect(webapp).toBeDefined();
       // React = 1 occurrence + Node.js = 1 occurrence → matchCount >= 2
@@ -281,13 +281,13 @@ describe('advanced content search', () => {
     });
 
     it('returns matchCount 0 for non-matching content', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, "$('xyzzy_nonexistent_99')", 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, "$('xyzzy_nonexistent_99')", { matchType: 'advanced' });
       expect(results).toEqual([]);
     });
 
     it('files without $() match get matchCount of 1 if expression is truthy', async () => {
       // Expression `true` has no $() calls, but is truthy → every file matches with matchCount = 1
-      const results = await searchFolder(TEST_DATA_DIR, 'true', 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, 'true', { matchType: 'advanced' });
       expect(results.length).toBeGreaterThan(0);
       for (const r of results) {
         expect(r.matchCount).toBe(1);
@@ -298,36 +298,36 @@ describe('advanced content search', () => {
   // ── 3d. Advanced edge cases ───────────────────────────────────────
   describe('advanced edge cases', () => {
     it('syntax error in expression fails the search (not an empty result)', async () => {
-      await expect(searchFolder(TEST_DATA_DIR, '$$$invalid(((syntax', 'advanced'))
+      await expect(searchFolder(TEST_DATA_DIR, '$$$invalid(((syntax', { matchType: 'advanced' }))
         .rejects.toThrow(AdvancedQuerySyntaxError);
     });
 
     it('a query that throws on every file fails the search with the error', async () => {
       // A typo'd helper name throws a ReferenceError on every file, which used
       // to be indistinguishable from "no results".
-      await expect(searchFolder(TEST_DATA_DIR, "Prop('x')", 'advanced'))
+      await expect(searchFolder(TEST_DATA_DIR, "Prop('x')", { matchType: 'advanced' }))
         .rejects.toThrow(/failed on every file.*ReferenceError: Prop is not defined/);
     });
 
     it('a query that throws on some files but not others is not an error', async () => {
       // Files containing "banana" short-circuit the `||`; every other file
       // throws on `prop('x').y`. The banana files still come back as results.
-      const results = await searchFolder(TEST_DATA_DIR, "$('banana') || prop('x').y", 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, "$('banana') || prop('x').y", { matchType: 'advanced' });
       expect(results.length).toBeGreaterThan(0);
     });
 
     it('a query that throws on every file in filenames mode also fails the search', async () => {
-      await expect(searchFolder(TEST_DATA_DIR, "Prop('x')", 'advanced', 'filenames'))
+      await expect(searchFolder(TEST_DATA_DIR, "Prop('x')", { matchType: 'advanced', target: 'filenames' }))
         .rejects.toThrow(/failed on every file/);
     });
 
     it('a timed-out query fails the search', async () => {
-      await expect(searchFolder(TEST_DATA_DIR, '(() => { while (true) {} })()', 'advanced'))
+      await expect(searchFolder(TEST_DATA_DIR, '(() => { while (true) {} })()', { matchType: 'advanced' }))
         .rejects.toThrow(AdvancedQueryTimeoutError);
     });
 
     it('expression that returns a nonzero number is truthy → match', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, '42', 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, '42', { matchType: 'advanced' });
       expect(results.length).toBeGreaterThan(0);
       for (const r of results) {
         expect(r.matchCount).toBe(1);
@@ -335,7 +335,7 @@ describe('advanced content search', () => {
     });
 
     it('expression that returns a non-empty string is truthy → match', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, '"hello"', 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, '"hello"', { matchType: 'advanced' });
       expect(results.length).toBeGreaterThan(0);
       for (const r of results) {
         expect(r.matchCount).toBe(1);
@@ -343,7 +343,7 @@ describe('advanced content search', () => {
     });
 
     it('expression `true` matches every searchable file', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, 'true', 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, 'true', { matchType: 'advanced' });
       // We have ~60+ .md and .txt files
       expect(results.length).toBeGreaterThanOrEqual(40);
       for (const r of results) {
@@ -352,7 +352,7 @@ describe('advanced content search', () => {
     });
 
     it('expression `false` matches no files', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, 'false', 'advanced');
+      const results = await searchFolder(TEST_DATA_DIR, 'false', { matchType: 'advanced' });
       expect(results).toEqual([]);
     });
   });
@@ -377,7 +377,7 @@ describe('content-loop error handling', () => {
     vi.spyOn(fs.promises, 'readFile').mockRejectedValue(
       Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' }),
     );
-    const results = await searchFolder(TEST_DATA_DIR, 'banana', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'banana', { matchType: 'literal' });
     expect(results).toEqual([]);
   });
 
@@ -386,7 +386,7 @@ describe('content-loop error handling', () => {
     // TypeError (content.toLowerCase()). That is a programming-error-class failure
     // and must surface — the narrowed try/catch only covers the read itself.
     vi.spyOn(fs.promises, 'readFile').mockResolvedValue(123 as unknown as string);
-    await expect(searchFolder(TEST_DATA_DIR, 'banana', 'literal')).rejects.toThrow();
+    await expect(searchFolder(TEST_DATA_DIR, 'banana', { matchType: 'literal' })).rejects.toThrow();
   });
 });
 
@@ -398,21 +398,21 @@ describe('filename search', () => {
   // ── 4a. Literal filename search ─────────────────────────────────
   describe('literal filename search', () => {
     it('finds files by partial name: query "calc" matches calculus.md', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, 'calc', 'literal', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, 'calc', { matchType: 'literal', target: 'filenames' });
       expect(results.length).toBeGreaterThanOrEqual(1);
       const calculus = results.find(r => r.relativePath === rel('topics', 'math', 'calculus.md'));
       expect(calculus).toBeDefined();
     });
 
     it('is case-insensitive for filename matching', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, 'CALCULUS', 'literal', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, 'CALCULUS', { matchType: 'literal', target: 'filenames' });
       expect(results.length).toBeGreaterThanOrEqual(1);
       const calculus = results.find(r => r.relativePath === rel('topics', 'math', 'calculus.md'));
       expect(calculus).toBeDefined();
     });
 
     it('matches folders too (not just files): query "science" matches the science directory', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, 'science', 'literal', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, 'science', { matchType: 'literal', target: 'filenames' });
       expect(results.length).toBeGreaterThanOrEqual(1);
       const scienceDir = results.find(r => r.relativePath === rel('topics', 'science'));
       expect(scienceDir).toBeDefined();
@@ -426,7 +426,7 @@ describe('filename search', () => {
       // no longer equals path, and renderer helpers that parse the last segment
       // (getParentPath → returns the folder ITSELF instead of its parent;
       // getFileName → returns '') misbehave on folder results.
-      const results = await searchFolder(TEST_DATA_DIR, 'science', 'literal', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, 'science', { matchType: 'literal', target: 'filenames' });
       const scienceDir = results.find(r => r.relativePath === rel('topics', 'science'));
       expect(scienceDir).toBeDefined();
       expect(scienceDir!.path.endsWith('/') || scienceDir!.path.endsWith('\\')).toBe(false);
@@ -434,7 +434,7 @@ describe('filename search', () => {
     });
 
     it('matches file extensions: query ".txt" finds all .txt files', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, '.txt', 'literal', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, '.txt', { matchType: 'literal', target: 'filenames' });
       // There are 8 .txt files in test-data
       expect(results).toHaveLength(8);
       for (const r of results) {
@@ -445,7 +445,7 @@ describe('filename search', () => {
     it('only matches basename, not full path', async () => {
       // "topics" should match the "topics" folder itself, but NOT files inside it
       // whose basenames don't contain "topics"
-      const results = await searchFolder(TEST_DATA_DIR, 'topics', 'literal', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, 'topics', { matchType: 'literal', target: 'filenames' });
       const topicsDir = results.find(r => r.relativePath === rel('topics'));
       expect(topicsDir).toBeDefined();
 
@@ -458,7 +458,7 @@ describe('filename search', () => {
     });
 
     it('returns modifiedTime and createdTime in results', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, 'readme', 'literal', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, 'readme', { matchType: 'literal', target: 'filenames' });
       expect(results.length).toBeGreaterThanOrEqual(1);
       for (const r of results) {
         expect(r.modifiedTime).toBeDefined();
@@ -472,7 +472,7 @@ describe('filename search', () => {
   // ── 4b. Wildcard filename search ────────────────────────────────
   describe('wildcard filename search', () => {
     it('"entry-*" matches all journal entry files', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, 'entry-*', 'wildcard', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, 'entry-*', { matchType: 'wildcard', target: 'filenames' });
       // File-name wildcards are whole-name globs, so only the 9 names STARTING
       // with "entry-" match (old-entry.md does not).
       expect(results).toHaveLength(9);
@@ -483,7 +483,7 @@ describe('filename search', () => {
     });
 
     it('"*.txt" matches all .txt files', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, '*.txt', 'wildcard', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, '*.txt', { matchType: 'wildcard', target: 'filenames' });
       expect(results).toHaveLength(8);
       for (const r of results) {
         expect(r.path).toMatch(/\.txt$/);
@@ -491,7 +491,7 @@ describe('filename search', () => {
     });
 
     it('"copy-*" matches all duplicate copy files', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, 'copy-*', 'wildcard', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, 'copy-*', { matchType: 'wildcard', target: 'filenames' });
       expect(results).toHaveLength(3);
       const paths = results.map(r => r.relativePath).sort();
       expect(paths).toEqual([
@@ -502,7 +502,7 @@ describe('filename search', () => {
     });
 
     it('wildcard filename search is case-insensitive', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, 'COPY-*', 'wildcard', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, 'COPY-*', { matchType: 'wildcard', target: 'filenames' });
       expect(results).toHaveLength(3);
     });
 
@@ -523,27 +523,27 @@ describe('filename search', () => {
       });
 
       it('"*.md" matches names ending in .md only (files and folders)', async () => {
-        const results = await searchFolder(dir, '*.md', 'wildcard', 'filenames');
+        const results = await searchFolder(dir, '*.md', { matchType: 'wildcard', target: 'filenames' });
         expect(names(results)).toEqual(['a-very-long-report-name-that-goes-on-and-on.md', 'drafts.md', 'notes.md']);
       });
 
       it('a pattern without * must match the whole name exactly', async () => {
-        expect(names(await searchFolder(dir, 'notes.md', 'wildcard', 'filenames'))).toEqual(['notes.md']);
-        expect(await searchFolder(dir, 'notes', 'wildcard', 'filenames')).toEqual([]);
+        expect(names(await searchFolder(dir, 'notes.md', { matchType: 'wildcard', target: 'filenames' }))).toEqual(['notes.md']);
+        expect(await searchFolder(dir, 'notes', { matchType: 'wildcard', target: 'filenames' })).toEqual([]);
       });
 
       it('* spans any number of characters (no 25-character limit)', async () => {
-        const results = await searchFolder(dir, 'a*.md', 'wildcard', 'filenames');
+        const results = await searchFolder(dir, 'a*.md', { matchType: 'wildcard', target: 'filenames' });
         expect(names(results)).toEqual(['a-very-long-report-name-that-goes-on-and-on.md']);
       });
 
       it('literal File Names search is still a substring match', async () => {
-        const results = await searchFolder(dir, 'notes', 'literal', 'filenames');
+        const results = await searchFolder(dir, 'notes', { matchType: 'literal', target: 'filenames' });
         expect(names(results)).toEqual(['notes.md', 'notes.md.bak']);
       });
 
       it('the name half of a File Contents+Names wildcard search is still a substring match', async () => {
-        const results = await searchFolder(dir, '*.md', 'wildcard', 'content');
+        const results = await searchFolder(dir, '*.md', { matchType: 'wildcard', target: 'content' });
         expect(names(results)).toContain('notes.md.bak');
       });
     });
@@ -552,7 +552,7 @@ describe('filename search', () => {
   // ── 4c. Advanced filename search ────────────────────────────────
   describe('advanced filename search', () => {
     it('$("entry") applied to filenames finds files with "entry" in the name', async () => {
-      const results = await searchFolder(TEST_DATA_DIR, "$('entry')", 'advanced', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, "$('entry')", { matchType: 'advanced', target: 'filenames' });
       // 10 files in journal/ have "entry" in their basename
       expect(results).toHaveLength(10);
       for (const r of results) {
@@ -563,12 +563,12 @@ describe('filename search', () => {
 
     it('filename search checks all file types, not just .md/.txt', async () => {
       // config.json should be found by filename search
-      const results = await searchFolder(TEST_DATA_DIR, 'config', 'literal', 'filenames');
+      const results = await searchFolder(TEST_DATA_DIR, 'config', { matchType: 'literal', target: 'filenames' });
       const configJson = results.find(r => r.relativePath === rel('data', 'config.json'));
       expect(configJson).toBeDefined();
 
       // photo.jpg should also be findable
-      const photoResults = await searchFolder(TEST_DATA_DIR, 'photo', 'literal', 'filenames');
+      const photoResults = await searchFolder(TEST_DATA_DIR, 'photo', { matchType: 'literal', target: 'filenames' });
       const photoJpg = photoResults.find(r => r.relativePath === rel('images', 'photo.jpg'));
       expect(photoJpg).toBeDefined();
     });
@@ -626,12 +626,12 @@ describe('content+names search', () => {
   });
 
   it('matches on the file name OR the contents', async () => {
-    const results = await searchFolder(dir, 'TARGET', 'literal', 'content');
+    const results = await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content' });
     expect(names(results)).toEqual(['alpha-target.md', 'bulk.md', 'target-archive.zip']);
   });
 
   it('flags name matches and skips reading them', async () => {
-    const results = await searchFolder(dir, 'TARGET', 'literal', 'content');
+    const results = await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content' });
     const byName = new Map(results.map(r => [path.basename(r.path), r]));
 
     // Name hit: matchCount counts occurrences within the NAME, not the body.
@@ -643,7 +643,7 @@ describe('content+names search', () => {
   });
 
   it('name matching applies to every extension, contents only to .md/.txt', async () => {
-    const results = await searchFolder(dir, 'TARGET', 'literal', 'content');
+    const results = await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content' });
     const byName = new Map(results.map(r => [path.basename(r.path), r]));
 
     // A .zip is found by NAME...
@@ -654,24 +654,24 @@ describe('content+names search', () => {
   });
 
   it('never matches folder names (unlike filenames mode)', async () => {
-    const contentResults = await searchFolder(dir, 'target-folder', 'literal', 'content');
+    const contentResults = await searchFolder(dir, 'target-folder', { matchType: 'literal', target: 'content' });
     expect(contentResults).toEqual([]);
 
     // Contrast: filenames mode does match the folder.
-    const filenameResults = await searchFolder(dir, 'target-folder', 'literal', 'filenames');
+    const filenameResults = await searchFolder(dir, 'target-folder', { matchType: 'literal', target: 'filenames' });
     expect(names(filenameResults)).toEqual(['target-folder']);
   });
 
   it('flags folder results as folders and file results as files', async () => {
-    const folderResults = await searchFolder(dir, 'target-folder', 'literal', 'filenames');
+    const folderResults = await searchFolder(dir, 'target-folder', { matchType: 'literal', target: 'filenames' });
     expect(folderResults[0].isDirectory).toBe(true);
 
-    const fileResults = await searchFolder(dir, 'keep', 'literal', 'filenames');
+    const fileResults = await searchFolder(dir, 'keep', { matchType: 'literal', target: 'filenames' });
     expect(names(fileResults)).toEqual(['keep.md']);
     expect(fileResults[0].isDirectory).toBeUndefined();
 
     // Content mode never returns folders, so it never sets the flag.
-    for (const r of await searchFolder(dir, 'TARGET', 'literal', 'content')) {
+    for (const r of await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content' })) {
       expect(r.isDirectory).toBeUndefined();
     }
   });
@@ -679,14 +679,14 @@ describe('content+names search', () => {
   it('orders name matches and content matches together by the chosen sort', async () => {
     // No relevance grouping: a name match gets no special position, so bulk.md
     // (the one content match) sorts by name among the name matches.
-    const results = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, false, false, 'file-name', 'asc');
+    const results = await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content', sortBy: 'file-name', sortDirection: 'asc' });
     const basenames = results.map(r => path.basename(r.path));
     expect(basenames).toContain('bulk.md');
     expect(basenames).toEqual([...basenames].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' })));
   });
 
   it('wildcard queries match names too', async () => {
-    const results = await searchFolder(dir, 'alpha*.md', 'wildcard', 'content');
+    const results = await searchFolder(dir, 'alpha*.md', { matchType: 'wildcard', target: 'content' });
     expect(names(results)).toEqual(['alpha-target.md']);
     expect(results[0].nameMatch).toBe(true);
   });
@@ -696,7 +696,7 @@ describe('content+names search', () => {
     // to a bare name is meaningless for prop()/the date helpers, and a negated
     // expression would match nearly every file in the tree. So only bulk.md — the
     // one CONTENT match — comes back.
-    const results = await searchFolder(dir, "$('TARGET')", 'advanced', 'content');
+    const results = await searchFolder(dir, "$('TARGET')", { matchType: 'advanced', target: 'content' });
     expect(names(results)).toEqual(['bulk.md']);
     expect(results[0].nameMatch).toBeUndefined();
   });
@@ -705,21 +705,21 @@ describe('content+names search', () => {
     // alpha-target.md matches by name but has no `due:` front matter, so "only
     // calendar items" must keep winning — the name half is confined to the
     // calendar file set.
-    const results = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, false, true);
+    const results = await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content', calendarItemsOnly: true });
     expect(results).toEqual([]);
   });
 
   it('empty query does not widen the candidate set to non-.md/.txt files', async () => {
     // With no query there is nothing to match a name against, so the crawl must
     // stay as narrow as it always was — no .zip/.pdf may leak into the results.
-    const results = await searchFolder(dir, '', 'literal', 'content', [], false, true);
+    const results = await searchFolder(dir, '', { matchType: 'literal', target: 'content', mostRecent: true });
     expect(names(results)).toEqual(['alpha-target.md', 'bulk.md', 'keep.md']);
   });
 
   it('finds a non-searchable extension by name in the real fixture tree', async () => {
     // "settings" appears in no fixture file's CONTENT — only in data/settings.yaml's
     // name, an extension content search never reads.
-    const results = await searchFolder(TEST_DATA_DIR, 'settings', 'literal', 'content');
+    const results = await searchFolder(TEST_DATA_DIR, 'settings', { matchType: 'literal', target: 'content' });
     const yamlFile = results.find(r => r.relativePath === rel('data', 'settings.yaml'));
     expect(yamlFile).toBeDefined();
     expect(yamlFile!.nameMatch).toBe(true);
@@ -727,7 +727,7 @@ describe('content+names search', () => {
 
   it('a file matching both name and content is reported as a name match', async () => {
     // calculus.md contains "calculus" three times AND has it in its name.
-    const results = await searchFolder(TEST_DATA_DIR, 'calculus', 'literal', 'content');
+    const results = await searchFolder(TEST_DATA_DIR, 'calculus', { matchType: 'literal', target: 'content' });
     const calculus = results.find(r => r.relativePath === rel('topics', 'math', 'calculus.md'));
     expect(calculus).toBeDefined();
     expect(calculus!.nameMatch).toBe(true);
@@ -736,7 +736,7 @@ describe('content+names search', () => {
 
   it('does not return folders from the real fixture tree', async () => {
     // "science" is a folder name (topics/science) and appears in no file content.
-    const results = await searchFolder(TEST_DATA_DIR, 'science', 'literal', 'content');
+    const results = await searchFolder(TEST_DATA_DIR, 'science', { matchType: 'literal', target: 'content' });
     const scienceDir = results.find(r => r.relativePath === rel('topics', 'science'));
     expect(scienceDir).toBeUndefined();
   });
@@ -749,7 +749,7 @@ describe('content+names search', () => {
 describe('ignored paths', () => {
   it('exact folder name exclusion: ignoredPaths=["skipme"] excludes skipme/ subtree', async () => {
     const results = await searchFolder(
-      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', ['skipme']
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', { matchType: 'literal', target: 'content', ignoredPaths: ['skipme'] }
     );
     const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
     expect(hidden).toBeUndefined();
@@ -759,7 +759,7 @@ describe('ignored paths', () => {
 
   it('exact file name exclusion: ignoredPaths=["also-skip.md"] excludes that file', async () => {
     const results = await searchFolder(
-      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', ['also-skip.md']
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', { matchType: 'literal', target: 'content', ignoredPaths: ['also-skip.md'] }
     );
     const skipped = results.find(r => r.relativePath === rel('ignored-test', 'also-skip.md'));
     expect(skipped).toBeUndefined();
@@ -769,7 +769,7 @@ describe('ignored paths', () => {
 
   it('wildcard pattern exclusion: ignoredPaths=["skip*"] excludes skipme/ folder', async () => {
     const results = await searchFolder(
-      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', ['skip*']
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', { matchType: 'literal', target: 'content', ignoredPaths: ['skip*'] }
     );
     const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
     expect(hidden).toBeUndefined();
@@ -783,7 +783,7 @@ describe('ignored paths', () => {
     // pattern (written without one) must still match the folder.
     const skipmePath = path.join(TEST_DATA_DIR, 'ignored-test', 'skipme');
     const results = await searchFolder(
-      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', [skipmePath]
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', { matchType: 'literal', target: 'content', ignoredPaths: [skipmePath] }
     );
     const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
     expect(hidden).toBeUndefined();
@@ -793,7 +793,7 @@ describe('ignored paths', () => {
 
   it('multiple ignored paths at once: both folder and file patterns combined', async () => {
     const results = await searchFolder(
-      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', ['skipme', 'also-skip.md']
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', { matchType: 'literal', target: 'content', ignoredPaths: ['skipme', 'also-skip.md'] }
     );
     const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
     const alsoSkip = results.find(r => r.relativePath === rel('ignored-test', 'also-skip.md'));
@@ -807,14 +807,14 @@ describe('ignored paths', () => {
   it('ignored paths apply to both content and filename search modes', async () => {
     // Content search with ignored path
     const contentResults = await searchFolder(
-      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', ['skipme']
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', { matchType: 'literal', target: 'content', ignoredPaths: ['skipme'] }
     );
     const contentHidden = contentResults.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
     expect(contentHidden).toBeUndefined();
 
     // Filename search with ignored path — "hidden" should match hidden-file.md normally
     const filenameResults = await searchFolder(
-      TEST_DATA_DIR, 'hidden', 'literal', 'filenames', ['skipme']
+      TEST_DATA_DIR, 'hidden', { matchType: 'literal', target: 'filenames', ignoredPaths: ['skipme'] }
     );
     const filenameHidden = filenameResults.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
     expect(filenameHidden).toBeUndefined();
@@ -823,7 +823,7 @@ describe('ignored paths', () => {
   it('ignored paths are case-insensitive', async () => {
     // Use uppercase "SKIPME" to exclude "skipme" folder
     const results = await searchFolder(
-      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', ['SKIPME']
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', { matchType: 'literal', target: 'content', ignoredPaths: ['SKIPME'] }
     );
     const hidden = results.find(r => r.relativePath === rel('ignored-test', 'skipme', 'hidden-file.md'));
     expect(hidden).toBeUndefined();
@@ -831,7 +831,7 @@ describe('ignored paths', () => {
 
   it('non-excluded files in same parent folder are still found', async () => {
     const results = await searchFolder(
-      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', ['skipme', 'also-skip.md']
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', { matchType: 'literal', target: 'content', ignoredPaths: ['skipme', 'also-skip.md'] }
     );
     const visible = results.find(r => r.relativePath === rel('ignored-test', 'visible-file.md'));
     expect(visible).toBeDefined();
@@ -840,7 +840,7 @@ describe('ignored paths', () => {
 
   it('empty ignoredPaths array means nothing is excluded', async () => {
     const results = await searchFolder(
-      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', 'literal', 'content', []
+      TEST_DATA_DIR, 'IGNORED_TEST_MARKER', { matchType: 'literal', target: 'content' }
     );
     // All three ignored-test files should appear
     const visible = results.find(r => r.relativePath === rel('ignored-test', 'visible-file.md'));
@@ -858,7 +858,7 @@ describe('ignored paths', () => {
 // ---------------------------------------------------------------------------
 describe('result metadata', () => {
   it('modifiedTime is a positive number (milliseconds since epoch)', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' });
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(r.modifiedTime).toBeDefined();
@@ -867,7 +867,7 @@ describe('result metadata', () => {
   });
 
   it('createdTime is a positive number', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' });
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(r.createdTime).toBeDefined();
@@ -876,7 +876,7 @@ describe('result metadata', () => {
   });
 
   it('path is an absolute path', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' });
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(path.isAbsolute(r.path)).toBe(true);
@@ -887,8 +887,8 @@ describe('result metadata', () => {
     // searchFolder is whole-file: it never computes per-line context. The
     // SearchResult contract was trimmed to match (issue 007), so results must
     // not carry lineNumber / lineText / extraLine keys for any search mode.
-    const literal = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
-    const filenames = await searchFolder(TEST_DATA_DIR, 'readme', 'literal', 'filenames');
+    const literal = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' });
+    const filenames = await searchFolder(TEST_DATA_DIR, 'readme', { matchType: 'literal', target: 'filenames' });
     expect(literal.length).toBeGreaterThan(0);
     expect(filenames.length).toBeGreaterThan(0);
 
@@ -902,7 +902,7 @@ describe('result metadata', () => {
   });
 
   it('relativePath is relative to the searched folder root', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' });
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       // relativePath should NOT be absolute
@@ -915,9 +915,9 @@ describe('result metadata', () => {
   it('results come back in the requested sort order (all modes)', async () => {
     const byName = (r: { relativePath: string }) => path.basename(r.relativePath);
     const cases = [
-      await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal', 'content', [], false, false, false, 'file-name', 'asc'),
-      await searchFolder(TEST_DATA_DIR, 'hel*', 'wildcard', 'content', [], false, false, false, 'file-name', 'asc'),
-      await searchFolder(TEST_DATA_DIR, 'entry', 'literal', 'filenames', [], false, false, false, 'file-name', 'asc'),
+      await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal', target: 'content', sortBy: 'file-name', sortDirection: 'asc' }),
+      await searchFolder(TEST_DATA_DIR, 'hel*', { matchType: 'wildcard', target: 'content', sortBy: 'file-name', sortDirection: 'asc' }),
+      await searchFolder(TEST_DATA_DIR, 'entry', { matchType: 'literal', target: 'filenames', sortBy: 'file-name', sortDirection: 'asc' }),
     ];
     for (const results of cases) {
       expect(results.length).toBeGreaterThan(1);
@@ -927,7 +927,7 @@ describe('result metadata', () => {
       }
     }
 
-    const oldestFirst = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal', 'content', [], false, false, false, 'modified-time', 'asc');
+    const oldestFirst = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal', target: 'content', sortBy: 'modified-time', sortDirection: 'asc' });
     for (let i = 1; i < oldestFirst.length; i++) {
       expect(oldestFirst[i - 1].modifiedTime ?? 0).toBeLessThanOrEqual(oldestFirst[i].modifiedTime ?? 0);
     }
@@ -936,20 +936,20 @@ describe('result metadata', () => {
 
 describe('edge cases', () => {
   it('empty file: content search finds no matches', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'anything', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'anything', { matchType: 'literal' });
     const emptyFile = results.find(r => r.relativePath === 'empty.md');
     expect(emptyFile).toBeUndefined();
   });
 
   it('unicode content: literal search for "café" finds unicode.md', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, 'café', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'café', { matchType: 'literal' });
     const unicodeFile = results.find(r => r.relativePath === 'unicode.md');
     expect(unicodeFile).toBeDefined();
     expect(unicodeFile?.matchCount).toBeGreaterThanOrEqual(1);
   });
 
   it('unicode content: literal search for "日本語" finds unicode.md', async () => {
-    const results = await searchFolder(TEST_DATA_DIR, '日本語', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, '日本語', { matchType: 'literal' });
     const unicodeFile = results.find(r => r.relativePath === 'unicode.md');
     expect(unicodeFile).toBeDefined();
     expect(unicodeFile?.matchCount).toBeGreaterThanOrEqual(1);
@@ -957,7 +957,7 @@ describe('edge cases', () => {
 
   it('special regex characters in literal query don\'t break (e.g., searching for "(H2O)")', async () => {
     // special-chars.md has "(like this)" and chemistry.md has "(H2O)"
-    const results = await searchFolder(TEST_DATA_DIR, '(H2O)', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, '(H2O)', { matchType: 'literal' });
     const chemFile = results.find(r => r.relativePath === rel('topics', 'science', 'chemistry.md'));
     expect(chemFile).toBeDefined();
     expect(chemFile?.matchCount).toBe(1);
@@ -965,7 +965,7 @@ describe('edge cases', () => {
 
   it('very long query string (100+ chars) doesn\'t crash', async () => {
     const longQuery = 'a'.repeat(150);
-    const results = await searchFolder(TEST_DATA_DIR, longQuery, 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, longQuery, { matchType: 'literal' });
     // No file contains 150 consecutive 'a' chars, so empty result is expected
     expect(Array.isArray(results)).toBe(true);
     expect(results).toHaveLength(0);
@@ -975,7 +975,7 @@ describe('edge cases', () => {
     const fakePath = path.join(TEST_DATA_DIR, 'nonexistent-folder-xyz');
     // Should either return empty or throw — must not crash unexpectedly
     try {
-      const results = await searchFolder(fakePath, 'test', 'literal');
+      const results = await searchFolder(fakePath, 'test', { matchType: 'literal' });
       expect(Array.isArray(results)).toBe(true);
       expect(results).toHaveLength(0);
     } catch (err) {
@@ -987,13 +987,13 @@ describe('edge cases', () => {
   it('searching a folder with no .md/.txt files returns empty for content mode', async () => {
     // The images/ folder only contains a .jpg file
     const imagesDir = path.join(TEST_DATA_DIR, 'images');
-    const results = await searchFolder(imagesDir, 'FAKE_BINARY', 'literal');
+    const results = await searchFolder(imagesDir, 'FAKE_BINARY', { matchType: 'literal' });
     expect(results).toHaveLength(0);
   });
 
   it('deeply nested files (3+ directory levels) are found', async () => {
     // nested/deep/structure/deep-file.md is 3 levels deep
-    const results = await searchFolder(TEST_DATA_DIR, 'recursive search', 'literal');
+    const results = await searchFolder(TEST_DATA_DIR, 'recursive search', { matchType: 'literal' });
     const deepFile = results.find(r => r.relativePath === rel('nested', 'deep', 'structure', 'deep-file.md'));
     expect(deepFile).toBeDefined();
     expect(deepFile?.matchCount).toBeGreaterThanOrEqual(1);
@@ -1007,8 +1007,8 @@ describe('concurrent searches do not interfere', () => {
   // awaiting the first (Promise.all) exercises the interleaved await points.
   it('two searches started together both return correct results', async () => {
     const [aResults, bResults] = await Promise.all([
-      searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal'),
-      searchFolder(TEST_DATA_DIR, 'apple', 'literal'),
+      searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' }),
+      searchFolder(TEST_DATA_DIR, 'apple', { matchType: 'literal' }),
     ]);
 
     const aPaths = aResults.map(r => r.relativePath).sort();
@@ -1023,12 +1023,12 @@ describe('concurrent searches do not interfere', () => {
   });
 
   it('many overlapping searches each return identical results to a solo run', async () => {
-    const solo = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal');
+    const solo = await searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' });
     const expected = solo.map(r => r.relativePath).sort();
 
     const runs = await Promise.all(
       Array.from({ length: 8 }, () =>
-        searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', 'literal'),
+        searchFolder(TEST_DATA_DIR, 'ALPHA-DUPLICATE-MARKER', { matchType: 'literal' }),
       ),
     );
 
@@ -1589,7 +1589,7 @@ describe('mostRecent window is the same for name and content matches', () => {
   });
 
   it('without Recent Files, every name and content match is found (including other file types)', async () => {
-    const results = await searchFolder(dir, 'TARGET', 'literal', 'content');
+    const results = await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content' });
     expect(names(results)).toEqual([
       ...Array.from({ length: NAME_HITS }, (_, i) => `new-TARGET-${i}.md`),
       'old-TARGET.md',
@@ -1599,25 +1599,25 @@ describe('mostRecent window is the same for name and content matches', () => {
   });
 
   it('with Recent Files, an old file matching by name is outside the window', async () => {
-    const results = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, true);
+    const results = await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content', mostRecent: true });
     expect(names(results)).not.toContain('old-TARGET.md');
   });
 
   it('with Recent Files, name matches count toward the 500 (no content match from rank 501)', async () => {
-    const results = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, true);
+    const results = await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content', mostRecent: true });
     expect(names(results)).toEqual(Array.from({ length: NAME_HITS }, (_, i) => `new-TARGET-${i}.md`).sort());
   });
 
   it('with Recent Files, non-content file types are outside the window', async () => {
-    const results = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, true);
+    const results = await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content', mostRecent: true });
     expect(names(results)).not.toContain('report-TARGET.pdf');
   });
 
   it('the window is the same 500 files with and without a query', async () => {
-    const all = await searchFolder(dir, '', 'literal', 'content', [], false, true);
+    const all = await searchFolder(dir, '', { matchType: 'literal', target: 'content', mostRecent: true });
     expect(all).toHaveLength(MOST_RECENT_LIMIT);
     const windowNames = new Set(names(all));
-    const hits = await searchFolder(dir, 'TARGET', 'literal', 'content', [], false, true);
+    const hits = await searchFolder(dir, 'TARGET', { matchType: 'literal', target: 'content', mostRecent: true });
     for (const n of names(hits)) expect(windowNames.has(n)).toBe(true);
     expect(windowNames.has('old-content.md')).toBe(false);
   });
@@ -1654,7 +1654,7 @@ describe('mostRecent filter', () => {
   it('keeps only the MOST_RECENT_LIMIT newest files by mtime', async () => {
     // Empty query + mostRecent → every searchable file is a candidate, then the
     // filter trims to the newest MOST_RECENT_LIMIT.
-    const results = await searchFolder(dir, '', 'literal', 'content', [], false, true);
+    const results = await searchFolder(dir, '', { matchType: 'literal', target: 'content', mostRecent: true });
 
     expect(results).toHaveLength(MOST_RECENT_LIMIT);
     // The 5 oldest (indices 0-4) must have been dropped; everything kept is newer.
@@ -1670,7 +1670,7 @@ describe('mostRecent filter', () => {
       for (let i = 0; i < 3; i++) {
         fs.writeFileSync(path.join(small, `s-${i}.md`), 'RECENT_MARKER\n', 'utf-8');
       }
-      const results = await searchFolder(small, '', 'literal', 'content', [], false, true);
+      const results = await searchFolder(small, '', { matchType: 'literal', target: 'content', mostRecent: true });
       expect(results).toHaveLength(3);
     } finally {
       fs.rmSync(small, { recursive: true, force: true });
@@ -1680,7 +1680,7 @@ describe('mostRecent filter', () => {
   it('populates both modifiedTime and createdTime on the mostRecent path', async () => {
     // Guards the double-stat optimization: filterMostRecent caches mtime AND
     // birthtime, so buildResult must still set createdTime (not just modifiedTime).
-    const results = await searchFolder(dir, '', 'literal', 'content', [], false, true);
+    const results = await searchFolder(dir, '', { matchType: 'literal', target: 'content', mostRecent: true });
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(r.modifiedTime).toBeTypeOf('number');
@@ -1691,8 +1691,8 @@ describe('mostRecent filter', () => {
   it('reports the same time metadata whether or not mostRecent is enabled', async () => {
     // The cached-stat values fed into buildResult must match a fresh stat, so a
     // file present in both result sets reports identical times.
-    const full = await searchFolder(dir, '', 'literal', 'content', [], false, false);
-    const recent = await searchFolder(dir, '', 'literal', 'content', [], false, true);
+    const full = await searchFolder(dir, '', { matchType: 'literal', target: 'content' });
+    const recent = await searchFolder(dir, '', { matchType: 'literal', target: 'content', mostRecent: true });
 
     // Both result sets are capped at SEARCH_RESULT_LIMIT, and with TOTAL just over
     // that cap they keep slightly different subsets (full drops an arbitrary few by
@@ -1734,7 +1734,7 @@ describe('result cap', () => {
   });
 
   it('caps a matching content search at SEARCH_RESULT_LIMIT', async () => {
-    const results = await searchFolder(dir, 'CAP_MARKER', 'literal', 'content');
+    const results = await searchFolder(dir, 'CAP_MARKER', { matchType: 'literal', target: 'content' });
     expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
   });
 
@@ -1742,44 +1742,41 @@ describe('result cap', () => {
     const controller = new AbortController();
     const reason = new Error('cancelled for test');
     controller.abort(reason);
-    await expect(searchFolderWithTotal(dir, 'CAP_MARKER', 'literal', 'content',
-      [], false, false, false, 'modified-time', 'desc', controller.signal)).rejects.toBe(reason);
+    await expect(searchFolderWithTotal(dir, 'CAP_MARKER', { matchType: 'literal', target: 'content', sortBy: 'modified-time', sortDirection: 'desc', signal: controller.signal })).rejects.toBe(reason);
   });
 
   it.each(['content', 'filenames'] as const)('stops a %s search that is aborted while running', async (mode) => {
     const controller = new AbortController();
     const reason = new Error('cancelled for test');
-    const search = searchFolderWithTotal(dir, 'CAP_MARKER', 'literal', mode,
-      [], false, false, false, 'modified-time', 'desc', controller.signal);
+    const search = searchFolderWithTotal(dir, 'CAP_MARKER', { matchType: 'literal', target: mode, sortBy: 'modified-time', sortDirection: 'desc', signal: controller.signal });
     controller.abort(reason);
     await expect(search).rejects.toBe(reason);
   });
 
   it('a signal that never aborts changes nothing', async () => {
-    const { results } = await searchFolderWithTotal(dir, 'CAP_MARKER', 'literal', 'content',
-      [], false, false, false, 'modified-time', 'desc', new AbortController().signal);
+    const { results } = await searchFolderWithTotal(dir, 'CAP_MARKER', { matchType: 'literal', target: 'content', sortBy: 'modified-time', sortDirection: 'desc', signal: new AbortController().signal });
     expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
   });
 
   it('reports the total number of matches before the cap', async () => {
-    const { results, totalMatches } = await searchFolderWithTotal(dir, 'CAP_MARKER', 'literal', 'content');
+    const { results, totalMatches } = await searchFolderWithTotal(dir, 'CAP_MARKER', { matchType: 'literal', target: 'content' });
     expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
     expect(totalMatches).toBe(TOTAL);
   });
 
   it('reports a total equal to the result count when nothing was cut', async () => {
-    const { results, totalMatches } = await searchFolderWithTotal(TEST_DATA_DIR, 'apple', 'literal');
+    const { results, totalMatches } = await searchFolderWithTotal(TEST_DATA_DIR, 'apple', { matchType: 'literal' });
     expect(totalMatches).toBe(results.length);
   });
 
   it('keeps the results the chosen sort puts first', async () => {
     // File names are zero-padded, so name order is f-00000 … f-00509. Sorting
     // A–Z must keep the first 500; Z–A must keep the last 500.
-    const asc = await searchFolder(dir, 'CAP_MARKER', 'literal', 'content', [], false, false, false, 'file-name', 'asc');
+    const asc = await searchFolder(dir, 'CAP_MARKER', { matchType: 'literal', target: 'content', sortBy: 'file-name', sortDirection: 'asc' });
     expect(path.basename(asc[0].path)).toBe('f-00000.md');
     expect(path.basename(asc.at(-1)!.path)).toBe(`f-${String(SEARCH_RESULT_LIMIT - 1).padStart(5, '0')}.md`);
 
-    const desc = await searchFolder(dir, 'CAP_MARKER', 'literal', 'content', [], false, false, false, 'file-name', 'desc');
+    const desc = await searchFolder(dir, 'CAP_MARKER', { matchType: 'literal', target: 'content', sortBy: 'file-name', sortDirection: 'desc' });
     expect(path.basename(desc[0].path)).toBe(`f-${String(TOTAL - 1).padStart(5, '0')}.md`);
     expect(path.basename(desc.at(-1)!.path)).toBe(`f-${String(EXTRA).padStart(5, '0')}.md`);
   });
@@ -1794,7 +1791,7 @@ describe('result cap', () => {
       fs.utimesSync(path.join(dir, name), old, old);
       dropped.add(name);
     }
-    const results = await searchFolder(dir, 'CAP_MARKER', 'literal', 'content', [], false, false, false, 'modified-time', 'desc');
+    const results = await searchFolder(dir, 'CAP_MARKER', { matchType: 'literal', target: 'content', sortBy: 'modified-time', sortDirection: 'desc' });
     expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
     for (const r of results) {
       expect(dropped.has(path.basename(r.path))).toBe(false);
@@ -1804,7 +1801,7 @@ describe('result cap', () => {
   it('bounds an empty query (mostRecent=false) at SEARCH_RESULT_LIMIT', async () => {
     // Empty query matches every searchable entry; without mostRecent the result
     // set would otherwise be the whole tree. It must still be capped.
-    const results = await searchFolder(dir, '', 'literal', 'content', [], false, false);
+    const results = await searchFolder(dir, '', { matchType: 'literal', target: 'content' });
     expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
   });
 });
@@ -1842,46 +1839,46 @@ describe('calendarItemsOnly filter', () => {
   });
 
   it('keeps only markdown files with a parseable due (control: all match without it)', async () => {
-    const unfiltered = await searchFolder(dir, 'CAL_MARKER', 'literal', 'content', [], false, false, false);
+    const unfiltered = await searchFolder(dir, 'CAL_MARKER', { matchType: 'literal', target: 'content' });
     expect(names(unfiltered)).toEqual([
       'bad-due.md', 'cal-iso.md', 'cal-slash.md', 'empty-due.md', 'no-due.md', 'notes.txt', 'plain.md',
     ]);
 
-    const filtered = await searchFolder(dir, 'CAL_MARKER', 'literal', 'content', [], false, false, true);
+    const filtered = await searchFolder(dir, 'CAL_MARKER', { matchType: 'literal', target: 'content', calendarItemsOnly: true });
     expect(names(filtered)).toEqual(['cal-iso.md', 'cal-slash.md']);
   });
 
   it('still applies the query on top of the calendar filter', async () => {
-    const results = await searchFolder(dir, 'apple', 'literal', 'content', [], false, false, true);
+    const results = await searchFolder(dir, 'apple', { matchType: 'literal', target: 'content', calendarItemsOnly: true });
     expect(names(results)).toEqual(['cal-slash.md']);
   });
 
   it('returns every calendar file for an empty query', async () => {
-    const results = await searchFolder(dir, '', 'literal', 'content', [], false, false, true);
+    const results = await searchFolder(dir, '', { matchType: 'literal', target: 'content', calendarItemsOnly: true });
     expect(names(results)).toEqual(['cal-iso.md', 'cal-slash.md']);
   });
 
   it('works with wildcard and advanced queries', async () => {
-    const wildcard = await searchFolder(dir, 'CAL*banana', 'wildcard', 'content', [], false, false, true);
+    const wildcard = await searchFolder(dir, 'CAL*banana', { matchType: 'wildcard', target: 'content', calendarItemsOnly: true });
     expect(names(wildcard)).toEqual(['cal-iso.md']);
 
     // prop() reads the front matter the calendar pre-pass already parsed and
     // cached, so this also covers the shared YamlCache staying valid.
-    const advanced = await searchFolder(dir, "$('CAL_MARKER') && !!prop('due')", 'advanced', 'content', [], false, false, true);
+    const advanced = await searchFolder(dir, "$('CAL_MARKER') && !!prop('due')", { matchType: 'advanced', target: 'content', calendarItemsOnly: true });
     expect(names(advanced)).toEqual(['cal-iso.md', 'cal-slash.md']);
   });
 
   it('excludes images even when searchImageExif is enabled', async () => {
     // searchImageExif normally widens the candidate set; calendarItemsOnly keeps
     // it markdown-only (an image can never carry front matter).
-    const results = await searchFolder(dir, 'CAL_MARKER', 'literal', 'content', [], true, false, true);
+    const results = await searchFolder(dir, 'CAL_MARKER', { matchType: 'literal', target: 'content', searchImageExif: true, calendarItemsOnly: true });
     expect(names(results)).toEqual(['cal-iso.md', 'cal-slash.md']);
   });
 
   it('is ignored in filenames mode', async () => {
     // Front matter says nothing about a file *name*, so the flag does not apply —
     // plain.md (not a calendar file) must still be found.
-    const results = await searchFolder(dir, 'plain', 'literal', 'filenames', [], false, false, true);
+    const results = await searchFolder(dir, 'plain', { matchType: 'literal', target: 'filenames', calendarItemsOnly: true });
     expect(names(results)).toEqual(['plain.md']);
   });
 });
@@ -1927,7 +1924,7 @@ describe('calendarItemsOnly combined with mostRecent', () => {
   });
 
   it('returns the newest MOST_RECENT_LIMIT calendar files, ignoring newer non-calendar files', async () => {
-    const results = await searchFolder(dir, 'RECENT_MARKER', 'literal', 'content', [], false, true, true);
+    const results = await searchFolder(dir, 'RECENT_MARKER', { matchType: 'literal', target: 'content', mostRecent: true, calendarItemsOnly: true });
 
     expect(results).toHaveLength(MOST_RECENT_LIMIT);
     for (const r of results) {
@@ -1938,7 +1935,7 @@ describe('calendarItemsOnly combined with mostRecent', () => {
   });
 
   it('populates time metadata from the calendar pre-pass stats', async () => {
-    const results = await searchFolder(dir, '', 'literal', 'content', [], false, true, true);
+    const results = await searchFolder(dir, '', { matchType: 'literal', target: 'content', mostRecent: true, calendarItemsOnly: true });
     for (const r of results) {
       expect(typeof r.modifiedTime).toBe('number');
       expect(typeof r.createdTime).toBe('number');
