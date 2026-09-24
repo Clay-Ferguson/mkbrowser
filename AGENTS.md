@@ -10,21 +10,21 @@ MkBrowser is an Electron desktop app for folder browsing with inline Markdown re
 | Preload | `src/preload.ts` | Exposes `window.electronAPI` to renderer |
 | Renderer | `src/App.tsx` | React UI — **no Node.js imports allowed** |
 
-**Data flow**: Renderer → `api.*` (`src/services/api.ts`) → `window.electronAPI.*` → `ipcRenderer.invoke` → Main process → Node.js fs → result returned to renderer.
+**Data flow**: Renderer → `api.*` (`src/renderer/api.ts`) → `window.electronAPI.*` → `ipcRenderer.invoke` → Main process → Node.js fs → result returned to renderer.
 
 ## The API Layer (IPC Boundary)
-Renderer code (components, hooks, utils) must reach the preload bridge through **`src/services/api.ts`**, not `window.electronAPI` directly:
-- `import { api } from '../services/api'` — typed `api` is a Proxy that forwards lazily to the live `window.electronAPI`. Call `api.readFile(...)`, etc. (method names match the `ElectronAPI` interface).
+Renderer code (components, hooks, utils) must reach the preload bridge through **`src/renderer/api.ts`**, not `window.electronAPI` directly:
+- `import { api } from '../renderer/api'` — typed `api` is a Proxy that forwards lazily to the live `window.electronAPI`. Call `api.readFile(...)`, etc. (method names match the `ElectronAPI` interface).
 - `getApi()` returns `window.electronAPI | undefined` for the rare case the bridge may be absent (e.g. unit tests under Node, the `pathUtil.ts` `'/'` fallback).
-- Only `src/preload.ts` (defines the bridge) and `src/services/api.ts` (the one accessor) should name `window.electronAPI`.
+- Only `src/preload.ts` (defines the bridge) and `src/renderer/api.ts` (the one accessor) should name `window.electronAPI`.
 
-This isolates the IPC surface in one module, decoupling components from the preload global and making them unit-testable by mocking the module (`vi.mock('../services/api')`) instead of a browser global.
+This isolates the IPC surface in one module, decoupling components from the preload global and making them unit-testable by mocking the module (`vi.mock('../src/renderer/api')`) instead of a browser global.
 
 ## Adding IPC Handlers (Three-File Sync)
 Every new file system operation requires changes in three files kept in sync:
 1. `src/main.ts` — `ipcMain.handle('handler-name', ...)` implementation
 2. `src/preload.ts` — method in `contextBridge.exposeInMainWorld`
-3. `src/types/shared.ts` — type signature in the `ElectronAPI` interface
+3. `src/shared/shared.ts` — type signature in the `ElectronAPI` interface
 
 Then call it from the renderer via `api.*` (see above). `src/global.d.ts` only declares the `window.electronAPI` global and re-exports shared types — it is not edited per-handler.
 

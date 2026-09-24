@@ -47,7 +47,7 @@ Mark items done by changing `[ ]` to `[*]`.
 
 ## Stale docs and comments
 
-- [ ] `AGENTS.md` names `src/services/api.ts` and `src/types/shared.ts`. Neither exists; the real files are `src/renderer/api.ts` and `src/shared/shared.ts`, and the `vi.mock` path it gives is wrong for the same reason.
+- [*] `AGENTS.md` names `src/services/api.ts` and `src/types/shared.ts`. Neither exists; the real files are `src/renderer/api.ts` and `src/shared/shared.ts`, and the `vi.mock` path it gives is wrong for the same reason.
 - [*] `main.ts:594`: the comment "Search folder recursively…" sits above the `open-external` handler.
 - [ ] `SearchResultsView.tsx:75` has a leftover `// console.log`.
 
