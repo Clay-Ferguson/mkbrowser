@@ -25,7 +25,7 @@ import type { SearchSortBy, SearchSortDirection } from '../shared/shared';
 import { compileAdvancedQuery, AdvancedQueryRuntimeError, AdvancedQueryTimeoutError } from './advancedQuery';
 import { splitFrontMatter } from '../shared/frontMatterUtil';
 import { isCalendarFrontMatter } from '../shared/calendarUtil';
-import { escapeRegexExceptWildcard, buildExcludePredicate } from '../shared/pathPattern';
+import { escapeRegexExceptWildcard, buildExcludePredicate, wildcardToAnchoredRegex } from '../shared/pathPattern';
 import { mapWithConcurrency } from '../shared/asyncUtil';
 import { logger } from '../shared/logUtil';
 
@@ -258,6 +258,21 @@ export function createMatchPredicate(
       return { matches: matchCount > 0, matchCount };
     };
   }
+}
+
+/**
+ * Predicate for a Wild Card search in the File Names target: a glob over the
+ * WHOLE name, where `*` matches any number of characters — `*.md` matches names
+ * ending in .md (not `notes.md.bak`), `report*` names starting with "report".
+ * Case-insensitive. Content wildcards (and the name half of a File
+ * Contents+Names search) stay unanchored substring matches; see
+ * createMatchPredicate.
+ */
+export function createFileNameGlobPredicate(pattern: string): (name: string) => MatchResult {
+  const regex = wildcardToAnchoredRegex(pattern);
+  return (name: string) => (regex.test(name)
+    ? { matches: true, matchCount: 1 }
+    : { matches: false, matchCount: 0 });
 }
 
 /**
@@ -496,7 +511,11 @@ export async function searchFolderWithTotal(
   const results: SearchResult[] = [];
   const shouldExcludePath = buildExcludePredicate(ignoredPaths);
   const hasQuery = query.trim().length > 0;
-  const basePredicate = hasQuery ? createMatchPredicate(query, searchType, yamlCache) : null;
+  const basePredicate: ((content: string, filePath?: string) => MatchResult) | null = !hasQuery
+    ? null
+    : searchMode === 'filenames' && searchType === 'wildcard'
+      ? createFileNameGlobPredicate(query)
+      : createMatchPredicate(query, searchType, yamlCache);
 
   // Track advanced-query runtime errors. One file throwing is normal (the query
   // may assume front matter only some files have), but a query that threw on

@@ -692,7 +692,7 @@ MkBrowser includes a powerful search feature to help you find content across you
         - **File Names**: Matches names only — but unlike the option above, it includes **folder** names as well as files of every type, and never reads any file contents.
     - **Search Mode**: 
         - **Literal**: Exact text match.
-        - **Wildcard**: Use `*` to match any characters (e.g., `note-*.md`).
+        - **Wildcard**: Use `*` to match any characters (e.g., `intro*duction`); in file contents each `*` spans up to 25 characters. With the **File Names** target, the pattern must match the **whole** name, like a file glob: `*.md` finds names ending in `.md` (but not `notes.md.bak`), and `note-*` finds names starting with `note-`.
         - **Advanced**: Use custom predicate functions (see below). Note that Advanced expressions are evaluated against file **contents only** — they never match on file names.
     - **Recent Files**: Searches only the 500 most recently modified files. With **File Contents+Names**, those are the 500 newest `.md` and `.txt` files (plus images when **Search Image EXIF** is checked), and both the name and the contents matching happen within them — so other file types, like a `.pdf`, aren't matched by name while this option is on. With **File Names**, they are the 500 most recently modified files and folders of any type.
 

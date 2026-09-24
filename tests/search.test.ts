@@ -473,11 +473,8 @@ describe('filename search', () => {
   describe('wildcard filename search', () => {
     it('"entry-*" matches all journal entry files', async () => {
       const results = await searchFolder(TEST_DATA_DIR, 'entry-*', 'wildcard', 'filenames');
-      // There are 10 entry-* files (9 entry-xxx + old-entry is NOT matched since basename is "old-entry.md" and "entry-*" anchors at the start via full match)
-      // Actually, wildcard uses regex test, not full match. "entry-*" → /entry-.{0,25}/i
-      // old-entry.md does NOT start with "entry-", but `.test()` checks partial match on the basename
-      // "old-entry.md" contains "entry-" as a substring? No: "old-entry.md" — no dash after "entry"
-      // So only the 9 files starting with "entry-" should match
+      // File-name wildcards are whole-name globs, so only the 9 names STARTING
+      // with "entry-" match (old-entry.md does not).
       expect(results).toHaveLength(9);
       for (const r of results) {
         const basename = r.relativePath.split(/[\\/]/).pop() as string;
@@ -507,6 +504,48 @@ describe('filename search', () => {
     it('wildcard filename search is case-insensitive', async () => {
       const results = await searchFolder(TEST_DATA_DIR, 'COPY-*', 'wildcard', 'filenames');
       expect(results).toHaveLength(3);
+    });
+
+    describe('whole-name glob', () => {
+      let dir: string;
+      const names = (results: { path: string }[]) => results.map(r => path.basename(r.path)).sort();
+
+      beforeAll(() => {
+        dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mkb-name-glob-'));
+        for (const name of ['notes.md', 'notes.md.bak', 'a-very-long-report-name-that-goes-on-and-on.md', 'mdfile.txt']) {
+          fs.writeFileSync(path.join(dir, name), 'x\n', 'utf-8');
+        }
+        fs.mkdirSync(path.join(dir, 'drafts.md'));
+      });
+
+      afterAll(() => {
+        fs.rmSync(dir, { recursive: true, force: true });
+      });
+
+      it('"*.md" matches names ending in .md only (files and folders)', async () => {
+        const results = await searchFolder(dir, '*.md', 'wildcard', 'filenames');
+        expect(names(results)).toEqual(['a-very-long-report-name-that-goes-on-and-on.md', 'drafts.md', 'notes.md']);
+      });
+
+      it('a pattern without * must match the whole name exactly', async () => {
+        expect(names(await searchFolder(dir, 'notes.md', 'wildcard', 'filenames'))).toEqual(['notes.md']);
+        expect(await searchFolder(dir, 'notes', 'wildcard', 'filenames')).toEqual([]);
+      });
+
+      it('* spans any number of characters (no 25-character limit)', async () => {
+        const results = await searchFolder(dir, 'a*.md', 'wildcard', 'filenames');
+        expect(names(results)).toEqual(['a-very-long-report-name-that-goes-on-and-on.md']);
+      });
+
+      it('literal File Names search is still a substring match', async () => {
+        const results = await searchFolder(dir, 'notes', 'literal', 'filenames');
+        expect(names(results)).toEqual(['notes.md', 'notes.md.bak']);
+      });
+
+      it('the name half of a File Contents+Names wildcard search is still a substring match', async () => {
+        const results = await searchFolder(dir, '*.md', 'wildcard', 'content');
+        expect(names(results)).toContain('notes.md.bak');
+      });
     });
   });
 
