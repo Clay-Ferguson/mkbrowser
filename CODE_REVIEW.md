@@ -60,9 +60,9 @@ Mark items done by changing `[ ]` to `[*]`.
 - [*] **5. Simplify the content branch of `searchFolder` (`search.ts:538-701`).** It currently has the calendar pre-pass, a name pass, two separate recent-file trims and three places that build `statCache`. A straight pipeline would do the same job: crawl, then calendar filter, then one recent-file trim over all candidates, then match on name and content. It's easier to follow, fixes bug 4, and only adds a stat of files that are already being stat'd.
 - [*] **6. Sort once, in the main process, before the cut-off**, using the user's `sortBy`/`sortDirection`. The renderer's sort can then go, or move to a tested pure function in `shared/`.
 - [*] **7. Add a request token or generation counter** to `executeSearch`, and ignore results from older requests (fixes bug 7).
-- [ ] **8. Small cleanups:**
-  - [ ] `wildcardToRegex` builds a regex with the `i` flag only for `search.ts:201` to rebuild it with `gi`. Build it once.
-  - [ ] `globalHighlight.escapeRegExp` duplicates `escapeRegexLiteral` in `pathPattern.ts`.
+- [*] **8. Small cleanups:**
+  - [*] `wildcardToRegex` builds a regex with the `i` flag only for `search.ts:201` to rebuild it with `gi`. Build it once.
+  - [*] `globalHighlight.escapeRegExp` duplicates `escapeRegexLiteral` in `pathPattern.ts`.
   - [*] `setSearchResults` takes 6 positional parameters. (Replaced by `setSearchOutcome` and `removeSearchResult`.)
 
 ## What looks solid

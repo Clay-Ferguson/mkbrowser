@@ -1,4 +1,5 @@
 import { logger } from '../shared/logUtil';
+import { escapeRegexLiteral } from '../shared/pathPattern';
 
 // Module-private so `setGlobalHighlightText` stays the only write path: it owns the
 // MutationObserver / rAF lifecycle that keeps the highlight in sync with the DOM, and a
@@ -56,10 +57,6 @@ export function setGlobalHighlightText(text: string | null) {
 
 const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'INPUT', 'TEXTAREA']);
 
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 /**
  * The subtree a highlight pass should scan. App.tsx keeps every visited view mounted and
  * merely toggles `display`, marking the visible one with `data-active-view`; scanning all of
@@ -90,7 +87,7 @@ export function applyGlobalHighlight(searchText: string | null): void {
   // lengths valid as range offsets: case folding is not length-preserving for every character
   // (e.g. 'İ'.toLowerCase() is two code units), so indices taken from a lowercased string can
   // drift and land mid-character or past the end of the node.
-  const pattern = new RegExp(escapeRegExp(searchText), 'giu');
+  const pattern = new RegExp(escapeRegexLiteral(searchText), 'giu');
   let nodeCount = 0;
   const walker = document.createTreeWalker(highlightRoot(), NodeFilter.SHOW_TEXT, {
     acceptNode(node) {

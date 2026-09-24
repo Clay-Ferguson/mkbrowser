@@ -125,11 +125,11 @@ interface MatchResult {
   error?: string;
 }
 
-/** Convert wildcard pattern to regex (each * matches up to 25 chars) */
+/** Convert a wildcard pattern to a global, case-insensitive regex (each * matches up to 25 chars). */
 function wildcardToRegex(pattern: string): RegExp {
   const escaped = escapeRegexExceptWildcard(pattern);
   const regexPattern = escaped.replace(/\*/g, '.{0,25}');
-  return new RegExp(regexPattern, 'i');
+  return new RegExp(regexPattern, 'gi');
 }
 
 /** Convert CRLF and lone-CR line endings to LF. */
@@ -216,7 +216,7 @@ export function createMatchPredicate(
     // matching file. It's derived purely from the query, and the single global
     // scan below counts matches and answers "did it match?" in one pass (no
     // separate `test`, no array of substrings materialized just to read .length).
-    const regex = new RegExp(wildcardToRegex(normalizeLineEndings(queryStr)).source, 'gi');
+    const regex = wildcardToRegex(normalizeLineEndings(queryStr));
     const normalize = lineEndingNormalizer(queryStr);
     return (rawContent: string, _filePath?: string) => {
       const content = normalize(rawContent);
