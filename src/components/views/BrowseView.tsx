@@ -682,8 +682,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
     // by the dialog's Save button, so a one-off tweak to a saved search can't
     // silently overwrite it.
     runOp(async () => {
-      await executeSearch(currentPath, definition);
-      setCurrentView('search-results');
+      if (await executeSearch(currentPath, definition)) setCurrentView('search-results');
     }, 'Search failed: ', onSetError);
   };
 
@@ -776,8 +775,7 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
   const handleRunSearch = (definition: SearchDefinition) => {
     if (!currentPath) return;
     runOp(async () => {
-      await executeSearch(currentPath, definition);
-      setCurrentView('search-results');
+      if (await executeSearch(currentPath, definition)) setCurrentView('search-results');
     }, 'Search failed: ', onSetError);
   };
 

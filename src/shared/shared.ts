@@ -280,6 +280,9 @@ export interface SearchOutcome {
   results: SearchResult[];
   /** Total matches found; larger than `results.length` when the cap truncated. */
   totalMatches: number;
+  /** True when this search was cancelled because a newer one started; the
+   * results are then empty and must not be shown. */
+  cancelled?: boolean;
 }
 
 export interface ReplaceResult {

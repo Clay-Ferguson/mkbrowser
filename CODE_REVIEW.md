@@ -28,7 +28,7 @@ Mark items done by changing `[ ]` to `[*]`.
 - [*] **6. Clicking Search silently overwrites a saved search.**
   When the name field isn't empty, `handleSearch` saves before running (`BrowseView.tsx:680-683`). Load a saved search, tweak it for a one-off run, click Search, and the saved version is replaced with no confirmation.
 
-- [ ] **7. Overlapping searches can show the wrong results.**
+- [*] **7. Overlapping searches can show the wrong results.**
   `executeSearch` has no way to tell an old request from a new one. If a slow search A finishes after a newer search B (a new search, a refresh, or a hashtag click), A's results and definition overwrite B's.
 
 ## Smaller bugs
@@ -58,7 +58,7 @@ Mark items done by changing `[ ]` to `[*]`.
 - [ ] **4. Pass an options object instead of 8 arguments.** Change `searchFolder` and the IPC call to `searchFolder(folder, def)`, and have the handler return `{ results, truncated, error? }`. That fixes bugs 2 and 3 and lets the UI show "showing 500 of N".
 - [*] **5. Simplify the content branch of `searchFolder` (`search.ts:538-701`).** It currently has the calendar pre-pass, a name pass, two separate recent-file trims and three places that build `statCache`. A straight pipeline would do the same job: crawl, then calendar filter, then one recent-file trim over all candidates, then match on name and content. It's easier to follow, fixes bug 4, and only adds a stat of files that are already being stat'd.
 - [*] **6. Sort once, in the main process, before the cut-off**, using the user's `sortBy`/`sortDirection`. The renderer's sort can then go, or move to a tested pure function in `shared/`.
-- [ ] **7. Add a request token or generation counter** to `executeSearch`, and ignore results from older requests (fixes bug 7).
+- [*] **7. Add a request token or generation counter** to `executeSearch`, and ignore results from older requests (fixes bug 7).
 - [ ] **8. Small cleanups:**
   - [ ] `wildcardToRegex` builds a regex with the `i` flag only for `search.ts:201` to rebuild it with `gi`. Build it once.
   - [ ] `globalHighlight.escapeRegExp` duplicates `escapeRegexLiteral` in `pathPattern.ts`.

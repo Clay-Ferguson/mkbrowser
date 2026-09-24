@@ -408,8 +408,7 @@ function App() {
     };
     void (async () => {
       try {
-        await executeSearch(currentPath, definition);
-        setCurrentView('search-results');
+        if (await executeSearch(currentPath, definition)) setCurrentView('search-results');
       } catch (err) {
         setError('Search failed: ' + errorMessage(err));
       }

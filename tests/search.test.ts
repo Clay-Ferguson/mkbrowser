@@ -1632,6 +1632,29 @@ describe('result cap', () => {
     expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
   });
 
+  it('rejects with the abort reason when the signal is already aborted', async () => {
+    const controller = new AbortController();
+    const reason = new Error('cancelled for test');
+    controller.abort(reason);
+    await expect(searchFolderWithTotal(dir, 'CAP_MARKER', 'literal', 'content',
+      [], false, false, false, 'modified-time', 'desc', controller.signal)).rejects.toBe(reason);
+  });
+
+  it.each(['content', 'filenames'] as const)('stops a %s search that is aborted while running', async (mode) => {
+    const controller = new AbortController();
+    const reason = new Error('cancelled for test');
+    const search = searchFolderWithTotal(dir, 'CAP_MARKER', 'literal', mode,
+      [], false, false, false, 'modified-time', 'desc', controller.signal);
+    controller.abort(reason);
+    await expect(search).rejects.toBe(reason);
+  });
+
+  it('a signal that never aborts changes nothing', async () => {
+    const { results } = await searchFolderWithTotal(dir, 'CAP_MARKER', 'literal', 'content',
+      [], false, false, false, 'modified-time', 'desc', new AbortController().signal);
+    expect(results).toHaveLength(SEARCH_RESULT_LIMIT);
+  });
+
   it('reports the total number of matches before the cap', async () => {
     const { results, totalMatches } = await searchFolderWithTotal(dir, 'CAP_MARKER', 'literal', 'content');
     expect(results).toHaveLength(SEARCH_RESULT_LIMIT);

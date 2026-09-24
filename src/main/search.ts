@@ -313,13 +313,14 @@ type StatEntry = { path: string } & StatTimes;
  * stat'd. The captured times are returned with each path so callers can reuse
  * them (see buildResult's cachedStat) instead of stat'ing the same files again.
  */
-async function statEntries(filePaths: string[]): Promise<StatEntry[]> {
+async function statEntries(filePaths: string[], signal?: AbortSignal): Promise<StatEntry[]> {
   // mapWithConcurrency bounds the concurrent stat() calls (it preserves input
   // order, which callers that re-sort by mtime don't rely on).
   const stats = await mapWithConcurrency(
     filePaths,
     SEARCH_FILE_CONCURRENCY,
     async (fp): Promise<StatEntry | null> => {
+      signal?.throwIfAborted();
       try {
         const stat = await fs.promises.stat(fp);
         return { path: fp, mtimeMs: stat.mtimeMs, birthtimeMs: stat.birthtimeMs, size: stat.size };
@@ -347,8 +348,8 @@ function takeMostRecent(entries: StatEntry[]): StatEntry[] {
  * Filter an array of file paths to the MOST_RECENT_LIMIT most recently modified,
  * carrying each one's captured stat times along for buildResult to reuse.
  */
-async function filterMostRecent(filePaths: string[]): Promise<StatEntry[]> {
-  return takeMostRecent(await statEntries(filePaths));
+async function filterMostRecent(filePaths: string[], signal?: AbortSignal): Promise<StatEntry[]> {
+  return takeMostRecent(await statEntries(filePaths, signal));
 }
 
 /**
@@ -367,12 +368,13 @@ async function filterMostRecent(filePaths: string[]): Promise<StatEntry[]> {
  * match phase would otherwise do. Net extra I/O is therefore one re-read of the
  * (much smaller) surviving calendar subset.
  */
-async function filterCalendarFiles(filePaths: string[], yamlCache: YamlCache): Promise<StatEntry[]> {
+async function filterCalendarFiles(filePaths: string[], yamlCache: YamlCache, signal?: AbortSignal): Promise<StatEntry[]> {
   const mdFiles = filePaths.filter(fp => path.extname(fp).toLowerCase() === '.md');
   const entries = await mapWithConcurrency(
     mdFiles,
     SEARCH_FILE_CONCURRENCY,
     async (fp): Promise<StatEntry | null> => {
+      signal?.throwIfAborted();
       // Only the stat/read is wrapped: an unreadable or oversized file is an
       // expected I/O condition we skip the same way the match phase does. The
       // calendar test itself stays outside the catch so a genuine bug there
@@ -466,6 +468,9 @@ async function buildResult(
  * @param sortBy        - Result order (see compareSearchResults); decides which
  *   results survive the cap. Defaults to the Search dialog's default.
  * @param sortDirection - 'asc' or 'desc'
+ * @param signal        - Cancels the search: it is checked after each crawl and
+ *   before each file is stat'd, read or matched, and an abort rejects the search
+ *   with the signal's reason. Partial results are never returned.
  * @returns The results in the requested order, capped at SEARCH_RESULT_LIMIT,
  *   plus the total number of matches before the cap
  */
@@ -480,7 +485,11 @@ export async function searchFolderWithTotal(
   calendarItemsOnly = false,
   sortBy: SearchSortBy = 'modified-time',
   sortDirection: SearchSortDirection = 'desc',
+  signal?: AbortSignal,
 ): Promise<{ results: SearchResult[]; totalMatches: number }> {
+  signal?.throwIfAborted();
+  // fdir's withAbortSignal needs a real signal; one that never aborts stands in.
+  const abortSignal = signal ?? new AbortController().signal;
   const yamlCache: YamlCache = new Map();
   const results: SearchResult[] = [];
   const shouldExcludePath = buildExcludePredicate(ignoredPaths);
@@ -495,6 +504,9 @@ export async function searchFolderWithTotal(
   let errorCount = 0;
   let firstError: string | undefined;
   const matchPredicate = basePredicate && ((content: string, filePath?: string): MatchResult => {
+    // Every name/content match goes through here, so this is also the
+    // cancellation checkpoint for the CPU-only name passes.
+    signal?.throwIfAborted();
     const result = basePredicate(content, filePath);
     evaluatedCount++;
     if (result.error !== undefined) {
@@ -510,18 +522,22 @@ export async function searchFolderWithTotal(
       .withFullPaths()
       .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
       .filter((filePath) => !shouldExcludePath(path.basename(filePath), filePath))
+      .withAbortSignal(abortSignal)
       .crawl(folderPath);
 
     const dirsApi = new fdir()
       .withFullPaths()
       .exclude((dirName, dirPath) => shouldExcludePath(dirName, dirPath))
       .onlyDirs()
+      .withAbortSignal(abortSignal)
       .crawl(folderPath);
 
     const [files, dirs] = await Promise.all([
       filesApi.withPromise(),
       dirsApi.withPromise(),
     ]);
+    // An aborted fdir crawl resolves early with partial output, so check here.
+    signal?.throwIfAborted();
 
     // fdir's onlyDirs() returns EVERY directory path with a trailing separator
     // (e.g. "/root/sub/"), which causes two distinct problems if left as-is:
@@ -559,7 +575,7 @@ export async function searchFolderWithTotal(
     let entriesToSearch = allEntries;
     let statCache: Map<string, StatTimes> | null = null;
     if (mostRecent) {
-      const recent = await filterMostRecent(allEntries);
+      const recent = await filterMostRecent(allEntries, signal);
       entriesToSearch = recent.map(e => e.path);
       statCache = new Map(recent.map(e => [e.path, e]));
     }
@@ -570,6 +586,7 @@ export async function searchFolderWithTotal(
       entriesToSearch,
       SEARCH_FILE_CONCURRENCY,
       async (entryPath): Promise<SearchResult | null> => {
+        signal?.throwIfAborted();
         const entryName = path.basename(entryPath);
         const cachedStat = statCache?.get(entryPath);
         if (matchPredicate) {
@@ -617,9 +634,12 @@ export async function searchFolderWithTotal(
         if (broadCrawl) return true;
         return isContentCandidate(filePath, searchImageExif, calendarItemsOnly);
       })
+      .withAbortSignal(abortSignal)
       .crawl(folderPath);
 
     const crawled = await api.withPromise();
+    // An aborted fdir crawl resolves early with partial output, so check here.
+    signal?.throwIfAborted();
     const contentCandidates = broadCrawl
       ? crawled.filter(fp => isContentCandidate(fp, searchImageExif, calendarItemsOnly))
       : crawled;
@@ -631,10 +651,10 @@ export async function searchFolderWithTotal(
     //  - mostRecent alone: the 500 most recently modified content candidates.
     let candidateWindow: StatEntry[] | null = null;
     if (calendarItemsOnly) {
-      candidateWindow = await filterCalendarFiles(contentCandidates, yamlCache);
+      candidateWindow = await filterCalendarFiles(contentCandidates, yamlCache, signal);
       if (mostRecent) candidateWindow = takeMostRecent(candidateWindow);
     } else if (mostRecent) {
-      candidateWindow = await filterMostRecent(contentCandidates);
+      candidateWindow = await filterMostRecent(contentCandidates, signal);
     }
     const statCache = candidateWindow ? new Map<string, StatTimes>(candidateWindow.map(e => [e.path, e])) : null;
     let filesToSearch = candidateWindow ? candidateWindow.map(e => e.path) : contentCandidates;
@@ -658,10 +678,11 @@ export async function searchFolderWithTotal(
     const nameResults = await mapWithConcurrency(
       [...nameHits],
       SEARCH_FILE_CONCURRENCY,
-      async ([filePath, matchCount]): Promise<SearchResult> => ({
-        ...(await buildResult(folderPath, filePath, matchCount, statCache?.get(filePath))),
-        nameMatch: true,
-      }),
+      async ([filePath, matchCount]): Promise<SearchResult> => {
+        signal?.throwIfAborted();
+        const result = await buildResult(folderPath, filePath, matchCount, statCache?.get(filePath));
+        return { ...result, nameMatch: true };
+      },
     );
     for (const r of nameResults) {
       results.push(r);
@@ -673,6 +694,7 @@ export async function searchFolderWithTotal(
       filesToSearch,
       SEARCH_FILE_CONCURRENCY,
       async (filePath): Promise<SearchResult | null> => {
+        signal?.throwIfAborted();
         const ext = path.extname(filePath).toLowerCase();
         const isImage = EXIF_IMAGE_EXTENSIONS.has(ext);
         const cachedStat = statCache?.get(filePath);

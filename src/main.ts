@@ -14,6 +14,7 @@ import { processTOC } from './shared/tocUtil';
 import { searchAndReplace, type ReplaceResult } from './main/searchAndReplace';
 import { parseIgnoredPaths } from './shared/searchHelpers';
 import { searchFolderWithTotal } from './main/search';
+import { createExclusiveSearchRunner, SearchCancelledError } from './main/searchRunner';
 import { analyzeFolderHashtags, type FolderAnalysisResult } from './main/folderAnalysis';
 import { loadCalendarEvents, loadCalendarEventsForFiles, type CalendarEventResult } from './main/calendarLoader';
 import { startCalendarWatcher, stopCalendarWatcher } from './main/calendarWatcher';
@@ -616,12 +617,18 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Search folder recursively for text in .md and .txt files
+  // Search folder recursively for text in .md and .txt files. Only one search
+  // runs at a time: a new request cancels the one in progress and waits for it
+  // to stop first. The cancelled request resolves with `cancelled: true` (not an
+  // error: Electron logs every rejected handler) and the renderer drops it.
+  const runExclusiveSearch = createExclusiveSearchRunner();
   ipcMain.handle('search-folder', async (_event, folderPath: string, query: string, searchType: 'literal' | 'wildcard' | 'advanced' = 'literal', searchMode: 'content' | 'filenames' = 'content', searchImageExif = false, mostRecent = false, calendarItemsOnly = false, sortBy: SearchSortBy = 'modified-time', sortDirection: SearchSortDirection = 'desc'): Promise<SearchOutcome> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
-      return await searchFolderWithTotal(folderPath, query, searchType, searchMode, ignoredPaths, searchImageExif, mostRecent, calendarItemsOnly, sortBy, sortDirection);
+      return await runExclusiveSearch((signal) =>
+        searchFolderWithTotal(folderPath, query, searchType, searchMode, ignoredPaths, searchImageExif, mostRecent, calendarItemsOnly, sortBy, sortDirection, signal));
     } catch (error) {
+      if (error instanceof SearchCancelledError) return { results: [], totalMatches: 0, cancelled: true };
       logger.error('Error searching folder:', error);
       // Propagate so the renderer can report why the search failed (e.g. an
       // invalid or timed-out advanced query) instead of showing "No results".
