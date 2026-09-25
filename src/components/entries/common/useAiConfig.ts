@@ -3,7 +3,10 @@ import { setAiConfig, useAS } from '../../../store';
 export interface AiConfigState {
   /** Whether AI features are enabled at all. */
   aiEnabled: boolean;
-  /** Whether the AI rewrite button is shown in editors. */
+  /**
+   * The user's rewrite-mode preference. It stays persisted when AI is turned off, so gate
+   * the Rewrite button on `aiEnabled && aiRewriteMode`, never on this alone.
+   */
   aiRewriteMode: boolean;
   /** Display name of the selected rewrite prompt/persona (empty if none). */
   selectedPromptName: string;

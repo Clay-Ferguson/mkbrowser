@@ -349,7 +349,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       onToggleExpandedEditor={alwaysExpandedEditor ? undefined : handleToggleExpandedEditor}
       // HUMAN.md is the user's own prompt to the AI — rewriting it with AI
       // would defeat its purpose, so the button never appears while editing it.
-      showRewrite={!item?.reviewing && aiRewriteMode && !isHumanFile}
+      showRewrite={!item?.reviewing && aiEnabled && aiRewriteMode && !isHumanFile}
       onAiRewrite={handleAiRewrite}
       rewriteDisabled={edit.saving || isRewriting}
       isRewriting={isRewriting}

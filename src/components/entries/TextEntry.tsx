@@ -41,7 +41,7 @@ function TextEntry(props: TextEntryProps) {
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
   const fileLanguage = getTextFileLanguage(entry.name);
-  const { selectedPromptName, aiRewriteMode } = useAiConfig();
+  const { aiEnabled, selectedPromptName, aiRewriteMode } = useAiConfig();
 
   const { core, rename, del, loading, content, edit } = useEditableEntry(props, {
     defaultExpanded: true,
@@ -96,7 +96,7 @@ function TextEntry(props: TextEntryProps) {
       // Omitted when the editor is always expanded — the toggle would be a
       // no-op, so the button is hidden rather than shown doing nothing.
       onToggleExpandedEditor={alwaysExpandedEditor ? undefined : handleToggleExpandedEditor}
-      showRewrite={!item?.reviewing && aiRewriteMode}
+      showRewrite={!item?.reviewing && aiEnabled && aiRewriteMode}
       onAiRewrite={aiRewrite}
       rewriteDisabled={edit.saving || isRewriting}
       isRewriting={isRewriting}
