@@ -16,38 +16,52 @@ export const BlockClickContext = createContext<{ onEditClick: EditClickHandler; 
   lineOffset: 0,
 });
 
-function block<Tag extends keyof React.JSX.IntrinsicElements>(Tag: Tag) {
-  const Component = Tag as React.ElementType;
-  const BlockComponent = ({ node, children, ...props }: React.JSX.IntrinsicElements[Tag] & ExtraProps) => {
-    const { onEditClick, lineOffset } = useContext(BlockClickContext);
-    const line: number = node?.position?.start.line ?? 0;
+type BlockTag = 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'blockquote' | 'li';
+type BlockProps<Tag extends BlockTag> = React.JSX.IntrinsicElements[Tag] & ExtraProps;
 
-    const handleMouseUp = (e: React.MouseEvent) => {
-      // Only the left button initiates editing; right-click must fall through
-      // so the native context menu (Copy, etc.) can appear.
-      if (e.button !== 0) return;
-      if ((e.target as HTMLElement).closest('a, button, input')) return;
+/**
+ * Renders `tag` with a mouseup handler that opens the editor at the block's
+ * source line. The per-tag components below are thin top-level wrappers around
+ * this (rather than products of a factory) so the React Compiler compiles them.
+ */
+function BlockElement<Tag extends BlockTag>({ tag, node, children, ...props }: BlockProps<Tag> & { tag: Tag }) {
+  const Component = tag as React.ElementType;
+  const { onEditClick, lineOffset } = useContext(BlockClickContext);
+  const line: number = node?.position?.start.line ?? 0;
 
-      // A scrollable descendant (e.g. an overflowing fenced code block inside a list item
-      // or blockquote) bubbles its scrollbar presses up to here; using the scrollbar isn't
-      // a click-to-edit. Deliberately not stopPropagation'd — the entry content area runs
-      // the same check, so the press is ignored there too.
-      if (pressStartedOnScrollbar()) return;
+  const handleMouseUp = (e: React.MouseEvent) => {
+    // Only the left button initiates editing; right-click must fall through
+    // so the native context menu (Copy, etc.) can appear.
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest('a, button, input')) return;
 
-      // this check for a selection is required to be able to allow the users to click and drag the mouse to
-      // select a region of text to copy, because without this check it would immediately assume that if
-      // you're even clicking to make a selection it would execute the click handler and we don't want that
-      // if the user is trying to simply select some text
-      if (window.getSelection()?.toString()) return;
-      e.stopPropagation();
-      void onEditClick(line + lineOffset);
-    };
+    // A scrollable descendant (e.g. an overflowing fenced code block inside a list item
+    // or blockquote) bubbles its scrollbar presses up to here; using the scrollbar isn't
+    // a click-to-edit. Deliberately not stopPropagation'd — the entry content area runs
+    // the same check, so the press is ignored there too.
+    if (pressStartedOnScrollbar()) return;
 
-    return <Component {...props} onMouseUp={handleMouseUp}>{children}</Component>;
+    // this check for a selection is required to be able to allow the users to click and drag the mouse to
+    // select a region of text to copy, because without this check it would immediately assume that if
+    // you're even clicking to make a selection it would execute the click handler and we don't want that
+    // if the user is trying to simply select some text
+    if (window.getSelection()?.toString()) return;
+    e.stopPropagation();
+    void onEditClick(line + lineOffset);
   };
-  BlockComponent.displayName = `Block(${String(Tag)})`;
-  return BlockComponent;
+
+  return <Component {...props} onMouseUp={handleMouseUp}>{children}</Component>;
 }
+
+function BlockP(props: BlockProps<'p'>) { return <BlockElement tag="p" {...props} />; }
+function BlockH1(props: BlockProps<'h1'>) { return <BlockElement tag="h1" {...props} />; }
+function BlockH2(props: BlockProps<'h2'>) { return <BlockElement tag="h2" {...props} />; }
+function BlockH3(props: BlockProps<'h3'>) { return <BlockElement tag="h3" {...props} />; }
+function BlockH4(props: BlockProps<'h4'>) { return <BlockElement tag="h4" {...props} />; }
+function BlockH5(props: BlockProps<'h5'>) { return <BlockElement tag="h5" {...props} />; }
+function BlockH6(props: BlockProps<'h6'>) { return <BlockElement tag="h6" {...props} />; }
+function BlockBlockquote(props: BlockProps<'blockquote'>) { return <BlockElement tag="blockquote" {...props} />; }
+function BlockLi(props: BlockProps<'li'>) { return <BlockElement tag="li" {...props} />; }
 
 /**
  * react-markdown custom components for block-level elements. Clicking any of
@@ -59,13 +73,13 @@ function block<Tag extends keyof React.JSX.IntrinsicElements>(Tag: Tag) {
  * from firing redundantly.
  */
 export const blockClickComponents: Partial<Components> = {
-  p: block('p'),
-  h1: block('h1'),
-  h2: block('h2'),
-  h3: block('h3'),
-  h4: block('h4'),
-  h5: block('h5'),
-  h6: block('h6'),
-  blockquote: block('blockquote'),
-  li: block('li'),
+  p: BlockP,
+  h1: BlockH1,
+  h2: BlockH2,
+  h3: BlockH3,
+  h4: BlockH4,
+  h5: BlockH5,
+  h6: BlockH6,
+  blockquote: BlockBlockquote,
+  li: BlockLi,
 };
