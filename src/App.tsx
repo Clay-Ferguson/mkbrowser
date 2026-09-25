@@ -26,6 +26,7 @@ import {
   getIndexTreeRoot,
   setIndexTreeRoot,
   getEditingItem,
+  isEditUnmodified,
   setItemEditing,
   updateCalendarEvent,
   deleteCalendarEventsUnderPath,
@@ -45,6 +46,7 @@ import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
 import { applyGlobalHighlight, getGlobalHighlightText } from './renderer/globalHighlight';
 import { mergeTreeNodes } from './renderer/dragAndDrop';
+import { buildEntryHeaderId } from './renderer/entryDom';
 import { logger } from './shared/logUtil';
 import { BUTTON_CLASS_LG_BLUE } from './renderer/styles';
 
@@ -81,6 +83,22 @@ async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
  */
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+/**
+ * True when an Escape keypress belongs to an open overlay — a native <dialog>
+ * (Dialog.tsx) or a popover PopupMenu — rather than to the editor. Checks both
+ * where the key landed and whether any overlay is open, since focus is not
+ * always inside the overlay (e.g. a menu opened while the editor keeps focus).
+ */
+function isEscapeForOverlay(e: KeyboardEvent): boolean {
+  if (e.target instanceof Element && e.target.closest('dialog,[popover]')) return true;
+  return document.querySelector('dialog[open],[popover]:popover-open') !== null;
+}
+
+/** True when the entry for `path` is currently rendered (its header is in the DOM). */
+function isEntryRendered(path: string): boolean {
+  return document.getElementById(buildEntryHeaderId(path)) !== null;
 }
 
 /**
@@ -249,11 +267,14 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
-      const editing = getEditingItem();
-      if (!editing) return;
-      const { path, item } = editing;
-      if ((item.editContent ?? '') === (item.content ?? '')) {
-        setItemEditing(path, false);
+      // Already consumed (CodeMirror's own Escape keymap, autocomplete, search panel), or
+      // meant for an open dialog/menu: that Esc dismisses the overlay, not the editor.
+      if (e.defaultPrevented || isEscapeForOverlay(e)) return;
+      // Only an editor that is on screen: the items Map is global, and an editing item
+      // can belong to a folder the user has navigated away from.
+      const editing = getEditingItem(isEntryRendered);
+      if (editing && isEditUnmodified(editing.item)) {
+        setItemEditing(editing.path, false);
       }
     };
     document.addEventListener('keydown', handleKeyDown);

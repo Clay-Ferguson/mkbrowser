@@ -6,6 +6,7 @@ import {
   setItemReviewing,
   useAS,
   toggleExpandedEditor,
+  isEditUnmodified,
 } from '../../store';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
@@ -66,8 +67,7 @@ function TextEntry(props: TextEntryProps) {
   const handleEscape = () => {
     // Read the edit buffer at call time — the editor flushes its debounced onChange right
     // before invoking onEscape, so this render's edit.editContent may predate the flush.
-    const latest = useAS.getState().items.get(entry.path)?.editContent ?? edit.editContent;
-    if (latest === content) {
+    if (isEditUnmodified(useAS.getState().items.get(entry.path))) {
       edit.handleCancel();
     }
   };

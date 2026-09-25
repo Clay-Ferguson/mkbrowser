@@ -3,6 +3,7 @@ import type { AppState, Bookmark, ItemData } from '../shared/types';
 import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
+import { removeTOC } from '../shared/tocUtil';
 import { getParentPath, isPathInside, joinPath, remapMovedPath } from '../renderer/pathUtil';
 import { enterExpandedEditPatch, isExpandedEditOf } from './expandedEdit';
 import { getState, useAS } from './core';
@@ -886,13 +887,27 @@ export function getItem(path: string): ItemData | undefined {
 }
 
 /**
- * Get the item currently in edit mode, if any (direct access, not a hook)
+ * Get the first item in edit mode, if any (direct access, not a hook). The
+ * optional `filter` narrows the search, e.g. to items rendered on screen — the
+ * items Map is global, so an editing item can belong to a folder not shown.
  */
-export function getEditingItem(): { path: string; item: ItemData } | null {
+export function getEditingItem(filter?: (path: string) => boolean): { path: string; item: ItemData } | null {
   for (const [path, item] of getState().items) {
-    if (item.editing) return { path, item };
+    if (item.editing && (!filter || filter(path))) return { path, item };
   }
   return null;
+}
+
+/**
+ * Whether an item's edit buffer is unchanged from its saved content — the rule
+ * every Escape-to-close path uses. The saved side goes through removeTOC because
+ * the generated TOC body is stripped when the buffer is seeded (useEditMode), so
+ * comparing against raw content would call any file with a TOC "modified".
+ * A missing buffer is never "unmodified": there is nothing known to be safe to drop.
+ */
+export function isEditUnmodified(item: ItemData | undefined): boolean {
+  if (item?.editContent === undefined) return false;
+  return item.editContent === removeTOC(item.content ?? '');
 }
 
 /**

@@ -6,7 +6,6 @@ import { api } from '../../renderer/api';
 import { saveAiConfig } from '../../renderer/config';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../shared/types';
-import { removeTOC } from '../../shared/tocUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../../shared/frontMatterUtil';
 import { getTagsFromYaml } from '../../shared/tagUtil';
 import {
@@ -21,6 +20,7 @@ import {
   setItemContent,
   toggleExpandedEditor,
   setShowPropsInEditor,
+  isEditUnmodified,
 } from '../../store';
 import AlertDialog from '../dialogs/AlertDialog';
 import StreamingDialog from '../dialogs/StreamingDialog';
@@ -189,14 +189,13 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     return edit.handleSaveKeepEditing();
   };
 
-  // Only exit edit mode on Escape when the content is unmodified (comparing without TOC, since the
-  // TOC block is stripped on edit entry). If the user has typed something, Escape falls through to
-  // CodeMirror (e.g. to dismiss autocomplete).
+  // Only exit edit mode on Escape when the content is unmodified (see isEditUnmodified for the
+  // TOC-stripping rule). If the user has typed something, Escape falls through to CodeMirror
+  // (e.g. to dismiss autocomplete).
   const handleEscape = () => {
     // Read the edit buffer at call time — the editor flushes its debounced onChange right
     // before invoking onEscape, so this render's edit.editContent may predate the flush.
-    const latest = useAS.getState().items.get(entry.path)?.editContent ?? edit.editContent;
-    if (latest === removeTOC(content)) {
+    if (isEditUnmodified(useAS.getState().items.get(entry.path))) {
       handleCancelEdit();
     }
   };
