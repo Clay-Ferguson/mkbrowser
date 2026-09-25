@@ -49,6 +49,7 @@ export interface IndexTreeSlice {
   collapseAllIndexTreeNodes: () => void;
   collapseIndexTreeNode: (path: string) => void;
   setPendingIndexTreeReveal: (path: string) => void;
+  revealInTree: (path: string) => void;
   clearPendingIndexTreeReveal: () => void;
   setHasIndexFile: (hasIndexFile: boolean) => void;
   setIndexYaml: (indexYaml: AppState['indexYaml']) => void;
@@ -117,6 +118,17 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
     /** Signal IndexTree to expand to the given path and scroll it into view. */
     setPendingIndexTreeReveal: (path) => set({ pendingIndexTreeReveal: path }),
 
+    /**
+     * Reveal `path` in the index tree from an entry's action bar, in a single
+     * state update: highlight the item, switch to the browser view (where the
+     * tree lives), and queue the reveal for IndexTree to pick up.
+     */
+    revealInTree: (path) => set({
+      highlightItem: path,
+      currentView: 'browser',
+      pendingIndexTreeReveal: path,
+    }),
+
     /** Clear the pending reveal signal (called by IndexTree when it picks it up). */
     clearPendingIndexTreeReveal: () => {
       if (get().pendingIndexTreeReveal === null) return;
@@ -162,6 +174,10 @@ export function collapseIndexTreeNode(path: string): void {
 
 export function setPendingIndexTreeReveal(path: string): void {
   getState().setPendingIndexTreeReveal(path);
+}
+
+export function revealInTree(path: string): void {
+  getState().revealInTree(path);
 }
 
 export function clearPendingIndexTreeReveal(): void {

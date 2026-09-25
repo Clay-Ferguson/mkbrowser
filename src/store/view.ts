@@ -35,6 +35,7 @@ export interface ViewSlice {
   setFolderAnalysis: (data: FolderAnalysisState | null) => void;
   setFolderGraph: (data: FolderGraphState | null) => void;
   setRootPath: (path: string) => void;
+  openRootFolder: (folder: string) => void;
   showTab: (tab: AppView) => void;
   hideTab: (tab: AppView) => void;
   setSelectedLinkItems: (paths: string[]) => void;
@@ -249,6 +250,29 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
     },
 
     /**
+     * Open `folder` as the new root and browse it, in a single state update:
+     * `rootPath` and `currentPath` change together (so nothing ever sees the new
+     * root paired with a path inside the old one), the view switches to the
+     * browser, single-file browsing is exited, and selections are cleared.
+     */
+    openRootFolder: (folder) => {
+      const state = get();
+      const newState: Partial<AppState> = {
+        rootPath: folder,
+        currentPath: folder,
+        currentView: 'browser',
+        browseFileName: null,
+      };
+      if (folder !== state.currentPath) {
+        const clearedItems = withSelectionsCleared(state.items);
+        if (clearedItems) {
+          newState.items = clearedItems;
+        }
+      }
+      set(newState);
+    },
+
+    /**
      * Show a tab in the tab bar (adds it to visibleTabs).
      * Does not persist — resets on restart.
      */
@@ -366,6 +390,10 @@ export function setFolderGraph(data: FolderGraphState | null): void {
 
 export function setRootPath(path: string): void {
   getState().setRootPath(path);
+}
+
+export function openRootFolder(folder: string): void {
+  getState().openRootFolder(folder);
 }
 
 /**

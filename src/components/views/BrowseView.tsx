@@ -32,10 +32,8 @@ import {
   setItemEditing,
   setItemExpanded,
   setCurrentView,
-  showTab,
-  setCalendarSource,
+  showCalendarForFolder,
   setCalendarEvents,
-  setCalendarLoading,
   setCurrentPath,
   navigateToBrowserPath,
   clearPendingEditFile,
@@ -804,10 +802,7 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
 
   const handleShowCalendar = () => {
     if (!currentPath) return;
-    showTab('calendar');
-    setCurrentView('calendar');
-    setCalendarSource({ kind: 'folder', folder: currentPath });
-    setCalendarLoading(true);
+    showCalendarForFolder(currentPath);
     runOp(async () => {
       const results = await api.loadCalendarEvents(currentPath);
       setCalendarEvents(toCalendarEvents(results));

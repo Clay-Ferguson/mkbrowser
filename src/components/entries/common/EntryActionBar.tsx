@@ -3,7 +3,7 @@ import { Bars3Icon, TrashIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon 
 import { api } from '../../../renderer/api';
 import { getParentPath, getFileName, joinPath } from '../../../renderer/pathUtil';
 import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../renderer/styles';
-import { toggleBookmark, addBookmark, setCurrentView, useAS, setPendingIndexTreeReveal, setHighlightItem, setBrowseFile } from '../../../store';
+import { toggleBookmark, addBookmark, useAS, revealInTree, setHighlightItem, setBrowseFile } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 import EntryPopupMenu from '../../menus/EntryPopupMenu';
 import type { AttachMenuProps } from './types';
@@ -140,9 +140,7 @@ export function EntryActionBar({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setHighlightItem(path);
-            setCurrentView('browser');
-            setPendingIndexTreeReveal(path);
+            revealInTree(path);
           }}
           className={BUTTON_CLASS_BLUE}
           title="Reveal in folder tree"

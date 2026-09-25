@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../../../renderer/api';
-import { useAS, getItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing } from '../../../store';
+import { useAS, getItem, setItemContent, setItemEditing, startEditing, setItemEditContent, setItemReviewing } from '../../../store';
 import { applyGlobalHighlight, getGlobalHighlightText } from '../../../renderer/globalHighlight';
 import { removeTOC } from '../../../shared/tocUtil';
 import { logger } from '../../../shared/logUtil';
@@ -140,8 +140,7 @@ export function useEditMode({ path }: UseEditModeOptions): EditModeState {
       setItemEditContent(path, removeTOC(content));
     }
     editInitialized.current = true;
-    setItemExpanded(path, true);
-    setItemEditing(path, true, goToLine);
+    startEditing(path, goToLine);
   };
 
   const handleCancel = () => {

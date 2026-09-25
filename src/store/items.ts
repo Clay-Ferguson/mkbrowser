@@ -119,6 +119,54 @@ export function withSelectionsCleared(items: Map<string, ItemData>): Map<string,
   return hasChanges ? newItems : null;
 }
 
+/**
+ * The patch that turns `path`'s edit mode on or off (plus the expanded-edit
+ * routing that goes with it), or null when the item isn't loaded. Shared by
+ * setItemEditing and startEditing; `expand` also sets `isExpanded` on the same
+ * entry clone.
+ */
+function editingPatch(
+  state: AppState,
+  path: string,
+  editing: boolean,
+  goToLine: number | undefined,
+  expand = false,
+): Partial<AppState> | null {
+  const existing = state.items.get(path);
+  if (!existing) return null;
+
+  const newItems = new Map(state.items);
+  newItems.set(path, {
+    ...existing,
+    ...(expand ? { isExpanded: true } : {}),
+    editing,
+    goToLine: editing ? goToLine : undefined,
+    // Clear editContent and reviewing state when exiting edit mode
+    ...(editing ? {} : { editContent: undefined, reviewing: undefined, rewrittenContent: undefined }),
+  });
+
+  // Cancel and save-and-close both land here with editing=false, so both
+  // exit. Save-and-keep-editing leaves `editing` alone, which correctly
+  // keeps the user in the maximized editor.
+  //
+  // Leaving also queues the scroll that puts the just-edited file back in
+  // view, the same request a search-result click and BrowseFile's "Browse
+  // Folder" link make: the listing this drops back into is the one the user
+  // left, which may be scrolled anywhere, so without it the highlighted file
+  // can land off screen. `path` is known to live in `currentPath` —
+  // isExpandedEditOf checks exactly that — so BrowseView is guaranteed to
+  // find the element and consume the request.
+  const routing = editing
+    ? enterExpandedEditPatch(state, path)
+    : (isExpandedEditOf(state, path) ? { browseFileName: null, pendingScrollToFile: path } : null);
+
+  return {
+    items: newItems,
+    ...(editing ? { highlightItem: path } : {}),
+    ...routing,
+  };
+}
+
 /** Strip any trailing separators so prefix math lands on a segment boundary. */
 function stripTrailingSep(path: string): string {
   return path.replace(/[/\\]+$/, '');
@@ -147,6 +195,7 @@ export interface ItemsSlice {
   deleteItems: (paths: string[]) => void;
   clearCache: () => void;
   setItemEditing: (path: string, editing: boolean, goToLine?: number) => void;
+  startEditing: (path: string, goToLine?: number) => void;
   setItemReviewing: (path: string, reviewing: boolean, rewrittenContent?: string) => void;
   setItemEditContent: (path: string, editContent: string) => void;
   clearItemGoToLine: (path: string) => void;
@@ -684,39 +733,18 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * @param goToLine - Optional 1-based line number to scroll to when editing starts
      */
     setItemEditing: (path, editing, goToLine) => {
-      const state = get();
-      const existing = state.items.get(path);
-      if (!existing) return;
+      const patch = editingPatch(get(), path, editing, goToLine);
+      if (patch) set(patch);
+    },
 
-      const newItems = new Map(state.items);
-      newItems.set(path, {
-        ...existing,
-        editing,
-        goToLine: editing ? goToLine : undefined,
-        // Clear editContent and reviewing state when exiting edit mode
-        ...(editing ? {} : { editContent: undefined, reviewing: undefined, rewrittenContent: undefined }),
-      });
-
-      // Cancel and save-and-close both land here with editing=false, so both
-      // exit. Save-and-keep-editing leaves `editing` alone, which correctly
-      // keeps the user in the maximized editor.
-      //
-      // Leaving also queues the scroll that puts the just-edited file back in
-      // view, the same request a search-result click and BrowseFile's "Browse
-      // Folder" link make: the listing this drops back into is the one the user
-      // left, which may be scrolled anywhere, so without it the highlighted file
-      // can land off screen. `path` is known to live in `currentPath` —
-      // isExpandedEditOf checks exactly that — so BrowseView is guaranteed to
-      // find the element and consume the request.
-      const routing = editing
-        ? enterExpandedEditPatch(state, path)
-        : (isExpandedEditOf(state, path) ? { browseFileName: null, pendingScrollToFile: path } : null);
-
-      set({
-        items: newItems,
-        ...(editing ? { highlightItem: path } : {}),
-        ...routing,
-      });
+    /**
+     * Start editing a file from its entry, expanding it in the same update (one
+     * Map clone, one notification) so the entry never renders expanded-but-not-
+     * editing in between.
+     */
+    startEditing: (path, goToLine) => {
+      const patch = editingPatch(get(), path, true, goToLine, true);
+      if (patch) set(patch);
     },
 
     /** Set the reviewing (diff review) state for a file. */
@@ -885,6 +913,10 @@ export function clearCache(): void {
 
 export function setItemEditing(path: string, editing: boolean, goToLine?: number): void {
   getState().setItemEditing(path, editing, goToLine);
+}
+
+export function startEditing(path: string, goToLine?: number): void {
+  getState().startEditing(path, goToLine);
 }
 
 export function setItemReviewing(path: string, reviewing: boolean, rewrittenContent?: string): void {

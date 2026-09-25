@@ -13,6 +13,7 @@ import type { StoreSet, StoreGet } from './core';
  */
 export interface CalendarSlice {
   setCalendarSource: (source: CalendarSource | null) => void;
+  showCalendarForFolder: (folder: string) => void;
   deleteCalendarEventsUnderPath: (deletedPath: string) => void;
   updateCalendarEvent: (filePath: string, updated: CalendarEvent[]) => void;
   setCalendarEvents: (events: CalendarEvent[]) => void;
@@ -31,6 +32,21 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
   return {
     /** Record where the currently loaded calendar events came from. */
     setCalendarSource: (source) => set({ calendarSource: source }),
+
+    /**
+     * Switch to the calendar tab for `folder`'s events, in a single state
+     * update: the tab is shown and selected, the source recorded, and loading
+     * started. The caller then loads the events and calls setCalendarEvents.
+     */
+    showCalendarForFolder: (folder) => {
+      const { visibleTabs } = get();
+      set({
+        ...(visibleTabs.has('calendar') ? {} : { visibleTabs: new Set(visibleTabs).add('calendar') }),
+        currentView: 'calendar',
+        calendarSource: { kind: 'folder', folder },
+        calendarLoading: true,
+      });
+    },
 
     /** Remove all calendar events whose `filePath` equals or lives under `deletedPath`. */
     deleteCalendarEventsUnderPath: (deletedPath) => {
@@ -85,6 +101,10 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
 
 export function setCalendarSource(source: CalendarSource | null): void {
   getState().setCalendarSource(source);
+}
+
+export function showCalendarForFolder(folder: string): void {
+  getState().showCalendarForFolder(folder);
 }
 
 export function deleteCalendarEventsUnderPath(deletedPath: string): void {

@@ -21,9 +21,9 @@ import {
   syncDirectoryItems,
   getSettings,
   setCurrentView,
-  setCurrentPath,
   navigateToBrowserPath,
   setRootPath,
+  openRootFolder,
   useAS,
   getIndexTreeRoot,
   setIndexTreeRoot,
@@ -378,8 +378,7 @@ function App() {
         const folder = await api.selectFolder();
         if (folder) {
           await api.updateConfig({ browseFolder: folder, curSubFolder: undefined });
-          setRootPath(folder);
-          setCurrentPath(folder);
+          openRootFolder(folder);
         }
       } catch (err) {
         setError('Failed to open folder: ' + errorMessage(err));
@@ -394,13 +393,10 @@ function App() {
     void (async () => {
       try {
         if (insideCurrentRoot) {
-          setCurrentPath(folder);
-          setCurrentView('browser');
+          navigateToBrowserPath(folder);
         } else {
           await api.updateConfig({ browseFolder: folder, curSubFolder: undefined });
-          setRootPath(folder);
-          setCurrentPath(folder);
-          setCurrentView('browser');
+          openRootFolder(folder);
         }
       } catch (err) {
         setError('Failed to open folder: ' + errorMessage(err));
