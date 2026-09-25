@@ -61,10 +61,16 @@ export function createCalendarSlice(set: StoreSet, get: StoreGet): CalendarSlice
     setCalendarEvents: (events) => set({ calendarEvents: events, calendarLoading: false }),
 
     /** Set the calendar loading flag. */
-    setCalendarLoading: (loading) => set({ calendarLoading: loading }),
+    setCalendarLoading: (loading) => {
+      if (get().calendarLoading === loading) return;
+      set({ calendarLoading: loading });
+    },
 
     /** Set the active calendar view type (month/week/day). */
-    setCalendarViewType: (viewType) => set({ calendarViewType: viewType }),
+    setCalendarViewType: (viewType) => {
+      if (get().calendarViewType === viewType) return;
+      set({ calendarViewType: viewType });
+    },
 
     /** Set the date the calendar is centered on. */
     setCalendarViewTime: (date) => set({ calendarViewTime: date }),

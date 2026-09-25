@@ -36,7 +36,13 @@ export function createAiConfigSlice(set: StoreSet, get: StoreGet): AiConfigSlice
      * subscribers. This only updates the renderer mirror — persistence to the
      * main process is the caller's responsibility (use `saveAiConfig` to do both).
      */
-    setAiConfig: (updates) => set({ aiConfig: { ...get().aiConfig, ...updates } }),
+    setAiConfig: (updates) => {
+      const aiConfig = get().aiConfig;
+      const changed = (Object.keys(updates) as (keyof AiConfigState)[])
+        .some(key => aiConfig[key] !== updates[key]);
+      if (!changed) return;
+      set({ aiConfig: { ...aiConfig, ...updates } });
+    },
   };
 }
 

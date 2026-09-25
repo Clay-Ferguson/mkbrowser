@@ -314,7 +314,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
     setItemExpanded: (path, isExpanded) => {
       const state = get();
       const existing = state.items.get(path);
-      if (!existing) return;
+      if (!existing || existing.isExpanded === isExpanded) return;
 
       const newItems = new Map(state.items);
       newItems.set(path, {
@@ -329,7 +329,7 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
     setItemSelected: (path, isSelected) => {
       const state = get();
       const existing = state.items.get(path);
-      if (!existing) return;
+      if (!existing || existing.isSelected === isSelected) return;
 
       const newItems = new Map(state.items);
       newItems.set(path, {
@@ -724,12 +724,14 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       const state = get();
       const existing = state.items.get(path);
       if (!existing) return;
+      const nextRewritten = reviewing ? rewrittenContent : undefined;
+      if (existing.reviewing === reviewing && existing.rewrittenContent === nextRewritten) return;
 
       const newItems = new Map(state.items);
       newItems.set(path, {
         ...existing,
         reviewing,
-        rewrittenContent: reviewing ? rewrittenContent : undefined,
+        rewrittenContent: nextRewritten,
       });
 
       set({ items: newItems });
@@ -767,6 +769,9 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       const state = get();
       const existing = state.items.get(path);
       if (!existing) return;
+      // Starting a rename also highlights the item, so it is only a no-op when
+      // that highlight is already in place too.
+      if (existing.renaming === renaming && (!renaming || state.highlightItem === path)) return;
 
       const newItems = new Map(state.items);
       newItems.set(path, {

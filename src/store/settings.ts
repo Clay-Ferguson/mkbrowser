@@ -40,59 +40,68 @@ export interface SettingsSlice {
  * cycle regardless of module load order.
  */
 export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice {
+  /** Write one scalar setting, skipping the update when the value is unchanged. */
+  function patchSettings<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void {
+    const settings = get().settings;
+    if (settings[key] === value) return;
+    set({ settings: { ...settings, [key]: value } });
+  }
+
   return {
     /** Update application settings. */
     setSettings: (settings) => set({ settings }),
 
     /** Update the font size setting. */
-    setFontSize: (fontSize) => set({ settings: { ...get().settings, fontSize } }),
+    setFontSize: (fontSize) => patchSettings('fontSize', fontSize),
 
     /** Update the sort order setting. */
-    setSortOrder: (sortOrder) => set({ settings: { ...get().settings, sortOrder } }),
+    setSortOrder: (sortOrder) => patchSettings('sortOrder', sortOrder),
 
     /** Update the folders on top setting. */
-    setFoldersOnTop: (foldersOnTop) => set({ settings: { ...get().settings, foldersOnTop } }),
+    setFoldersOnTop: (foldersOnTop) => patchSettings('foldersOnTop', foldersOnTop),
 
-    setShowToc: (showToc) => set({ settings: { ...get().settings, showToc } }),
+    setShowToc: (showToc) => patchSettings('showToc', showToc),
 
     setShowPropsInEditor: (showPropsInEditor) =>
-      set({ settings: { ...get().settings, showPropsInEditor } }),
+      patchSettings('showPropsInEditor', showPropsInEditor),
 
     // `expandedEditor` is deliberately NOT settable on its own: flipping it
     // has to move the editor between the folder listing and BrowseFile in the
     // same update. Use `toggleExpandedEditor(path)` in the view slice.
 
     /** Update the ignored paths setting. */
-    setIgnoredPaths: (ignoredPaths) => set({ settings: { ...get().settings, ignoredPaths } }),
+    setIgnoredPaths: (ignoredPaths) => patchSettings('ignoredPaths', ignoredPaths),
 
     /** Update the content width setting. */
-    setContentWidth: (contentWidth) => set({ settings: { ...get().settings, contentWidth } }),
+    setContentWidth: (contentWidth) => patchSettings('contentWidth', contentWidth),
 
     /** Update the OCR tools folder setting. */
     setOcrToolsFolder: (ocrToolsFolder) =>
-      set({ settings: { ...get().settings, ocrToolsFolder } }),
+      patchSettings('ocrToolsFolder', ocrToolsFolder),
 
     /** Update the calendar items folder setting (where new calendar files are created). */
     setCalendarItemsFolder: (calendarItemsFolder) =>
-      set({ settings: { ...get().settings, calendarItemsFolder } }),
+      patchSettings('calendarItemsFolder', calendarItemsFolder),
 
     /** Update the index tree width setting. */
     setIndexTreeWidth: (indexTreeWidth) =>
-      set({ settings: { ...get().settings, indexTreeWidth } }),
+      patchSettings('indexTreeWidth', indexTreeWidth),
 
     /** Update the inline image display size setting. */
-    setImageSize: (imageSize) => set({ settings: { ...get().settings, imageSize } }),
+    setImageSize: (imageSize) => patchSettings('imageSize', imageSize),
 
     /**
      * Turn the editor's synonym strip on or off. Switching it off also drops any
      * word the idle plugin had already published, so re-enabling starts from a
      * clean strip rather than showing synonyms for wherever the cursor last sat.
      */
-    setEnableThesaurus: (enableThesaurus) =>
+    setEnableThesaurus: (enableThesaurus) => {
+      if (get().settings.enableThesaurus === enableThesaurus) return;
       set({
         settings: { ...get().settings, enableThesaurus },
         ...(enableThesaurus ? null : { thesaurusWord: null }),
-      }),
+      });
+    },
 
     /**
      * Toggle bookmark for a file path.

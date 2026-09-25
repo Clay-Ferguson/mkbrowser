@@ -124,10 +124,16 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
     },
 
     /** Set whether the current directory contains a .INDEX.yaml file. */
-    setHasIndexFile: (hasIndexFile) => set({ hasIndexFile }),
+    setHasIndexFile: (hasIndexFile) => {
+      if (get().hasIndexFile === hasIndexFile) return;
+      set({ hasIndexFile });
+    },
 
     /** Set the parsed .INDEX.yaml for the current directory. */
-    setIndexYaml: (indexYaml) => set({ indexYaml }),
+    setIndexYaml: (indexYaml) => {
+      if (get().indexYaml === indexYaml) return;
+      set({ indexYaml });
+    },
   };
 }
 
