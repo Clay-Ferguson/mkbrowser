@@ -21,6 +21,7 @@ import {
   toggleExpandedEditor,
   setShowPropsInEditor,
   isEditUnmodified,
+  toggleItemExpanded,
 } from '../../store';
 import AlertDialog from '../dialogs/AlertDialog';
 import StreamingDialog from '../dialogs/StreamingDialog';
@@ -40,7 +41,6 @@ import { trackScrollbarPress, pressStartedOnScrollbar } from '../../renderer/scr
 import { HUMAN_FILENAME, AI_FILENAME } from '../../shared/specialFiles';
 import {
   useEditableEntry,
-  useToggleExpanded,
   useAiConfig,
   useAiRewrite,
   useAiStreamingDialog,
@@ -201,7 +201,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     }
   };
 
-  const handleToggleExpanded = useToggleExpanded(entry.path);
+  const handleToggleExpanded = () => toggleItemExpanded(entry.path);
 
   const [showCalendarDialog, setShowCalendarDialog] = useState(false);
   // Front matter of the unsaved edit buffer, populated only by a calendar-dialog save during an

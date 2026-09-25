@@ -16,7 +16,7 @@
 // they miss constructs only the older build compiler bails on), and they cannot see
 // bailouts caused by eslint-disable comments. This script catches both.
 //
-// It reports three independent failures, all of which silently de-memoize code:
+// It reports four independent failures, all of which silently de-memoize code:
 //
 //   1. BAILOUT — the compiler tried to compile a function and gave up.
 //   2. SKIPPED — Vite would never hand the file to the compiler at all. The build
@@ -33,6 +33,12 @@
 //      function can be skipped without any bailout event — invisible to checks 1 and 2.
 //      Fix by making it a top-level component and passing the closed-over values as
 //      props or through context (see blockClickComponents.tsx / markdownEntryContext.ts).
+//   4. UNCOMPILED HOOK — a `use*` function the compiler never attempted. In infer mode a
+//      `use*` function is only treated as a hook if it actually calls a hook, so a
+//      "hook" that calls none (e.g. `function useX(p) { return () => f(p); }`) is
+//      skipped, and hands every caller a fresh value each render. Either it should call
+//      a hook, or it isn't one: inline it at the call sites (where the compiler memoizes
+//      it) or rename it to a plain function.
 //
 // Neither failure mode covers the compiler being configured out of the Vite pipeline
 // entirely (this script bypasses Vite by design). That case is caught downstream:
@@ -65,6 +71,7 @@ if (!(codeFilter instanceof RegExp)) {
 }
 
 const PASCAL_CASE = /^[A-Z][A-Za-z0-9]*$/;
+const HOOK_NAME = /^use[A-Z0-9]/;
 
 // Name a function the way a reader would: its own id, else the variable it's assigned to
 // (`const Foo = () => ...`, `const Foo = function () {...}`).
@@ -75,11 +82,11 @@ function functionName(path) {
   return null;
 }
 
-// PascalCase functions whose body contains JSX — i.e. what a reader would call a component —
-// that the compiler neither compiled nor reported a bailout for (see UNCOMPILED in the header).
-// Compiler events carry the function's start offset, which identifies it in our own parse
-// of the same source.
-async function findUncompiledComponents(file, source, events) {
+// Components (PascalCase functions whose body contains JSX) and hooks (`use*` functions) that
+// the compiler neither compiled nor reported a bailout for — see UNCOMPILED and UNCOMPILED
+// HOOK in the header. Compiler events carry the function's start offset, which identifies
+// it in our own parse of the same source.
+async function findUncompiled(file, source, events) {
   const seen = new Set(events.map(e => e.fnLoc?.start?.index).filter(i => i !== undefined));
   const ast = await parseAsync(source, {
     filename: file,
@@ -91,13 +98,19 @@ async function findUncompiledComponents(file, source, events) {
   traverse(ast, {
     Function(path) {
       const name = functionName(path);
-      if (!name || !PASCAL_CASE.test(name) || seen.has(path.node.start)) return;
+      if (!name || seen.has(path.node.start)) return;
+      const line = path.node.loc.start.line;
+      if (HOOK_NAME.test(name)) {
+        found.push({ kind: 'hook', name, line });
+        return;
+      }
+      if (!PASCAL_CASE.test(name)) return;
       let hasJsx = false;
       path.traverse({
         JSXElement(p) { hasJsx = true; p.stop(); },
         JSXFragment(p) { hasJsx = true; p.stop(); },
       });
-      if (hasJsx) found.push({ name, line: path.node.loc.start.line });
+      if (hasJsx) found.push({ kind: 'component', name, line });
     },
   });
   return found;
@@ -141,11 +154,8 @@ for (const file of files) {
     skippedByVite.push({ file, fns: successes.map(e => e.fnName ?? '(anonymous)') });
   }
 
-  // .ts files can't contain JSX, so only .tsx files can hold an uncompiled component.
-  if (file.endsWith('.tsx')) {
-    const fns = await findUncompiledComponents(file, source, events);
-    if (fns.length > 0) uncompiled.push({ file, fns });
-  }
+  const fns = await findUncompiled(file, source, events);
+  if (fns.length > 0) uncompiled.push({ file, fns });
 
   const problems = events.filter(e => e.kind !== 'CompileSuccess');
   bailouts += problems.length;
@@ -171,20 +181,28 @@ for (const { file, fns } of skippedByVite) {
 
 for (const { file, fns } of uncompiled) {
   console.log('\n=== ' + file.replace(root + '/', ''));
-  for (const { name, line } of fns) {
-    console.log(`  UNCOMPILED ${name} L${line} :: component-like function the compiler never attempted`);
+  for (const { kind, name, line } of fns) {
+    if (kind === 'component') {
+      console.log(`  UNCOMPILED ${name} L${line} :: component-like function the compiler never attempted`);
+      console.log('    Fix: the compiler only compiles module-level components. Make it top-level and pass');
+      console.log('    closed-over values as props or via context instead of a factory/nested function.');
+    } else {
+      console.log(`  UNCOMPILED HOOK ${name} L${line} :: use* function the compiler never attempted`);
+      console.log('    Fix: a use* function counts as a hook only if it calls one (and only at module level).');
+      console.log('    If it calls no hooks, it is not a hook: inline it at the call sites or rename it.');
+    }
   }
-  console.log('  (The compiler only compiles module-level components/hooks. Make it top-level and');
-  console.log('  pass closed-over values as props or via context instead of a factory/nested function.)');
 }
 
-const uncompiledCount = uncompiled.reduce((sum, u) => sum + u.fns.length, 0);
-const clean = bailouts === 0 && skippedByVite.length === 0 && uncompiledCount === 0;
+const uncompiledCount = uncompiled.reduce((sum, u) => sum + u.fns.filter(f => f.kind === 'component').length, 0);
+const uncompiledHookCount = uncompiled.reduce((sum, u) => sum + u.fns.filter(f => f.kind === 'hook').length, 0);
+const clean = bailouts === 0 && skippedByVite.length === 0 && uncompiledCount === 0 && uncompiledHookCount === 0;
 console.log(clean
   ? `\nReact Compiler coverage: ${compiled} components/hooks compiled across ${files.length} files, zero bailouts.`
   : `\nReact Compiler coverage: ${bailouts} bailout(s)/problem(s)` +
     `${skippedByVite.length > 0 ? `, ${skippedByVite.length} file(s) skipped by Vite's filter` : ''}` +
     `${uncompiledCount > 0 ? `, ${uncompiledCount} uncompiled component(s)` : ''}` +
+    `${uncompiledHookCount > 0 ? `, ${uncompiledHookCount} uncompiled hook(s)` : ''}` +
     ` found (${compiled} compiled OK).`);
 
 // On a clean full-scan run, record the compiled count for bundle-fingerprint.mjs,

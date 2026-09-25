@@ -2,13 +2,13 @@ import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import PdfViewer from '../PdfViewer';
 import {
   useEntry,
-  useToggleExpanded,
   EntryActionBar,
   EntryShell,
   bindAttachMenu,
   type BaseEntryProps,
   type AttachMenuProps,
 } from './common';
+import { toggleItemExpanded } from '../../store';
 
 type PDFEntryProps = BaseEntryProps & AttachMenuProps;
 
@@ -25,7 +25,7 @@ function PDFEntry(props: PDFEntryProps) {
   const { core, rename, del } = useEntry(props);
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
-  const handleToggleExpanded = useToggleExpanded(entry.path);
+  const handleToggleExpanded = () => toggleItemExpanded(entry.path);
 
   return (
     <EntryShell

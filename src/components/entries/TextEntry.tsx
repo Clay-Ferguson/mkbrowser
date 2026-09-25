@@ -7,13 +7,13 @@ import {
   useAS,
   toggleExpandedEditor,
   isEditUnmodified,
+  toggleItemExpanded,
 } from '../../store';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
 import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import AlertDialog from '../dialogs/AlertDialog';
 import {
   useEditableEntry,
-  useToggleExpanded,
   useAiConfig,
   useAiRewrite,
   EntryActionBar,
@@ -72,7 +72,7 @@ function TextEntry(props: TextEntryProps) {
     }
   };
 
-  const handleToggleExpanded = useToggleExpanded(entry.path);
+  const handleToggleExpanded = () => toggleItemExpanded(entry.path);
 
   // Flips the preference AND moves the editor to match: expanding hands this
   // file the whole pane via BrowseFile, collapsing drops back to the folder

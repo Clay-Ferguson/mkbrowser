@@ -3,7 +3,7 @@ import { Bars3Icon, TrashIcon, ArrowUpIcon, ArrowDownIcon, ViewfinderCircleIcon 
 import { api } from '../../../renderer/api';
 import { getParentPath, getFileName, joinPath } from '../../../renderer/pathUtil';
 import { BUTTON_CLASS_NORMAL, BUTTON_CLASS_RED, BUTTON_CLASS_BLUE } from '../../../renderer/styles';
-import { toggleBookmark, addBookmark, toggleItemExpanded, setCurrentView, useAS, setPendingIndexTreeReveal, setHighlightItem, setBrowseFile } from '../../../store';
+import { toggleBookmark, addBookmark, setCurrentView, useAS, setPendingIndexTreeReveal, setHighlightItem, setBrowseFile } from '../../../store';
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 import EntryPopupMenu from '../../menus/EntryPopupMenu';
 import type { AttachMenuProps } from './types';
@@ -249,12 +249,4 @@ export function bindAttachMenu(
     onAttachFromFile: onAttachFromFile && (() => onAttachFromFile(path)),
     onCreateAttachment: onCreateAttachment && (() => onCreateAttachment(path)),
   };
-}
-
-/**
- * Returns a callback that toggles the expanded state of the entry at `path` in the store.
- * Used by all entry types to wire the name-click handler.
- */
-export function useToggleExpanded(path: string) {
-  return () => toggleItemExpanded(path);
 }

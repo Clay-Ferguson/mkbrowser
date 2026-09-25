@@ -1,13 +1,13 @@
 import { DocumentIcon } from '@heroicons/react/24/outline';
 import {
   useEntry,
-  useToggleExpanded,
   EntryActionBar,
   EntryShell,
   bindAttachMenu,
   type BaseEntryProps,
   type AttachMenuProps,
 } from './common';
+import { toggleItemExpanded } from '../../store';
 
 type GenericEntryProps = BaseEntryProps & AttachMenuProps;
 
@@ -21,7 +21,7 @@ function GenericEntry(props: GenericEntryProps) {
   const { core, rename, del } = useEntry(props);
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
-  const handleToggleExpanded = useToggleExpanded(entry.path);
+  const handleToggleExpanded = () => toggleItemExpanded(entry.path);
 
   return (
     <EntryShell

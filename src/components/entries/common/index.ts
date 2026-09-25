@@ -26,7 +26,7 @@ export { useDropTarget } from './useDropTarget';
 export type { DropTargetState } from './useDropTarget';
 
 // Components
-export { EntryActionBar, bindAttachMenu, useToggleExpanded } from './EntryActionBar';
+export { EntryActionBar, bindAttachMenu } from './EntryActionBar';
 export { EntryEditToolbar } from './EntryEditToolbar';
 export { RenameInput } from './RenameInput';
 export { SelectionCheckbox } from './SelectionCheckbox';

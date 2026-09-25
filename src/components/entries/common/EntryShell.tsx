@@ -38,7 +38,7 @@ interface EntryShellProps {
   rename: RenameState;
   del: DeleteState;
 
-  /** Toggle expansion (from useToggleExpanded) */
+  /** Toggle expansion of this entry (calls the store's toggleItemExpanded) */
   onToggleExpanded: () => void;
 
   // Slots

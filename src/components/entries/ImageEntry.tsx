@@ -5,12 +5,11 @@ import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import type { FileEntry as FileEntryType } from '../../global';
 import type { ExifData, ImageSize } from '../../shared/shared';
-import { useAS } from '../../store';
+import { useAS, toggleItemExpanded } from '../../store';
 import ExifDialog from '../dialogs/ExifDialog';
 import FullscreenImageViewer from './FullscreenImageViewer';
 import {
   useEntry,
-  useToggleExpanded,
   EntryActionBar,
   EntryShell,
   bindAttachMenu,
@@ -58,7 +57,7 @@ function ImageEntry(props: ImageEntryProps) {
   const [exifFileName, setExifFileName] = useState(entry.name);
   const [exifFilePath, setExifFilePath] = useState(entry.path);
 
-  const handleToggleExpanded = useToggleExpanded(entry.path);
+  const handleToggleExpanded = () => toggleItemExpanded(entry.path);
 
   /** Fetches EXIF metadata for the given image and opens the EXIF dialog. */
   const handleExifClick = (e: React.MouseEvent, imagePath: string, imageName: string) => {
