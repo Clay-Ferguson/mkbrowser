@@ -13,13 +13,26 @@ import { rehypeCallouts } from '../../shared/rehypeCallouts';
 import { removeTOC } from '../../shared/tocUtil';
 import { preprocessMathEscapes, stripHtmlComments, preprocessWikiLinks, splitOnColumnBreaks, safeUrlTransform } from '../../shared/mkUtil';
 import { BlockClickContext, blockClickComponents } from '../blockClickComponents';
-import { createCustomImage } from '../markdownImgResolver';
-import CustomAnchor from '../CustomAnchor';
+import { MarkdownEntryContext } from '../markdownEntryContext';
+import { CustomImage } from '../markdownImgResolver';
+import { CustomAnchorWithPath } from '../CustomAnchor';
 import CustomCode from '../CustomCode';
 import CustomPre from '../CustomPre';
 
 const REMARK_PLUGINS: PluggableList = [remarkFrontmatter, remarkGfm, [remarkMath, { singleDollarTextMath: true }]];
 const REHYPE_PLUGINS: PluggableList = [rehypeKatex, rehypeSlug, rehypeCallouts];
+
+// Module-stable components so react-markdown reconciles in place instead of remounting the
+// whole block tree each render. Per-render inputs reach them through context: onEditClick and
+// the column line offset via BlockClickContext, the entry path (for resolving relative links
+// and images) via MarkdownEntryContext.
+const MARKDOWN_COMPONENTS: Components = {
+  ...blockClickComponents,
+  a: CustomAnchorWithPath,
+  img: CustomImage,
+  code: CustomCode,
+  pre: CustomPre,
+};
 
 const ARTICLE_CLASS = 'prose prose-invert prose-base max-w-none prose-hr:border-slate-400 prose-hr:my-2';
 
@@ -27,7 +40,7 @@ interface MarkdownViewProps {
   content: string;
   /** When false, the table-of-contents block is stripped before rendering. */
   showToc: boolean;
-  /** Used to scope link/image resolution and to memoize the path-dependent components. */
+  /** Used to scope link/image resolution (supplied to them via MarkdownEntryContext). */
   entryPath: string;
   /** Clicking a rendered block opens the editor at that source line. */
   onEditClick: (goToLine?: number) => void | Promise<void>;
@@ -43,32 +56,22 @@ function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownView
   const processedContent = preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(rawContent)));
   const columns = splitOnColumnBreaks(processedContent);
 
-  // Stable components (the React Compiler memoizes this object on entryPath) so react-markdown
-  // reconciles in place instead of remounting the whole block tree each render. The block-click
-  // components are module-stable and get onEditClick and the column line offset via
-  // BlockClickContext; only the path-dependent overrides (links, images) depend on entryPath.
-  const markdownComponents: Components = {
-    ...blockClickComponents,
-    a: (props) => <CustomAnchor entryPath={entryPath} {...props} />,
-    img: createCustomImage(entryPath),
-    code: CustomCode,
-    pre: CustomPre,
-  };
-
   const renderColumn = (text: string, lineOffset: number) => (
-    <BlockClickContext.Provider value={{ onEditClick, lineOffset }}>
-      <Markdown
-        remarkPlugins={REMARK_PLUGINS}
-        rehypePlugins={REHYPE_PLUGINS}
-        // react-markdown strips any URL whose scheme isn't in its default whitelist, so file://
-        // links would be silently dropped. safeUrlTransform allow-lists the schemes we need
-        // (incl. file://) while still blocking dangerous ones like javascript:.
-        urlTransform={safeUrlTransform}
-        components={markdownComponents}
-      >
-        {text}
-      </Markdown>
-    </BlockClickContext.Provider>
+    <MarkdownEntryContext.Provider value={entryPath}>
+      <BlockClickContext.Provider value={{ onEditClick, lineOffset }}>
+        <Markdown
+          remarkPlugins={REMARK_PLUGINS}
+          rehypePlugins={REHYPE_PLUGINS}
+          // react-markdown strips any URL whose scheme isn't in its default whitelist, so file://
+          // links would be silently dropped. safeUrlTransform allow-lists the schemes we need
+          // (incl. file://) while still blocking dangerous ones like javascript:.
+          urlTransform={safeUrlTransform}
+          components={MARKDOWN_COMPONENTS}
+        >
+          {text}
+        </Markdown>
+      </BlockClickContext.Provider>
+    </MarkdownEntryContext.Provider>
   );
 
   if (columns.length > 1) {

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import type { ExtraProps } from 'react-markdown';
 import { api } from '../renderer/api';
 import { setHighlightItem, navigateToBrowserPath } from '../store';
 import { decodeMarkdownUrl } from '../renderer/linkUtil';
 import { getParentPath, isAbsolutePath, pathSep, splitPath } from '../renderer/pathUtil';
+import { MarkdownEntryContext } from './markdownEntryContext';
 
 interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement>, ExtraProps {
   entryPath: string;
@@ -101,4 +102,13 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
       {children}
     </a>
   );
+}
+
+/**
+ * The `a` override for react-markdown: a module-stable component that reads the
+ * markdown file's path from MarkdownEntryContext and forwards it to CustomAnchor.
+ */
+export function CustomAnchorWithPath(props: React.AnchorHTMLAttributes<HTMLAnchorElement> & ExtraProps) {
+  const entryPath = useContext(MarkdownEntryContext);
+  return <CustomAnchor entryPath={entryPath} {...props} />;
 }
