@@ -28,8 +28,9 @@ export interface SettingsSlice {
   setImageSize: (imageSize: ImageSize) => void;
   setEnableThesaurus: (enableThesaurus: boolean) => void;
   toggleBookmark: (filePath: string) => boolean;
-  addBookmark: (filePath: string, name: string) => void;
+  addBookmark: (filePath: string, name: string, isDirectory: boolean) => void;
   updateBookmarkName: (filePath: string, name: string) => void;
+  setBookmarkIsDirectory: (filePath: string, isDirectory: boolean) => void;
   removeBookmark: (filePath: string) => void;
 }
 
@@ -112,12 +113,12 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
       return !isCurrentlyBookmarked;
     },
 
-    /** Add a bookmark with a specific display name. */
-    addBookmark: (filePath, name) => {
+    /** Add a bookmark with a specific display name, recording whether it is a folder. */
+    addBookmark: (filePath, name, isDirectory) => {
       const settings = get().settings;
       const currentBookmarks = settings.bookmarks;
       if (currentBookmarks.some(b => b.path === filePath)) return;
-      set({ settings: { ...settings, bookmarks: [...currentBookmarks, { path: filePath, name }] } });
+      set({ settings: { ...settings, bookmarks: [...currentBookmarks, { path: filePath, name, isDirectory }] } });
     },
 
     // Bookmark paths are remapped on rename by the cross-slice renameItem
@@ -136,6 +137,19 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
       const newBookmarks = [...currentBookmarks];
       newBookmarks[index] = { ...existing, name };
 
+      set({ settings: { ...settings, bookmarks: newBookmarks } });
+    },
+
+    /** Backfills `isDirectory` on a bookmark saved before that field existed. */
+    setBookmarkIsDirectory: (filePath, isDirectory) => {
+      const settings = get().settings;
+      const currentBookmarks = settings.bookmarks;
+      const index = currentBookmarks.findIndex(b => b.path === filePath);
+      const existing = currentBookmarks[index];
+      if (!existing || existing.isDirectory === isDirectory) return;
+
+      const newBookmarks = [...currentBookmarks];
+      newBookmarks[index] = { ...existing, isDirectory };
       set({ settings: { ...settings, bookmarks: newBookmarks } });
     },
 
@@ -206,12 +220,16 @@ export function toggleBookmark(filePath: string): boolean {
   return getState().toggleBookmark(filePath);
 }
 
-export function addBookmark(filePath: string, name: string): void {
-  getState().addBookmark(filePath, name);
+export function addBookmark(filePath: string, name: string, isDirectory: boolean): void {
+  getState().addBookmark(filePath, name, isDirectory);
 }
 
 export function updateBookmarkName(filePath: string, name: string): void {
   getState().updateBookmarkName(filePath, name);
+}
+
+export function setBookmarkIsDirectory(filePath: string, isDirectory: boolean): void {
+  getState().setBookmarkIsDirectory(filePath, isDirectory);
 }
 
 export function removeBookmark(filePath: string): void {

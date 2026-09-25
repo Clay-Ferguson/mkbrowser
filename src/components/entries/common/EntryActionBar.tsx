@@ -91,7 +91,7 @@ export function EntryActionBar({
 
   const handleBookmarkSave = (name: string) => {
     setShowBookmarkDialog(false);
-    addBookmark(path, name);
+    addBookmark(path, name, isFolder);
     onSaveSettings();
   };
 

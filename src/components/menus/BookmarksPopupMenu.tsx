@@ -5,7 +5,7 @@ import { logger } from '../../shared/logUtil';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import BookmarkDialog from '../dialogs/BookmarkDialog';
-import { toggleBookmark, isBookmarked, getSettings, removeBookmark, updateBookmarkName, type Bookmark } from '../../store';
+import { toggleBookmark, isBookmarked, getSettings, removeBookmark, updateBookmarkName, setBookmarkIsDirectory, type Bookmark } from '../../store';
 import {
   MENU_ROW,
   MENU_ICON_BTN,
@@ -25,8 +25,8 @@ interface BookmarksPopupMenuProps {
   bookmarks: Bookmark[];
   /** Current root folder; bookmarks outside this tree are hidden. */
   rootPath: string;
-  /** Called with the bookmark's full path when the user clicks a bookmark. */
-  onNavigate: (fullPath: string) => void;
+  /** Called with the bookmark's full path, and whether it is a folder, when the user clicks a bookmark. */
+  onNavigate: (fullPath: string, isDirectory: boolean) => void;
 }
 
 /**
@@ -91,8 +91,11 @@ export default function BookmarksPopupMenu({
   /**
    * Navigates to the bookmarked path. If the path no longer exists on disk,
    * the bookmark is automatically removed and an alert is shown instead.
+   * A bookmark saved before `isDirectory` was recorded has its type resolved
+   * from disk here and backfilled, so later clicks and its icon are exact.
    */
-  const handleClick = (fullPath: string) => {
+  const handleClick = (bookmark: Bookmark) => {
+    const fullPath = bookmark.path;
     void (async () => {
       try {
         const exists = await api.pathExists(fullPath);
@@ -104,7 +107,13 @@ export default function BookmarksPopupMenu({
           setMissingPath(fullPath);
           return;
         }
-        onNavigate(fullPath);
+        let isDirectory = bookmark.isDirectory;
+        if (isDirectory === undefined) {
+          isDirectory = await api.isDirectory(fullPath);
+          setBookmarkIsDirectory(fullPath, isDirectory);
+          await persistBookmarks();
+        }
+        onNavigate(fullPath, isDirectory);
         onClose();
       } catch (err) {
         logger.error('Failed to open bookmark:', err);
@@ -112,11 +121,13 @@ export default function BookmarksPopupMenu({
     })();
   };
 
-  /** Heuristic: treats a path as a folder when its filename has no extension. */
-  const isFolder = (path: string) => {
-    const name = getFileName(path);
-    return !name.includes('.');
-  };
+  /**
+   * Whether to show a bookmark as a folder. Uses the recorded `isDirectory`;
+   * a legacy bookmark without it falls back to a no-extension guess for the
+   * icon only (clicking it resolves and backfills the real type).
+   */
+  const isFolder = (bookmark: Bookmark) =>
+    bookmark.isDirectory ?? !getFileName(bookmark.path).includes('.');
 
   return (
     <>
@@ -126,7 +137,7 @@ export default function BookmarksPopupMenu({
         ) : (
           sorted.map((bookmark) => {
             const { path: fullPath, name } = bookmark;
-            const folder = isFolder(fullPath);
+            const folder = isFolder(bookmark);
             const Icon = folder ? FolderIcon : DocumentIcon;
             const iconColorClass = folder ? MENU_FOLDER_ICON : MENU_FILE_ICON;
             return (
@@ -137,7 +148,7 @@ export default function BookmarksPopupMenu({
                 <button
                   type="button"
                   className={MENU_ROW_LABEL}
-                  onClick={() => handleClick(fullPath)}
+                  onClick={() => handleClick(bookmark)}
                   data-testid={`bookmark-item-${name}`}
                 >
                   <Icon className={`${MENU_ROW_ICON} ${iconColorClass}`} />
@@ -179,7 +190,7 @@ export default function BookmarksPopupMenu({
       {editingBookmark && (
         <BookmarkDialog
           path={editingBookmark.path}
-          isFolder={isFolder(editingBookmark.path)}
+          isFolder={isFolder(editingBookmark)}
           initialName={editingBookmark.name}
           onSave={handleEditSave}
           onCancel={() => setEditingBookmark(null)}

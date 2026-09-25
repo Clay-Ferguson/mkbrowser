@@ -94,6 +94,12 @@ export interface SearchDefinition {
 export interface Bookmark {
   path: string;
   name: string;
+  /**
+   * Whether the bookmarked path is a folder, recorded when the bookmark is
+   * created. Optional because bookmarks saved before this field existed lack
+   * it; readers then resolve it by stat-ing the path (`api.isDirectory`).
+   */
+  isDirectory?: boolean;
 }
 
 /**
@@ -381,6 +387,8 @@ export interface ElectronAPI {
   writeExif: (filePath: string, data: ExifData) => Promise<ExifWriteResult>;
   getImageDimensions: (filePath: string) => Promise<ImageDimensions | null>;
   pathExists: (checkPath: string) => Promise<boolean>;
+  /** True when the path exists and is a directory; false otherwise (including when missing). */
+  isDirectory: (checkPath: string) => Promise<boolean>;
   writeFile: (filePath: string, content: string) => Promise<FileWriteResult>;
   getFileSize: (filePath: string) => Promise<number>;
   getFileMtime: (filePath: string) => Promise<number>;

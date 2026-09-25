@@ -687,13 +687,12 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    * showing it alone is what the click meant; no scroll-to-file is needed since
    * it is the only thing on screen. A bookmarked folder browses its listing.
    */
-  const handleBookmarkNavigate = (fullPath: string) => {
-    const lastName = getFileName(fullPath);
-    if (lastName.includes('.')) {
-      setHighlightItem(fullPath);
-      setBrowseFile(getParentPath(fullPath), lastName);
-    } else {
+  const handleBookmarkNavigate = (fullPath: string, isDirectory: boolean) => {
+    if (isDirectory) {
       navigateToBrowserPath(fullPath);
+    } else {
+      setHighlightItem(fullPath);
+      setBrowseFile(getParentPath(fullPath), getFileName(fullPath));
     }
   };
 

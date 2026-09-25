@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import TagsEditorDialog from '../dialogs/TagsEditorDialog';
 import CheckboxField from '../dialogs/common/CheckboxField';
 import { BUTTON_CLASS_DLG_OUTLINED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
@@ -65,6 +65,77 @@ const imageSizeOptions: ImageSizeOption[] = [
   { value: 'large', label: 'Large' },
 ];
 
+interface DraftTextFieldProps {
+  /** The committed value from the store. */
+  value: string;
+  /** Persist a changed value (store + disk). Only called when the draft differs from `value`. */
+  onCommit: (value: string) => void;
+  multiline?: boolean;
+  placeholder: string;
+  rows?: number;
+  className: string;
+}
+
+/**
+ * Free-text settings field that edits a local draft and commits it only on
+ * blur, on Enter (single-line only), or on unmount — never per keystroke, so
+ * typing doesn't write the config file or re-render every settings consumer
+ * on each key.
+ */
+function DraftTextField({ value, onCommit, multiline = false, placeholder, rows, className }: DraftTextFieldProps) {
+  const [draft, setDraft] = useState(value);
+  const [prevValue, setPrevValue] = useState(value);
+  // Latest draft/commit for the unmount flush, which can't read render-time
+  // values. Written only in event handlers (never during render).
+  const pendingRef = useRef<{ draft: string; onCommit: (value: string) => void } | null>(null);
+
+  // Store value changed externally (e.g. config reload): resync the draft.
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setDraft(value);
+  }
+
+  const handleChange = (next: string) => {
+    setDraft(next);
+    pendingRef.current = next === value ? null : { draft: next, onCommit };
+  };
+
+  const commit = () => {
+    pendingRef.current = null;
+    if (draft !== value) onCommit(draft);
+  };
+
+  // Flush an uncommitted edit if the view unmounts while the field still has focus.
+  useEffect(() => () => {
+    const pending = pendingRef.current;
+    if (pending) pending.onCommit(pending.draft);
+  }, []);
+
+  if (multiline) {
+    return (
+      <textarea
+        value={draft}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={commit}
+        placeholder={placeholder}
+        rows={rows}
+        className={className}
+      />
+    );
+  }
+  return (
+    <input
+      type="text"
+      value={draft}
+      onChange={(e) => handleChange(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
+      placeholder={placeholder}
+      className={className}
+    />
+  );
+}
+
 interface SettingsViewProps {
   onSaveSettings: () => void;
 }
@@ -73,8 +144,9 @@ interface SettingsViewProps {
  * General application settings page. Covers appearance (font size, content
  * width, folder tree width, image size, folders-on-top, table of contents),
  * files to ignore in searches, OCR tools folder path, calendar items folder
- * path, and hashtag management. Each field writes to the store immediately and
- * triggers `onSaveSettings` to persist to disk.
+ * path, and hashtag management. Selects and checkboxes write to the store
+ * immediately and trigger `onSaveSettings` to persist to disk; free-text fields
+ * (`DraftTextField`) commit only on blur/Enter.
  */
 function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const settings = useAS(s => s.settings);
@@ -233,10 +305,11 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               Enter folder or file names to exclude from search results, one per line.
             </p>
 
-            <textarea
+            <DraftTextField
+              multiline
               value={settings.ignoredPaths}
-              onChange={(e) => handleIgnoredPathsChange(e.target.value)}
-              placeholder="node_modules&#10;.git&#10;dist"
+              onCommit={handleIgnoredPathsChange}
+              placeholder={'node_modules\n.git\ndist'}
               rows={6}
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
             />
@@ -249,10 +322,9 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               Optical Character Recognition Tools Folder
             </p>
 
-            <input
-              type="text"
+            <DraftTextField
               value={settings.ocrToolsFolder}
-              onChange={(e) => handleOcrToolsFolderChange(e.target.value)}
+              onCommit={handleOcrToolsFolderChange}
               placeholder="/path/to/ocr-tools"
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
             />
@@ -265,10 +337,9 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
               Folder where new calendar item files are created.
             </p>
 
-            <input
-              type="text"
+            <DraftTextField
               value={settings.calendarItemsFolder}
-              onChange={(e) => handleCalendarItemsFolderChange(e.target.value)}
+              onCommit={handleCalendarItemsFolderChange}
               placeholder="/path/to/calendar"
               className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
             />

@@ -347,6 +347,15 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Check whether a path is a directory (false when missing or not a directory)
+  ipcMain.handle('is-directory', async (_event, checkPath: string): Promise<boolean> => {
+    try {
+      return (await fs.promises.stat(checkPath)).isDirectory();
+    } catch {
+      return false;
+    }
+  });
+
   // Write content to a file. Returns the file's post-write mtime so the
   // renderer can stamp its content cache with the real on-disk timestamp —
   // a renderer-side Date.now() is generally at or ahead of the disk mtime,

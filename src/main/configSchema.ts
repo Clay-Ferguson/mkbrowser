@@ -146,6 +146,7 @@ const BookmarkSchema = z
   .object({
     path: z.string(),
     name: z.string(),
+    isDirectory: z.boolean().optional().catch(undefined),
   })
   .loose();
 
