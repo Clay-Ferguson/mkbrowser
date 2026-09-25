@@ -37,7 +37,6 @@ export interface LoadConfigResult {
   loaded: boolean;
   error: string | null;
   lastExportFolder: string;
-  aiEnabled: boolean;
   recentFolders: string[];
 }
 
@@ -61,7 +60,6 @@ export async function loadConfig(): Promise<LoadConfigResult> {
       loaded: true,
       error: null as string | null,
       lastExportFolder: config.lastExportFolder ?? '',
-      aiEnabled: !!config.aiEnabled,
       recentFolders: config.recentFolders ?? [],
     };
     if (!config.browseFolder || !(await api.pathExists(config.browseFolder))) {
@@ -79,7 +77,7 @@ export async function loadConfig(): Promise<LoadConfigResult> {
     return { ...base, rootPath: config.browseFolder };
   } catch (err) {
     logger.error('[config] loadConfig failed', err);
-    return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '', aiEnabled: false, recentFolders: [] };
+    return { rootPath: null, loaded: false, error: 'Failed to load configuration', lastExportFolder: '', recentFolders: [] };
   }
 }
 

@@ -178,7 +178,6 @@ function App() {
   // and drag-and-drop code can report a failure without an onSetError callback
   // threaded down to it; App remains the only place that renders it.
   const error = useAS(s => s.appError);
-  const [aiEnabled, setAiEnabled] = useState<boolean>(false);
   const [lastExportFolder, setLastExportFolder] = useState<string>('');
   const [recentFolders, setRecentFolders] = useState<string[]>([]);
   // Views are mounted on first visit and then kept in the DOM (visibility
@@ -281,7 +280,6 @@ function App() {
       const result = await loadConfig();
       if (cancelled) return;
       setLastExportFolder(result.lastExportFolder);
-      setAiEnabled(result.aiEnabled);
       setRecentFolders(result.recentFolders);
       if (result.error) {
         setError(result.error);
@@ -549,7 +547,6 @@ function App() {
                   <BrowseView
                     entries={entries}
                     loading={loading}
-                    aiEnabled={aiEnabled}
                     lastExportFolder={lastExportFolder}
                     onSetLastExportFolder={setLastExportFolder}
                     onRefreshDirectory={refreshDirectory}

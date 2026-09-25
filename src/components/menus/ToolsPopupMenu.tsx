@@ -1,11 +1,10 @@
 import type { RefObject } from 'react';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
+import { useAS } from '../../store';
 
 interface ToolsPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
-  /** When false, the "New AI Chat" item is hidden. */
-  aiEnabled: boolean;
   onFolderAnalysis: () => void;
   onFolderGraph: () => void;
   onExport: () => void;
@@ -20,13 +19,14 @@ interface ToolsPopupMenuProps {
 export default function ToolsPopupMenu({
   anchorRef,
   onClose,
-  aiEnabled,
   onFolderAnalysis,
   onFolderGraph,
   onExport,
   onNewAiChat,
   onRunOcr,
 }: ToolsPopupMenuProps) {
+  // Read live from the store so toggling "Enable AI" in AI Settings takes effect without a restart.
+  const aiEnabled = useAS(s => s.aiConfig.aiEnabled);
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
       {aiEnabled && (

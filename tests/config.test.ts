@@ -129,7 +129,6 @@ describe('loadConfig — error handling', () => {
       loaded: false,
       error: 'Failed to load configuration',
       lastExportFolder: '',
-      aiEnabled: false,
       recentFolders: [],
     });
 
@@ -157,7 +156,7 @@ describe('loadConfig — common result fields are consistent across branches', (
     expect(result.error).toBeNull();
     expect(result.rootPath).toBeNull();
     expect(result.lastExportFolder).toBe('/exports');
-    expect(result.aiEnabled).toBe(true);
+    expect(setAiConfig).toHaveBeenCalledWith(expect.objectContaining({ aiEnabled: true }));
     expect(result.recentFolders).toEqual(['/a', '/b']);
   });
 
@@ -172,7 +171,7 @@ describe('loadConfig — common result fields are consistent across branches', (
 
     expect(result.rootPath).toBeNull();
     expect(result.lastExportFolder).toBe('/exports');
-    expect(result.aiEnabled).toBe(true);
+    expect(setAiConfig).toHaveBeenCalledWith(expect.objectContaining({ aiEnabled: true }));
     expect(result.recentFolders).toEqual(['/a', '/b']);
   });
 
@@ -187,7 +186,7 @@ describe('loadConfig — common result fields are consistent across branches', (
 
     expect(result.rootPath).toBe('/home/user/docs');
     expect(result.lastExportFolder).toBe('/exports');
-    expect(result.aiEnabled).toBe(true);
+    expect(setAiConfig).toHaveBeenCalledWith(expect.objectContaining({ aiEnabled: true }));
     expect(result.recentFolders).toEqual(['/a', '/b']);
   });
 });

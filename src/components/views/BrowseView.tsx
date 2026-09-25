@@ -130,7 +130,6 @@ function summarizeItems(items: Map<string, ItemData>) {
 interface BrowseViewProps {
   entries: FileEntry[];
   loading: boolean;
-  aiEnabled: boolean;
   lastExportFolder: string;
   onSetLastExportFolder: (folder: string) => void;
   onRefreshDirectory: () => void;
@@ -146,7 +145,7 @@ interface BrowseViewProps {
  * folder and restored on navigation. In index-ordered (document) mode the sort
  * menu is hidden and inline IndexInsertBars replace the create buttons.
  */
-function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastExportFolder, onRefreshDirectory, onSetError, onSaveSettings }: BrowseViewProps) {
+function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder, onRefreshDirectory, onSetError, onSaveSettings }: BrowseViewProps) {
   const rootPath = useAS(s => s.rootPath);
   const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState<boolean>(false);
@@ -1209,7 +1208,6 @@ function BrowseView({ entries, loading, aiEnabled, lastExportFolder, onSetLastEx
         <ToolsPopupMenu
           anchorRef={toolsButtonRef}
           onClose={() => setShowToolsMenu(false)}
-          aiEnabled={aiEnabled}
           onFolderAnalysis={handleFolderAnalysis}
           onFolderGraph={handleFolderGraph}
           onExport={() => setShowExportDialog(true)}
