@@ -68,16 +68,14 @@ export function EntryActionBar({
   onCreateAttachment,
   isFolder = false,
 }: EntryActionBarProps) {
-  const settings = useAS(s => s.settings);
-  const browseFileName = useAS(s => s.browseFileName);
-  const currentPath = useAS(s => s.currentPath);
+  const indexTreeHidden = useAS(s => s.settings.indexTreeWidth === 'hidden');
+  // In single-file browsing mode this exact file is already the one on screen,
+  // so the "View File" button would be a no-op — hide it. Computed inside the
+  // selector so only this row re-renders when the browsed file changes.
+  const isViewingThisFile = useAS(s => s.browseFileName !== null && joinPath(s.currentPath, s.browseFileName) === path);
   const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-
-  // In single-file browsing mode this exact file is already the one on screen,
-  // so the "View File" button would be a no-op — hide it.
-  const isViewingThisFile = browseFileName !== null && joinPath(currentPath, browseFileName) === path;
 
   // Removing a bookmark is immediate; adding one opens a dialog so the user can give it a name.
   const handleBookmarkClick = () => {
@@ -137,7 +135,7 @@ export function EntryActionBar({
       >
         <TrashIcon className="w-5 h-5" />
       </button>
-      {!isAttachment && settings.indexTreeWidth !== 'hidden' && (
+      {!isAttachment && !indexTreeHidden && (
         <button
           type="button"
           onClick={(e) => {

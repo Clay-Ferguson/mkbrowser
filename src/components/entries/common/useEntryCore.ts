@@ -16,14 +16,14 @@ interface UseEntryCoreOptions {
  */
 export function useEntryCore({ path, defaultExpanded = false }: UseEntryCoreOptions): EntryCoreState {
   const item = useAS(s => s.items.get(path));
-  const highlightItem = useAS(s => s.highlightItem);
-  const settings = useAS(s => s.settings);
+  // Derive per-row booleans inside the selectors so a change to the global
+  // highlight/bookmarks only re-renders the rows whose answer actually flips.
+  const isHighlighted = useAS(s => s.highlightItem === path);
+  const isBookmarked = useAS(s => s.settings.bookmarks.some(b => b.path === path));
 
   const isRenaming = item?.renaming ?? false;
   const isExpanded = item?.isExpanded ?? defaultExpanded;
   const isSelected = item?.isSelected ?? false;
-  const isHighlighted = highlightItem === path;
-  const isBookmarked = settings.bookmarks.some(b => b.path === path);
 
   return {
     isRenaming,
