@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
@@ -182,6 +182,171 @@ function runAndLogFailure(message: string, op: () => Promise<void>): void {
   op().catch((err: unknown) => logger.error(message, err));
 }
 
+// ── Rows ─────────────────────────────────────────────────────────────────────
+//
+// Each visible tree row is its own module-level, memo()'d component so a tree
+// render re-executes only the rows whose props changed. The compiler doesn't
+// memoize per `.map()` iteration, so with the rows inlined every tree render
+// (a highlight move, each dragover target change, a context-menu open) rebuilt
+// every row's className chain and handlers. Rows select their own per-row
+// booleans (highlighted, current/ancestor folder) so those global values never
+// pass through the parent. memo() is justified under the DEVELOPER_GUIDE rule:
+// large .map() list, and every prop is stable — `node` keeps its identity until
+// that node changes, the flags are primitives, and the handlers are compiled
+// in IndexTreeView on inputs that change only on navigation or a cut.
+
+interface TreeHeadingRowProps {
+  node: MarkdownHeadingNode;
+  depth: number;
+  onClick: (node: MarkdownHeadingNode) => void;
+}
+
+function TreeHeadingRow({ node, depth, onClick }: TreeHeadingRowProps) {
+  const hasChildren = node.children && node.children.length > 0;
+  return (
+    <div
+      data-tree-path={node.path}
+      className="flex items-center gap-1 py-0.5 whitespace-nowrap select-none
+        text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700"
+      style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px` }}
+      onClick={() => onClick(node)}
+    >
+      <span className="shrink-0 w-3 text-center mr-1 text-slate-500">
+        {hasChildren
+          ? (node.isExpanded ? '▼' : '▶')
+          : '·'
+        }
+      </span>
+      <span className="text-slate-300 italic">{node.heading}</span>
+    </div>
+  );
+}
+
+const MemoTreeHeadingRow = memo(TreeHeadingRow);
+
+/** How a directory row relates to the folder the browse view is showing. */
+type FolderRelation = 'current' | 'ancestor' | 'none';
+
+function folderRelation(node: FileNode, currentPath: string): FolderRelation {
+  if (!node.isDirectory) return 'none';
+  if (node.path === currentPath) return 'current';
+  return isParentOf(node.path, currentPath) ? 'ancestor' : 'none';
+}
+
+interface TreeFileRowProps {
+  node: FileNode;
+  depth: number;
+  isDragOver: boolean;
+  isRunning: boolean;
+  isContextTarget: boolean;
+  onNodeClick: (node: TreeNode) => Promise<void>;
+  onRunScript: (node: FileNode) => void;
+  onContextMenu: (node: FileNode, e: React.MouseEvent) => void;
+  onDragOverFolder: (node: FileNode, e: React.DragEvent) => void;
+  onDragLeaveFolder: (path: string) => void;
+  onDropOnFolder: (node: FileNode, e: React.DragEvent) => void;
+}
+
+function TreeFileRow({
+  node, depth, isDragOver, isRunning, isContextTarget,
+  onNodeClick, onRunScript, onContextMenu, onDragOverFolder, onDragLeaveFolder, onDropOnFolder,
+}: TreeFileRowProps) {
+  // Primitive per-row selectors: only the rows whose answer flips re-render
+  // when the highlight moves or the browse view navigates.
+  const isHighlighted = useAS(s => s.highlightItem === node.path);
+  const relation = useAS(s => folderRelation(node, s.currentPath));
+
+  const isMd = isMarkdownFile(node);
+  const isSh = isShellScript(node);
+
+  // The highlighted FILE gets a 2px purple border instead of the solid
+  // purple background the folders wear, so the tree reads at a glance:
+  // solid purple = the folders on the way to what is on screen, purple
+  // outline = the file itself. A highlighted *folder* keeps the solid
+  // background — it is still a folder.
+  const isHighlightedFile = isHighlighted && !node.isDirectory;
+
+  // That border replaces the row's vertical padding rather than adding to
+  // it (2px a side either way), so the highlighted row is exactly as tall
+  // as every other row and the tree does not shift when the highlight
+  // moves.
+  let className = `flex items-center gap-1 ${isHighlightedFile ? 'py-0' : 'py-0.5'} whitespace-nowrap select-none`;
+  // The drop highlight replaces the row's normal colors rather than being
+  // appended to them: every branch below carries a `hover:bg-…`, and a variant
+  // beats a plain `bg-…` of equal specificity, so an appended drop background
+  // would always lose (the pointer is over the row it is dragging across).
+  // `border-l-2 border-transparent` is kept because it occupies layout space.
+  if (isDragOver) {
+    className += ` text-white border-l-2 border-transparent cursor-pointer ${ENTRY_DROP_TARGET}`;
+  } //
+  else if (isHighlightedFile) {
+    // `border-2` on all four sides, so no separate `border-l-2` here.
+    className += ' text-white border-2 border-purple-500 hover:bg-slate-700 cursor-pointer';
+  } //
+  else if (isHighlighted) {
+    className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
+  } //
+  else if (relation === 'current') {
+    className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
+  } //
+  else if (relation === 'ancestor') {
+    className += ' text-slate-200 bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
+  } //
+  else if (node.isDirectory) {
+    className += ' text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer';
+  } //
+  else if (isMd) {
+    className += ' text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700';
+  } //
+  else if (isSh) {
+    className += ' text-green-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-300/20';
+  } //
+  else {
+    className += ' text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700';
+  }
+
+  const rowStyle: React.CSSProperties = {
+    paddingLeft: `${8 + depth * INDENT_SIZE}px`,
+    ...(isRunning ? { animation: 'scriptRunFlash 3s ease-in forwards' } : {}),
+    ...(isContextTarget ? { backgroundColor: '#1e40af' } : {}),
+  };
+
+  return (
+    <div
+      data-tree-path={node.path}
+      className={className}
+      style={rowStyle}
+      onClick={e => {
+        // Ctrl+click on a shell script runs it instead of opening it.
+        if (isSh && e.ctrlKey) { onRunScript(node); return; }
+        void onNodeClick(node);
+      }}
+      onContextMenu={e => onContextMenu(node, e)}
+      {...(node.isDirectory ? {
+        onDragOver: (e: React.DragEvent) => onDragOverFolder(node, e),
+        onDragLeave: () => onDragLeaveFolder(node.path),
+        onDrop: (e: React.DragEvent) => onDropOnFolder(node, e),
+      } : {})}
+    >
+      <span
+        className="shrink-0 flex items-center mr-1 cursor-grab"
+        draggable
+        onDragStart={makeEntryDragStartHandler({ path: node.path, name: node.name, isDirectory: node.isDirectory })}
+      >
+        {node.isDirectory
+          ? (node.isExpanded
+              ? <FolderOpenIcon className="w-5 h-5 text-amber-500" />
+              : <FolderIcon className="w-5 h-5 text-amber-500" />)
+          : <FileTypeIcon fileName={node.name} />
+        }
+      </span>
+      <span>{node.name}</span>
+    </div>
+  );
+}
+
+const MemoTreeFileRow = memo(TreeFileRow);
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 /**
@@ -204,8 +369,6 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
   // across that swap and leave the newly cut node still on screen.
   const cutPaths = useAS(s => getCutPaths(s.items));
   const hasCutItems = cutPaths.size > 0;
-  const highlightItem = useAS(s => s.highlightItem);
-  const browseFileName = useAS(s => s.browseFileName);
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
   // Pending timers, tracked so they can be cancelled when superseded or on unmount.
@@ -659,7 +822,14 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     if (!e.dataTransfer.types.includes(ENTRY_DND_MIME)) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    if (dragOverPath !== node.path) setDragOverPath(node.path);
+    // Unconditional (no `dragOverPath !== node.path` check): React skips the
+    // re-render when the value is unchanged, and not reading dragOverPath keeps
+    // this handler stable, so the memo'd rows don't all re-render while dragging.
+    setDragOverPath(node.path);
+  };
+
+  const handleDragLeaveFolder = (path: string) => {
+    setDragOverPath(prev => (prev === path ? null : prev));
   };
 
   const handleRunScript = (node: FileNode) => {
@@ -704,6 +874,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
    * (Headings have no context menu; this click is the whole interaction.)
    */
   const handleHeadingClick = (node: MarkdownHeadingNode) => {
+    // Read at call time, not subscribed: this handler is passed to every
+    // heading row, so closing over them would re-render all of those rows on
+    // each navigation.
+    const { currentPath, browseFileName } = useAS.getState();
     const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
     const folderPath = getParentPath(filePath);
     setHighlightItem(filePath);
@@ -925,121 +1099,24 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       <div className="py-1 min-w-max">
         {rows.map(({ node, depth }) => {
           if (isMarkdownHeadingNode(node)) {
-            const hasChildren = node.children && node.children.length > 0;
-            return (
-              <div
-                key={node.path}
-                data-tree-path={node.path}
-                className="flex items-center gap-1 py-0.5 whitespace-nowrap select-none
-                  text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700"
-                style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px` }}
-                onClick={() => handleHeadingClick(node)}
-              >
-                <span className="shrink-0 w-3 text-center mr-1 text-slate-500">
-                  {hasChildren
-                    ? (node.isExpanded ? '▼' : '▶')
-                    : '·'
-                  }
-                </span>
-                <span className="text-slate-300 italic">{node.heading}</span>
-              </div>
-            );
+            return <MemoTreeHeadingRow key={node.path} node={node} depth={depth} onClick={handleHeadingClick} />;
           }
-
           if (!isFileNode(node)) return null;
-
-          const isMd = isMarkdownFile(node);
-          const isSh = isShellScript(node);
-          const isDragOver = node.isDirectory && dragOverPath === node.path;
-
-          // The highlighted FILE gets a 2px purple border instead of the solid
-          // purple background the folders wear, so the tree reads at a glance:
-          // solid purple = the folders on the way to what is on screen, purple
-          // outline = the file itself. A highlighted *folder* keeps the solid
-          // background — it is still a folder.
-          const isHighlightedFile = node.path === highlightItem && !node.isDirectory;
-
-          // That border replaces the row's vertical padding rather than adding to
-          // it (2px a side either way), so the highlighted row is exactly as tall
-          // as every other row and the tree does not shift when the highlight
-          // moves.
-          let className = `flex items-center gap-1 ${isHighlightedFile ? 'py-0' : 'py-0.5'} whitespace-nowrap select-none`;
-          // The drop highlight replaces the row's normal colors rather than being
-          // appended to them: every branch below carries a `hover:bg-…`, and a variant
-          // beats a plain `bg-…` of equal specificity, so an appended drop background
-          // would always lose (the pointer is over the row it is dragging across).
-          // `border-l-2 border-transparent` is kept because it occupies layout space.
-          if (isDragOver) {
-            className += ` text-white border-l-2 border-transparent cursor-pointer ${ENTRY_DROP_TARGET}`;
-          } //
-          else if (isHighlightedFile) {
-            // `border-2` on all four sides, so no separate `border-l-2` here.
-            className += ' text-white border-2 border-purple-500 hover:bg-slate-700 cursor-pointer';
-          } //
-          else if (node.path === highlightItem) {
-            className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
-          } //
-          else if (node.isDirectory && node.path === currentPath) {
-            className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
-          } //
-          else if (node.isDirectory && isParentOf(node.path, currentPath)) {
-            className += ' text-slate-200 bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
-          } //
-          else if (node.isDirectory) {
-            className += node.isExpanded
-              ? ' text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer'
-              : ' text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer';
-          } //
-          else if (isMd) {
-            className += ' text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700';
-          } //
-          else if (isSh) {
-            className += ' text-green-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-300/20';
-          } //
-          else {
-            className += ' text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700';
-          }
-
-          const isRunning = runningScript === node.path;
-          const isContextTarget = contextMenu?.path === node.path;
-          const rowStyle: React.CSSProperties = {
-            paddingLeft: `${8 + depth * INDENT_SIZE}px`,
-            ...(isRunning ? { animation: 'scriptRunFlash 3s ease-in forwards' } : {}),
-            ...(isContextTarget ? { backgroundColor: '#1e40af' } : {}),
-          };
-
           return (
-            <div
+            <MemoTreeFileRow
               key={node.path}
-              data-tree-path={node.path}
-              className={className}
-              style={rowStyle}
-              onClick={e => {
-                // Ctrl+click on a shell script runs it instead of opening it.
-                if (isSh && e.ctrlKey) { handleRunScript(node); return; }
-                void handleNodeClick(node);
-              }}
-              onContextMenu={e => handleFileNodeContextMenu(node, e)}
-              {...(node.isDirectory ? {
-                onDragOver: (e: React.DragEvent) => handleDragOverFolder(node, e),
-                onDragLeave: () => setDragOverPath(prev => (prev === node.path ? null : prev)),
-                onDrop: (e: React.DragEvent) => handleDropOnFolder(node, e),
-              } : {})}
-            >
-              <span
-                className="shrink-0 flex items-center mr-1 cursor-grab"
-                draggable
-                onDragStart={makeEntryDragStartHandler({ path: node.path, name: node.name, isDirectory: node.isDirectory })}
-              >
-                {node.isDirectory
-                  ? (node.isExpanded
-                      ? <FolderOpenIcon className="w-5 h-5 text-amber-500" />
-                      : <FolderIcon className="w-5 h-5 text-amber-500" />)
-                  : <FileTypeIcon fileName={node.name} />
-                }
-              </span>
-              <span>{node.name}</span>
-            </div>
+              node={node}
+              depth={depth}
+              isDragOver={node.isDirectory && dragOverPath === node.path}
+              isRunning={runningScript === node.path}
+              isContextTarget={contextMenu?.path === node.path}
+              onNodeClick={handleNodeClick}
+              onRunScript={handleRunScript}
+              onContextMenu={handleFileNodeContextMenu}
+              onDragOverFolder={handleDragOverFolder}
+              onDragLeaveFolder={handleDragLeaveFolder}
+              onDropOnFolder={handleDropOnFolder}
+            />
           );
         })}
       </div>

@@ -8,13 +8,6 @@ import {
 import { api } from '../../renderer/api';
 import IndexInsertBar from '../IndexInsertBar';
 import type { FileEntry } from '../../global';
-import FolderEntry from '../entries/FolderEntry';
-import MarkdownEntry from '../entries/MarkdownEntry';
-import GenericEntry from '../entries/GenericEntry';
-import ImageEntry from '../entries/ImageEntry';
-import TextEntry from '../entries/TextEntry';
-import PDFEntry from '../entries/PDFEntry';
-import ErrorBoundary from '../ErrorBoundary';
 import ToolsPopupMenu from '../menus/ToolsPopupMenu';
 import EditPopupMenu from '../menus/EditPopupMenu';
 import SearchPopupMenu from '../menus/SearchPopupMenu';
@@ -28,7 +21,7 @@ import ExportDialog from '../dialogs/ExportDialog';
 import type { ExportOptions } from '../dialogs/ExportDialog';
 import AlertDialog from '../dialogs/AlertDialog';
 import PathBreadcrumb from '../PathBreadcrumb';
-import AttachFolderContents from './AttachFolderContents';
+import BrowseEntryRow from './BrowseEntryRow';
 import {
   clearAllSelections,
   selectItemsByPaths,
@@ -67,7 +60,7 @@ import {
 } from '../../store';
 import { scrollElementIntoView } from '../../renderer/entryDom';
 import { usePendingItemScroll } from './usePendingItemScroll';
-import { isImageFile, isTextFile, isPdfFile, sortEntries } from '../../shared/fileTypes';
+import { isImageFile, sortEntries } from '../../shared/fileTypes';
 import { BUTTON_CLASS_BAR_BLUE, BUTTON_CLASS_BAR_RED, BUTTON_CLASS_TB_AMBER, BUTTON_CLASS_TB_BLUE, BUTTON_CLASS_TB_NORMAL, getContentWidthClasses } from '../../renderer/styles';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { hasHumanMd } from '../../shared/ai/aiPatterns';
@@ -142,11 +135,6 @@ function listingTimes(items: Map<string, ItemData>, entries: FileEntry[]): numbe
     times.push(item?.modifiedTime ?? entry.modifiedTime, item?.createdTime ?? entry.createdTime);
   }
   return times;
-}
-
-/** The paths of listing entries that are currently expanded, in listing order. */
-function expandedListingPaths(items: Map<string, ItemData>, entries: FileEntry[]): string[] {
-  return entries.filter((entry) => items.get(entry.path)?.isExpanded).map((entry) => entry.path);
 }
 
 interface BrowseViewProps {
@@ -243,8 +231,6 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
 
   const cutPaths = useAS(s => getCutPaths(s.items));
   const times = useAS(useShallow(s => listingTimes(s.items, entries)));
-  const expandedPathList = useAS(useShallow(s => expandedListingPaths(s.items, entries)));
-  const expandedPaths = new Set(expandedPathList);
   const { selectedCount, selectedFileCount, hasSelectedFolders, hasCutItems } =
     useAS(useShallow(s => summarizeSelection(s.items)));
   const hasSelectedItems = selectedCount > 0;
@@ -529,16 +515,6 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
     runOp(async () => {
       await createAttachmentFileOp(filePath, onRefreshDirectory, onSetError);
     }, 'Failed to create attachment: ', onSetError);
-  };
-
-  // The three attach menu items are identical on every file type — the
-  // `<file>.attach` convention is keyed off the whole filename, so an image or a
-  // PDF owns attachments exactly as a Markdown file does. Spread as one group so
-  // the listing can't drift into offering them on some rows but not others.
-  const attachMenuHandlers = {
-    onPasteClipboardAsAttachment: doPasteClipboardAsAttachment,
-    onAttachFromFile: doAttachFromFile,
-    onCreateAttachment: doCreateAttachment,
   };
 
   const performDelete = () => {
@@ -1097,59 +1073,43 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
               A single unified branch is used (rather than a `hasIndexFile ? A : B` ternary) so the outer element stays a stable
               <div> when hasIndexFile flips on load — that lets React reconcile the keyed children instead of unmounting/remounting
               the whole entry list (the remount storm was tripping React's max-update-depth). Index-only bits (move handlers,
-              IndexInsertBars, attach-folder gating) are computed conditionally inside the map. */}
+              IndexInsertBars, attach-folder gating) are computed conditionally inside BrowseEntryRow. */}
           {!loading && sortedEntries.length > 0 && (
             <div className={hasIndexFile ? 'pr-12' : '[&>div+div]:-mt-px'}>
               {hasIndexFile && !sortedEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
                 <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />
               )}
               {sortedEntries.map((entry, idx) => {
-                const moveUp = hasIndexFile && idx > 0 ? () => handleMoveEntry(entry.name, 'up') : undefined;
-                const moveDown = hasIndexFile && idx < sortedEntries.length - 1 ? () => handleMoveEntry(entry.name, 'down') : undefined;
-                const moveToTop = hasIndexFile && idx > 0 ? () => handleMoveEntryToEdge(entry.name, 'top') : undefined;
-                const moveToBottom = hasIndexFile && idx < sortedEntries.length - 1 ? () => handleMoveEntryToEdge(entry.name, 'bottom') : undefined;
                 const prevEntry = sortedEntries[idx - 1];
-                const isAttach = entry.name.endsWith(ATTACH_SUFFIX);
-                const indentFolder = isAttach && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
-                const parentExpanded = !indentFolder || (!!prevEntry && expandedPaths.has(prevEntry.path));
-                // Folders are shown whenever their parent is expanded (attach folders included).
-                const showFolder = parentExpanded;
+                // An attach folder listed right after the file that owns it is
+                // indented under that file and shown only while it is expanded.
+                const isOwnedAttach = entry.name.endsWith(ATTACH_SUFFIX) && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
                 return (
-                  <div key={entry.path}>
-                    <ErrorBoundary label={entry.name} resetKeys={[entry.modifiedTime]}>
-                      {entry.isDirectory ? (
-                        <>
-                          {showFolder && (
-                            <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onRefreshDirectory={onRefreshDirectory} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={isAttach} indentFolder={indentFolder} />
-                          )}
-                          {isAttach && entry.attachments && parentExpanded && (
-                            <AttachFolderContents
-                              entries={entry.attachments}
-                              level={1}
-                              onNavigate={navigateTo}
-                              onRename={handleEntryRename}
-                              onDelete={handleEntryDelete}
-                              onSaveSettings={onSaveSettings}
-                              onPasteIntoFolder={doPasteIntoFolder}
-                            />
-                          )}
-                        </>
-                      ) : entry.isMarkdown ? (
-                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} {...attachMenuHandlers} documentMode={hasIndexFile} />
-                      ) : isImageFile(entry.name) ? (
-                        <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
-                      ) : isTextFile(entry.name) ? (
-                        <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
-                      ) : isPdfFile(entry.name) ? (
-                        <PDFEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
-                      ) : (
-                        <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
-                      )}
-                    </ErrorBoundary>
-                    {hasIndexFile && !sortedEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
-                      <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
-                    )}
-                  </div>
+                  <BrowseEntryRow
+                    key={entry.path}
+                    entry={entry}
+                    index={idx}
+                    isFirst={idx === 0}
+                    isLast={idx === sortedEntries.length - 1}
+                    hasIndexFile={hasIndexFile}
+                    ownerPath={isOwnedAttach && prevEntry ? prevEntry.path : null}
+                    showInsertBarAfter={hasIndexFile && !sortedEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX)}
+                    allImages={allImages}
+                    onNavigate={navigateTo}
+                    onRename={handleEntryRename}
+                    onDelete={handleEntryDelete}
+                    onSaveSettings={onSaveSettings}
+                    onRefreshDirectory={onRefreshDirectory}
+                    onPasteIntoFolder={doPasteIntoFolder}
+                    onPasteAsAttachment={doPasteAsAttachment}
+                    onPasteClipboardAsAttachment={doPasteClipboardAsAttachment}
+                    onAttachFromFile={doAttachFromFile}
+                    onCreateAttachment={doCreateAttachment}
+                    onMoveEntry={handleMoveEntry}
+                    onMoveEntryToEdge={handleMoveEntryToEdge}
+                    onInsertFileAt={handleInsertFileAt}
+                    onInsertFolderAt={handleInsertFolderAt}
+                  />
                 );
               })}
             </div>

@@ -391,7 +391,15 @@ and in both cases **only when every prop at every call site is stable**. A stabl
 - build per-row handlers inside the row from stable inputs, rather than receiving new closures created in the parent's `.map()`;
 - in handlers, read store values at call time with `getState()` instead of closing over a subscribed `s.items`/`s.settings`.
 
-**Current state.** `MarkdownView` is the only `memo()` in the codebase (rule 2). The entry components in the BrowseView listing (`MarkdownEntry`, `FolderEntry`, `ImageEntry`, …) are rule-1 candidates but are deliberately **not** memoized yet. The listing's `.map()` still builds per-row closures (`onMoveUp`, `onMoveDown`, the `IndexInsertBar` handlers), and BrowseView subscribes to the whole `items` Map, so their props are not yet stable. Memoize them once both of those are fixed, not before.
+**Current state.** The codebase has these `memo()`s:
+
+- `MarkdownView` (rule 2).
+- `BrowseEntryRow`, one per row of BrowseView's folder listing (rule 1).
+- `TreeHeadingRow` and `TreeFileRow` in `IndexTreeView.tsx`, one per visible tree row (rule 1).
+
+Each row component builds its own per-row handlers from stable props and selects its own per-row flags from the store (`useAS(s => s.highlightItem === node.path)`, whether its owner file is expanded, and so on). They are the model to copy for any new list.
+
+The entry components themselves (`MarkdownEntry`, `FolderEntry`, `ImageEntry`, …) are deliberately **not** memoized. In the listing, the memoized `BrowseEntryRow` already stops them re-rendering when nothing changed, because the row's compiled body reuses the entry element while its props are unchanged. Everywhere else they appear, they are single instances or in small lists that rarely re-render. Wrapping them in `memo()` would add a props comparison without skipping any extra renders.
 
 ### What a "bailout" is and why we care
 
