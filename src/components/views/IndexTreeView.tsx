@@ -598,8 +598,10 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
         await api.updateConfig({ settings: getSettings() });
       }
 
-      // If the browse view is showing the renamed item or its parent, refresh it.
-      if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
+      // If the browse view is showing the renamed item's parent, refresh it. When
+      // it is showing the renamed folder itself (or something inside it),
+      // renameItem already moved currentPath, and App reloads the new path.
+      if (parentPath === currentPath) {
         onRefreshDirectory?.();
       }
 

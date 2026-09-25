@@ -3,7 +3,7 @@ import type { AppState, Bookmark, ItemData } from '../shared/types';
 import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
-import { getParentPath, isPathInside, remapMovedPath } from '../renderer/pathUtil';
+import { getParentPath, isPathInside, joinPath, remapMovedPath } from '../renderer/pathUtil';
 import { enterExpandedEditPatch, isExpandedEditOf } from './expandedEdit';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
@@ -462,6 +462,8 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      *   renamed folder
      * - calendar events keyed by `filePath` (calendar slice)
      * - "Copy Link" paths awaiting "Paste Link" (view slice)
+     * - `currentPath` (so renaming the browsed folder or an ancestor follows
+     *   it), `browseFileName`, `highlightItem`, and the `pending*` path fields
      *
      * The items Map is global and long-lived — it holds entries from every
      * folder visited this session — so renaming a folder must also re-key every
@@ -553,6 +555,31 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       if (linksChanged) {
         patch.selectedLinkItems = selectedLinkItems;
       }
+
+      // Navigation/view path fields. Renaming the folder being browsed (or an
+      // ancestor of it) must move `currentPath` along with it — otherwise the
+      // browse view reloads a path that no longer exists, and App persists the
+      // dead path as `curSubFolder`. App's `currentPath` effect reloads the
+      // listing and persists the new path on its own.
+      const movedCurrentPath = remapMovedPath(state.currentPath, oldRoot, newRoot);
+      if (movedCurrentPath !== null) {
+        patch.currentPath = movedCurrentPath;
+      }
+      // `browseFileName` is relative to `currentPath`, so it only changes when
+      // the single file being viewed is itself the renamed item.
+      if (state.browseFileName !== null && joinPath(state.currentPath, state.browseFileName) === oldPath) {
+        patch.browseFileName = newName;
+      }
+      const remapField = (key: 'highlightItem' | 'pendingScrollToFile' | 'pendingEditFile' | 'pendingExpandFile' | 'pendingIndexTreeReveal') => {
+        const value = state[key];
+        const moved = value === null ? null : remapMovedPath(value, oldRoot, newRoot);
+        if (moved !== null) patch[key] = moved;
+      };
+      remapField('highlightItem');
+      remapField('pendingScrollToFile');
+      remapField('pendingEditFile');
+      remapField('pendingExpandFile');
+      remapField('pendingIndexTreeReveal');
 
       if (Object.keys(patch).length > 0) {
         set(patch);

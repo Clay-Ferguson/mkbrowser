@@ -375,6 +375,62 @@ describe('renameItem / deleteItems — path-holding slices stay in sync', () => 
     });
   });
 
+  describe('renameItem: navigation paths', () => {
+    beforeEach(() => {
+      useAS.setState({
+        currentPath: '/root',
+        browseFileName: null,
+        highlightItem: null,
+        pendingScrollToFile: null,
+        pendingEditFile: null,
+        pendingExpandFile: null,
+        pendingIndexTreeReveal: null,
+      });
+    });
+
+    it('moves currentPath when an ancestor of the browsed folder is renamed', () => {
+      useAS.setState({
+        currentPath: '/root/A/B',
+        highlightItem: '/root/A/B/x.md',
+        pendingScrollToFile: '/root/A/B/x.md',
+        pendingEditFile: '/root/A/B/y.md',
+      });
+
+      renameItem('/root/A', '/root/A2', 'A2');
+
+      const s = useAS.getState();
+      expect(s.currentPath).toBe('/root/A2/B');
+      expect(s.highlightItem).toBe('/root/A2/B/x.md');
+      expect(s.pendingScrollToFile).toBe('/root/A2/B/x.md');
+      expect(s.pendingEditFile).toBe('/root/A2/B/y.md');
+    });
+
+    it('moves currentPath when the browsed folder itself is renamed', () => {
+      useAS.setState({ currentPath: '/root/A' });
+
+      renameItem('/root/A', '/root/A2', 'A2');
+
+      expect(useAS.getState().currentPath).toBe('/root/A2');
+    });
+
+    it('leaves currentPath alone for a sibling sharing the old name as a prefix', () => {
+      useAS.setState({ currentPath: '/root/A-archive' });
+
+      renameItem('/root/A', '/root/A2', 'A2');
+
+      expect(useAS.getState().currentPath).toBe('/root/A-archive');
+    });
+
+    it('updates browseFileName when the single file being viewed is renamed', () => {
+      useAS.setState({ currentPath: '/root', browseFileName: 'note.md' });
+
+      renameItem('/root/note.md', '/root/renamed.md', 'renamed.md');
+
+      expect(useAS.getState().currentPath).toBe('/root');
+      expect(useAS.getState().browseFileName).toBe('renamed.md');
+    });
+  });
+
   describe('deleteItems: copied link paths', () => {
     it('drops "Copy Link" paths at or under a deleted path, keeping the rest', () => {
       useAS.setState({ selectedLinkItems: [NOTE, '/notes/deep/a.md', '/other/x.md'] });
