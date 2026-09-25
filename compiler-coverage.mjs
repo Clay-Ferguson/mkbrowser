@@ -6,17 +6,17 @@
 //
 // Usage:
 //   node compiler-coverage.mjs              # gate mode: scan all of src/, print only
-//                                           #   bailouts, exit 1 if any (runs as the
+//                                           #   problems, exit 1 if any (runs as the
 //                                           #   prePackage Forge hook in forge.config.ts)
 //   node compiler-coverage.mjs [files...]   # verbose mode: per-function report including
-//                                           #   successes (still exits 1 on bailouts)
+//                                           #   successes (still exits 1 on problems)
 //
 // This script is the source of truth, complementing the react-hooks/todo + syntax ESLint
 // rules: those embed a NEWER compiler than the build's babel-plugin-react-compiler (so
 // they miss constructs only the older build compiler bails on), and they cannot see
 // bailouts caused by eslint-disable comments. This script catches both.
 //
-// It reports two independent failures, both of which silently de-memoize code:
+// It reports three independent failures, all of which silently de-memoize code:
 //
 //   1. BAILOUT — the compiler tried to compile a function and gave up.
 //   2. SKIPPED — Vite would never hand the file to the compiler at all. The build
@@ -26,6 +26,13 @@
 //      this script happily compiles, but that fails that filter, is compiled HERE and
 //      not in the real build — the gate would be green while the app ships de-memoized.
 //      See the filter check below.
+//   3. UNCOMPILED — a PascalCase function containing JSX (i.e. a component) that the
+//      compiler never even attempted. The compiler only considers MODULE-LEVEL
+//      components and hooks, so a component returned from a factory
+//      (`function make(x) { return function Foo() {...} }`) or declared inside another
+//      function can be skipped without any bailout event — invisible to checks 1 and 2.
+//      Fix by making it a top-level component and passing the closed-over values as
+//      props or through context (see blockClickComponents.tsx / markdownEntryContext.ts).
 //
 // Neither failure mode covers the compiler being configured out of the Vite pipeline
 // entirely (this script bypasses Vite by design). That case is caught downstream:
@@ -33,7 +40,7 @@
 // .compiler-coverage-count.json, and bundle-fingerprint.mjs (the postPackage Forge
 // hook, run AFTER packaging) asserts the built renderer bundle contains at least
 // that much compiler output.
-import { transformAsync } from '@babel/core';
+import { transformAsync, parseAsync, traverse } from '@babel/core';
 import { reactCompilerPreset } from '@vitejs/plugin-react';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -57,6 +64,45 @@ if (!(codeFilter instanceof RegExp)) {
   );
 }
 
+const PASCAL_CASE = /^[A-Z][A-Za-z0-9]*$/;
+
+// Name a function the way a reader would: its own id, else the variable it's assigned to
+// (`const Foo = () => ...`, `const Foo = function () {...}`).
+function functionName(path) {
+  if (path.node.id) return path.node.id.name;
+  const parent = path.parent;
+  if (parent.type === 'VariableDeclarator' && parent.id.type === 'Identifier') return parent.id.name;
+  return null;
+}
+
+// PascalCase functions whose body contains JSX — i.e. what a reader would call a component —
+// that the compiler neither compiled nor reported a bailout for (see UNCOMPILED in the header).
+// Compiler events carry the function's start offset, which identifies it in our own parse
+// of the same source.
+async function findUncompiledComponents(file, source, events) {
+  const seen = new Set(events.map(e => e.fnLoc?.start?.index).filter(i => i !== undefined));
+  const ast = await parseAsync(source, {
+    filename: file,
+    babelrc: false,
+    configFile: false,
+    parserOpts: { plugins: ['typescript', 'jsx'] },
+  });
+  const found = [];
+  traverse(ast, {
+    Function(path) {
+      const name = functionName(path);
+      if (!name || !PASCAL_CASE.test(name) || seen.has(path.node.start)) return;
+      let hasJsx = false;
+      path.traverse({
+        JSXElement(p) { hasJsx = true; p.stop(); },
+        JSXFragment(p) { hasJsx = true; p.stop(); },
+      });
+      if (hasJsx) found.push({ name, line: path.node.loc.start.line });
+    },
+  });
+  return found;
+}
+
 const explicitFiles = process.argv.slice(2);
 const verbose = explicitFiles.length > 0;
 const files = verbose
@@ -67,6 +113,7 @@ const files = verbose
 let bailouts = 0;
 let compiled = 0;
 const skippedByVite = [];
+const uncompiled = [];
 for (const file of files) {
   const events = [];
   const source = readFileSync(file, 'utf8');
@@ -94,6 +141,12 @@ for (const file of files) {
     skippedByVite.push({ file, fns: successes.map(e => e.fnName ?? '(anonymous)') });
   }
 
+  // .ts files can't contain JSX, so only .tsx files can hold an uncompiled component.
+  if (file.endsWith('.tsx')) {
+    const fns = await findUncompiledComponents(file, source, events);
+    if (fns.length > 0) uncompiled.push({ file, fns });
+  }
+
   const problems = events.filter(e => e.kind !== 'CompileSuccess');
   bailouts += problems.length;
   if (!verbose && problems.length === 0) continue;
@@ -116,11 +169,22 @@ for (const { file, fns } of skippedByVite) {
   console.log('  declares a capitalized or use-prefixed binding), rather than, say, a barrel.');
 }
 
-const clean = bailouts === 0 && skippedByVite.length === 0;
+for (const { file, fns } of uncompiled) {
+  console.log('\n=== ' + file.replace(root + '/', ''));
+  for (const { name, line } of fns) {
+    console.log(`  UNCOMPILED ${name} L${line} :: component-like function the compiler never attempted`);
+  }
+  console.log('  (The compiler only compiles module-level components/hooks. Make it top-level and');
+  console.log('  pass closed-over values as props or via context instead of a factory/nested function.)');
+}
+
+const uncompiledCount = uncompiled.reduce((sum, u) => sum + u.fns.length, 0);
+const clean = bailouts === 0 && skippedByVite.length === 0 && uncompiledCount === 0;
 console.log(clean
   ? `\nReact Compiler coverage: ${compiled} components/hooks compiled across ${files.length} files, zero bailouts.`
   : `\nReact Compiler coverage: ${bailouts} bailout(s)/problem(s)` +
-    `${skippedByVite.length > 0 ? ` and ${skippedByVite.length} file(s) skipped by Vite's filter` : ''}` +
+    `${skippedByVite.length > 0 ? `, ${skippedByVite.length} file(s) skipped by Vite's filter` : ''}` +
+    `${uncompiledCount > 0 ? `, ${uncompiledCount} uncompiled component(s)` : ''}` +
     ` found (${compiled} compiled OK).`);
 
 // On a clean full-scan run, record the compiled count for bundle-fingerprint.mjs,
