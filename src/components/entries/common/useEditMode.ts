@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../../../renderer/api';
-import { useAS, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing } from '../../../store';
+import { useAS, getItem, setItemContent, setItemEditing, setItemExpanded, setItemEditContent, setItemReviewing } from '../../../store';
 import { applyGlobalHighlight, getGlobalHighlightText } from '../../../renderer/globalHighlight';
 import { removeTOC } from '../../../shared/tocUtil';
 import { logger } from '../../../shared/logUtil';
@@ -9,8 +9,6 @@ import type { EditModeState } from './types';
 interface UseEditModeOptions {
   /** Full path of the file */
   path: string;
-  /** Current file content (from useContentLoader) */
-  content: string;
 }
 
 /**
@@ -84,7 +82,7 @@ async function writeFileKeepEditing(path: string, editContent: string): Promise<
  * Edit content is stored in the global store (ItemData.editContent) so that
  * child components like TagsPicker can read and modify it.
  */
-export function useEditMode({ path, content }: UseEditModeOptions): EditModeState {
+export function useEditMode({ path }: UseEditModeOptions): EditModeState {
   const item = useAS(s => s.items.get(path));
   const [saving, setSaving] = useState(false);
   const editInitialized = useRef(false);
@@ -115,7 +113,14 @@ export function useEditMode({ path, content }: UseEditModeOptions): EditModeStat
     }
   }, [isEditing, item?.content, item?.editContent, path]);
 
+  // Reads the item from the store at call time rather than closing over this render's
+  // `item`/content, so the React Compiler memoizes this on `path` alone. It is passed to the
+  // memoized MarkdownView as onEditClick; closing over `item` would give it a new identity on
+  // every unrelated item change (selection, expand/collapse, editing, ...) and force a full
+  // markdown re-parse.
   const handleEditClick = async (goToLine?: number) => {
+    const item = getItem(path);
+    const content = item?.content ?? '';
     // Check the file's current mtime on disk to detect external modifications.
     // `!==` rather than `>`: an external tool can leave an *older* mtime
     // (restore from backup) or one equal to a stale wall-clock cache stamp.

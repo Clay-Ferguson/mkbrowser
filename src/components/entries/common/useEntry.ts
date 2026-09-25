@@ -82,7 +82,7 @@ export function useEditableEntry(
     errorMessage,
   });
 
-  const edit = useEditMode({ path: props.entry.path, content });
+  const edit = useEditMode({ path: props.entry.path });
 
   return { core, rename, del, content, loading, edit };
 }
