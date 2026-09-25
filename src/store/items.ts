@@ -57,24 +57,38 @@ function mergeItem(existing: ItemData | undefined, item: IncomingItem): ItemData
     return createItemData(item.path, item.name, item.isDirectory, item.modifiedTime, createdTime, item.aiHint);
   }
 
-  const updatedItem: ItemData = {
-    ...existing,
-    name: item.name,
-    isDirectory: item.isDirectory,
-    modifiedTime: item.modifiedTime,
-    createdTime,
-    aiHint: item.aiHint ?? existing.aiHint,
-  };
+  const aiHint = item.aiHint ?? existing.aiHint;
 
   // Invalidate cached content when the file on disk no longer matches the
   // state the content was read at: a *different* mtime (newer, or older after
   // a restore-from-backup — hence `!==`, not `>`), or a different size even
   // with an equal mtime (coarse-mtime filesystems can hide a same-timestamp
   // external edit; the size comparison catches most of those).
-  if (existing.contentCachedAt !== undefined && (
+  const invalidateContent = existing.contentCachedAt !== undefined && (
     item.modifiedTime !== existing.contentCachedAt ||
     (item.size !== undefined && existing.contentCachedSize !== undefined && item.size !== existing.contentCachedSize)
-  )) {
+  );
+
+  // Nothing changed: keep the exact object reference so per-entry selectors
+  // (`useAS(s => s.items.get(path))`) don't re-render on a no-op refresh.
+  if (!invalidateContent &&
+    existing.name === item.name &&
+    existing.modifiedTime === item.modifiedTime &&
+    existing.createdTime === createdTime &&
+    existing.aiHint === aiHint) {
+    return existing;
+  }
+
+  const updatedItem: ItemData = {
+    ...existing,
+    name: item.name,
+    isDirectory: item.isDirectory,
+    modifiedTime: item.modifiedTime,
+    createdTime,
+    aiHint,
+  };
+
+  if (invalidateContent) {
     updatedItem.content = undefined;
     updatedItem.contentCachedAt = undefined;
     updatedItem.contentCachedSize = undefined;
@@ -157,10 +171,18 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
     upsertItems: (items) => {
       // Create new Map to ensure React detects the change
       const newItems = new Map(get().items);
+      let hasChanges = false;
 
       for (const item of items) {
-        newItems.set(item.path, mergeItem(newItems.get(item.path), item));
+        const existing = newItems.get(item.path);
+        const merged = mergeItem(existing, item);
+        if (merged !== existing) {
+          newItems.set(item.path, merged);
+          hasChanges = true;
+        }
       }
+
+      if (!hasChanges) return;
 
       set({ items: newItems });
     },
@@ -182,10 +204,15 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      */
     syncDirectoryItems: (dirPath, items) => {
       const newItems = new Map(get().items);
-      let hasChanges = items.length > 0;
+      let hasChanges = false;
 
       for (const item of items) {
-        newItems.set(item.path, mergeItem(newItems.get(item.path), item));
+        const existing = newItems.get(item.path);
+        const merged = mergeItem(existing, item);
+        if (merged !== existing) {
+          newItems.set(item.path, merged);
+          hasChanges = true;
+        }
       }
 
       const listed = new Set(items.map(item => item.path));

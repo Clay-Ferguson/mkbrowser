@@ -255,6 +255,45 @@ describe('items store — stale entry reconciliation', () => {
       expect(isCacheValid(NOTE)).toBe(false);
     });
   });
+
+  describe('no-op refreshes keep object identity', () => {
+    it('syncDirectoryItems keeps the items Map and every entry reference when nothing changed', () => {
+      syncDirectoryItems(DIR, [entry(NOTE, { size: 10 }), entry('/notes/other.md')]);
+      setItemContent(NOTE, '0123456789', 1000, 10);
+      const itemsBefore = useAS.getState().items;
+      const noteBefore = getItem(NOTE);
+      const otherBefore = getItem('/notes/other.md');
+
+      syncDirectoryItems(DIR, [entry(NOTE, { size: 10 }), entry('/notes/other.md')]);
+
+      expect(useAS.getState().items).toBe(itemsBefore);
+      expect(getItem(NOTE)).toBe(noteBefore);
+      expect(getItem('/notes/other.md')).toBe(otherBefore);
+    });
+
+    it('upsertItems keeps the items Map when nothing changed', () => {
+      upsertItems([entry(NOTE)]);
+      const itemsBefore = useAS.getState().items;
+      const noteBefore = getItem(NOTE);
+
+      upsertItems([entry(NOTE)]);
+
+      expect(useAS.getState().items).toBe(itemsBefore);
+      expect(getItem(NOTE)).toBe(noteBefore);
+    });
+
+    it('replaces only the entry that changed', () => {
+      syncDirectoryItems(DIR, [entry(NOTE), entry('/notes/other.md')]);
+      const otherBefore = getItem('/notes/other.md');
+      const noteBefore = getItem(NOTE);
+
+      syncDirectoryItems(DIR, [entry(NOTE, { modifiedTime: 2000 }), entry('/notes/other.md')]);
+
+      expect(getItem(NOTE)).not.toBe(noteBefore);
+      expect(getItem(NOTE)?.modifiedTime).toBe(2000);
+      expect(getItem('/notes/other.md')).toBe(otherBefore);
+    });
+  });
 });
 
 describe('renameItem / deleteItems — path-holding slices stay in sync', () => {
