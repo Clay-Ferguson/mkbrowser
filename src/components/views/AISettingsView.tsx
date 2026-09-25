@@ -4,7 +4,7 @@ import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/re
 import { api } from '../../renderer/api';
 import { saveAiConfig } from '../../renderer/config';
 import { useAS, getAiConfig } from '../../store';
-import type { AIModelConfig, AppConfig, AIUsageWithCosts } from '../../shared/shared';
+import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../shared/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../shared/ai/aiPrompts';
 import EditAIModelDialog from '../dialogs/EditAIModelDialog';
@@ -28,6 +28,95 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+/** The saved prompt text for a persona: the built-in default, or the stored prompt ('' if missing). */
+function personaPrompt(name: string, prompts: AIRewritePromptDef[]): string {
+  if (name === DEFAULT_PERSONA_NAME) return DEFAULT_AI_REWRITE_PERSONA;
+  return prompts.find((p) => p.name === name)?.prompt ?? '';
+}
+
+interface PersonaEditorProps {
+  /** The active persona, derived from the store. */
+  personaName: string;
+  aiRewritePrompts: AIRewritePromptDef[];
+  onSelect: (name: string) => void;
+  onNew: () => void;
+  onSave: (name: string, prompt: string) => void;
+  onDelete: () => void;
+}
+
+/**
+ * Persona selector + prompt editor. Only the textarea draft is local; the
+ * active persona comes from the store, and the parent renders this with
+ * `key={personaName}` so the draft resets whenever the active persona changes
+ * anywhere (here, or ThreadView's persona picker).
+ */
+function PersonaEditor({ personaName, aiRewritePrompts, onSelect, onNew, onSave, onDelete }: PersonaEditorProps) {
+  const [draft, setDraft] = useState<string>(() => personaPrompt(personaName, aiRewritePrompts));
+
+  // The default agent is built in: it can be selected and used, but not edited,
+  // saved over, or deleted.
+  const personaIsEditable = personaName !== DEFAULT_PERSONA_NAME;
+
+  return (
+    <div>
+      {/* Combobox row: persona selector + New + Save + Delete */}
+      <div className="flex gap-3 mb-3">
+        {/* Select-only (no onChange): personas are created through the
+            New Persona button, not by typing a name in here. */}
+        <EditableCombobox
+          data-testid="ai-persona-combobox"
+          value={personaName}
+          onSelect={(option: ComboboxOption) => onSelect(option.value)}
+          options={[
+            { value: DEFAULT_PERSONA_NAME, label: DEFAULT_PERSONA_NAME },
+            ...[...aiRewritePrompts]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((p) => ({ value: p.name, label: p.name })),
+          ]}
+          placeholder="Select a persona..."
+          className="flex-1"
+        />
+        <button
+          type="button"
+          onClick={onNew}
+          className={clsx(BUTTON_CLASS_DLG_BLUE, 'whitespace-nowrap')}
+          data-testid="ai-persona-new-button"
+        >
+          New
+        </button>
+        <button
+          type="button"
+          disabled={!personaIsEditable}
+          onClick={() => onSave(personaName, draft)}
+          className={BUTTON_CLASS_DLG_GREEN}
+          data-testid="ai-persona-save-button"
+        >
+          Save
+        </button>
+        <button
+          type="button"
+          disabled={!personaIsEditable || !aiRewritePrompts.some((p) => p.name === personaName)}
+          onClick={onDelete}
+          className={BUTTON_CLASS_DLG_RED}
+          data-testid="ai-persona-delete-button"
+        >
+          Delete
+        </button>
+      </div>
+      {/* Prompt text editor */}
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        disabled={!personaIsEditable}
+        rows={5}
+        placeholder={DEFAULT_AI_REWRITE_PERSONA}
+        className="w-full bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-base font-mono disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-slate-500"
+        data-testid="ai-persona-prompt-textarea"
+      />
+    </div>
+  );
+}
+
 /**
  * Settings page for all AI-related configuration: enabling AI, selecting and
  * managing model configs, pointing at a local llama.cpp server, editing
@@ -48,24 +137,18 @@ function AISettingsView() {
     agenticMode,
     fullDocContext,
     aiRewriteMode,
+    aiRewritePrompt,
     aiRewritePrompts,
   } = useAS(s => s.aiConfig);
+  // The active persona is always read from the store (ThreadView can change it
+  // too); PersonaEditor keeps only the textarea draft, keyed on this name.
+  const personaName = aiRewritePrompt || DEFAULT_PERSONA_NAME;
 
   // Text fields keep a local buffer for keystroke responsiveness, seeded lazily
   // from the store (nothing else writes them) and persisted on blur.
   const [llamacppBaseUrl, setLlamacppBaseUrl] = useState<string>(() => getAiConfig().llamacppBaseUrl);
   const [agenticAllowedFolders, setAgenticAllowedFolders] = useState<string>(() => getAiConfig().agenticAllowedFolders);
 
-  // Persona editor working state: which persona is being edited + the textarea
-  // buffer. Seeded lazily from the store's active persona.
-  const [selectedPromptName, setSelectedPromptName] = useState<string>(() => getAiConfig().aiRewritePrompt || DEFAULT_PERSONA_NAME);
-  const [promptEditorContent, setPromptEditorContent] = useState<string>(() => {
-    const cfg = getAiConfig();
-    const name = cfg.aiRewritePrompt || DEFAULT_PERSONA_NAME;
-    return name === DEFAULT_PERSONA_NAME
-      ? DEFAULT_AI_REWRITE_PERSONA
-      : cfg.aiRewritePrompts.find((p) => p.name === name)?.prompt ?? '';
-  });
   const [showPromptDeleteConfirm, setShowPromptDeleteConfirm] = useState(false);
   // "New Persona" dialog + the name-collision message it can raise (shown stacked
   // above it, so the name the user typed survives the correction).
@@ -235,26 +318,18 @@ function AISettingsView() {
       return;
     }
     setShowNewPersonaDialog(false);
-    setSelectedPromptName(name);
-    setPromptEditorContent('');
     void saveAiConfigField({
       aiRewritePrompts: [...aiRewritePrompts, { name, prompt: '' }],
       aiRewritePrompt: name,
     });
   };
 
-  /** Writes the editor buffer back to the selected persona. */
-  const handleSavePersona = () => {
-    const name = selectedPromptName.trim();
-    if (!name) return;
+  /** Writes the editor buffer back to the given persona. */
+  const handleSavePersona = (name: string, prompt: string) => {
     const updated = aiRewritePrompts.filter((p) => p.name !== name);
-    updated.push({ name, prompt: promptEditorContent });
+    updated.push({ name, prompt });
     void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: name });
   };
-
-  // The default agent is built in: it can be selected and used, but not edited,
-  // saved over, or deleted. An empty name means nothing is selected (post-delete).
-  const personaIsEditable = Boolean(selectedPromptName.trim()) && selectedPromptName !== DEFAULT_PERSONA_NAME;
 
   // Fire-and-forget: wired directly to the reset-confirmation dialog's
   // `onConfirm` (a `() => void` prop). Uses the sync-signature + internal
@@ -514,71 +589,15 @@ function AISettingsView() {
             {aiEnabled && (
               <section className="bg-slate-800 rounded-lg border border-slate-700 p-6">
                 <h2 className="text-lg font-semibold text-slate-100 mb-4">AI Personas</h2>
-                <div>
-                  {/* Combobox row: persona selector + New + Save + Delete */}
-                  <div className="flex gap-3 mb-3">
-                    {/* Select-only (no onChange): personas are created through the
-                        New Persona button, not by typing a name in here. */}
-                    <EditableCombobox
-                      data-testid="ai-persona-combobox"
-                      value={selectedPromptName}
-                      onSelect={(option: ComboboxOption) => {
-                        setSelectedPromptName(option.value);
-                        if (option.value === DEFAULT_PERSONA_NAME) {
-                          setPromptEditorContent(DEFAULT_AI_REWRITE_PERSONA);
-                        } else {
-                          const matched = aiRewritePrompts.find((p) => p.name === option.value);
-                          setPromptEditorContent(matched?.prompt ?? '');
-                        }
-                        void saveAiConfigField({ aiRewritePrompt: option.value });
-                      }}
-                      options={[
-                        { value: DEFAULT_PERSONA_NAME, label: DEFAULT_PERSONA_NAME },
-                        ...[...aiRewritePrompts]
-                          .sort((a, b) => a.name.localeCompare(b.name))
-                          .map((p) => ({ value: p.name, label: p.name })),
-                      ]}
-                      placeholder="Select a persona..."
-                      className="flex-1"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPersonaDialog(true)}
-                      className={clsx(BUTTON_CLASS_DLG_BLUE, 'whitespace-nowrap')}
-                      data-testid="ai-persona-new-button"
-                    >
-                      New
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!personaIsEditable}
-                      onClick={handleSavePersona}
-                      className={BUTTON_CLASS_DLG_GREEN}
-                      data-testid="ai-persona-save-button"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      disabled={!personaIsEditable || !aiRewritePrompts.some((p) => p.name === selectedPromptName)}
-                      onClick={() => setShowPromptDeleteConfirm(true)}
-                      className={BUTTON_CLASS_DLG_RED}
-                      data-testid="ai-persona-delete-button"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                  {/* Prompt text editor */}
-                  <textarea
-                    value={promptEditorContent}
-                    onChange={(e) => setPromptEditorContent(e.target.value)}
-                    disabled={!personaIsEditable}
-                    rows={5}
-                    placeholder={DEFAULT_AI_REWRITE_PERSONA}
-                    className="w-full bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y overflow-y-auto text-base font-mono disabled:opacity-40 disabled:cursor-not-allowed placeholder:text-slate-500"
-                    data-testid="ai-persona-prompt-textarea"
-                  />
-                </div>
+                <PersonaEditor
+                  key={personaName}
+                  personaName={personaName}
+                  aiRewritePrompts={aiRewritePrompts}
+                  onSelect={(name) => void saveAiConfigField({ aiRewritePrompt: name })}
+                  onNew={() => setShowNewPersonaDialog(true)}
+                  onSave={handleSavePersona}
+                  onDelete={() => setShowPromptDeleteConfirm(true)}
+                />
               </section>
             )}
 
@@ -688,11 +707,9 @@ function AISettingsView() {
       {/* Delete rewrite prompt confirmation */}
       {showPromptDeleteConfirm && (
         <ConfirmDialog
-          message={`Delete prompt "${selectedPromptName}"?`}
+          message={`Delete prompt "${personaName}"?`}
           onConfirm={() => {
-            const updated = aiRewritePrompts.filter((p) => p.name !== selectedPromptName);
-            setSelectedPromptName('');
-            setPromptEditorContent('');
+            const updated = aiRewritePrompts.filter((p) => p.name !== personaName);
             setShowPromptDeleteConfirm(false);
             void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: undefined });
           }}
