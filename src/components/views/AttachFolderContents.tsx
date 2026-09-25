@@ -5,6 +5,7 @@ import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
+import ErrorBoundary from '../ErrorBoundary';
 import { useAS } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
@@ -39,32 +40,34 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
     <div style={{ paddingLeft: `${level * 32}px` }}>
       {visibleEntries.map(entry => (
         <div key={entry.path}>
-          {entry.isDirectory ? (
-            <>
-              <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={onPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
-              {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
-                <AttachFolderContents
-                  entries={entry.attachments}
-                  level={level + 1}
-                  onNavigate={onNavigate}
-                  onRename={onRename}
-                  onDelete={onDelete}
-                  onSaveSettings={onSaveSettings}
-                  onPasteIntoFolder={onPasteIntoFolder}
-                />
-              )}
-            </>
-          ) : entry.isMarkdown ? (
-            <MarkdownEntry entry={entry} view="browser" onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
-          ) : isImageFile(entry.name) ? (
-            <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
-          ) : isTextFile(entry.name) ? (
-            <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
-          ) : isPdfFile(entry.name) ? (
-            <PDFEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
-          ) : (
-            <GenericEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
-          )}
+          <ErrorBoundary label={entry.name} resetKeys={[entry.modifiedTime]}>
+            {entry.isDirectory ? (
+              <>
+                <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={onPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
+                {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
+                  <AttachFolderContents
+                    entries={entry.attachments}
+                    level={level + 1}
+                    onNavigate={onNavigate}
+                    onRename={onRename}
+                    onDelete={onDelete}
+                    onSaveSettings={onSaveSettings}
+                    onPasteIntoFolder={onPasteIntoFolder}
+                  />
+                )}
+              </>
+            ) : entry.isMarkdown ? (
+              <MarkdownEntry entry={entry} view="browser" onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+            ) : isImageFile(entry.name) ? (
+              <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+            ) : isTextFile(entry.name) ? (
+              <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+            ) : isPdfFile(entry.name) ? (
+              <PDFEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+            ) : (
+              <GenericEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+            )}
+          </ErrorBoundary>
         </div>
       ))}
     </div>

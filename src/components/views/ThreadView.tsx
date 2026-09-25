@@ -16,6 +16,7 @@ import {
 import { saveAiConfig } from '../../renderer/config';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import MarkdownEntry from '../entries/MarkdownEntry';
+import ErrorBoundary from '../ErrorBoundary';
 import ThreadAvatar, { ThreadAvatarDefs } from '../ThreadAvatar';
 import { logger } from '../../shared/logUtil';
 import PathBreadcrumb from '../PathBreadcrumb';
@@ -329,13 +330,15 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
                 <div
                   className={clsx(entry.folderPath === currentPath && 'border-2 border-purple-500 rounded-sm')}
                 >
-                  <MarkdownEntry
-                    entry={fileEntry}
-                    view="thread"
-                    onRename={refreshThread}
-                    onDelete={refreshThread}
-                    onSaveSettings={onSaveSettings}
-                  />
+                  <ErrorBoundary label={entry.fileName} resetKeys={[entry.modifiedTime]}>
+                    <MarkdownEntry
+                      entry={fileEntry}
+                      view="thread"
+                      onRename={refreshThread}
+                      onDelete={refreshThread}
+                      onSaveSettings={onSaveSettings}
+                    />
+                  </ErrorBoundary>
                 </div>
               </div>
             </div>

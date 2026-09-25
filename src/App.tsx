@@ -12,6 +12,7 @@ import CalendarView from './components/views/CalendarView';
 import AISettingsView from './components/views/AISettingsView';
 import ThreadView from './components/views/ThreadView';
 import BrowseView from './components/views/BrowseView';
+import ErrorBoundary from './components/ErrorBoundary';
 import BrowseFile from './components/views/BrowseFile';
 import IndexTreeView from './components/views/IndexTreeView';
 import AppTabButtons from './components/AppTabButtons';
@@ -506,77 +507,93 @@ function App() {
       <div className="flex-1 flex flex-col min-h-0">
         {folderGraph && (
           <div {...viewProps('folder-graph')}>
-            <FolderGraphView />
+            <ErrorBoundary>
+              <FolderGraphView />
+            </ErrorBoundary>
           </div>
         )}
 
         {visitedViews.has('search-results') && (
           <div {...viewProps('search-results')}>
-            <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
+            <ErrorBoundary>
+              <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
+            </ErrorBoundary>
           </div>
         )}
 
         {visitedViews.has('settings') && (
           <div {...viewProps('settings')}>
-            <SettingsView onSaveSettings={handleSaveSettings} />
+            <ErrorBoundary>
+              <SettingsView onSaveSettings={handleSaveSettings} />
+            </ErrorBoundary>
           </div>
         )}
 
         {visitedViews.has('ai-settings') && (
           <div {...viewProps('ai-settings')}>
-            <AISettingsView />
+            <ErrorBoundary>
+              <AISettingsView />
+            </ErrorBoundary>
           </div>
         )}
 
         {visitedViews.has('calendar') && (
           <div {...viewProps('calendar')}>
-            <CalendarView />
+            <ErrorBoundary>
+              <CalendarView />
+            </ErrorBoundary>
           </div>
         )}
 
         {visitedViews.has('folder-analysis') && (
           <div {...viewProps('folder-analysis')}>
-            <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
+            <ErrorBoundary>
+              <FolderAnalysisView onSearchHashtag={handleSearchHashtag} />
+            </ErrorBoundary>
           </div>
         )}
 
         {visitedViews.has('thread') && (
           <div {...viewProps('thread')}>
-            <ThreadView onSaveSettings={handleSaveSettings} />
+            <ErrorBoundary>
+              <ThreadView onSaveSettings={handleSaveSettings} />
+            </ErrorBoundary>
           </div>
         )}
 
         {visitedViews.has('browser') && (
           <div {...viewProps('browser')}>
-            <div className="flex-1 flex flex-row min-h-0">
-              {settings.indexTreeWidth !== 'hidden' && <IndexTreeView onRefreshDirectory={refreshDirectory} />}
-              {/* Single-file browsing swaps BrowseView out rather than hiding
-                  it: mounting both would give the browsed file two live entry
-                  instances — two CodeMirror editors racing to register as the
-                  active one, and duplicate DOM ids. The folder listing's scroll
-                  position survives the unmount because it is persisted per
-                  folder in the store and restored when BrowseView remounts. */}
-              <div className="flex-1 flex flex-col min-h-0 min-w-0">
-                {browseFileName ? (
-                  <BrowseFile
-                    entries={entries}
-                    onRefreshDirectory={refreshDirectory}
-                    onSetError={setError}
-                    onSaveSettings={handleSaveSettings}
-                  />
-                ) : (
-                  <BrowseView
-                    entries={entries}
-                    loading={loading}
-                    lastExportFolder={lastExportFolder}
-                    onSetLastExportFolder={setLastExportFolder}
-                    onRefreshDirectory={refreshDirectory}
-                    onSetError={setError}
-                    onSaveSettings={handleSaveSettings}
-                  />
-                )}
+            <ErrorBoundary>
+              <div className="flex-1 flex flex-row min-h-0">
+                {settings.indexTreeWidth !== 'hidden' && <IndexTreeView onRefreshDirectory={refreshDirectory} />}
+                {/* Single-file browsing swaps BrowseView out rather than hiding
+                    it: mounting both would give the browsed file two live entry
+                    instances — two CodeMirror editors racing to register as the
+                    active one, and duplicate DOM ids. The folder listing's scroll
+                    position survives the unmount because it is persisted per
+                    folder in the store and restored when BrowseView remounts. */}
+                <div className="flex-1 flex flex-col min-h-0 min-w-0">
+                  {browseFileName ? (
+                    <BrowseFile
+                      entries={entries}
+                      onRefreshDirectory={refreshDirectory}
+                      onSetError={setError}
+                      onSaveSettings={handleSaveSettings}
+                    />
+                  ) : (
+                    <BrowseView
+                      entries={entries}
+                      loading={loading}
+                      lastExportFolder={lastExportFolder}
+                      onSetLastExportFolder={setLastExportFolder}
+                      onRefreshDirectory={refreshDirectory}
+                      onSetError={setError}
+                      onSaveSettings={handleSaveSettings}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
+            </ErrorBoundary>
           </div>
         )}
       </div>

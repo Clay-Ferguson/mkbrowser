@@ -13,6 +13,7 @@ import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
+import ErrorBoundary from '../ErrorBoundary';
 import ToolsPopupMenu from '../menus/ToolsPopupMenu';
 import EditPopupMenu from '../menus/EditPopupMenu';
 import SearchPopupMenu from '../menus/SearchPopupMenu';
@@ -1084,34 +1085,36 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
                 const showFolder = parentExpanded;
                 return (
                   <div key={entry.path}>
-                    {entry.isDirectory ? (
-                      <>
-                        {showFolder && (
-                          <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onRefreshDirectory={onRefreshDirectory} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={isAttach} indentFolder={indentFolder} />
-                        )}
-                        {isAttach && entry.attachments && parentExpanded && (
-                          <AttachFolderContents
-                            entries={entry.attachments}
-                            level={1}
-                            onNavigate={navigateTo}
-                            onRename={handleEntryRename}
-                            onDelete={handleEntryDelete}
-                            onSaveSettings={onSaveSettings}
-                            onPasteIntoFolder={doPasteIntoFolder}
-                          />
-                        )}
-                      </>
-                    ) : entry.isMarkdown ? (
-                      <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} {...attachMenuHandlers} documentMode={hasIndexFile} />
-                    ) : isImageFile(entry.name) ? (
-                      <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
-                    ) : isTextFile(entry.name) ? (
-                      <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
-                    ) : isPdfFile(entry.name) ? (
-                      <PDFEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
-                    ) : (
-                      <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
-                    )}
+                    <ErrorBoundary label={entry.name} resetKeys={[entry.modifiedTime]}>
+                      {entry.isDirectory ? (
+                        <>
+                          {showFolder && (
+                            <FolderEntry entry={entry} onNavigate={navigateTo} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={doPasteIntoFolder} onRefreshDirectory={onRefreshDirectory} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={isAttach} indentFolder={indentFolder} />
+                          )}
+                          {isAttach && entry.attachments && parentExpanded && (
+                            <AttachFolderContents
+                              entries={entry.attachments}
+                              level={1}
+                              onNavigate={navigateTo}
+                              onRename={handleEntryRename}
+                              onDelete={handleEntryDelete}
+                              onSaveSettings={onSaveSettings}
+                              onPasteIntoFolder={doPasteIntoFolder}
+                            />
+                          )}
+                        </>
+                      ) : entry.isMarkdown ? (
+                        <MarkdownEntry entry={entry} view="browser" onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={doPasteAsAttachment} {...attachMenuHandlers} documentMode={hasIndexFile} />
+                      ) : isImageFile(entry.name) ? (
+                        <ImageEntry entry={entry} allImages={allImages} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
+                      ) : isTextFile(entry.name) ? (
+                        <TextEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
+                      ) : isPdfFile(entry.name) ? (
+                        <PDFEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
+                      ) : (
+                        <GenericEntry entry={entry} onRename={handleEntryRename} onDelete={handleEntryDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
+                      )}
+                    </ErrorBoundary>
                     {hasIndexFile && !sortedEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX) && (
                       <IndexInsertBar onInsertFile={() => handleInsertFileAt(idx + 1)} onInsertFolder={() => handleInsertFolderAt(idx + 1)} />
                     )}

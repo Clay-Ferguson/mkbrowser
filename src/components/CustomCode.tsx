@@ -3,6 +3,7 @@ import type { ExtraProps } from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { MermaidDiagram } from './MermaidDiagram';
+import ErrorBoundary from './ErrorBoundary';
 import { nodeToString } from '../renderer/reactUtil';
 
 /**
@@ -20,7 +21,11 @@ function CustomCode({ className, children, node, ...props }: React.HTMLAttribute
   const codeString = nodeToString(children).replace(/\n$/, '');
 
   if (language === 'mermaid') {
-    return <MermaidDiagram code={codeString} />;
+    return (
+      <ErrorBoundary label="mermaid diagram" resetKeys={[codeString]}>
+        <MermaidDiagram code={codeString} />
+      </ErrorBoundary>
+    );
   }
 
   if (language) {

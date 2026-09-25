@@ -30,6 +30,7 @@ import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import TagsPicker from '../TagsPicker';
 import PropsDisplay from '../PropsDisplay';
 import MarkdownView from './MarkdownView';
+import ErrorBoundary from '../ErrorBoundary';
 import { logger } from '../../shared/logUtil';
 import { getParentPath } from '../../renderer/pathUtil';
 import { openCalendarAtDate } from '../../renderer/calendarNav';
@@ -629,12 +630,14 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                   propValueTitle={propValueTitle}
                 />
               )}
-              <MarkdownView
-                content={content || ''}
-                showToc={showToc}
-                entryPath={entry.path}
-                onEditClick={edit.handleEditClick}
-              />
+              <ErrorBoundary label="markdown content" resetKeys={[content]}>
+                <MarkdownView
+                  content={content || ''}
+                  showToc={showToc}
+                  entryPath={entry.path}
+                  onEditClick={edit.handleEditClick}
+                />
+              </ErrorBoundary>
             </>
           )}
         </div>
