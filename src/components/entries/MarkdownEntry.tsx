@@ -77,7 +77,7 @@ async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<v
         navigateToBrowserPath(result.folderPath, undefined, 'thread');
         setPendingThreadScrollToBottom();
       } else {
-        navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
+        navigateToBrowserPath(result.folderPath, result.filePath, view);
       }
       setPendingEditFile(result.filePath, view);
     }

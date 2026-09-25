@@ -827,7 +827,7 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
         onSetError('Failed to create AI chat: ' + result.error);
       } else {
         const view = 'thread';
-        navigateToBrowserPath(result.folderPath, `${result.folderPath}/HUMAN.md`, view);
+        navigateToBrowserPath(result.folderPath, result.filePath, view);
         setPendingEditFile(result.filePath, view);
         // The new HUMAN.md is created directly in the current folder, so
         // currentPath doesn't change and BrowseView's load effect won't
