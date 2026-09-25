@@ -1048,25 +1048,48 @@ export function hasAnyCutItems(items: Map<string, ItemData>): boolean {
 
 /**
  * Memo cache for getCutPaths, keyed on map identity for the same reason as
- * {@link hasAnyCutItemsCache} — and additionally so the returned Set is
- * referentially stable, which is what lets a component subscribe to it with a
- * direct `useAS` selector without re-rendering on every unrelated store write.
+ * {@link hasAnyCutItemsCache}: repeated calls against the same Map skip the scan.
  */
 const cutPathsCache = new WeakMap<Map<string, ItemData>, ReadonlySet<string>>();
+
+/**
+ * The most recent Set getCutPaths handed out, reused whenever a new Map has
+ * exactly the same cut paths (structural sharing). The Map-identity cache alone
+ * can't provide stability across writes: every items mutation (selection,
+ * expand, each debounced editor onChange) builds a new Map, so without this a
+ * subscriber got a brand-new Set — and re-rendered — on every keystroke even
+ * though nothing was cut or uncut.
+ */
+let lastCutPaths: ReadonlySet<string> = new Set<string>();
+
+/** True when `a` and `b` contain exactly the same paths. */
+function sameMembers(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const path of a) {
+    if (!b.has(path)) return false;
+  }
+  return true;
+}
 
 /**
  * The paths of all currently cut items. Pure helper for direct selectors:
  * `useAS(s => getCutPaths(s.items))`. Unlike {@link hasAnyCutItems} it tracks
  * *which* items are cut, so a view that hides cut entries re-renders when the
  * cut set changes even though "something is cut" stayed true throughout.
+ *
+ * The returned Set is referentially stable for as long as its *contents* are
+ * unchanged — across any number of unrelated items writes — so a subscriber
+ * re-renders only when an item is actually cut or uncut.
  */
 export function getCutPaths(items: Map<string, ItemData>): ReadonlySet<string> {
   const cached = cutPathsCache.get(items);
   if (cached) return cached;
-  const result = new Set<string>();
+  const computed = new Set<string>();
   for (const [path, item] of items) {
-    if (item.isCut) result.add(path);
+    if (item.isCut) computed.add(path);
   }
+  const result = sameMembers(computed, lastCutPaths) ? lastCutPaths : computed;
+  lastCutPaths = result;
   cutPathsCache.set(items, result);
   return result;
 }

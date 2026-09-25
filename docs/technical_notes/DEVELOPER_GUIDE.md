@@ -367,6 +367,31 @@ On July 3, 2026 this codebase migrated to the **React Compiler** and removed **e
 - **Never add an `eslint-disable` for any `react-hooks/*` rule.** A suppression makes the *build* compiler skip the entire component (see "bailouts" below), and this is the one bailout cause our lint guard structurally cannot detect. Restructure the code so the rule passes honestly instead (patterns below).
 - **Put compiler-unsupported constructs in module-level helper functions.** The compiler only compiles components and hooks — a plain module-level function can freely use `try/finally`, `this`, mutation of module globals, etc. This is the universal escape hatch and the fix for almost every bailout.
 - **Write new components/hooks normally otherwise.** No special annotations, no wrapper patterns — just follow the rules of React (don't read/write refs during render, don't mutate props/state) and the compiler handles the rest.
+- **`memo()` is the exception, not the default.** Use it only under the rule in the next section.
+
+### When `memo()` is (and isn't) warranted
+
+The compiler removes most, but not all, reasons for `memo()`. Where it does and doesn't help:
+
+- **Outside loops, the compiler already skips unchanged children.** It caches each JSX element a component creates, keyed on that element's props. When the parent re-renders but a child's props haven't changed, the parent hands React the *same element object* as last time, and React skips re-rendering that child. No `memo()` is needed.
+- **Inside a `.map()` callback, it does not.** The compiler memoizes the `.map()` call as a whole: it re-runs only when one of its inputs changes, such as the list array or a handler the callback closes over. It does not memoize each iteration. Once the map re-runs, every row element is new, so every row component re-renders, including rows whose props are all equal. `memo()` on the row component is what lets those unchanged rows skip.
+- **`memo()` can't help when a prop is genuinely new.** A closure built inside the `.map()` callback (`() => handleMove(entry.name)`), an inline object or array literal, and a handler that closes over a frequently replaced store value (the whole `s.items` Map, the whole `s.settings` object) each get a new identity on every run. The shallow compare then fails every time, and `memo()` is pure overhead.
+
+**The rule.** `memo()` is allowed only on:
+
+1. components rendered once per row inside a potentially large `.map()` list, or
+2. components with an expensive render body (for example `MarkdownView`, which runs the full remark/rehype/KaTeX pipeline),
+
+and in both cases **only when every prop at every call site is stable**. A stable prop is a primitive, a reference stored in the store, or a callback the parent's compiled code memoizes on stable inputs. Don't add `memo()` anywhere else, because the compiler already covers those cases. Every `memo()` needs a comment explaining why its props are stable (see the bottom of `MarkdownView.tsx`). Without it, a later change can add an unstable prop and quietly make the `memo()` useless.
+
+**Fix prop stability first.** Before adding `memo()` to a row component:
+
+- extract the row into its own module-level component, so the compiler memoizes its internals;
+- have the row select its own per-row values as primitives (`useAS(s => s.highlightItem === path)`), not global objects it compares against its key;
+- build per-row handlers inside the row from stable inputs, rather than receiving new closures created in the parent's `.map()`;
+- in handlers, read store values at call time with `getState()` instead of closing over a subscribed `s.items`/`s.settings`.
+
+**Current state.** `MarkdownView` is the only `memo()` in the codebase (rule 2). The entry components in the BrowseView listing (`MarkdownEntry`, `FolderEntry`, `ImageEntry`, …) are rule-1 candidates but are deliberately **not** memoized yet. The listing's `.map()` still builds per-row closures (`onMoveUp`, `onMoveDown`, the `IndexInsertBar` handlers), and BrowseView subscribes to the whole `items` Map, so their props are not yet stable. Memoize them once both of those are fixed, not before.
 
 ### What a "bailout" is and why we care
 

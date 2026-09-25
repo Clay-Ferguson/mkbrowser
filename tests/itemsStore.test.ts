@@ -9,7 +9,10 @@ import {
   getItem,
   isCacheValid,
   renameItem,
+  clearAllCutItems,
   setItemContent,
+  setItemEditContent,
+  setItemExpanded,
   setItemSelected,
   syncDirectoryItems,
   upsertItems,
@@ -506,5 +509,30 @@ describe('getCutPaths', () => {
     seedCutNote();
     const { items } = useAS.getState();
     expect(getCutPaths(items)).toBe(getCutPaths(items));
+  });
+
+  it('keeps the same set across unrelated items writes (a new Map each time)', () => {
+    seedCutNote();
+    syncDirectoryItems(DIR, [entry(NOTE), entry('/notes/other.md')]);
+    const itemsBefore = useAS.getState().items;
+    const before = getCutPaths(itemsBefore);
+
+    setItemSelected('/notes/other.md', true);
+    setItemExpanded(NOTE, true);
+    setItemEditContent('/notes/other.md', 'typing...');
+    const { items } = useAS.getState();
+
+    expect(items).not.toBe(itemsBefore);
+    expect(getCutPaths(items)).toBe(before);
+  });
+
+  it('returns a new set when the cut state actually changes', () => {
+    seedCutNote();
+    const before = getCutPaths(useAS.getState().items);
+
+    clearAllCutItems();
+    const after = getCutPaths(useAS.getState().items);
+    expect(after).not.toBe(before);
+    expect(after.size).toBe(0);
   });
 });
