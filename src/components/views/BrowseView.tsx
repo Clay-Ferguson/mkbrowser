@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import {
   MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
   ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
@@ -59,6 +60,7 @@ import {
   useExpansionCounts,
   setIndexYaml,
   setSelectedLinkItems,
+  getCutPaths,
   useAS,
   type ItemData,
   type SearchDefinition,
@@ -90,42 +92,61 @@ function runOp(op: () => Promise<void>, errorPrefix: string, onError: (msg: stri
 }
 
 /**
- * Every selection/cut flag BrowseView needs, in a single pass over the item
- * map. The map is rebuilt on each store write — including every keystroke in
- * edit mode — so separate `.some()`/`.filter()` scans would each walk the
- * whole folder again per render.
+ * Every selection/cut flag BrowseView renders, in a single pass over the item
+ * map. Primitives only, selected with `useShallow`, so a store write that
+ * doesn't change any of them — e.g. every debounced keystroke in an inline
+ * editor, which builds a new Map — doesn't re-render the view. Handlers that
+ * need the selected items themselves read them at call time with
+ * {@link getSelectedItems}.
  *
  * Deliberately reports nothing about edit state: the map is global and holds
  * items from every folder visited this session, so a "something is editing"
  * flag derived here would stay true after navigating away from the file being
  * edited. Nothing in this view is edit-driven any more — a maximized editor
  * lives only in BrowseFile — so don't add one back.
- *
- * `selectedItems` keeps the map's insertion order, matching what the previous
- * `Array.from(items.values()).filter(...)` produced.
  */
-function summarizeItems(items: Map<string, ItemData>) {
-  const selectedItems: ItemData[] = [];
+function summarizeSelection(items: Map<string, ItemData>) {
+  let selectedCount = 0;
   let selectedFileCount = 0;
   let hasSelectedFolders = false;
   let hasCutItems = false;
 
   for (const item of items.values()) {
     if (item.isSelected) {
-      selectedItems.push(item);
+      selectedCount++;
       if (item.isDirectory) hasSelectedFolders = true;
       else selectedFileCount++;
     }
     if (item.isCut) hasCutItems = true;
   }
 
-  return {
-    selectedItems,
-    hasSelectedItems: selectedItems.length > 0,
-    selectedFileCount,
-    hasSelectedFolders,
-    hasCutItems,
-  };
+  return { selectedCount, selectedFileCount, hasSelectedFolders, hasCutItems };
+}
+
+/** The selected items, in the map's insertion order. For call-time use in handlers. */
+function getSelectedItems(items: Map<string, ItemData>): ItemData[] {
+  return Array.from(items.values()).filter((item) => item.isSelected);
+}
+
+/**
+ * The store's modified/created times for each listing entry, flattened as
+ * `[modified0, created0, modified1, created1, …]` (falling back to the entry's
+ * own times when the store has no item). A flat array of numbers so a
+ * `useShallow` selector over it stays stable across writes that don't touch
+ * any time — a saved file updates its item's times before the listing reloads.
+ */
+function listingTimes(items: Map<string, ItemData>, entries: FileEntry[]): number[] {
+  const times: number[] = [];
+  for (const entry of entries) {
+    const item = items.get(entry.path);
+    times.push(item?.modifiedTime ?? entry.modifiedTime, item?.createdTime ?? entry.createdTime);
+  }
+  return times;
+}
+
+/** The paths of listing entries that are currently expanded, in listing order. */
+function expandedListingPaths(items: Map<string, ItemData>, entries: FileEntry[]): string[] {
+  return entries.filter((entry) => items.get(entry.path)?.isExpanded).map((entry) => entry.path);
 }
 
 interface BrowseViewProps {
@@ -167,7 +188,10 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
 
   const hasIndexFile = useAS(s => s.hasIndexFile);
 
-  const items = useAS(s => s.items);
+  // Deliberately no `useAS(s => s.items)`: the Map is replaced on every items
+  // write (each debounced keystroke in an inline editor), and subscribing to it
+  // re-rendered the whole listing. Render reads narrow derived values below;
+  // handlers read `useAS.getState().items` at call time.
   const currentView = useAS(s => s.currentView);
   const currentPath = useAS(s => s.currentPath);
 
@@ -217,13 +241,22 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
   const showExpandAll = expansionCounts.totalCount > 0 && expansionCounts.expandedCount < expansionCounts.totalCount;
   const showCollapseAll = expansionCounts.totalCount > 0 && expansionCounts.collapsedCount < expansionCounts.totalCount;
 
-  const uncutEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
-  const entriesWithCurrentTimes = uncutEntries.map((entry) => {
-    const item = items.get(entry.path);
-    if (item && (item.modifiedTime !== entry.modifiedTime || item.createdTime !== entry.createdTime)) {
-      return { ...entry, modifiedTime: item.modifiedTime, createdTime: item.createdTime };
+  const cutPaths = useAS(s => getCutPaths(s.items));
+  const times = useAS(useShallow(s => listingTimes(s.items, entries)));
+  const expandedPathList = useAS(useShallow(s => expandedListingPaths(s.items, entries)));
+  const expandedPaths = new Set(expandedPathList);
+  const { selectedCount, selectedFileCount, hasSelectedFolders, hasCutItems } =
+    useAS(useShallow(s => summarizeSelection(s.items)));
+  const hasSelectedItems = selectedCount > 0;
+
+  const entriesWithCurrentTimes = entries.flatMap((entry, i) => {
+    if (cutPaths.has(entry.path)) return [];
+    const modifiedTime = times[2 * i] ?? entry.modifiedTime;
+    const createdTime = times[2 * i + 1] ?? entry.createdTime;
+    if (modifiedTime !== entry.modifiedTime || createdTime !== entry.createdTime) {
+      return [{ ...entry, modifiedTime, createdTime }];
     }
-    return entry;
+    return [entry];
   });
   const sortedEntries = hasIndexFile
     ? [...entriesWithCurrentTimes].sort((a, b) => {
@@ -243,9 +276,6 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
   // swaps this component out entirely. Inline editing here is unchanged.
 
   const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
-
-  const { selectedItems, hasSelectedItems, selectedFileCount, hasSelectedFolders, hasCutItems } =
-    summarizeItems(items);
 
   const previousPathRef = useRef<string | null>(null);
   const mainContainerRef = useRef<HTMLElement | null>(null);
@@ -451,7 +481,7 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
 
   const doPasteIntoFolder = (folderPath: string) => {
     runOp(async () => {
-      await pasteIntoFolder(folderPath, items, onSetError, onRefreshDirectory);
+      await pasteIntoFolder(folderPath, useAS.getState().items, onSetError, onRefreshDirectory);
     }, 'Failed to paste into folder: ', onSetError);
   };
 
@@ -459,7 +489,7 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
     runOp(async () => {
       const attachFolderPath = await ensureAttachFolder(filePath);
       if (!attachFolderPath) return;
-      await pasteIntoFolder(attachFolderPath, items, onSetError, onRefreshDirectory);
+      await pasteIntoFolder(attachFolderPath, useAS.getState().items, onSetError, onRefreshDirectory);
     }, 'Failed to paste as attachment: ', onSetError);
   };
 
@@ -513,21 +543,21 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
 
   const performDelete = () => {
     runOp(async () => {
-      await deleteSelected(selectedItems, currentPath, hasIndexFile, onSetError, onRefreshDirectory, () => setShowDeleteConfirm(false));
+      await deleteSelected(getSelectedItems(useAS.getState().items), currentPath, hasIndexFile, onSetError, onRefreshDirectory, () => setShowDeleteConfirm(false));
     }, 'Failed to delete: ', onSetError);
   };
 
   const handleSplitFile = () => {
     if (!currentPath) return;
     runOp(async () => {
-      await splitSelectedFile(currentPath, selectedItems, hasIndexFile, onSetError, onRefreshDirectory);
+      await splitSelectedFile(currentPath, getSelectedItems(useAS.getState().items), hasIndexFile, onSetError, onRefreshDirectory);
     }, 'Failed to split file: ', onSetError);
   };
 
   const handleJoinFiles = () => {
     if (!currentPath) return;
     runOp(async () => {
-      await joinSelectedFiles(currentPath, selectedItems, hasIndexFile, onSetError, onRefreshDirectory);
+      await joinSelectedFiles(currentPath, getSelectedItems(useAS.getState().items), hasIndexFile, onSetError, onRefreshDirectory);
     }, 'Failed to join files: ', onSetError);
   };
 
@@ -537,6 +567,7 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
    * file without its attachments before proceeding.
    */
   const handleCutClick = () => {
+    const { items } = useAS.getState();
     const hasOrphanedAttachment = sortedEntries.some((entry) => {
       if (entry.isDirectory || !items.get(entry.path)?.isSelected) return false;
       const attachName = `${entry.name}${ATTACH_SUFFIX}`;
@@ -723,11 +754,11 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
 
   const handleRunOcr = () => {
     if (!currentPath) return;
-    void runOcr(currentPath, settings.ocrToolsFolder, items, onSetError);
+    void runOcr(currentPath, settings.ocrToolsFolder, useAS.getState().items, onSetError);
   };
 
   const handleCopyLink = () => {
-    const paths = selectedItems.map((item) => item.path);
+    const paths = getSelectedItems(useAS.getState().items).map((item) => item.path);
     setSelectedLinkItems(paths);
     clearAllSelections();
   };
@@ -1080,7 +1111,7 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
                 const prevEntry = sortedEntries[idx - 1];
                 const isAttach = entry.name.endsWith(ATTACH_SUFFIX);
                 const indentFolder = isAttach && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
-                const parentExpanded = !indentFolder || (!!prevEntry && (items.get(prevEntry.path)?.isExpanded ?? false)); 
+                const parentExpanded = !indentFolder || (!!prevEntry && expandedPaths.has(prevEntry.path));
                 // Folders are shown whenever their parent is expanded (attach folders included).
                 const showFolder = parentExpanded;
                 return (
@@ -1221,7 +1252,7 @@ function BrowseView({ entries, loading, lastExportFolder, onSetLastExportFolder,
 
       {showDeleteConfirm && (
         <ConfirmDialog
-          message={`Move ${selectedItems.length} selected item(s) to trash?`}
+          message={`Move ${selectedCount} selected item(s) to trash?`}
           onConfirm={performDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />

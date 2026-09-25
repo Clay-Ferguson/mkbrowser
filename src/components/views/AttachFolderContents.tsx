@@ -6,7 +6,7 @@ import ImageEntry from '../entries/ImageEntry';
 import TextEntry from '../entries/TextEntry';
 import PDFEntry from '../entries/PDFEntry';
 import ErrorBoundary from '../ErrorBoundary';
-import { useAS } from '../../store';
+import { getCutPaths, useAS } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
@@ -31,8 +31,10 @@ interface AttachFolderContentsProps {
  * listing) and BrowseFile (under the one file shown in single-file mode).
  */
 function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder }: AttachFolderContentsProps) {
-  const items = useAS(s => s.items);
-  const visibleEntries = entries.filter((entry) => !items.get(entry.path)?.isCut);
+  // Only the cut paths, not the whole items Map: the Map is replaced on every
+  // items write (each debounced editor keystroke), while this Set stays stable.
+  const cutPaths = useAS(s => getCutPaths(s.items));
+  const visibleEntries = entries.filter((entry) => !cutPaths.has(entry.path));
   if (visibleEntries.length === 0) return null;
   const allImages = visibleEntries.filter(e => !e.isDirectory && isImageFile(e.name));
 

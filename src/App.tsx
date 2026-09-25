@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type { CSSProperties } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { api } from './renderer/api';
@@ -203,7 +204,6 @@ function App() {
   // toggled via CSS), so each view's scroll position is preserved natively.
   // This set tracks which views have been activated at least once.
   const [visitedViews, setVisitedViews] = useState<Set<AppView>>(() => new Set<AppView>(['browser']));
-  const items = useAS(s => s.items);
   const currentView = useAS(s => s.currentView);
   const currentPath = useAS(s => s.currentPath);
   const browseFileName = useAS(s => s.browseFileName);
@@ -330,8 +330,11 @@ function App() {
 
   // Remove entries that were deleted from the store (e.g. via SearchResultsView).
   // Pruning during render (rather than in an effect) avoids a cascading re-render;
-  // the length guard keeps this from looping when nothing was removed.
-  const prunedEntries = entries.filter(entry => items.has(entry.path));
+  // the length guard keeps this from looping when nothing was removed. The filter
+  // runs inside a useShallow selector (its elements are the same FileEntry objects
+  // while nothing is removed), so App doesn't re-render on every items write —
+  // e.g. each debounced keystroke in an inline editor.
+  const prunedEntries = useAS(useShallow(s => entries.filter(entry => s.items.has(entry.path))));
   if (prunedEntries.length !== entries.length) {
     setEntries(prunedEntries);
   }
