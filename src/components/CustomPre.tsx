@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ExtraProps } from 'react-markdown';
 import { ClipboardDocumentIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/outline';
 import { logger } from '../shared/logUtil';
@@ -18,6 +18,10 @@ import { BUTTON_CLASS_CODE_COPY } from '../renderer/styles';
 // spread onto the DOM <pre> element (React warns on unknown DOM props).
 export default function CustomPre({ children, node, ...props }: React.HTMLAttributes<HTMLPreElement> & ExtraProps) {
   const [copied, setCopied] = useState(false);
+  // Pending "Copied!" reset, tracked so a repeat click restarts the 2s window (instead of
+  // the earlier click's timer cutting it short) and so unmount cancels it.
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(copiedTimerRef.current), []);
 
   const codeElement = children as React.ReactElement;
   const codeClassName = (codeElement?.props as { className?: string })?.className || ''; 
@@ -38,7 +42,8 @@ export default function CustomPre({ children, node, ...props }: React.HTMLAttrib
       try {
         await navigator.clipboard.writeText(textToCopy);
         setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = setTimeout(() => setCopied(false), 2000);
       } catch (err) {
         logger.error('Failed to copy:', err);
       }

@@ -93,6 +93,9 @@ export function MermaidDiagram({ code }: { code: string }) {
     const diagramId = idRef.current;
 
     queueMermaidRender(async () => {
+      // Superseded (code changed / unmounted) while waiting in the queue: skip the render
+      // so stale diagrams don't hold up the serial queue ahead of the live ones.
+      if (!isMounted) return;
       try {
         const safeId = `mermaid-diagram-${diagramId}-${Date.now()}`;
         const result = await mermaid.render(safeId, code);

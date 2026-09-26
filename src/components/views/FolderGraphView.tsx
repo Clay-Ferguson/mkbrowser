@@ -573,6 +573,9 @@ function FolderGraphView() {
     // repaint/re-frame closures on unmount / before re-run.
     return () => {
       worker.terminate();
+      // Stop an in-flight zoomToFit(true) transition, which would otherwise keep writing
+      // the old graph's transform into the shared <svg>'s zoom state for up to 600ms.
+      root.interrupt();
       sim?.stop();
       sim?.on('tick', null);
       root.on('.zoom', null);
