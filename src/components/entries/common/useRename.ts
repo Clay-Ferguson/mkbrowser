@@ -118,6 +118,8 @@ export function useRename({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Enter/Escape during IME composition confirm/cancel the composition itself.
+    if (e.nativeEvent.isComposing) return;
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSave();

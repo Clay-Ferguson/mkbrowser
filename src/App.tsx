@@ -136,6 +136,8 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      // This Esc cancels an in-progress IME composition, not the editor.
+      if (e.isComposing) return;
       // Already consumed (CodeMirror's own Escape keymap, autocomplete, search panel), or
       // meant for an open dialog/menu: that Esc dismisses the overlay, not the editor.
       if (e.defaultPrevented || isEscapeForOverlay(e)) return;

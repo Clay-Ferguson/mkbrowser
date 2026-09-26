@@ -249,6 +249,9 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                         onBlur={commitRename}
                         data-testid="tags-editor-category-rename-input"
                         onKeyDown={(e) => {
+                          // Enter/Escape during IME composition confirm/cancel the
+                          // composition itself — not the rename.
+                          if (e.nativeEvent.isComposing) return;
                           // preventDefault stops Escape from also dismissing the
                           // surrounding <dialog>; this Esc only cancels the rename.
                           if (e.key === 'Enter') { e.preventDefault(); commitRename(); }

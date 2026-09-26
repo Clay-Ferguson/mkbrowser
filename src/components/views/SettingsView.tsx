@@ -130,7 +130,7 @@ function DraftTextField({ value, onCommit, multiline = false, placeholder, rows,
       value={draft}
       onChange={(e) => handleChange(e.target.value)}
       onBlur={commit}
-      onKeyDown={(e) => { if (e.key === 'Enter') commit(); }}
+      onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) commit(); }}
       placeholder={placeholder}
       className={className}
     />

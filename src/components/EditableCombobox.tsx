@@ -134,7 +134,9 @@ function EditableCombobox({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    // Arrows/Enter/Escape during IME composition drive the IME's candidate list.
+    if (e.nativeEvent.isComposing) return;
+    if (!isOpen &&(e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       e.preventDefault();
       setIsOpen(true);
       return;
