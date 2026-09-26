@@ -16,12 +16,9 @@ import {
   navigateToBrowserPath,
   setPendingEditFile,
   setPendingThreadScrollToBottom,
-  setItemReviewing,
   setItemContent,
   setAppError,
-  toggleExpandedEditor,
   setShowPropsInEditor,
-  isEditUnmodified,
   toggleItemExpanded,
 } from '../../store';
 import AlertDialog from '../dialogs/AlertDialog';
@@ -42,6 +39,7 @@ import { trackScrollbarPress, pressStartedOnScrollbar } from '../../renderer/scr
 import { HUMAN_FILENAME, AI_FILENAME } from '../../shared/specialFiles';
 import {
   useEditableEntry,
+  useEditorChrome,
   useAiConfig,
   useAiRewrite,
   useAiStreamingDialog,
@@ -165,14 +163,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   });
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
-  const { showToc, showPropsInEditor, expandedEditor } = useAS(s => s.settings);
+  const { showToc, showPropsInEditor } = useAS(s => s.settings);
   const hasIndexFile = useAS(s => s.hasIndexFile);
-  // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
-  // content area, and editor all become nested flex columns (BrowseFile flexes the outer chain —
-  // it is the only view that ever hosts a maximized editor).
-  // `alwaysExpandedEditor` forces this on for callers that give the entry the whole pane.
-  const editorExpanded = expandedEditor || alwaysExpandedEditor;
-  const maximized = editorExpanded && edit.isEditing;
 
   // The two ways an edit session ends. Both drop editedMeta, so the next session starts out
   // showing the store's saved front matter rather than a leftover override (see below).
@@ -194,16 +186,15 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     return edit.handleSaveKeepEditing();
   };
 
-  // Only exit edit mode on Escape when the content is unmodified (see isEditUnmodified for the
-  // TOC-stripping rule). If the user has typed something, Escape falls through to CodeMirror
-  // (e.g. to dismiss autocomplete).
-  const handleEscape = () => {
-    // Read the edit buffer at call time — the editor flushes its debounced onChange right
-    // before invoking onEscape, so this render's edit.editContent may predate the flush.
-    if (isEditUnmodified(useAS.getState().items.get(entry.path))) {
-      handleCancelEdit();
-    }
-  };
+  // Rendered Markdown keeps its natural, page-scrolled height in view mode, so unlike
+  // TextEntry it only maximizes while editing (fillPaneWhenViewing stays off).
+  const chrome = useEditorChrome({
+    path: entry.path,
+    edit,
+    alwaysExpandedEditor,
+    onCancel: handleCancelEdit,
+  });
+  const { maximized, reviewing } = chrome;
 
   const handleToggleExpanded = () => toggleItemExpanded(entry.path);
 
@@ -214,7 +205,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   const [editedMeta, setEditedMeta] = useState<{ tags: string[]; props: Record<string, unknown> } | null>(null);
   // Pending cursor offset to apply once the editor reflects a content change (see handleToggleShowProps)
   const [pendingCursorPos, setPendingCursorPos] = useState<number | null>(null);
-  const { aiEnabled, aiRewriteMode, selectedPromptName, tagsVisible, setTagsVisible } = useAiConfig();
+  const { aiEnabled, selectedPromptName, tagsVisible, setTagsVisible } = useAiConfig();
 
   const handleToggleTagsVisible = () => {
     // saveAiConfig both persists and mirrors into the store (which the editor
@@ -235,14 +226,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       setPendingCursorPos(4);
     }
     setShowPropsInEditor(turningOn);
-    saveSettings();
-  };
-
-  // Flips the preference AND moves the editor to match: expanding hands this
-  // file the whole pane via BrowseFile, collapsing drops back to the folder
-  // listing with the editor still open inline.
-  const handleToggleExpandedEditor = () => {
-    toggleExpandedEditor(entry.path);
     saveSettings();
   };
 
@@ -347,20 +330,15 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
-      expandedEditor={editorExpanded}
-      // Omitted when the editor is always expanded — the toggle would be a
-      // no-op, so the button is hidden rather than shown doing nothing.
-      onToggleExpandedEditor={alwaysExpandedEditor ? undefined : handleToggleExpandedEditor}
+      {...chrome.toolbarProps}
       // HUMAN.md is the user's own prompt to the AI — rewriting it with AI
       // would defeat its purpose, so the button never appears while editing it.
-      showRewrite={!item?.reviewing && aiEnabled && aiRewriteMode && !isHumanFile}
+      showRewrite={chrome.canRewrite && !isHumanFile}
       onAiRewrite={handleAiRewrite}
       rewriteDisabled={edit.saving || isRewriting}
       isRewriting={isRewriting}
       selectedPromptName={selectedPromptName}
       hasSelection={hasSelection}
-      showSaveCancel={!item?.reviewing}
-      saving={edit.saving}
       onCancel={handleCancelEdit}
       onSave={handleSaveEdit}
       leftExtras={
@@ -397,7 +375,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         </>
       }
       middleExtras={
-        isHumanFile && !item?.reviewing ? (
+        isHumanFile && !reviewing ? (
           <button
             type="button"
             data-testid="ask-ai-button"
@@ -541,12 +519,10 @@ function MarkdownEntry(props: MarkdownEntryProps) {
     />
   ) : null;
 
-  // In-place AI review (the CodeMirror unified merge view inside the live editor). The tag
-  // pills/picker are hidden while it's active — TagsPicker writes into the edit buffer, which
-  // the editor deliberately ignores during a review. Front matter is forced visible so a diff
-  // chunk in a hidden front-matter region can't be invisible.
-  const reviewing = !!item?.reviewing;
-
+  // During an in-place AI review (the CodeMirror unified merge view inside the live editor) the
+  // tag pills/picker are hidden — TagsPicker writes into the edit buffer, which the editor
+  // deliberately ignores during a review. Front matter is forced visible so a diff chunk in a
+  // hidden front-matter region can't be invisible.
   return (
     <>
       <EntryShell
@@ -591,7 +567,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                 onGoToLineComplete={() => clearItemGoToLine(entry.path)}
                 goToPosition={pendingCursorPos}
                 onGoToPositionComplete={() => setPendingCursorPos(null)}
-                onEscape={handleEscape}
+                onEscape={chrome.handleEscape}
                 onForceCancel={handleCancelEdit}
                 onSave={handleSaveEdit}
                 onSaveKeepEditing={handleSaveKeepEditing}
@@ -608,12 +584,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                   setShowPropsInEditor(true);
                   saveSettings();
                 }}
-                reviewText={reviewing ? (item?.rewrittenContent ?? null) : null}
-                onReviewComplete={(finalText) => {
-                  edit.setEditContent(finalText);
-                  setItemReviewing(entry.path, false);
-                }}
-                onReviewCancel={() => setItemReviewing(entry.path, false)}
+                {...chrome.reviewProps}
               />
             </>
           ) : (

@@ -3,10 +3,7 @@ import { clsx } from 'clsx';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import {
   clearItemGoToLine,
-  setItemReviewing,
   useAS,
-  toggleExpandedEditor,
-  isEditUnmodified,
   toggleItemExpanded,
 } from '../../store';
 import CodeMirrorEditor from '../editor/CodeMirrorEditor';
@@ -14,6 +11,7 @@ import type { CodeMirrorEditorHandle } from '../editor/CodeMirrorEditor';
 import AlertDialog from '../dialogs/AlertDialog';
 import {
   useEditableEntry,
+  useEditorChrome,
   useAiConfig,
   useAiRewrite,
   EntryActionBar,
@@ -25,7 +23,6 @@ import {
 } from './common';
 import { getTextFileLanguage } from '../../shared/fileTypes';
 import { ENTRY_CONTENT_AREA, ENTRY_LOADING } from '../../renderer/styles';
-import { saveSettings } from '../../renderer/config';
 
 
 type TextEntryProps = BaseEntryProps & AttachMenuProps;
@@ -43,7 +40,7 @@ function TextEntry(props: TextEntryProps) {
   const [hasSelection, setHasSelection] = useState(false);
   const editorRef = useRef<CodeMirrorEditorHandle>(null);
   const fileLanguage = getTextFileLanguage(entry.name);
-  const { aiEnabled, selectedPromptName, aiRewriteMode } = useAiConfig();
+  const { selectedPromptName } = useAiConfig();
 
   const { core, rename, del, loading, content, edit } = useEditableEntry(props, {
     defaultExpanded: true,
@@ -52,36 +49,19 @@ function TextEntry(props: TextEntryProps) {
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
   const hasIndexFile = useAS(s => s.hasIndexFile);
-  const expandedEditor = useAS(s => s.settings.expandedEditor);
-  // Expanded-editor mode: this entry is maximized to fill the browse area, so the shell,
-  // content area, and editor all become nested flex columns (BrowseFile flexes the outer chain —
-  // it is the only view that ever hosts a maximized editor).
-  // `alwaysExpandedEditor` forces this on for callers that give the entry the whole pane.
-  const editorExpanded = expandedEditor || alwaysExpandedEditor;
-  // `alwaysExpandedEditor` callers (BrowseFile) hand this entry the whole pane, so it fills
-  // the available height in *view* mode too — not just while editing. In the folder listing
-  // the entry is one row among many, so there maximizing stays tied to editing.
-  const maximized = alwaysExpandedEditor || (expandedEditor && edit.isEditing);
-
-  // Only exit edit mode on Escape when the content is unmodified; if the user has typed
-  // something, Escape is passed through to CodeMirror (e.g. to dismiss autocomplete).
-  const handleEscape = () => {
-    // Read the edit buffer at call time — the editor flushes its debounced onChange right
-    // before invoking onEscape, so this render's edit.editContent may predate the flush.
-    if (isEditUnmodified(useAS.getState().items.get(entry.path))) {
-      edit.handleCancel();
-    }
-  };
+  const chrome = useEditorChrome({
+    path: entry.path,
+    edit,
+    alwaysExpandedEditor,
+    // `alwaysExpandedEditor` callers (BrowseFile) hand this entry the whole pane, so it fills
+    // the available height in *view* mode too — not just while editing. In the folder listing
+    // the entry is one row among many, so there maximizing stays tied to editing.
+    fillPaneWhenViewing: true,
+    onCancel: edit.handleCancel,
+  });
+  const { maximized } = chrome;
 
   const handleToggleExpanded = () => toggleItemExpanded(entry.path);
-
-  // Flips the preference AND moves the editor to match: expanding hands this
-  // file the whole pane via BrowseFile, collapsing drops back to the folder
-  // listing with the editor still open inline.
-  const handleToggleExpandedEditor = () => {
-    toggleExpandedEditor(entry.path);
-    saveSettings();
-  };
 
   const { isRewriting, aiRewrite } = useAiRewrite({
     path: entry.path,
@@ -93,18 +73,13 @@ function TextEntry(props: TextEntryProps) {
 
   const headerRight = edit.isEditing ? (
     <EntryEditToolbar
-      expandedEditor={editorExpanded}
-      // Omitted when the editor is always expanded — the toggle would be a
-      // no-op, so the button is hidden rather than shown doing nothing.
-      onToggleExpandedEditor={alwaysExpandedEditor ? undefined : handleToggleExpandedEditor}
-      showRewrite={!item?.reviewing && aiEnabled && aiRewriteMode}
+      {...chrome.toolbarProps}
+      showRewrite={chrome.canRewrite}
       onAiRewrite={aiRewrite}
       rewriteDisabled={edit.saving || isRewriting}
       isRewriting={isRewriting}
       selectedPromptName={selectedPromptName}
       hasSelection={hasSelection}
-      showSaveCancel={!item?.reviewing}
-      saving={edit.saving}
       onCancel={edit.handleCancel}
       onSave={() => void edit.handleSave()}
     />
@@ -158,18 +133,13 @@ function TextEntry(props: TextEntryProps) {
               autoFocus
               goToLine={item?.goToLine}
               onGoToLineComplete={() => clearItemGoToLine(entry.path)}
-              onEscape={handleEscape}
+              onEscape={chrome.handleEscape}
               onForceCancel={edit.handleCancel}
               onSave={() => void edit.handleSave()}
               onSaveKeepEditing={edit.handleSaveKeepEditing}
               onSelectionChange={setHasSelection}
               fillHeight={maximized}
-              reviewText={item?.reviewing ? (item.rewrittenContent ?? null) : null}
-              onReviewComplete={(finalText) => {
-                edit.setEditContent(finalText);
-                setItemReviewing(entry.path, false);
-              }}
-              onReviewCancel={() => setItemReviewing(entry.path, false)}
+              {...chrome.reviewProps}
             />
           ) : (
             <CodeMirrorEditor

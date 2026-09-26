@@ -124,7 +124,7 @@ function BrowseFile() {
   // Is the editor currently maximized over the whole pane? This — not editing in
   // general — is what hides the header. Mirrors the entries' own `maximized`
   // (`(settings.expandedEditor || alwaysExpandedEditor) && isEditing`, in
-  // MarkdownEntry and TextEntry) rather than assuming it, so the two cannot
+  // useEditorChrome) rather than assuming it, so the two cannot
   // drift. In practice it equals `editing` here, since 'browse' mode forces
   // `alwaysExpandedEditor` and 'expanded-edit' mode exists only while
   // `settings.expandedEditor` is on — but written this way the rule reads as
@@ -135,7 +135,8 @@ function BrowseFile() {
   // Plain-text files fill the pane at all times, editing or not: TextEntry's CodeMirror
   // would otherwise cap itself at ~60% of the scroll area (a sensible limit for a row in
   // the folder listing, wasted space for the one file that owns this view). Markdown keeps
-  // its natural, page-scrolled height unless it is being edited.
+  // its natural, page-scrolled height unless it is being edited. Keep in sync with
+  // useEditorChrome's `fillPaneWhenViewing` (on for TextEntry, off for MarkdownEntry).
   const fillsPane = !!entry && !entry.isMarkdown && !isImageFile(entry.name) && (isTextFile(entry.name) || isPdfFile(entry.name));
   const flexPane = editing || fillsPane;
 

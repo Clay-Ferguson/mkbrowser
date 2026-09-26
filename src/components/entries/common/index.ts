@@ -16,6 +16,7 @@ export { useDelete } from './useDelete';
 export { useContentLoader } from './useContentLoader';
 export { useEditMode } from './useEditMode';
 export { useEntry, useEditableEntry } from './useEntry';
+export { useEditorChrome } from './useEditorChrome';
 export { useAiConfig } from './useAiConfig';
 export type { AiConfigState, UseAiConfigResult } from './useAiConfig';
 export { useAiStreamingDialog } from './useAiStreamingDialog';
