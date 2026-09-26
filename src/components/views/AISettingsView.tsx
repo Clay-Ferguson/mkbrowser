@@ -4,7 +4,7 @@ import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/re
 import { api } from '../../renderer/api';
 import { saveAiConfig } from '../../renderer/config';
 import { runOp } from '../../renderer/runOp';
-import { useAS, getAiConfig } from '../../store';
+import { useAS, useIsActiveView, getAiConfig } from '../../store';
 import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../shared/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../shared/ai/aiPrompts';
@@ -175,16 +175,16 @@ function AISettingsView() {
   // loadConfig); only the non-config usage stats need fetching here. Views
   // never unmount (App.tsx hides them with CSS), so a mount-only fetch would
   // go stale — re-fetch each time this tab becomes the active view instead.
-  const currentView = useAS(s => s.currentView);
+  const isActive = useIsActiveView('ai-settings');
   useEffect(() => {
-    if (currentView !== 'ai-settings') return;
+    if (!isActive) return;
     let ignore = false;
     void api.getAiUsage().then((data) => {
       if (!ignore) setUsageData(data);
     });
     // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the ignore flag so the pending getAiUsage() promise can't set state after unmount/re-run.
     return () => { ignore = true; };
-  }, [currentView]);
+  }, [isActive]);
 
   // saveAiConfig persists AND mirrors the reactive subset into the store, so
   // live consumers (e.g. the editor's AI Rewrite button) update immediately.

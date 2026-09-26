@@ -12,6 +12,7 @@ import {
   setItemExpanded,
   setItemEditing,
   useAS,
+  useIsActiveView,
 } from '../../store';
 import { saveAiConfig } from '../../renderer/config';
 import { runOp } from '../../renderer/runOp';
@@ -65,7 +66,7 @@ async function gatherThread(path: string) {
  */
 function ThreadView() {
   const currentPath = useAS(s => s.currentPath);
-  const currentView = useAS(s => s.currentView);
+  const isActive = useIsActiveView('thread');
   const rootPath = useAS(s => s.rootPath);
   const pendingScrollToBottom = useAS(s => s.pendingThreadScrollToBottom);
   const pendingEditFile = useAS(s => s.pendingEditFile);
@@ -109,8 +110,8 @@ function ThreadView() {
     // Views never unmount (App.tsx hides them with CSS), so without this guard
     // every browser-tab folder navigation would fire the gather IPC + store
     // seeding for a thread view the user isn't looking at. Skip while hidden;
-    // `currentView` is in the deps so the gather runs when this tab activates.
-    if (currentView !== 'thread') return;
+    // `isActive` is in the deps so the gather runs when this tab activates.
+    if (!isActive) return;
     const token = nextThreadToken();
     // A slow gather can resolve after the user has navigated elsewhere, or after
     // a newer gather of the same path has started (a refreshTick bump), so every
@@ -157,7 +158,7 @@ function ThreadView() {
       }
       setLoading(false);
     })();
-  }, [currentPath, refreshTick, currentView]);
+  }, [currentPath, refreshTick, isActive]);
 
   // Callback for entry rename / delete — reload the thread
   const refreshThread = () => setRefreshTick((t) => t + 1);

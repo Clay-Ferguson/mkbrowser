@@ -53,6 +53,8 @@ src/components/
 
 Entry components compose shared hooks from `entries/common/` and render `EntryActionBar`, `RenameInput`, `SelectionCheckbox` for consistent UX. New entry types should follow this composition pattern.
 
+**Views never unmount.** `App.tsx` hides inactive tabs with `display: none`, so hidden views stay live. Gate visible-only effects on `useIsActiveView(view)`. **Don't switch to React's `<Activity>`:** it runs effect cleanups on hide, which would destroy CodeMirror editors (undo history, cursor) and reset the d3 graph on every tab switch, and it silently stops effects that must keep running. See DEVELOPER_GUIDE § "Views Never Unmount".
+
 ## Button Colors (single source of truth)
 Every button color lives in **`src/index.css`** as `btn-*` theme colors inside `@theme`
 (authored in oklch so each hue shares the same lightness/chroma and reads as one family).

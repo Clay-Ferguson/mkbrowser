@@ -1,5 +1,5 @@
 import type { AppState, AppView, BrowseFileMode, FolderAnalysisState, FolderGraphState } from '../shared/types';
-import { getState } from './core';
+import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
 import { withSelectionsCleared } from './items';
 import { enterExpandedEditPatch, isExpandedEditing } from './expandedEdit';
@@ -299,6 +299,19 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
 
 // Thin non-hook wrappers so the barrel API (and every caller) is unchanged;
 // they delegate to the actions living inside the store.
+
+/**
+ * True while `view` is the tab on screen. App.tsx keeps every visited view
+ * mounted and hides inactive ones with `display: none`, so views never
+ * unmount and their effects keep running while hidden (see DEVELOPER_GUIDE
+ * "Views never unmount"). Effects that should only do work for the visible tab
+ * — fetches, DOM measuring/scrolling — gate on this and list it as a dep, so
+ * they also re-run when the tab is activated. Returns a boolean, so a
+ * component only re-renders when its own view is shown or hidden.
+ */
+export function useIsActiveView(view: AppView): boolean {
+  return useAS(s => s.currentView === view);
+}
 
 export function setCurrentView(view: AppView): void {
   getState().setCurrentView(view);

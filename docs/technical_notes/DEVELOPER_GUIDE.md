@@ -30,6 +30,8 @@
 * [AI Interaction Logging](#ai-interaction-logging)
   * [How it hooks into LangChain](#how-it-hooks-into-langchain)
   * [Things to preserve if you touch it](#things-to-preserve-if-you-touch-it)
+* [Views Never Unmount](#views-never-unmount)
+  * [Why not React's `<Activity>`](#why-not-reacts-activity)
 * [React Compiler](#react-compiler)
   * [The coding standard (the short list)](#the-coding-standard-the-short-list)
   * [What a "bailout" is and why we care](#what-a-bailout-is-and-why-we-care)
@@ -365,6 +367,27 @@ Three callbacks do the work:
 - **Base64 image payloads are replaced with a `[image: image/png, 148231 bytes base64 omitted]` placeholder.** One screenshot is megabytes of base64 that would bury the actual prompt.
 - **We render messages by hand rather than using `getBufferString`** from `@langchain/core/messages` — that helper flattens content and drops tool calls entirely, and tool calls are the most useful thing in the file when debugging an agentic loop.
 - **To turn it off:** flip `const AI_FILE_LOG = false` at the top of `aiFileLog.ts` and rebuild, matching the `DEBUG` flag style used in `aiLog.ts`, `deepAgent.ts`, and `tools.ts`.
+
+## Views Never Unmount
+
+`App.tsx` mounts each view on its first visit and then keeps it in the DOM, hiding inactive tabs with `display: none`. This keeps each view's scroll position, open editors (CodeMirror undo history, cursor, and spell checker), and FolderGraphView's d3 simulation and zoom across tab switches, with no save/restore code.
+
+The contract that follows from this:
+
+- **A hidden view is fully live.** It re-renders when the store slices it selects change, and its effects keep running.
+- **Gate visible-only work on `useIsActiveView(view)`** (from the store barrel), and list the result in the effect's deps. Visible-only work means fetches, DOM measuring or scrolling, and pending-intent consumers. Listing it as a dep also re-runs the effect when the tab is shown, which replaces a "fetch on mount" that would otherwise go stale. Current users are ThreadView's gather, AISettingsView's usage fetch, `usePendingItemScroll`, and `usePendingBrowseIntents`.
+- **Don't write `currentView !== 'x'` by hand.** Use the hook, so every guard reads the same way and only re-renders when its own view's visibility flips.
+- **Background work that must run no matter which tab is showing** (IPC listeners, the calendar watcher) belongs in `App`, not in a view.
+- **Exception:** in single-file mode, `BrowseView` really is swapped out for `BrowseFile`, so it does remount. `usePendingBrowseIntents` handles that case.
+
+### Why not React's `<Activity>`
+
+React 19.2's `<Activity mode="hidden">` looks like a drop-in replacement for the `display` toggle, and it was considered (CODE_REVIEW 5.6). It was rejected because Activity keeps the DOM and state of hidden children but **runs their effect cleanups on hide and re-runs the effects on show**. That breaks this app in two ways:
+
+1. **Effects that own imperative state get torn down on every tab switch.** CodeMirror's `EditorView` is built in a mount effect whose cleanup calls `view.destroy()`, so hiding a tab mid-edit would lose undo history, cursor, and the spell checker, and would rebuild from the first-render `mountConfigRef` snapshot. FolderGraphView's d3 simulation and zoom would re-lay out each time. The Browse and Thread views, which are where the guards live, are exactly the ones hosting editors.
+2. **Effects that must keep running while hidden stop silently.** There is no error, only missing behaviour.
+
+The payoff is also small. Hidden views only re-render when a slice they select changes, and few such writes happen while the user is on another tab. Revisit this only if profiling shows hidden views costing real time, and start with views that host no editor or imperative library (Settings, AI Settings).
 
 ## React Compiler
 

@@ -1,5 +1,5 @@
 import { useLayoutEffect } from 'react';
-import { useAS, clearPendingScrollToFile } from '../../store';
+import { useAS, useIsActiveView, clearPendingScrollToFile } from '../../store';
 import { scrollItemIntoView } from '../../renderer/entryDom';
 
 /**
@@ -60,7 +60,7 @@ import { scrollItemIntoView } from '../../renderer/entryDom';
  */
 export function usePendingItemScroll(): void {
   const pendingScrollToFile = useAS(s => s.pendingScrollToFile);
-  const currentView = useAS(s => s.currentView);
+  const isActive = useIsActiveView('browser');
 
   // Intentionally no dependency array — see the doc comment above.
   useLayoutEffect(() => {
@@ -68,7 +68,7 @@ export function usePendingItemScroll(): void {
     // Other tabs stay mounted (display:none) and manage their own scrolling;
     // measuring or scrolling a hidden pane would produce nonsense. The request
     // stays pending and is picked up on the commit that shows this view.
-    if (currentView !== 'browser') return;
+    if (!isActive) return;
 
     if (scrollItemIntoView(pendingScrollToFile, false, true)) {
       clearPendingScrollToFile();

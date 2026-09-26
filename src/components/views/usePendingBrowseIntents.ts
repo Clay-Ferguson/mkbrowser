@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject, type UIEvent } from 'react';
 import {
   useAS,
+  useIsActiveView,
   setItemEditing,
   setItemExpanded,
   clearPendingEditFile,
@@ -30,7 +31,7 @@ import { usePendingItemScroll } from './usePendingItemScroll';
  * landed yet.
  */
 export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement | null>) {
-  const currentView = useAS(s => s.currentView);
+  const isActive = useIsActiveView('browser');
   const currentPath = useAS(s => s.currentPath);
   const loading = useAS(s => s.entriesLoading);
   const pendingScrollToFile = useAS(s => s.pendingScrollToFile);
@@ -56,7 +57,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
 
     // Skip browser scroll handling when not in browser view — ThreadView
     // manages its own scrolling and we don't want to interfere.
-    if (currentView !== 'browser') {
+    if (!isActive) {
       // Keep the tracked folder in sync so returning to this tab isn't mistaken
       // for a folder navigation (which would save a scrollTop belonging to a
       // listing that is no longer rendered). Deliberately leaves a null ref
@@ -161,7 +162,7 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
       clearTimeout(settleTimer);
       if (editTimer !== undefined) clearTimeout(editTimer);
     };
-  }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, pendingExpandFile, currentPath, currentView, mainContainerRef]);
+  }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, pendingExpandFile, currentPath, isActive, mainContainerRef]);
 
   // Clear any pending debounced save on unmount (full app teardown / closing
   // the folder). BrowseView no longer unmounts on tab switches, so there is no
