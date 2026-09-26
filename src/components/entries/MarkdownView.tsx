@@ -78,8 +78,12 @@ function MarkdownView({ content, showToc, entryPath, onEditClick }: MarkdownView
     return (
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, 1fr)`, gap: '1.5rem' }}>
         {columns.map((col, i) => (
+          // Columns are positional (split on `|||`, never reordered), so the index *is* their
+          // identity; keying on lineOffset remounted every later column when an earlier one
+          // changed length.
           <article
-            key={col.lineOffset}
+            // eslint-disable-next-line react/no-array-index-key
+            key={i}
             className={clsx(ARTICLE_CLASS, i > 0 && 'border-l border-slate-600 pl-6')}
           >
             {renderColumn(col.text, col.lineOffset)}

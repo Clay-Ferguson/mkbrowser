@@ -269,8 +269,12 @@ function BrowseFile() {
             </div>
           )}
 
+          {/* Keyed on the path: setBrowseFile can swap in a different file (an index tree
+              click, an attachment's "view file" button) without unmounting this view, and a
+              reused entry would carry the previous file's local state (editor, calendar
+              editedMeta, AI loading/error flags) over to the new one. */}
           {entry && (
-            <div className={flexPane ? 'flex-1 min-h-0 flex flex-col' : undefined}>
+            <div key={entry.path} className={flexPane ? 'flex-1 min-h-0 flex flex-col' : undefined}>
               {entry.isMarkdown ? (
                 <MarkdownEntry entry={entry} view="browser" onRename={handleRefresh} onDelete={handleRefresh} alwaysExpandedEditor={alwaysExpandedEditor} />
               ) : isImageFile(entry.name) ? (

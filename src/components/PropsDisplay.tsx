@@ -80,7 +80,9 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick, onP
     );
   });
 
-  const tagPills = [...tags].sort((a, b) => a.localeCompare(b)).map((tag) => (
+  // Deduped: front matter like `tags: [a, a]` is legal YAML, and a repeated tag would
+  // otherwise produce duplicate React keys.
+  const tagPills = [...new Set(tags)].sort((a, b) => a.localeCompare(b)).map((tag) => (
     <span
       key={tag}
       onClick={onTagClick}
