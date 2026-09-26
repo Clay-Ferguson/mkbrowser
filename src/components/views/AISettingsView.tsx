@@ -4,6 +4,7 @@ import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/re
 import { api } from '../../renderer/api';
 import { saveAiConfig } from '../../renderer/config';
 import { runOp } from '../../renderer/runOp';
+import { logger } from '../../shared/logUtil';
 import { useAS, useIsActiveView, getAiConfig } from '../../store';
 import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../shared/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
@@ -19,15 +20,6 @@ const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
 /** Model names are matched case-insensitively and ignoring surrounding whitespace. */
 const normalizeModelKey = (name: string) => name.trim().toLowerCase();
-
-/**
- * Formats an unknown thrown value for display. Also keeps ternaries out of
- * the component's catch blocks — the React Compiler bails out on value blocks
- * (conditional/logical expressions) inside a try/catch statement.
- */
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
 
 /** The saved prompt text for a persona: the built-in default, or the stored prompt ('' if missing). */
 function personaPrompt(name: string, prompts: AIRewritePromptDef[]): string {
@@ -179,9 +171,12 @@ function AISettingsView() {
   useEffect(() => {
     if (!isActive) return;
     let ignore = false;
-    void api.getAiUsage().then((data) => {
-      if (!ignore) setUsageData(data);
-    });
+    // Background refresh the user didn't explicitly ask for, so a failure is logged, not shown.
+    api.getAiUsage()
+      .then((data) => {
+        if (!ignore) setUsageData(data);
+      })
+      .catch((err: unknown) => logger.error('Failed to load AI usage stats:', err));
     // Returns the useEffect cleanup (an unsubscribe-style teardown): sets the ignore flag so the pending getAiUsage() promise can't set state after unmount/re-run.
     return () => { ignore = true; };
   }, [isActive]);
@@ -329,21 +324,15 @@ function AISettingsView() {
     saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: name });
   };
 
-  // Fire-and-forget: wired directly to the reset-confirmation dialog's
-  // `onConfirm` (a `() => void` prop). Uses the sync-signature + internal
-  // try/catch convention so a failed IPC reset is surfaced instead of becoming
-  // an unhandled rejection.
+  // Wired directly to the reset-confirmation dialog's `onConfirm` (a `() => void`
+  // prop); runOp reports a failed IPC reset through the app error dialog.
   const handleResetUsage = () => {
-    void (async () => {
-      try {
-        await api.resetAiUsage();
-        const fresh = await api.getAiUsage();
-        setUsageData(fresh);
-        setShowResetConfirm(false);
-      } catch (err) {
-        alert('Failed to reset usage: ' + errorMessage(err));
-      }
-    })();
+    runOp(async () => {
+      await api.resetAiUsage();
+      const fresh = await api.getAiUsage();
+      setUsageData(fresh);
+      setShowResetConfirm(false);
+    }, 'Failed to reset usage: ');
   };
 
   return (

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useAS } from '../src/store/core';
-import { clearCache, setItemEditing, syncDirectoryItems, upsertItems } from '../src/store/items';
+import { setItemEditing, syncDirectoryItems, upsertItems } from '../src/store/items';
 import { setBrowseFile, setCurrentPath, setCurrentView, toggleExpandedEditor } from '../src/store/view';
 
 /**
@@ -52,7 +52,7 @@ const browseState = () => {
 
 describe('expanded-editor routing', () => {
   beforeEach(() => {
-    clearCache();
+    useAS.setState({ items: new Map() });
     useAS.setState({ browseFileName: null, browseFileMode: 'browse', pendingScrollToFile: null });
     seed();
   });

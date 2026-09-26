@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../../renderer/api';
 import { useAS, setItemContent, isItemCacheValid, getItem } from '../../../store';
-import { applyGlobalHighlight, getGlobalHighlightText } from '../../../renderer/globalHighlight';
 import type { ContentLoaderState } from './types';
 
 interface UseContentLoaderOptions {
@@ -29,9 +28,6 @@ async function loadFileContent(
     const { content, mtime, size } = await api.readFileWithMtime(path);
     if (isIgnored()) return;
     setItemContent(path, content, mtime, size);
-    if (getGlobalHighlightText()) {
-      requestAnimationFrame(() => applyGlobalHighlight(getGlobalHighlightText()));
-    }
   } catch {
     // Stamp the error message with the last known mtime: it stays cache-valid
     // (no re-read loop) until the file's mtime actually changes.

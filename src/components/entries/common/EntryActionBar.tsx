@@ -16,8 +16,6 @@ interface EntryActionBarProps {
   isBookmarked: boolean;
   /** Whether delete is in progress */
   deleting: boolean;
-  /** Handler to start renaming */
-  onRenameClick: (e?: React.MouseEvent) => void;
   /** Handler to show delete confirmation */
   onDeleteClick: (e?: React.MouseEvent) => void;
   /** Move up in .INDEX.yaml (only provided in indexed mode; undefined hides the button) */

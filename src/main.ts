@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
 import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition } from './shared/shared';
+import { TEST_HOOKS_ARG } from './shared/shared';
 
 import { readDirectory } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
@@ -93,6 +94,9 @@ const createWindow = () => {
       // NPAPI/Flash plugins are gone — so this is limited to PDF display and is
       // compatible with the sandbox/contextIsolation settings above.
       plugins: true,
+      // Tells the preload to enable test-only renderer hooks (see ElectronAPI.testHooksEnabled).
+      // Never set in the packaged app.
+      additionalArguments: app.isPackaged ? [] : [TEST_HOOKS_ARG],
     },
   });
 

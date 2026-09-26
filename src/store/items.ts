@@ -272,7 +272,6 @@ export interface ItemsSlice {
   clearAllCutItems: () => void;
   renameItem: (oldPath: string, newPath: string, newName: string) => boolean;
   deleteItems: (paths: string[]) => void;
-  clearCache: () => void;
   setItemEditing: (path: string, editing: boolean, goToLine?: number) => void;
   startEditing: (path: string, goToLine?: number) => void;
   setItemReviewing: (path: string, reviewing: boolean, rewrittenContent?: string) => void;
@@ -802,13 +801,6 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
     },
 
     /**
-     * Clear all cached items from the store.
-     * Called after operations that modify the filesystem (delete, paste)
-     * to ensure stale items don't remain in memory.
-     */
-    clearCache: () => set({ items: new Map<string, ItemData>() }),
-
-    /**
      * Set the editing state of an item.
      *
      * This is also the single choke point for expanded-editor routing: with the
@@ -1009,10 +1001,6 @@ export function renameItem(oldPath: string, newPath: string, newName: string): b
 
 export function deleteItems(paths: string[]): void {
   getState().deleteItems(paths);
-}
-
-export function clearCache(): void {
-  getState().clearCache();
 }
 
 export function setItemEditing(path: string, editing: boolean, goToLine?: number): void {

@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useAS } from '../src/store/core';
 import type { FileEntry } from '../src/shared/shared';
 import {
-  clearCache,
   cutSingleItem,
   deleteItems,
   getCutItems,
@@ -45,7 +44,7 @@ function seedCutNote(createdTime = 1000): void {
 
 describe('items store — stale entry reconciliation', () => {
   beforeEach(() => {
-    clearCache();
+    useAS.setState({ items: new Map() });
   });
 
   describe('mergeItem: a different file at the same path', () => {
@@ -305,7 +304,7 @@ describe('renameItem / deleteItems — path-holding slices stay in sync', () => 
   }
 
   beforeEach(() => {
-    clearCache();
+    useAS.setState({ items: new Map() });
     useAS.setState({
       settings: { ...useAS.getState().settings, bookmarks: [] },
       calendarEvents: null,
@@ -497,7 +496,7 @@ describe('currentEntries — the folder listing stays in step with the items Map
   }
 
   beforeEach(() => {
-    clearCache();
+    useAS.setState({ items: new Map() });
     useAS.setState({ currentEntries: [], selectedLinkItems: [] });
   });
 
@@ -572,7 +571,7 @@ describe('currentEntries — the folder listing stays in step with the items Map
 
 describe('cutSingleItem — cutting one item from the index tree', () => {
   beforeEach(() => {
-    clearCache();
+    useAS.setState({ items: new Map() });
   });
 
   it('cuts an item that was never in the store', () => {
@@ -619,7 +618,7 @@ describe('cutSingleItem — cutting one item from the index tree', () => {
 
 describe('getCutPaths', () => {
   beforeEach(() => {
-    clearCache();
+    useAS.setState({ items: new Map() });
   });
 
   it('reports which items are cut, not merely that some are', () => {

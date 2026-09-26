@@ -191,7 +191,7 @@ function ThreadView() {
     const el = mainContainerRef.current;
     if (el) pinScrollToBottom(el);
     clearPendingThreadScrollToBottom();
-  }, [loaded, isActive, pendingScrollToBottom, mainContainerRef]);
+  }, [loaded, isActive, pendingScrollToBottom]);
 
   // Handle pending edit for thread view (e.g., after Reply creates a new
   // HUMAN.md). The load seeds the store with the entry before it sets
@@ -205,7 +205,7 @@ function ThreadView() {
     clearPendingEditFile();
     const el = mainContainerRef.current;
     if (el) pinScrollToBottom(el);
-  }, [loaded, isActive, pendingEditFile, pendingEditView, mainContainerRef]);
+  }, [loaded, isActive, pendingEditFile, pendingEditView]);
 
   // Navigate breadcrumb — switches to browser view at the given path
   const handleBreadcrumbNavigate = (path: string) => {

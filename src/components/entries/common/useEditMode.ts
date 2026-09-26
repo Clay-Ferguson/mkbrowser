@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { api, ipcErrorMessage } from '../../../renderer/api';
 import { useAS, getItem, setAppError, setItemContent, setItemEditing, startEditing, setItemEditContent, setItemReviewing } from '../../../store';
-import { applyGlobalHighlight, getGlobalHighlightText } from '../../../renderer/globalHighlight';
 import { removeTOC } from '../../../shared/tocUtil';
 import { getFileName } from '../../../renderer/pathUtil';
 import type { EditModeState } from './types';
@@ -42,9 +41,6 @@ async function writeFileAndExitEditMode(path: string, editContent: string): Prom
       // refresh wipe the item as "replaced" (isReplacedFile).
       setItemContent(path, result.content, result.mtime, result.size, result.createdTime);
       setItemEditing(path, false);
-      if (getGlobalHighlightText()) {
-        requestAnimationFrame(() => applyGlobalHighlight(getGlobalHighlightText()));
-      }
     } else {
       reportSaveFailure(path, result.error);
     }
@@ -160,9 +156,6 @@ export function useEditMode({ path }: UseEditModeOptions): EditModeState {
   const handleCancel = () => {
     setItemReviewing(path, false);
     setItemEditing(path, false);
-    if (getGlobalHighlightText()) {
-      requestAnimationFrame(() => applyGlobalHighlight(getGlobalHighlightText()));
-    }
   };
 
   // Stays async because the "Ask AI" button awaits it before continuing

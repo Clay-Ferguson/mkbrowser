@@ -27,10 +27,29 @@ function scheduleHighlight() {
   });
 }
 
+/** CodeMirror's DOM, which highlight passes skip: the editor opens its own search panel pre-set to the global text. */
+const EDITOR_SELECTOR = '.cm-editor';
+
+function isInsideEditor(node: Node): boolean {
+  const el = node instanceof Element ? node : node.parentElement;
+  return !!el?.closest(EDITOR_SELECTOR);
+}
+
+/**
+ * Observer callback. Mutations entirely inside a CodeMirror editor (every keystroke, and
+ * every scroll that renders new lines) are ignored, since passes skip editor text anyway;
+ * opening or closing an editor mutates its parent, which is outside, so that still counts.
+ */
+function onMutations(records: MutationRecord[]) {
+  if (records.some(r => !isInsideEditor(r.target))) scheduleHighlight();
+}
+
 /**
  * Sets the active global search text and manages the MutationObserver that keeps
  * highlights in sync as the DOM changes. Schedules an immediate highlight pass, then
- * re-highlights whenever the document body mutates (e.g. after React renders new entries).
+ * re-highlights whenever the document body mutates (e.g. after React renders new entries,
+ * loads file content, or opens/closes an editor) or the active view changes. This observer
+ * is the only mechanism that re-applies the highlight; no caller needs to trigger a pass.
  * Passing null (or an empty string) clears the CSS Custom Highlight and disconnects the observer.
  */
 export function setGlobalHighlightText(text: string | null) {
@@ -38,8 +57,13 @@ export function setGlobalHighlightText(text: string | null) {
 
   if (text) {
     if (!_observer) {
-      _observer = new MutationObserver(scheduleHighlight);
-      _observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      _observer = new MutationObserver(onMutations);
+      // `data-active-view` is watched because switching back to an already-mounted view
+      // only moves that attribute (App.tsx toggles `display`); no child nodes change.
+      _observer.observe(document.body, {
+        childList: true, subtree: true, characterData: true,
+        attributes: true, attributeFilter: ['data-active-view'],
+      });
     }
     scheduleHighlight();
   } else {
@@ -60,9 +84,9 @@ const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'INPUT', 'TEXTAREA']);
 /**
  * The subtree a highlight pass should scan. App.tsx keeps every visited view mounted and
  * merely toggles `display`, marking the visible one with `data-active-view`; scanning all of
- * document.body would therefore build ranges for text in views the user cannot see. App.tsx
- * re-runs the highlight pass whenever `currentView` changes, so scoping to the active view is
- * safe. Falls back to document.body before any view wrapper exists (initial load / error screen).
+ * document.body would therefore build ranges for text in views the user cannot see. The
+ * observer re-runs the highlight pass whenever that attribute moves, so scoping to the active
+ * view is safe. Falls back to document.body before any view wrapper exists (initial load / error screen).
  */
 function highlightRoot(): HTMLElement {
   return document.querySelector<HTMLElement>('[data-active-view]') ?? document.body;
@@ -71,11 +95,11 @@ function highlightRoot(): HTMLElement {
 /**
  * Walks every visible text node in the active view and registers CSS Custom Highlight
  * ranges for all case-insensitive matches of `searchText`. Replaces any previously
- * registered 'global-search' highlight. Script, style, input, and textarea nodes are
+ * registered 'global-search' highlight. Script, style, input, and textarea subtrees are
  * skipped so that highlight markers never appear inside editable or code-execution
- * contexts. Passing null or an empty string clears the highlight and returns immediately.
+ * contexts, and so are CodeMirror editors, which highlight matches with their own search. Passing null or an empty string clears the highlight and returns immediately.
  */
-export function applyGlobalHighlight(searchText: string | null): void {
+function applyGlobalHighlight(searchText: string | null): void {
   // logger.log('[globalHighlight] called, searchText:', searchText);
   // logger.log('[globalHighlight] CSS.highlights available:', typeof CSS !== 'undefined' && 'highlights' in CSS);
 
@@ -89,11 +113,15 @@ export function applyGlobalHighlight(searchText: string | null): void {
   // drift and land mid-character or past the end of the node.
   const pattern = new RegExp(escapeRegexLiteral(searchText), 'giu');
   let nodeCount = 0;
-  const walker = document.createTreeWalker(highlightRoot(), NodeFilter.SHOW_TEXT, {
+  // Elements are shown to the filter only so a skipped element can REJECT its whole subtree;
+  // every other element is SKIPped (descended into but never returned), so nextNode() yields
+  // only text nodes.
+  const walker = document.createTreeWalker(highlightRoot(), NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
-      const parent = node.parentElement;
-      if (!parent || SKIP_TAGS.has(parent.tagName)) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
+      if (node.nodeType !== Node.ELEMENT_NODE) return NodeFilter.FILTER_ACCEPT;
+      const el = node as Element;
+      if (SKIP_TAGS.has(el.tagName) || el.matches(EDITOR_SELECTOR)) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_SKIP;
     },
   });
 

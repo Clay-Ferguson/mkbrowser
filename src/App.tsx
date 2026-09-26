@@ -40,7 +40,6 @@ import { toCalendarEvents } from './shared/calendarUtil';
 import { loadConfig } from './renderer/config';
 import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
-import { applyGlobalHighlight, getGlobalHighlightText } from './renderer/globalHighlight';
 import { loadDirectoryContents } from './renderer/directoryLoader';
 import { buildEntryHeaderId } from './renderer/entryDom';
 import { BUTTON_CLASS_LG_BLUE } from './renderer/styles';
@@ -72,7 +71,6 @@ function isEntryRendered(path: string): boolean {
 
 function App() {
   const rootPath = useAS(s => s.rootPath);
-  const entries = useAS(s => s.currentEntries);
   const loading = useAS(s => s.entriesLoading);
   // The error message lives in the store (not local state) so shared file-operation
   // and drag-and-drop code can report a failure without an error callback
@@ -133,16 +131,6 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-font-size', settings.fontSize);
   }, [settings.fontSize]);
-
-  // Apply global text highlight after each navigation/load cycle. `entries` is a
-  // dep so a silent refresh (refreshDirectory → loadDirectoryContents with
-  // showLoading:false) reapplies the highlight after it swaps the rendered DOM —
-  // `loading` never toggles on that path, so it alone would miss those refreshes.
-  useEffect(() => {
-    const id = requestAnimationFrame(() => applyGlobalHighlight(getGlobalHighlightText()));
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): cancels the pending animation frame on unmount / before re-run.
-    return () => cancelAnimationFrame(id);
-  }, [currentPath, currentView, loading, entries]);
 
   // Close an unmodified editor when ESC is pressed anywhere in the app
   useEffect(() => {

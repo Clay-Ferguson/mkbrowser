@@ -46,7 +46,6 @@ function PDFEntry(props: PDFEntryProps) {
           path={entry.path}
           isBookmarked={isBookmarked}
           deleting={del.deleting}
-          onRenameClick={rename.handleRenameClick}
           onDeleteClick={del.handleDeleteClick}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}

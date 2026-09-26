@@ -147,6 +147,9 @@ export interface AppSettings {
   enableThesaurus: boolean;
 }
 
+/** Command-line switch main passes to the renderer (via `additionalArguments`) when unpackaged; see ElectronAPI.testHooksEnabled. */
+export const TEST_HOOKS_ARG = '--mkb-test-hooks';
+
 /** Supported AI providers. Single source of truth for both the {@link AIProvider}
  *  union type and any UI that lists providers (e.g. the model editor dropdown). */
 export const AI_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GOOGLE', 'LLAMACPP'] as const;
@@ -375,6 +378,12 @@ export interface ThesaurusLookup {
 export interface ElectronAPI {
   /** Platform path separator: '\\' on Windows, '/' elsewhere. */
   pathSep: string;
+  /**
+   * True when the app runs unpackaged (`npm start`, and the Playwright e2e tests, which launch
+   * `.vite/build/main.js` directly). Gates test-only hooks such as `window.__testStore` so they
+   * never ship in the packaged app.
+   */
+  testHooksEnabled: boolean;
   quit: () => Promise<void>;
   loadDictionary: () => Promise<{ affData: string; dicData: string }>;
   lookupThesaurus: (word: string) => Promise<ThesaurusLookup>;

@@ -2,16 +2,20 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { getSettings, setCalendarItemsFolder } from './store';
+import { getApi } from './renderer/api';
 import { logger } from './shared/logUtil';
 import './index.css';
 
 // Expose a small slice of the store to the window so E2E (Playwright) demos can
 // temporarily point the calendar-items folder at the demo folder and restore it
-// afterward. This only reads/writes the live store; it is otherwise inert.
-(window as unknown as { __testStore?: unknown }).__testStore = {
-  getSettings,
-  setCalendarItemsFolder,
-};
+// afterward. This only reads/writes the live store; it is otherwise inert. Only
+// attached when running unpackaged (dev and e2e), never in the shipped app.
+if (getApi()?.testHooksEnabled) {
+  (window as unknown as { __testStore?: unknown }).__testStore = {
+    getSettings,
+    setCalendarItemsFolder,
+  };
+}
 
 // Every render crash is logged here, whether an ErrorBoundary caught it (the
 // subtree shows an inline fallback) or not (React unmounts the whole root).

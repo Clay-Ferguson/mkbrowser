@@ -140,11 +140,6 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     exportFolder(currentPath, options, onSetLastExportFolder);
   };
 
-  // No longer used — kept for reference in case we return to prompting users for a file name during document mode editing
-  const _handleInsertFileAt_legacy = (insertIndex: number) => {
-    setOverlay({ kind: 'createFile', insertAt: insertIndex });
-  };
-
   const handleInsertFileAt = (insertIndex: number) => {
     const fileName = generateTimestampFileName();
     runOp(async () => {

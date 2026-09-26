@@ -267,7 +267,6 @@ function SearchDialog({ onSearch, onSave, onCancel, onDeleteSearchDefinition, in
                     if (matchType === 'literal') {
                       const cleanedQuery = searchQuery.replace(/[\r\n]+/g, ' ').trim();
                       globalHighlight.setGlobalHighlightText(cleanedQuery || null);
-                      requestAnimationFrame(() => globalHighlight.applyGlobalHighlight(cleanedQuery || null));
                     }
                     onCancel();
                   }}

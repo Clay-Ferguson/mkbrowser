@@ -299,6 +299,13 @@ html[data-font-size="xlarge"] {
   animation: editor-save-flash 1.1s ease-out forwards;
 }
 
+/* Green flash on an index-tree row whose script was just run (IndexTreeView applies it
+   inline while the row's run is in progress). */
+@keyframes scriptRunFlash {
+  0% { background-color: rgba(74, 222, 128, 0.45); }
+  100% { background-color: transparent; }
+}
+
 ::highlight(global-search) {
   background-color: yellow;
   color: black;

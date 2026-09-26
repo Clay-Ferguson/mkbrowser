@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useAS } from '../src/store/core';
-import { clearCache, setItemSelected, startEditing, syncDirectoryItems } from '../src/store/items';
+import { setItemSelected, startEditing, syncDirectoryItems } from '../src/store/items';
 import { openRootFolder, setCurrentPath, setCurrentView, setRootPath } from '../src/store/view';
 import { showCalendarForFolder } from '../src/store/calendar';
 import { revealInTree } from '../src/store/indexTree';
@@ -36,7 +36,7 @@ function countNotifications(fn: () => void): number {
 
 describe('atomic transitions', () => {
   beforeEach(() => {
-    clearCache();
+    useAS.setState({ items: new Map() });
     setRootPath(OLD_ROOT);
     setCurrentPath(OLD_ROOT);
     setCurrentView('settings');

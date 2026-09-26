@@ -165,6 +165,20 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   const { showToc, showPropsInEditor } = useAS(s => s.settings);
   const hasIndexFile = useAS(s => s.hasIndexFile);
+  const { aiEnabled, selectedPromptName, tagsVisible, setTagsVisible } = useAiConfig();
+
+  const [showCalendarDialog, setShowCalendarDialog] = useState(false);
+  // Front matter of the unsaved edit buffer, populated only by a calendar-dialog save during an
+  // edit (see the meta/propsDisplay block below). Cleared when edit mode ends, at which point the
+  // store's saved tags/props are authoritative again.
+  const [editedMeta, setEditedMeta] = useState<{ tags: string[]; props: Record<string, unknown> } | null>(null);
+  // Pending cursor offset to apply once the editor reflects a content change (see handleToggleShowProps)
+  const [pendingCursorPos, setPendingCursorPos] = useState<number | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [hasSelection, setHasSelection] = useState(false);
+  const [isReplyLoading, setIsReplyLoading] = useState(false);
+  const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
+  const editorRef = useRef<CodeMirrorEditorHandle>(null);
 
   // The two ways an edit session ends. Both drop editedMeta, so the next session starts out
   // showing the store's saved front matter rather than a leftover override (see below).
@@ -196,16 +210,38 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   });
   const { maximized, reviewing } = chrome;
 
-  const handleToggleExpanded = () => toggleItemExpanded(entry.path);
+  const {
+    showStreamingDialog,
+    handleStreamingDialogClose,
+    handleCancelStream,
+    runWithStreamingDialog,
+  } = useAiStreamingDialog({ onError: setAiErrorMessage });
 
-  const [showCalendarDialog, setShowCalendarDialog] = useState(false);
-  // Front matter of the unsaved edit buffer, populated only by a calendar-dialog save during an
-  // edit (see the meta/propsDisplay block below). Cleared when edit mode ends, at which point the
-  // store's saved tags/props are authoritative again.
-  const [editedMeta, setEditedMeta] = useState<{ tags: string[]; props: Record<string, unknown> } | null>(null);
-  // Pending cursor offset to apply once the editor reflects a content change (see handleToggleShowProps)
-  const [pendingCursorPos, setPendingCursorPos] = useState<number | null>(null);
-  const { aiEnabled, selectedPromptName, tagsVisible, setTagsVisible } = useAiConfig();
+  const { isRewriting, aiRewrite: handleAiRewrite } = useAiRewrite({
+    path: entry.path,
+    hasIndexFile,
+    editorRef,
+    editContent: edit.editContent,
+    onError: setAiErrorMessage,
+    runner: runWithStreamingDialog,
+  });
+
+  // Registers the editor handle so that external callers (e.g. global search jump-to-line) can
+  // reach the live CodeMirror instance. Registration happens in the onReady callback rather than
+  // an effect because effects can run before the imperative handle is attached on first mount.
+  // The effect below handles unregistration when editing ends, the path changes, or the component unmounts.
+  const handleEditorReady = (handle: CodeMirrorEditorHandle) => {
+    registerActiveMarkdownEditor(entry.path, handle);
+  };
+
+  useEffect(() => {
+    // Returns the useEffect cleanup (an unsubscribe-style teardown): unregisters this active Markdown editor when editing ends, the path changes, or on unmount.
+    return () => {
+      unregisterActiveMarkdownEditor(entry.path);
+    };
+  }, [edit.isEditing, entry.path]);
+
+  const handleToggleExpanded = () => toggleItemExpanded(entry.path);
 
   const handleToggleTagsVisible = () => {
     // saveAiConfig both persists and mirrors into the store (which the editor
@@ -231,34 +267,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
 
   const isHumanFile = aiEnabled && entry.name === HUMAN_FILENAME;
   const isAiFile = aiEnabled && entry.name === AI_FILENAME;
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [hasSelection, setHasSelection] = useState(false);
-  const editorRef = useRef<CodeMirrorEditorHandle>(null);
-
-  // Registers the editor handle so that external callers (e.g. global search jump-to-line) can
-  // reach the live CodeMirror instance. Registration happens in the onReady callback rather than
-  // an effect because effects can run before the imperative handle is attached on first mount.
-  // The effect below handles unregistration when editing ends, the path changes, or the component unmounts.
-  const handleEditorReady = (handle: CodeMirrorEditorHandle) => {
-    registerActiveMarkdownEditor(entry.path, handle);
-  };
-
-  useEffect(() => {
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): unregisters this active Markdown editor when editing ends, the path changes, or on unmount.
-    return () => {
-      unregisterActiveMarkdownEditor(entry.path);
-    };
-  }, [edit.isEditing, entry.path]);
-
-  const [isReplyLoading, setIsReplyLoading] = useState(false);
-  const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
-
-  const {
-    showStreamingDialog,
-    handleStreamingDialogClose,
-    handleCancelStream,
-    runWithStreamingDialog,
-  } = useAiStreamingDialog({ onError: setAiErrorMessage });
 
   // `endEdit` closes the edit session once the answer is in — see onAskAI for why
   // that can't happen before the request instead.
@@ -291,15 +299,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       }
     }).finally(() => setIsAiLoading(false));
   };
-
-  const { isRewriting, aiRewrite: handleAiRewrite } = useAiRewrite({
-    path: entry.path,
-    hasIndexFile,
-    editorRef,
-    editContent: edit.editContent,
-    onError: setAiErrorMessage,
-    runner: runWithStreamingDialog,
-  });
 
   const handleReply = () => {
     setIsReplyLoading(true);
@@ -394,7 +393,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         path={entry.path}
         isBookmarked={isBookmarked}
         deleting={del.deleting}
-        onRenameClick={rename.handleRenameClick}
         onDeleteClick={del.handleDeleteClick}
         onMoveUp={onMoveUp}
         onMoveDown={onMoveDown}
@@ -589,21 +587,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             </>
           ) : (
             <>
-              {(item?.tags?.length || item?.props && Object.keys(item.props).filter(k => k !== 'id').length > 0) && (
-                <PropsDisplay
-                  tags={item.tags ?? []}
-                  props={item.props}
-                  onTagClick={() => {
-                    void (async () => {
-                      await edit.handleEditClick();
-                      setTagsVisible(true);
-                    })();
-                  }}
-                  onPropClick={clickOnProp}
-                  onPropValueClick={clickOnPropValue}
-                  propValueTitle={propValueTitle}
-                />
-              )}
+              {propsDisplay}
               <ErrorBoundary label="markdown content" resetKeys={[content]}>
                 <MarkdownView
                   content={content || ''}
@@ -625,7 +609,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
               // here so the pills above the editor show the new dates right away.
               edit.setEditContent(newContent);
               setEditedMeta(parseFrontMatterMeta(newContent));
-              saveSettings();
             } else {
               void saveCalendarProps(entry.path, newContent);
             }

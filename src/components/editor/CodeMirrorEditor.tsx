@@ -81,6 +81,18 @@ function cancelPendingOnChange(d: OnChangeDebounceState): void {
   d.pendingDoc = null;
 }
 
+/** The editor's reconfigurable extension slots, one set per CodeMirrorEditor instance. */
+interface EditorCompartments {
+  fontSize: Compartment;
+  frontMatter: Compartment;
+  spellCheck: Compartment;
+  merge: Compartment;
+}
+
+function createCompartments(): EditorCompartments {
+  return { fontSize: new Compartment(), frontMatter: new Compartment(), spellCheck: new Compartment(), merge: new Compartment() };
+}
+
 /**
  * Ends AI-review mode: swaps the unified merge view out of `mergeCompartment` and brings the
  * document to `finalText` in a single transaction. Any pending debounced onChange is dropped —
@@ -341,11 +353,10 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const fontSizeCompartment = useRef(new Compartment());
-  const frontMatterCompartment = useRef(new Compartment());
+  // Lazy state initializer, so the compartments are created once per mount rather than on every
+  // render (as `useRef(new Compartment())` would); the object's identity never changes.
+  const [compartments] = useState(createCompartments);
   const prevShowPropsRef = useRef(showPropsInEditor);
-  const spellCheckCompartment = useRef(new Compartment());
-  const mergeCompartment = useRef(new Compartment());
   // True while the merge view is active in the editor. A ref (not state) because the once-created
   // updateListener and keymap handlers need the live value; the buttons and border render from
   // the `reviewing` prop-derived flag below instead.
@@ -495,7 +506,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   // Build the EditorView exactly once, on mount, from the mountConfigRef snapshot (see its
   // comment above for why first-render values are correct here). Rebuilding the whole view
   // on a prop change would needlessly discard undo history, cursor, scroll position, and
-  // the async-loaded spell checker.
+  // the async-loaded spell checker. (`compartments` is a dependency only because it is state;
+  // its identity never changes, so this still runs once.)
   useEffect(() => {
     if (!editorRef.current) return;
     const cfg = mountConfigRef.current;
@@ -539,12 +551,12 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       oneDarkTheme,
       syntaxHighlighting(cfg.language === 'markdown' ? markdownHighlightStyle : oneDarkHighlightStyle),
       cursorOverrideTheme,
-      fontSizeCompartment.current.of(createFontSizeTheme(cfg.fontSize)),
-      spellCheckCompartment.current.of([]),
+      compartments.fontSize.of(createFontSizeTheme(cfg.fontSize)),
+      compartments.spellCheck.of([]),
       spellCheckTheme,
       // AI-review merge view, swapped in/out by the review effect below. Empty when not reviewing.
-      mergeCompartment.current.of([]),
-      frontMatterCompartment.current.of(
+      compartments.merge.of([]),
+      compartments.frontMatter.of(
         cfg.showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
       ),
       hashtagPlugin,
@@ -730,7 +742,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           typoRef.current = typo;
           // Add the spell check plugin
           viewRef.current.dispatch({
-            effects: spellCheckCompartment.current.reconfigure(createSpellCheckPlugin(typoRef)),
+            effects: compartments.spellCheck.reconfigure(createSpellCheckPlugin(typoRef)),
           });
         }
       })
@@ -738,7 +750,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
 
     // Returns the useEffect cleanup (unsubscribe) defined above.
     return cleanup;
-  }, []);
+  }, [compartments]);
 
   // Cap the editor at ~60% of the BrowseView scroll area (`<main>`, the app's one scroll
   // container — same discovery pattern as renderer/entryDom.ts) so CodeMirror's own
@@ -813,7 +825,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       cancelPendingOnChange(onChangeDebounceRef.current);
       view.dispatch({
         ...(original === reviewText ? {} : { changes: minimalDiff(original, reviewText) }),
-        effects: mergeCompartment.current.reconfigure(
+        effects: compartments.merge.reconfigure(
           unifiedMergeView({
             original,
             mergeControls: true,
@@ -824,11 +836,11 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       });
       requestAnimationFrame(() => scrollFirstChunkIntoView(viewRef.current));
     } else if (reviewingRef.current) {
-      exitReviewToText(view, mergeCompartment.current, onChangeDebounceRef.current, reviewOriginalRef.current ?? view.state.doc.toString());
+      exitReviewToText(view, compartments.merge, onChangeDebounceRef.current, reviewOriginalRef.current ?? view.state.doc.toString());
       reviewingRef.current = false;
       reviewOriginalRef.current = null;
     }
-  }, [reviewText]);
+  }, [reviewText, compartments]);
 
   // Apply a requested cursor position. Declared after the value-sync effect so that, when a
   // content change and a position request land in the same commit, the doc is already updated
@@ -848,9 +860,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     if (!view) return;
 
     view.dispatch({
-      effects: fontSizeCompartment.current.reconfigure(createFontSizeTheme(settings.fontSize)),
+      effects: compartments.fontSize.reconfigure(createFontSizeTheme(settings.fontSize)),
     });
-  }, [settings.fontSize]);
+  }, [settings.fontSize, compartments]);
 
   // Toggle front matter visibility when showPropsInEditor changes
   useEffect(() => {
@@ -864,13 +876,13 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
 
     view.dispatch({
       effects: [
-        frontMatterCompartment.current.reconfigure(
+        compartments.frontMatter.reconfigure(
           showPropsInEditor ? [frontMatterPlugin, frontMatterTheme, hrLinePlugin] : [frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, hrLinePlugin, frontMatterTheme]
         ),
         ...(turningOn ? [EditorView.scrollIntoView(0, { y: 'start' })] : []),
       ],
     });
-  }, [showPropsInEditor]);
+  }, [showPropsInEditor, compartments]);
 
   const handleReviewAcceptAll = () => {
     const view = viewRef.current;
@@ -878,7 +890,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     // Accepting every unresolved chunk keeps the proposal text, so the current editor doc
     // (the proposal, minus any chunks already rejected individually) IS the final result.
     const finalText = view.state.doc.toString();
-    exitReviewToText(view, mergeCompartment.current, onChangeDebounceRef.current, finalText);
+    exitReviewToText(view, compartments.merge, onChangeDebounceRef.current, finalText);
     reviewingRef.current = false;
     reviewOriginalRef.current = null;
     onReviewComplete?.(finalText);
@@ -891,7 +903,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     // view's original document, so getOriginalDoc() is exactly "original + accepted so far" —
     // the result of rejecting the rest. Read it before the merge field is torn down.
     const finalText = getOriginalDoc(view.state).toString();
-    exitReviewToText(view, mergeCompartment.current, onChangeDebounceRef.current, finalText);
+    exitReviewToText(view, compartments.merge, onChangeDebounceRef.current, finalText);
     reviewingRef.current = false;
     reviewOriginalRef.current = null;
     onReviewComplete?.(finalText);
@@ -900,7 +912,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   const handleReviewCancel = () => {
     const view = viewRef.current;
     if (!view || !reviewingRef.current) return;
-    exitReviewToText(view, mergeCompartment.current, onChangeDebounceRef.current, reviewOriginalRef.current ?? view.state.doc.toString());
+    exitReviewToText(view, compartments.merge, onChangeDebounceRef.current, reviewOriginalRef.current ?? view.state.doc.toString());
     reviewingRef.current = false;
     reviewOriginalRef.current = null;
     onReviewCancel?.();

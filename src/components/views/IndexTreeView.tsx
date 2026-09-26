@@ -980,7 +980,6 @@ function IndexTreeView() {
   const rows = flattenVisible(treeRoot.children, cutPaths, settings.foldersOnTop);
   return (
     <div data-testid="file-explorer-tree" className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-900`}>
-      <style>{`@keyframes scriptRunFlash { 0% { background-color: rgba(74,222,128,0.45); } 100% { background-color: transparent; } }`}</style>
       <div className="flex items-center justify-between gap-1 px-2 py-1 border-b border-slate-700 shrink-0">
         <button
           ref={bookmarksButtonRef}
