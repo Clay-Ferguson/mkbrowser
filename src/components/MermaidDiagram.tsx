@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import mermaid from 'mermaid';
 
@@ -72,11 +72,8 @@ export function MermaidDiagram({ code }: { code: string }) {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [renderedCode, setRenderedCode] = useState(code);
-  const idRef = useRef<number | null>(null);
-
-  if (idRef.current === null) {
-    idRef.current = nextMermaidId();
-  }
+  // Lazy state initializer (not a ref written during render): one id per mount.
+  const [diagramId] = useState(nextMermaidId);
 
   // Reset to the loading state when the diagram source changes. Doing this during
   // render (rather than synchronously inside the effect below) avoids a cascading
@@ -90,7 +87,6 @@ export function MermaidDiagram({ code }: { code: string }) {
 
   useEffect(() => {
     let isMounted = true;
-    const diagramId = idRef.current;
 
     queueMermaidRender(async () => {
       // Superseded (code changed / unmounted) while waiting in the queue: skip the render
@@ -131,7 +127,7 @@ export function MermaidDiagram({ code }: { code: string }) {
     return () => {
       isMounted = false;
     };
-  }, [code]);
+  }, [code, diagramId]);
 
   if (error) {
     return (

@@ -106,6 +106,12 @@ function DraftTextField({ value, onCommit, multiline = false, placeholder, rows,
     if (draft !== value) onCommit(draft);
   };
 
+  // The render-time resync above discards the draft when the store value changes externally;
+  // drop the pending edit with it, or the unmount flush would write the discarded draft back.
+  useEffect(() => {
+    pendingRef.current = null;
+  }, [value]);
+
   // Flush an uncommitted edit if the view unmounts while the field still has focus.
   useEffect(() => () => {
     const pending = pendingRef.current;
