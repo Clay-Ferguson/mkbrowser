@@ -1,4 +1,5 @@
-import { getSettings, setSettings, setSearchOutcome, type AppSettings, type SearchDefinition } from '../store';
+import { getSettings, setSettings, setSearchOutcome, setCurrentView, type AppSettings, type SearchDefinition } from '../store';
+import { runOp } from './runOp';
 import { api, ipcErrorMessage } from './api';
 import { logger } from '../shared/logUtil';
 import type { SearchOutcome } from '../shared/shared';
@@ -68,6 +69,18 @@ export async function executeSearch(folder: string, definition: SearchDefinition
   if (outcome.cancelled || searchId !== latestSearchId) return false;
   setSearchOutcome(folder, definition, outcome);
   return true;
+}
+
+/**
+ * Fire-and-forget {@link executeSearch} for a user action (the search dialog,
+ * a saved search in the Search menu): shows the Search Results tab once the
+ * results are published, and reports a failure through the app-wide error
+ * dialog.
+ */
+export function runSearch(folder: string, definition: SearchDefinition): void {
+  runOp(async () => {
+    if (await executeSearch(folder, definition)) setCurrentView('search-results');
+  }, 'Search failed: ');
 }
 
 /**

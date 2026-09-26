@@ -1,18 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useShallow } from 'zustand/react/shallow';
-import {
-  MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
-  ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
-  FolderPlusIcon, DocumentPlusIcon, CalendarDaysIcon,
-} from '@heroicons/react/24/outline';
 import { runOp } from '../../renderer/runOp';
 import { api } from '../../renderer/api';
-import IndexInsertBar from '../IndexInsertBar';
-import type { FileEntry } from '../../global';
-import ToolsPopupMenu from '../menus/ToolsPopupMenu';
-import EditPopupMenu from '../menus/EditPopupMenu';
-import SearchPopupMenu from '../menus/SearchPopupMenu';
-import SortPopupMenu from '../menus/SortPopupMenu';
 import CreateFileDialog from '../dialogs/CreateFileDialog';
 import CreateFolderDialog from '../dialogs/CreateFolderDialog';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
@@ -21,111 +9,31 @@ import ReplaceDialog from '../dialogs/ReplaceDialog';
 import ExportDialog from '../dialogs/ExportDialog';
 import type { ExportOptions } from '../dialogs/ExportDialog';
 import AlertDialog from '../dialogs/AlertDialog';
-import PathBreadcrumb from '../PathBreadcrumb';
-import BrowseEntryRow from './BrowseEntryRow';
+import BrowseToolbar from './BrowseToolbar';
+import BrowseEntryList from './BrowseEntryList';
 import {
-  clearAllSelections,
-  selectItemsByPaths,
-  expandAllItems,
-  collapseAllItems,
-  clearAllCutItems,
   cutSelectedItems,
-  setItemEditing,
-  setItemExpanded,
-  setCurrentView,
-  showCalendarForFolder,
-  setCalendarEvents,
   setCurrentPath,
-  navigateToBrowserPath,
-  clearPendingEditFile,
-  setPendingEditFile,
-  clearPendingExpandFile,
-  setPendingScrollToFile,
-  setPendingExpandFile,
-  setSortOrder,
-  setBrowserScrollPosition,
-  getBrowserScrollPosition,
-  setFolderAnalysis,
-  setFolderGraph,
   setHasIndexFile,
-  clearPendingScrollToHeadingSlug,
-  useExpansionCounts,
   setIndexYaml,
-  setSelectedLinkItems,
-  getCutPaths,
   useAS,
-  type ItemData,
   type SearchDefinition,
-  setAppError,
 } from '../../store';
-import { scrollElementIntoView } from '../../renderer/entryDom';
-import { usePendingItemScroll } from './usePendingItemScroll';
-import { isImageFile, sortEntries } from '../../shared/fileTypes';
-import { BUTTON_CLASS_BAR_BLUE, BUTTON_CLASS_BAR_RED, BUTTON_CLASS_TB_AMBER, BUTTON_CLASS_TB_BLUE, BUTTON_CLASS_TB_NORMAL, getContentWidthClasses } from '../../renderer/styles';
+import { getContentWidthClasses } from '../../renderer/styles';
 import { generateTimestampFileName } from '../../shared/timeUtil';
-import { hasHumanMd } from '../../shared/ai/aiPatterns';
-import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, executeSearch } from '../../renderer/searchUtil';
-import { buildReplaceResultMessage } from '../../shared/searchHelpers';
-import { saveSettings } from '../../renderer/config';
-import { refreshDirectory } from '../../renderer/directoryLoader';
-import { pasteIntoFolder, ensureAttachFolder, createAttachmentFileOp, deleteSelected, splitSelectedFile, joinSelectedFiles, createFileOp, createFolderOp, pasteFromClipboardOp, runOcr } from '../../renderer/fileOpsUtil';
-import { getFileName, getParentPath, isSamePath, joinPath } from '../../renderer/pathUtil';
-import { affectsBrowseListing, canDropAsAttachment, dropAsAttachment } from '../../renderer/dragAndDrop';
-import { toCalendarEvents } from '../../shared/calendarUtil';
-import { ATTACH_SUFFIX } from '../../shared/specialFiles';
+import { saveSearchDefinitionToConfig, deleteSearchDefinitionFromConfig, runSearch } from '../../renderer/searchUtil';
+import { pasteIntoFolder, deleteSelected, createFileOp, createFolderOp } from '../../renderer/fileOpsUtil';
+import { getFileName, getParentPath, isSamePath } from '../../renderer/pathUtil';
+import { exportFolder, replaceInFolder } from '../../renderer/folderToolsOp';
+import { reconcileAndRefresh, moveInIndex, moveToEdgeInIndex } from '../../renderer/indexOrderOp';
+import { pasteCutAsAttachment, pasteClipboardAsAttachment, attachFromFile, createAttachment } from '../../renderer/attachmentOp';
+import { NO_OVERLAY, type BrowseOverlay } from './browseOverlay';
+import { getSelectedItems, getSortedEntries } from './browseListing';
+import { usePendingBrowseIntents } from './usePendingBrowseIntents';
 
-
-/**
- * Every selection/cut flag BrowseView renders, in a single pass over the item
- * map. Primitives only, selected with `useShallow`, so a store write that
- * doesn't change any of them — e.g. every debounced keystroke in an inline
- * editor, which builds a new Map — doesn't re-render the view. Handlers that
- * need the selected items themselves read them at call time with
- * {@link getSelectedItems}.
- *
- * Deliberately reports nothing about edit state: the map is global and holds
- * items from every folder visited this session, so a "something is editing"
- * flag derived here would stay true after navigating away from the file being
- * edited. Nothing in this view is edit-driven any more — a maximized editor
- * lives only in BrowseFile — so don't add one back.
- */
-function summarizeSelection(items: Map<string, ItemData>) {
-  let selectedCount = 0;
-  let selectedFileCount = 0;
-  let hasSelectedFolders = false;
-  let hasCutItems = false;
-
-  for (const item of items.values()) {
-    if (item.isSelected) {
-      selectedCount++;
-      if (item.isDirectory) hasSelectedFolders = true;
-      else selectedFileCount++;
-    }
-    if (item.isCut) hasCutItems = true;
-  }
-
-  return { selectedCount, selectedFileCount, hasSelectedFolders, hasCutItems };
-}
-
-/** The selected items, in the map's insertion order. For call-time use in handlers. */
-function getSelectedItems(items: Map<string, ItemData>): ItemData[] {
-  return Array.from(items.values()).filter((item) => item.isSelected);
-}
-
-/**
- * The store's modified/created times for each listing entry, flattened as
- * `[modified0, created0, modified1, created1, …]` (falling back to the entry's
- * own times when the store has no item). A flat array of numbers so a
- * `useShallow` selector over it stays stable across writes that don't touch
- * any time — a saved file updates its item's times before the listing reloads.
- */
-function listingTimes(items: Map<string, ItemData>, entries: FileEntry[]): number[] {
-  const times: number[] = [];
-  for (const entry of entries) {
-    const item = items.get(entry.path);
-    times.push(item?.modifiedTime ?? entry.modifiedTime, item?.createdTime ?? entry.createdTime);
-  }
-  return times;
+/** Derives a default export file name from the current folder name. */
+function generateExportFileName(currentPath: string): string {
+  return `${getFileName(currentPath)}-export.md`;
 }
 
 interface BrowseViewProps {
@@ -134,42 +42,38 @@ interface BrowseViewProps {
 }
 
 /**
- * The primary file-browser view. Renders the current folder's entries as a
- * vertical list of typed entry components (markdown, image, text, folder, etc.)
- * and provides the full toolbar: search, sort, create, cut/paste, export, OCR,
- * AI chat, calendar, and folder graph/analysis. Scroll position is saved per
- * folder and restored on navigation. In index-ordered (document) mode the sort
- * menu is hidden and inline IndexInsertBars replace the create buttons.
+ * The primary file-browser view: BrowseToolbar above BrowseEntryList, the
+ * current folder's entries rendered as typed entry components (markdown,
+ * image, text, folder, etc.). This component owns what the two share — the
+ * dialogs (one {@link BrowseOverlay} at a time), the row and dialog handlers,
+ * the index-yaml bookkeeping for the current folder, and the scroll container
+ * whose per-folder position and pending intents usePendingBrowseIntents
+ * manages. In index-ordered (document) mode the sort menu is hidden and inline
+ * IndexInsertBars replace the create buttons.
  */
 function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps) {
-  const rootPath = useAS(s => s.rootPath);
-  const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
-  const [showCreateFolderDialog, setShowCreateFolderDialog] = useState<boolean>(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
-  const [showSearchDialog, setShowSearchDialog] = useState<boolean>(false);
-  const [showReplaceDialog, setShowReplaceDialog] = useState<boolean>(false);
+  const [overlay, setOverlay] = useState<BrowseOverlay>(NO_OVERLAY);
+  // Deliberately not part of `overlay`: it is set when an async replace
+  // finishes, and by then the user may have opened another dialog that this
+  // would otherwise clobber (losing whatever they had typed into it).
   const [replaceResultMessage, setReplaceResultMessage] = useState<string | null>(null);
-  const [searchDialogDefinition, setSearchDialogDefinition] = useState<SearchDefinition | undefined>(undefined);
-  const [showExportDialog, setShowExportDialog] = useState<boolean>(false);
-  const [showToolsMenu, setShowToolsMenu] = useState<boolean>(false);
-  const [showEditMenu, setShowEditMenu] = useState<boolean>(false);
-  const [showSearchMenu, setShowSearchMenu] = useState<boolean>(false);
-  const [showSortMenu, setShowSortMenu] = useState<boolean>(false);
-  const [createFileDefaultName, setCreateFileDefaultName] = useState<string>('');
-  const [createFolderDefaultName, setCreateFolderDefaultName] = useState<string>('');
-  const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null);
-  const [showCutOrphanAttachConfirm, setShowCutOrphanAttachConfirm] = useState<boolean>(false);
+
+  // Every close is conditional on the overlay still being the one that asked:
+  // async ops close their dialog only once they finish, and must not close a
+  // different one opened meanwhile (or, for the insert bars, one that was
+  // never theirs).
+  const closeOverlay = (kind: Exclude<BrowseOverlay['kind'], 'none'>) => {
+    setOverlay((o) => (o.kind === kind ? NO_OVERLAY : o));
+  };
 
   const hasIndexFile = useAS(s => s.hasIndexFile);
-
-  // Deliberately no `useAS(s => s.items)`: the Map is replaced on every items
-  // write (each debounced keystroke in an inline editor), and subscribing to it
-  // re-rendered the whole listing. Render reads narrow derived values below;
-  // handlers read `useAS.getState().items` at call time.
-  const currentView = useAS(s => s.currentView);
   const currentPath = useAS(s => s.currentPath);
   const entries = useAS(s => s.currentEntries);
-  const loading = useAS(s => s.entriesLoading);
+  const contentWidth = useAS(s => s.settings.contentWidth);
+  const searchDefinitions = useAS(s => s.settings.searchDefinitions);
+
+  const mainContainerRef = useRef<HTMLElement | null>(null);
+  const handleMainScroll = usePendingBrowseIntents(mainContainerRef);
 
   // Detect whether the current folder uses index ordering, and load the yaml into the store
   useEffect(() => {
@@ -206,251 +110,16 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     if (!currentPath) return;
     void api.reconcileIndexedFiles(currentPath, false);
   }, [currentPath]);
-  const pendingScrollToFile = useAS(s => s.pendingScrollToFile);
-  const pendingScrollToHeadingSlug = useAS(s => s.pendingScrollToHeadingSlug);
-  const pendingEditFile = useAS(s => s.pendingEditFile);
-  const pendingEditView = useAS(s => s.pendingEditView);
-  const pendingExpandFile = useAS(s => s.pendingExpandFile);
-  const settings = useAS(s => s.settings);
-  const expansionCounts = useExpansionCounts();
 
-  const showExpandAll = expansionCounts.totalCount > 0 && expansionCounts.expandedCount < expansionCounts.totalCount;
-  const showCollapseAll = expansionCounts.totalCount > 0 && expansionCounts.collapsedCount < expansionCounts.totalCount;
-
-  const cutPaths = useAS(s => getCutPaths(s.items));
-  const times = useAS(useShallow(s => listingTimes(s.items, entries)));
-  const { selectedCount, selectedFileCount, hasSelectedFolders, hasCutItems } =
-    useAS(useShallow(s => summarizeSelection(s.items)));
-  const hasSelectedItems = selectedCount > 0;
-
-  const entriesWithCurrentTimes = entries.flatMap((entry, i) => {
-    if (cutPaths.has(entry.path)) return [];
-    const modifiedTime = times[2 * i] ?? entry.modifiedTime;
-    const createdTime = times[2 * i + 1] ?? entry.createdTime;
-    if (modifiedTime !== entry.modifiedTime || createdTime !== entry.createdTime) {
-      return [{ ...entry, modifiedTime, createdTime }];
-    }
-    return [entry];
-  });
-  const sortedEntries = hasIndexFile
-    ? [...entriesWithCurrentTimes].sort((a, b) => {
-        const aOrder = a.indexOrder ?? Infinity;
-        const bOrder = b.indexOrder ?? Infinity;
-        if (aOrder !== bOrder) return aOrder - bOrder;
-        return a.name.localeCompare(b.name);
-      })
-    : sortEntries(entriesWithCurrentTimes, settings.sortOrder, settings.foldersOnTop);
-
-  // This view renders a folder listing and nothing else. Expanded ("maximized")
-  // editing used to live here too, as a class chain that turned this same
-  // container into a nested flex column around the one entry being edited —
-  // a dual-purpose <div> whose styling meant two different things. It is now
-  // BrowseFile's job exclusively: starting an edit with the expandedEditor
-  // preference on enters single-file mode (see store/expandedEdit.ts), which
-  // swaps this component out entirely. Inline editing here is unchanged.
-
-  const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
-
-  const previousPathRef = useRef<string | null>(null);
-  const mainContainerRef = useRef<HTMLElement | null>(null);
-  const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const toolsButtonRef = useRef<HTMLButtonElement>(null);
-  const editButtonRef = useRef<HTMLButtonElement>(null);
-  const searchButtonRef = useRef<HTMLButtonElement>(null);
-  const sortButtonRef = useRef<HTMLButtonElement>(null);
-
-  // Consumes pendingScrollToFile before the browser paints the commit that
-  // renders the target entry, so the listing never appears at the wrong scroll
-  // offset first. Everything else that has to wait for the DOM (the heading
-  // scroll, the per-folder position restore, pending edit/expand) stays in the
-  // passive effect below, where a frame of delay is invisible anyway.
-  usePendingItemScroll();
-
-  // Restore scroll position on folder navigation, and handle the remaining
-  // pending requests once the directory has loaded
-  useEffect(() => {
-    if (loading) return;
-
-    // Skip browser scroll handling when not in browser view — ThreadView
-    // manages its own scrolling and we don't want to interfere.
-    if (currentView !== 'browser') {
-      // Keep the tracked folder in sync so returning to this tab isn't mistaken
-      // for a folder navigation (which would save a scrollTop belonging to a
-      // listing that is no longer rendered). Deliberately leaves a null ref
-      // null: this component can mount while another tab is active, and that
-      // mount still owes a scroll restore — see isFirstMount below.
-      if (previousPathRef.current !== null) previousPathRef.current = currentPath;
-      return;
-    }
-
-    // Detect folder navigation within the browser tab. BrowseView stays
-    // mounted across tab switches (visibility is toggled via CSS), so its
-    // scroll position is preserved natively when switching tabs — we only
-    // need to save/restore per folder when navigating between folders.
-    const isNewFolder = previousPathRef.current !== null && previousPathRef.current !== currentPath;
-
-    // A fresh mount also has to restore, because this component really does get
-    // unmounted and remounted: single-file mode (browsing one file, and
-    // expanded editing) swaps it out for BrowseFile rather than hiding it. The
-    // position was last written by the debounced scroll save, so it comes back
-    // accurate to within 150ms. At app startup nothing is saved yet and the
-    // restore is a harmless scrollTo(0).
-    const isFirstMount = previousPathRef.current === null;
-
-    // Save scroll position for the previous folder before switching
-    if (isNewFolder && previousPathRef.current && mainContainerRef.current) {
-      setBrowserScrollPosition(previousPathRef.current, mainContainerRef.current.scrollTop);
-    }
-
-    previousPathRef.current = currentPath;
-
-    // All timers are cleared on re-run, so a superseded run's timer can't fire
-    // with values the user has since navigated away from. Each pending flag is
-    // cleared only by the timer that consumes it, so when a flag-clear re-runs
-    // this effect and the cleanup cancels a sibling timer, that sibling's flag
-    // is still set and the next run reschedules it — nothing is lost.
-    let editTimer: ReturnType<typeof setTimeout> | undefined;
-
-    // Short timeout just for DOM to settle after React render
-    const settleTimer = setTimeout(() => {
-      // Nothing here consumes pendingScrollToFile: that request is handled
-      // pre-paint by usePendingItemScroll (a layout effect), which is what
-      // keeps the listing from ever painting at the wrong offset. It is still
-      // read here as a gate, because both branches below would fight a scroll
-      // that has not landed yet — and consuming it re-runs this effect, so
-      // neither branch is missed.
-      if (!pendingScrollToFile) {
-        if (pendingScrollToHeadingSlug) {
-          // Set alongside pendingScrollToFile; reached once that file scroll has
-          // succeeded and consumed its flag. Fire-and-forget: the scroller
-          // itself polls for the heading to render (no fixed delay) and keeps it
-          // centered while late-loading content reflows the page, self-cancelling
-          // on user input / element removal / timeout — so it deliberately isn't
-          // tied to this effect's cleanup, and the flag is consumed immediately.
-          scrollElementIntoView(pendingScrollToHeadingSlug, true);
-          clearPendingScrollToHeadingSlug();
-        } else if (isNewFolder || isFirstMount) {
-          // Restore the saved scroll position for the folder we navigated to (or
-          // the one we were already in, when remounting).
-          const savedPosition = getBrowserScrollPosition(currentPath);
-          const mainContainer = mainContainerRef.current;
-          if (mainContainer) {
-            mainContainer.scrollTo({ top: savedPosition, behavior: 'instant' });
-          }
-        }
-      }
-
-      // Handle pending edit (e.g., from search results edit button, or a "New
-      // File" from the index tree). The item only enters the store once the load
-      // for its folder has finished, and this effect can fire before that when
-      // the request came with a navigation to a *different* folder — so wait for
-      // the item rather than consuming the request against a missing one (which
-      // would silently drop the edit). Once the pending file's folder is one this
-      // listing doesn't render it can never arrive, so drop it then — a test of
-      // affectsBrowseListing rather than folder equality, because a newly created
-      // attachment lives in a .attach folder below currentPath yet is rendered as
-      // a row here.
-      if (pendingEditFile && pendingEditView === 'browser') {
-        const editFile = pendingEditFile;
-        if (useAS.getState().items.has(editFile)) {
-          editTimer = setTimeout(() => {
-            setItemExpanded(editFile, true);
-            setItemEditing(editFile, true);
-            clearPendingEditFile();
-          }, 100);
-        } else if (!affectsBrowseListing(getParentPath(editFile), currentPath)) {
-          clearPendingEditFile();
-        }
-      }
-
-      // Handle pending expand (e.g., a file pasted from the clipboard). The item
-      // only enters the store once the refresh that created it has loaded, so —
-      // like the pending scroll above — consume the request only when it's there,
-      // and let a later run of this effect handle it otherwise.
-      if (pendingExpandFile && useAS.getState().items.has(pendingExpandFile)) {
-        setItemExpanded(pendingExpandFile, true);
-        clearPendingExpandFile();
-      }
-    }, 100);
-
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending settle/edit timeouts on unmount / before re-run.
-    return () => {
-      clearTimeout(settleTimer);
-      if (editTimer !== undefined) clearTimeout(editTimer);
-    };
-  }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, pendingExpandFile, currentPath, currentView]);
-
-  /** Derives a default export file name from the current folder name. */
-  const generateExportFileName = (currentPath: string | null): string => {
-    if (!currentPath) return 'export.md';
-    const folderName = getFileName(currentPath);
-    return `${folderName}-export.md`;
-  };
-
-
-  // No expanded-editing scroll bookkeeping lives here any more. Entering a
-  // maximized edit used to shrink this listing to a single row in place, which
-  // destroyed the scroll position and needed a save/restore pair to repair.
-  // Now it swaps the whole component out for BrowseFile, and the position is
-  // restored on remount by the effect above like any other navigation.
-
-  // Handle scroll events on the main container (debounced save)
-  const handleMainScroll = (e: React.UIEvent<HTMLElement>) => {
-    const scrollTop = e.currentTarget.scrollTop;
-    if (scrollSaveTimerRef.current) {
-      clearTimeout(scrollSaveTimerRef.current);
-    }
-    scrollSaveTimerRef.current = setTimeout(() => {
-      if (currentPath) {
-        setBrowserScrollPosition(currentPath, scrollTop);
-      }
-    }, 150);
-  };
-
-  // Clear any pending debounced save on unmount (full app teardown / closing
-  // the folder). BrowseView no longer unmounts on tab switches, so there is no
-  // view-switch scroll position to flush here.
-  useEffect(() => {
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending debounced scroll-save timeout on unmount.
-    return () => {
-      if (scrollSaveTimerRef.current) {
-        clearTimeout(scrollSaveTimerRef.current);
-      }
-    };
-  }, []);
-
-  // The reconcile-then-refresh handlers below are fire-and-forget (bound to a
-  // button click and passed to entry onRename/onDelete props, all `() => void`),
-  // so they use the sync-signature convention and report failures through
-  // setAppError via runOp rather than leaking an unhandled rejection.
-  const handleRefresh = () => {
-    runOp(async () => {
-      if (currentPath && hasIndexFile) {
-        await api.reconcileIndexedFiles(currentPath, false);
-      }
-      refreshDirectory();
-    }, 'Failed to refresh folder: ');
-  };
-
-  // Rename/delete completion needs the identical reconcile-then-refresh; keep the
-  // names for call-site readability.
-  const handleEntryRename = handleRefresh;
-  const handleEntryDelete = handleRefresh;
+  // Also the completion step of an entry's rename or delete.
+  const handleRefresh = () => reconcileAndRefresh(currentPath, hasIndexFile);
 
   const handleMoveEntry = (name: string, direction: 'up' | 'down') => {
-    if (!currentPath) return;
-    runOp(async () => {
-      await api.moveInIndexYaml(currentPath, name, direction);
-      refreshDirectory();
-    }, 'Failed to move item: ');
+    if (currentPath) moveInIndex(currentPath, name, direction);
   };
 
   const handleMoveEntryToEdge = (name: string, edge: 'top' | 'bottom') => {
-    if (!currentPath) return;
-    runOp(async () => {
-      await api.moveToEdgeInIndexYaml(currentPath, name, edge);
-      refreshDirectory();
-    }, 'Failed to move item: ');
+    if (currentPath) moveToEdgeInIndex(currentPath, name, edge);
   };
 
   const doPasteIntoFolder = (folderPath: string) => {
@@ -459,238 +128,64 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     }, 'Failed to paste into folder: ');
   };
 
-  const doPasteAsAttachment = (filePath: string) => {
-    runOp(async () => {
-      const attachFolderPath = await ensureAttachFolder(filePath);
-      if (!attachFolderPath) return;
-      await pasteIntoFolder(attachFolderPath, useAS.getState().items);
-    }, 'Failed to paste as attachment: ');
-  };
-
-  const doPasteClipboardAsAttachment = (filePath: string) => {
-    runOp(async () => {
-      const attachFolderPath = await ensureAttachFolder(filePath);
-      if (!attachFolderPath) return;
-      await pasteFromClipboardOp(attachFolderPath);
-    }, 'Failed to paste as attachment: ');
-  };
-
-  // Moves (not copies) a file chosen with the OS picker into `filePath`'s attach folder,
-  // via the same path as a drag-and-drop attach. The picker runs first, so cancelling
-  // never leaves an empty .attach folder behind.
-  const doAttachFromFile = (filePath: string) => {
-    runOp(async () => {
-      const sourcePath = await api.selectFile('Select a file to attach');
-      if (!sourcePath) return;
-      const payload = { path: sourcePath, name: getFileName(sourcePath), isDirectory: false };
-      if (!canDropAsAttachment(payload, filePath)) {
-        setAppError('That file cannot be attached here: it is this file itself, or is already attached to it.');
-        return;
-      }
-      const moved = await dropAsAttachment(payload, filePath);
-      if (!moved) return; // dropAsAttachment already reported the failure
-      const newPath = joinPath(`${filePath}${ATTACH_SUFFIX}`, payload.name);
-      setPendingScrollToFile(newPath);
-      setPendingExpandFile(newPath);
-    }, 'Failed to attach file: ');
-  };
-
-  // Creates a brand-new empty Markdown attachment and puts the user straight into
-  // editing it — the from-scratch counterpart to doAttachFromFile's "attach a file
-  // that already exists". No dialog: the file is timestamp-named like any inserted
-  // new file, and the user renames it afterwards if they want to.
-  const doCreateAttachment = (filePath: string) => {
-    runOp(async () => {
-      await createAttachmentFileOp(filePath);
-    }, 'Failed to create attachment: ');
-  };
-
   const performDelete = () => {
     runOp(async () => {
-      await deleteSelected(getSelectedItems(useAS.getState().items), currentPath, hasIndexFile, () => setShowDeleteConfirm(false));
+      await deleteSelected(getSelectedItems(useAS.getState().items), currentPath, hasIndexFile, () => closeOverlay('deleteConfirm'));
     }, 'Failed to delete: ');
   };
 
-  const handleSplitFile = () => {
+  const handleExport = (options: ExportOptions) => {
     if (!currentPath) return;
-    runOp(async () => {
-      await splitSelectedFile(currentPath, getSelectedItems(useAS.getState().items), hasIndexFile);
-    }, 'Failed to split file: ');
-  };
-
-  const handleJoinFiles = () => {
-    if (!currentPath) return;
-    runOp(async () => {
-      await joinSelectedFiles(currentPath, getSelectedItems(useAS.getState().items), hasIndexFile);
-    }, 'Failed to join files: ');
-  };
-
-  /**
-   * Marks selected items as cut. If any selected file has a sibling attachment
-   * folder that was not also selected, prompts the user to confirm cutting the
-   * file without its attachments before proceeding.
-   */
-  const handleCutClick = () => {
-    const { items } = useAS.getState();
-    const hasOrphanedAttachment = sortedEntries.some((entry) => {
-      if (entry.isDirectory || !items.get(entry.path)?.isSelected) return false;
-      const attachName = `${entry.name}${ATTACH_SUFFIX}`;
-      const attachEntry = sortedEntries.find((e) => e.name === attachName);
-      return attachEntry !== undefined && !items.get(attachEntry.path)?.isSelected;
-    });
-    if (hasOrphanedAttachment) {
-      setShowCutOrphanAttachConfirm(true);
-    } else {
-      cutSelectedItems();
-    }
-  };
-
-  const handleExport = ({ outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers, exportToPdf }: ExportOptions) => {
-    if (!currentPath) return;
-
-    setShowExportDialog(false);
-    setAppError(null);
-
-    runOp(async () => {
-      onSetLastExportFolder(outputFolder);
-      await api.updateConfig({ lastExportFolder: outputFolder });
-
-      const result = await api.exportFolderContents(currentPath, outputFolder, fileName, includeSubfolders, includeFilenames, includeDividers);
-
-      if (!result.success) {
-        setAppError(result.error || 'Failed to export folder contents');
-        return;
-      }
-
-      if (exportToPdf && result.outputPath) {
-        const pdfPath = result.outputPath.replace(/\.md$/i, '.pdf');
-        const pdfResult = await api.exportToPdf(result.outputPath, pdfPath, currentPath);
-
-        if (!pdfResult.success) {
-          setAppError(pdfResult.error || 'Failed to launch PDF export');
-          return;
-        }
-      } else {
-        if (result.outputPath) {
-          await api.openExternal(result.outputPath);
-        }
-      }
-    }, 'Failed to export folder contents: ');
-  };
-
-  const handleCancelExport = () => {
-    setShowExportDialog(false);
-  };
-
-  const handleOpenCreateDialog = () => {
-    setInsertAtIndex(null);
-    setCreateFileDefaultName('');
-    setShowCreateDialog(true);
+    closeOverlay('export');
+    exportFolder(currentPath, options, onSetLastExportFolder);
   };
 
   // No longer used — kept for reference in case we return to prompting users for a file name during document mode editing
   const _handleInsertFileAt_legacy = (insertIndex: number) => {
-    setInsertAtIndex(insertIndex);
-    setCreateFileDefaultName('');
-    setShowCreateDialog(true);
+    setOverlay({ kind: 'createFile', insertAt: insertIndex });
   };
 
   const handleInsertFileAt = (insertIndex: number) => {
     const fileName = generateTimestampFileName();
     runOp(async () => {
-      await createFileOp(fileName, currentPath, insertIndex, sortedEntries, () => {
-        setShowCreateDialog(false);
-        setCreateFileDefaultName('');
-        setInsertAtIndex(null);
-      });
+      await createFileOp(fileName, currentPath, insertIndex, getSortedEntries(), () => closeOverlay('createFile'));
     }, 'Failed to create file: ');
   };
 
-  const handleCreateFile = (fileName: string) => {
+  const handleCreateFile = (insertAt: number | null, fileName: string) => {
     runOp(async () => {
-      await createFileOp(fileName, currentPath, insertAtIndex, sortedEntries, () => {
-        setShowCreateDialog(false);
-        setCreateFileDefaultName('');
-        setInsertAtIndex(null);
-      });
+      await createFileOp(fileName, currentPath, insertAt, getSortedEntries(), () => closeOverlay('createFile'));
     }, 'Failed to create file: ');
-  };
-
-  const handleCancelCreate = () => {
-    setShowCreateDialog(false);
-    setCreateFileDefaultName('');
-    setInsertAtIndex(null);
-  };
-
-  const handleOpenCreateFolderDialog = () => {
-    setInsertAtIndex(null);
-    setCreateFolderDefaultName('');
-    setShowCreateFolderDialog(true);
   };
 
   const handleInsertFolderAt = (insertIndex: number) => {
-    setInsertAtIndex(insertIndex);
-    setCreateFolderDefaultName('');
-    setShowCreateFolderDialog(true);
+    setOverlay({ kind: 'createFolder', insertAt: insertIndex });
   };
 
-  const handleCreateFolder = (folderName: string) => {
+  const handleCreateFolder = (insertAt: number | null, folderName: string) => {
     runOp(async () => {
-      await createFolderOp(folderName, currentPath, insertAtIndex, sortedEntries, () => {
-        setShowCreateFolderDialog(false);
-        setCreateFolderDefaultName('');
-        setInsertAtIndex(null);
-      });
+      await createFolderOp(folderName, currentPath, insertAt, getSortedEntries(), () => closeOverlay('createFolder'));
     }, 'Failed to create folder: ');
-  };
-
-  const handleCancelCreateFolder = () => {
-    setShowCreateFolderDialog(false);
-    setCreateFolderDefaultName('');
-    setInsertAtIndex(null);
-  };
-
-  const handleOpenSearchDialog = () => {
-    setSearchDialogDefinition(undefined);
-    setShowSearchDialog(true);
   };
 
   const handleSearch = (definition: SearchDefinition) => {
     if (!currentPath) return;
 
-    setShowSearchDialog(false);
+    closeOverlay('search');
 
     // Running a search never saves it — even when it has a name, which just
     // labels the results. Saving (or updating) a definition is only ever done
     // by the dialog's Save button, so a one-off tweak to a saved search can't
     // silently overwrite it.
-    runOp(async () => {
-      if (await executeSearch(currentPath, definition)) setCurrentView('search-results');
-    }, 'Search failed: ');
-  };
-
-  const handleCancelSearch = () => {
-    setShowSearchDialog(false);
-    setSearchDialogDefinition(undefined);
+    runSearch(currentPath, definition);
   };
 
   const handleReplace = (searchText: string, replaceText: string) => {
     if (!currentPath) return;
 
-    setShowReplaceDialog(false);
+    closeOverlay('replace');
 
-    runOp(async () => {
-      const results = await api.searchAndReplace(currentPath, searchText, replaceText);
-      setReplaceResultMessage(buildReplaceResultMessage(results));
-      const totalReplacements = results.filter((r) => r.success).reduce((sum, r) => sum + r.replacementCount, 0);
-      if (totalReplacements > 0) {
-        refreshDirectory();
-      }
-    }, 'Replace failed: ', setReplaceResultMessage);
-  };
-
-  const handleCancelReplace = () => {
-    setShowReplaceDialog(false);
+    replaceInFolder(currentPath, searchText, replaceText, setReplaceResultMessage);
   };
 
   const handleSaveSearchDefinition = (definition: SearchDefinition) => {
@@ -706,331 +201,14 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     }, 'Failed to delete search: ');
   };
 
-  const handlePasteFromClipboard = () => {
-    runOp(async () => {
-      await pasteFromClipboardOp(currentPath);
-    }, 'Failed to paste from clipboard: ');
-  };
-
-  const navigateTo = (path: string) => {
-    setCurrentPath(path);
-  };
-
-  const handleRunOcr = () => {
-    if (!currentPath) return;
-    void runOcr(currentPath, settings.ocrToolsFolder, useAS.getState().items);
-  };
-
-  const handleCopyLink = () => {
-    const paths = getSelectedItems(useAS.getState().items).map((item) => item.path);
-    setSelectedLinkItems(paths);
-    clearAllSelections();
-  };
-
-  const handleSelectSortOrder = (order: Parameters<typeof setSortOrder>[0]) => {
-    setSortOrder(order);
-    saveSettings();
-  };
-
-  const handleEnableCustomOrdering = () => {
-    if (!currentPath) return;
-    runOp(async () => {
-      const result = await api.reconcileIndexedFiles(currentPath, true);
-      if (!result.success) {
-        setAppError(result.error || 'Failed to enable custom ordering');
-        return;
-      }
-      refreshDirectory();
-    }, 'Failed to enable custom ordering: ');
-  };
-
-  const handleRunSearch = (definition: SearchDefinition) => {
-    if (!currentPath) return;
-    runOp(async () => {
-      if (await executeSearch(currentPath, definition)) setCurrentView('search-results');
-    }, 'Search failed: ');
-  };
-
-  const handleEditSearch = (definition: SearchDefinition) => {
-    setCurrentView('browser');
-    setSearchDialogDefinition(definition);
-    setShowSearchDialog(true);
-  };
-
-  const handleSelectAll = () => {
-    const currentFolderPaths = entries.map((entry) => entry.path);
-    selectItemsByPaths(currentFolderPaths);
-  };
-
-  const handleFolderAnalysis = () => {
-    if (!currentPath) return;
-    runOp(async () => {
-      const result = await api.analyzeFolderHashtags(currentPath);
-      setFolderAnalysis({
-        hashtags: result.hashtags,
-        folderPath: currentPath,
-        totalFiles: result.totalFiles,
-      });
-      setCurrentView('folder-analysis');
-    }, 'Failed to analyze folder: ');
-  };
-
-  const handleFolderGraph = () => {
-    if (!currentPath) return;
-    runOp(async () => {
-      const result = await api.scanFolderTree(currentPath);
-      setFolderGraph({
-        folderPath: result.folderPath,
-        nodes: result.nodes.map(n => ({ ...n })),
-        links: result.links.map(l => ({ ...l })),
-        truncated: result.truncated,
-        foldersOnly: result.foldersOnly,
-      });
-      setCurrentView('folder-graph');
-    }, 'Failed to scan folder graph: ');
-  };
-
-  const handleShowCalendar = () => {
-    if (!currentPath) return;
-    showCalendarForFolder(currentPath);
-    runOp(async () => {
-      const results = await api.loadCalendarEvents(currentPath);
-      setCalendarEvents(toCalendarEvents(results));
-    }, 'Failed to load calendar: ', (msg) => {
-      setAppError(msg);
-      setCalendarEvents([]);
-    });
-  };
-
-  /**
-   * Starts a new AI conversation in the current folder by creating a HUMAN.md
-   * turn file via the `replyToAi` IPC call, then navigates to the thread view
-   * and opens the new file for editing. Prevents creating a second conversation
-   * when one already exists in the folder.
-   */
-  const newAiChat = () => {
-    if (!currentPath) return;
-    if (hasHumanMd(entries)) {
-      setAppError('This folder already contains an AI conversation. Please navigate to a different folder to start a new chat.');
-      return;
-    }
-    runOp(async () => {
-      const result = await api.replyToAi(currentPath, false);
-      if ('error' in result) {
-        setAppError('Failed to create AI chat: ' + result.error);
-      } else {
-        const view = 'thread';
-        navigateToBrowserPath(result.folderPath, result.filePath, view);
-        setPendingEditFile(result.filePath, view);
-        // The new HUMAN.md is created directly in the current folder, so
-        // currentPath doesn't change and BrowseView's load effect won't
-        // re-fire on its own. Refresh explicitly so the file appears when
-        // the user switches back to the browse view.
-        refreshDirectory();
-      }
-    }, 'Failed to create AI chat: ');
-  };
-
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Combined header: breadcrumbs left, actions right, wraps responsively */}
-
-      <header className="bg-transparent flex-shrink-0 px-4 py-1 flex flex-wrap items-center gap-y-1">
-
-        <div data-testid="browser-header-breadcrumbs" className="flex items-center gap-3 min-w-0">
-          <PathBreadcrumb
-            rootPath={rootPath}
-            currentPath={currentPath}
-            onNavigate={navigateTo}
-          />
-        </div>
-
-        <div data-testid="browser-header-actions" className="flex-1 flex items-center justify-end gap-2">
-          {/* Cut button - shown when items are selected and no items are cut */}
-          {hasSelectedItems && !hasCutItems && (
-            <button
-              type="button"
-              onClick={handleCutClick}
-              className={BUTTON_CLASS_BAR_BLUE}
-              title="Cut selected items"
-              data-testid="cut-button"
-            >
-              Cut
-            </button>
-          )}
-
-          {/* Delete button - shown when items are selected and no items are cut */}
-          {hasSelectedItems && !hasCutItems && (
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className={BUTTON_CLASS_BAR_RED}
-              title="Delete selected items"
-              data-testid="delete-button"
-            >
-              Del
-            </button>
-          )}
-
-          {/* Paste button - shown whenever items are cut; pastes into the folder being browsed */}
-          {hasCutItems && currentPath && (
-            <button
-              type="button"
-              onClick={() => doPasteIntoFolder(currentPath)}
-              className={BUTTON_CLASS_BAR_BLUE}
-              title="Paste cut items into this folder"
-              data-testid="paste-button"
-            >
-              Paste
-            </button>
-          )}
-
-          {/* Undo Cut button - shown whenever items are cut */}
-          {hasCutItems && (
-            <button
-              type="button"
-              onClick={() => clearAllCutItems()}
-              className={BUTTON_CLASS_BAR_BLUE}
-              title="Undo cut (cancel pending move)"
-              data-testid="undo-cut-button"
-            >
-              Undo Cut
-            </button>
-          )}
-
-          {/* Create file/folder buttons — hidden in index-ordered mode (inline insert bars replace them) */}
-          {!hasIndexFile && (
-            <>
-              <button
-                type="button"
-                onClick={handleOpenCreateDialog}
-                className={BUTTON_CLASS_TB_BLUE}
-                title="Create file"
-                data-testid="create-file-button"
-              >
-                <DocumentPlusIcon className="w-6 h-6 text-blue-400" />
-              </button>
-              <button
-                type="button"
-                onClick={handleOpenCreateFolderDialog}
-                className={BUTTON_CLASS_TB_AMBER}
-                title="Create folder"
-                data-testid="create-folder-button"
-              >
-                <FolderPlusIcon className="w-6 h-6 text-amber-500" />
-              </button>
-            </>
-          )}
-
-          {/* Edit menu button */}
-          <button
-            type="button"
-            ref={editButtonRef}
-            onClick={() => setShowEditMenu(prev => !prev)}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Edit"
-            data-testid="edit-menu-button"
-          >
-            <Squares2X2Icon className="w-6 h-6" />
-          </button>
-
-          {/* Tools menu button */}
-          <button
-            type="button"
-            ref={toolsButtonRef}
-            onClick={() => setShowToolsMenu(prev => !prev)}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Tools"
-            data-testid="tools-menu-button"
-          >
-            <WrenchIcon className="w-6 h-6" />
-          </button>
-
-          {/* Calendar button */}
-          <button
-            type="button"
-            onClick={handleShowCalendar}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Show Calendar"
-            data-testid="calendar-button"
-          >
-            <CalendarDaysIcon className="w-6 h-6" />
-          </button>
-
-          {/* Sort order menu button */}
-          {!hasIndexFile && (<button
-            type="button"
-            ref={sortButtonRef}
-            onClick={() => setShowSortMenu(prev => !prev)}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Sort order"
-            data-testid="sort-menu-button"
-          >
-            <BarsArrowDownIcon className="w-6 h-6" />
-          </button>)}
-
-          {/* Paste from clipboard button */}
-          <button
-            type="button"
-            onClick={handlePasteFromClipboard}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Paste from clipboard"
-            data-testid="paste-clipboard-button"
-          >
-            <ClipboardIcon className="w-6 h-6" />
-          </button>
-
-          {/* Search button */}
-          <button
-            type="button"
-            ref={searchButtonRef}
-            onClick={() => setShowSearchMenu(prev => !prev)}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Search"
-            data-testid="search-menu-button"
-          >
-            <MagnifyingGlassIcon className="w-6 h-6" />
-          </button>
-
-          {/* Expand all button */}
-          {showExpandAll && (
-            <button
-              type="button"
-              onClick={expandAllItems}
-              className={BUTTON_CLASS_TB_NORMAL}
-              title="Expand all"
-              data-testid="expand-all-button"
-            >
-              <ChevronDownIcon className="w-6 h-6" />
-            </button>
-          )}
-
-          {/* Collapse all button */}
-          {showCollapseAll && (
-            <button
-              type="button"
-              onClick={collapseAllItems}
-              className={BUTTON_CLASS_TB_NORMAL}
-              title="Collapse all"
-              data-testid="collapse-all-button"
-            >
-              <ChevronUpIcon className="w-6 h-6" />
-            </button>
-          )}
-
-          {/* Refresh button */}
-          <button
-            type="button"
-            onClick={handleRefresh}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Refresh"
-            data-testid="refresh-button"
-          >
-            <ArrowPathIcon className="w-6 h-6" />
-          </button>
-
-        </div>
-      </header>
+      <BrowseToolbar
+        onOpenOverlay={setOverlay}
+        onRefresh={handleRefresh}
+        onPasteIntoFolder={doPasteIntoFolder}
+      />
 
       {/* Main content */}
       <main
@@ -1039,172 +217,78 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
         onScroll={handleMainScroll}
         className="flex-1 min-h-0 pb-4 pt-1 pr-3 pl-3 relative overflow-y-auto"
       >
-        <div className={getContentWidthClasses(settings.contentWidth)}>
-          {loading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-slate-400">Loading...</div>
-            </div>
-          )}
-
-          {!loading && sortedEntries.length === 0 && (
-            <div className="text-center py-12">
-              <FolderIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-              <p className="text-slate-400">This folder is empty</p>
-            </div>
-          )}
-
-          {/* Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line.
-              A single unified branch is used (rather than a `hasIndexFile ? A : B` ternary) so the outer element stays a stable
-              <div> when hasIndexFile flips on load — that lets React reconcile the keyed children instead of unmounting/remounting
-              the whole entry list (the remount storm was tripping React's max-update-depth). Index-only bits (move handlers,
-              IndexInsertBars, attach-folder gating) are computed conditionally inside BrowseEntryRow. */}
-          {!loading && sortedEntries.length > 0 && (
-            <div className={hasIndexFile ? 'pr-12' : '[&>div+div]:-mt-px'}>
-              {hasIndexFile && !sortedEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
-                <IndexInsertBar onInsertFile={() => handleInsertFileAt(0)} onInsertFolder={() => handleInsertFolderAt(0)} />
-              )}
-              {sortedEntries.map((entry, idx) => {
-                const prevEntry = sortedEntries[idx - 1];
-                // An attach folder listed right after the file that owns it is
-                // indented under that file and shown only while it is expanded.
-                const isOwnedAttach = entry.name.endsWith(ATTACH_SUFFIX) && prevEntry?.name === entry.name.slice(0, -ATTACH_SUFFIX.length);
-                return (
-                  <BrowseEntryRow
-                    key={entry.path}
-                    entry={entry}
-                    index={idx}
-                    isFirst={idx === 0}
-                    isLast={idx === sortedEntries.length - 1}
-                    hasIndexFile={hasIndexFile}
-                    ownerPath={isOwnedAttach && prevEntry ? prevEntry.path : null}
-                    showInsertBarAfter={hasIndexFile && !sortedEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX)}
-                    allImages={allImages}
-                    onNavigate={navigateTo}
-                    onRename={handleEntryRename}
-                    onDelete={handleEntryDelete}
-                    onPasteIntoFolder={doPasteIntoFolder}
-                    onPasteAsAttachment={doPasteAsAttachment}
-                    onPasteClipboardAsAttachment={doPasteClipboardAsAttachment}
-                    onAttachFromFile={doAttachFromFile}
-                    onCreateAttachment={doCreateAttachment}
-                    onMoveEntry={handleMoveEntry}
-                    onMoveEntryToEdge={handleMoveEntryToEdge}
-                    onInsertFileAt={handleInsertFileAt}
-                    onInsertFolderAt={handleInsertFolderAt}
-                  />
-                );
-              })}
-            </div>
-          )}
+        <div className={getContentWidthClasses(contentWidth)}>
+          <BrowseEntryList
+            onNavigate={setCurrentPath}
+            onRename={handleRefresh}
+            onDelete={handleRefresh}
+            onPasteIntoFolder={doPasteIntoFolder}
+            onPasteAsAttachment={pasteCutAsAttachment}
+            onPasteClipboardAsAttachment={pasteClipboardAsAttachment}
+            onAttachFromFile={attachFromFile}
+            onCreateAttachment={createAttachment}
+            onMoveEntry={handleMoveEntry}
+            onMoveEntryToEdge={handleMoveEntryToEdge}
+            onInsertFileAt={handleInsertFileAt}
+            onInsertFolderAt={handleInsertFolderAt}
+          />
         </div>
       </main>
 
-      {showCreateDialog && (
+      {overlay.kind === 'createFile' && (
         <CreateFileDialog
-          defaultName={createFileDefaultName}
-          onCreate={handleCreateFile}
-          onCancel={handleCancelCreate}
+          onCreate={(fileName) => handleCreateFile(overlay.insertAt, fileName)}
+          onCancel={() => closeOverlay('createFile')}
         />
       )}
 
-      {showCreateFolderDialog && (
+      {overlay.kind === 'createFolder' && (
         <CreateFolderDialog
-          defaultName={createFolderDefaultName}
-          onCreate={handleCreateFolder}
-          onCancel={handleCancelCreateFolder}
+          onCreate={(folderName) => handleCreateFolder(overlay.insertAt, folderName)}
+          onCancel={() => closeOverlay('createFolder')}
         />
       )}
 
-      {showSearchDialog && (
+      {overlay.kind === 'search' && (
         <SearchDialog
           onSearch={handleSearch}
           onSave={handleSaveSearchDefinition}
-          onCancel={handleCancelSearch}
+          onCancel={() => closeOverlay('search')}
           onDeleteSearchDefinition={handleDeleteSearchDefinition}
-          initialDefinition={searchDialogDefinition}
-          searchDefinitions={settings.searchDefinitions}
+          initialDefinition={overlay.definition}
+          searchDefinitions={searchDefinitions}
         />
       )}
 
-      {showReplaceDialog && (
+      {overlay.kind === 'replace' && (
         <ReplaceDialog
           onReplace={handleReplace}
-          onCancel={handleCancelReplace}
+          onCancel={() => closeOverlay('replace')}
         />
       )}
 
-      {showExportDialog && currentPath && (
+      {overlay.kind === 'export' && currentPath && (
         <ExportDialog
           defaultFolder={lastExportFolder}
           defaultFileName={generateExportFileName(currentPath)}
           onExport={handleExport}
-          onCancel={handleCancelExport}
+          onCancel={() => closeOverlay('export')}
         />
       )}
 
-      {showSortMenu && !hasIndexFile && (
-        <SortPopupMenu
-          anchorRef={sortButtonRef}
-          onClose={() => setShowSortMenu(false)}
-          currentSortOrder={settings.sortOrder}
-          onSelectSortOrder={handleSelectSortOrder}
-        />
-      )}
-
-      {showSearchMenu && (
-        <SearchPopupMenu
-          anchorRef={searchButtonRef}
-          onClose={() => setShowSearchMenu(false)}
-          searchDefinitions={settings.searchDefinitions}
-          onNewSearch={handleOpenSearchDialog}
-          onRunSearch={handleRunSearch}
-          onEditSearch={handleEditSearch}
-        />
-      )}
-
-      {showEditMenu && (
-        <EditPopupMenu
-          anchorRef={editButtonRef}
-          onClose={() => setShowEditMenu(false)}
-          onSelectAll={handleSelectAll}
-          onUnselectAll={() => clearAllSelections()}
-          onSplit={handleSplitFile}
-          onJoin={handleJoinFiles}
-          onReplaceInFiles={() => setShowReplaceDialog(true)}
-          onCopyLink={handleCopyLink}
-          unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
-          splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
-          joinDisabled={selectedFileCount < 2 || hasSelectedFolders}
-          copyLinkDisabled={!hasSelectedItems}
-          onEnableCustomOrdering={!hasIndexFile && currentPath ? handleEnableCustomOrdering : undefined}
-        />
-      )}
-
-      {showToolsMenu && (
-        <ToolsPopupMenu
-          anchorRef={toolsButtonRef}
-          onClose={() => setShowToolsMenu(false)}
-          onFolderAnalysis={handleFolderAnalysis}
-          onFolderGraph={handleFolderGraph}
-          onExport={() => setShowExportDialog(true)}
-          onRunOcr={handleRunOcr}
-          onNewAiChat={newAiChat}
-        />
-      )}
-
-      {showDeleteConfirm && (
+      {overlay.kind === 'deleteConfirm' && (
         <ConfirmDialog
-          message={`Move ${selectedCount} selected item(s) to trash?`}
+          message={`Move ${overlay.count} selected item(s) to trash?`}
           onConfirm={performDelete}
-          onCancel={() => setShowDeleteConfirm(false)}
+          onCancel={() => closeOverlay('deleteConfirm')}
         />
       )}
 
-      {showCutOrphanAttachConfirm && (
+      {overlay.kind === 'cutOrphanConfirm' && (
         <ConfirmDialog
           message="One or more selected files have an attachments folder that is not selected. Cut only the file(s) without their attachments?"
-          onConfirm={() => { setShowCutOrphanAttachConfirm(false); cutSelectedItems(); }}
-          onCancel={() => setShowCutOrphanAttachConfirm(false)}
+          onConfirm={() => { closeOverlay('cutOrphanConfirm'); cutSelectedItems(); }}
+          onCancel={() => closeOverlay('cutOrphanConfirm')}
         />
       )}
 

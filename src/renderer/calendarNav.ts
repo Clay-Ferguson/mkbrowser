@@ -1,11 +1,12 @@
 /**
- * Opening the Calendar tab from elsewhere in the UI (currently the value half of a
- * `due` property pill — see PropsDisplay/MarkdownEntry).
+ * Opening the Calendar tab from elsewhere in the UI: the value half of a `due`
+ * property pill (see PropsDisplay/MarkdownEntry), and BrowseView's Calendar button.
  */
 
 import { api } from './api';
 import { toCalendarEvents } from '../shared/calendarUtil';
 import { logger } from '../shared/logUtil';
+import { runOp } from './runOp';
 import {
   useAS,
   showTab,
@@ -14,6 +15,8 @@ import {
   setCalendarLoading,
   setCalendarEvents,
   setCalendarViewTime,
+  showCalendarForFolder,
+  setAppError,
 } from '../store';
 
 /**
@@ -44,4 +47,21 @@ export function openCalendarAtDate(folder: string, date: Date): void {
       logger.error('Failed to load calendar:', err);
       setCalendarEvents([]);
     });
+}
+
+/**
+ * Switches to the Calendar tab showing the calendar items found in `folder` —
+ * the Calendar button in BrowseView. Unlike {@link openCalendarAtDate} this
+ * always re-scans: it is the explicit "show me this folder's calendar" action.
+ * Fire-and-forget: a failed scan is reported and leaves an empty calendar.
+ */
+export function showFolderCalendar(folder: string): void {
+  showCalendarForFolder(folder);
+  runOp(async () => {
+    const results = await api.loadCalendarEvents(folder);
+    setCalendarEvents(toCalendarEvents(results));
+  }, 'Failed to load calendar: ', (msg) => {
+    setAppError(msg);
+    setCalendarEvents([]);
+  });
 }
