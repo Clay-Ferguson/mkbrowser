@@ -77,8 +77,39 @@ export const scrollItemIntoView = (filePath: string, highlight = false, settle =
   const scrollContainer = centerScrollOnElement(element, highlight, 'instant');
   // A null container means the scrollIntoView fallback ran; there is nothing to
   // observe or re-center against, so the settle phase is simply skipped.
-  if (settle && scrollContainer) beginSettleCorrections(element, scrollContainer, 'instant');
+  if (settle && scrollContainer) beginSettleCorrections(scrollContainer, centeredOn(element, scrollContainer), 'instant');
   return true;
+};
+
+/**
+ * Scrolls `container` to its bottom now, then keeps it pinned there while the
+ * page settles. Content that renders after the call — markdown bodies loading
+ * their text, a CodeMirror editor mounting — grows `scrollHeight`, and the
+ * settle phase follows it, so callers don't have to guess how long rendering
+ * takes. Instant, and self-cancelling like every settle phase (user input,
+ * container hidden, window elapsed).
+ */
+export const pinScrollToBottom = (container: HTMLElement): void => {
+  const bottom = () => container.scrollHeight - container.clientHeight;
+  container.scrollTo({ top: bottom(), behavior: 'instant' });
+  beginSettleCorrections(container, bottom, 'instant');
+};
+
+/**
+ * Scrolls `container` to `top` now, re-applying it while the page settles
+ * until the container actually gets there. Used to restore a saved scroll
+ * position: the entries' bodies are often still loading when the listing first
+ * renders, so the container may not yet be tall enough and the first scroll
+ * gets clamped short. Once the offset is reached the hold ends, so it never
+ * pins a listing the content has already grown to fit.
+ */
+export const holdScrollTop = (container: HTMLElement, top: number): void => {
+  container.scrollTo({ top, behavior: 'instant' });
+  beginSettleCorrections(
+    container,
+    () => (Math.abs(container.scrollTop - top) <= SETTLE_TOLERANCE_PX ? null : top),
+    'instant',
+  );
 };
 
 // How often to check whether the scroll target has rendered yet, and for how
@@ -178,32 +209,52 @@ const beginSettledScroll = (element: HTMLElement, highlight: boolean): void => {
   const scrollContainer = centerScrollOnElement(element, highlight, 'smooth');
   if (!scrollContainer) return;
 
-  beginSettleCorrections(element, scrollContainer, 'smooth');
+  beginSettleCorrections(scrollContainer, centeredOn(element, scrollContainer), 'smooth');
 };
 
 /**
- * Keeps `element` centered in `scrollContainer` while the page settles, for
- * SETTLE_WINDOW_MS after an initial centering scroll that the caller has
- * already performed.
+ * Settle target that keeps `element` centered in `scrollContainer`, ending the
+ * settle phase (null) once the element leaves the DOM (navigation).
+ */
+const centeredOn = (element: HTMLElement, scrollContainer: HTMLElement) => (): number | null =>
+  element.isConnected ? computeCenteredScrollTop(scrollContainer, element) : null;
+
+/** The settle phase currently running on each scroll container. */
+const activeSettles = new WeakMap<HTMLElement, AbortController>();
+
+/**
+ * Keeps `scrollContainer` at the offset `desiredTop` computes (e.g. an element
+ * centered, or the bottom) while the page settles, for SETTLE_WINDOW_MS after
+ * an initial scroll that the caller has already performed. `desiredTop`
+ * returning null ends the phase (the target is gone).
  *
- * Content rendered asynchronously above the target (markdown bodies, mermaid,
- * KaTeX, images whose dimensions couldn't be pre-reserved) shifts the target
- * after that first scroll, so a ResizeObserver re-scrolls whenever the layout
- * changes during the window. `behavior` should match how the caller scrolled:
+ * Content rendered asynchronously (markdown bodies, mermaid, KaTeX, images
+ * whose dimensions couldn't be pre-reserved) moves the target after that
+ * first scroll, so a ResizeObserver re-scrolls whenever the layout changes
+ * during the window. `behavior` should match how the caller scrolled:
  * corrections to an instant, pre-paint scroll must themselves be instant, or
  * every reflow would animate the page out from under a user who never asked
  * for a scroll.
  *
  * Fire-and-forget: self-cancels when the user intervenes (wheel, touch,
- * scrollbar drag, key press), when the target leaves the DOM (navigation), and
- * when the window elapses — callers don't need to clean it up.
+ * scrollbar drag, key press), when the target leaves the DOM (navigation),
+ * when the container is hidden (a tab switch — views stay mounted with
+ * display:none, and correcting a pane with no layout would zero its scroll),
+ * and when the window elapses — callers don't need to clean it up.
  */
-const beginSettleCorrections = (element: HTMLElement, scrollContainer: HTMLElement, behavior: ScrollBehavior): void => {
+const beginSettleCorrections = (scrollContainer: HTMLElement, desiredTop: () => number | null, behavior: ScrollBehavior): void => {
   // Everything in the settle phase (event listeners, observer, timer) tears
   // down through this one controller, whichever cancellation path fires first.
+  // A newer settle on the same container supersedes this one, so two targets
+  // never fight over the scrollbar.
+  activeSettles.get(scrollContainer)?.abort();
   const controller = new AbortController();
+  activeSettles.set(scrollContainer, controller);
   const { signal } = controller;
   const cancel = () => controller.abort();
+  signal.addEventListener('abort', () => {
+    if (activeSettles.get(scrollContainer) === controller) activeSettles.delete(scrollContainer);
+  }, { once: true });
 
   // Any user interaction that could mean "I'm scrolling myself now" ends the
   // correction phase immediately — never fight the user for the scrollbar.
@@ -218,11 +269,11 @@ const beginSettleCorrections = (element: HTMLElement, scrollContainer: HTMLEleme
   // the container's own border box never changes when content reflows, but
   // any growth deeper in the tree propagates up to a direct child's height.
   const observer = new ResizeObserver(() => {
-    if (!element.isConnected) {
+    const desired = scrollContainer.clientHeight > 0 ? desiredTop() : null;
+    if (desired === null) {
       cancel();
       return;
     }
-    const desired = computeCenteredScrollTop(scrollContainer, element);
     if (Math.abs(scrollContainer.scrollTop - desired) > SETTLE_TOLERANCE_PX) {
       scrollContainer.scrollTo({ top: desired, behavior });
     }

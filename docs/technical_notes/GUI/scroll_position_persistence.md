@@ -111,7 +111,7 @@ Views using this hook: `SearchResultsView`, `SettingsView`, `FolderAnalysisView`
 `src/components/views/BrowseView.tsx` does **not** use `useScrollPersistence`. It handles scroll manually because it must also support two special scroll modes:
 
 - **`pendingScrollToFile`** — scroll a specific file item into view (triggered by clicking a search result or index tree entry)
-- **`pendingScrollToHeadingSlug`** — after the markdown content renders, scroll a heading into view (750ms additional delay for render)
+- **`pendingScrollToHeadingSlug`** — after the markdown content renders, scroll a heading into view (`scrollElementIntoView` polls for the heading, then keeps it centered while the page settles)
 
 ### Key refs
 
@@ -148,20 +148,13 @@ const handleMainScroll = useCallback((e: React.UIEvent<HTMLElement>) => {
 
 ### Restore logic
 
-After a 100ms delay (to let React finish rendering the new folder's file list):
+The scroll handling lives in `usePendingBrowseIntents` (with `usePendingItemScroll`), and none of it waits on a fixed delay:
 
-```typescript
-setTimeout(() => {
-  if (pendingScrollToFile) {
-    scrollItemIntoView(pendingScrollToFile, false);
-    clearPendingScrollToFile();
-    // ... optional heading scroll after 750ms
-  } else if (isNewFolder) {
-    const savedPosition = getBrowserScrollPosition(currentPath);
-    mainContainerRef.current?.scrollTo({ top: savedPosition, behavior: 'instant' });
-  }
-}, 100);
-```
+- **`pendingScrollToFile`** is consumed by a layout effect (`usePendingItemScroll`) on the commit that first renders the target entry — before paint — and `entryDom`'s settle phase then keeps it centered while late content reflows the page.
+- **Folder restore** runs once the directory has loaded: `holdScrollTop` scrolls to the saved position and re-applies it as the entries' bodies fill in (the listing is often not yet tall enough on the first commit), stopping as soon as the offset is reached.
+- **Pending edit / expand** only wait for the item to be in the store; they don't touch the DOM.
+
+All settle phases (`entryDom.ts`) are driven by a `ResizeObserver`, self-cancel on user input, on the container being hidden, or after `SETTLE_WINDOW_MS`, and a new one on a container supersedes the previous one.
 
 ---
 
@@ -170,10 +163,10 @@ setTimeout(() => {
 | Delay | Purpose | Location |
 |-------|---------|----------|
 | 50ms | Restore scroll after mount (DOM ready) | `useScrollPersistence.ts` |
-| 100ms | Restore scroll after folder navigation (React render settle) | `BrowseView.tsx` |
 | 150ms | Debounce scroll save | all scroll handlers |
-| 750ms | Scroll to heading after markdown content renders | `BrowseView.tsx` |
-| 300ms | Scroll to bottom after CodeMirror editor mounts | `ThreadView.tsx` |
+| 2500ms | Max settle window for scroll corrections (ResizeObserver-driven, not a delay) | `entryDom.ts` |
+
+ThreadView's scroll-to-bottom (on load, and after a reply's editor mounts) uses `pinScrollToBottom`, the same settle mechanism pinned to the bottom.
 
 ---
 

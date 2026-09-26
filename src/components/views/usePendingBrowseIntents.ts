@@ -10,7 +10,7 @@ import {
   setBrowserScrollPosition,
   getBrowserScrollPosition,
 } from '../../store';
-import { scrollElementIntoView } from '../../renderer/entryDom';
+import { holdScrollTop, scrollElementIntoView } from '../../renderer/entryDom';
 import { getParentPath } from '../../renderer/pathUtil';
 import { affectsBrowseListing } from '../../renderer/dragAndDrop';
 import { usePendingItemScroll } from './usePendingItemScroll';
@@ -88,80 +88,63 @@ export function usePendingBrowseIntents(mainContainerRef: RefObject<HTMLElement 
 
     previousPathRef.current = currentPath;
 
-    // All timers are cleared on re-run, so a superseded run's timer can't fire
-    // with values the user has since navigated away from. Each pending flag is
-    // cleared only by the timer that consumes it, so when a flag-clear re-runs
-    // this effect and the cleanup cancels a sibling timer, that sibling's flag
-    // is still set and the next run reschedules it — nothing is lost.
-    let editTimer: ReturnType<typeof setTimeout> | undefined;
-
-    // Short timeout just for DOM to settle after React render
-    const settleTimer = setTimeout(() => {
-      // Nothing here consumes pendingScrollToFile: that request is handled
-      // pre-paint by usePendingItemScroll (a layout effect), which is what
-      // keeps the listing from ever painting at the wrong offset. It is still
-      // read here as a gate, because both branches below would fight a scroll
-      // that has not landed yet — and consuming it re-runs this effect, so
-      // neither branch is missed.
-      if (!pendingScrollToFile) {
-        if (pendingScrollToHeadingSlug) {
-          // Set alongside pendingScrollToFile; reached once that file scroll has
-          // succeeded and consumed its flag. Fire-and-forget: the scroller
-          // itself polls for the heading to render (no fixed delay) and keeps it
-          // centered while late-loading content reflows the page, self-cancelling
-          // on user input / element removal / timeout — so it deliberately isn't
-          // tied to this effect's cleanup, and the flag is consumed immediately.
-          scrollElementIntoView(pendingScrollToHeadingSlug, true);
-          clearPendingScrollToHeadingSlug();
-        } else if (isNewFolder || isFirstMount) {
-          // Restore the saved scroll position for the folder we navigated to (or
-          // the one we were already in, when remounting).
-          const savedPosition = getBrowserScrollPosition(currentPath);
-          const mainContainer = mainContainerRef.current;
-          if (mainContainer) {
-            mainContainer.scrollTo({ top: savedPosition, behavior: 'instant' });
-          }
+    // Nothing here consumes pendingScrollToFile: that request is handled
+    // pre-paint by usePendingItemScroll (a layout effect), which is what keeps
+    // the listing from ever painting at the wrong offset. It is still read here
+    // as a gate, because both branches below would fight a scroll that has not
+    // landed yet — and consuming it re-runs this effect, so neither branch is
+    // missed.
+    if (!pendingScrollToFile) {
+      if (pendingScrollToHeadingSlug) {
+        // Set alongside pendingScrollToFile; reached once that file scroll has
+        // succeeded and consumed its flag. Fire-and-forget: the scroller itself
+        // polls for the heading to render (no fixed delay) and keeps it centered
+        // while late-loading content reflows the page, self-cancelling on user
+        // input / element removal / timeout — so it deliberately isn't tied to
+        // this effect's cleanup, and the flag is consumed immediately.
+        scrollElementIntoView(pendingScrollToHeadingSlug, true);
+        clearPendingScrollToHeadingSlug();
+      } else if (isNewFolder || isFirstMount) {
+        // Restore the saved scroll position for the folder we navigated to (or
+        // the one we were already in, when remounting). The entries' bodies are
+        // typically still loading, so the listing may not yet be tall enough to
+        // reach the saved offset; holdScrollTop re-applies it as they fill in.
+        const mainContainer = mainContainerRef.current;
+        if (mainContainer) {
+          holdScrollTop(mainContainer, getBrowserScrollPosition(currentPath));
         }
       }
+    }
 
-      // Handle pending edit (e.g., from search results edit button, or a "New
-      // File" from the index tree). The item only enters the store once the load
-      // for its folder has finished, and this effect can fire before that when
-      // the request came with a navigation to a *different* folder — so wait for
-      // the item rather than consuming the request against a missing one (which
-      // would silently drop the edit). Once the pending file's folder is one this
-      // listing doesn't render it can never arrive, so drop it then — a test of
-      // affectsBrowseListing rather than folder equality, because a newly created
-      // attachment lives in a .attach folder below currentPath yet is rendered as
-      // a row here.
-      if (pendingEditFile && pendingEditView === 'browser') {
-        const editFile = pendingEditFile;
-        if (useAS.getState().items.has(editFile)) {
-          editTimer = setTimeout(() => {
-            setItemExpanded(editFile, true);
-            setItemEditing(editFile, true);
-            clearPendingEditFile();
-          }, 100);
-        } else if (!affectsBrowseListing(getParentPath(editFile), currentPath)) {
-          clearPendingEditFile();
-        }
+    // Handle pending edit (e.g., from search results edit button, or a "New
+    // File" from the index tree). The item only enters the store once the load
+    // for its folder has finished, and this effect can fire before that when
+    // the request came with a navigation to a *different* folder — so wait for
+    // the item rather than consuming the request against a missing one (which
+    // would silently drop the edit). Once the pending file's folder is one this
+    // listing doesn't render it can never arrive, so drop it then — a test of
+    // affectsBrowseListing rather than folder equality, because a newly created
+    // attachment lives in a .attach folder below currentPath yet is rendered as
+    // a row here. Store-only: expanding and editing are state changes the
+    // entry renders from, so nothing here waits on the DOM.
+    if (pendingEditFile && pendingEditView === 'browser') {
+      if (useAS.getState().items.has(pendingEditFile)) {
+        setItemExpanded(pendingEditFile, true);
+        setItemEditing(pendingEditFile, true);
+        clearPendingEditFile();
+      } else if (!affectsBrowseListing(getParentPath(pendingEditFile), currentPath)) {
+        clearPendingEditFile();
       }
+    }
 
-      // Handle pending expand (e.g., a file pasted from the clipboard). The item
-      // only enters the store once the refresh that created it has loaded, so —
-      // like the pending scroll above — consume the request only when it's there,
-      // and let a later run of this effect handle it otherwise.
-      if (pendingExpandFile && useAS.getState().items.has(pendingExpandFile)) {
-        setItemExpanded(pendingExpandFile, true);
-        clearPendingExpandFile();
-      }
-    }, 100);
-
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending settle/edit timeouts on unmount / before re-run.
-    return () => {
-      clearTimeout(settleTimer);
-      if (editTimer !== undefined) clearTimeout(editTimer);
-    };
+    // Handle pending expand (e.g., a file pasted from the clipboard). The item
+    // only enters the store once the refresh that created it has loaded, so —
+    // like the pending edit above — consume the request only when it's there,
+    // and let a later run of this effect handle it otherwise.
+    if (pendingExpandFile && useAS.getState().items.has(pendingExpandFile)) {
+      setItemExpanded(pendingExpandFile, true);
+      clearPendingExpandFile();
+    }
   }, [loading, pendingScrollToFile, pendingScrollToHeadingSlug, pendingEditFile, pendingEditView, pendingExpandFile, currentPath, isActive, mainContainerRef]);
 
   // Clear any pending debounced save on unmount (full app teardown / closing

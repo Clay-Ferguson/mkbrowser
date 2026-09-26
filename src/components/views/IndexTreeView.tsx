@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
@@ -364,10 +364,11 @@ function IndexTreeView() {
   const hasCutItems = cutPaths.size > 0;
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
-  // Pending timers, tracked so they can be cancelled when superseded or on unmount.
-  const revealScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Pending timer, tracked so it can be cancelled when superseded or on unmount.
   const scriptFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
+  // Path whose row a reveal has expanded the tree to, awaiting its scroll.
+  const [revealScrollTarget, setRevealScrollTarget] = useState<string | null>(null);
   const [runningScript, setRunningScript] = useState<string | null>(null);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
@@ -434,11 +435,6 @@ function IndexTreeView() {
     if (!pendingReveal) return;
     clearPendingIndexTreeReveal();
 
-    // Clearing the pending flag re-runs this effect immediately, so its cleanup
-    // fires long before the walk below schedules the scroll — the timer is
-    // tracked in a ref and cancelled here (superseded reveal) and on unmount.
-    if (revealScrollTimerRef.current) clearTimeout(revealScrollTimerRef.current);
-
     const expandToPath = async (targetPath: string) => {
       if (!rootPath || !isPathInside(rootPath, targetPath)) return;
 
@@ -466,24 +462,28 @@ function IndexTreeView() {
         ancestorPath = joinPath(ancestorPath, segment);
       }
 
-      // Scroll to the target node after React has rendered the expanded tree
-      revealScrollTimerRef.current = setTimeout(() => {
-        revealScrollTimerRef.current = null;
-        const container = containerRef.current;
-        if (!container) return;
-        const el = container.querySelector(`[data-tree-path="${CSS.escape(targetPath)}"]`);
-        if (el) {
-          el.scrollIntoView({ block: 'center' });
-        }
-      }, 750);
+      // Scroll once the expanded tree has rendered — see the layout effect below.
+      setRevealScrollTarget(targetPath);
     };
 
     void expandToPath(pendingReveal);
   }, [pendingReveal, rootPath]);
 
-  // Cancel any still-pending timers on unmount.
+  // Scrolls the revealed node into view on the first commit that renders it.
+  // Its row exists as soon as the last `expandIndexTreeNode` above has
+  // committed, and `treeRoot` changing is what re-renders the tree, so keying
+  // on it catches exactly that commit — before paint, with no guessed delay.
+  // The target stays pending until its row appears; a newer reveal replaces it.
+  useLayoutEffect(() => {
+    if (!revealScrollTarget) return;
+    const el = containerRef.current?.querySelector(`[data-tree-path="${CSS.escape(revealScrollTarget)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: 'center' });
+    setRevealScrollTarget(null);
+  }, [revealScrollTarget, treeRoot]);
+
+  // Cancel a still-pending timer on unmount.
   useEffect(() => () => {
-    if (revealScrollTimerRef.current) clearTimeout(revealScrollTimerRef.current);
     if (scriptFlashTimerRef.current) clearTimeout(scriptFlashTimerRef.current);
   }, []);
 

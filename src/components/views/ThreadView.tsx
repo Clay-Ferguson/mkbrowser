@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { clsx } from 'clsx';
 import { FolderIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
@@ -15,6 +15,7 @@ import {
   useIsActiveView,
 } from '../../store';
 import { saveAiConfig } from '../../renderer/config';
+import { pinScrollToBottom } from '../../renderer/entryDom';
 import { runOp } from '../../renderer/runOp';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import MarkdownEntry from '../entries/MarkdownEntry';
@@ -74,6 +75,10 @@ function ThreadView() {
   const [threadEntries, setThreadEntries] = useState<ThreadEntry[]>([]);
   const [childFolders, setChildFolders] = useState<ThreadChildFolder[]>([]);
   const [loading, setLoading] = useState(true);
+  // The path the rendered thread was loaded for. A navigation commits the new
+  // currentPath before the load effect flips `loading` back on, so `!loading`
+  // alone would briefly vouch for the previous path's entries.
+  const [loadedPath, setLoadedPath] = useState<string | null>(null);
   const [isThread, setIsThread] = useState(true);
 
   // The persona name and the list of personas both come from the store mirror,
@@ -128,6 +133,7 @@ function ThreadView() {
         setIsThread(false);
         setChildFolders([]);
         setLoading(false);
+      setLoadedPath(currentPath);
         return;
       }
 
@@ -157,63 +163,49 @@ function ThreadView() {
         setChildFolders([]);
       }
       setLoading(false);
+      setLoadedPath(currentPath);
     })();
   }, [currentPath, refreshTick, isActive]);
 
   // Callback for entry rename / delete — reload the thread
   const refreshThread = () => setRefreshTick((t) => t + 1);
 
-  // Scrolls to the bottom once a scroll-to-bottom is pending *and* loading has
-  // finished (so the new entries are rendered). The store flag is the intent and
-  // is consumed directly here — it deliberately stays set until the scroll
-  // actually runs. Recording it in a ref instead would strand the scroll
-  // whenever the intent arrives without a path change, since a ref write
-  // re-runs nothing and only a path change flips `loading`.
+  // True once the entries on screen are the current path's, fully loaded — the
+  // gate for the pending intents below, which target the thread being opened.
+  const loaded = !loading && loadedPath === currentPath;
+
+  // Scrolls to the bottom once a scroll-to-bottom is pending *and* the thread
+  // has loaded. The store flag is the intent and is consumed directly here — it
+  // deliberately stays set until the scroll actually runs. Recording it in a ref
+  // instead would strand the scroll whenever the intent arrives without a path
+  // change, since a ref write re-runs nothing.
+  //
+  // A layout effect, because the entries render in the same commit that sets
+  // `loaded`: scrolling before that commit paints means the thread never
+  // appears at the top first. The entries' bodies load after this commit, so
+  // pinScrollToBottom keeps following the bottom as they fill in rather than
+  // hoping a fixed delay was long enough.
+  useLayoutEffect(() => {
+    // Hidden, the pane has no layout to scroll; the flag waits for activation.
+    if (!loaded || !isActive || !pendingScrollToBottom) return;
+    const el = mainContainerRef.current;
+    if (el) pinScrollToBottom(el);
+    clearPendingThreadScrollToBottom();
+  }, [loaded, isActive, pendingScrollToBottom, mainContainerRef]);
+
+  // Handle pending edit for thread view (e.g., after Reply creates a new
+  // HUMAN.md). The load seeds the store with the entry before it sets
+  // `loaded`, so the item is there to open. The editor (CodeMirror) takes up
+  // significant vertical space once it mounts, on a later commit — the
+  // bottom pin follows it down as it does.
   useEffect(() => {
-    if (loading || !pendingScrollToBottom) return;
-
-    // Short delay for the DOM to settle after React renders the new entries.
-    // The flag is cleared inside the callback rather than up front: clearing it
-    // first would re-run this effect, and its cleanup would cancel the very
-    // timer it just scheduled.
-    const timer = setTimeout(() => {
-      clearPendingThreadScrollToBottom();
-      const el = mainContainerRef.current;
-      if (el) {
-        el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
-      }
-    }, 50);
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending scroll-to-bottom timeout on unmount / before re-run.
-    return () => clearTimeout(timer);
-  }, [loading, pendingScrollToBottom, mainContainerRef]);
-
-  // Handle pending edit for thread view (e.g., after Reply creates a new HUMAN.md)
-  useEffect(() => {
-    if (loading || !pendingEditFile || pendingEditView !== 'thread') return;
-
-    const filePath = pendingEditFile;
-    let scrollTimer: ReturnType<typeof setTimeout> | undefined;
-    const timer = setTimeout(() => {
-      setItemExpanded(filePath, true);
-      setItemEditing(filePath, true);
-      clearPendingEditFile();
-
-      // The editor (CodeMirror) takes up significant vertical space once it
-      // mounts.  The earlier scroll-to-bottom fired before the editor existed,
-      // so we need a second scroll once the editor has had time to render.
-      scrollTimer = setTimeout(() => {
-        const el = mainContainerRef.current;
-        if (el) {
-          el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
-        }
-      }, 300);
-    }, 100);
-    // Returns the useEffect cleanup (an unsubscribe-style teardown): clears the pending edit/scroll timeouts on unmount / before re-run.
-    return () => {
-      clearTimeout(timer);
-      if (scrollTimer !== undefined) clearTimeout(scrollTimer);
-    };
-  }, [loading, pendingEditFile, pendingEditView, mainContainerRef]);
+    if (!loaded || !isActive || !pendingEditFile || pendingEditView !== 'thread') return;
+    setItemExpanded(pendingEditFile, true);
+    setItemEditing(pendingEditFile, true);
+    clearPendingEditFile();
+    const el = mainContainerRef.current;
+    if (el) pinScrollToBottom(el);
+  }, [loaded, isActive, pendingEditFile, pendingEditView, mainContainerRef]);
 
   // Navigate breadcrumb — switches to browser view at the given path
   const handleBreadcrumbNavigate = (path: string) => {

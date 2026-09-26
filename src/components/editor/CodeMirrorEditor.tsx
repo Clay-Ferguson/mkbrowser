@@ -30,10 +30,6 @@ import { createFontSizeTheme } from './editorTheme';
 import { logger } from '../../shared/logUtil';
 import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_GREEN, BUTTON_CLASS_SM_NEUTRAL } from '../../renderer/styles';
 
-// Delay before auto-focusing / scrolling to a line after mount. Lets CodeMirror finish its
-// initial layout so focus and scrollIntoView land on correctly measured content.
-const FOCUS_DELAY_MS = 100;
-
 // Debounce window for the onChange callback. Collapses rapid keystroke bursts (e.g. speech-to-text
 // or held keys) into a single store update without a perceptible lag.
 const ONCHANGE_DEBOUNCE_MS = 50;
@@ -281,7 +277,7 @@ function createEditorHandle(viewRef: RefObject<EditorView | null>): CodeMirrorEd
 
 /**
  * Post-mount focus/scroll behavior, run once CodeMirror has finished its initial layout
- * (see FOCUS_DELAY_MS). Module-level (not compiled by the React Compiler): the try/catch
+ * (the animation frame after construction — see the mount effect). Module-level (not compiled by the React Compiler): the try/catch
  * around the goToLine dispatch would make the compiler bail out on the whole component.
  */
 function applyPostMountFocus(
@@ -699,17 +695,20 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     // ready. Notify the parent so it can register this editor without racing a ref read.
     readyEvent(createEditorHandle(viewRef));
 
-    // Auto-focus and scroll to line after a delay to ensure rendering is complete
-    const focusTimer = setTimeout(() => {
+    // Auto-focus and scroll to line once CodeMirror has measured its initial layout, so focus
+    // and scrollIntoView land on correctly measured content. The constructor schedules that
+    // measurement as an animation-frame callback; this one is queued after it, so it runs in the
+    // same frame, right after the measure — no guessed delay.
+    const focusFrame = requestAnimationFrame(() => {
       if (viewRef.current) {
         applyPostMountFocus(viewRef.current, cfg, () => goToLineCompleteEvent());
       }
-    }, FOCUS_DELAY_MS);
+    });
 
     // The useEffect cleanup (an unsubscribe-style teardown) returned by every return path below:
     // clears pending timers and destroys the CodeMirror view on unmount.
     const cleanup = () => {
-      clearTimeout(focusTimer);
+      cancelAnimationFrame(focusFrame);
       // Deliver (never drop) any pending onChange so the final keystrokes survive teardown —
       // e.g. an unmount mid-edit keeps them in the store's edit buffer. Intentional discards
       // (Ctrl-Q force cancel) cancel the pending state before this runs, making it a no-op.
