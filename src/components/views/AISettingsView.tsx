@@ -5,7 +5,7 @@ import { api } from '../../renderer/api';
 import { saveAiConfig } from '../../renderer/config';
 import { runOp } from '../../renderer/runOp';
 import { logger } from '../../shared/logUtil';
-import { useAS, useIsActiveView, getAiConfig } from '../../store';
+import { useAS, useIsActiveView } from '../../store';
 import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../shared/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import { DEFAULT_AI_REWRITE_PERSONA } from '../../shared/ai/aiPrompts';
@@ -132,15 +132,24 @@ function AISettingsView() {
     aiRewriteMode,
     aiRewritePrompt,
     aiRewritePrompts,
+    llamacppBaseUrl: storedLlamacppBaseUrl,
+    agenticAllowedFolders: storedAgenticAllowedFolders,
   } = useAS(s => s.aiConfig);
   // The active persona is always read from the store (ThreadView can change it
   // too); PersonaEditor keeps only the textarea draft, keyed on this name.
   const personaName = aiRewritePrompt || DEFAULT_PERSONA_NAME;
 
-  // Text fields keep a local buffer for keystroke responsiveness, seeded lazily
-  // from the store (nothing else writes them) and persisted on blur.
-  const [llamacppBaseUrl, setLlamacppBaseUrl] = useState<string>(() => getAiConfig().llamacppBaseUrl);
-  const [agenticAllowedFolders, setAgenticAllowedFolders] = useState<string>(() => getAiConfig().agenticAllowedFolders);
+  // Text fields keep a local draft for keystroke responsiveness, persisted on
+  // blur. The store stays the source of truth: when its value changes under us
+  // (e.g. saveAiConfig rolling back a failed write) the draft is resynced.
+  const [llamacppBaseUrl, setLlamacppBaseUrl] = useState(storedLlamacppBaseUrl);
+  const [agenticAllowedFolders, setAgenticAllowedFolders] = useState(storedAgenticAllowedFolders);
+  const [prevStored, setPrevStored] = useState({ url: storedLlamacppBaseUrl, folders: storedAgenticAllowedFolders });
+  if (prevStored.url !== storedLlamacppBaseUrl || prevStored.folders !== storedAgenticAllowedFolders) {
+    setPrevStored({ url: storedLlamacppBaseUrl, folders: storedAgenticAllowedFolders });
+    if (prevStored.url !== storedLlamacppBaseUrl) setLlamacppBaseUrl(storedLlamacppBaseUrl);
+    if (prevStored.folders !== storedAgenticAllowedFolders) setAgenticAllowedFolders(storedAgenticAllowedFolders);
+  }
 
   const [showPromptDeleteConfirm, setShowPromptDeleteConfirm] = useState(false);
   // "New Persona" dialog + the name-collision message it can raise (shown stacked

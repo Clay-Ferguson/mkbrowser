@@ -173,6 +173,16 @@ function stripTrailingSep(path: string): string {
   return path.replace(/[/\\]+$/, '');
 }
 
+/**
+ * Whether a listing is index-ordered (its folder has an .INDEX.yaml): the main
+ * process stamps `indexOrder` on entries only then. `hasIndexFile` is derived from
+ * the listing here, in the same set() that installs it, so no render ever pairs a
+ * listing with the previous folder's flag.
+ */
+function listingHasIndex(entries: FileEntry[]): boolean {
+  return entries.some((e) => e.indexOrder !== undefined);
+}
+
 /** The store item for a directory-listing entry (or one of its attachments). */
 function toIncomingItem(file: FileEntry): IncomingItem {
   return {
@@ -347,12 +357,13 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
         ...(file.attachments ?? []).map(toIncomingItem),
       ]);
       const newItems = syncListingItems(get().items, dirPath, incoming);
-      set(newItems ? { items: newItems, currentEntries: entries } : { currentEntries: entries });
+      const hasIndexFile = listingHasIndex(entries);
+      set(newItems ? { items: newItems, currentEntries: entries, hasIndexFile } : { currentEntries: entries, hasIndexFile });
     },
 
     setCurrentEntries: (entries) => {
       if (get().currentEntries === entries) return;
-      set({ currentEntries: entries });
+      set({ currentEntries: entries, hasIndexFile: listingHasIndex(entries) });
     },
 
     setEntriesLoading: (loading) => {

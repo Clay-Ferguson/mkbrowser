@@ -14,7 +14,6 @@ import BrowseEntryList from './BrowseEntryList';
 import {
   cutSelectedItems,
   setCurrentPath,
-  setHasIndexFile,
   setIndexYaml,
   useAS,
   type SearchDefinition,
@@ -75,7 +74,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
   const mainContainerRef = useRef<HTMLElement | null>(null);
   const handleMainScroll = usePendingBrowseIntents(mainContainerRef);
 
-  // Detect whether the current folder uses index ordering, and load the yaml into the store
+  // Load the current folder's .INDEX.yaml into the store when it is index-ordered
   useEffect(() => {
     // A slow readIndexYaml can resolve after navigation (or after a newer run
     // for the same folder), so its write is gated on this run still being the
@@ -89,8 +88,8 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     const firstEntry = entries[0];
     if (firstEntry && !isSamePath(getParentPath(firstEntry.path), currentPath)) return;
     let ignore = false;
+    // hasIndexFile itself is derived by the store alongside currentEntries.
     const hasIndex = entries.some((e) => e.indexOrder !== undefined);
-    setHasIndexFile(hasIndex);
     if (hasIndex && currentPath) {
       void api.readIndexYaml(currentPath).then((yaml) => {
         if (ignore) return;

@@ -503,7 +503,8 @@ export interface AppState {
 
   /**
    * True when the current directory contains a .INDEX.yaml file.
-   * Controls sort behavior and related UI across the app.
+   * Controls sort behavior and related UI across the app. Derived from
+   * `currentEntries` (set in the same update), never written on its own.
    */
   hasIndexFile: boolean;
 

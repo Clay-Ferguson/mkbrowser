@@ -51,7 +51,6 @@ export interface IndexTreeSlice {
   setPendingIndexTreeReveal: (path: string) => void;
   revealInTree: (path: string) => void;
   clearPendingIndexTreeReveal: () => void;
-  setHasIndexFile: (hasIndexFile: boolean) => void;
   setIndexYaml: (indexYaml: AppState['indexYaml']) => void;
 }
 
@@ -135,12 +134,6 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
       set({ pendingIndexTreeReveal: null });
     },
 
-    /** Set whether the current directory contains a .INDEX.yaml file. */
-    setHasIndexFile: (hasIndexFile) => {
-      if (get().hasIndexFile === hasIndexFile) return;
-      set({ hasIndexFile });
-    },
-
     /** Set the parsed .INDEX.yaml for the current directory. */
     setIndexYaml: (indexYaml) => {
       if (get().indexYaml === indexYaml) return;
@@ -182,10 +175,6 @@ export function revealInTree(path: string): void {
 
 export function clearPendingIndexTreeReveal(): void {
   getState().clearPendingIndexTreeReveal();
-}
-
-export function setHasIndexFile(hasIndexFile: boolean): void {
-  getState().setHasIndexFile(hasIndexFile);
 }
 
 export function setIndexYaml(indexYaml: AppState['indexYaml']): void {
