@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { ChevronRightIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { saveAiConfig } from '../../renderer/config';
+import { runOp } from '../../renderer/runOp';
 import { useAS, getAiConfig } from '../../store';
 import type { AIModelConfig, AIRewritePromptDef, AppConfig, AIUsageWithCosts } from '../../shared/shared';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
@@ -185,26 +186,23 @@ function AISettingsView() {
     return () => { ignore = true; };
   }, [currentView]);
 
-  const saveAiConfigField = async (updates: Partial<AppConfig>) => {
-    try {
-      // saveAiConfig persists AND mirrors the reactive subset into the store, so
-      // live consumers (e.g. the editor's AI Rewrite button) update immediately.
-      await saveAiConfig(updates);
-    } catch {
-      // Silently fail — config will be stale until next save
-    }
+  // saveAiConfig persists AND mirrors the reactive subset into the store, so
+  // live consumers (e.g. the editor's AI Rewrite button) update immediately.
+  // A failed write leaves the store unchanged and is reported by runOp.
+  const saveAiConfigField = (updates: Partial<AppConfig>) => {
+    runOp(() => saveAiConfig(updates), 'Failed to save AI settings: ');
   };
 
   const handleAiEnabledChange = (enabled: boolean) => {
-    void saveAiConfigField({ aiEnabled: enabled });
+    saveAiConfigField({ aiEnabled: enabled });
   };
 
   const handleAiModelChange = (modelName: string) => {
-    void saveAiConfigField({ aiModel: modelName });
+    saveAiConfigField({ aiModel: modelName });
   };
 
   const handleLlamacppBaseUrlBlur = () => {
-    void saveAiConfigField({ llamacppBaseUrl });
+    saveAiConfigField({ llamacppBaseUrl });
   };
 
   // --- AI Model CRUD handlers ---
@@ -233,7 +231,7 @@ function AISettingsView() {
     const updated = idx >= 0
       ? aiModels.map((m, i) => (i === idx ? model : m))
       : [...aiModels, model];
-    void saveAiConfigField({ aiModels: updated, aiModel: model.name });
+    saveAiConfigField({ aiModels: updated, aiModel: model.name });
     setShowEditDialog(false);
     setPendingSaveModel(null);
   };
@@ -297,7 +295,7 @@ function AISettingsView() {
     }
     const updated = aiModels.filter((m) => normalizeModelKey(m.name) !== selectedModelKey);
     const newSelected = updated.length > 0 ? updated[0]!.name : ''; 
-    void saveAiConfigField({ aiModels: updated, aiModel: newSelected });
+    saveAiConfigField({ aiModels: updated, aiModel: newSelected });
     setShowDeleteConfirm(false);
   };
 
@@ -318,7 +316,7 @@ function AISettingsView() {
       return;
     }
     setShowNewPersonaDialog(false);
-    void saveAiConfigField({
+    saveAiConfigField({
       aiRewritePrompts: [...aiRewritePrompts, { name, prompt: '' }],
       aiRewritePrompt: name,
     });
@@ -328,7 +326,7 @@ function AISettingsView() {
   const handleSavePersona = (name: string, prompt: string) => {
     const updated = aiRewritePrompts.filter((p) => p.name !== name);
     updated.push({ name, prompt });
-    void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: name });
+    saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: name });
   };
 
   // Fire-and-forget: wired directly to the reset-confirmation dialog's
@@ -372,7 +370,7 @@ function AISettingsView() {
                     label="Agentic Mode"
                     checked={agenticMode}
                     onChange={(checked) => {
-                      void saveAiConfigField({ agenticMode: checked });
+                      saveAiConfigField({ agenticMode: checked });
                     }}
                     inputClassName={SETTINGS_CHECKBOX_CLASS}
                     spanClassName="text-slate-200"
@@ -454,7 +452,7 @@ function AISettingsView() {
                       <textarea
                         value={agenticAllowedFolders}
                         onChange={(e) => setAgenticAllowedFolders(e.target.value)}
-                        onBlur={() => void saveAiConfigField({ agenticAllowedFolders })}
+                        onBlur={() => saveAiConfigField({ agenticAllowedFolders })}
                         placeholder={"/home/user/projects\n/home/user/documents"}
                         rows={4}
                         className="w-full bg-slate-700 border border-slate-600 text-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-y font-mono text-sm"
@@ -593,7 +591,7 @@ function AISettingsView() {
                   key={personaName}
                   personaName={personaName}
                   aiRewritePrompts={aiRewritePrompts}
-                  onSelect={(name) => void saveAiConfigField({ aiRewritePrompt: name })}
+                  onSelect={(name) => saveAiConfigField({ aiRewritePrompt: name })}
                   onNew={() => setShowNewPersonaDialog(true)}
                   onSave={handleSavePersona}
                   onDelete={() => setShowPromptDeleteConfirm(true)}
@@ -610,7 +608,7 @@ function AISettingsView() {
                     label="Enable AI Rewrite"
                     checked={aiRewriteMode}
                     onChange={(checked) => {
-                      void saveAiConfigField({ aiRewriteMode: checked });
+                      saveAiConfigField({ aiRewriteMode: checked });
                     }}
                     inputClassName={SETTINGS_CHECKBOX_CLASS}
                     spanClassName="text-slate-200"
@@ -621,7 +619,7 @@ function AISettingsView() {
                       label="Rewrite using Full Doc Context (Document-Type Folders Only)"
                       checked={fullDocContext}
                       onChange={(checked) => {
-                        void saveAiConfigField({ fullDocContext: checked });
+                        saveAiConfigField({ fullDocContext: checked });
                       }}
                       inputClassName={SETTINGS_CHECKBOX_CLASS}
                       spanClassName="text-slate-200"
@@ -711,7 +709,7 @@ function AISettingsView() {
           onConfirm={() => {
             const updated = aiRewritePrompts.filter((p) => p.name !== personaName);
             setShowPromptDeleteConfirm(false);
-            void saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: undefined });
+            saveAiConfigField({ aiRewritePrompts: updated, aiRewritePrompt: undefined });
           }}
           onCancel={() => setShowPromptDeleteConfirm(false)}
         />

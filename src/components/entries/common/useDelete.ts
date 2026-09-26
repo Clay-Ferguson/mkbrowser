@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { api } from '../../../renderer/api';
+import { api, ipcErrorMessage } from '../../../renderer/api';
 import type { DeleteState } from './types';
-import { deleteItems } from '../../../store';
-import { logger } from '../../../shared/logUtil';
+import { deleteItems, setAppError } from '../../../store';
+import { getFileName } from '../../../renderer/pathUtil';
 
 interface UseDeleteOptions {
   /** Full path of the entry to delete */
@@ -14,8 +14,9 @@ interface UseDeleteOptions {
 /**
  * Deletes the file via IPC and updates the store. Module-level (not in the
  * hook) so its try/catch/finally doesn't make the React Compiler bail out on
- * useDelete. A failed IPC delete is reported rather than surfacing as an
- * unhandled promise rejection.
+ * useDelete. A failed delete (thrown or `false`) is reported through the app
+ * error dialog rather than surfacing as an unhandled rejection or failing
+ * silently.
  */
 async function performDelete(path: string, onDelete: () => void): Promise<void> {
   try {
@@ -25,9 +26,11 @@ async function performDelete(path: string, onDelete: () => void): Promise<void> 
       // as selected or referenced in memory
       deleteItems([path]);
       onDelete();
+    } else {
+      setAppError(`Could not delete "${getFileName(path)}".`);
     }
   } catch (err) {
-    logger.error('Failed to delete file:', err);
+    setAppError(`Could not delete "${getFileName(path)}": ${ipcErrorMessage(err)}`);
   }
 }
 

@@ -5,7 +5,7 @@ import { api } from '../../renderer/api';
 import { saveSettings } from '../../renderer/config';
 import { refreshDirectory } from '../../renderer/directoryLoader';
 import { BUTTON_CLASS_XS, ENTRY_DROP_TARGET } from '../../renderer/styles';
-import { logger } from '../../shared/logUtil';
+import { runOp } from '../../renderer/runOp';
 import { isImageFile } from '../../shared/fileTypes';
 import FileTypeIcon from '../FileTypeIcon';
 import BookmarksPopupMenu from '../menus/BookmarksPopupMenu';
@@ -174,16 +174,6 @@ function isEditingMarkdown(): boolean {
   return false;
 }
 
-/**
- * Fire-and-forget runner for async context-menu / paste / drag-drop actions:
- * invokes `op` and logs a failure instead of leaking an unhandled rejection.
- * Module-level so the component's handlers don't need try/catch bodies — the
- * React Compiler bails out on value blocks (`?.`, `||`, ternaries) inside a
- * try/catch statement.
- */
-function runAndLogFailure(message: string, op: () => Promise<void>): void {
-  op().catch((err: unknown) => logger.error(message, err));
-}
 
 // ── Rows ─────────────────────────────────────────────────────────────────────
 //
@@ -575,13 +565,13 @@ function IndexTreeView() {
    * reported.
    */
   // Fire-and-forget UI handler: sync signature with the async body run through
-  // runAndLogFailure so failures are reported instead of leaking an unhandled
+  // runOp so failures are reported instead of leaking an unhandled
   // rejection.
   const handlePasteIntoFolder = (node: FileNode) => {
     const cutItems = getCutItems();
     if (cutItems.length === 0) return;
 
-    runAndLogFailure('Failed to paste items into folder:', async () => {
+    runOp(async () => {
       const result = await pasteCutItems(
         cutItems,
         node.path,
@@ -620,7 +610,7 @@ function IndexTreeView() {
       // has to reach the user, who is otherwise left with a menu click that did
       // nothing. Items that failed to move stay cut at their source.
       setAppError(result.error || 'Failed to paste items');
-    });
+    }, 'Failed to paste items into folder: ');
   };
 
   /**
@@ -637,10 +627,10 @@ function IndexTreeView() {
    * cut would leave behind, which the user confirms first, as BrowseView does.
    */
   // Fire-and-forget UI handler: sync signature with the async body run through
-  // runAndLogFailure so failures are reported instead of leaking an unhandled
+  // runOp so failures are reported instead of leaking an unhandled
   // rejection.
   const handleCutNode = (node: FileNode) => {
-    runAndLogFailure('Failed to cut item:', async () => {
+    runOp(async () => {
       const parentPath = getParentPath(node.path);
       const entries = await api.readDirectory(parentPath);
       const entry = entries.find(e => isSamePath(e.path, node.path));
@@ -656,7 +646,7 @@ function IndexTreeView() {
       }
 
       cutSingleItem(entry);
-    });
+    }, 'Failed to cut item: ');
   };
 
   /**
@@ -705,7 +695,7 @@ function IndexTreeView() {
    * writes into.
    */
   const startNewFile = (folderPath: string, initialContent: string) => {
-    runAndLogFailure('Failed to create file:', async () => {
+    runOp(async () => {
       const indexYaml = await api.readIndexYaml(folderPath);
       if (!indexYaml) {
         navigateToBrowserPath(folderPath);
@@ -713,25 +703,28 @@ function IndexTreeView() {
         return;
       }
       await createFileInFolder(generateTimestampFileName(), folderPath, 0, initialContent);
-    });
+    }, 'Failed to create file: ');
   };
 
   const handleCreateFile = (fileName: string) => {
     const pending = createFileParent;
     if (!pending) return;
-    runAndLogFailure('Failed to create file:', () =>
-      createFileInFolder(fileName, pending.folderPath, null, pending.initialContent));
+    runOp(() =>
+      createFileInFolder(fileName, pending.folderPath, null, pending.initialContent), 'Failed to create file: ');
   };
 
   const handleCreateFolder = (folderName: string) => {
     const parentPath = createFolderParent;
     if (!parentPath) return;
 
-    runAndLogFailure('Failed to create folder:', async () => {
+    runOp(async () => {
       const folderPath = joinPath(parentPath, folderName);
       const result = await api.createFolder(folderPath);
       setCreateFolderParent(null);
-      if (!result.success) return;
+      if (!result.success) {
+        setAppError(result.error || `Could not create folder "${folderName}".`);
+        return;
+      }
 
       await api.reconcileIndexedFiles(parentPath, false);
 
@@ -742,7 +735,7 @@ function IndexTreeView() {
 
       // Refresh the parent folder in the tree if it is expanded.
       await reloadExpandedTreeFolder(parentPath);
-    });
+    }, 'Failed to create folder: ');
   };
 
   const handleRename = (newName: string) => {
@@ -750,11 +743,14 @@ function IndexTreeView() {
     setRenameTarget(null);
     if (!target) return;
 
-    runAndLogFailure('Failed to rename item:', async () => {
+    runOp(async () => {
       const parentPath = getParentPath(target.path);
       const newPath = joinPath(parentPath, newName);
       const success = await api.renameFile(target.path, newPath);
-      if (!success) return;
+      if (!success) {
+        setAppError(`Could not rename "${target.name}" to "${newName}". An item with that name may already exist.`);
+        return;
+      }
 
       // Re-key the cached item (and descendants) and remap the other slices
       // holding paths (bookmarks, calendar events, copied links); persist the
@@ -772,7 +768,7 @@ function IndexTreeView() {
 
       // Refresh the parent folder in the tree if it is expanded.
       await reloadExpandedTreeFolder(parentPath);
-    });
+    }, 'Failed to rename item: ');
   };
 
   const handleDelete = () => {
@@ -780,10 +776,13 @@ function IndexTreeView() {
     setDeleteTarget(null);
     if (!target) return;
 
-    runAndLogFailure('Failed to delete item:', async () => {
+    runOp(async () => {
       const parentPath = getParentPath(target.path);
       const success = await api.deleteFile(target.path);
-      if (!success) return;
+      if (!success) {
+        setAppError(`Could not delete "${target.name}".`);
+        return;
+      }
 
       deleteItems([target.path]);
       await api.reconcileIndexedFiles(parentPath, false);
@@ -795,7 +794,7 @@ function IndexTreeView() {
 
       // Refresh the parent folder in the tree if it is expanded.
       await reloadExpandedTreeFolder(parentPath);
-    });
+    }, 'Failed to delete item: ');
   };
 
   /**
@@ -814,9 +813,9 @@ function IndexTreeView() {
     if (!payload || !node.isDirectory) return;
     if (!canDropInto(payload, node.path)) return;
 
-    runAndLogFailure('Failed to move item into folder:', async () => {
+    runOp(async () => {
       await completeEntryDrop(payload, node.path);
-    });
+    }, 'Failed to move item into folder: ');
   };
 
   const handleDragOverFolder = (node: FileNode, e: React.DragEvent) => {

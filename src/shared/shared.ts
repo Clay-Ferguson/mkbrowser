@@ -267,6 +267,8 @@ export interface FileWriteResult {
    * (isReplacedFile), and wipes the item's cached content and volatile flags.
    */
   createdTime?: number;
+  /** Why the write failed; set only when ok is false */
+  error?: string;
 }
 
 export interface SearchResult {

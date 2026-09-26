@@ -27,7 +27,7 @@ import { hasScriptedAnswer, queueScriptedAnswer } from './main/ai/langGraph';
 import type { StreamCallbacks } from './main/ai/langGraph';
 import { getUsageWithCosts, resetUsage } from './main/ai/usageTracker';
 import { readExifMetadata, readImageDimensions, writeExifMetadata } from './main/exifUtil';
-import { logger } from './shared/logUtil';
+import { logger, toErrorMessage } from './shared/logUtil';
 import { exportFolderContents, exportToPdf } from './main/exportUtil';
 import { runShellScript, runOcrInTerminal } from './main/launcherUtil';
 
@@ -415,7 +415,7 @@ function setupIpcHandlers(): void {
       return { ok: true, content: finalContent, mtime: savedStats?.mtimeMs ?? Date.now(), size: savedStats?.size, createdTime: savedStats?.birthtimeMs };
     } catch (error) {
       logger.error('Error writing file:', error);
-      return { ok: false, content, mtime: 0 };
+      return { ok: false, content, mtime: 0, error: toErrorMessage(error) };
     }
   });
 

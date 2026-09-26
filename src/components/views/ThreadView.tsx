@@ -14,6 +14,7 @@ import {
   useAS,
 } from '../../store';
 import { saveAiConfig } from '../../renderer/config';
+import { runOp } from '../../renderer/runOp';
 import EditableCombobox, { type ComboboxOption } from '../EditableCombobox';
 import MarkdownEntry from '../entries/MarkdownEntry';
 import ErrorBoundary from '../ErrorBoundary';
@@ -88,7 +89,7 @@ function ThreadView() {
    * same store mirror) picks it up immediately.
    */
   const handlePersonaSelect = (name: string) => {
-    void saveAiConfig({ aiRewritePrompt: name });
+    runOp(() => saveAiConfig({ aiRewritePrompt: name }), 'Failed to save persona: ');
   };
 
   // Ref to the scrollable container (used for auto-scrolling to bottom / to an item)

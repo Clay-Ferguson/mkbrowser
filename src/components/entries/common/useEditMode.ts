@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { api } from '../../../renderer/api';
-import { useAS, getItem, setItemContent, setItemEditing, startEditing, setItemEditContent, setItemReviewing } from '../../../store';
+import { api, ipcErrorMessage } from '../../../renderer/api';
+import { useAS, getItem, setAppError, setItemContent, setItemEditing, startEditing, setItemEditContent, setItemReviewing } from '../../../store';
 import { applyGlobalHighlight, getGlobalHighlightText } from '../../../renderer/globalHighlight';
 import { removeTOC } from '../../../shared/tocUtil';
-import { logger } from '../../../shared/logUtil';
+import { getFileName } from '../../../renderer/pathUtil';
 import type { EditModeState } from './types';
 
 interface UseEditModeOptions {
@@ -12,13 +12,22 @@ interface UseEditModeOptions {
 }
 
 /**
+ * Shows a failed save in the app error dialog. A save must never fail silently:
+ * the editor stays open, and without this the user would believe the edit was
+ * kept.
+ */
+function reportSaveFailure(path: string, reason: string | undefined): void {
+  setAppError(`Could not save "${getFileName(path)}"` + (reason ? `: ${reason}` : '.'));
+}
+
+/**
  * Writes the file via IPC and, on success, commits the saved content to the
  * store and exits edit mode. Module-level (not in the hook) so its
  * try/catch/finally doesn't make the React Compiler bail out on useEditMode.
- * The catch keeps a failed IPC write from becoming an unhandled rejection at
- * the fire-and-forget bindings (Ctrl+S, Save button, onBlur); callers that
- * await it observe a resolved (no-op) result on failure, matching the
- * pre-existing behavior when `result.ok` is false.
+ * A failed write (thrown or `ok: false`) is reported through the app error
+ * dialog and leaves the editor open with the unsaved buffer intact; it never
+ * rejects, so the fire-and-forget bindings (Ctrl+S, Save button, onBlur) can't
+ * leak an unhandled rejection.
  */
 async function writeFileAndExitEditMode(path: string, editContent: string): Promise<void> {
   try {
@@ -36,9 +45,11 @@ async function writeFileAndExitEditMode(path: string, editContent: string): Prom
       if (getGlobalHighlightText()) {
         requestAnimationFrame(() => applyGlobalHighlight(getGlobalHighlightText()));
       }
+    } else {
+      reportSaveFailure(path, result.error);
     }
   } catch (err) {
-    logger.error('Failed to save file:', err);
+    reportSaveFailure(path, ipcErrorMessage(err));
   }
 }
 
@@ -56,13 +67,16 @@ async function writeFileAndExitEditMode(path: string, editContent: string): Prom
  * dispatched into the editor at all.
  *
  * Resolves true only when the write succeeded, so callers can show saved-confirmation
- * feedback. Module-level (not in the hook) so its try/catch doesn't make the React
- * Compiler bail out on useEditMode.
+ * feedback; a failure is reported through the app error dialog. Module-level (not in the
+ * hook) so its try/catch doesn't make the React Compiler bail out on useEditMode.
  */
 async function writeFileKeepEditing(path: string, editContent: string): Promise<boolean> {
   try {
     const result = await api.writeFile(path, editContent);
-    if (!result.ok) return false;
+    if (!result.ok) {
+      reportSaveFailure(path, result.error);
+      return false;
+    }
     setItemContent(path, result.content, result.mtime, result.size, result.createdTime);
     const savedBuffer = removeTOC(result.content);
     if (savedBuffer !== editContent) {
@@ -70,7 +84,7 @@ async function writeFileKeepEditing(path: string, editContent: string): Promise<
     }
     return true;
   } catch (err) {
-    logger.error('Failed to save file:', err);
+    reportSaveFailure(path, ipcErrorMessage(err));
     return false;
   }
 }

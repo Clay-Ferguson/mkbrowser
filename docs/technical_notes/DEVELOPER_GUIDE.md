@@ -310,6 +310,15 @@ To add a new field to the global store:
 - **Import from the `src/store` barrel**, not individual slice files.
 - **Persistence is explicit**, lives in the main process (`configMgr`), and is re-hydrated by `loadConfig()`; the store itself never writes to disk.
 
+### Reporting async failures
+
+**Every user-initiated async operation reports failure through `setAppError`** (the app-wide error dialog rendered by `App.tsx`). Log-only is for background work the user didn't ask for. A silent failure is worse than a noisy one here: a save that fails with no message leaves the user believing their edit was kept.
+
+- **Fire-and-forget handlers** (button clicks, menu items, drag-and-drop, `() => void` entry props) wrap their async body in `runOp(op, 'Failed to X: ')` from `src/renderer/runOp.ts`. It reports a thrown/rejected error with the IPC wrapper stripped (`ipcErrorMessage`). Its optional third argument routes the message elsewhere when the error belongs in a view-local display (e.g. BrowseView's replace-result message). Being a plain module-level function, it keeps try/catch out of components, which the React Compiler requires.
+- **IPC calls that report failure in their result** (`ok: false`, `success: false`, `{ error }`, a bare `false`) don't throw, so `runOp` can't see them. Check the result and call `setAppError` yourself, naming the item (`Could not save "notes.md": …`).
+- **Module-level write helpers** (e.g. `writeFileAndExitEditMode`, `performRename`, `performDelete`) call `setAppError` on both paths themselves and never reject.
+- **Component-local `AlertDialog`s** are only for errors that need component context, such as AI streaming (`aiErrorMessage`), or for input validation (`TagsPicker`).
+
 ### Local AI Model Inference Troubleshooting
 
 Local inference runs against a `llama-server` that **you** start and manage yourself, outside of MkBrowser. The app has no control over that process — it only sends requests to the **llama.cpp Base URL** configured in AI Settings. If you happen to be running on extremely limited hardware these are the two settings you can change to turn off some advanced reasoning and agent of capabilities, to run just a minimalist chatbot:

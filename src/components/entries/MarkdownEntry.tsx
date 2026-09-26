@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { clsx } from 'clsx';
 import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
-import { api } from '../../renderer/api';
+import { api, ipcErrorMessage } from '../../renderer/api';
 import { saveAiConfig, saveSettings } from '../../renderer/config';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../shared/types';
@@ -18,6 +18,7 @@ import {
   setPendingThreadScrollToBottom,
   setItemReviewing,
   setItemContent,
+  setAppError,
   toggleExpandedEditor,
   setShowPropsInEditor,
   isEditUnmodified,
@@ -33,7 +34,7 @@ import PropsDisplay from '../PropsDisplay';
 import MarkdownView from './MarkdownView';
 import ErrorBoundary from '../ErrorBoundary';
 import { logger } from '../../shared/logUtil';
-import { getParentPath } from '../../renderer/pathUtil';
+import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { openCalendarAtDate } from '../../renderer/calendarNav';
 import { extractTimestamp } from '../../shared/timeUtil';
 import { registerActiveMarkdownEditor, unregisterActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
@@ -72,7 +73,7 @@ async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<v
     const parentFolder = getParentPath(entryPath);
     const result = await api.replyToAi(parentFolder, true);
     if ('error' in result) {
-      logger.error('Reply error:', result.error);
+      setAppError('Could not create the reply: ' + result.error);
     } else {
       if (view === 'thread') {
         navigateToBrowserPath(result.folderPath, undefined, 'thread');
@@ -83,7 +84,7 @@ async function replyToAiAndNavigate(entryPath: string, view: AppView): Promise<v
       setPendingEditFile(result.filePath, view);
     }
   } catch (err) {
-    logger.error('Reply error:', err);
+    setAppError('Could not create the reply: ' + ipcErrorMessage(err));
   }
 }
 
@@ -124,16 +125,19 @@ function parseFrontMatterMeta(markdown: string): { tags: string[]; props: Record
 /**
  * Writes calendar front matter straight to disk. Used when the calendar dialog was opened from a
  * props click while the entry is *not* in edit mode, so there is no editor buffer to route through.
- * Module-level so its try/catch doesn't make the React Compiler bail out on MarkdownEntry.
+ * Failures are reported through the app error dialog. Module-level so its try/catch doesn't make
+ * the React Compiler bail out on MarkdownEntry.
  */
 async function saveCalendarProps(path: string, newContent: string): Promise<void> {
   try {
     const result = await api.writeFile(path, newContent);
     if (result.ok) {
       setItemContent(path, result.content, result.mtime, result.size, result.createdTime);
+    } else {
+      setAppError(`Could not save calendar properties to "${getFileName(path)}"` + (result.error ? `: ${result.error}` : '.'));
     }
   } catch (err) {
-    logger.error('Failed to save calendar properties:', err);
+    setAppError(`Could not save calendar properties to "${getFileName(path)}": ${ipcErrorMessage(err)}`);
   }
 }
 

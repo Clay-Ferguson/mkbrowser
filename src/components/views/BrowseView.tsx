@@ -5,6 +5,7 @@ import {
   ArrowPathIcon, FolderIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
   FolderPlusIcon, DocumentPlusIcon, CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
+import { runOp } from '../../renderer/runOp';
 import { api } from '../../renderer/api';
 import IndexInsertBar from '../IndexInsertBar';
 import type { FileEntry } from '../../global';
@@ -73,17 +74,6 @@ import { affectsBrowseListing, canDropAsAttachment, dropAsAttachment } from '../
 import { toCalendarEvents } from '../../shared/calendarUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
-/**
- * Fire-and-forget runner for BrowseView's async handlers (bound to button
- * clicks and entry onRename/onDelete props, all `() => void`): awaits `op` and
- * reports a failure through `onError`, prefixed, instead of leaking an
- * unhandled rejection. Module-level so the handlers need no try/catch bodies —
- * the React Compiler bails out on try/finally and on value blocks (`?.`, `||`,
- * ternaries) inside a try/catch statement.
- */
-function runOp(op: () => Promise<void>, errorPrefix: string, onError: (msg: string) => void = setAppError): void {
-  op().catch((err: unknown) => onError(errorPrefix + (err instanceof Error ? err.message : String(err))));
-}
 
 /**
  * Every selection/cut flag BrowseView renders, in a single pass over the item

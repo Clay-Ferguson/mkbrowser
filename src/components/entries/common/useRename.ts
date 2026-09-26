@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { api } from '../../../renderer/api';
-import { setHighlightItem, setItemRenaming, renameItem } from '../../../store';
+import { api, ipcErrorMessage } from '../../../renderer/api';
+import { setAppError, setHighlightItem, setItemRenaming, renameItem } from '../../../store';
 import type { RenameState } from './types';
-import { getParentPath, joinPath } from '../../../renderer/pathUtil';
-import { logger } from '../../../shared/logUtil';
+import { getFileName, getParentPath, joinPath } from '../../../renderer/pathUtil';
 import { saveSettings } from '../../../renderer/config';
 
 interface UseRenameOptions {
@@ -23,8 +22,8 @@ interface UseRenameOptions {
  * Renames the file via IPC and, on success, updates the store (bookmarks,
  * item entry, highlight). Module-level (not in the hook) so its
  * try/catch/finally doesn't make the React Compiler bail out on useRename.
- * A failed IPC rename is reported here rather than surfacing as an unhandled
- * rejection.
+ * A failed rename (thrown or `false`) is reported through the app error
+ * dialog rather than surfacing as an unhandled rejection or failing silently.
  */
 async function performRename(
   path: string,
@@ -46,9 +45,11 @@ async function performRename(
       }
       setHighlightItem(newPath);
       onRename();
+    } else {
+      setAppError(`Could not rename "${getFileName(path)}" to "${trimmedName}". An item with that name may already exist.`);
     }
   } catch (err) {
-    logger.error('Rename failed:', err);
+    setAppError(`Could not rename "${getFileName(path)}": ${ipcErrorMessage(err)}`);
   }
 }
 

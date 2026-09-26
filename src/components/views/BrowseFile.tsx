@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { runOp } from '../../renderer/runOp';
 import { api } from '../../renderer/api';
 import MarkdownEntry from '../entries/MarkdownEntry';
 import GenericEntry from '../entries/GenericEntry';
@@ -14,7 +15,6 @@ import {
   setCurrentPath,
   setItemExpanded,
   useAS,
-  setAppError,
 } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
@@ -23,17 +23,6 @@ import { refreshDirectory } from '../../renderer/directoryLoader';
 import { pasteIntoFolder } from '../../renderer/fileOpsUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
-/**
- * Fire-and-forget runner for the rename/delete refresh handler (an entry
- * `onRename`/`onDelete` prop, typed `() => void`): awaits `op` and reports a
- * failure through `onError`, prefixed, instead of leaking an unhandled
- * rejection. Module-level so the handler needs no try/catch body — the React
- * Compiler bails out on try/finally and on value blocks inside a try/catch.
- * Mirrors BrowseView's runOp.
- */
-function runOp(op: () => Promise<void>, errorPrefix: string, onError: (msg: string) => void = setAppError): void {
-  op().catch((err: unknown) => onError(errorPrefix + (err instanceof Error ? err.message : String(err))));
-}
 
 /**
  * Single-file browsing: renders exactly one file entry in place of the folder
