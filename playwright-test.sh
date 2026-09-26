@@ -34,31 +34,39 @@ select_specific_test() {
     fi
 }
 
-# List the spec files covered by "run all": every tests/e2e/*.spec.ts except the
-# ones prefixed with `private-` (those are only ever run individually).
-public_test_files() {
+# List the spec files covered by "run all": every tests/e2e/*.spec.ts, skipping
+# the ones prefixed with `private-` unless the first argument is "include-private".
+all_test_files() {
+    local include_private="$1"
     local file
     for file in tests/e2e/*.spec.ts; do
         [ -e "$file" ] || continue
-        case "$(basename "$file")" in
-            private-*) continue ;;
-        esac
+        if [ "$include_private" != "include-private" ]; then
+            case "$(basename "$file")" in
+                private-*) continue ;;
+            esac
+        fi
         echo "$file"
     done
 }
 
-# Clean up and run every non-private E2E test
+# Clean up and run every E2E test (private-* only when passed "include-private")
 run_all_tests() {
+    local include_private="$1"
     local file
-    mapfile -t ALL_TEST_FILES < <(public_test_files)
+    mapfile -t ALL_TEST_FILES < <(all_test_files "$include_private")
     if [ ${#ALL_TEST_FILES[@]} -eq 0 ]; then
-        echo "No non-private E2E tests found. Exiting."
+        echo "No E2E tests found. Exiting."
         exit 1
     fi
     for file in "${ALL_TEST_FILES[@]}"; do
         cleanup_test_artifacts "$(basename "$file" .spec.ts)"
     done
-    echo "Running all Playwright E2E tests (skipping private-* tests)..."
+    if [ "$include_private" = "include-private" ]; then
+        echo "Running all Playwright E2E tests (including private-* tests)..."
+    else
+        echo "Running all Playwright E2E tests (skipping private-* tests)..."
+    fi
     npx playwright test "${ALL_TEST_FILES[@]}"
 }
 
@@ -124,17 +132,24 @@ fi
 echo ""
 echo "Select test scope:"
 echo "1) Run all tests (except private ones)"
-echo "2) Run specific test"
-echo "3) Build Video from Existing Images/Wavs"
+echo "2) Run all tests (including private ones)"
+echo "3) Run specific test"
+echo "4) Build Video from Existing Images/Wavs"
 echo ""
-read -p "Enter choice [1-3]: " choice
+read -p "Enter choice [1-4]: " choice
+
+# Options 1 and 2 both "run all"; option 2 also includes the private-* tests
+INCLUDE_PRIVATE=""
+if [ "$choice" = "2" ]; then
+    INCLUDE_PRIVATE="include-private"
+fi
 
 SPECIFIC_TEST=""
 GENERATE_VIDEO=""
 
 # For "run all" and "run specific", ask up front whether to also generate
 # video(s) so the user can start the run and walk away.
-if [ "$choice" = "1" ] || [ "$choice" = "2" ]; then
+if [ "$choice" = "1" ] || [ "$choice" = "2" ] || [ "$choice" = "3" ]; then
     echo ""
     read -p "Generate video(s) after running the test(s)? [y/N]: " gen_choice
     if [[ "$gen_choice" =~ ^[Yy]$ ]]; then
@@ -143,10 +158,10 @@ if [ "$choice" = "1" ] || [ "$choice" = "2" ]; then
 fi
 
 case $choice in
-    1)
-        run_all_tests
+    1|2)
+        run_all_tests "$INCLUDE_PRIVATE"
         ;;
-    2)
+    3)
         SPECIFIC_TEST=$(select_specific_test)
         if [ $? -ne 0 ] || [ -z "$SPECIFIC_TEST" ]; then
             echo "Invalid test selection. Exiting."
@@ -156,7 +171,7 @@ case $choice in
         echo "Running specific test: $SPECIFIC_TEST.spec.ts..."
         npx playwright test tests/e2e/$SPECIFIC_TEST.spec.ts
         ;;
-    3) 
+    4)
         SPECIFIC_TEST=$(select_specific_test)
         if [ $? -ne 0 ] || [ -z "$SPECIFIC_TEST" ]; then
             echo "Invalid test selection. Exiting."
@@ -186,9 +201,10 @@ fi
 echo ""
 
 # Generate video(s) based on the choice and the up-front prompt
-if [ "$choice" = "1" ] && [ -n "$GENERATE_VIDEO" ]; then
-    # Generate a video for every E2E test that just ran (private-* were skipped)
-    for file in $(public_test_files); do
+if { [ "$choice" = "1" ] || [ "$choice" = "2" ]; } && [ -n "$GENERATE_VIDEO" ]; then
+    # Generate a video for every non-private E2E test that just ran (private-*
+    # tests are never demos, so they're skipped here even under option 2)
+    for file in $(all_test_files); do
         test_name=$(basename "$file" .spec.ts)
         generate_video_for_test "$test_name"
         echo ""
@@ -196,11 +212,11 @@ if [ "$choice" = "1" ] && [ -n "$GENERATE_VIDEO" ]; then
         sleep 90
     done
     open_videos_folder
-elif [ "$choice" = "2" ] && [ -n "$GENERATE_VIDEO" ] && [ -n "$SPECIFIC_TEST" ]; then
+elif [ "$choice" = "3" ] && [ -n "$GENERATE_VIDEO" ] && [ -n "$SPECIFIC_TEST" ]; then
     generate_video_for_test "$SPECIFIC_TEST"
     open_videos_folder
-elif [ "$choice" = "3" ] && [ -n "$SPECIFIC_TEST" ]; then
-    # Option 3 exists specifically to build a video from existing images/wavs
+elif [ "$choice" = "4" ] && [ -n "$SPECIFIC_TEST" ]; then
+    # Option 4 exists specifically to build a video from existing images/wavs
     echo ""
     read -p "Generate video from screenshots? [y/N]: " generate_video
     if [[ "$generate_video" =~ ^[Yy]$ ]]; then
