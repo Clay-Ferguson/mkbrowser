@@ -56,7 +56,7 @@ export function mergeTreeNodes(
   previousChildren: TreeNode[] | null | undefined
 ): FileNode[] {
   const fresh = makeTreeNodes(entries);
-  if (!previousChildren || previousChildren.length === 0) return fresh;
+  if (!previousChildren) return fresh;
 
   // Heading nodes (no isDirectory) can't match a directory entry, so they never
   // participate in the merge.
@@ -65,12 +65,16 @@ export function mergeTreeNodes(
     if ('isDirectory' in child) oldByPath.set(child.path, child as FileNode);
   }
 
-  return fresh.map(node => {
+  const merged = fresh.map(node => {
     const existing = oldByPath.get(node.path);
     // A path that changed kind (file <-> folder) must not inherit the old children.
     if (!existing || existing.isDirectory !== node.isDirectory) return node;
+    // Unchanged on disk: reuse the old node so the memo()'d tree row skips its re-render.
+    if (existing.name === node.name && existing.indexOrder === node.indexOrder && !existing.isLoading) return existing;
     return { ...node, isExpanded: existing.isExpanded, children: existing.children };
   });
+  const unchanged = merged.length === previousChildren.length && merged.every((n, i) => n === previousChildren[i]);
+  return unchanged ? (previousChildren as FileNode[]) : merged;
 }
 
 /** Depth-first search for a directory/file node by absolute path within the tree. */
@@ -108,8 +112,10 @@ export async function reloadExpandedTreeFolder(folderPath: string): Promise<void
 
 /**
  * Re-reads every expanded directory node in the tree from disk, returning a new
- * root. Child nodes come from `mergeTreeNodes`, the same builder the lazy expand
- * and `reloadExpandedTreeFolder` use, so all four refresh paths agree on which
+ * root — or the same `node` object when nothing under it changed on disk, so
+ * unchanged subtrees keep their identity and their memo()'d rows don't re-render.
+ * Child nodes come from `mergeTreeNodes`, the same builder the lazy expand and
+ * `reloadExpandedTreeFolder` use, so all four refresh paths agree on which
  * entries a folder has (`.attach` folders filtered out), carry expansion state
  * over by path, and apply the same file <-> folder kind guard. Building children
  * by hand here instead is what let an attach folder reappear in the tree after a
@@ -125,7 +131,10 @@ export async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
   if (!node.isDirectory || !node.isExpanded) return node;
   try {
     const entries = await api.readDirectory(node.path);
-    const children = await Promise.all(mergeTreeNodes(entries, node.children).map(refreshExpandedNodes));
+    const merged = mergeTreeNodes(entries, node.children);
+    const children = await Promise.all(merged.map(refreshExpandedNodes));
+    // Nothing changed at or below this folder: keep its identity (structural sharing).
+    if (merged === node.children && !node.isLoading && children.every((c, i) => c === merged[i])) return node;
     return { ...node, children, isLoading: false };
   } catch {
     return node;

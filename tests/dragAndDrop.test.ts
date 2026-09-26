@@ -3,7 +3,7 @@
  * These decide whether a drag may be dropped at all; the move itself (completeEntryDrop /
  * dropAsAttachment) needs the IPC bridge and is exercised manually / in the packaged app.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   canDropInto,
   canDropAsAttachment,
@@ -11,8 +11,14 @@ import {
   parseDragPayload,
   type DragPayload,
 } from '../src/renderer/dragAndDrop';
-import { mergeTreeNodes } from '../src/renderer/treeNodes';
+import { mergeTreeNodes, refreshExpandedNodes } from '../src/renderer/treeNodes';
+import { api } from '../src/renderer/api';
 import type { FileNode } from '../src/shared/types';
+
+vi.mock('../src/renderer/api', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../src/renderer/api')>()),
+  api: { readDirectory: vi.fn() },
+}));
 
 function file(path: string): DragPayload {
   const name = path.slice(path.lastIndexOf('/') + 1);
@@ -228,5 +234,41 @@ describe('mergeTreeNodes', () => {
     expect(mergeTreeNodes([entry('/root/a', true)], null)).toEqual([
       node('/root/a', true, false, null),
     ]);
+  });
+});
+
+describe('refreshExpandedNodes — structural sharing', () => {
+  // /root (expanded) -> a/ (expanded) -> deep.md, plus b/ (expanded, empty)
+  function tree(): FileNode {
+    return node('/root', true, true, [
+      node('/root/a', true, true, [node('/root/a/deep.md', false, false, null)]),
+      node('/root/b', true, true, []),
+    ]);
+  }
+  const listings: Record<string, ReturnType<typeof entry>[]> = {
+    '/root': [entry('/root/a', true), entry('/root/b', true)],
+    '/root/a': [entry('/root/a/deep.md', false)],
+    '/root/b': [],
+  };
+  vi.mocked(api.readDirectory).mockImplementation(async (p: string) => (listings[p] ?? []) as never);
+
+  it('returns the same root when nothing changed on disk', async () => {
+    const root = tree();
+    expect(await refreshExpandedNodes(root)).toBe(root);
+  });
+
+  it('rebuilds only the path to a changed folder, sharing untouched siblings', async () => {
+    const root = tree();
+    listings['/root/a'] = [entry('/root/a/deep.md', false), entry('/root/a/new.md', false)];
+    try {
+      const refreshed = await refreshExpandedNodes(root);
+      expect(refreshed).not.toBe(root);
+      const [a, b] = refreshed.children as FileNode[];
+      expect(a).not.toBe(root.children![0]);
+      expect(a!.children![0]).toBe((root.children![0] as FileNode).children![0]);
+      expect(b).toBe(root.children![1]);
+    } finally {
+      listings['/root/a'] = [entry('/root/a/deep.md', false)];
+    }
   });
 });
