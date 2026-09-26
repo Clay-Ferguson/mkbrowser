@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import type { View } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { api } from '../../renderer/api';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { setCalendarViewType, setCalendarViewTime, setCalendarWatcherWarning, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, setCurrentView, useAS } from '../../store';
+import { setCalendarViewType, setCalendarViewTime, setCalendarWatcherWarning, setHighlightItem, navigateToBrowserPath, setPendingEditFile, requestDirectoryRefresh, setCurrentView, useAS, useIsActiveView } from '../../store';
 import type { CalendarEvent, CalendarSource, CalendarViewType } from '../../shared/types';
 import { logger } from '../../shared/logUtil';
 import { getFileName, getParentPath, joinPath } from '../../renderer/pathUtil';
@@ -109,6 +109,19 @@ export default function CalendarView() {
   const watcherWarning = useAS(s => s.calendarWatcherWarning);
   const highlightItem = useAS(s => s.highlightItem);
   const [pendingSlot, setPendingSlot] = useState<PendingSlot | null>(null);
+  const isActive = useIsActiveView('calendar');
+
+  // react-big-calendar measures its layout on mount and on window 'resize': the month
+  // view's row limit, and the week/day views' scrollbar overflow. Measured while this
+  // tab is hidden (display: none), every height is 0, and the month row limit becomes
+  // NaN, which pushes every event into "+N more". That happens if the window was
+  // resized, or the calendar mounted, while the tab was hidden. Firing a synthetic
+  // 'resize' on activation makes the library re-measure through its own listeners.
+  // The only other window 'resize' listener in the app is PopupMenu's cheap
+  // repositioning, so waking it too costs nothing.
+  useEffect(() => {
+    if (isActive) window.dispatchEvent(new Event('resize'));
+  }, [isActive]);
 
   const handleViewChange = (v: View) => {
     const vt = v as CalendarViewType;

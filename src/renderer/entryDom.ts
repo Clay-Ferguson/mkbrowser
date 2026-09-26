@@ -37,6 +37,20 @@ export function temporaryHighlightItem(element: HTMLElement) {
 /** Builds the DOM element ID for a file-entry header row, used by scrollItemIntoView and temporaryHighlightItem. */
 export const buildEntryHeaderId = (filePath: string) => `entry-${encodeURIComponent(filePath)}`;
 
+/**
+ * The first element with `id` that is actually rendered, or null. A plain
+ * getElementById is not enough: views stay mounted with display:none
+ * (App.tsx), and ThreadView renders the same HUMAN.md/AI.md entries — so the
+ * same entry header ids and heading slugs — as the browser listing, earlier in
+ * DOM order. getElementById would hand back the hidden copy.
+ */
+export const getVisibleElementById = (id: string): HTMLElement | null => {
+  for (const el of Array.from(document.querySelectorAll<HTMLElement>(`[id="${CSS.escape(id)}"]`))) {
+    if (el.checkVisibility()) return el;
+  }
+  return null;
+};
+
 /** Scroll position that centers `element` within `container`, clamped to the valid range. */
 const computeCenteredScrollTop = (container: HTMLElement, element: HTMLElement): number => {
   const containerRect = container.getBoundingClientRect();
@@ -70,8 +84,7 @@ const computeCenteredScrollTop = (container: HTMLElement, element: HTMLElement):
  * before the target folder's entries have actually rendered.
  */
 export const scrollItemIntoView = (filePath: string, highlight = false, settle = false): boolean => {
-  const targetId = buildEntryHeaderId(filePath);
-  const element = document.getElementById(targetId);
+  const element = getVisibleElementById(buildEntryHeaderId(filePath));
   if (!element) return false;
 
   const scrollContainer = centerScrollOnElement(element, highlight, 'instant');
@@ -152,7 +165,7 @@ const ONE_SHOT_SCROLL_DELAY_MS = 1000;
 export const scrollElementIntoView = (elementId: string, highlight: boolean): void => {
   // The element usually exists already (document open and rendered) — only
   // fall back to polling when it doesn't.
-  const element = document.getElementById(elementId);
+  const element = getVisibleElementById(elementId);
   if (element) {
     beginSettledScroll(element, highlight);
     return;
@@ -160,7 +173,7 @@ export const scrollElementIntoView = (elementId: string, highlight: boolean): vo
 
   const startTime = Date.now();
   const findTimer = setInterval(() => {
-    const found = document.getElementById(elementId);
+    const found = getVisibleElementById(elementId);
     if (found) {
       clearInterval(findTimer);
       beginSettledScroll(found, highlight);

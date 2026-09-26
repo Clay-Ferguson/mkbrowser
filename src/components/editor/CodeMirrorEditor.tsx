@@ -769,7 +769,12 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     if (fillHeight) return;
     const scrollContainer = containerRef.current?.closest('main');
     if (!scrollContainer) return;
-    const update = () => setMaxHeight(Math.round(scrollContainer.clientHeight * 0.60));
+    // A hidden view (display:none — views never unmount) measures 0. Keep the last real cap
+    // rather than collapsing the editor, which would clamp its scroll position when re-shown.
+    const update = () => {
+      if (scrollContainer.clientHeight === 0) return;
+      setMaxHeight(Math.round(scrollContainer.clientHeight * 0.60));
+    };
     update();
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(update);

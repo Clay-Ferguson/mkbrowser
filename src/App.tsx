@@ -41,7 +41,7 @@ import { loadConfig } from './renderer/config';
 import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
 import { loadDirectoryContents } from './renderer/directoryLoader';
-import { buildEntryHeaderId } from './renderer/entryDom';
+import { buildEntryHeaderId, getVisibleElementById } from './renderer/entryDom';
 import { BUTTON_CLASS_LG_BLUE } from './renderer/styles';
 
 /**
@@ -64,9 +64,12 @@ function isEscapeForOverlay(e: KeyboardEvent): boolean {
   return document.querySelector('dialog[open],[popover]:popover-open') !== null;
 }
 
-/** True when the entry for `path` is currently rendered (its header is in the DOM). */
+/**
+ * True when the entry for `path` is on screen. Hidden views stay mounted, so an
+ * entry in one is still in the DOM — only a visible header counts.
+ */
 function isEntryRendered(path: string): boolean {
-  return document.getElementById(buildEntryHeaderId(path)) !== null;
+  return getVisibleElementById(buildEntryHeaderId(path)) !== null;
 }
 
 function App() {

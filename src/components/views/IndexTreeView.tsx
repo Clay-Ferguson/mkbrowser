@@ -57,7 +57,7 @@ import { injectCalendarFrontMatter } from '../../shared/calendarUtil';
 import { insertTagIntoText } from '../../shared/tagUtil';
 import { generateTimestampFileName } from '../../shared/timeUtil';
 import { extractHeadingTree } from '../../shared/tocUtil';
-import { scrollElementIntoView } from '../../renderer/entryDom';
+import { getVisibleElementById, scrollElementIntoView } from '../../renderer/entryDom';
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
 import { parseFrontMatter } from '../../shared/frontMatterUtil';
@@ -897,7 +897,7 @@ function IndexTreeView() {
     // yield the same slug, and in single-file mode only the one open file is
     // rendered, so a slug hit for any other file is a false positive.
     const showingThisFile = browseFileName === null || joinPath(currentPath, browseFileName) === filePath;
-    if (showingThisFile && document.getElementById(node.slug)) {
+    if (showingThisFile && getVisibleElementById(node.slug)) {
       scrollElementIntoView(node.slug, true);
     } else {
       setPendingScrollToHeadingSlug(node.slug);

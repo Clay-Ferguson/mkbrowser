@@ -5,6 +5,7 @@ import { setHighlightItem, navigateToBrowserPath } from '../store';
 import { decodeMarkdownUrl } from '../renderer/linkUtil';
 import { getParentPath, isAbsolutePath, pathSep, splitPath } from '../renderer/pathUtil';
 import { MarkdownEntryContext } from './markdownEntryContext';
+import { getVisibleElementById } from '../renderer/entryDom';
 
 interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement>, ExtraProps {
   entryPath: string;
@@ -39,7 +40,8 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
     // SPAs because content scrolls inside a nested container, not at window level.
     if (href.startsWith('#')) {
       e.preventDefault();
-      const target = document.getElementById(href.slice(1));
+      // The visible copy: a hidden view can render the same document (and ids).
+      const target = getVisibleElementById(href.slice(1));
       if (target) target.scrollIntoView();
       return;
     }
