@@ -14,7 +14,6 @@ import {
   setCurrentView,
   showTab,
   setCalendarSource,
-  setCalendarEvents,
   setCalendarLoading,
   setAppError,
   useAS,
@@ -23,6 +22,8 @@ import { getFileName, getParentPath } from '../../renderer/pathUtil';
 import { executeSearch } from '../../renderer/searchUtil';
 import { buildFolderGraphFromSearchResults } from '../../shared/searchTreeBuilder';
 import { toCalendarEvents } from '../../shared/calendarUtil';
+import { setCalendarEventsIfCurrent } from '../../renderer/calendarNav';
+import type { CalendarSource } from '../../shared/types';
 import { BUTTON_CLASS_BLUE, BUTTON_CLASS_ICON_NEUTRAL, BUTTON_CLASS_RED, BUTTON_CLASS_SM_NEUTRAL, getContentWidthClasses } from '../../renderer/styles';
 import ConfirmDialog from '../dialogs/ConfirmDialog';
 import FileTypeIcon from '../FileTypeIcon';
@@ -158,21 +159,22 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     if (searchResults.length === 0) return;
     showTab('calendar');
     setCurrentView('calendar');
-    setCalendarSource({
+    const source: CalendarSource = {
       kind: 'search',
       folder: searchFolder,
       query: searchQuery,
       name: searchName,
       totalResults: searchResults.length,
-    });
+    };
+    setCalendarSource(source);
     setCalendarLoading(true);
     void api.loadCalendarEventsForFiles(searchResults.map(r => r.path))
       .then((results) => {
-        setCalendarEvents(toCalendarEvents(results));
+        setCalendarEventsIfCurrent(source, toCalendarEvents(results));
       })
       .catch((err: unknown) => {
         logger.error('Failed to load calendar from search results:', err);
-        setCalendarEvents([]);
+        setCalendarEventsIfCurrent(source, []);
       });
   };
 

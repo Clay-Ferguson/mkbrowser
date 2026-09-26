@@ -62,11 +62,22 @@ async function writeFileAndExitEditMode(path: string, editContent: string): Prom
  * stale text. In the common case the saved content matches the buffer, so nothing is
  * dispatched into the editor at all.
  *
+ * The re-seed only happens while the buffer still holds what was sent: the user keeps typing
+ * while the save is in flight (that is the point of save-and-keep-editing), and re-seeding
+ * over newer keystrokes would silently discard them. The store alone can't tell — keystrokes
+ * from the last ONCHANGE_DEBOUNCE_MS haven't reached it yet, and the editor's value sync would
+ * cancel them as superseded — so `getLiveDoc` (the editor's live document) is checked too.
+ * Skipped edits reach disk, with the main process's rewrite applied, on the next save.
+ *
  * Resolves true only when the write succeeded, so callers can show saved-confirmation
  * feedback; a failure is reported through the app error dialog. Module-level (not in the
  * hook) so its try/catch doesn't make the React Compiler bail out on useEditMode.
  */
-async function writeFileKeepEditing(path: string, editContent: string): Promise<boolean> {
+async function writeFileKeepEditing(
+  path: string,
+  editContent: string,
+  getLiveDoc: (() => string | null) | undefined,
+): Promise<boolean> {
   try {
     const result = await api.writeFile(path, editContent);
     if (!result.ok) {
@@ -75,7 +86,8 @@ async function writeFileKeepEditing(path: string, editContent: string): Promise<
     }
     setItemContent(path, result.content, result.mtime, result.size, result.createdTime);
     const savedBuffer = removeTOC(result.content);
-    if (savedBuffer !== editContent) {
+    if (savedBuffer !== editContent && getItem(path)?.editContent === editContent
+      && (getLiveDoc?.() ?? editContent) === editContent) {
       setItemEditContent(path, savedBuffer);
     }
     return true;
@@ -173,11 +185,12 @@ export function useEditMode({ path }: UseEditModeOptions): EditModeState {
   // Save without leaving the editor (context menu "Save"). Reads the edit buffer from the
   // store at call time for the same reason handleSave does — the editor flushes its
   // debounced onChange right before invoking this, so the store is current but this
-  // component has not re-rendered yet.
-  const handleSaveKeepEditing = async (): Promise<boolean> => {
+  // component has not re-rendered yet. `getLiveDoc` reads the editor's live document (see
+  // writeFileKeepEditing); callers with an editor handle should always pass it.
+  const handleSaveKeepEditing = async (getLiveDoc?: () => string | null): Promise<boolean> => {
     setSaving(true);
     const latest = useAS.getState().items.get(path)?.editContent ?? editContent;
-    return await writeFileKeepEditing(path, latest).finally(() => setSaving(false));
+    return await writeFileKeepEditing(path, latest, getLiveDoc).finally(() => setSaving(false));
   };
 
   return {

@@ -70,10 +70,21 @@ export async function loadDirectoryContents(currentPath: string, showLoading: bo
  */
 export function refreshDirectory(): void {
   void loadDirectoryContents(useAS.getState().currentPath, false);
+  refreshIndexTree();
+}
+
+/** Re-reads every expanded folder of the index tree and installs the result. */
+function refreshIndexTree(): void {
   const root = getIndexTreeRoot();
-  if (root) {
-    refreshExpandedNodes(root)
-      .then(newRoot => setIndexTreeRoot(newRoot))
-      .catch((err: unknown) => logger.error('Failed to refresh index tree:', err));
-  }
+  if (!root) return;
+  refreshExpandedNodes(root)
+    .then(newRoot => {
+      // The result is built from the `root` snapshot. If the tree changed while
+      // the reads were out (the user expanded/collapsed a folder, a newer
+      // refresh landed, the tree root moved), installing it would revert that
+      // change — redo the refresh from the current tree instead.
+      if (getIndexTreeRoot() === root) setIndexTreeRoot(newRoot);
+      else refreshIndexTree();
+    })
+    .catch((err: unknown) => logger.error('Failed to refresh index tree:', err));
 }

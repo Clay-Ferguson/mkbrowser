@@ -6,6 +6,7 @@ vi.mock('../src/store', () => ({
   setCalendarViewType: vi.fn(),
   setImageSize: vi.fn(),
   setAiConfig: vi.fn(),
+  getAiConfig: vi.fn(),
   defaultAiConfig: {
     aiEnabled: false,
     aiRewriteMode: false,
@@ -44,7 +45,7 @@ vi.mock('../src/renderer/api', () => ({
 }));
 
 import { loadConfig, saveAiConfig } from '../src/renderer/config';
-import { setCurrentPath, setSettings, setAiConfig, defaultSettings } from '../src/store';
+import { setCurrentPath, setSettings, setAiConfig, getAiConfig, defaultAiConfig, defaultSettings } from '../src/store';
 import { api } from '../src/renderer/api';
 
 describe('loadConfig — subfolder path validation', () => {
@@ -245,27 +246,67 @@ describe('loadConfig — settings seeding', () => {
   });
 });
 
-describe('saveAiConfig — persist-first ordering', () => {
+describe('saveAiConfig — optimistic mirror update', () => {
+  // A tiny stand-in for the store's AI mirror, so rollback logic sees real values.
+  let mirror: typeof defaultAiConfig;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mirror = { ...defaultAiConfig };
+    vi.mocked(getAiConfig).mockImplementation(() => mirror);
+    vi.mocked(setAiConfig).mockImplementation((updates) => { mirror = { ...mirror, ...updates }; });
   });
 
-  it('calls updateConfig before setAiConfig so store only reflects persisted state', async () => {
+  it('updates the store before the IPC round trip so a second action sees the first', async () => {
     const callOrder: string[] = [];
     vi.mocked(api.updateConfig).mockImplementation(async () => { callOrder.push('updateConfig'); });
     vi.mocked(setAiConfig).mockImplementation(() => { callOrder.push('setAiConfig'); });
 
     await saveAiConfig({ aiEnabled: true });
 
-    expect(callOrder).toEqual(['updateConfig', 'setAiConfig']);
+    expect(callOrder).toEqual(['setAiConfig', 'updateConfig']);
   });
 
-  it('does not update the store when updateConfig rejects', async () => {
+  it('lets rapid toggles compose instead of reading a stale mirror', async () => {
+    let resolveFirst!: () => void;
+    vi.mocked(api.updateConfig)
+      .mockImplementationOnce(() => new Promise<void>((r) => { resolveFirst = r; }))
+      .mockResolvedValue(undefined as never);
+
+    const first = saveAiConfig({ tagsPanelVisible: !mirror.tagsPanelVisible });
+    const second = saveAiConfig({ tagsPanelVisible: !mirror.tagsPanelVisible });
+    resolveFirst();
+    await Promise.all([first, second]);
+
+    expect(mirror.tagsPanelVisible).toBe(false);
+    expect(vi.mocked(api.updateConfig).mock.calls.map((c) => c[0])).toEqual([
+      { tagsPanelVisible: true },
+      { tagsPanelVisible: false },
+    ]);
+  });
+
+  it('rolls the store back when updateConfig rejects', async () => {
     vi.mocked(api.updateConfig).mockRejectedValue(new Error('IPC write error'));
 
-    await expect(saveAiConfig({ aiEnabled: true })).rejects.toThrow('IPC write error');
+    await expect(saveAiConfig({ aiEnabled: true, aiModel: 'llama3' })).rejects.toThrow('IPC write error');
 
-    expect(setAiConfig).not.toHaveBeenCalled();
+    expect(mirror.aiEnabled).toBe(false);
+    expect(mirror.aiModel).toBe('');
+  });
+
+  it('does not roll back a field a later save changed while the failed save was in flight', async () => {
+    let rejectFirst!: (err: Error) => void;
+    vi.mocked(api.updateConfig)
+      .mockImplementationOnce(() => new Promise<void>((_, rej) => { rejectFirst = rej; }))
+      .mockResolvedValue(undefined as never);
+
+    const first = saveAiConfig({ aiModel: 'a', aiEnabled: true });
+    await saveAiConfig({ aiModel: 'b' });
+    rejectFirst(new Error('boom'));
+    await expect(first).rejects.toThrow('boom');
+
+    expect(mirror.aiModel).toBe('b');
+    expect(mirror.aiEnabled).toBe(false);
   });
 
   it('logs the error and rethrows when updateConfig rejects', async () => {
@@ -279,7 +320,7 @@ describe('saveAiConfig — persist-first ordering', () => {
     spy.mockRestore();
   });
 
-  it('updates the store with AI fields after successful persist', async () => {
+  it('updates the store with AI fields', async () => {
     vi.mocked(api.updateConfig).mockResolvedValue(undefined as never);
 
     await saveAiConfig({ aiEnabled: true, aiModel: 'llama3' });

@@ -42,9 +42,18 @@ function NameInputDialog({
   createTestId,
 }: NameInputDialogProps) {
   const [name, setName] = useState(defaultName);
+  // The caller keeps this dialog open until its async create finishes, so a
+  // double-click (or Enter twice) would otherwise fire a second create for the
+  // same name — failing with "already exists" or, racing the first, inserting
+  // the name into .INDEX.yaml twice. Editing the name re-arms it, for callers
+  // that keep the dialog open on a rejected name (AISettingsView's persona
+  // name collision).
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
+    if (submitted) return;
+    setSubmitted(true);
     onCreate(normalizeName(name));
   };
 
@@ -55,7 +64,7 @@ function NameInputDialog({
         <input
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => { setName(e.target.value); setSubmitted(false); }}
           className={DLG_INPUT_CLASS}
           placeholder={placeholder}
           data-testid={inputTestId}
@@ -70,6 +79,7 @@ function NameInputDialog({
           </button>
           <button
             type="submit"
+            disabled={submitted}
             className={BUTTON_CLASS_DLG_BLUE}
             data-testid={createTestId}
           >

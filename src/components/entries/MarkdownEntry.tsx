@@ -198,7 +198,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // content that landed on disk, so the pills can go back to reading the store.
   const handleSaveKeepEditing = (): Promise<boolean> => {
     setEditedMeta(null);
-    return edit.handleSaveKeepEditing();
+    return edit.handleSaveKeepEditing(() => editorRef.current?.getDoc() ?? null);
   };
 
   // Rendered Markdown keeps its natural, page-scrolled height in view mode, so unlike

@@ -1,7 +1,7 @@
 import { useState, type RefObject } from 'react';
 import { api } from '../../../renderer/api';
 import { logger } from '../../../shared/logUtil';
-import { useAS, setItemReviewing } from '../../../store';
+import { useAS, getItem, setItemReviewing } from '../../../store';
 import type { CodeMirrorEditorHandle } from '../../editor/CodeMirrorEditor';
 import type { DeferrableAction, StreamingRunner } from './useAiStreamingDialog';
 
@@ -86,7 +86,20 @@ export function useAiRewrite({
         logger.error('Rewrite failed:', result.error);
         onError(result.error);
       } else {
-        defer(() => setItemReviewing(path, true, result.rewrittenContent));
+        defer(() => {
+          // The request can take many seconds. If the user left edit mode meanwhile
+          // (Cancel / Escape / Ctrl-Q), entering review would strand `reviewing` on a
+          // closed editor and the next edit session would open straight into this
+          // stale proposal; if they kept typing, accepting it would silently drop
+          // everything typed since the request was sent.
+          const current = getItem(path);
+          if (!current?.editing) return;
+          if (current.editContent !== latestContent) {
+            onError('The document was edited while the AI rewrite was running, so the rewrite was discarded.');
+            return;
+          }
+          setItemReviewing(path, true, result.rewrittenContent);
+        });
       }
     })
       .catch((err: unknown) => reportRewriteError(err, onError))

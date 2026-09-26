@@ -253,6 +253,11 @@ export interface CodeMirrorEditorHandle {
   focusAtPosition(pos: number): void;
   /** Inserts text at the current cursor position (replacing any selection). */
   insertAtCursor(text: string): void;
+  /**
+   * Returns the live document text, or null if the view is gone. Unlike the store's edit
+   * buffer, this includes keystrokes still inside the onChange debounce window.
+   */
+  getDoc(): string | null;
 }
 
 /**
@@ -283,6 +288,9 @@ function createEditorHandle(viewRef: RefObject<EditorView | null>): CodeMirrorEd
         selection: { anchor: from + text.length },
       });
       view.focus();
+    },
+    getDoc() {
+      return viewRef.current?.state.doc.toString() ?? null;
     },
   };
 }

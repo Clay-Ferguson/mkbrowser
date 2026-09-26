@@ -183,7 +183,8 @@ function AISettingsView() {
 
   // saveAiConfig persists AND mirrors the reactive subset into the store, so
   // live consumers (e.g. the editor's AI Rewrite button) update immediately.
-  // A failed write leaves the store unchanged and is reported by runOp.
+  // The store updates optimistically; a failed write is rolled back and
+  // reported by runOp.
   const saveAiConfigField = (updates: Partial<AppConfig>) => {
     runOp(() => saveAiConfig(updates), 'Failed to save AI settings: ');
   };

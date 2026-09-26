@@ -7,6 +7,7 @@ import {
   findCutItemsFromDifferentFolders,
   findPasteDuplicates,
   pasteCutItems,
+  runCutPasteExclusive,
   deleteSelectedItems,
   performSplitFile,
   performJoinFiles,
@@ -417,6 +418,37 @@ describe('pasteCutItems', () => {
     // Concurrency stayed bounded and never collapsed to fully serial.
     expect(maxInFlight).toBeLessThanOrEqual(16);
     expect(maxInFlight).toBeGreaterThan(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// runCutPasteExclusive
+// ---------------------------------------------------------------------------
+
+describe('runCutPasteExclusive', () => {
+  it('skips a second paste started while the first is still running', async () => {
+    let release!: () => void;
+    const first = runCutPasteExclusive(() => new Promise<void>((r) => { release = r; }));
+    let secondRan = false;
+    const second = await runCutPasteExclusive(async () => { secondRan = true; });
+
+    expect(second).toBe(false);
+    expect(secondRan).toBe(false);
+
+    release();
+    expect(await first).toBe(true);
+  });
+
+  it('allows a new paste once the previous one has finished', async () => {
+    await runCutPasteExclusive(async () => {});
+    let ran = false;
+    expect(await runCutPasteExclusive(async () => { ran = true; })).toBe(true);
+    expect(ran).toBe(true);
+  });
+
+  it('releases the guard when the paste throws', async () => {
+    await expect(runCutPasteExclusive(async () => { throw new Error('boom'); })).rejects.toThrow('boom');
+    expect(await runCutPasteExclusive(async () => {})).toBe(true);
   });
 });
 

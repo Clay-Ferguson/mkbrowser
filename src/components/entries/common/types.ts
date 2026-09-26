@@ -138,6 +138,10 @@ export interface EditModeState {
   handleCancel: () => void;
   /** Save changes */
   handleSave: () => Promise<void>;
-  /** Save changes and stay in edit mode; resolves true when the write succeeded */
-  handleSaveKeepEditing: () => Promise<boolean>;
+  /**
+   * Save changes and stay in edit mode; resolves true when the write succeeded. `getLiveDoc`
+   * returns the editor's live document, so a main-process rewrite of the saved content is not
+   * put back into the buffer over keystrokes the store hasn't received yet.
+   */
+  handleSaveKeepEditing: (getLiveDoc?: () => string | null) => Promise<boolean>;
 }

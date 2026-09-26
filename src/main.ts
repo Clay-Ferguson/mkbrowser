@@ -457,22 +457,19 @@ function setupIpcHandlers(): void {
     }
   });
 
-  // Create a new file (checks if it already exists first)
+  // Create a new file, refusing to overwrite an existing entry. The 'wx' flag
+  // (O_CREAT|O_EXCL) makes the existence check and the create one atomic step, so
+  // two concurrent creates of the same path can't both succeed and truncate each other.
   ipcMain.handle('create-file', async (_event, filePath: string, content: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Check if file already exists
-      try {
-        await fs.promises.access(filePath);
-        // If we get here, the file exists
-        return { success: false, error: 'A file/folder with this name already exists' };
-      } catch {
-        // File doesn't exist, we can create it
-      }
-      await fs.promises.writeFile(filePath, content, 'utf-8');
+      await fs.promises.writeFile(filePath, content, { encoding: 'utf-8', flag: 'wx' });
       return { success: true };
     } catch (error) {
-      logger.error('Error creating file:', error);
       const err = error as NodeJS.ErrnoException;
+      if (err.code === 'EEXIST') {
+        return { success: false, error: 'A file/folder with this name already exists' };
+      }
+      logger.error('Error creating file:', error);
       let errorMessage = 'Failed to create file';
       if (err.code === 'EACCES' || err.code === 'EPERM') {
         errorMessage = 'Permission denied';

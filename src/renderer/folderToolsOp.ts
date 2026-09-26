@@ -14,10 +14,21 @@ import { buildReplaceResultMessage } from '../shared/searchHelpers';
 import { setAppError, setCurrentView, setFolderAnalysis, setFolderGraph } from '../store';
 import type { ExportOptions } from '../components/dialogs/ExportDialog';
 
+/**
+ * Ids of the most recently started analysis / graph scan. Both scans can take
+ * seconds on a large tree, and the user can start another one (on a different
+ * folder) meanwhile; only the latest may publish, or the slower, older scan
+ * lands last and replaces the newer results.
+ */
+let latestAnalysisId = 0;
+let latestGraphId = 0;
+
 /** Counts the hashtags under `folderPath` and shows them in the Folder Analysis view. */
 export function showFolderAnalysis(folderPath: string): void {
+  const id = ++latestAnalysisId;
   runOp(async () => {
     const result = await api.analyzeFolderHashtags(folderPath);
+    if (id !== latestAnalysisId) return;
     setFolderAnalysis({
       hashtags: result.hashtags,
       folderPath,
@@ -29,8 +40,10 @@ export function showFolderAnalysis(folderPath: string): void {
 
 /** Scans the tree under `folderPath` and shows it in the Folder Graph view. */
 export function showFolderGraph(folderPath: string): void {
+  const id = ++latestGraphId;
   runOp(async () => {
     const result = await api.scanFolderTree(folderPath);
+    if (id !== latestGraphId) return;
     setFolderGraph({
       folderPath: result.folderPath,
       nodes: result.nodes.map(n => ({ ...n })),

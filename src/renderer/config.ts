@@ -1,4 +1,4 @@
-import { setSettings, getSettings, setCurrentPath, setCalendarViewType, setAiConfig, setAppError, defaultAiConfig, defaultSettings } from '../store';
+import { setSettings, getSettings, setCurrentPath, setCalendarViewType, setAiConfig, getAiConfig, setAppError, defaultAiConfig, defaultSettings } from '../store';
 import { api } from './api';
 import { isPathInside } from './pathUtil';
 import { logger } from '../shared/logUtil';
@@ -87,16 +87,52 @@ export async function loadConfig(): Promise<LoadConfigResult> {
  * settings form) update immediately without remounting. This is the single sync
  * point: any code that changes an AI config field should call this instead of
  * `api.updateConfig` directly. Non-AI keys in `updates` are simply persisted.
+ *
+ * The mirror is updated optimistically, before the IPC round trip. Callers derive
+ * the new value from the mirror (`!tagsVisible`, `[...aiRewritePrompts, newOne]`),
+ * so a second action started while the first save is in flight must already see
+ * the first one's result, or it would compute from a stale base and overwrite it.
+ * If the persist fails, each field this call set is rolled back to its previous
+ * value (unless a later save has changed it since) and the error is rethrown, so
+ * the store never keeps a change that isn't on disk.
  */
 export async function saveAiConfig(updates: Partial<AppConfig>): Promise<void> {
+  const mirror = pickAiConfig(updates);
+  const keys = Object.keys(mirror) as (keyof AiConfigState)[];
+  const current = getAiConfig();
+  const previous: Partial<AiConfigState> = {};
+  for (const key of keys) assignField(previous, current, key);
+  if (keys.length > 0) setAiConfig(mirror);
   try {
     await api.updateConfig(updates);
   } catch (err) {
+    rollbackAiConfig(mirror, previous);
     logger.error('[config] saveAiConfig failed', err);
     throw err;
   }
-  const mirror = pickAiConfig(updates);
-  if (Object.keys(mirror).length > 0) setAiConfig(mirror);
+}
+
+/** Copies one field between AI config objects, keeping the key/value types paired. */
+function assignField<K extends keyof AiConfigState>(
+  target: Partial<AiConfigState>,
+  source: Partial<AiConfigState>,
+  key: K
+): void {
+  target[key] = source[key];
+}
+
+/**
+ * Restores `previous` for each field of a failed save's `applied` values, skipping
+ * any field a newer save has changed since, so a failed save can't undo a later
+ * successful one.
+ */
+function rollbackAiConfig(applied: Partial<AiConfigState>, previous: Partial<AiConfigState>): void {
+  const current = getAiConfig();
+  const restore: Partial<AiConfigState> = {};
+  for (const key of Object.keys(applied) as (keyof AiConfigState)[]) {
+    if (current[key] === applied[key]) assignField(restore, previous, key);
+  }
+  if (Object.keys(restore).length > 0) setAiConfig(restore);
 }
 
 /**

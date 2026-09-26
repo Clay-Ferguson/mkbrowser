@@ -15,7 +15,7 @@ import {
   getCurrentPath,
   getHasIndexFile,
 } from '../store';
-import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
+import { pasteCutItems, runCutPasteExclusive, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
 import { pasteFromClipboard } from './clipboard';
 import { refreshDirectory } from './directoryLoader';
 import { getFileName, getParentPath, joinPath, isSamePath } from './pathUtil';
@@ -97,12 +97,20 @@ export async function createAttachmentFileOp(
 
 /**
  * Moves all cut items in the store into the given folder, then reconciles the index
- * for both the source and destination folders.
+ * for both the source and destination folders. A no-op while another paste of the
+ * cut items is still running (see {@link runCutPasteExclusive}).
  *
  * @param folderPath - Absolute path of the destination folder.
  * @param items - The current item map from the store (used to find cut items).
  */
 export async function pasteIntoFolder(
+  folderPath: string,
+  items: ReadonlyMap<string, ItemData>
+): Promise<void> {
+  await runCutPasteExclusive(() => pasteIntoFolderNow(folderPath, items));
+}
+
+async function pasteIntoFolderNow(
   folderPath: string,
   items: ReadonlyMap<string, ItemData>
 ): Promise<void> {

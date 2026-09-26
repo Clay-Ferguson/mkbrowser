@@ -262,6 +262,36 @@ export async function pasteCutItems(
 }
 
 /**
+ * True while a paste of the store's cut items is running. Shared by every
+ * cut-item paste path (browse Paste button, tree Paste menu item, paste as
+ * attachment) so they exclude each other, not just themselves.
+ */
+let cutPasteInFlight = false;
+
+/**
+ * Runs `op` (a whole paste of the store's cut items: move, reconcile, clear the
+ * cut state) unless another one is already running, in which case this is a
+ * no-op. The Paste affordances stay available until the first paste finishes
+ * and clears the cut items, so an impatient second click would otherwise start a
+ * second move of the same items and report a spurious failure ("already exist",
+ * or ENOENT on the renames) for a paste that actually succeeded.
+ *
+ * Not used by drag-and-drop, which moves the dragged items rather than the cut
+ * items.
+ *
+ * @returns Whether `op` ran.
+ */
+export async function runCutPasteExclusive(op: () => Promise<void>): Promise<boolean> {
+  if (cutPasteInFlight) return false;
+  cutPasteInFlight = true;
+  return op()
+    .then(() => true)
+    .finally(() => {
+      cutPasteInFlight = false;
+    });
+}
+
+/**
  * Result of delete operation
  */
 export interface DeleteResult {

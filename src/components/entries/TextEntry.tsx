@@ -135,7 +135,7 @@ function TextEntry(props: TextEntryProps) {
               onEscape={chrome.handleEscape}
               onForceCancel={edit.handleCancel}
               onSave={() => void edit.handleSave()}
-              onSaveKeepEditing={edit.handleSaveKeepEditing}
+              onSaveKeepEditing={() => edit.handleSaveKeepEditing(() => editorRef.current?.getDoc() ?? null)}
               onSelectionChange={setHasSelection}
               fillHeight={maximized}
               {...chrome.reviewProps}

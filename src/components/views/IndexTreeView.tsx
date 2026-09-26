@@ -38,7 +38,7 @@ import {
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
 import type { FileEntry } from '../../shared/shared';
-import { pasteCutItems } from '../../renderer/edit';
+import { pasteCutItems, runCutPasteExclusive } from '../../renderer/edit';
 import {
   ENTRY_DND_MIME,
   parseDragPayload,
@@ -360,6 +360,9 @@ function IndexTreeView() {
   const hasCutItems = cutPaths.size > 0;
   const containerRef = useRef<HTMLDivElement>(null);
   const bookmarksButtonRef = useRef<HTMLButtonElement>(null);
+  // Bumped per reveal, so an earlier reveal still awaiting a directory read
+  // can't expand and scroll to its target after a newer reveal has started.
+  const revealTokenRef = useRef(0);
   // Pending timer, tracked so it can be cancelled when superseded or on unmount.
   const scriptFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showBookmarksMenu, setShowBookmarksMenu] = useState<boolean>(false);
@@ -431,6 +434,9 @@ function IndexTreeView() {
   useEffect(() => {
     if (!pendingReveal) return;
     clearPendingIndexTreeReveal();
+    // Not an effect-cleanup `ignore` flag: clearing the pending reveal above
+    // re-runs this effect, whose cleanup would cancel this very reveal.
+    const token = ++revealTokenRef.current;
 
     const expandToPath = async (targetPath: string) => {
       if (!rootPath || !isPathInside(rootPath, targetPath)) return;
@@ -450,6 +456,7 @@ function IndexTreeView() {
         if (!node.isExpanded || node.children === null) {
           try {
             const entries = await api.readDirectory(ancestorPath);
+            if (token !== revealTokenRef.current) return;
             expandIndexTreeNode(ancestorPath, mergeNodes(entries, node.children));
           } catch {
             return;
@@ -568,7 +575,9 @@ function IndexTreeView() {
     const cutItems = getCutItems();
     if (cutItems.length === 0) return;
 
-    runOp(async () => {
+    // Exclusive with every other cut-item paste: a second click while this one
+    // is still moving the items is a no-op instead of a spurious failure.
+    runOp(() => runCutPasteExclusive(async () => {
       const result = await pasteCutItems(
         cutItems,
         node.path,
@@ -607,7 +616,7 @@ function IndexTreeView() {
       // has to reach the user, who is otherwise left with a menu click that did
       // nothing. Items that failed to move stay cut at their source.
       setAppError(result.error || 'Failed to paste items');
-    }, 'Failed to paste items into folder: ');
+    }), 'Failed to paste items into folder: ');
   };
 
   /**

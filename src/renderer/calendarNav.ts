@@ -18,6 +18,18 @@ import {
   showCalendarForFolder,
   setAppError,
 } from '../store';
+import type { CalendarEvent, CalendarSource } from '../shared/types';
+
+/**
+ * Installs a finished calendar scan, but only if `source` is still the calendar's source.
+ * Scans can take a while on a big folder, and the user can start another one meanwhile (the
+ * Calendar button on a different folder, a `due` pill, a search's calendar): without this the
+ * slower, older scan lands last and fills the grid with events from a source the header no
+ * longer names. The newer load clears the loading flag when it lands.
+ */
+export function setCalendarEventsIfCurrent(source: CalendarSource | null, events: CalendarEvent[]): void {
+  if (useAS.getState().calendarSource === source) setCalendarEvents(events);
+}
 
 /**
  * Switches to the Calendar tab centered on `date`, showing the calendar items found in
@@ -37,15 +49,16 @@ export function openCalendarAtDate(folder: string, date: Date): void {
   const { calendarSource, calendarEvents } = useAS.getState();
   if (calendarEvents && calendarSource?.kind === 'folder' && calendarSource.folder === folder) return;
 
-  setCalendarSource({ kind: 'folder', folder });
+  const source: CalendarSource = { kind: 'folder', folder };
+  setCalendarSource(source);
   setCalendarLoading(true);
   void api.loadCalendarEvents(folder)
     .then((results) => {
-      setCalendarEvents(toCalendarEvents(results));
+      setCalendarEventsIfCurrent(source, toCalendarEvents(results));
     })
     .catch((err: unknown) => {
       logger.error('Failed to load calendar:', err);
-      setCalendarEvents([]);
+      setCalendarEventsIfCurrent(source, []);
     });
 }
 
@@ -57,11 +70,12 @@ export function openCalendarAtDate(folder: string, date: Date): void {
  */
 export function showFolderCalendar(folder: string): void {
   showCalendarForFolder(folder);
+  const source = useAS.getState().calendarSource;
   runOp(async () => {
     const results = await api.loadCalendarEvents(folder);
-    setCalendarEvents(toCalendarEvents(results));
+    setCalendarEventsIfCurrent(source, toCalendarEvents(results));
   }, 'Failed to load calendar: ', (msg) => {
     setAppError(msg);
-    setCalendarEvents([]);
+    setCalendarEventsIfCurrent(source, []);
   });
 }
