@@ -30,12 +30,23 @@ function updateNodeByPath<T extends TreeNode>(
   return changed ? { ...node, children: newChildren } : node;
 }
 
+/**
+ * Collapse `node` and every directory beneath it. Nodes that are already fully
+ * collapsed keep their identity, so the memoized tree rows for them (and the
+ * store write itself, when nothing was expanded) are skipped.
+ */
 function collapseAllNodes(node: TreeNode): TreeNode {
   if (!('isDirectory' in node) || !(node as FileNode).isDirectory) return node;
-  const collapsedChildren = node.children
-    ? node.children.map(collapseAllNodes)
-    : node.children;
+  const collapsedChildren = collapseAllChildren(node.children);
+  if (!node.isExpanded && collapsedChildren === node.children) return node;
   return { ...node, isExpanded: false, children: collapsedChildren };
+}
+
+/** collapseAllNodes over a child list, returning the same array when nothing changed. */
+function collapseAllChildren(children: TreeNode[] | null): TreeNode[] | null {
+  if (!children) return children;
+  const collapsed = children.map(collapseAllNodes);
+  return collapsed.some((c, i) => c !== children[i]) ? collapsed : children;
 }
 
 /**
@@ -96,9 +107,8 @@ export function createIndexTreeSlice(set: StoreSet, get: StoreGet): IndexTreeSli
     collapseAllIndexTreeNodes: () => {
       const root = get().indexTreeRoot;
       if (!root) return;
-      const newChildren = root.children
-        ? root.children.map(collapseAllNodes)
-        : root.children;
+      const newChildren = collapseAllChildren(root.children);
+      if (newChildren === root.children) return;
       set({ indexTreeRoot: { ...root, children: newChildren } });
     },
 
