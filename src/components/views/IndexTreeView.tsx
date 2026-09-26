@@ -233,7 +233,6 @@ interface TreeFileRowProps {
   isRunning: boolean;
   isContextTarget: boolean;
   onNodeClick: (node: TreeNode) => Promise<void>;
-  onRunScript: (node: FileNode) => void;
   onContextMenu: (node: FileNode, e: React.MouseEvent) => void;
   onDragOverFolder: (node: FileNode, e: React.DragEvent) => void;
   onDragLeaveFolder: (path: string) => void;
@@ -242,7 +241,7 @@ interface TreeFileRowProps {
 
 function TreeFileRow({
   node, depth, isDragOver, isRunning, isContextTarget,
-  onNodeClick, onRunScript, onContextMenu, onDragOverFolder, onDragLeaveFolder, onDropOnFolder,
+  onNodeClick, onContextMenu, onDragOverFolder, onDragLeaveFolder, onDropOnFolder,
 }: TreeFileRowProps) {
   // Primitive per-row selectors: only the rows whose answer flips re-render
   // when the highlight moves or the browse view navigates.
@@ -309,11 +308,7 @@ function TreeFileRow({
       data-tree-path={node.path}
       className={className}
       style={rowStyle}
-      onClick={e => {
-        // Ctrl+click on a shell script runs it instead of opening it.
-        if (isSh && e.ctrlKey) { onRunScript(node); return; }
-        void onNodeClick(node);
-      }}
+      onClick={() => void onNodeClick(node)}
       onContextMenu={e => onContextMenu(node, e)}
       {...(node.isDirectory ? {
         onDragOver: (e: React.DragEvent) => onDragOverFolder(node, e),
@@ -348,8 +343,9 @@ const MemoTreeFileRow = memo(TreeFileRow);
  * expand), drag-and-drop reordering between folders, cut/paste, rename, delete,
  * bookmarks, and a right-click context menu. Markdown files expand to reveal
  * their heading tree. Clicking a heading or file navigates the browse view to
- * that item; Ctrl+clicking a shell script runs it. The "Paste Link" context-menu
- * action inserts a relative Markdown link at the active editor's cursor.
+ * that item; a shell script's context menu has a "Run" item. The "Paste Link"
+ * context-menu action inserts a relative Markdown link at the active editor's
+ * cursor.
  */
 function IndexTreeView() {
   const rootPath = useAS(s => s.rootPath);
@@ -377,6 +373,7 @@ function IndexTreeView() {
     path: string;
     isDirectory: boolean;
     onBrowse: () => void;
+    onRun?: () => void;
     onNewFile?: () => void;
     onNewTodo?: () => void;
     onNewFolder?: () => void;
@@ -836,7 +833,10 @@ function IndexTreeView() {
   const handleRunScript = (node: FileNode) => {
     if (runningScript) return;
     setRunningScript(node.path);
-    void api.runShellScript(node.path);
+    runOp(async () => {
+      const result = await api.runShellScript(node.path);
+      if (!result.success) setAppError('Failed to run script: ' + (result.error ?? 'Unknown error'));
+    }, 'Failed to run script: ');
     scriptFlashTimerRef.current = setTimeout(() => {
       scriptFlashTimerRef.current = null;
       setRunningScript(null);
@@ -905,9 +905,9 @@ function IndexTreeView() {
    * items exist) Paste; files get Browse/Rename/Delete and (when a markdown file
    * is being edited) "Paste Link", which inserts a relative Markdown link at the
    * active editor's cursor — using the file's front-matter `id` field as a comment
-   * suffix when present. Both directories and files also get "Copy Path" (absolute)
-   * and "Copy Relative Path" (relative to the folder currently browsed in
-   * BrowseView).
+   * suffix when present. Shell scripts (`.sh`) also get "Run". Both directories
+   * and files also get "Copy Path" (absolute) and "Copy Relative Path" (relative
+   * to the folder currently browsed in BrowseView).
    */
   const handleFileNodeContextMenu = (node: FileNode, e: React.MouseEvent) => {
     e.preventDefault();
@@ -926,6 +926,9 @@ function IndexTreeView() {
           navigateToBrowserPath(folderPath, node.path);
         }
       },
+      ...(isShellScript(node) ? {
+        onRun: () => handleRunScript(node),
+      } : {}),
       onRename: () => setRenameTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       onDelete: () => setDeleteTarget({ path: node.path, name: node.name, isDirectory: node.isDirectory }),
       ...(node.isDirectory ? {
@@ -1043,6 +1046,7 @@ function IndexTreeView() {
           isDirectory={contextMenu.isDirectory}
           onClose={() => setContextMenu(null)}
           onBrowse={contextMenu.onBrowse}
+          onRun={contextMenu.onRun}
           onNewFile={contextMenu.onNewFile}
           onNewTodo={contextMenu.onNewTodo}
           onNewFolder={contextMenu.onNewFolder}
@@ -1111,7 +1115,6 @@ function IndexTreeView() {
               isRunning={runningScript === node.path}
               isContextTarget={contextMenu?.path === node.path}
               onNodeClick={handleNodeClick}
-              onRunScript={handleRunScript}
               onContextMenu={handleFileNodeContextMenu}
               onDragOverFolder={handleDragOverFolder}
               onDragLeaveFolder={handleDragLeaveFolder}

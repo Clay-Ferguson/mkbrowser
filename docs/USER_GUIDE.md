@@ -205,7 +205,8 @@ Any hashtag rendered inside a Markdown file (e.g. `#project`, `#urgent`) is a li
 
 Any file with a `.sh` extension appears in the file tree and can be launched directly from within MkBrowser.
 
-- **Ctrl+Click** on any `.sh` file name to execute it as a shell script. The script runs immediately and opens in its own terminal window at the operating system level, so you can see its output and interact with it.
+- **Right-click** any `.sh` file in the file tree and choose **Run** to execute it. The script opens in its own terminal window at the operating system level, so you can see its output and interact with it.
+- The terminal window stays open after the script finishes: it shows the script's exit status and leaves you at a shell prompt, so the output (and any error that kept the script from running) remains visible until you close the window yourself.
 
 ### Suppressing the Terminal Window
 

@@ -7,6 +7,8 @@ interface IndexTreeContextMenuProps {
   isDirectory: boolean;
   onClose: () => void;
   onBrowse: () => void;
+  /** When provided (shell scripts only), a "Run" item is shown. */
+  onRun?: () => void;
   /** When provided, a "New File" item is shown. */
   onNewFile?: () => void;
   /** When provided, a "New TODO" item is shown. */
@@ -36,7 +38,7 @@ interface IndexTreeContextMenuProps {
  * three create items are fenced off in their own divider section, since they add
  * to the folder's *contents* rather than acting on the clicked node itself.
  */
-export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onNewFile, onNewTodo, onNewFolder, onRename, onDelete, onCut, onPaste, onPasteLink, onCopyPath, onCopyRelativePath }: IndexTreeContextMenuProps) {
+export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDirectory, onClose, onBrowse, onRun, onNewFile, onNewTodo, onNewFolder, onRename, onDelete, onCut, onPaste, onPasteLink, onCopyPath, onCopyRelativePath }: IndexTreeContextMenuProps) {
   return (
     <PopupMenu mousePosition={mousePosition} onClose={onClose}>
       <PopupMenuItem
@@ -44,6 +46,13 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
         onClick={() => { onBrowse(); onClose(); }}
         data-testid="browse-to-folder"
       />
+      {onRun && (
+        <PopupMenuItem
+          label="Run"
+          onClick={() => { onRun(); onClose(); }}
+          data-testid="tree-run-script"
+        />
+      )}
       {(onNewFile || onNewTodo || onNewFolder || onRename || onDelete) && <PopupMenuDivider />}
       {onNewFile && (
         <PopupMenuItem

@@ -81,7 +81,7 @@ Two behaviors intentionally share that one click:
 - **Every file** opens in the right pane.
 - **Markdown files additionally** fall through to the heading-expansion branch below it, so the same click also expands/collapses the file's headings in the tree.
 
-There is no context menu item for this; an earlier "Browse File" menu entry was removed in favor of the click. Folders are unaffected — clicking a folder expands/collapses it and never enters single-file mode. Ctrl+click on a `.sh` file runs the script and returns before any of this.
+There is no context menu item for this; an earlier "Browse File" menu entry was removed in favor of the click. Folders are unaffected — clicking a folder expands/collapses it and never enters single-file mode.
 
 **Bookmarks are the second entry point.** `handleBookmarkNavigate` (`IndexTreeView.tsx:554`) routes a bookmarked *file* through `setBrowseFile` as well — a bookmark names one specific document, so opening it alone is what the click meant. A bookmarked *folder* still goes to `navigateToBrowserPath` and lands in listing mode. Note that the file/folder split here is a filename heuristic (`lastName.includes('.')`), shared with `BookmarksPopupMenu`'s icon choice; a folder whose name contains a dot is treated as a file by both.
 

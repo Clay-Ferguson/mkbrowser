@@ -45,7 +45,9 @@ export async function findTerminalEmulator(): Promise<{ cmd: string; args: strin
 }
 
 /**
- * Run a shell script (`.sh` file) in an external terminal window. If the script's
+ * Run a shell script (`.sh` file) in an external terminal window that stays open
+ * after the script finishes (see KEEP_OPEN_WRAPPER), so its output and any
+ * errors remain visible until the user closes the window. If the script's
  * first 10 lines contain the directive `# Terminal=false`, the script is instead
  * launched silently in the background with no visible terminal. In both cases the
  * child process is detached so the app does not wait for it to finish.
@@ -86,7 +88,7 @@ export async function runShellScript(filePath: string): Promise<{ success: boole
     return { success: false, error: NO_TERMINAL_ERROR };
   }
 
-  const child = spawn(terminal.cmd, [...terminal.args, filePath], {
+  const child = spawn(terminal.cmd, [...terminal.args, 'bash', '-c', KEEP_OPEN_WRAPPER, 'mkbrowser-run', filePath], {
     cwd: scriptDir,
     detached: true,
     stdio: 'ignore',
@@ -95,6 +97,18 @@ export async function runShellScript(filePath: string): Promise<{ success: boole
 
   return { success: true };
 }
+
+/**
+ * `bash -c` program that runs the script passed as `$1` and then keeps the
+ * terminal window open: it reports the script's exit status and `exec`s an
+ * interactive shell, so the output (and any error that stopped the script from
+ * running at all) stays visible until the user closes the window. The script
+ * is run via `bash` rather than executed directly, so it doesn't need the
+ * executable bit. The path arrives as a positional argument, never spliced
+ * into the program text, so it can't be interpreted as shell syntax.
+ */
+const KEEP_OPEN_WRAPPER =
+  'bash "$1"; status=$?; echo; echo "--- $1 exited with status $status ---"; exec bash';
 
 /**
  * Wrap an arbitrary string as a single POSIX shell token. Anything inside single
