@@ -90,7 +90,8 @@ function BrowseFile() {
   const browseFileName = useAS(s => s.browseFileName);
   const browseFileMode = useAS(s => s.browseFileMode);
   const highlightItem = useAS(s => s.highlightItem);
-  const settings = useAS(s => s.settings);
+  const expandedEditor = useAS(s => s.settings.expandedEditor);
+  const contentWidth = useAS(s => s.settings.contentWidth);
 
   // See the two modes above. In 'expanded-edit' mode `settings.expandedEditor`
   // is true by construction, so the entry maximizes itself off the setting and
@@ -130,7 +131,7 @@ function BrowseFile() {
   // `settings.expandedEditor` is on — but written this way the rule reads as
   // what it is. The folder listing's inline editor is a separate thing entirely
   // and never renders through this component.
-  const editorMaximized = editing && (alwaysExpandedEditor || settings.expandedEditor);
+  const editorMaximized = editing && (alwaysExpandedEditor || expandedEditor);
 
   // Plain-text files fill the pane at all times, editing or not: TextEntry's CodeMirror
   // would otherwise cap itself at ~60% of the scroll area (a sensible limit for a row in
@@ -260,7 +261,7 @@ function BrowseFile() {
         data-testid="browse-file-main-content"
         className={`flex-1 min-h-0 pb-4 pt-1 pr-3 pl-3 relative ${flexPane ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}
       >
-        <div className={flexPane ? 'w-full px-4 flex-1 min-h-0 flex flex-col' : getContentWidthClasses(settings.contentWidth)}>
+        <div className={flexPane ? 'w-full px-4 flex-1 min-h-0 flex flex-col' : getContentWidthClasses(contentWidth)}>
           {!entry && (
             <div className="flex items-center justify-center py-12">
               <p className="text-slate-400" data-testid="browse-file-not-found">

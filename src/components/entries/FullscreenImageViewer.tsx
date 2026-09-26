@@ -55,8 +55,7 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
   // moves it through `allImages`; empty string in standalone mode (nothing to look up).
   const [currentPath, setCurrentPath] = useState(browse?.path ?? '');
 
-  const currentItem = useAS(s => s.items.get(currentPath));
-  const isSelected = currentItem?.isSelected ?? false;
+  const isSelected = useAS(s => s.items.get(currentPath)?.isSelected ?? false);
 
   // Navigation sequence; undefined in standalone mode, which is what disables every
   // file-list shortcut below (arrows, Delete, Space, J) and leaves only Escape.

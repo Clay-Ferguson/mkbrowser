@@ -51,7 +51,8 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
   const searchQuery = useAS(s => s.searchQuery);
   const searchFolder = useAS(s => s.searchFolder);
   const searchName = useAS(s => s.searchName);
-  const settings = useAS(s => s.settings);
+  const fontSize = useAS(s => s.settings.fontSize);
+  const contentWidth = useAS(s => s.settings.contentWidth);
   const highlightedSearchResult = useAS(s => s.highlightedSearchResult);
   const searchSortBy = useAS(s => s.searchSortBy);
   const searchSortDirection = useAS(s => s.searchSortDirection);
@@ -71,7 +72,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     medium: 'text-base',
     large: 'text-lg',
     xlarge: 'text-xl',
-  }[settings.fontSize];
+  }[fontSize];
 
   const handleResultClick = (resultPath: string) => {
     // Track this as the highlighted search result
@@ -259,7 +260,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
 
       {/* Main content */}
       <main className="flex-1 min-h-0 overflow-y-auto">
-        <div className={`${getContentWidthClasses(settings.contentWidth)} pt-2 pb-6`}>
+        <div className={`${getContentWidthClasses(contentWidth)} pt-2 pb-6`}>
         {!hasSearched ? (
           <div className="text-center py-12">
             <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />

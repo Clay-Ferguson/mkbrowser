@@ -6,6 +6,13 @@ import { useAS, getCutPaths } from '../../store';
 import { isImageFile } from '../../shared/fileTypes';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 import { listingTimes, sortListing } from './browseListing';
+import type { FileEntry } from '../../global';
+
+// Shared by every non-image row: `allImages` is rebuilt whenever the sorted
+// listing is (a cut/uncut, a saved file's new times), and handing that fresh
+// array to every memo()'d BrowseEntryRow re-rendered the whole listing. Only
+// image rows read it (for the fullscreen viewer's prev/next).
+const NO_IMAGES: FileEntry[] = [];
 
 interface BrowseEntryListProps {
   onNavigate: (path: string) => void;
@@ -89,7 +96,7 @@ function BrowseEntryList({
             hasIndexFile={hasIndexFile}
             ownerPath={isOwnedAttach && prevEntry ? prevEntry.path : null}
             showInsertBarAfter={hasIndexFile && !sortedEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX)}
-            allImages={allImages}
+            allImages={!entry.isDirectory && isImageFile(entry.name) ? allImages : NO_IMAGES}
             onNavigate={onNavigate}
             onRename={onRename}
             onDelete={onDelete}

@@ -27,8 +27,7 @@ interface TagsPickerProps {
  * Returns null until the tag definitions are loaded or when no categories exist.
  */
 export default function TagsPicker({ filePath }: TagsPickerProps) {
-  const item = useAS(s => s.items.get(filePath));
-  const editContent = item?.editContent ?? '';
+  const editContent = useAS(s => s.items.get(filePath)?.editContent ?? '');
 
   const [loadState, setLoadState] = useState<TagsLoadState>({ status: 'loading' });
   const [alertMessage, setAlertMessage] = useState<string | null>(null);

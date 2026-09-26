@@ -86,7 +86,8 @@ function ThreadView() {
   // without a remount. The displayed name is read straight from the store (no
   // local draft), so the header can never claim a persona that isn't the active
   // one — personas are created in AISettingsView, never typed in here.
-  const { aiRewritePrompt, aiRewritePrompts } = useAS(s => s.aiConfig);
+  const aiRewritePrompt = useAS(s => s.aiConfig.aiRewritePrompt);
+  const aiRewritePrompts = useAS(s => s.aiConfig.aiRewritePrompts);
   const personaName = aiRewritePrompt || DEFAULT_PERSONA_NAME;
 
   /**

@@ -104,7 +104,7 @@ export default function CalendarView() {
   const calendarViewType = useAS(s => s.calendarViewType);
   const view = viewTypeToRbc[calendarViewType] ?? Views.MONTH;
   const date = useAS(s => s.calendarViewTime);
-  const settings = useAS(s => s.settings);
+  const calendarItemsFolder = useAS(s => s.settings.calendarItemsFolder);
   const calendarSource = useAS(s => s.calendarSource);
   const watcherWarning = useAS(s => s.calendarWatcherWarning);
   const highlightItem = useAS(s => s.highlightItem);
@@ -163,7 +163,7 @@ export default function CalendarView() {
     const { content } = pendingSlot;
     setPendingSlot(null);
 
-    const folder = settings.calendarItemsFolder;
+    const folder = calendarItemsFolder;
     if (!folder) {
       logger.error('Calendar items folder is not configured. Set it in Settings.');
       return;

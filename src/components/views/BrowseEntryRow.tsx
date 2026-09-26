@@ -118,8 +118,8 @@ function BrowseEntryRow({
 
 // memo() is justified under the DEVELOPER_GUIDE rule (one per row of a large
 // .map() list) because every prop is stable: `entry` keeps its identity until
-// the listing reloads, the flags are primitives, `allImages` changes only with
-// the listing, and every handler is compiled in BrowseView/App on inputs that
+// the listing reloads, the flags are primitives, `allImages` is a shared
+// constant on every non-image row (see BrowseEntryList), and every handler is compiled in BrowseView/App on inputs that
 // change only on navigation or a listing change. So a BrowseView render for
 // anything else (selection summary, menus, dialogs) skips every row.
 export default memo(BrowseEntryRow);

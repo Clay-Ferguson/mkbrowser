@@ -43,8 +43,8 @@ const allTabs: TabConfig[] = [
  */
 function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
   const currentView = useAS(s => s.currentView);
-  const folderAnalysis = useAS(s => s.folderAnalysis);
-  const folderGraph = useAS(s => s.folderGraph);
+  const hasFolderAnalysis = useAS(s => s.folderAnalysis !== null);
+  const hasFolderGraph = useAS(s => s.folderGraph !== null);
   // Non-null from the moment any search runs until the tab is closed, so the
   // Search tab also shows a search that found nothing.
   const hasSearched = useAS(s => s.lastSearchDefinition !== null);
@@ -90,8 +90,8 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
   const visibleIds = new Set<AppView>([
     ...visibleTabs,
     ...(hasSearched ? ['search-results' as AppView] : []),
-    ...(folderAnalysis ? ['folder-analysis' as AppView] : []),
-    ...(folderGraph ? ['folder-graph' as AppView] : []),
+    ...(hasFolderAnalysis ? ['folder-analysis' as AppView] : []),
+    ...(hasFolderGraph ? ['folder-graph' as AppView] : []),
     ...(isInAiThread ? ['thread' as AppView] : []),
   ]);
 

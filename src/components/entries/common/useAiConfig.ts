@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { setAiConfig, useAS } from '../../../store';
 
 export interface AiConfigState {
@@ -34,7 +35,15 @@ export interface UseAiConfigResult extends AiConfigState {
  * change to survive a restart must also persist it (see `saveAiConfig`).
  */
 export function useAiConfig(): UseAiConfigResult {
-  const { aiEnabled, aiRewriteMode, aiRewritePrompt, tagsPanelVisible } = useAS(s => s.aiConfig);
+  // Only the four fields used, via useShallow: every entry row calls this hook,
+  // so subscribing to the whole aiConfig object re-rendered every row on any
+  // unrelated AI setting write (model, allowed folders, persona list, …).
+  const { aiEnabled, aiRewriteMode, aiRewritePrompt, tagsPanelVisible } = useAS(useShallow(s => ({
+    aiEnabled: s.aiConfig.aiEnabled,
+    aiRewriteMode: s.aiConfig.aiRewriteMode,
+    aiRewritePrompt: s.aiConfig.aiRewritePrompt,
+    tagsPanelVisible: s.aiConfig.tagsPanelVisible,
+  })));
 
   const setTagsVisible = (visible: boolean) => {
     setAiConfig({ tagsPanelVisible: visible });

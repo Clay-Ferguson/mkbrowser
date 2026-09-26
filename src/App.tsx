@@ -89,8 +89,9 @@ function App() {
   const currentPath = useAS(s => s.currentPath);
   const browseFileName = useAS(s => s.browseFileName);
   const directoryRefreshNonce = useAS(s => s.directoryRefreshNonce);
-  const folderGraph = useAS(s => s.folderGraph);
-  const settings = useAS(s => s.settings);
+  const hasFolderGraph = useAS(s => s.folderGraph !== null);
+  const fontSize = useAS(s => s.settings.fontSize);
+  const indexTreeWidth = useAS(s => s.settings.indexTreeWidth);
 
   // Mark the active view as visited so it stays mounted from now on. Adjusting
   // state during render (rather than in an effect) avoids a cascading re-render
@@ -132,8 +133,8 @@ function App() {
 
   // Apply font size globally via data attribute on html element
   useEffect(() => {
-    document.documentElement.setAttribute('data-font-size', settings.fontSize);
-  }, [settings.fontSize]);
+    document.documentElement.setAttribute('data-font-size', fontSize);
+  }, [fontSize]);
 
   // Close an unmodified editor when ESC is pressed anywhere in the app
   useEffect(() => {
@@ -346,7 +347,7 @@ function App() {
       <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
 
       <div className="flex-1 flex flex-col min-h-0">
-        {folderGraph && (
+        {hasFolderGraph && (
           <div {...viewProps('folder-graph')}>
             <ErrorBoundary>
               <FolderGraphView />
@@ -406,7 +407,7 @@ function App() {
           <div {...viewProps('browser')}>
             <ErrorBoundary>
               <div className="flex-1 flex flex-row min-h-0">
-                {settings.indexTreeWidth !== 'hidden' && <IndexTreeView />}
+                {indexTreeWidth !== 'hidden' && <IndexTreeView />}
                 {/* Single-file browsing swaps BrowseView out rather than hiding
                     it: mounting both would give the browsed file two live entry
                     instances — two CodeMirror editors racing to register as the

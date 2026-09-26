@@ -351,7 +351,9 @@ function IndexTreeView() {
   const rootPath = useAS(s => s.rootPath);
   const currentPath = useAS(s => s.currentPath);
   const treeRoot = useAS(s => s.indexTreeRoot);
-  const settings = useAS(s => s.settings);
+  const indexTreeWidth = useAS(s => s.settings.indexTreeWidth);
+  const foldersOnTop = useAS(s => s.settings.foldersOnTop);
+  const bookmarks = useAS(s => s.settings.bookmarks);
   const pendingReveal = useAS(s => s.pendingIndexTreeReveal);
   // Subscribing to the cut *paths* (not just "is anything cut") keeps the tree in
   // step when one pending cut replaces another: the boolean would stay true
@@ -396,7 +398,7 @@ function IndexTreeView() {
   const [deleteTarget, setDeleteTarget] = useState<{ path: string; name: string; isDirectory: boolean } | null>(null);
   // File whose cut would strand an attachments folder, held while the user confirms.
   const [cutOrphanAttachTarget, setCutOrphanAttachTarget] = useState<FileEntry | null>(null);
-  const widthClass = settings.indexTreeWidth === 'wide' ? 'w-1/2' : settings.indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
+  const widthClass = indexTreeWidth === 'wide' ? 'w-1/2' : indexTreeWidth === 'medium' ? 'w-1/3' : 'w-1/4';
 
   useEffect(() => {
     if (!rootPath) return;
@@ -854,12 +856,12 @@ function IndexTreeView() {
 
   const toggleBookmarksMenu = () => setShowBookmarksMenu(prev => !prev);
   const closeBookmarksMenu = () => setShowBookmarksMenu(false);
-  const saveTreeWidth = (width: typeof settings.indexTreeWidth) => {
+  const saveTreeWidth = (width: typeof indexTreeWidth) => {
     setIndexTreeWidth(width);
     saveSettings();
   };
-  const handleNarrowTree = () => saveTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
-  const handleWidenTree = () => saveTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
+  const handleNarrowTree = () => saveTreeWidth(indexTreeWidth === 'wide' ? 'medium' : 'narrow');
+  const handleWidenTree = () => saveTreeWidth(indexTreeWidth === 'narrow' ? 'medium' : 'wide');
 
   /**
    * Opens a bookmark. A bookmarked file opens in single-file browsing (same as
@@ -989,7 +991,7 @@ function IndexTreeView() {
     );
   }
 
-  const rows = flattenVisible(treeRoot.children, cutPaths, settings.foldersOnTop);
+  const rows = flattenVisible(treeRoot.children, cutPaths, foldersOnTop);
   return (
     <div data-testid="file-explorer-tree" className={`flex flex-col ${widthClass} shrink-0 border-r border-slate-700 bg-slate-900`}>
       <div className="flex items-center justify-between gap-1 px-2 py-1 border-b border-slate-700 shrink-0">
@@ -1016,7 +1018,7 @@ function IndexTreeView() {
             <MinusIcon className="w-3.5 h-3.5" />
           </span>
         </button>
-        {settings.indexTreeWidth !== 'narrow' && (
+        {indexTreeWidth !== 'narrow' && (
           <button
             type="button"
             onClick={handleNarrowTree}
@@ -1027,7 +1029,7 @@ function IndexTreeView() {
             <ChevronDoubleLeftIcon className="w-5 h-5" />
           </button>
         )}
-        {settings.indexTreeWidth !== 'wide' && (
+        {indexTreeWidth !== 'wide' && (
           <button
             type="button"
             onClick={handleWidenTree}
@@ -1044,7 +1046,7 @@ function IndexTreeView() {
         <BookmarksPopupMenu
           anchorRef={bookmarksButtonRef}
           onClose={closeBookmarksMenu}
-          bookmarks={settings.bookmarks}
+          bookmarks={bookmarks}
           rootPath={rootPath}
           onNavigate={handleBookmarkNavigate}
         />

@@ -28,7 +28,7 @@ export type PathBreadcrumbProps = {
  * A "reveal in tree" button appears at the end when the index tree panel is visible.
  */
 function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
-  const settings = useAS(s => s.settings);
+  const indexTreeHidden = useAS(s => s.settings.indexTreeWidth === 'hidden');
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const normalizedRoot = rootPath.replace(/[/\\]+$/, '');
   const normalizedCurrent = currentPath.replace(/[/\\]+$/, '');
@@ -121,7 +121,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
         );
       })}
 
-      {parts.length > 0 && settings.indexTreeWidth !== 'hidden' && (
+      {parts.length > 0 && !indexTreeHidden && (
         <button
           type="button"
           onClick={() => {
