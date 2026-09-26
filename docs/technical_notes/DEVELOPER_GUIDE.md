@@ -26,6 +26,7 @@
   * [The store's relationship to the wider app](#the-stores-relationship-to-the-wider-app)
   * [Adding a new piece of state — checklist](#adding-a-new-piece-of-state--checklist)
   * [Rules of thumb (the short list)](#rules-of-thumb-the-short-list)
+  * [Reporting async failures](#reporting-async-failures)
   * [Local AI Model Inference Troubleshooting](#local-ai-model-inference-troubleshooting)
 * [AI Interaction Logging](#ai-interaction-logging)
   * [How it hooks into LangChain](#how-it-hooks-into-langchain)
@@ -34,6 +35,7 @@
   * [Why not React's `<Activity>`](#why-not-reacts-activity)
 * [React Compiler](#react-compiler)
   * [The coding standard (the short list)](#the-coding-standard-the-short-list)
+  * [When `memo()` is (and isn't) warranted](#when-memo-is-and-isnt-warranted)
   * [What a "bailout" is and why we care](#what-a-bailout-is-and-why-we-care)
   * [Known bailout causes and their fixes](#known-bailout-causes-and-their-fixes)
   * [The exhaustive-deps escape patterns](#the-exhaustive-deps-escape-patterns)
@@ -68,7 +70,7 @@ In Electron, your app runs in **two separate processes** that can't directly cal
 
 The `ipcMain.handle(channel, handler)` pattern you see ~40 times in your `main.ts` is the **request/response** pattern — the renderer `await`s a result. There's also a **push** pattern (`webContents.send` / `ipcRenderer.on`) used for events like the streaming AI chunks.
 
-The **preload script** (`preload.ts`) sits in between as a security boundary. It selectively exposes specific IPC calls to the renderer via `contextBridge.exposeInMainWorld`, so the renderer only sees `window.electronAPI.readFile(path)` — never raw `ipcRenderer` access. That's why your AGENTS.md describes the "three-file sync" requirement: every new capability needs a handler in `main.ts`, a bridge method in `preload.ts`, and a type in `global.d.ts`.
+The **preload script** (`preload.ts`) sits in between as a security boundary. It selectively exposes specific IPC calls to the renderer via `contextBridge.exposeInMainWorld`, so the renderer only sees `window.electronAPI.readFile(path)` — never raw `ipcRenderer` access. That's why your AGENTS.md describes the "three-file sync" requirement: every new capability needs a handler in `main.ts`, a bridge method in `preload.ts`, and a type signature on the `ElectronAPI` interface in `src/shared/shared.ts`. (`global.d.ts` only declares the `window.electronAPI` global and is not edited per handler.)
 
 For your refactoring: each `ipcMain.handle(...)` is essentially an independent route handler. You can freely extract them into separate modules (e.g., `ipc/fileHandlers.ts`, `ipc/aiHandlers.ts`) and just import + register them in `main.ts`, the same way you'd split a monolithic Express `app.js` into route files.
 
@@ -95,17 +97,17 @@ The store began life as a hand-rolled mini-Zustand: a module-scope `AppState` ob
 
 `core.ts` defines the store and the shared types every slice builds on. Slice files import these; application code generally does not (it uses the actions and selectors described below).
 
-- **`StoreState`** — the full store type: `AppState & ImageSlice & AiConfigSlice & SearchSlice & ...` — i.e. the plain state fields plus the action interfaces contributed by every slice. (`AppState` itself is defined in `src/shared/types.ts`.)
+- **`StoreState`** — the full store type: `AppState & AiConfigSlice & SearchSlice & CalendarSlice & ...` — i.e. the plain state fields plus the action interfaces contributed by every slice. (`AppState` itself is defined in `src/shared/types.ts`.)
 - **`StoreSet`** / **`StoreGet`** — the `set`/`get` signatures handed to slice creators. `set` takes a `Partial<StoreState>` patch and **shallow-merges** it (Zustand's default): it produces a brand-new top-level state object and notifies subscribers. Slices only ever patch state fields, never actions.
 - **`useAS`** — the store itself, created as:
 
   ```ts
   export const useAS = create<StoreState>()((set, get) => ({
     ...initialState,
-    ...createImageSlice(set),
     ...createAiConfigSlice(set, get),
-    ...createSearchSlice(set),
-    // ...one creator per slice; items last (largest)
+    ...createSearchSlice(set, get),
+    // ...one creator per slice (calendar, indexTree, settings, view, items)
+    ...createThesaurusSlice(set),
   }));
   ```
 
@@ -129,12 +131,13 @@ Zustand's `set` only replaces the *top-level* state object (shallow merge). It d
 | `core.ts` | The store itself (`useAS`), `getState`, the `StoreState`/`StoreSet`/`StoreGet` types, plus `initialState`, `defaultSettings`, `defaultAiConfig`. Composes every slice. |
 | `items.ts` | The `items` `Map<path, ItemData>` — the file/folder listing and all per-item flags (selected, cut, expanded, editing, renaming, cached content, tags, props). The largest slice. |
 | `view.ts` | View/navigation state: `currentView`, `currentPath`, `rootPath`, `visibleTabs`, pending scroll/edit signals, folder analysis/graph, the directory-refresh nonce, expanded-editor flag. |
-| `settings.ts` | The persisted `AppSettings` (font size, sort order, content width, bookmarks, ignored paths, index-tree width, etc.) and all bookmark operations. |
+| `settings.ts` | The persisted `AppSettings` (font size, sort order, content width, inline image size, bookmarks, ignored paths, index-tree width, etc.) and all bookmark operations. |
 | `search.ts` | Search results, the query/folder/name they came from, sort options, and the persistent result highlight. |
 | `aiConfig.ts` | The renderer-side reactive *mirror* of the main process's AI configuration (see persistence, below). |
 | `calendar.ts` | Calendar events, loading flag, active/target folder, view type (month/week/day), and the centered date. |
 | `indexTree.ts` | The hierarchical `.INDEX.yaml` navigation tree (`indexTreeRoot`) and its expand/collapse/reveal operations. |
-| `image.ts` | Inline image display size and its CSS-transition flag. |
+| `thesaurus.ts` | `thesaurusWord` — the word under the editor cursor that the synonym pane shows. The store is the channel between the editor's idle plugin and `ThesaurusView`, which have no prop path between them. |
+| `expandedEdit.ts` | Not a slice: pure predicates over a state snapshot (`enterExpandedEditPatch`, `isExpandedEditOf`, `isExpandedEditing`) that decide when an edit takes over the pane as a maximized editor. `items.ts` and `view.ts` fold the result into their own single `set()`, and keeping them in a separate module keeps the items ↔ view imports acyclic. Not re-exported from the barrel. |
 | `scroll.ts` | Browser-view scroll positions per folder — a **non-reactive** module-level store (see below), not part of the Zustand store. |
 | `index.ts` | The **barrel**: re-exports `useAS` and every slice's actions, getters, and helpers, plus the shared store types. This is the single public import surface for the rest of the app. |
 
@@ -142,32 +145,30 @@ Zustand's `set` only replaces the *top-level* state object (shallow merge). It d
 
 #### Anatomy of a slice
 
-Every reactive slice follows the same shape (see `image.ts` for the smallest complete example):
+Every reactive slice follows the same shape (see `thesaurus.ts` for the smallest complete example):
 
 ```ts
 // 1. The actions this slice contributes to the store
-export interface ImageSlice {
-  setImageSize: (size: ImageSize) => void;
-  setImageSizeTransitioning: (value: boolean) => void;
-  setImageSizeWithTransition: (size: ImageSize) => void;
+export interface ThesaurusSlice {
+  setThesaurusWord: (word: string | null) => void;
 }
 
 // 2. The slice creator, called by core.ts inside create().
 //    A *function declaration* (not a const arrow) so it is hoisted and safe
 //    under the core ↔ slice import cycle regardless of module load order.
-export function createImageSlice(set: StoreSet): ImageSlice {
+export function createThesaurusSlice(set: StoreSet): ThesaurusSlice {
   return {
-    setImageSize: (size) => set({ imageSize: size }),
-    setImageSizeTransitioning: (value) => set({ imageSizeTransitioning: value }),
-    setImageSizeWithTransition: (size) =>
-      set({ imageSize: size, imageSizeTransitioning: true }),
+    setThesaurusWord: (word) => {
+      if (getState().thesaurusWord === word) return;   // no-op guard
+      set({ thesaurusWord: word });
+    },
   };
 }
 
 // 3. Thin non-hook wrappers so imperative code (and tests) can call plain
 //    functions from the barrel; they delegate to the in-store actions.
-export function setImageSize(size: ImageSize): void {
-  getState().setImageSize(size);
+export function setThesaurusWord(word: string | null): void {
+  getState().setThesaurusWord(word);
 }
 ```
 
@@ -240,7 +241,7 @@ The batch actions on the items Map (`clearAllSelections`, `expandAllItems`, `cut
 
 #### Batching multiple fields in one update
 
-Because `set` takes a `Partial<StoreState>`, one action can atomically update several fields with a single notification. `navigateToBrowserPath`, for instance, sets `currentPath`, `currentView`, and optionally `pendingScrollToFile` in one `set` — so subscribers see a single consistent transition rather than a flurry of intermediate states. Likewise `setImageSizeWithTransition` patches `imageSize` + `imageSizeTransitioning` together. Prefer one `set` with several keys over several sequential `set` calls. (This atomicity is also why the app has exactly **one** store — splitting state across multiple Zustand stores would turn these single notifications into multi-store, inconsistent-window updates.)
+Because `set` takes a `Partial<StoreState>`, one action can atomically update several fields with a single notification. `navigateToBrowserPath`, for instance, sets `currentPath`, `currentView`, and optionally `pendingScrollToFile` in one `set` — so subscribers see a single consistent transition rather than a flurry of intermediate states. Likewise `setEnableThesaurus` patches `settings` and, when switching the thesaurus off, clears `thesaurusWord` in the same `set`. Prefer one `set` with several keys over several sequential `set` calls. (This atomicity is also why the app has exactly **one** store — splitting state across multiple Zustand stores would turn these single notifications into multi-store, inconsistent-window updates.)
 
 ### The items Map — a deeper look
 
@@ -262,11 +263,11 @@ The renderer store is in-memory and vanishes on reload. The **durable** subset o
 
 #### Main process is the source of truth (`src/main/configMgr.ts`)
 
-`configMgr.ts` owns the persistent `AppConfig` (browse folder, current subfolder, `settings`, AI configuration, recent folders, calendar view type, image size, …). It reads the YAML config file (`config.yaml` in Electron's `userData` dir) exactly **once** at startup via `initConfig()`, then serves all reads from the in-memory `_config` object. Writes go through `updateConfig(partial)`, which shallow-merges the keys provided, treats `undefined` values as deletions, and enqueues an atomic, serialized, fsync'd flush to disk. Renderers reach it over IPC via `api.getConfig()` and `api.updateConfig(...)`. Crucially, `updateConfig` is **partial and per-key**: each call touches only the keys it carries, so concurrent writes to different keys never clobber each other, and there is deliberately no whole-config "replace" path exposed to the renderer.
+`configMgr.ts` owns the persistent `AppConfig` (browse folder, current subfolder, `settings`, AI configuration, recent folders, calendar view type, …). It reads the YAML config file (`config.yaml` in Electron's `userData` dir) exactly **once** at startup via `initConfig()`, then serves all reads from the in-memory `_config` object. Writes go through `updateConfig(partial)`, which shallow-merges the keys provided, treats `undefined` values as deletions, and enqueues an atomic, serialized, fsync'd flush to disk. Renderers reach it over IPC via `api.getConfig()` and `api.updateConfig(...)`. Crucially, `updateConfig` is **partial and per-key**: each call touches only the keys it carries, so concurrent writes to different keys never clobber each other, and there is deliberately no whole-config "replace" path exposed to the renderer.
 
 #### Re-hydration at startup (`src/renderer/config.ts`)
 
-`loadConfig()` runs once, early in `App.tsx`'s mount effect. It calls `api.getConfig()` and pushes the persisted values into the store via the normal actions: `setSettings({ ...defaultSettings, ...config.settings })` (merging over defaults so newly-added settings fields get sane values on old config files), `setCalendarViewType`, `setImageSize`, and `setAiConfig(...)` to seed the AI mirror. It also validates the saved browse folder and current subfolder and calls `setCurrentPath`. From that point on, the store drives the UI.
+`loadConfig()` runs once, early in `App.tsx`'s mount effect. It calls `api.getConfig()` and pushes the persisted values into the store via the normal actions: `setSettings({ ...defaultSettings, ...config.settings })` (merging over defaults so newly-added settings fields get sane values on old config files), `setCalendarViewType`, and `setAiConfig(...)` to seed the AI mirror. It also validates the saved browse folder and current subfolder and calls `setCurrentPath`. From that point on, the store drives the UI.
 
 #### Persisting store changes back to config
 
@@ -295,7 +296,7 @@ The reactive path out of the store is uniform: `useAS(selector)` → Zustand's s
 To add a new field to the global store:
 
 1. **Add the field to `AppState`** in `src/shared/types.ts` (and give it an initial value in `initialState` in `core.ts`). If it's a new settings/config field, add it to `AppSettings`/`AppConfig` and to `defaultSettings`/the config schema instead.
-2. **Pick or create the right slice** under `src/store/`. Group it with related state; only make a new slice for a genuinely new concern. (A new slice needs a `createXxxSlice` creator composed into `create()` in `core.ts` and its action interface added to `StoreState` — copy the shape of `image.ts`.)
+2. **Pick or create the right slice** under `src/store/`. Group it with related state; only make a new slice for a genuinely new concern. (A new slice needs a `createXxxSlice` creator composed into `create()` in `core.ts` and its action interface added to `StoreState` — copy the shape of `thesaurus.ts`.)
 3. **Write the action** inside the slice creator: add its signature to the slice's action interface, build new immutable copies of what it changes, and call `set`. Add a no-op guard if the value can be set to its current value. Batch related fields into one `set`. Export a thin wrapper function that delegates to `getState().yourAction(...)` so imperative code and tests keep a plain-function API.
 4. **Read it with a direct selector** — `useAS(s => s.yourField)` — no wrapper hook needed. Add a non-reactive `getYourField()` getter (a free function reading `getState()`) if imperative code needs it. For a *derived* value that returns a fresh object/array, export a small hook that wraps the selector in `useShallow` (see `useExpansionCounts`); a derived primitive needs no wrapping.
 5. **Confirm it flows through the `index.ts` barrel** (it already does `export * from './yourSlice'`; a brand-new slice file needs its `export *` line added).
@@ -311,6 +312,11 @@ To add a new field to the global store:
 - **One store.** Don't create additional Zustand stores — multi-field patches must stay atomic.
 - **Import from the `src/store` barrel**, not individual slice files.
 - **Persistence is explicit**, lives in the main process (`configMgr`), and is re-hydrated by `loadConfig()`; the store itself never writes to disk.
+- **Per-row components select primitives.** A row selects its own flags (`useAS(s => s.highlightItem === path)`, `useAS(s => s.settings.fontSize)`), never a whole object such as `s.settings` or `s.items` that it then compares against its key, so a change to another row, or to an unrelated setting, doesn't re-render it.
+- **Call global actions directly; don't prop-drill them.** `setAppError`, `saveSettings`, `requestDirectoryRefresh` and the other store actions are importable anywhere, so they are never passed down as `onSetError`/`onSaveSettings`/`onRefreshDirectory` props.
+- **User-initiated async work reports failure** through `runOp` or `setAppError` — never silently (see [Reporting async failures](#reporting-async-failures) below).
+- **`memo()` only under the rule** in [When `memo()` is (and isn't) warranted](#when-memo-is-and-isnt-warranted): per-row components in large `.map()` lists or expensive render bodies, with every prop stable, and a comment saying why.
+- **Use `useEffectEvent` for "latest callback" handlers**, not a ref that mirrors a prop (see escape pattern 4 under [The exhaustive-deps escape patterns](#the-exhaustive-deps-escape-patterns)).
 
 ### Reporting async failures
 

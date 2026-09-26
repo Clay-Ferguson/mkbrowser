@@ -31,7 +31,7 @@ Then call it from the renderer via `api.*` (see above). `src/global.d.ts` only d
 ## State Management (Zustand, single store)
 State lives in a **single Zustand store** (`src/store/`), composed via the slices pattern (full docs: `docs/technical_notes/DEVELOPER_GUIDE.md`):
 - `core.ts` — creates `useAS` from `initialState` + every slice's `createXxxSlice(set, get)`; exports `getState()` for non-reactive reads
-- slice files (`items.ts`, `search.ts`, `settings.ts`, `view.ts`, `calendar.ts`, `indexTree.ts`, `aiConfig.ts`, `image.ts`) — actions defined inside the store, plus thin wrapper functions and pure getters (`scroll.ts` is a deliberate non-reactive module-level Map)
+- slice files (`items.ts`, `search.ts`, `settings.ts`, `view.ts`, `calendar.ts`, `indexTree.ts`, `aiConfig.ts`, `thesaurus.ts`) — actions defined inside the store, plus thin wrapper functions and pure getters (`scroll.ts` is a deliberate non-reactive module-level Map; `expandedEdit.ts` holds pure routing predicates that `items.ts`/`view.ts` fold into their own `set()`, not a slice)
 - `index.ts` — the barrel and single public import surface (re-exports `useAS`, all slices + types)
 - Store type interfaces (`ItemData`, `AppState`, `AppSettings`, etc.) live in `src/shared/types.ts`
 

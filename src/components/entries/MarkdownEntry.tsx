@@ -163,7 +163,8 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   });
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
-  const { showToc, showPropsInEditor } = useAS(s => s.settings);
+  const showToc = useAS(s => s.settings.showToc);
+  const showPropsInEditor = useAS(s => s.settings.showPropsInEditor);
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const { aiEnabled, selectedPromptName, tagsVisible, setTagsVisible } = useAiConfig();
 

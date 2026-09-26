@@ -380,13 +380,13 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   // so each save mounts a fresh element and restarts the animation from the top — a second
   // save while the previous flash is still playing re-triggers it instead of being swallowed.
   const [saveFlashKey, setSaveFlashKey] = useState(0);
-  const settings = useAS(s => s.settings);
+  const fontSize = useAS(s => s.settings.fontSize);
 
   // Mount-time configuration, captured on first render. The mount effect below intentionally
   // uses these initial values — a given editor instance is created fresh per file/mode rather
   // than having them mutated on a live instance, so capturing them once is correct (not a
   // stale-closure bug). The props that DO change during a session are re-synced by their own
-  // effects below: `value` (value-sync), `settings.fontSize` (font-size),
+  // effects below: `value` (value-sync), `fontSize` (font-size),
   // `showPropsInEditor` (front matter), and `reviewText` (AI-review merge view).
   const mountConfigRef = useRef({
     value,
@@ -396,7 +396,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     goToLine,
     readOnly,
     showPropsInEditor,
-    fontSize: settings.fontSize,
+    fontSize,
   });
 
   // Effect events: the keymap, DOM handlers and update listener inside the once-created
@@ -860,9 +860,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     if (!view) return;
 
     view.dispatch({
-      effects: compartments.fontSize.reconfigure(createFontSizeTheme(settings.fontSize)),
+      effects: compartments.fontSize.reconfigure(createFontSizeTheme(fontSize)),
     });
-  }, [settings.fontSize, compartments]);
+  }, [fontSize, compartments]);
 
   // Toggle front matter visibility when showPropsInEditor changes
   useEffect(() => {

@@ -362,7 +362,7 @@ export function updateConfig(updates: Partial<AppConfig>): Promise<void> {
   }
 
   // Only run the AI-default enforcement pass when the update touches an
-  // AI-related key. Non-AI writes (e.g. curSubFolder, imageSize) must not
+  // AI-related key. Non-AI writes (e.g. curSubFolder, settings) must not
   // silently mutate aiModels/aiModel as a side-effect.
   if (AI_KEYS.some((k) => k in updates)) {
     _config = withDefaultAISettings(_config).config;
