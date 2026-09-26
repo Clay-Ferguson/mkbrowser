@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect, useEffect, useState, type ReactNode, type RefObject, type ComponentType } from 'react';
+import { useRef, useLayoutEffect, useEffect, useEffectEvent, useState, type ReactNode, type RefObject, type ComponentType } from 'react';
 import { clsx } from 'clsx';
 import { CheckIcon } from '@heroicons/react/24/solid';
 import { MENU_CONTAINER, MENU_ITEM_BASE, MENU_ITEM_ENABLED, MENU_ITEM_DISABLED, MENU_DIVIDER } from '../../../renderer/styles';
@@ -47,12 +47,9 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
   const mouseX = mousePosition?.x;
   const mouseY = mousePosition?.y;
 
-  // Keep the latest onClose in a ref so the dismiss listeners don't re-subscribe
-  // every render when callers pass an inline arrow function.
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  });
+  // Effect event so the dismiss listeners always call the latest onClose without
+  // re-subscribing every render when callers pass an inline arrow function.
+  const onCloseEvent = useEffectEvent(() => onClose());
 
   // Promote the menu into the browser's top layer via the Popover API, then
   // position it. Top-layer rendering sits above all page content regardless of
@@ -152,12 +149,12 @@ export default function PopupMenu({ anchorRef, mousePosition, onClose, disableCl
       const target = e.target as Node;
       const anchorContains = anchorRef?.current?.contains(target) ?? false;
       if (menuRef.current && !menuRef.current.contains(target) && !anchorContains) {
-        onCloseRef.current();
+        onCloseEvent();
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onCloseRef.current();
+        onCloseEvent();
       }
     };
     document.addEventListener('mousedown', handleMouseDown);

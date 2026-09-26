@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useImperativeHandle, type Ref, type RefObject, type CSSProperties } from 'react';
+import { useEffect, useEffectEvent, useRef, useState, useImperativeHandle, type Ref, type RefObject, type CSSProperties } from 'react';
 import { EditorView, placeholder as placeholderExt, keymap, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
 import { EditorState, Compartment, type Text } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap } from '@codemirror/commands';
@@ -358,14 +358,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   // and the text restored on cancel.
   const reviewOriginalRef = useRef<string | null>(null);
   const typoRef = useRef<Typo | null>(null);
-  const onEscapeRef = useRef(onEscape);
-  const onForceCancelRef = useRef(onForceCancel);
-  const onSaveRef = useRef(onSave);
-  const onSelectionChangeRef = useRef(onSelectionChange);
-  const onReadyRef = useRef(onReady);
-  const onGoToLineCompleteRef = useRef(onGoToLineComplete);
-  const onGoToPositionCompleteRef = useRef(onGoToPositionComplete);
-  const onViewModeClickRef = useRef(onViewModeClick);
   // Where the last left-button mousedown landed, used by the view-mode click handler to
   // distinguish a plain click from a drag-to-select gesture.
   const viewClickStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -374,7 +366,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
   // Debounce state for onChange (see OnChangeDebounceState) — collapses rapid keystroke bursts
   // (e.g. speech-to-text) into one store update. lastDelivered starts as the mount value.
   const onChangeDebounceRef = useRef<OnChangeDebounceState>({ timer: null, pendingDoc: null, lastDelivered: value });
-  const onChangeRef = useRef(onChange);
   // Pixel cap for the editor height (some % of the surrounding scroll area). undefined means
   // no cap (no <main> ancestor, e.g. in unit tests) and the editor grows with its content.
   const [maxHeight, setMaxHeight] = useState<number | undefined>(undefined);
@@ -401,21 +392,48 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     fontSize: settings.fontSize,
   });
 
-  // Keep the "latest callback" refs in sync so handlers inside the once-created EditorView
-  // always call the current props. Synced in an effect rather than during render — mutating
-  // refs during render breaks the rules of React and makes the React Compiler bail out on
-  // the whole component. Declared before the other effects so it runs first on every commit.
-  useEffect(() => {
-    onChangeRef.current = onChange;
-    onEscapeRef.current = onEscape;
-    onForceCancelRef.current = onForceCancel;
-    onSaveRef.current = onSave;
-    onSelectionChangeRef.current = onSelectionChange;
-    onReadyRef.current = onReady;
-    onGoToLineCompleteRef.current = onGoToLineComplete;
-    onGoToPositionCompleteRef.current = onGoToPositionComplete;
-    onViewModeClickRef.current = onViewModeClick;
+  // Effect events: the keymap, DOM handlers and update listener inside the once-created
+  // EditorView (and the other effects) call these, and they always see the current props.
+  // React swaps in the latest version during commit, so there's no window where a handler
+  // can reach the previous render's callback. They may only be called from effects and from
+  // the handlers/timers those effects create — never from render or plain event handlers.
+
+  // Delivers any pending debounced onChange to the current onChange prop.
+  const flushOnChangeEvent = useEffectEvent(() => {
+    flushPendingOnChange(onChangeDebounceRef.current, onChange);
   });
+  // The keybinding events return true when a handler consumed the key, false to let
+  // CodeMirror fall through to its default binding.
+  const escapeEvent = useEffectEvent((): boolean => {
+    if (!onEscape) return false;
+    // Deliver any pending onChange first: the parent's Escape handler decides whether
+    // to cancel by checking for unsaved modifications, which it must not miss.
+    flushPendingOnChange(onChangeDebounceRef.current, onChange);
+    onEscape();
+    return true;
+  });
+  const forceCancelEvent = useEffectEvent((): boolean => {
+    if (!onForceCancel) return false;
+    // Force-cancel discards the edit; drop (don't deliver) the pending onChange so
+    // the abandoned keystrokes can't be written back into the store on teardown.
+    cancelPendingOnChange(onChangeDebounceRef.current);
+    onForceCancel();
+    return true;
+  });
+  const saveEvent = useEffectEvent((): boolean => {
+    if (!onSave) return false;
+    // Deliver any pending onChange before saving, or keystrokes from the last
+    // ONCHANGE_DEBOUNCE_MS would be missing from the content the save reads.
+    flushPendingOnChange(onChangeDebounceRef.current, onChange);
+    onSave();
+    return true;
+  });
+  const hasViewModeClickEvent = useEffectEvent(() => onViewModeClick !== undefined);
+  const viewModeClickEvent = useEffectEvent((line: number) => onViewModeClick?.(line));
+  const selectionChangeEvent = useEffectEvent((hasSelection: boolean) => onSelectionChange?.(hasSelection));
+  const readyEvent = useEffectEvent((handle: CodeMirrorEditorHandle) => onReady?.(handle));
+  const goToLineCompleteEvent = useEffectEvent(() => onGoToLineComplete?.());
+  const goToPositionCompleteEvent = useEffectEvent(() => onGoToPositionComplete?.());
 
   // The handle methods read viewRef lazily, so any instance works for the editor's whole
   // lifetime (see createEditorHandle); the onReady callback in the mount effect gets its
@@ -435,7 +453,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     if (!onSaveKeepEditing) return;
     // Deliver any pending onChange before saving, exactly as Ctrl-S does, or keystrokes from
     // the last ONCHANGE_DEBOUNCE_MS would be missing from the content the save reads.
-    flushPendingOnChange(onChangeDebounceRef.current, onChangeRef.current);
+    flushPendingOnChange(onChangeDebounceRef.current, onChange);
     void onSaveKeepEditing()
       .then((saved) => {
         if (saved) setSaveFlashKey(k => k + 1);
@@ -560,28 +578,12 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
             // review. The explicit review buttons are the only exits (Ctrl-Q stays available
             // as the force-abandon hatch).
             if (reviewingRef.current) return false;
-            if (onEscapeRef.current) {
-              // Deliver any pending onChange first: the parent's Escape handler decides whether
-              // to cancel by checking for unsaved modifications, which it must not miss.
-              flushPendingOnChange(onChangeDebounceRef.current, onChangeRef.current);
-              onEscapeRef.current();
-              return true;
-            }
-            return false;
+            return escapeEvent();
           },
         },
         {
           key: 'Ctrl-q',
-          run: () => {
-            if (onForceCancelRef.current) {
-              // Force-cancel discards the edit; drop (don't deliver) the pending onChange so
-              // the abandoned keystrokes can't be written back into the store on teardown.
-              cancelPendingOnChange(onChangeDebounceRef.current);
-              onForceCancelRef.current();
-              return true;
-            }
-            return false;
-          },
+          run: () => forceCancelEvent(),
         },
         {
           key: 'Ctrl-s',
@@ -589,14 +591,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
             // Saving mid-review would write the pre-review edit buffer while the user is looking
             // at the proposal — resolve the review first (the Save button is hidden too).
             if (reviewingRef.current) return false;
-            if (onSaveRef.current) {
-              // Deliver any pending onChange before saving, or keystrokes from the last
-              // ONCHANGE_DEBOUNCE_MS would be missing from the content the save reads.
-              flushPendingOnChange(onChangeDebounceRef.current, onChangeRef.current);
-              onSaveRef.current();
-              return true;
-            }
-            return false;
+            return saveEvent();
           },
         },
         {
@@ -635,19 +630,19 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         mouseup: (event, view) => {
           const start = viewClickStartRef.current;
           viewClickStartRef.current = null;
-          if (!onViewModeClickRef.current || !start) return false;
+          if (!hasViewModeClickEvent() || !start) return false;
           const dragged = Math.abs(event.clientX - start.x) > 4 || Math.abs(event.clientY - start.y) > 4;
           if (dragged || !view.state.selection.main.empty) return false;
           const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
           const line = pos !== null ? view.state.doc.lineAt(pos).number : 1;
-          onViewModeClickRef.current(line);
+          viewModeClickEvent(line);
           return false;
         },
         // Flush the onChange debounce whenever focus leaves the editor: clicking Save / Cancel /
         // Ask-AI etc. blurs the editor before the button's click handler runs, so this guarantees
         // the store is current by the time any outside handler reads the edit buffer.
         blur: () => {
-          flushPendingOnChange(onChangeDebounceRef.current, onChangeRef.current);
+          flushOnChangeEvent();
           return false;
         },
       }),
@@ -659,11 +654,11 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
           const d = onChangeDebounceRef.current;
           d.pendingDoc = update.state.doc;
           if (d.timer !== null) clearTimeout(d.timer);
-          d.timer = setTimeout(() => flushPendingOnChange(d, onChangeRef.current), ONCHANGE_DEBOUNCE_MS);
+          d.timer = setTimeout(() => flushOnChangeEvent(), ONCHANGE_DEBOUNCE_MS);
         }
-        if (update.selectionSet && onSelectionChangeRef.current) {
+        if (update.selectionSet) {
           const { from, to } = update.state.selection.main;
-          onSelectionChangeRef.current(from !== to);
+          selectionChangeEvent(from !== to);
         }
       }),
     ];
@@ -702,12 +697,12 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
 
     // The view (and the imperative handle, attached during the preceding layout phase) is now
     // ready. Notify the parent so it can register this editor without racing a ref read.
-    onReadyRef.current?.(createEditorHandle(viewRef));
+    readyEvent(createEditorHandle(viewRef));
 
     // Auto-focus and scroll to line after a delay to ensure rendering is complete
     const focusTimer = setTimeout(() => {
       if (viewRef.current) {
-        applyPostMountFocus(viewRef.current, cfg, onGoToLineCompleteRef.current);
+        applyPostMountFocus(viewRef.current, cfg, () => goToLineCompleteEvent());
       }
     }, FOCUS_DELAY_MS);
 
@@ -718,7 +713,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // Deliver (never drop) any pending onChange so the final keystrokes survive teardown —
       // e.g. an unmount mid-edit keeps them in the store's edit buffer. Intentional discards
       // (Ctrl-Q force cancel) cancel the pending state before this runs, making it a no-op.
-      flushPendingOnChange(onChangeDebounceRef.current, onChangeRef.current);
+      flushOnChangeEvent();
       view.destroy();
       viewRef.current = null;
     };
@@ -845,7 +840,7 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     const pos = Math.max(0, Math.min(goToPosition, view.state.doc.length));
     view.dispatch({ selection: { anchor: pos, head: pos }, scrollIntoView: true });
     view.focus();
-    onGoToPositionCompleteRef.current?.();
+    goToPositionCompleteEvent();
   }, [goToPosition]);
 
   // Update font size when settings change

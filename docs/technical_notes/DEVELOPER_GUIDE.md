@@ -443,7 +443,7 @@ The compiler compiles **per component/hook** (each function is a separate unit).
 |---|---|
 | `try { } finally { }` (or `try` without `catch`) anywhere in the unit | Convert async work to a promise chain — `.then().catch().finally()` (e.g. `setBusy(true); void op().catch(...).finally(() => setBusy(false))`) — or extract the try/finally into a module-level helper function. |
 | Conditionals / logical ops / optional chaining (`?:`, `\|\|`, `&&`, `?.`) inside a `try` or `catch` block | Hoist the value expressions out of the try, or extract the whole block to a module-level helper (e.g. an `errorMessage(err)` helper for the classic `err instanceof Error ? err.message : '...'` pattern in a catch). |
-| Writing a ref during render (`someRef.current = value` in the component body) | Move the sync into a no-deps `useEffect` declared before the other effects (see `CodeMirrorEditor.tsx` — its "latest callback" refs are synced this way). |
+| Writing a ref during render (`someRef.current = value` in the component body) | If the ref only mirrors a callback prop so a long-lived handler can call the latest one, replace it with `useEffectEvent` (escape pattern 4 below). For other mutable values, move the sync into a no-deps `useEffect` declared before the other effects. |
 | Mutating a module-level variable (e.g. `++idCounter`) | Wrap the mutation in a module-level function (`nextMermaidId()` in `MermaidDiagram.tsx`). |
 | `this` expressions (e.g. a d3 `.each(function () { this.getBBox() })` callback) | Extract the callback to a module-level function with a typed `this` parameter (`measureLabelFootprint` in `FolderGraphView.tsx`). |
 | `eslint-disable` of any `react-hooks` rule | Remove the suppression and restructure so the rule passes (patterns below). |
@@ -467,7 +467,22 @@ Removing a suppression usually means confronting `react-hooks/exhaustive-deps` h
    ```
 
    See `CodeMirrorEditor.tsx` for the full pattern. Props that *do* change during the object's lifetime get their own small sync effects instead.
-4. **"Latest callback" refs** (handlers inside a once-created object must call current props) → keep the refs, but sync them in a no-deps effect (runs after every render), never during render.
+4. **"Latest callback"** (handlers inside a once-created object must call current props) → wrap the call in `useEffectEvent` (React 19.2) instead of mirroring the prop into a ref. An effect event always sees the latest props, is never a dependency, and React swaps it in during commit — so, unlike a ref synced in a passive effect, there's no window where a handler can reach the previous render's callback. The compiler and the `react-hooks` lint rules both understand it.
+
+   ```ts
+   const saveEvent = useEffectEvent((): boolean => {
+     if (!onSave) return false;
+     onSave();
+     return true;
+   });
+
+   useEffect(() => {
+     const view = new EditorView({ /* keymap: { key: 'Ctrl-s', run: () => saveEvent() } */ });
+     return () => view.destroy();
+   }, []);   // effect events are never listed
+   ```
+
+   Effect events may only be **called** from effects (including cleanups) and from the handlers, listeners and timers those effects create. Never call one during render or from a plain JSX event handler, and never pass one as a prop — a handler created in render already closes over the current props, so it can use them directly. Keep refs only for genuinely mutable, non-callback state (e.g. `reviewingRef`, `onChangeDebounceRef`, `FolderGraphView`'s `highlightRef`). See `CodeMirrorEditor.tsx` and `PopupMenu.tsx`.
 
 One companion gotcha: **`react-hooks/set-state-in-effect`** flags *synchronous* `setState` in an effect body. When an effect kicks off async loading, keep the pre-await `setLoading(true)` inside the async function (module-level helper or async IIFE), not directly in the effect body.
 
