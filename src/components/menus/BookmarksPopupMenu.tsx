@@ -5,7 +5,8 @@ import { logger } from '../../shared/logUtil';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 import AlertDialog from '../dialogs/AlertDialog';
 import BookmarkDialog from '../dialogs/BookmarkDialog';
-import { toggleBookmark, isBookmarked, getSettings, removeBookmark, updateBookmarkName, setBookmarkIsDirectory, type Bookmark } from '../../store';
+import { saveSettings } from '../../renderer/config';
+import { toggleBookmark, isBookmarked, removeBookmark, updateBookmarkName, setBookmarkIsDirectory, type Bookmark } from '../../store';
 import {
   MENU_ROW,
   MENU_ICON_BTN,
@@ -53,39 +54,18 @@ export default function BookmarksPopupMenu({
     a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
   );
 
-  /** Writes the current settings (including bookmarks) to the config file. */
-  const persistBookmarks = async () => {
-    await api.updateConfig({ settings: getSettings() });
-  };
-
-  /**
-   * Removes a bookmark from the store and persists the change. Fire-and-forget
-   * (`() => void`) so it can be bound directly to onClick; the persist error is
-   * reported here rather than leaking an unhandled rejection.
-   */
+  /** Removes a bookmark from the store and persists the change. */
   const handleDelete = (fullPath: string) => {
     removeBookmark(fullPath);
-    void (async () => {
-      try {
-        await persistBookmarks();
-      } catch (err) {
-        logger.error('Failed to delete bookmark:', err);
-      }
-    })();
+    saveSettings();
   };
 
   /** Saves a renamed bookmark label and closes the edit dialog. */
   const handleEditSave = (name: string) => {
     if (!editingBookmark) return;
     updateBookmarkName(editingBookmark.path, name);
-    void (async () => {
-      try {
-        await persistBookmarks();
-        setEditingBookmark(null);
-      } catch (err) {
-        logger.error('Failed to save bookmark name:', err);
-      }
-    })();
+    saveSettings();
+    setEditingBookmark(null);
   };
 
   /**
@@ -102,7 +82,7 @@ export default function BookmarksPopupMenu({
         if (!exists) {
           if (isBookmarked(fullPath)) {
             toggleBookmark(fullPath);
-            await api.updateConfig({ settings: getSettings() });
+            saveSettings();
           }
           setMissingPath(fullPath);
           return;
@@ -111,7 +91,7 @@ export default function BookmarksPopupMenu({
         if (isDirectory === undefined) {
           isDirectory = await api.isDirectory(fullPath);
           setBookmarkIsDirectory(fullPath, isDirectory);
-          await persistBookmarks();
+          saveSettings();
         }
         onNavigate(fullPath, isDirectory);
         onClose();

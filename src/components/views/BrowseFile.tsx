@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { api } from '../../renderer/api';
-import type { FileEntry } from '../../global';
 import MarkdownEntry from '../entries/MarkdownEntry';
 import GenericEntry from '../entries/GenericEntry';
 import ImageEntry from '../entries/ImageEntry';
@@ -15,10 +14,12 @@ import {
   setCurrentPath,
   setItemExpanded,
   useAS,
+  setAppError,
 } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
 import { getParentPath } from '../../renderer/pathUtil';
+import { refreshDirectory } from '../../renderer/directoryLoader';
 import { pasteIntoFolder } from '../../renderer/fileOpsUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
@@ -30,15 +31,8 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
  * Compiler bails out on try/finally and on value blocks inside a try/catch.
  * Mirrors BrowseView's runOp.
  */
-function runOp(op: () => Promise<void>, errorPrefix: string, onError: (msg: string | null) => void): void {
+function runOp(op: () => Promise<void>, errorPrefix: string, onError: (msg: string) => void = setAppError): void {
   op().catch((err: unknown) => onError(errorPrefix + (err instanceof Error ? err.message : String(err))));
-}
-
-interface BrowseFileProps {
-  entries: FileEntry[];
-  onRefreshDirectory: () => void;
-  onSetError: (error: string | null) => void;
-  onSaveSettings: () => void;
 }
 
 /**
@@ -100,8 +94,9 @@ interface BrowseFileProps {
  * a file's attachments are visible here just as they are in the listing. They
  * are hidden while editing, when the maximized editor owns the whole pane.
  */
-function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }: BrowseFileProps) {
+function BrowseFile() {
   const currentPath = useAS(s => s.currentPath);
+  const entries = useAS(s => s.currentEntries);
   const rootPath = useAS(s => s.rootPath);
   const browseFileName = useAS(s => s.browseFileName);
   const browseFileMode = useAS(s => s.browseFileMode);
@@ -113,9 +108,9 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
   // the toggle stays live.
   const alwaysExpandedEditor = browseFileMode === 'browse';
 
-  // The listing for currentPath is already loaded (App.tsx's
-  // loadDirectoryContents ran on the path change and pushed every item into the
-  // store via syncDirectoryItems), so the entry is found here rather than
+  // The listing for currentPath is already loaded (loadDirectoryContents ran
+  // on the path change and installed it in the store together with its items
+  // via applyDirectoryListing), so the entry is found here rather than
   // re-read, and its ItemData is guaranteed to exist.
   const entry = entries.find((e) => e.name === browseFileName && !e.isDirectory);
 
@@ -195,8 +190,8 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
   // use for it, and subscribing would re-render the pane on every store write.
   const handlePasteIntoFolder = (folderPath: string) => {
     runOp(async () => {
-      await pasteIntoFolder(folderPath, useAS.getState().items, onSetError, onRefreshDirectory);
-    }, 'Failed to paste into folder: ', onSetError);
+      await pasteIntoFolder(folderPath, useAS.getState().items);
+    }, 'Failed to paste into folder: ');
   };
 
   // Rename/delete completion reconciles the index yaml (the file may be listed
@@ -206,8 +201,8 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
       if (currentPath) {
         await api.reconcileIndexedFiles(currentPath, false);
       }
-      onRefreshDirectory();
-    }, 'Failed to refresh folder: ', onSetError);
+      refreshDirectory();
+    }, 'Failed to refresh folder: ');
   };
 
   return (
@@ -251,7 +246,6 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
               rootPath={rootPath}
               currentPath={currentPath}
               onNavigate={handleBreadcrumbNavigate}
-              onRefreshDirectory={onRefreshDirectory}
             />
           </div>
 
@@ -288,7 +282,7 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
           {entry && (
             <div className={flexPane ? 'flex-1 min-h-0 flex flex-col' : undefined}>
               {entry.isMarkdown ? (
-                <MarkdownEntry entry={entry} view="browser" onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} alwaysExpandedEditor={alwaysExpandedEditor} />
+                <MarkdownEntry entry={entry} view="browser" onRename={handleRefresh} onDelete={handleRefresh} alwaysExpandedEditor={alwaysExpandedEditor} />
               ) : isImageFile(entry.name) ? (
                 /* allImages drives only the fullscreen viewer's prev/next. Only this one
                    file is on screen, but the listing for currentPath is already loaded, so
@@ -296,13 +290,13 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
                    lets Left/Right walk the folder from the fullscreen view, exactly as it
                    does from the folder listing. Passing just [entry] would make the arrow
                    keys silently do nothing. */
-                <ImageEntry entry={entry} allImages={folderImages} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
+                <ImageEntry entry={entry} allImages={folderImages} onRename={handleRefresh} onDelete={handleRefresh} />
               ) : isTextFile(entry.name) ? (
-                <TextEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} alwaysExpandedEditor={alwaysExpandedEditor} />
+                <TextEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} alwaysExpandedEditor={alwaysExpandedEditor} />
               ) : isPdfFile(entry.name) ? (
-                <PDFEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
+                <PDFEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} />
               ) : (
-                <GenericEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} />
+                <GenericEntry entry={entry} onRename={handleRefresh} onDelete={handleRefresh} />
               )}
             </div>
           )}
@@ -314,7 +308,7 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
               capped and scrolls on its own so the entry keeps most of the height. */}
           {entry && attachFolder && !attachFolderCut && !editing && (
             <div data-testid="browse-file-attachments" className={flexPane ? 'flex-shrink-0 max-h-[40%] overflow-y-auto pt-2' : 'pt-2'}>
-              <FolderEntry entry={attachFolder} onNavigate={setCurrentPath} onRename={handleRefresh} onDelete={handleRefresh} onSaveSettings={onSaveSettings} onPasteIntoFolder={handlePasteIntoFolder} onRefreshDirectory={onRefreshDirectory} isAttachFolder={true} indentFolder={true} />
+              <FolderEntry entry={attachFolder} onNavigate={setCurrentPath} onRename={handleRefresh} onDelete={handleRefresh} onPasteIntoFolder={handlePasteIntoFolder} isAttachFolder={true} indentFolder={true} />
               {attachFolder.attachments && (
                 <AttachFolderContents
                   entries={attachFolder.attachments}
@@ -322,7 +316,6 @@ function BrowseFile({ entries, onRefreshDirectory, onSetError, onSaveSettings }:
                   onNavigate={setCurrentPath}
                   onRename={handleRefresh}
                   onDelete={handleRefresh}
-                  onSaveSettings={onSaveSettings}
                   onPasteIntoFolder={handlePasteIntoFolder}
                 />
               )}

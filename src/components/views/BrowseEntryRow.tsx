@@ -33,8 +33,6 @@ interface BrowseEntryRowProps {
   onNavigate: (path: string) => void;
   onRename: () => void;
   onDelete: () => void;
-  onSaveSettings: () => void;
-  onRefreshDirectory: () => void;
   onPasteIntoFolder: (folderPath: string) => void;
   onPasteAsAttachment: (filePath: string) => void;
   onPasteClipboardAsAttachment: (filePath: string) => void;
@@ -59,7 +57,7 @@ interface BrowseEntryRowProps {
  */
 function BrowseEntryRow({
   entry, index, isFirst, isLast, hasIndexFile, ownerPath, showInsertBarAfter, allImages,
-  onNavigate, onRename, onDelete, onSaveSettings, onRefreshDirectory, onPasteIntoFolder,
+  onNavigate, onRename, onDelete, onPasteIntoFolder,
   onPasteAsAttachment, onPasteClipboardAsAttachment, onAttachFromFile, onCreateAttachment,
   onMoveEntry, onMoveEntryToEdge, onInsertFileAt, onInsertFolderAt,
 }: BrowseEntryRowProps) {
@@ -86,7 +84,7 @@ function BrowseEntryRow({
           <>
             {/* Folders are shown whenever their parent is expanded (attach folders included). */}
             {parentExpanded && (
-              <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={onPasteIntoFolder} onRefreshDirectory={onRefreshDirectory} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={isAttach} indentFolder={indentFolder} />
+              <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onPasteIntoFolder={onPasteIntoFolder} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} isAttachFolder={isAttach} indentFolder={indentFolder} />
             )}
             {isAttach && entry.attachments && parentExpanded && (
               <AttachFolderContents
@@ -95,21 +93,20 @@ function BrowseEntryRow({
                 onNavigate={onNavigate}
                 onRename={onRename}
                 onDelete={onDelete}
-                onSaveSettings={onSaveSettings}
                 onPasteIntoFolder={onPasteIntoFolder}
               />
             )}
           </>
         ) : entry.isMarkdown ? (
-          <MarkdownEntry entry={entry} view="browser" onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={onPasteAsAttachment} {...attachMenuHandlers} documentMode={hasIndexFile} />
+          <MarkdownEntry entry={entry} view="browser" onRename={onRename} onDelete={onDelete} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} onPasteAsAttachment={onPasteAsAttachment} {...attachMenuHandlers} documentMode={hasIndexFile} />
         ) : isImageFile(entry.name) ? (
-          <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
+          <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
         ) : isTextFile(entry.name) ? (
-          <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
+          <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
         ) : isPdfFile(entry.name) ? (
-          <PDFEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
+          <PDFEntry entry={entry} onRename={onRename} onDelete={onDelete} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
         ) : (
-          <GenericEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
+          <GenericEntry entry={entry} onRename={onRename} onDelete={onDelete} onMoveUp={moveUp} onMoveDown={moveDown} onMoveToTop={moveToTop} onMoveToBottom={moveToBottom} {...attachMenuHandlers} />
         )}
       </ErrorBoundary>
       {showInsertBarAfter && (

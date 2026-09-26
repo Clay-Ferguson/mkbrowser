@@ -21,7 +21,7 @@ type PDFEntryProps = BaseEntryProps & AttachMenuProps;
  * read-only here, so there is no edit path.
  */
 function PDFEntry(props: PDFEntryProps) {
-  const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
+  const { entry, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
   const { core, rename, del } = useEntry(props);
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
@@ -48,7 +48,6 @@ function PDFEntry(props: PDFEntryProps) {
           deleting={del.deleting}
           onRenameClick={rename.handleRenameClick}
           onDeleteClick={del.handleDeleteClick}
-          onSaveSettings={onSaveSettings}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}
           onMoveToTop={onMoveToTop}

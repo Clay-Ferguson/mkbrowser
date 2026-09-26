@@ -82,6 +82,8 @@ export const defaultAiConfig: AiConfigState = {
  */
 const initialState: AppState = {
   items: new Map(),
+  currentEntries: [],
+  entriesLoading: true,
   currentPath: '',
   currentView: 'browser', // browser | search-results | settings
   browseFileName: null,

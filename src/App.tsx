@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 import type { CSSProperties } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { api } from './renderer/api';
-import type { FileEntry } from './global';
 import AlertDialog from './components/dialogs/AlertDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
@@ -18,15 +16,12 @@ import BrowseFile from './components/views/BrowseFile';
 import IndexTreeView from './components/views/IndexTreeView';
 import AppTabButtons from './components/AppTabButtons';
 import {
-  syncDirectoryItems,
-  getSettings,
   setCurrentView,
   navigateToBrowserPath,
   setRootPath,
   openRootFolder,
   useAS,
-  getIndexTreeRoot,
-  setIndexTreeRoot,
+  setEntriesLoading,
   getEditingItem,
   isEditUnmodified,
   setItemEditing,
@@ -42,41 +37,13 @@ import type { AppView, SearchDefinition } from './shared/types';
 import { newSearchDefinition } from './shared/searchHelpers';
 import type { CalendarEventResult, AppConfig } from './shared/shared';
 import { toCalendarEvents } from './shared/calendarUtil';
-import type { FileNode } from './store';
 import { loadConfig } from './renderer/config';
 import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
 import { applyGlobalHighlight, getGlobalHighlightText } from './renderer/globalHighlight';
-import { mergeTreeNodes } from './renderer/dragAndDrop';
+import { loadDirectoryContents } from './renderer/directoryLoader';
 import { buildEntryHeaderId } from './renderer/entryDom';
-import { logger } from './shared/logUtil';
 import { BUTTON_CLASS_LG_BLUE } from './renderer/styles';
-
-/**
- * Re-reads every expanded directory node in the tree from disk, returning a new
- * root. Child nodes come from `mergeTreeNodes`, the same builder the lazy expand
- * and `reloadExpandedTreeFolder` use, so all four refresh paths agree on which
- * entries a folder has (`.attach` folders filtered out), carry expansion state
- * over by path, and apply the same file <-> folder kind guard. Building children
- * by hand here instead is what let an attach folder reappear in the tree after a
- * rename, until the next refresh through a builder swept it back out.
- *
- * Recursion is the one thing this adds over `mergeTreeNodes`: each merged child
- * is refreshed too, so an expanded subtree is reloaded all the way down. Row
- * order is not decided here — `flattenVisible` in IndexTreeView orders rows at
- * render time, so builder order only survives for index-ordered (Document Mode)
- * siblings, which it passes through from the listing.
- */
-async function refreshExpandedNodes(node: FileNode): Promise<FileNode> {
-  if (!node.isDirectory || !node.isExpanded) return node;
-  try {
-    const entries = await api.readDirectory(node.path);
-    const children = await Promise.all(mergeTreeNodes(entries, node.children).map(refreshExpandedNodes));
-    return { ...node, children, isLoading: false };
-  } catch {
-    return node;
-  }
-}
 
 /**
  * Formats an unknown thrown value for display. Also keeps ternaries out of
@@ -103,99 +70,12 @@ function isEntryRendered(path: string): boolean {
   return document.getElementById(buildEntryHeaderId(path)) !== null;
 }
 
-/**
- * Monotonic token identifying the most recent loadDirectoryContents call.
- * Two loads of the *same* path can overlap (a directoryRefreshNonce bump or
- * refreshDirectory racing an in-flight load), and the path-based staleness
- * check alone can't order them — without this, the older read resolving last
- * would overwrite the newer listing.
- */
-let latestLoadToken = 0;
-
-/**
- * Reads the given directory via IPC and pushes the results into App state and
- * the item store. Module-level (not in the component) so its try/catch/finally
- * doesn't make the React Compiler bail out on App.
- */
-async function loadDirectoryContents(
-  currentPath: string,
-  showLoading: boolean,
-  setEntries: (entries: FileEntry[]) => void,
-  setLoading: (loading: boolean) => void,
-  setError: (error: string | null) => void,
-): Promise<void> {
-  if (!currentPath) return;
-  const token = ++latestLoadToken;
-
-  if (showLoading) {
-    setLoading(true);
-  }
-  setError(null);
-  // A slow read can resolve after the user has navigated elsewhere, or after a
-  // newer load of the same path has started, so every state write below
-  // (including the loading flip) is gated on this run still being the latest
-  // request for the current path. The path check is still needed alongside the
-  // token: the store's currentPath can change before the effect fires the next
-  // load (and bumps the token).
-  const isStale = () =>
-    token !== latestLoadToken || useAS.getState().currentPath !== currentPath;
-  try {
-    const files = await api.readDirectory(currentPath);
-    if (isStale()) return;
-    setEntries(files);
-
-    // Update global store with all items from this directory (including attachment sub-items)
-    const allItems = files.flatMap((file) => {
-      const base = [{
-        path: file.path,
-        name: file.name,
-        isDirectory: file.isDirectory,
-        modifiedTime: file.modifiedTime,
-        createdTime: file.createdTime,
-        size: file.size,
-        aiHint: file.aiHint,
-      }];
-      if (file.attachments) {
-        const attachItems = file.attachments.map((a) => ({
-          path: a.path,
-          name: a.name,
-          isDirectory: a.isDirectory,
-          modifiedTime: a.modifiedTime,
-          createdTime: a.createdTime,
-          size: a.size,
-          aiHint: a.aiHint,
-        }));
-        return [...base, ...attachItems];
-      }
-      return base;
-    });
-    // A full listing of currentPath, so this also prunes the cached entries of
-    // files that vanished from it (deleted or moved outside the app). Leaving
-    // them behind would let a later paste/delete act on a stale isCut/isSelected
-    // flag — see syncDirectoryItems.
-    syncDirectoryItems(currentPath, allItems);
-  } catch (err) {
-    if (isStale()) return;
-    const errorMessage = err instanceof Error ? err.message : 'Failed to read directory';
-    if (errorMessage.includes('does not exist')) {
-      setError('This folder no longer exists');
-    } else {
-      setError('Failed to read directory');
-    }
-    setEntries([]);
-  } finally {
-    if (!isStale()) {
-      setLoading(false);
-    }
-  }
-}
-
 function App() {
   const rootPath = useAS(s => s.rootPath);
-  const [entries, setEntries] = useState<FileEntry[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const entries = useAS(s => s.currentEntries);
+  const loading = useAS(s => s.entriesLoading);
   // The error message lives in the store (not local state) so shared file-operation
-  // and drag-and-drop code can report a failure without an onSetError callback
+  // and drag-and-drop code can report a failure without an error callback
   // threaded down to it; App remains the only place that renders it.
   const error = useAS(s => s.appError);
   const [lastExportFolder, setLastExportFolder] = useState<string>('');
@@ -305,17 +185,17 @@ function App() {
       setRecentFolders(result.recentFolders);
       if (result.error) {
         setError(result.error);
-        setLoading(false);
+        setEntriesLoading(false);
       } else if (result.rootPath) {
         setRootPath(result.rootPath);
       } else {
-        setLoading(false);
+        setEntriesLoading(false);
       }
     };
     initConfig().catch((err: unknown) => {
       if (cancelled) return;
       setError(err instanceof Error ? err.message : 'Failed to load configuration');
-      setLoading(false);
+      setEntriesLoading(false);
     });
     // Returns the useEffect cleanup: marks this run stale so its async writes no-op.
     return () => {
@@ -325,19 +205,8 @@ function App() {
 
   // Load directory when path changes, or when an out-of-band refresh is requested
   useEffect(() => {
-    void loadDirectoryContents(currentPath, true, setEntries, setLoading, setError);
+    void loadDirectoryContents(currentPath, true);
   }, [currentPath, directoryRefreshNonce]);
-
-  // Remove entries that were deleted from the store (e.g. via SearchResultsView).
-  // Pruning during render (rather than in an effect) avoids a cascading re-render;
-  // the length guard keeps this from looping when nothing was removed. The filter
-  // runs inside a useShallow selector (its elements are the same FileEntry objects
-  // while nothing is removed), so App doesn't re-render on every items write —
-  // e.g. each debounced keystroke in an inline editor.
-  const prunedEntries = useAS(useShallow(s => entries.filter(entry => s.items.has(entry.path))));
-  if (prunedEntries.length !== entries.length) {
-    setEntries(prunedEntries);
-  }
 
   // Keep the most-recently-visited folder at the head of the recents list.
   // Adjusting this during render (rather than in an effect) avoids a cascading
@@ -361,16 +230,6 @@ function App() {
       // Non-critical — config will be updated on next navigation
     });
   }, [currentPath, rootPath, recentFolders]);
-
-  const refreshDirectory = () => {
-    void loadDirectoryContents(currentPath, false, setEntries, setLoading, setError);
-    const root = getIndexTreeRoot();
-    if (root) {
-      refreshExpandedNodes(root)
-        .then(newRoot => setIndexTreeRoot(newRoot))
-        .catch((err: unknown) => logger.error('Failed to refresh index tree:', err));
-    }
-  };
 
   const handleSelectFolder = () => {
     void (async () => {
@@ -428,16 +287,6 @@ function App() {
         if (await executeSearch(currentPath, definition)) setCurrentView('search-results');
       } catch (err) {
         setError('Search failed: ' + errorMessage(err));
-      }
-    })();
-  };
-
-  const handleSaveSettings = () => {
-    void (async () => {
-      try {
-        await api.updateConfig({ settings: getSettings() });
-      } catch {
-        setError('Failed to save settings');
       }
     })();
   };
@@ -501,7 +350,7 @@ function App() {
 
   return (
     <>
-      <AppTabButtons entries={entries} onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
+      <AppTabButtons onSelectFolder={handleSelectFolder} onQuit={handleQuit} recentFolders={recentFolders} onOpenRecentFolder={handleOpenRecentFolder} />
 
       <div className="flex-1 flex flex-col min-h-0">
         {folderGraph && (
@@ -523,7 +372,7 @@ function App() {
         {visitedViews.has('settings') && (
           <div {...viewProps('settings')}>
             <ErrorBoundary>
-              <SettingsView onSaveSettings={handleSaveSettings} />
+              <SettingsView />
             </ErrorBoundary>
           </div>
         )}
@@ -555,7 +404,7 @@ function App() {
         {visitedViews.has('thread') && (
           <div {...viewProps('thread')}>
             <ErrorBoundary>
-              <ThreadView onSaveSettings={handleSaveSettings} />
+              <ThreadView />
             </ErrorBoundary>
           </div>
         )}
@@ -564,7 +413,7 @@ function App() {
           <div {...viewProps('browser')}>
             <ErrorBoundary>
               <div className="flex-1 flex flex-row min-h-0">
-                {settings.indexTreeWidth !== 'hidden' && <IndexTreeView onRefreshDirectory={refreshDirectory} />}
+                {settings.indexTreeWidth !== 'hidden' && <IndexTreeView />}
                 {/* Single-file browsing swaps BrowseView out rather than hiding
                     it: mounting both would give the browsed file two live entry
                     instances — two CodeMirror editors racing to register as the
@@ -574,20 +423,11 @@ function App() {
                 <div className="flex-1 flex flex-col min-h-0 min-w-0">
                   {browseFileName ? (
                     <BrowseFile
-                      entries={entries}
-                      onRefreshDirectory={refreshDirectory}
-                      onSetError={setError}
-                      onSaveSettings={handleSaveSettings}
                     />
                   ) : (
                     <BrowseView
-                      entries={entries}
-                      loading={loading}
                       lastExportFolder={lastExportFolder}
                       onSetLastExportFolder={setLastExportFolder}
-                      onRefreshDirectory={refreshDirectory}
-                      onSetError={setError}
-                      onSaveSettings={handleSaveSettings}
                     />
                   )}
                 </div>

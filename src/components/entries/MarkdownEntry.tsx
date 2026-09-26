@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { DocumentTextIcon, ArrowLeftEndOnRectangleIcon, TagIcon as TagIconOutline, AdjustmentsHorizontalIcon as PropsIconOutline, PaperClipIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { TagIcon as TagIconSolid, AdjustmentsHorizontalIcon as PropsIconSolid } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
-import { saveAiConfig } from '../../renderer/config';
+import { saveAiConfig, saveSettings } from '../../renderer/config';
 import type { FileEntry } from '../../global';
 import type { AppView } from '../../shared/types';
 import { splitFrontMatter, getPropsFromYaml } from '../../shared/frontMatterUtil';
@@ -151,7 +151,7 @@ async function saveCalendarProps(path: string, newContent: string): Promise<void
  * In document mode, timestamp-based file names are hidden from the header row.
  */
 function MarkdownEntry(props: MarkdownEntryProps) {
-  const { entry, view, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, isAttachment = false, alwaysExpandedEditor = false } = props;
+  const { entry, view, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, onPasteAsAttachment, isAttachment = false, alwaysExpandedEditor = false } = props;
   const item = useAS(s => s.items.get(entry.path));
   const hasCutItems = useAS(s => hasAnyCutItems(s.items));
 
@@ -231,7 +231,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       setPendingCursorPos(4);
     }
     setShowPropsInEditor(turningOn);
-    onSaveSettings();
+    saveSettings();
   };
 
   // Flips the preference AND moves the editor to match: expanding hands this
@@ -239,7 +239,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // listing with the editor still open inline.
   const handleToggleExpandedEditor = () => {
     toggleExpandedEditor(entry.path);
-    onSaveSettings();
+    saveSettings();
   };
 
   const isHumanFile = aiEnabled && entry.name === HUMAN_FILENAME;
@@ -414,7 +414,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
         deleting={del.deleting}
         onRenameClick={rename.handleRenameClick}
         onDeleteClick={del.handleDeleteClick}
-        onSaveSettings={onSaveSettings}
         onMoveUp={onMoveUp}
         onMoveDown={onMoveDown}
         onMoveToTop={onMoveToTop}
@@ -474,7 +473,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       // Already in the editor — just reveal the front matter. Calling handleEditClick here would
       // re-seed the edit buffer from disk and throw away any unsaved changes.
       setShowPropsInEditor(true);
-      onSaveSettings();
+      saveSettings();
       return;
     }
     void (async () => {
@@ -487,7 +486,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
       const line = fmIdx >= 0 ? fmIdx + 2 : 0;
       await edit.handleEditClick(line > 0 ? line : undefined);
       setShowPropsInEditor(true);
-      onSaveSettings();
+      saveSettings();
     })();
   };
 
@@ -599,11 +598,11 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                 filePath={entry.path}
                 onMakeCalendarItem={() => {
                   setShowPropsInEditor(true);
-                  onSaveSettings();
+                  saveSettings();
                 }}
                 onMakeRepeatingCalendarItem={() => {
                   setShowPropsInEditor(true);
-                  onSaveSettings();
+                  saveSettings();
                 }}
                 reviewText={reviewing ? (item?.rewrittenContent ?? null) : null}
                 onReviewComplete={(finalText) => {
@@ -651,7 +650,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
               // here so the pills above the editor show the new dates right away.
               edit.setEditContent(newContent);
               setEditedMeta(parseFrontMatterMeta(newContent));
-              onSaveSettings();
+              saveSettings();
             } else {
               void saveCalendarProps(entry.path, newContent);
             }

@@ -11,8 +11,6 @@ export interface BaseEntryProps {
   onRename: () => void;
   /** Callback when entry is deleted */
   onDelete: () => void;
-  /** Callback to persist settings after bookmark changes */
-  onSaveSettings: () => void;
   /** Move entry up one position in .INDEX.yaml (only provided in indexed mode, undefined for first entry) */
   onMoveUp?: () => void;
   /** Move entry down one position in .INDEX.yaml (only provided in indexed mode, undefined for last entry) */

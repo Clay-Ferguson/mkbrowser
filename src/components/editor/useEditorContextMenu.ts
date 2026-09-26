@@ -6,8 +6,8 @@ import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { hasDueProperty, injectCalendarFrontMatter } from '../../shared/calendarUtil';
 import { isMarkdownFile } from '../../shared/fileTypes';
 import { buildMarkdownLinks } from '../../renderer/linkUtil';
-import { api } from '../../renderer/api';
-import { useAS, getSettings, setEnableThesaurus } from '../../store';
+import { saveSettings } from '../../renderer/config';
+import { useAS, setEnableThesaurus } from '../../store';
 import { wordAt, type SpellingSuggestion } from './spellChecker';
 
 export interface ContextMenuState {
@@ -270,10 +270,6 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
   // the strip itself so that "off" can mean the strip renders nothing at all — a checkbox
   // inside it would have to keep a row of chrome on screen to stay clickable.
   //
-  // The setting is persisted directly rather than through an `onSaveSettings` prop:
-  // `CodeMirrorEditor` has no such prop, and this matches how `BookmarksPopupMenu` writes
-  // its own settings change.
-  //
   // Handing focus back to the editor is not just tidiness — the idle plugin schedules on
   // `focusChanged`, so it is what re-arms the countdown when the feature is switched on
   // mid-edit. Synonyms appear a couple of seconds later with no further gesture.
@@ -282,8 +278,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
     setEnableThesaurus(!thesaurusEnabled);
     closeContextMenu();
     view?.focus();
-    void api.updateConfig({ settings: getSettings() })
-      .catch((err: unknown) => logger.error('Failed to save thesaurus setting:', err));
+    saveSettings();
   };
 
   // Shared implementation for both calendar-item variants. Aborts with an alert if a

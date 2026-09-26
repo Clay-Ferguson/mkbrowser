@@ -9,9 +9,9 @@ import {
   canDropAsAttachment,
   affectsBrowseListing,
   parseDragPayload,
-  mergeTreeNodes,
   type DragPayload,
 } from '../src/renderer/dragAndDrop';
+import { mergeTreeNodes } from '../src/renderer/treeNodes';
 import type { FileNode } from '../src/shared/types';
 
 function file(path: string): DragPayload {

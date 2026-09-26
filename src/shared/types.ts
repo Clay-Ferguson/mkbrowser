@@ -10,6 +10,7 @@ import type {
   SearchDefinition,
   Bookmark,
   AppSettings,
+  FileEntry,
 } from './shared';
 
 /**
@@ -298,6 +299,22 @@ export interface AppState {
   items: Map<string, ItemData>;
 
   /**
+   * The listing of the folder last loaded by `loadDirectoryContents`, in
+   * `readDirectory` order. Written in the same `set` as the items it
+   * describes (`applyDirectoryListing`), and kept in step by `deleteItems`
+   * and `renameItem`, so it never names a path the items Map has dropped.
+   * On navigation it briefly still holds the previous folder's listing,
+   * until the new read lands.
+   */
+  currentEntries: FileEntry[];
+
+  /**
+   * True while a directory load that asked to show a loading state is in
+   * flight (and at startup, until the config is read).
+   */
+  entriesLoading: boolean;
+
+  /**
    * Current path being browsed
    */
   currentPath: string;
@@ -417,7 +434,7 @@ export interface AppState {
    * Application-level error message shown in App's AlertDialog, or null when
    * there is nothing to report. Lives in the store rather than App's local
    * state so shared non-component code (file operations, drag-and-drop) can
-   * surface a failure without an `onSetError` callback threaded down to it.
+   * surface a failure without an error callback threaded down to it.
    */
   appError: string | null;
 

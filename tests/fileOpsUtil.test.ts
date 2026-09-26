@@ -26,6 +26,10 @@ vi.mock('../src/store', () => ({
   getHasIndexFile: vi.fn(() => false),
 }));
 
+vi.mock('../src/renderer/directoryLoader', () => ({
+  refreshDirectory: vi.fn(),
+}));
+
 vi.mock('../src/renderer/api', () => ({
   // pathUtil calls getApi() for the platform path separator; undefined makes it
   // fall back to '/', matching the POSIX-style paths used in these tests.
@@ -45,7 +49,8 @@ vi.mock('../src/renderer/api', () => ({
 }));
 
 import { splitSelectedFile, joinSelectedFiles, createAttachmentFileOp } from '../src/renderer/fileOpsUtil';
-import { clearAllSelections, setPendingEditFile, setPendingScrollToFile, getCurrentPath, getHasIndexFile } from '../src/store';
+import { clearAllSelections, setPendingEditFile, setPendingScrollToFile, getCurrentPath, getHasIndexFile, setAppError } from '../src/store';
+import { refreshDirectory } from '../src/renderer/directoryLoader';
 import { api } from '../src/renderer/api';
 
 function makeItem(path: string, name: string, isDirectory = false): ItemData {
@@ -115,10 +120,8 @@ describe('splitSelectedFile (Document Mode index sync)', () => {
     vi.mocked(api.readIndexYaml).mockResolvedValue({
       files: [{ name: 'intro.md', id: 'A' }, { name: 'notes.md', id: 'B' }, { name: 'outro.md', id: 'C' }],
     });
-    const onSetError = vi.fn();
-    const onRefreshDirectory = vi.fn();
 
-    await splitSelectedFile('/docs', selected, true, onSetError, onRefreshDirectory);
+    await splitSelectedFile('/docs', selected, true);
 
     // The split itself landed on "disk".
     expect(store['/docs/notes.md']).toBeUndefined();
@@ -137,9 +140,9 @@ describe('splitSelectedFile (Document Mode index sync)', () => {
     expect(vi.mocked(api.reconcileIndexedFiles).mock.invocationCallOrder[0]).toBeGreaterThan(
       vi.mocked(api.insertIntoIndexYaml).mock.invocationCallOrder[1]!
     );
-    expect(onSetError).not.toHaveBeenCalled();
+    expect(setAppError).not.toHaveBeenCalled();
     expect(clearAllSelections).toHaveBeenCalled();
-    expect(onRefreshDirectory).toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
   });
 
   it("anchors after the original entry's attach folder when one directly follows it", async () => {
@@ -148,7 +151,7 @@ describe('splitSelectedFile (Document Mode index sync)', () => {
       files: [{ name: 'notes.md', id: 'B' }, { name: 'notes.md.attach' }, { name: 'outro.md' }],
     });
 
-    await splitSelectedFile('/docs', selected, true, vi.fn(), vi.fn());
+    await splitSelectedFile('/docs', selected, true);
 
     // An attach folder must stay glued to its file, so the first part goes after it.
     expect(vi.mocked(api.insertIntoIndexYaml).mock.calls).toEqual([
@@ -161,21 +164,19 @@ describe('splitSelectedFile (Document Mode index sync)', () => {
     seedFs({ '/docs/notes.md': splitContent });
     // e.g. the file was created but never reconciled into the index.
     vi.mocked(api.readIndexYaml).mockResolvedValue({ files: [{ name: 'other.md' }] });
-    const onSetError = vi.fn();
-    const onRefreshDirectory = vi.fn();
 
-    await splitSelectedFile('/docs', selected, true, onSetError, onRefreshDirectory);
+    await splitSelectedFile('/docs', selected, true);
 
     expect(api.reconcileIndexedFiles).toHaveBeenCalledWith('/docs', false);
     expect(api.insertIntoIndexYaml).not.toHaveBeenCalled();
-    expect(onSetError).not.toHaveBeenCalled();
-    expect(onRefreshDirectory).toHaveBeenCalled();
+    expect(setAppError).not.toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
   });
 
   it('does not touch the index when the folder is not in Document Mode', async () => {
     const { store } = seedFs({ '/docs/notes.md': splitContent });
 
-    await splitSelectedFile('/docs', selected, false, vi.fn(), vi.fn());
+    await splitSelectedFile('/docs', selected, false);
 
     expect(store['/docs/notes-01.md']).toBe('beta');
     // Crucially insertIntoIndexYaml is never called: it creates .INDEX.yaml when
@@ -189,34 +190,28 @@ describe('splitSelectedFile (Document Mode index sync)', () => {
     seedFs({ '/docs/notes.md': splitContent });
     vi.mocked(api.readIndexYaml).mockResolvedValue({ files: [{ name: 'notes.md', id: 'B' }] });
     vi.mocked(api.insertIntoIndexYaml).mockResolvedValue({ success: false, error: 'disk full' });
-    const onSetError = vi.fn();
-    const onRefreshDirectory = vi.fn();
 
-    await splitSelectedFile('/docs', selected, true, onSetError, onRefreshDirectory);
+    await splitSelectedFile('/docs', selected, true);
 
-    expect(onSetError).toHaveBeenCalledWith(expect.stringContaining('disk full'));
+    expect(setAppError).toHaveBeenCalledWith(expect.stringContaining('disk full'));
     // The split itself succeeded, so the view must still refresh (the next
     // reconcile heals the index).
-    expect(onRefreshDirectory).toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
     expect(clearAllSelections).toHaveBeenCalled();
   });
 
   it('reports a failed split and performs no index work or refresh', async () => {
     seedFs({ '/docs/a.md': 'x', '/docs/b.md': 'y' });
-    const onSetError = vi.fn();
-    const onRefreshDirectory = vi.fn();
 
     // Two selected items is a validation failure inside performSplitFile.
     await splitSelectedFile(
       '/docs',
       [makeItem('/docs/a.md', 'a.md'), makeItem('/docs/b.md', 'b.md')],
-      true,
-      onSetError,
-      onRefreshDirectory
+      true
     );
 
-    expect(onSetError).toHaveBeenCalledWith(expect.stringMatching(/one file/i));
-    expect(onRefreshDirectory).not.toHaveBeenCalled();
+    expect(setAppError).toHaveBeenCalledWith(expect.stringMatching(/one file/i));
+    expect(refreshDirectory).not.toHaveBeenCalled();
     expect(api.readIndexYaml).not.toHaveBeenCalled();
     expect(api.insertIntoIndexYaml).not.toHaveBeenCalled();
     expect(api.reconcileIndexedFiles).not.toHaveBeenCalled();
@@ -232,10 +227,8 @@ describe('joinSelectedFiles (Document Mode index sync)', () => {
 
   it('reconciles the index after the sources are deleted on a successful join', async () => {
     const { store, deleted } = seedFs({ '/docs/a.md': 'alpha', '/docs/b.md': 'beta' });
-    const onSetError = vi.fn();
-    const onRefreshDirectory = vi.fn();
 
-    await joinSelectedFiles('/docs', selected, true, onSetError, onRefreshDirectory);
+    await joinSelectedFiles('/docs', selected, true);
 
     // The join itself landed on "disk".
     expect(store['/docs/a.md']).toBe('alpha\n\n\nbeta');
@@ -246,32 +239,29 @@ describe('joinSelectedFiles (Document Mode index sync)', () => {
     expect(vi.mocked(api.reconcileIndexedFiles).mock.invocationCallOrder[0]).toBeGreaterThan(
       vi.mocked(api.deleteFile).mock.invocationCallOrder[0]!
     );
-    expect(onSetError).not.toHaveBeenCalled();
+    expect(setAppError).not.toHaveBeenCalled();
     expect(clearAllSelections).toHaveBeenCalled();
-    expect(onRefreshDirectory).toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
   });
 
   it('skips the reconcile when the folder is not in Document Mode', async () => {
     seedFs({ '/docs/a.md': 'alpha', '/docs/b.md': 'beta' });
-    const onRefreshDirectory = vi.fn();
 
-    await joinSelectedFiles('/docs', selected, false, vi.fn(), onRefreshDirectory);
+    await joinSelectedFiles('/docs', selected, false);
 
     expect(api.reconcileIndexedFiles).not.toHaveBeenCalled();
-    expect(onRefreshDirectory).toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
   });
 
   it('surfaces a reconcile rejection without suppressing the refresh', async () => {
     seedFs({ '/docs/a.md': 'alpha', '/docs/b.md': 'beta' });
     vi.mocked(api.reconcileIndexedFiles).mockRejectedValue(new Error('ipc down'));
-    const onSetError = vi.fn();
-    const onRefreshDirectory = vi.fn();
 
-    await joinSelectedFiles('/docs', selected, true, onSetError, onRefreshDirectory);
+    await joinSelectedFiles('/docs', selected, true);
 
-    expect(onSetError).toHaveBeenCalledWith(expect.stringContaining('Failed to update index after join'));
+    expect(setAppError).toHaveBeenCalledWith(expect.stringContaining('Failed to update index after join'));
     // The join itself succeeded, so the view must still refresh.
-    expect(onRefreshDirectory).toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
     expect(clearAllSelections).toHaveBeenCalled();
   });
 
@@ -279,15 +269,13 @@ describe('joinSelectedFiles (Document Mode index sync)', () => {
     const { store } = seedFs({ '/docs/a.md': 'alpha', '/docs/b.md': 'beta' });
     // The write reports failure, so joinFiles aborts before deleting anything.
     vi.mocked(api.writeFile).mockResolvedValue({ ok: false, content: '', mtime: 0 });
-    const onSetError = vi.fn();
-    const onRefreshDirectory = vi.fn();
 
-    await joinSelectedFiles('/docs', selected, true, onSetError, onRefreshDirectory);
+    await joinSelectedFiles('/docs', selected, true);
 
-    expect(onSetError).toHaveBeenCalledWith(expect.stringMatching(/failed to write/i));
+    expect(setAppError).toHaveBeenCalledWith(expect.stringMatching(/failed to write/i));
     expect(store['/docs/b.md']).toBe('beta'); // sources preserved
     expect(api.reconcileIndexedFiles).not.toHaveBeenCalled();
-    expect(onRefreshDirectory).not.toHaveBeenCalled();
+    expect(refreshDirectory).not.toHaveBeenCalled();
   });
 });
 
@@ -303,10 +291,8 @@ describe('createAttachmentFileOp', () => {
       return { success: true };
     });
     vi.mocked(getHasIndexFile).mockReturnValue(true);
-    const onSetError = vi.fn();
-    const onRefreshDirectory = vi.fn();
 
-    await createAttachmentFileOp('/docs/notes.md', onRefreshDirectory, onSetError);
+    await createAttachmentFileOp('/docs/notes.md');
 
     expect(api.createFolder).toHaveBeenCalledWith('/docs/notes.md.attach');
     // Document Mode: the folder is registered right after the file it belongs to.
@@ -320,31 +306,28 @@ describe('createAttachmentFileOp', () => {
     expect(api.reconcileIndexedFiles).toHaveBeenCalledWith('/docs/notes.md.attach', false);
     expect(setPendingScrollToFile).toHaveBeenCalledWith(created[0]);
     expect(setPendingEditFile).toHaveBeenCalledWith(created[0]);
-    expect(onRefreshDirectory).toHaveBeenCalled();
-    expect(onSetError).not.toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
+    expect(setAppError).not.toHaveBeenCalled();
   });
 
   it('reuses an existing attach folder', async () => {
     seedFs({ '/docs/notes.md': 'body', '/docs/notes.md.attach': '' });
-    const onRefreshDirectory = vi.fn();
 
-    await createAttachmentFileOp('/docs/notes.md', onRefreshDirectory, vi.fn());
+    await createAttachmentFileOp('/docs/notes.md');
 
     expect(api.createFolder).not.toHaveBeenCalled();
     expect(setPendingEditFile).toHaveBeenCalled();
-    expect(onRefreshDirectory).toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
   });
 
   it('reports a failed file creation and queues no edit', async () => {
     seedFs({ '/docs/notes.md': 'body', '/docs/notes.md.attach': '' });
     vi.mocked(api.createFile).mockResolvedValue({ success: false, error: 'disk full' });
-    const onSetError = vi.fn();
-    const onRefreshDirectory = vi.fn();
 
-    await createAttachmentFileOp('/docs/notes.md', onRefreshDirectory, onSetError);
+    await createAttachmentFileOp('/docs/notes.md');
 
-    expect(onSetError).toHaveBeenCalledWith('disk full');
+    expect(setAppError).toHaveBeenCalledWith('disk full');
     expect(setPendingEditFile).not.toHaveBeenCalled();
-    expect(onRefreshDirectory).not.toHaveBeenCalled();
+    expect(refreshDirectory).not.toHaveBeenCalled();
   });
 });

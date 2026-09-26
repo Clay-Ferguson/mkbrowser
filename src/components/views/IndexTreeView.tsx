@@ -2,6 +2,8 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
+import { saveSettings } from '../../renderer/config';
+import { refreshDirectory } from '../../renderer/directoryLoader';
 import { BUTTON_CLASS_XS, ENTRY_DROP_TARGET } from '../../renderer/styles';
 import { logger } from '../../shared/logUtil';
 import { isImageFile } from '../../shared/fileTypes';
@@ -32,7 +34,6 @@ import {
   setBrowseFile,
   setHighlightItem,
   setIndexTreeWidth,
-  getSettings,
   setPendingScrollToHeadingSlug,
 } from '../../store';
 import type { TreeNode, FileNode, MarkdownFileNode, MarkdownHeadingNode } from '../../store';
@@ -44,11 +45,13 @@ import {
   canDropInto,
   completeEntryDrop,
   makeEntryDragStartHandler,
+} from '../../renderer/dragAndDrop';
+import {
   reloadExpandedTreeFolder,
   makeTreeNodes as makeNodes,
   mergeTreeNodes as mergeNodes,
   findTreeNodeByPath as findNodeByPath,
-} from '../../renderer/dragAndDrop';
+} from '../../renderer/treeNodes';
 import { createFileOp } from '../../renderer/fileOpsUtil';
 import { injectCalendarFrontMatter } from '../../shared/calendarUtil';
 import { insertTagIntoText } from '../../shared/tagUtil';
@@ -358,7 +361,7 @@ const MemoTreeFileRow = memo(TreeFileRow);
  * that item; Ctrl+clicking a shell script runs it. The "Paste Link" context-menu
  * action inserts a relative Markdown link at the active editor's cursor.
  */
-function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void }) {
+function IndexTreeView() {
   const rootPath = useAS(s => s.rootPath);
   const currentPath = useAS(s => s.currentPath);
   const treeRoot = useAS(s => s.indexTreeRoot);
@@ -599,7 +602,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
         // If the browse view is currently showing this folder, refresh it
         if (node.path === currentPath) {
-          onRefreshDirectory?.();
+          refreshDirectory();
         }
 
         // Refresh both the destination and source folders if they are expanded.
@@ -680,13 +683,12 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       // Only read when insertAtIndex > 0, to name the entry to insert after; we
       // only ever insert at the top, so there is no sibling to resolve.
       [],
+      () => setCreateFileParent(null),
+      initialContent,
       () => {
         navigateToBrowserPath(folderPath);
         if (isSamePath(folderPath, currentPath)) requestDirectoryRefresh();
       },
-      setAppError,
-      () => setCreateFileParent(null),
-      initialContent,
     );
 
     // Show the new file in the tree too, if its folder is expanded there.
@@ -735,7 +737,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
       // If the browse view is currently showing this folder, refresh it.
       if (parentPath === currentPath) {
-        onRefreshDirectory?.();
+        refreshDirectory();
       }
 
       // Refresh the parent folder in the tree if it is expanded.
@@ -758,14 +760,14 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
       // holding paths (bookmarks, calendar events, copied links); persist the
       // settings when a bookmark path changed.
       if (renameItem(target.path, newPath, newName)) {
-        await api.updateConfig({ settings: getSettings() });
+        saveSettings();
       }
 
       // If the browse view is showing the renamed item's parent, refresh it. When
       // it is showing the renamed folder itself (or something inside it),
       // renameItem already moved currentPath, and App reloads the new path.
       if (parentPath === currentPath) {
-        onRefreshDirectory?.();
+        refreshDirectory();
       }
 
       // Refresh the parent folder in the tree if it is expanded.
@@ -788,7 +790,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
       // If the browse view is showing the deleted item or its parent, refresh it.
       if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
-        onRefreshDirectory?.();
+        refreshDirectory();
       }
 
       // Refresh the parent folder in the tree if it is expanded.
@@ -813,7 +815,7 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
     if (!canDropInto(payload, node.path)) return;
 
     runAndLogFailure('Failed to move item into folder:', async () => {
-      await completeEntryDrop(payload, node.path, onRefreshDirectory);
+      await completeEntryDrop(payload, node.path);
     });
   };
 
@@ -844,12 +846,12 @@ function IndexTreeView({ onRefreshDirectory }: { onRefreshDirectory?: () => void
 
   const toggleBookmarksMenu = () => setShowBookmarksMenu(prev => !prev);
   const closeBookmarksMenu = () => setShowBookmarksMenu(false);
-  const saveTreeWidth = async (width: typeof settings.indexTreeWidth) => {
+  const saveTreeWidth = (width: typeof settings.indexTreeWidth) => {
     setIndexTreeWidth(width);
-    await api.updateConfig({ settings: getSettings() });
+    saveSettings();
   };
-  const handleNarrowTree = () => void saveTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
-  const handleWidenTree = () => void saveTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
+  const handleNarrowTree = () => saveTreeWidth(settings.indexTreeWidth === 'wide' ? 'medium' : 'narrow');
+  const handleWidenTree = () => saveTreeWidth(settings.indexTreeWidth === 'narrow' ? 'medium' : 'wide');
 
   /**
    * Opens a bookmark. A bookmarked file opens in single-file browsing (same as

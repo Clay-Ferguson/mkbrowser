@@ -183,7 +183,7 @@ Two functions do the work:
 - **`canDropAsAttachment(payload, filePath)`** — validation. Only the "file dropped onto itself" case is attachment-specific (without it, dragging a file onto its own row would create `<file>.attach` and move the file inside). Everything else is delegated to the existing `canDropInto(payload, filePath + ATTACH_SUFFIX)`, which already rejects a drop onto the payload itself (so `X.md.attach` cannot be dropped back onto `X.md`), a drop into the payload's current parent (so an item already attached to the file is refused), and a folder dropped into its own descendant.
 - **`dropAsAttachment(payload, filePath)`** — calls `ensureAttachFolder`, then `completeEntryDrop`.
 
-**`completeEntryDrop(payload, destFolder, onRefreshDirectory?)`** is the routine shared by all four drop targets (browse-view folders, browse-view files, index-tree folders, breadcrumb segments), which therefore differ only in how they compute the destination folder. It performs the move via `moveEntryIntoFolder` → `pasteCutItems` (the same primitive as cut/paste, so the name-collision check and index reconciliation are not duplicated), reports any failure through `setAppError`, prunes the moved path from the item store, reloads both affected folders in the index tree, and refreshes the browse view when it is showing an affected folder.
+**`completeEntryDrop(payload, destFolder)`** is the routine shared by all four drop targets (browse-view folders, browse-view files, index-tree folders, breadcrumb segments), which therefore differ only in how they compute the destination folder. It performs the move via `moveEntryIntoFolder` → `pasteCutItems` (the same primitive as cut/paste, so the name-collision check and index reconciliation are not duplicated), reports any failure through `setAppError`, prunes the moved path from the item store, reloads both affected folders in the index tree, and refreshes the browse view (`refreshDirectory()`) when it is showing an affected folder.
 
 "Showing an affected folder" is decided by **`affectsBrowseListing(folder, currentPath)`**, and attachments are exactly why it is not a simple `folder === currentPath`. Because `readDirectory` pre-loads `.attach` contents into the listing, attachment files are on screen as rows while living in a subfolder — so a folder below `currentPath` is visible precisely when every path segment between the two is itself an attachment folder (an ordinary subfolder's contents are not rendered). Getting this wrong is a stale-row bug in both directions: dragging an attachment *out* to an index-tree folder leaves the row behind, and a newly created `.attach` folder (which is neither the source nor the destination of the move) never appears.
 
@@ -216,7 +216,7 @@ and every difference from the shared builder was either a bug that appeared only
 `refreshDirectory` and then healed on the next collapse/expand, or dead code:
 
 - It had no attach filter, so renaming an item from the tree's context menu made the browsed
-  folder's attach folder pop into the tree (the rename handler calls `onRefreshDirectory`).
+  folder's attach folder pop into the tree (the rename handler calls `refreshDirectory()`).
 - It re-sorted the already-sorted listing, which was pure dead work: `flattenVisible` re-sorts at
   render anyway, so nothing downstream could observe the result.
 - It reused the previous node wholesale, missing `mergeTreeNodes`' guard that a path which

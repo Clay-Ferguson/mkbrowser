@@ -17,7 +17,7 @@ type GenericEntryProps = BaseEntryProps & AttachMenuProps;
  * not expand — clicking the name has no effect beyond the hover action bar.
  */
 function GenericEntry(props: GenericEntryProps) {
-  const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
+  const { entry, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
   const { core, rename, del } = useEntry(props);
   const { isRenaming, isExpanded, isSelected, isHighlighted, isBookmarked } = core;
 
@@ -43,7 +43,6 @@ function GenericEntry(props: GenericEntryProps) {
           deleting={del.deleting}
           onRenameClick={rename.handleRenameClick}
           onDeleteClick={del.handleDeleteClick}
-          onSaveSettings={onSaveSettings}
           onMoveUp={onMoveUp}
           onMoveDown={onMoveDown}
           onMoveToTop={onMoveToTop}

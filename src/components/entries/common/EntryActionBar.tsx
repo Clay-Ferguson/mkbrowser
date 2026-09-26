@@ -7,6 +7,7 @@ import { toggleBookmark, addBookmark, useAS, revealInTree, setHighlightItem, set
 import BookmarkDialog from '../../dialogs/BookmarkDialog';
 import EntryPopupMenu from '../../menus/EntryPopupMenu';
 import type { AttachMenuProps } from './types';
+import { saveSettings } from '../../../renderer/config';
 
 interface EntryActionBarProps {
   /** Full path of the entry */
@@ -19,8 +20,6 @@ interface EntryActionBarProps {
   onRenameClick: (e?: React.MouseEvent) => void;
   /** Handler to show delete confirmation */
   onDeleteClick: (e?: React.MouseEvent) => void;
-  /** Handler to persist settings after bookmark toggle */
-  onSaveSettings: () => void;
   /** Move up in .INDEX.yaml (only provided in indexed mode; undefined hides the button) */
   onMoveUp?: () => void;
   /** Move down in .INDEX.yaml (only provided in indexed mode; undefined hides the button) */
@@ -56,7 +55,6 @@ export function EntryActionBar({
   isBookmarked,
   deleting,
   onDeleteClick,
-  onSaveSettings,
   onMoveUp,
   onMoveDown,
   onMoveToTop,
@@ -81,7 +79,7 @@ export function EntryActionBar({
   const handleBookmarkClick = () => {
     if (isBookmarked) {
       toggleBookmark(path);
-      onSaveSettings();
+      saveSettings();
     } else {
       setShowBookmarkDialog(true);
     }
@@ -90,7 +88,7 @@ export function EntryActionBar({
   const handleBookmarkSave = (name: string) => {
     setShowBookmarkDialog(false);
     addBookmark(path, name, isFolder);
-    onSaveSettings();
+    saveSettings();
   };
 
   const handleBookmarkCancel = () => {

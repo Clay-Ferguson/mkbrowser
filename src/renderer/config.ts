@@ -1,4 +1,4 @@
-import { setSettings, setCurrentPath, setCalendarViewType, setAiConfig, defaultAiConfig, defaultSettings } from '../store';
+import { setSettings, getSettings, setCurrentPath, setCalendarViewType, setAiConfig, setAppError, defaultAiConfig, defaultSettings } from '../store';
 import { api } from './api';
 import { isPathInside } from './pathUtil';
 import { logger } from '../shared/logUtil';
@@ -97,4 +97,17 @@ export async function saveAiConfig(updates: Partial<AppConfig>): Promise<void> {
   }
   const mirror = pickAiConfig(updates);
   if (Object.keys(mirror).length > 0) setAiConfig(mirror);
+}
+
+/**
+ * Persist the store's current `settings` to disk. Callers update the store
+ * first (e.g. `setSortOrder`), then call this; it is fire-and-forget, and a
+ * failure is reported through the app error dialog. The single way settings
+ * are written, so every caller shares the same failure handling.
+ */
+export function saveSettings(): void {
+  api.updateConfig({ settings: getSettings() }).catch((err: unknown) => {
+    logger.error('[config] saveSettings failed', err);
+    setAppError('Failed to save settings');
+  });
 }

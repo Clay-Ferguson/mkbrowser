@@ -153,7 +153,7 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * inline. `path` is the file whose toolbar was clicked, so it is always the
      * one being edited.
      *
-     * Callers still invoke `onSaveSettings()` afterwards to persist the flag.
+     * Callers still invoke `saveSettings()` (renderer/config) afterwards to persist the flag.
      */
     toggleExpandedEditor: (path) => {
       const state = get();

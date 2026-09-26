@@ -16,7 +16,6 @@ interface AttachFolderContentsProps {
   onNavigate: (path: string) => void;
   onRename: () => void;
   onDelete: () => void;
-  onSaveSettings: () => void;
   onPasteIntoFolder?: (folderPath: string) => void;
 }
 
@@ -30,7 +29,7 @@ interface AttachFolderContentsProps {
  * Shared by both right-hand panes: BrowseView (under each file in the folder
  * listing) and BrowseFile (under the one file shown in single-file mode).
  */
-function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, onSaveSettings, onPasteIntoFolder }: AttachFolderContentsProps) {
+function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, onPasteIntoFolder }: AttachFolderContentsProps) {
   // Only the cut paths, not the whole items Map: the Map is replaced on every
   // items write (each debounced editor keystroke), while this Set stays stable.
   const cutPaths = useAS(s => getCutPaths(s.items));
@@ -45,7 +44,7 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
           <ErrorBoundary label={entry.name} resetKeys={[entry.modifiedTime]}>
             {entry.isDirectory ? (
               <>
-                <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} onPasteIntoFolder={onPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
+                <FolderEntry entry={entry} onNavigate={onNavigate} onRename={onRename} onDelete={onDelete} onPasteIntoFolder={onPasteIntoFolder} isAttachFolder={entry.name.endsWith(ATTACH_SUFFIX)} />
                 {entry.name.endsWith(ATTACH_SUFFIX) && entry.attachments && (
                   <AttachFolderContents
                     entries={entry.attachments}
@@ -53,21 +52,20 @@ function AttachFolderContents({ entries, level, onNavigate, onRename, onDelete, 
                     onNavigate={onNavigate}
                     onRename={onRename}
                     onDelete={onDelete}
-                    onSaveSettings={onSaveSettings}
                     onPasteIntoFolder={onPasteIntoFolder}
                   />
                 )}
               </>
             ) : entry.isMarkdown ? (
-              <MarkdownEntry entry={entry} view="browser" onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+              <MarkdownEntry entry={entry} view="browser" onRename={onRename} onDelete={onDelete} isAttachment={true} />
             ) : isImageFile(entry.name) ? (
-              <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+              <ImageEntry entry={entry} allImages={allImages} onRename={onRename} onDelete={onDelete} isAttachment={true} />
             ) : isTextFile(entry.name) ? (
-              <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+              <TextEntry entry={entry} onRename={onRename} onDelete={onDelete} isAttachment={true} />
             ) : isPdfFile(entry.name) ? (
-              <PDFEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+              <PDFEntry entry={entry} onRename={onRename} onDelete={onDelete} isAttachment={true} />
             ) : (
-              <GenericEntry entry={entry} onRename={onRename} onDelete={onDelete} onSaveSettings={onSaveSettings} isAttachment={true} />
+              <GenericEntry entry={entry} onRename={onRename} onDelete={onDelete} isAttachment={true} />
             )}
           </ErrorBoundary>
         </div>

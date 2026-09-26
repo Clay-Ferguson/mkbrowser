@@ -23,10 +23,6 @@ import PathBreadcrumb from '../PathBreadcrumb';
 
 const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
-interface ThreadViewProps {
-  onSaveSettings: () => void;
-}
-
 /**
  * Monotonic token identifying the most recent thread-load run. Two gathers of
  * the *same* path can overlap (a refreshTick bump racing an in-flight load, or
@@ -66,7 +62,7 @@ async function gatherThread(path: string) {
  * path, walks up the H/A folder hierarchy via IPC, and renders each
  * HUMAN.md or AI.md turn in chronological order (oldest at top).
  */
-function ThreadView({ onSaveSettings }: ThreadViewProps) {
+function ThreadView() {
   const currentPath = useAS(s => s.currentPath);
   const currentView = useAS(s => s.currentView);
   const rootPath = useAS(s => s.rootPath);
@@ -336,7 +332,6 @@ function ThreadView({ onSaveSettings }: ThreadViewProps) {
                       view="thread"
                       onRename={refreshThread}
                       onDelete={refreshThread}
-                      onSaveSettings={onSaveSettings}
                     />
                   </ErrorBoundary>
                 </div>

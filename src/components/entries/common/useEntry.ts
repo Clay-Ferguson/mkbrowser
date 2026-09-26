@@ -46,7 +46,6 @@ export function useEntry(props: BaseEntryProps, options: UseEntryOptions = {}): 
     name,
     isRenaming: core.isRenaming,
     onRename: props.onRename,
-    onSaveSettings: props.onSaveSettings,
     selectFullName,
   });
 

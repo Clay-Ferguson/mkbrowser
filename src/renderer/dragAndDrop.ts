@@ -1,16 +1,10 @@
 import type React from 'react';
 import { api } from './api';
-import type { FileNode, TreeNode } from '../shared/types';
 import { pasteCutItems } from './edit';
 import { ensureAttachFolder } from './fileOpsUtil';
-import {
-  getIndexTreeRoot,
-  expandIndexTreeNode,
-  deleteItems,
-  setAppError,
-  getCurrentPath,
-  requestDirectoryRefresh,
-} from '../store';
+import { deleteItems, setAppError, getCurrentPath } from '../store';
+import { reloadExpandedTreeFolder } from './treeNodes';
+import { refreshDirectory } from './directoryLoader';
 import { getParentPath, isPathInside, isSamePath, splitPathSegments } from './pathUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
 import { logger } from '../shared/logUtil';
@@ -172,14 +166,11 @@ export function affectsBrowseListing(folder: string, currentPath: string): boole
  *
  * @param payload - The file/folder being moved.
  * @param destFolder - Absolute path of the folder to move it into.
- * @param onRefreshDirectory - Reloads the browse view. Callers that have this as a prop should
- *   pass it (it refreshes without a loading flash); otherwise the store-level request is used.
  * @returns True if the item was moved (failures are already reported via setAppError).
  */
 export async function completeEntryDrop(
   payload: DragPayload,
-  destFolder: string,
-  onRefreshDirectory?: () => void
+  destFolder: string
 ): Promise<boolean> {
   const result = await moveEntryIntoFolder(payload, destFolder);
   if (!result.success) {
@@ -197,11 +188,7 @@ export async function completeEntryDrop(
 
   const currentPath = getCurrentPath();
   if (affectsBrowseListing(destFolder, currentPath) || affectsBrowseListing(result.sourceFolder, currentPath)) {
-    if (onRefreshDirectory) {
-      onRefreshDirectory();
-    } else {
-      requestDirectoryRefresh();
-    }
+    refreshDirectory();
   }
   return true;
 }
@@ -216,112 +203,14 @@ export async function completeEntryDrop(
  *
  * @param payload - The file/folder being attached.
  * @param filePath - Absolute path of the file that will own the attachment.
- * @param onRefreshDirectory - See {@link completeEntryDrop}.
  * @returns True if the item was moved (failures are already reported via setAppError).
  */
 export async function dropAsAttachment(
   payload: DragPayload,
-  filePath: string,
-  onRefreshDirectory?: () => void
+  filePath: string
 ): Promise<boolean> {
   const attachFolderPath = await ensureAttachFolder(filePath);
   if (!attachFolderPath) return false; // ensureAttachFolder already reported the failure
 
-  return completeEntryDrop(payload, attachFolderPath, onRefreshDirectory);
-}
-
-/**
- * Whether a directory entry may appear in the IndexTreeView at all. Attachment
- * (*.attach) folders never show there. Local by design: `makeTreeNodes` is the
- * only way tree children are built, so every caller gets this filter for free
- * and no other module needs to remember to apply it.
- */
-function isTreeVisibleEntry(entry: { name: string; isDirectory: boolean }): boolean {
-  return !(entry.isDirectory && entry.name.endsWith(ATTACH_SUFFIX));
-}
-
-/**
- * Builds the IndexTreeView's lazily-loaded child nodes from a directory listing, omitting
- * Attachment (*.attach) folders, which are never shown in the tree.
- */
-export function makeTreeNodes(
-  entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>
-): FileNode[] {
-  return entries.filter(isTreeVisibleEntry).map(e => ({
-    path: e.path,
-    name: e.name,
-    isDirectory: e.isDirectory,
-    isExpanded: false,
-    isLoading: false,
-    children: null,
-    ...(e.indexOrder !== undefined ? { indexOrder: e.indexOrder } : {}),
-  }));
-}
-
-/**
- * Rebuilds a folder node's children from a fresh directory listing while carrying over
- * the expansion state (and already-loaded children) of every node that survived the
- * refresh, matched by path. Without this, re-reading a folder would hand back all-new
- * `makeTreeNodes` nodes — collapsed, children null — and silently tear down whatever the
- * user had opened underneath it (issue: paste into a tree folder collapsed the tree).
- *
- * Entries that are new on disk come in collapsed; nodes that disappeared are dropped.
- * `indexOrder` always comes from the fresh listing, since that is what just changed.
- *
- * @param entries - The directory listing to rebuild from.
- * @param previousChildren - The node's current children, or null if it had none loaded.
- */
-export function mergeTreeNodes(
-  entries: Array<{ path: string; name: string; isDirectory: boolean; indexOrder?: number }>,
-  previousChildren: TreeNode[] | null | undefined
-): FileNode[] {
-  const fresh = makeTreeNodes(entries);
-  if (!previousChildren || previousChildren.length === 0) return fresh;
-
-  // Heading nodes (no isDirectory) can't match a directory entry, so they never
-  // participate in the merge.
-  const oldByPath = new Map<string, FileNode>();
-  for (const child of previousChildren) {
-    if ('isDirectory' in child) oldByPath.set(child.path, child as FileNode);
-  }
-
-  return fresh.map(node => {
-    const existing = oldByPath.get(node.path);
-    // A path that changed kind (file <-> folder) must not inherit the old children.
-    if (!existing || existing.isDirectory !== node.isDirectory) return node;
-    return { ...node, isExpanded: existing.isExpanded, children: existing.children };
-  });
-}
-
-/** Depth-first search for a directory/file node by absolute path within the tree. */
-export function findTreeNodeByPath(root: FileNode, path: string): FileNode | null {
-  if (root.path === path) return root;
-  if (!root.children) return null;
-  for (const child of root.children) {
-    if (!('isDirectory' in child)) continue;
-    const found = findTreeNodeByPath(child as FileNode, path);
-    if (found) return found;
-  }
-  return null;
-}
-
-/**
- * Reloads a folder node's children from disk in the IndexTreeView, but only if that folder
- * is currently expanded. Collapsed folders need no update — their contents are loaded lazily
- * on next expand. Shared by both drag-and-drop directions and the cut/paste flow.
- *
- * @param folderPath - Absolute path of the folder to reload.
- */
-export async function reloadExpandedTreeFolder(folderPath: string): Promise<void> {
-  const root = getIndexTreeRoot();
-  if (!root) return;
-  const node = findTreeNodeByPath(root, folderPath);
-  if (!node?.isExpanded) return;
-  try {
-    const entries = await api.readDirectory(folderPath);
-    expandIndexTreeNode(folderPath, mergeTreeNodes(entries, node.children));
-  } catch (err) {
-    // Leave the tree as-is; a stale node is better than tearing down the expanded view.
-    logger.error(`Failed to reload tree folder ${folderPath}:`, err);
-  }
+  return completeEntryDrop(payload, attachFolderPath);
 }

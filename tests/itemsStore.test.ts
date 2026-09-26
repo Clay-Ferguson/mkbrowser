@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useAS } from '../src/store/core';
+import type { FileEntry } from '../src/shared/shared';
 import {
   clearCache,
   cutSingleItem,
@@ -16,6 +17,7 @@ import {
   setItemSelected,
   syncDirectoryItems,
   upsertItems,
+  applyDirectoryListing,
 } from '../src/store/items';
 
 const DIR = '/notes';
@@ -481,6 +483,90 @@ describe('renameItem / deleteItems — path-holding slices stay in sync', () => 
 
       expect(useAS.getState().selectedLinkItems).toEqual(['/other/x.md']);
     });
+  });
+});
+
+describe('currentEntries — the folder listing stays in step with the items Map', () => {
+  const OTHER = '/notes/other.md';
+  const ATTACH = '/notes/note.md.attach';
+  const ATTACHED = '/notes/note.md.attach/pic.png';
+
+  /** A full `FileEntry`, as `readDirectory` returns it. */
+  function row(path: string, extra: Partial<FileEntry> = {}): FileEntry {
+    return { ...entry(path), isMarkdown: path.endsWith('.md'), ...extra };
+  }
+
+  beforeEach(() => {
+    clearCache();
+    useAS.setState({ currentEntries: [], selectedLinkItems: [] });
+  });
+
+  it('applyDirectoryListing installs the listing and its items (attachments included) together', () => {
+    const listing = [
+      row(NOTE, { attachments: [row(ATTACHED)] }),
+      row(OTHER),
+    ];
+    const states: { entries: number; hasItems: boolean }[] = [];
+    const unsubscribe = useAS.subscribe(s => {
+      states.push({ entries: s.currentEntries.length, hasItems: s.items.has(NOTE) && s.items.has(ATTACHED) });
+    });
+    applyDirectoryListing(DIR, listing);
+    unsubscribe();
+
+    expect(useAS.getState().currentEntries).toBe(listing);
+    // One atomic update: no subscriber ever saw the listing without its items.
+    expect(states).toEqual([{ entries: 2, hasItems: true }]);
+  });
+
+  it('applyDirectoryListing prunes items for children missing from the new listing', () => {
+    applyDirectoryListing(DIR, [row(NOTE), row(OTHER)]);
+    applyDirectoryListing(DIR, [row(NOTE)]);
+
+    expect(getItem(OTHER)).toBeUndefined();
+    expect(useAS.getState().currentEntries.map(e => e.path)).toEqual([NOTE]);
+  });
+
+  it('deleteItems drops the deleted rows from the listing', () => {
+    applyDirectoryListing(DIR, [row(NOTE), row(OTHER)]);
+
+    deleteItems([OTHER]);
+
+    expect(useAS.getState().currentEntries.map(e => e.path)).toEqual([NOTE]);
+  });
+
+  it('deleteItems leaves the listing array untouched when no row is affected', () => {
+    applyDirectoryListing(DIR, [row(NOTE)]);
+    const before = useAS.getState().currentEntries;
+
+    deleteItems(['/elsewhere/x.md']);
+
+    expect(useAS.getState().currentEntries).toBe(before);
+  });
+
+  it('renameItem keeps the renamed row in the listing under its new path and name', () => {
+    applyDirectoryListing(DIR, [row(NOTE), row(OTHER)]);
+    const otherRow = useAS.getState().currentEntries[1];
+
+    renameItem(NOTE, '/notes/renamed.md', 'renamed.md');
+
+    const rows = useAS.getState().currentEntries;
+    expect(rows.map(e => [e.path, e.name])).toEqual([
+      ['/notes/renamed.md', 'renamed.md'],
+      [OTHER, 'other.md'],
+    ]);
+    // Unaffected rows keep their identity.
+    expect(rows[1]).toBe(otherRow);
+  });
+
+  it('renameItem remaps pre-loaded attachments under a renamed folder', () => {
+    applyDirectoryListing(DIR, [row(ATTACH, { isDirectory: true, attachments: [row(ATTACHED)] })]);
+
+    renameItem(ATTACH, '/notes/new.md.attach', 'new.md.attach');
+
+    const [folder] = useAS.getState().currentEntries;
+    expect(folder.path).toBe('/notes/new.md.attach');
+    expect(folder.name).toBe('new.md.attach');
+    expect(folder.attachments?.map(a => a.path)).toEqual(['/notes/new.md.attach/pic.png']);
   });
 });
 

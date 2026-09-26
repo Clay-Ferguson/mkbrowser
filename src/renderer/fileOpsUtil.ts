@@ -17,16 +17,11 @@ import {
 } from '../store';
 import { pasteCutItems, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
 import { pasteFromClipboard } from './clipboard';
+import { refreshDirectory } from './directoryLoader';
 import { getFileName, getParentPath, joinPath, isSamePath } from './pathUtil';
 import { toErrorMessage } from '../shared/logUtil';
 import { generateTimestampFileName } from '../shared/timeUtil';
 import { ATTACH_SUFFIX } from '../shared/specialFiles';
-
-/**
- * Error-callback signature shared by every file operation in this module.
- * Called with a message on failure, or null to clear a previously shown error.
- */
-type SetError = (e: string | null) => void;
 
 /**
  * Returns the attachment folder path for `filePath` (`<filePath>.attach`), creating
@@ -72,13 +67,9 @@ export async function ensureAttachFolder(filePath: string): Promise<string | nul
  * document, so no naming dialog is needed and two clicks in a row can't collide.
  *
  * @param filePath - Absolute path of the file that will own the attachment.
- * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after creation.
- * @param onSetError - Callback invoked with an error message if the creation fails.
  */
 export async function createAttachmentFileOp(
-  filePath: string,
-  onRefreshDirectory: () => void,
-  onSetError: SetError
+  filePath: string
 ): Promise<void> {
   const attachFolderPath = await ensureAttachFolder(filePath);
   if (!attachFolderPath) return; // ensureAttachFolder already reported the failure
@@ -86,14 +77,14 @@ export async function createAttachmentFileOp(
   const newFilePath = joinPath(attachFolderPath, generateTimestampFileName());
   const result = await api.createFile(newFilePath, '');
   if (!result.success) {
-    onSetError(result.error || 'Failed to create attachment file');
+    setAppError(result.error || 'Failed to create attachment file');
     return;
   }
 
   try {
     await api.reconcileIndexedFiles(attachFolderPath, false);
   } catch (err: unknown) {
-    onSetError('Failed to update index after creating attachment: ' + toErrorMessage(err));
+    setAppError('Failed to update index after creating attachment: ' + toErrorMessage(err));
     return;
   }
 
@@ -101,7 +92,7 @@ export async function createAttachmentFileOp(
   // Drive expand+edit off the refresh-completion effect in BrowseView (which acts once
   // the new attachment is actually rendered) rather than a fixed timing assumption.
   setPendingEditFile(newFilePath);
-  onRefreshDirectory();
+  refreshDirectory();
 }
 
 /**
@@ -110,19 +101,15 @@ export async function createAttachmentFileOp(
  *
  * @param folderPath - Absolute path of the destination folder.
  * @param items - The current item map from the store (used to find cut items).
- * @param onSetError - Callback invoked with an error message on failure, or null to clear.
- * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after the move.
  */
 export async function pasteIntoFolder(
   folderPath: string,
-  items: ReadonlyMap<string, ItemData>,
-  onSetError: SetError,
-  onRefreshDirectory: () => void
+  items: ReadonlyMap<string, ItemData>
 ): Promise<void> {
   const cutItems = Array.from(items.values()).filter((item) => item.isCut);
   if (cutItems.length === 0) return;
 
-  onSetError(null);
+  setAppError(null);
 
   // pasteCutItems is the single authority for the "all cut items share one
   // source folder" rule (and reports which items violate it), so we don't
@@ -149,22 +136,22 @@ export async function pasteIntoFolder(
         api.reconcileIndexedFiles(folderPath, false),
       ]);
     } catch (err: unknown) {
-      onSetError('Failed to update index after paste: ' + toErrorMessage(err));
-      onRefreshDirectory();
+      setAppError('Failed to update index after paste: ' + toErrorMessage(err));
+      refreshDirectory();
       return;
     }
   }
 
   if (!result.success) {
-    onSetError(result.error || 'Failed to paste items');
+    setAppError(result.error || 'Failed to paste items');
     // Items that failed to move remain cut at their source; leave their cut
     // state intact and only refresh if something actually changed on disk.
-    if (moved) onRefreshDirectory();
+    if (moved) refreshDirectory();
     return;
   }
 
   clearAllCutItems();
-  onRefreshDirectory();
+  refreshDirectory();
 }
 
 /**
@@ -174,16 +161,12 @@ export async function pasteIntoFolder(
  * @param selectedItems - The list of items to delete.
  * @param currentPath - Absolute path of the folder being viewed, used for index reconciliation.
  * @param hasIndexFile - Whether the current folder has an .INDEX.yaml file to reconcile.
- * @param onSetError - Callback invoked with an error message if any deletion fails.
- * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after deletion.
  * @param onDismissConfirm - Callback invoked to close any active confirmation dialog.
  */
 export async function deleteSelected(
   selectedItems: ItemData[],
   currentPath: string | null,
   hasIndexFile: boolean,
-  onSetError: SetError,
-  onRefreshDirectory: () => void,
   onDismissConfirm: () => void
 ): Promise<void> {
   if (selectedItems.length === 0) return;
@@ -194,7 +177,7 @@ export async function deleteSelected(
 
   if (!result.success) {
     const failed = result.failedItems;
-    onSetError(
+    setAppError(
       failed.length === 0
         ? 'Failed to delete items'
         : failed.length === 1
@@ -209,10 +192,10 @@ export async function deleteSelected(
       try {
         await api.reconcileIndexedFiles(currentPath, false);
       } catch (err: unknown) {
-        onSetError('Failed to update index after delete: ' + toErrorMessage(err));
+        setAppError('Failed to update index after delete: ' + toErrorMessage(err));
       }
     }
-    onRefreshDirectory();
+    refreshDirectory();
   }
 }
 
@@ -275,21 +258,16 @@ async function insertSplitPartsIntoIndex(
  * @param currentPath - Absolute path of the folder containing the file.
  * @param selectedItems - The selected items; exactly one text or Markdown file is expected.
  * @param hasIndexFile - Whether the current folder has an .INDEX.yaml file to update.
- * @param onSetError - Callback invoked with an error message if the selection is invalid, the
- *   file contains no split points, or the split fails.
- * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after the split.
  */
 export async function splitSelectedFile(
   currentPath: string,
   selectedItems: ItemData[],
-  hasIndexFile: boolean,
-  onSetError: SetError,
-  onRefreshDirectory: () => void
+  hasIndexFile: boolean
 ): Promise<void> {
   const result = await performSplitFile(selectedItems, api);
 
   if (!result.success) {
-    onSetError(result.error || 'Failed to split file.');
+    setAppError(result.error || 'Failed to split file.');
     return;
   }
 
@@ -302,12 +280,12 @@ export async function splitSelectedFile(
     try {
       await insertSplitPartsIntoIndex(currentPath, selectedItems[0]!.name, result.filePaths);
     } catch (err: unknown) {
-      onSetError('Failed to update index after split: ' + toErrorMessage(err));
+      setAppError('Failed to update index after split: ' + toErrorMessage(err));
     }
   }
 
   clearAllSelections();
-  onRefreshDirectory();
+  refreshDirectory();
 }
 
 /**
@@ -322,21 +300,16 @@ export async function splitSelectedFile(
  * @param currentPath - Absolute path of the folder containing the files.
  * @param selectedItems - The selected items; two or more text or Markdown files are expected.
  * @param hasIndexFile - Whether the current folder has an .INDEX.yaml file to reconcile.
- * @param onSetError - Callback invoked with an error message if the selection is invalid or the
- *   join fails.
- * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after the join.
  */
 export async function joinSelectedFiles(
   currentPath: string,
   selectedItems: ItemData[],
-  hasIndexFile: boolean,
-  onSetError: SetError,
-  onRefreshDirectory: () => void
+  hasIndexFile: boolean
 ): Promise<void> {
   const result = await performJoinFiles(selectedItems, api);
 
   if (!result.success) {
-    onSetError(result.error || 'Failed to join files.');
+    setAppError(result.error || 'Failed to join files.');
     return;
   }
 
@@ -348,12 +321,12 @@ export async function joinSelectedFiles(
     try {
       await api.reconcileIndexedFiles(currentPath, false);
     } catch (err: unknown) {
-      onSetError('Failed to update index after join: ' + toErrorMessage(err));
+      setAppError('Failed to update index after join: ' + toErrorMessage(err));
     }
   }
 
   clearAllSelections();
-  onRefreshDirectory();
+  refreshDirectory();
 }
 
 /**
@@ -367,9 +340,8 @@ export async function joinSelectedFiles(
  * @param sortedEntries - Current sorted entries, used to resolve the "insert after" sibling name.
  * @param create - The create call to perform (e.g. api.createFile / api.createFolder).
  * @param failureMessage - Fallback error message if the create call reports failure.
- * @param onRefreshDirectory - Triggers a directory refresh after creation.
- * @param onSetError - Surfaces an error message on failure.
  * @param onCloseDialog - Closes the originating dialog; always called exactly once.
+ * @param refresh - Brings the view up to date once the item exists; see {@link createFileOp}.
  * @param onCreated - Optional post-create hook, invoked with the new item's absolute path.
  */
 async function createItemOp(
@@ -379,9 +351,8 @@ async function createItemOp(
   sortedEntries: FileEntry[],
   create: (itemPath: string) => Promise<{ success: boolean; error?: string }>,
   failureMessage: string,
-  onRefreshDirectory: () => void,
-  onSetError: SetError,
   onCloseDialog: () => void,
+  refresh: () => void,
   onCreated?: (itemPath: string) => void
 ): Promise<void> {
   const itemPath = joinPath(currentPath, itemName);
@@ -390,7 +361,7 @@ async function createItemOp(
   onCloseDialog();
 
   if (!result.success) {
-    onSetError(result.error || failureMessage);
+    setAppError(result.error || failureMessage);
     return;
   }
 
@@ -403,13 +374,13 @@ async function createItemOp(
       }
     }
   } catch (err: unknown) {
-    onSetError('Failed to insert item into index: ' + toErrorMessage(err));
+    setAppError('Failed to insert item into index: ' + toErrorMessage(err));
     return;
   }
 
   setHighlightItem(itemPath);
   setPendingScrollToFile(itemPath);
-  onRefreshDirectory();
+  refresh();
   onCreated?.(itemPath);
 }
 
@@ -424,21 +395,21 @@ async function createItemOp(
  *   If null, the file is appended by the next reconcile rather than inserted explicitly.
  * @param sortedEntries - The current sorted list of folder entries, used to resolve the
  *   "insert after" sibling name when insertAtIndex is set.
- * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after creation.
- * @param onSetError - Callback invoked with an error message if the creation fails.
  * @param onCloseDialog - Callback invoked to close the "new file" dialog.
  * @param initialContent - Content to seed the new file with. Defaults to empty; the index
  *   tree's "New TODO" uses it to pre-fill calendar + tag front matter.
+ * @param refresh - Brings the view up to date once the file exists. Defaults to
+ *   `refreshDirectory`; the index tree passes a navigation to the file's folder instead,
+ *   which loads the listing itself.
  */
 export async function createFileOp(
   fileName: string,
   currentPath: string | null,
   insertAtIndex: number | null,
   sortedEntries: FileEntry[],
-  onRefreshDirectory: () => void,
-  onSetError: SetError,
   onCloseDialog: () => void,
-  initialContent = ''
+  initialContent = '',
+  refresh: () => void = refreshDirectory
 ): Promise<void> {
   if (!currentPath) return;
   await createItemOp(
@@ -448,9 +419,8 @@ export async function createFileOp(
     sortedEntries,
     (filePath) => api.createFile(filePath, initialContent),
     'Failed to create file',
-    onRefreshDirectory,
-    onSetError,
     onCloseDialog,
+    refresh,
     (filePath) => {
       if (isMarkdownFile(fileName) || isTextFile(fileName)) {
         // Drive expand+edit off the refresh-completion effect in BrowseView (which acts
@@ -471,8 +441,6 @@ export async function createFileOp(
  *   If null, the folder is appended by the next reconcile rather than inserted explicitly.
  * @param sortedEntries - The current sorted list of folder entries, used to resolve the
  *   "insert after" sibling name when insertAtIndex is set.
- * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after creation.
- * @param onSetError - Callback invoked with an error message if the creation fails.
  * @param onCloseDialog - Callback invoked to close the "new folder" dialog.
  */
 export async function createFolderOp(
@@ -480,8 +448,6 @@ export async function createFolderOp(
   currentPath: string | null,
   insertAtIndex: number | null,
   sortedEntries: FileEntry[],
-  onRefreshDirectory: () => void,
-  onSetError: SetError,
   onCloseDialog: () => void
 ): Promise<void> {
   if (!currentPath) return;
@@ -492,16 +458,15 @@ export async function createFolderOp(
     sortedEntries,
     api.createFolder,
     'Failed to create folder',
-    onRefreshDirectory,
-    onSetError,
-    onCloseDialog
+    onCloseDialog,
+    refreshDirectory
   );
 }
 
 /**
  * Launches an external terminal to run OCR on the selected image files, or on the entire
  * current folder if nothing is selected. Requires the OCR tools folder to be configured
- * in Settings; errors are surfaced via onSetError if it is missing or the launch fails.
+ * in Settings; errors are surfaced via setAppError if it is missing or the launch fails.
  *
  * When items are selected: runs ocr.sh individually on each selected image file in sequence.
  * When nothing is selected: runs ocr.sh on the current folder path (batch mode).
@@ -510,16 +475,14 @@ export async function createFolderOp(
  * @param ocrToolsFolder - Absolute path to the folder containing ocr.sh. If undefined, an
  *   error is shown and the operation is aborted.
  * @param items - The current item map from the store, used to find selected image files.
- * @param onSetError - Callback invoked with an error message on any failure.
  */
 export async function runOcr(
   currentPath: string,
   ocrToolsFolder: string | undefined,
-  items: ReadonlyMap<string, ItemData>,
-  onSetError: SetError
+  items: ReadonlyMap<string, ItemData>
 ): Promise<void> {
   if (!ocrToolsFolder) {
-    onSetError('OCR tools folder is not configured. Set it in Settings → OCR.');
+    setAppError('OCR tools folder is not configured. Set it in Settings → OCR.');
     return;
   }
 
@@ -533,7 +496,7 @@ export async function runOcr(
   let targets: OcrTarget[];
   if (hasAnySelection) {
     if (selectedImages.length === 0) {
-      onSetError('No image files in the current selection. Select one or more image files to run OCR.');
+      setAppError('No image files in the current selection. Select one or more image files to run OCR.');
       return;
     }
     targets = selectedImages.map((img, i) => ({
@@ -547,10 +510,10 @@ export async function runOcr(
   try {
     const result = await api.runOcrInTerminal(ocrToolsFolder, targets);
     if (!result.success) {
-      onSetError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
+      setAppError('Failed to launch OCR terminal: ' + (result.error ?? 'Unknown error'));
     }
   } catch (err: unknown) {
-    onSetError('Failed to launch OCR terminal: ' + toErrorMessage(err));
+    setAppError('Failed to launch OCR terminal: ' + toErrorMessage(err));
   }
 }
 
@@ -561,13 +524,9 @@ export async function runOcr(
  *
  * @param currentPath - Absolute path of the folder where the clipboard content will be saved.
  *   Pass null to no-op (e.g. when no folder is open).
- * @param onRefreshDirectory - Callback invoked to trigger a directory refresh after the paste.
- * @param onSetError - Callback invoked with an error message if the paste fails.
  */
 export async function pasteFromClipboardOp(
-  currentPath: string | null,
-  onRefreshDirectory: () => void,
-  onSetError: SetError
+  currentPath: string | null
 ): Promise<void> {
   if (!currentPath) return;
 
@@ -582,15 +541,15 @@ export async function pasteFromClipboardOp(
     try {
       await api.reconcileIndexedFiles(currentPath, false);
     } catch (err: unknown) {
-      onSetError('Failed to update index after paste: ' + toErrorMessage(err));
+      setAppError('Failed to update index after paste: ' + toErrorMessage(err));
       return;
     }
     setPendingScrollToFile(filePath);
     // Drive the expand off the refresh-completion effect in BrowseView (which acts
     // once the pasted item is actually rendered) rather than a fixed timing assumption.
     setPendingExpandFile(filePath);
-    onRefreshDirectory();
+    refreshDirectory();
   } else if (result.error) {
-    onSetError(result.error);
+    setAppError(result.error);
   }
 }

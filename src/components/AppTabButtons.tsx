@@ -3,7 +3,6 @@ import { Bars3Icon } from '@heroicons/react/24/outline';
 import { showTab, hideTab, setCurrentView, useAS, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, clearSearchResults, type AppView } from '../store';
 import { isAiThreadByEntries } from '../shared/ai/aiPatterns';
 import { getParentPath, isPathInside } from '../renderer/pathUtil';
-import type { FileEntry } from '../global';
 import appLogo from '../../public/icon-256.png';
 import FilePopupMenu from './menus/FilePopupMenu';
 import SystemPopupMenu from './menus/SystemPopupMenu';
@@ -16,7 +15,6 @@ interface TabConfig {
 }
 
 interface AppTabButtonsProps {
-  entries: FileEntry[];
   onSelectFolder: () => void;
   onQuit: () => void;
   recentFolders: string[];
@@ -43,7 +41,7 @@ const allTabs: TabConfig[] = [
  * data is available (search results, analysis, graph, AI thread) and disappear
  * when closed — clearing the underlying data.
  */
-function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
+function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFolder }: AppTabButtonsProps) {
   const currentView = useAS(s => s.currentView);
   const folderAnalysis = useAS(s => s.folderAnalysis);
   const folderGraph = useAS(s => s.folderGraph);
@@ -87,7 +85,7 @@ function AppTabButtons({ entries, onSelectFolder, onQuit, recentFolders, onOpenR
   };
 
   // Determine whether the thread tab should be visible based on loaded entries
-  const isInAiThread = isAiThreadByEntries(entries) || currentView === 'thread';
+  const isInAiThread = useAS(s => isAiThreadByEntries(s.currentEntries)) || currentView === 'thread';
 
   const visibleIds = new Set<AppView>([
     ...visibleTabs,

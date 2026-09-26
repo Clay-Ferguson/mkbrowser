@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import type { AppState, Bookmark, ItemData } from '../shared/types';
+import type { FileEntry } from '../shared/shared';
 import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
@@ -172,6 +173,81 @@ function stripTrailingSep(path: string): string {
   return path.replace(/[/\\]+$/, '');
 }
 
+/** The store item for a directory-listing entry (or one of its attachments). */
+function toIncomingItem(file: FileEntry): IncomingItem {
+  return {
+    path: file.path,
+    name: file.name,
+    isDirectory: file.isDirectory,
+    modifiedTime: file.modifiedTime,
+    createdTime: file.createdTime,
+    size: file.size,
+    aiHint: file.aiHint,
+  };
+}
+
+/**
+ * Applies a complete listing of `dirPath` to `items`: upserts everything in
+ * `incoming`, then drops the cached entries for direct children of `dirPath`
+ * the listing no longer contains, together with anything cached beneath them.
+ * Returns the new Map, or null when nothing changed. See syncDirectoryItems.
+ */
+function syncListingItems(
+  items: Map<string, ItemData>,
+  dirPath: string,
+  incoming: IncomingItem[],
+): Map<string, ItemData> | null {
+  const newItems = new Map(items);
+  let hasChanges = false;
+
+  for (const item of incoming) {
+    const existing = newItems.get(item.path);
+    const merged = mergeItem(existing, item);
+    if (merged !== existing) {
+      newItems.set(item.path, merged);
+      hasChanges = true;
+    }
+  }
+
+  const listed = new Set(incoming.map(item => item.path));
+  const parent = stripTrailingSep(dirPath);
+
+  // Two passes: collect the vanished children first, then delete each one
+  // together with anything cached beneath it.
+  const vanished: string[] = [];
+  for (const path of newItems.keys()) {
+    if (!listed.has(path) && getParentPath(path) === parent) {
+      vanished.push(path);
+    }
+  }
+
+  for (const path of newItems.keys()) {
+    if (vanished.some(root => isPathInside(root, path))) {
+      newItems.delete(path);
+      hasChanges = true;
+    }
+  }
+
+  return hasChanges ? newItems : null;
+}
+
+/**
+ * Remaps a listing entry (and its pre-loaded attachments) for a rename of
+ * `oldRoot` to `newRoot`, or returns it unchanged when it isn't affected.
+ */
+function remapEntry(entry: FileEntry, oldRoot: string, newRoot: string, newName: string): FileEntry {
+  const moved = remapMovedPath(entry.path, oldRoot, newRoot);
+  const attachments = entry.attachments?.map(a => remapEntry(a, oldRoot, newRoot, newName));
+  const attachmentsChanged = !!attachments && attachments.some((a, i) => a !== entry.attachments![i]);
+  if (moved === null && !attachmentsChanged) return entry;
+  return {
+    ...entry,
+    ...(moved !== null ? { path: moved } : {}),
+    ...(moved !== null && entry.path === oldRoot ? { name: newName } : {}),
+    ...(attachmentsChanged ? { attachments } : {}),
+  };
+}
+
 /**
  * Actions owned by this slice. Composed into the single store's state type in
  * `core.ts`.
@@ -179,6 +255,9 @@ function stripTrailingSep(path: string): string {
 export interface ItemsSlice {
   upsertItems: (items: IncomingItem[]) => void;
   syncDirectoryItems: (dirPath: string, items: IncomingItem[]) => void;
+  applyDirectoryListing: (dirPath: string, entries: FileEntry[]) => void;
+  setCurrentEntries: (entries: FileEntry[]) => void;
+  setEntriesLoading: (loading: boolean) => void;
   setItemContent: (path: string, content: string, modifiedTime: number, size?: number, createdTime?: number) => void;
   toggleItemSelected: (path: string) => void;
   toggleItemExpanded: (path: string) => void;
@@ -252,40 +331,34 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * for pruning, which only ever looks at direct children of `dirPath`.
      */
     syncDirectoryItems: (dirPath, items) => {
-      const newItems = new Map(get().items);
-      let hasChanges = false;
-
-      for (const item of items) {
-        const existing = newItems.get(item.path);
-        const merged = mergeItem(existing, item);
-        if (merged !== existing) {
-          newItems.set(item.path, merged);
-          hasChanges = true;
-        }
-      }
-
-      const listed = new Set(items.map(item => item.path));
-      const parent = stripTrailingSep(dirPath);
-
-      // Two passes: collect the vanished children first, then delete each one
-      // together with anything cached beneath it.
-      const vanished: string[] = [];
-      for (const path of newItems.keys()) {
-        if (!listed.has(path) && getParentPath(path) === parent) {
-          vanished.push(path);
-        }
-      }
-
-      for (const path of newItems.keys()) {
-        if (vanished.some(root => isPathInside(root, path))) {
-          newItems.delete(path);
-          hasChanges = true;
-        }
-      }
-
-      if (!hasChanges) return;
-
+      const newItems = syncListingItems(get().items, dirPath, items);
+      if (!newItems) return;
       set({ items: newItems });
+    },
+
+    /**
+     * Installs a freshly read listing of `dirPath` as `currentEntries` and
+     * syncs the items Map to it (each entry plus its pre-loaded attachments —
+     * see syncDirectoryItems), in one atomic update so no render ever sees a
+     * listing entry without its item.
+     */
+    applyDirectoryListing: (dirPath, entries) => {
+      const incoming = entries.flatMap(file => [
+        toIncomingItem(file),
+        ...(file.attachments ?? []).map(toIncomingItem),
+      ]);
+      const newItems = syncListingItems(get().items, dirPath, incoming);
+      set(newItems ? { items: newItems, currentEntries: entries } : { currentEntries: entries });
+    },
+
+    setCurrentEntries: (entries) => {
+      if (get().currentEntries === entries) return;
+      set({ currentEntries: entries });
+    },
+
+    setEntriesLoading: (loading) => {
+      if (get().entriesLoading === loading) return;
+      set({ entriesLoading: loading });
     },
 
     /**
@@ -585,6 +658,18 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
         patch.items = newItems;
       }
 
+      // The listing moves with the items, so the renamed entry stays on screen
+      // (under its new name) until the directory reload replaces it.
+      let entriesChanged = false;
+      const currentEntries = state.currentEntries.map(e => {
+        const remapped = remapEntry(e, oldRoot, newRoot, newName);
+        if (remapped !== e) entriesChanged = true;
+        return remapped;
+      });
+      if (entriesChanged) {
+        patch.currentEntries = currentEntries;
+      }
+
       let bookmarksChanged = false;
       const remapped = state.settings.bookmarks.map(b => {
         const moved = remapMovedPath(b.path, oldRoot, newRoot);
@@ -670,9 +755,9 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * descendant of each path (a deleted folder takes its whole subtree with it,
      * so leaving descendants behind would strand their editing/isCut state).
      *
-     * Also drops any "Copy Link" paths pointing at (or under) a deleted path,
-     * atomically in the same update — a later "Paste Link" would otherwise
-     * write dead links into document content.
+     * Also drops, atomically in the same update, any `currentEntries` rows and
+     * "Copy Link" paths pointing at (or under) a deleted path — a later "Paste
+     * Link" would otherwise write dead links into document content.
      */
     deleteItems: (paths) => {
       if (paths.length === 0) return;
@@ -695,6 +780,13 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
 
       if (hasChanges) {
         patch.items = newItems;
+      }
+
+      const remainingEntries = state.currentEntries.filter(
+        e => !roots.some(root => isPathInside(root, e.path)),
+      );
+      if (remainingEntries.length !== state.currentEntries.length) {
+        patch.currentEntries = remainingEntries;
       }
 
       const remainingLinks = state.selectedLinkItems.filter(
@@ -849,6 +941,18 @@ export function upsertItems(items: IncomingItem[]): void {
  */
 export function syncDirectoryItems(dirPath: string, items: IncomingItem[]): void {
   getState().syncDirectoryItems(dirPath, items);
+}
+
+export function applyDirectoryListing(dirPath: string, entries: FileEntry[]): void {
+  getState().applyDirectoryListing(dirPath, entries);
+}
+
+export function setCurrentEntries(entries: FileEntry[]): void {
+  getState().setCurrentEntries(entries);
+}
+
+export function setEntriesLoading(loading: boolean): void {
+  getState().setEntriesLoading(loading);
 }
 
 export function setItemContent(path: string, content: string, modifiedTime: number, size?: number, createdTime?: number): void {

@@ -18,6 +18,7 @@ import {
   type ContentWidth,
   type IndexTreeWidth,
 } from '../../store';
+import { saveSettings } from '../../renderer/config';
 
 interface FontSizeOption {
   value: FontSize;
@@ -136,19 +137,15 @@ function DraftTextField({ value, onCommit, multiline = false, placeholder, rows,
   );
 }
 
-interface SettingsViewProps {
-  onSaveSettings: () => void;
-}
-
 /**
  * General application settings page. Covers appearance (font size, content
  * width, folder tree width, image size, folders-on-top, table of contents),
  * files to ignore in searches, OCR tools folder path, calendar items folder
  * path, and hashtag management. Selects and checkboxes write to the store
- * immediately and trigger `onSaveSettings` to persist to disk; free-text fields
+ * immediately and call `saveSettings` to persist to disk; free-text fields
  * (`DraftTextField`) commit only on blur/Enter.
  */
-function SettingsView({ onSaveSettings }: SettingsViewProps) {
+function SettingsView() {
   const settings = useAS(s => s.settings);
   const [showTagsEditor, setShowTagsEditor] = useState(false);
 
@@ -157,51 +154,51 @@ function SettingsView({ onSaveSettings }: SettingsViewProps) {
   const handleFontSizeChange = (fontSize: FontSize) => {
     setFontSize(fontSize);
     // Trigger save to persist the setting
-    onSaveSettings();
+    saveSettings();
   };
 
   const handleFoldersOnTopChange = (foldersOnTop: boolean) => {
     setFoldersOnTop(foldersOnTop);
     // Trigger save to persist the setting
-    onSaveSettings();
+    saveSettings();
   };
 
   const handleShowTocChange = (showToc: boolean) => {
     setShowToc(showToc);
-    onSaveSettings();
+    saveSettings();
   };
 
   const handleIgnoredPathsChange = (ignoredPaths: string) => {
     setIgnoredPaths(ignoredPaths);
     // Trigger save to persist the setting
-    onSaveSettings();
+    saveSettings();
   };
 
   const handleContentWidthChange = (contentWidth: ContentWidth) => {
     setContentWidth(contentWidth);
     // Trigger save to persist the setting
-    onSaveSettings();
+    saveSettings();
   };
 
   const handleIndexTreeWidthChange = (indexTreeWidth: IndexTreeWidth) => {
     setIndexTreeWidth(indexTreeWidth);
-    onSaveSettings();
+    saveSettings();
   };
 
   const handleImageSizeChange = (imageSize: ImageSize) => {
     setImageSize(imageSize);
-    onSaveSettings();
+    saveSettings();
   };
 
   const handleOcrToolsFolderChange = (ocrToolsFolder: string) => {
     setOcrToolsFolder(ocrToolsFolder);
     // Trigger save to persist the setting
-    onSaveSettings();
+    saveSettings();
   };
 
   const handleCalendarItemsFolderChange = (calendarItemsFolder: string) => {
     setCalendarItemsFolder(calendarItemsFolder);
-    onSaveSettings();
+    saveSettings();
   };
 
   return (

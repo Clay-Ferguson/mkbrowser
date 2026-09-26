@@ -73,7 +73,7 @@ There is no reactive channel from the store *into* the plugin, so re-enabling ta
 - **`thesaurusCapable`** — passed from `CodeMirrorEditor` as `!readOnly && !isCodeLanguage(language)`, *the same expression* that decides whether the plugin is in the extension list. Offering a switch for a plugin that was never installed would be a dead control.
 - **`singleFileMode`** — `browseFileName !== null`, read from the store inside `useEditorContextMenu`. Only `BrowseFile` mounts the strip, so in a folder-listing inline edit the setting would flip with nowhere for the synonyms to appear.
 
-**The setting is persisted by the hook itself** (`api.updateConfig({ settings: getSettings() })`), the way `BookmarksPopupMenu` does, rather than through an `onSaveSettings` prop: `CodeMirrorEditor` has no such prop, and threading one down from `BrowseFile` through `MarkdownEntry`/`TextEntry` for a single menu item is not worth it. `ThesaurusView`'s own `onSaveSettings` prop was removed with the checkbox.
+**The setting is persisted by the hook itself** via `saveSettings()` (`src/renderer/config.ts`), the same call every other settings writer uses.
 
 ## Why Moby, and What Was Rejected
 

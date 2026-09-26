@@ -22,7 +22,6 @@ import type { BaseEntryProps } from './common';
 interface FolderEntryProps extends BaseEntryProps {
   onNavigate: (path: string) => void;
   onPasteIntoFolder?: (folderPath: string) => void;
-  onRefreshDirectory?: () => void;
   isAttachFolder?: boolean;
   indentFolder?: boolean;
 }
@@ -35,7 +34,7 @@ interface FolderEntryProps extends BaseEntryProps {
  * their position in the index is tied to their parent file.
  */
 function FolderEntry(props: FolderEntryProps) {
-  const { entry, onNavigate, onSaveSettings, onPasteIntoFolder, onRefreshDirectory, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder, indentFolder } = props;
+  const { entry, onNavigate, onPasteIntoFolder, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachFolder, indentFolder } = props;
   // Folders select the full name on rename; they don't use isExpanded.
   const { core, rename, del } = useEntry(props, { selectFullName: true });
   const { isRenaming, isSelected, isHighlighted, isBookmarked } = core;
@@ -58,7 +57,7 @@ function FolderEntry(props: FolderEntryProps) {
   // and move it into this folder.
   const drop = useDropTarget(
     payload => canDropInto(payload, entry.path),
-    payload => void completeEntryDrop(payload, entry.path, onRefreshDirectory)
+    payload => void completeEntryDrop(payload, entry.path)
   );
 
   return (
@@ -118,7 +117,6 @@ function FolderEntry(props: FolderEntryProps) {
               deleting={del.deleting}
               onRenameClick={handleRenameClick}
               onDeleteClick={del.handleDeleteClick}
-              onSaveSettings={onSaveSettings}
               onMoveUp={isAttachFolder && hasIndexFile ? undefined : onMoveUp}
               onMoveDown={isAttachFolder && hasIndexFile ? undefined : onMoveDown}
               onMoveToTop={isAttachFolder && hasIndexFile ? undefined : onMoveToTop}

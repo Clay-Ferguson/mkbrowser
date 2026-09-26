@@ -4,6 +4,7 @@ import { setHighlightItem, setItemRenaming, renameItem } from '../../../store';
 import type { RenameState } from './types';
 import { getParentPath, joinPath } from '../../../renderer/pathUtil';
 import { logger } from '../../../shared/logUtil';
+import { saveSettings } from '../../../renderer/config';
 
 interface UseRenameOptions {
   /** Full path of the entry */
@@ -14,8 +15,6 @@ interface UseRenameOptions {
   isRenaming: boolean;
   /** Callback after successful rename */
   onRename: () => void;
-  /** Callback when bookmark path is updated */
-  onSaveSettings: () => void;
   /** Whether to select full name (folders) or name without extension (files) */
   selectFullName?: boolean;
 }
@@ -31,7 +30,6 @@ async function performRename(
   path: string,
   trimmedName: string,
   onRename: () => void,
-  onSaveSettings: () => void,
 ): Promise<void> {
   try {
     const dirPath = getParentPath(path);
@@ -44,7 +42,7 @@ async function performRename(
       // copied links) and returns true when a bookmark changed, in which case
       // the settings must be persisted.
       if (renameItem(path, newPath, trimmedName)) {
-        onSaveSettings();
+        saveSettings();
       }
       setHighlightItem(newPath);
       onRename();
@@ -63,7 +61,6 @@ export function useRename({
   name,
   isRenaming,
   onRename,
-  onSaveSettings,
   selectFullName = false,
 }: UseRenameOptions): RenameState {
   const [newName, setNewName] = useState(name);
@@ -116,7 +113,7 @@ export function useRename({
     }
 
     setSaving(true);
-    void performRename(path, trimmedName, onRename, onSaveSettings).finally(() => setSaving(false));
+    void performRename(path, trimmedName, onRename).finally(() => setSaving(false));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

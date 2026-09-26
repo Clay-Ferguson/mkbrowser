@@ -25,6 +25,7 @@ import {
 } from './common';
 import { getTextFileLanguage } from '../../shared/fileTypes';
 import { ENTRY_CONTENT_AREA, ENTRY_LOADING } from '../../renderer/styles';
+import { saveSettings } from '../../renderer/config';
 
 
 type TextEntryProps = BaseEntryProps & AttachMenuProps;
@@ -36,7 +37,7 @@ type TextEntryProps = BaseEntryProps & AttachMenuProps;
  * in-place diff review (CodeMirror's unified merge view) via its `reviewText` prop.
  */
 function TextEntry(props: TextEntryProps) {
-  const { entry, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false, alwaysExpandedEditor = false } = props;
+  const { entry, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false, alwaysExpandedEditor = false } = props;
   const item = useAS(s => s.items.get(entry.path));
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [hasSelection, setHasSelection] = useState(false);
@@ -79,7 +80,7 @@ function TextEntry(props: TextEntryProps) {
   // listing with the editor still open inline.
   const handleToggleExpandedEditor = () => {
     toggleExpandedEditor(entry.path);
-    onSaveSettings();
+    saveSettings();
   };
 
   const { isRewriting, aiRewrite } = useAiRewrite({
@@ -114,7 +115,6 @@ function TextEntry(props: TextEntryProps) {
       deleting={del.deleting}
       onRenameClick={rename.handleRenameClick}
       onDeleteClick={del.handleDeleteClick}
-      onSaveSettings={onSaveSettings}
       onMoveUp={onMoveUp}
       onMoveDown={onMoveDown}
       onMoveToTop={onMoveToTop}

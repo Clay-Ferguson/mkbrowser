@@ -16,8 +16,6 @@ export type PathBreadcrumbProps = {
   rootPath: string;
   currentPath: string;
   onNavigate: (path: string) => void;
-  /** Called after a drop moves an item into the currently-browsed folder, so the view refreshes. */
-  onRefreshDirectory?: () => void;
 };
 
 /**
@@ -29,7 +27,7 @@ export type PathBreadcrumbProps = {
  * that home icon — doubles as a drag-and-drop target that accepts file/folder moves.
  * A "reveal in tree" button appears at the end when the index tree panel is visible.
  */
-function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory }: PathBreadcrumbProps) {
+function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
   const settings = useAS(s => s.settings);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const normalizedRoot = rootPath.replace(/[/\\]+$/, '');
@@ -66,7 +64,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate, onRefreshDirectory 
       const payload = parseDragPayload(e.dataTransfer.getData(ENTRY_DND_MIME));
       if (!payload || !canDropInto(payload, folderPath)) return;
 
-      completeEntryDrop(payload, folderPath, onRefreshDirectory)
+      completeEntryDrop(payload, folderPath)
         .catch(err => logger.error('Failed to move item into folder:', err));
     },
   });

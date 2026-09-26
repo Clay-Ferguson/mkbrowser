@@ -37,7 +37,7 @@ const IMAGE_SIZE_CLASSES: Record<ImageSize, string> = {
  * its dialog state is shared with the fullscreen viewer so only one dialog instance exists.
  */
 function ImageEntry(props: ImageEntryProps) {
-  const { entry, allImages, onDelete, onSaveSettings, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
+  const { entry, allImages, onDelete, onMoveUp, onMoveDown, onMoveToTop, onMoveToBottom, isAttachment = false } = props;
   // logger.log('[ImageEntry] Rendering entry:', entry.name, 'path:', entry.path);
 
   const { core, rename, del } = useEntry(props, { defaultExpanded: true });
@@ -102,7 +102,6 @@ function ImageEntry(props: ImageEntryProps) {
             deleting={del.deleting}
             onRenameClick={rename.handleRenameClick}
             onDeleteClick={del.handleDeleteClick}
-            onSaveSettings={onSaveSettings}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
             onMoveToTop={onMoveToTop}
