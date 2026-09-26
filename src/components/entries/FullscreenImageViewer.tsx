@@ -136,7 +136,9 @@ function FullscreenImageViewer(props: FullscreenImageViewerProps) {
           // as selected or referenced in memory
           deleteItems([pathToDelete]);
           if (nextImagePath) {
-            setCurrentPath(nextImagePath);
+            // Functional form: only move off the deleted image — if the user arrowed to
+            // another one while the delete was in flight, stay there.
+            setCurrentPath(prev => (prev === pathToDelete ? nextImagePath : prev));
           } else {
             // No more images, close fullscreen
             onClose();

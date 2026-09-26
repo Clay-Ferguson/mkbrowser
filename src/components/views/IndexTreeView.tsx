@@ -598,8 +598,10 @@ function IndexTreeView() {
           api.reconcileIndexedFiles(node.path, false),
         ]);
 
-        // If the browse view is currently showing this folder, refresh it
-        if (node.path === currentPath) {
+        // If the browse view is currently showing this folder, refresh it. Read the
+        // path now, not from the render that built the menu: the user can navigate
+        // while the moves above are in flight.
+        if (node.path === useAS.getState().currentPath) {
           refreshDirectory();
         }
 
@@ -684,8 +686,10 @@ function IndexTreeView() {
       () => setCreateFileParent(null),
       initialContent,
       () => {
+        // Read the path now (it may have changed during the create), before navigating.
+        const alreadyCurrent = isSamePath(folderPath, useAS.getState().currentPath);
         navigateToBrowserPath(folderPath);
-        if (isSamePath(folderPath, currentPath)) requestDirectoryRefresh();
+        if (alreadyCurrent) requestDirectoryRefresh();
       },
     );
 
@@ -736,8 +740,9 @@ function IndexTreeView() {
 
       await api.reconcileIndexedFiles(parentPath, false);
 
-      // If the browse view is currently showing this folder, refresh it.
-      if (parentPath === currentPath) {
+      // If the browse view is currently showing this folder, refresh it (read after the
+      // awaits: the user may have navigated meanwhile).
+      if (parentPath === useAS.getState().currentPath) {
         refreshDirectory();
       }
 
@@ -770,7 +775,7 @@ function IndexTreeView() {
       // If the browse view is showing the renamed item's parent, refresh it. When
       // it is showing the renamed folder itself (or something inside it),
       // renameItem already moved currentPath, and App reloads the new path.
-      if (parentPath === currentPath) {
+      if (parentPath === useAS.getState().currentPath) {
         refreshDirectory();
       }
 
@@ -795,8 +800,10 @@ function IndexTreeView() {
       deleteItems([target.path]);
       await api.reconcileIndexedFiles(parentPath, false);
 
-      // If the browse view is showing the deleted item or its parent, refresh it.
-      if (target.path === currentPath || parentPath === currentPath || isParentOf(target.path, currentPath)) {
+      // If the browse view is showing the deleted item or its parent, refresh it
+      // (read after the awaits: the user may have navigated meanwhile).
+      const viewedPath = useAS.getState().currentPath;
+      if (target.path === viewedPath || parentPath === viewedPath || isParentOf(target.path, viewedPath)) {
         refreshDirectory();
       }
 
