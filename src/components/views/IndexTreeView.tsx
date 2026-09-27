@@ -4,7 +4,7 @@ import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { saveSettings } from '../../renderer/config';
 import { refreshDirectory } from '../../renderer/directoryLoader';
-import { BUTTON_CLASS_XS, ENTRY_DROP_TARGET } from '../../renderer/styles';
+import { BUTTON_CLASS_TB_NORMAL, ENTRY_DROP_TARGET } from '../../renderer/styles';
 import { runOp } from '../../renderer/runOp';
 import { isImageFile } from '../../shared/fileTypes';
 import FileTypeIcon from '../FileTypeIcon';
@@ -1006,45 +1006,45 @@ function IndexTreeView() {
           ref={bookmarksButtonRef}
           type="button"
           onClick={toggleBookmarksMenu}
-          className={`${BUTTON_CLASS_XS} ml-1`}
+          className={`${BUTTON_CLASS_TB_NORMAL} ml-1`}
           title="Bookmarks menu"
           data-testid="bookmarks-menu-button"
         >
-          <ListBulletIcon className="w-5 h-5" />
+          <ListBulletIcon className="w-6 h-6" />
         </button>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={collapseAllIndexTreeNodes}
           disabled={!isAnyExpanded(treeRoot.children)}
-          className={BUTTON_CLASS_XS}
+          className={BUTTON_CLASS_TB_NORMAL}
           title="Collapse All"
           data-testid="file-explorer-tree-collapse"
         >
-          <span className="flex items-center justify-center w-5 h-5 border border-current rounded-sm">
-            <MinusIcon className="w-3.5 h-3.5" />
+          <span className="flex items-center justify-center w-6 h-6 border border-current rounded-sm">
+            <MinusIcon className="w-4 h-4" />
           </span>
         </button>
         {indexTreeWidth !== 'narrow' && (
           <button
             type="button"
             onClick={handleNarrowTree}
-            className={BUTTON_CLASS_XS}
+            className={BUTTON_CLASS_TB_NORMAL}
             title="Narrow tree"
             data-testid="file-explorer-tree-narrow"
           >
-            <ChevronDoubleLeftIcon className="w-5 h-5" />
+            <ChevronDoubleLeftIcon className="w-6 h-6" />
           </button>
         )}
         {indexTreeWidth !== 'wide' && (
           <button
             type="button"
             onClick={handleWidenTree}
-            className={BUTTON_CLASS_XS}
+            className={BUTTON_CLASS_TB_NORMAL}
             title="Widen tree"
             data-testid="file-explorer-tree-widen"
           >
-            <ChevronDoubleRightIcon className="w-5 h-5" />
+            <ChevronDoubleRightIcon className="w-6 h-6" />
           </button>
         )}
         </div>
