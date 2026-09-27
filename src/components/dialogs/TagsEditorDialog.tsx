@@ -62,16 +62,27 @@ function toTagCategories(editor: EditorCategory[]): TagCategory[] {
   }));
 }
 
+// Drop tag rows whose name and description are both blank (e.g. a tag the user
+// added but never filled in), so they're silently discarded on Save instead of
+// failing validation. A blank name with a description is kept and rejected by validate.
+function dropBlankTags(cats: EditorCategory[]): EditorCategory[] {
+  return cats.map((cat) => ({
+    ...cat,
+    tags: cat.tags.filter((t) => t.name.trim() !== '' || t.description.trim() !== ''),
+  }));
+}
+
 // Returns the first validation problem as a user-facing message, or null when the
 // categories are valid: names must be non-empty and unique, both for categories
-// and for the tags within each category.
+// and for the tags within each category. Expects fully blank tags to have been
+// removed already (see dropBlankTags).
 function validate(cats: EditorCategory[]): string | null {
   const catNames = cats.map((c) => c.name.trim());
   if (catNames.some((n) => n === '')) return 'Category names cannot be empty.';
   if (new Set(catNames).size !== catNames.length) return 'Category names must be unique.';
   for (const cat of cats) {
     const tagNames = cat.tags.map((t) => t.name.trim());
-    if (tagNames.some((n) => n === '')) return `Tag names in "${cat.name}" cannot be empty.`;
+    if (tagNames.some((n) => n === '')) return `Tags in "${cat.name}" that have a description need a name.`;
     if (new Set(tagNames).size !== tagNames.length) return `Duplicate tag names in category "${cat.name}".`;
   }
   return null;
@@ -207,13 +218,14 @@ export default function TagsEditorDialog({ onClose, initialCategory, addTagOnOpe
   // --- Save ---
 
   const handleSave = () => {
-    const error = validate(categories);
+    const toSave = dropBlankTags(categories);
+    const error = validate(toSave);
     if (error) { setSaveError(error); return; }
     setSaving(true);
     setSaveError(null);
     void (async () => {
       try {
-        const yaml = serializeTagsToYaml(toTagCategories(categories));
+        const yaml = serializeTagsToYaml(toTagCategories(toSave));
         await api.saveTags(yaml);
         onClose();
       } catch (err) {
