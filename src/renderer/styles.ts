@@ -264,7 +264,7 @@ export const MENU_ITEM_ENABLED = 'text-btn-neutral-fg hover:bg-btn-menu-hover cu
 export const MENU_ITEM_DISABLED = 'text-btn-label-off cursor-not-allowed';
 export const MENU_DIVIDER      = 'border-t border-slate-500 my-1';
 // Row with inline action buttons revealed on hover (e.g. bookmark rows)
-export const MENU_ROW          = 'flex items-center gap-1 px-2 py-1 rounded hover:bg-btn-menu-hover group';
+export const MENU_ROW          = 'flex items-center gap-1 px-2 py-2 rounded hover:bg-btn-menu-hover group';
 export const MENU_ICON_BTN     = 'p-1 rounded text-btn-ghost hover:bg-btn-menu-icon-hover cursor-pointer';
 // Primary clickable label within a MENU_ROW (icon + truncated text)
 export const MENU_ROW_LABEL    = 'flex items-center gap-2 flex-1 text-left text-sm text-btn-neutral-fg cursor-pointer min-w-0';
