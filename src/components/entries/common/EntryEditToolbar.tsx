@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline';
-import { BUTTON_CLASS_SM_BLUE, BUTTON_CLASS_SM_RED, BUTTON_CLASS_SM_PURPLE, ENTRY_EDITOR_ICON_BTN } from '../../../renderer/styles';
+import { BUTTON_CLASS_SM_GREEN_MUTED, BUTTON_CLASS_SM_NEUTRAL_OUTLINED, BUTTON_CLASS_SM_PURPLE, ENTRY_EDITOR_ICON_BTN } from '../../../renderer/styles';
 
 interface EntryEditToolbarProps {
   /** Whether the editor is in expanded mode. */
@@ -98,7 +98,7 @@ export function EntryEditToolbar({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className={BUTTON_CLASS_SM_RED}
+            className={BUTTON_CLASS_SM_NEUTRAL_OUTLINED}
             data-testid="entry-cancel-button"
           >
             Cancel
@@ -107,7 +107,7 @@ export function EntryEditToolbar({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className={BUTTON_CLASS_SM_BLUE}
+            className={BUTTON_CLASS_SM_GREEN_MUTED}
             data-testid="entry-save-button"
           >
             {saving ? 'Saving...' : 'Save'}

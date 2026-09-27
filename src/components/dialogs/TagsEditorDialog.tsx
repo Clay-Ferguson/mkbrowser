@@ -5,7 +5,7 @@ import { serializeTagsToYaml } from '../../shared/tagUtil';
 import type { TagCategory, HashtagDefinition } from '../../shared/tagUtil';
 import { fetchTags } from '../../renderer/tagApi';
 import Dialog from './common/Dialog';
-import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_LINK_MUTED, BUTTON_CLASS_LINK_RED, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_SAVE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_LINK_MUTED, BUTTON_CLASS_LINK_RED, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
 
 interface EditorTag {
   id: string;
@@ -412,7 +412,7 @@ export default function TagsEditorDialog({ onClose, initialCategory, addTagOnOpe
               type="button"
               onClick={handleSave}
               disabled={saving || loading}
-              className={BUTTON_CLASS_DLG_BLUE}
+              className={BUTTON_CLASS_DLG_SAVE}
               data-testid="tags-editor-dialog-save-button"
             >
               {saving ? 'Saving…' : 'Save'}

@@ -89,6 +89,7 @@ const SIZE_LG = 'px-6 py-3 font-medium rounded-lg';
 const FILL_BLUE = 'text-btn-fg bg-btn-blue';
 const FILL_RED = 'text-btn-fg bg-btn-red';
 const FILL_GREEN = 'text-btn-fg bg-btn-green';
+const FILL_GREEN_MUTED_OUTLINED = 'text-btn-fg bg-btn-green-muted border border-btn-neutral-border';
 const FILL_PURPLE = 'text-btn-fg bg-btn-purple';
 const FILL_NEUTRAL = 'text-btn-neutral-fg bg-btn-neutral';
 const FILL_NEUTRAL_OUTLINED = `${FILL_NEUTRAL} border border-btn-neutral-border`;
@@ -143,6 +144,10 @@ export const BUTTON_CLASS_SM_RED = `${BTN} ${SIZE_SM} ${FILL_RED}`;
 export const BUTTON_CLASS_SM_GREEN = `${BTN} ${SIZE_SM} ${FILL_GREEN}`;
 export const BUTTON_CLASS_SM_PURPLE = `${BTN} ${SIZE_SM} ${FILL_PURPLE}`;
 export const BUTTON_CLASS_SM_NEUTRAL = `${BTN} ${SIZE_SM} ${FILL_NEUTRAL}`;
+/** Entry editor Cancel/Save: the "Up Level" outlined neutral, and a dimmer green
+ *  carrying the same border so the pair matches. */
+export const BUTTON_CLASS_SM_NEUTRAL_OUTLINED = `${BTN} ${SIZE_SM} ${FILL_NEUTRAL_OUTLINED}`;
+export const BUTTON_CLASS_SM_GREEN_MUTED = `${BTN} ${SIZE_SM} ${FILL_GREEN_MUTED_OUTLINED}`;
 
 // --- Toolbar (selection bar) action buttons ------------------------------
 export const BUTTON_CLASS_BAR_BLUE = `${BTN} ${SIZE_BAR} ${FILL_BLUE}`;
@@ -150,7 +155,12 @@ export const BUTTON_CLASS_BAR_RED = `${BTN} ${SIZE_BAR} ${FILL_RED}`;
 export const BUTTON_CLASS_BAR_NEUTRAL = `${BTN} ${SIZE_BAR} ${FILL_NEUTRAL_OUTLINED}`;
 
 // --- Large dialog action buttons -----------------------------------------
-export const BUTTON_CLASS_DLG_CANCEL = `${BTN} ${SIZE_DLG} ${FILL_NEUTRAL}`;
+/** Dialog Cancel/Close/No: the same outlined neutral as "Up Level" and the editor Cancel. */
+export const BUTTON_CLASS_DLG_CANCEL = `${BTN} ${SIZE_DLG} ${FILL_NEUTRAL_OUTLINED}`;
+/** Dialog Save: the editor Save's dimmer green, with the same border as Cancel. */
+export const BUTTON_CLASS_DLG_SAVE = `${BTN} ${SIZE_DLG} ${FILL_GREEN_MUTED_OUTLINED}`;
+/** Borderless neutral dialog button (icon button welded beside an input). */
+export const BUTTON_CLASS_DLG_NEUTRAL = `${BTN} ${SIZE_DLG} ${FILL_NEUTRAL}`;
 export const BUTTON_CLASS_DLG_BLUE = `${BTN} ${SIZE_DLG} ${FILL_BLUE}`;
 export const BUTTON_CLASS_DLG_GREEN = `${BTN} ${SIZE_DLG} ${FILL_GREEN}`;
 export const BUTTON_CLASS_DLG_RED = `${BTN} ${SIZE_DLG} ${FILL_RED}`;

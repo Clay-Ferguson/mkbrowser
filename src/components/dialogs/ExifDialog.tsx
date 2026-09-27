@@ -4,7 +4,7 @@ import { api } from '../../renderer/api';
 import { logger } from '../../shared/logUtil';
 import Dialog from './common/Dialog';
 import AlertDialog from './AlertDialog';
-import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_SAVE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_GREEN, DLG_FOOTER_CLASS } from '../../renderer/styles';
 import type { ExifData, ExifSection, ExifWriteResult } from '../../shared/shared';
 
 /**
@@ -299,7 +299,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
               <button
                 type="button"
                 onClick={onClose}
-                className={BUTTON_CLASS_DLG_BLUE}
+                className={BUTTON_CLASS_DLG_CANCEL}
                 data-testid="exif-dialog-close-button"
               >
                 Close
@@ -320,7 +320,7 @@ function ExifDialog({ data, fileName, filePath, onClose }: ExifDialogProps) {
               <button
                 type="button"
                 onClick={handleSave}
-                className={BUTTON_CLASS_DLG_BLUE}
+                className={BUTTON_CLASS_DLG_SAVE}
                 disabled={saving}
                 data-testid="exif-dialog-save-button"
               >

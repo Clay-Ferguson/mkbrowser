@@ -6,7 +6,7 @@ import { logger } from '../../shared/logUtil';
 import Dialog from './common/Dialog';
 import CheckboxField from './common/CheckboxField';
 import RadioField from './common/RadioField';
-import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_CANCEL, DLG_FOOTER_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE, DLG_LABEL_CLASS } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_NEUTRAL, DLG_FOOTER_CLASS, DLG_INPUT_CLASS, DLG_INPUT_CLASS_BASE, DLG_LABEL_CLASS } from '../../renderer/styles';
 
 export interface ExportOptions {
   outputFolder: string;
@@ -107,7 +107,7 @@ function ExportDialog({ defaultFolder, defaultFileName, onExport, onCancel }: Ex
             <button
               type="button"
               onClick={handleSelectFolder}
-              className={BUTTON_CLASS_DLG_CANCEL}
+              className={BUTTON_CLASS_DLG_NEUTRAL}
               title="Browse for folder"
               data-testid="export-browse-folder-button"
             >

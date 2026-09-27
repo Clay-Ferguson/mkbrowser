@@ -48,6 +48,10 @@
   --color-btn-purple: #8b54d4;        /* H 300 — AI actions         */
   --color-btn-purple-hover: #a269f3;
 
+  /* -- Muted fill: oklch(0.50 0.12 H) — same hue, dimmer and softer, for
+        buttons that sit on screen for a long time (the editor Save). -- */
+  --color-btn-green-muted: #21763c;
+
   /* -- Neutral fill (Cancel / secondary). Kept on the slate ramp so it
         matches the panels and dialogs it sits in. -- */
   --color-btn-neutral: #334155;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Dialog from './common/Dialog';
-import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_BLUE, DLG_INPUT_CLASS, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_DLG_SAVE, DLG_INPUT_CLASS, DLG_LABEL_CLASS, DLG_FOOTER_CLASS } from '../../renderer/styles';
 
 interface BookmarkDialogProps {
   path: string;
@@ -80,7 +80,7 @@ function BookmarkDialog({ path, isFolder, initialName, onSave, onCancel }: Bookm
           <button
             type="submit"
             disabled={!name.trim()}
-            className={BUTTON_CLASS_DLG_BLUE}
+            className={BUTTON_CLASS_DLG_SAVE}
             data-testid="bookmark-dialog-save-button"
           >
             Save

@@ -14,7 +14,7 @@ import ConfirmDialog from '../dialogs/ConfirmDialog';
 import AlertDialog from '../dialogs/AlertDialog';
 import CheckboxField from '../dialogs/common/CheckboxField';
 import NameInputDialog from '../dialogs/common/NameInputDialog';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_GREEN, BUTTON_CLASS_DLG_RED, BUTTON_CLASS_GREEN, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_RED, BUTTON_CLASS_RED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_DLG_BLUE, BUTTON_CLASS_DLG_SAVE, BUTTON_CLASS_DLG_RED, BUTTON_CLASS_GREEN, BUTTON_CLASS_LINK, BUTTON_CLASS_LINK_RED, BUTTON_CLASS_RED, SETTINGS_CHECKBOX_CLASS } from '../../renderer/styles';
 
 const DEFAULT_PERSONA_NAME = '[Default Agent]';
 
@@ -81,7 +81,7 @@ function PersonaEditor({ personaName, aiRewritePrompts, onSelect, onNew, onSave,
           type="button"
           disabled={!personaIsEditable}
           onClick={() => onSave(personaName, draft)}
-          className={BUTTON_CLASS_DLG_GREEN}
+          className={BUTTON_CLASS_DLG_SAVE}
           data-testid="ai-persona-save-button"
         >
           Save
