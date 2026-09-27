@@ -344,18 +344,18 @@ The special category named **`all`** is an exception to this rule. Tags inside a
 
 ### Managing your hashtag library (Tags Editor)
 
-You can define the full set of available hashtags — and how they are organised — through the **Settings View** dialog, with the **Edit Hashtags** button.
+You can define the full set of available hashtags — and how they are organised — through the **Settings View** dialog, with the **Edit Hashtags** button. You can also click any category name in the tag picker while editing a file, which opens the same dialog on that category with a new tag already started, ready for you to type its name.
 
 The dialog is split into two panes:
 
 - **Left pane — Categories**: lists all your tag categories in alphabetical order. Click a category to select it and see its tags on the right.
-  - **Add Category**: click the `+ Add Category` button at the bottom of the list to create a new category. The name field opens immediately for you to type the category name. Press `Enter` or click away to confirm; press `Esc` to cancel.
+  - **Add Category**: click the ＋ icon at the right end of the **Categories** header to create a new category. The name field opens immediately for you to type the category name. Press `Enter` or click away to confirm; press `Esc` to cancel.
   - **Rename**: hover over a category row and click the pencil icon (✎) that appears, then edit the name inline.
   - **Delete**: hover over a category row and click the ✕ button. A category can only be deleted when it has no tags; remove all tags from it first.
 
 - **Right pane — Tags**: shows all tags belonging to the selected category.
   - Each tag has a **name** field (the `#` prefix is added automatically) and an optional **description** that appears as a tooltip in the picker.
-  - **Add Tag**: click `+ Add Tag` at the bottom of the right pane to add a new row.
+  - **Add Tag**: click the ＋ icon at the right end of the pane's header to add a new row, with its name field ready for typing.
   - **Delete a tag**: hover over a tag row and click the ✕ button that appears on the right.
 
 Click **Save** to write the changes to disk, or **Cancel** to discard them. Validation prevents saving if any category or tag name is empty, if two categories share the same name, or if a category contains duplicate tag names.

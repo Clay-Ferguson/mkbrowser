@@ -21,6 +21,13 @@ interface EditorCategory {
 
 interface TagsEditorDialogProps {
   onClose: () => void;
+  /** Name of the category to select on open (falls back to the first category if not found). */
+  initialCategory?: string;
+  /**
+   * When true (and `initialCategory` is found), a new empty tag is appended to that
+   * category on open with its name field focused — the same as clicking "Add Tag".
+   */
+  addTagOnOpen?: boolean;
 }
 
 // Stable per-row keys for the editor's local model. crypto.randomUUID avoids
@@ -79,7 +86,7 @@ function validate(cats: EditorCategory[]): string | null {
  * serializes back to YAML, and persists via `api.saveTags`; load/save failures
  * are shown inline in the footer.
  */
-export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
+export default function TagsEditorDialog({ onClose, initialCategory, addTagOnOpen = false }: TagsEditorDialogProps) {
   const [categories, setCategories] = useState<EditorCategory[]>([]);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
   const [renamingCatId, setRenamingCatId] = useState<string | null>(null);
@@ -87,6 +94,8 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
   const [loading, setLoading] = useState(true);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Id of a just-added tag whose name input should grab focus when it mounts.
+  const [focusTagId, setFocusTagId] = useState<string | null>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -94,9 +103,18 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     fetchTags()
       .then((cats) => {
         if (cancelled) return;
-        const editor = fromLoaded(cats);
+        let editor = fromLoaded(cats);
+        const requested = initialCategory !== undefined
+          ? editor.find((c) => c.name === initialCategory)
+          : undefined;
+        if (requested && addTagOnOpen) {
+          const newTag: EditorTag = { id: newId(), name: '', description: '' };
+          editor = editor.map((c) => c.id !== requested.id ? c : { ...c, tags: [...c.tags, newTag] });
+          setFocusTagId(newTag.id);
+        }
         setCategories(editor);
-        if (editor.length > 0) setSelectedCatId([...editor].sort((a, b) => a.name.localeCompare(b.name))[0]!.id);
+        const initialSel = requested ?? [...editor].sort((a, b) => a.name.localeCompare(b.name))[0];
+        if (initialSel) setSelectedCatId(initialSel.id);
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -107,7 +125,9 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+    // initialCategory/addTagOnOpen are fixed for the dialog's lifetime (callers
+    // mount a fresh dialog per open), so this still runs once per open.
+  }, [initialCategory, addTagOnOpen]);
 
   useEffect(() => {
     if (renamingCatId) renameInputRef.current?.focus();
@@ -175,6 +195,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
     setCategories((prev) =>
       prev.map((c) => c.id !== catId ? c : { ...c, tags: [...c.tags, newTag] })
     );
+    setFocusTagId(newTag.id);
   };
 
   const deleteTag = (catId: string, tagId: string) => {
@@ -324,6 +345,7 @@ export default function TagsEditorDialog({ onClose }: TagsEditorDialogProps) {
                               value={tag.name}
                               onChange={(e) => updateTag(selectedCat.id, tag.id, 'name', e.target.value)}
                               placeholder="tagname"
+                              autoFocus={tag.id === focusTagId}
                               className={`${inputCls} flex-1 min-w-0`}
                               data-testid={`tags-editor-tag-name-input-${tag.id}`}
                             />
