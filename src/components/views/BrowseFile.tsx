@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { runOp } from '../../renderer/runOp';
 import { api } from '../../renderer/api';
 import MarkdownEntry from '../entries/MarkdownEntry';
@@ -13,7 +12,6 @@ import AttachFolderContents from './AttachFolderContents';
 import {
   navigateToBrowserPath,
   setCurrentPath,
-  setItemExpanded,
   useAS,
 } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
@@ -143,15 +141,6 @@ function BrowseFile() {
 
   // The folder's images, in listing order — the fullscreen viewer's navigation set.
   const folderImages = entries.filter((e) => !e.isDirectory && isImageFile(e.name));
-
-  // Show the content immediately — a single-file view whose one entry sits
-  // collapsed would be a dead end.
-  const entryPath = entry?.path;
-  useEffect(() => {
-    if (entryPath) {
-      setItemExpanded(entryPath, true);
-    }
-  }, [entryPath]);
 
   // A breadcrumb segment click: go to that folder's listing. Leaving
   // single-file mode is implicit — navigateToBrowserPath always clears

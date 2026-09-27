@@ -5,7 +5,7 @@ import { createItemData } from '../shared/types';
 import { getTagsFromYaml } from '../shared/tagUtil';
 import { splitFrontMatter, getPropsFromYaml } from '../shared/frontMatterUtil';
 import { removeTOC } from '../shared/tocUtil';
-import { getParentPath, isPathInside, joinPath, remapMovedPath } from '../renderer/pathUtil';
+import { getParentPath, isPathInside, isSamePath, joinPath, remapMovedPath } from '../renderer/pathUtil';
 import { enterExpandedEditPatch, isExpandedEditOf } from './expandedEdit';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
@@ -166,6 +166,21 @@ function editingPatch(
     ...(editing ? { highlightItem: path } : {}),
     ...routing,
   };
+}
+
+/**
+ * `items` with `path` marked expanded, or null when the item isn't loaded or
+ * already is. Pure — single-file mode shows its one file expanded (collapsed it
+ * would be a dead end), and folding the expand into the same `set()` that shows
+ * the file (setBrowseFile, applyDirectoryListing) means the view never renders
+ * it collapsed first.
+ */
+export function withItemExpanded(items: Map<string, ItemData>, path: string): Map<string, ItemData> | null {
+  const existing = items.get(path);
+  if (!existing || existing.isExpanded) return null;
+  const newItems = new Map(items);
+  newItems.set(path, { ...existing, isExpanded: true });
+  return newItems;
 }
 
 /** Strip any trailing separators so prefix math lands on a segment boundary. */
@@ -349,14 +364,21 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * Installs a freshly read listing of `dirPath` as `currentEntries` and
      * syncs the items Map to it (each entry plus its pre-loaded attachments —
      * see syncDirectoryItems), in one atomic update so no render ever sees a
-     * listing entry without its item.
+     * listing entry without its item. In single-file mode the shown file is
+     * expanded in that same update: when setBrowseFile moved to a different
+     * folder, this is the first update in which its item exists.
      */
     applyDirectoryListing: (dirPath, entries) => {
+      const state = get();
       const incoming = entries.flatMap(file => [
         toIncomingItem(file),
         ...(file.attachments ?? []).map(toIncomingItem),
       ]);
-      const newItems = syncListingItems(get().items, dirPath, incoming);
+      let newItems = syncListingItems(state.items, dirPath, incoming);
+      if (state.browseFileName !== null && isSamePath(dirPath, state.currentPath)) {
+        const items = newItems ?? state.items;
+        newItems = withItemExpanded(items, joinPath(dirPath, state.browseFileName)) ?? newItems;
+      }
       const hasIndexFile = listingHasIndex(entries);
       set(newItems ? { items: newItems, currentEntries: entries, hasIndexFile } : { currentEntries: entries, hasIndexFile });
     },

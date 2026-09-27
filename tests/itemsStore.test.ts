@@ -660,3 +660,62 @@ describe('getCutPaths', () => {
     expect(after.size).toBe(0);
   });
 });
+
+describe('single-file mode — the shown file is expanded in the update that shows it', () => {
+  // Plain-text files start collapsed (markdown and images start expanded).
+  const TEXT = '/notes/log.txt';
+  const OTHER = '/notes/other.txt';
+  const ELSEWHERE_DIR = '/elsewhere';
+  const ELSEWHERE = '/elsewhere/far.txt';
+
+  function row(path: string): FileEntry {
+    return { ...entry(path), isMarkdown: false };
+  }
+
+  beforeEach(() => {
+    useAS.setState({ items: new Map(), currentEntries: [], currentPath: DIR, browseFileName: null });
+  });
+
+  it('setBrowseFile expands an already-loaded file in the same update', () => {
+    applyDirectoryListing(DIR, [row(TEXT), row(OTHER)]);
+    const seen: (boolean | undefined)[] = [];
+    const unsubscribe = useAS.subscribe(s => {
+      if (s.browseFileName !== null) seen.push(s.items.get(TEXT)?.isExpanded);
+    });
+    useAS.getState().setBrowseFile(DIR, 'log.txt');
+    unsubscribe();
+
+    // No subscriber ever saw single-file mode with its file collapsed.
+    expect(seen).toEqual([true]);
+    expect(getItem(OTHER)?.isExpanded).toBe(false);
+  });
+
+  it('a file in another folder is expanded by the listing update that first loads it', () => {
+    useAS.getState().setBrowseFile(ELSEWHERE_DIR, 'far.txt');
+    expect(getItem(ELSEWHERE)).toBeUndefined();
+
+    const seen: (boolean | undefined)[] = [];
+    const unsubscribe = useAS.subscribe(s => { seen.push(s.items.get(ELSEWHERE)?.isExpanded); });
+    applyDirectoryListing(ELSEWHERE_DIR, [row(ELSEWHERE)]);
+    unsubscribe();
+
+    expect(seen).toEqual([true]);
+  });
+
+  it('a folder listing outside single-file mode expands nothing', () => {
+    applyDirectoryListing(DIR, [row(TEXT), row(OTHER)]);
+
+    expect(getItem(TEXT)?.isExpanded).toBe(false);
+    expect(getItem(OTHER)?.isExpanded).toBe(false);
+  });
+
+  it('a no-op refresh of an already-expanded file keeps its identity', () => {
+    applyDirectoryListing(DIR, [row(TEXT)]);
+    useAS.getState().setBrowseFile(DIR, 'log.txt');
+    const before = getItem(TEXT);
+
+    applyDirectoryListing(DIR, [row(TEXT)]);
+
+    expect(getItem(TEXT)).toBe(before);
+  });
+});

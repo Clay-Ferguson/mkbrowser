@@ -110,7 +110,12 @@ export function useEditMode({ path }: UseEditModeOptions): EditModeState {
   const editInitialized = useRef(false);
 
   const isEditing = item?.editing ?? false;
-  const editContent = item?.editContent ?? '';
+  // Until the seeding effect below has written editContent (edit mode entered
+  // from a store intent — search-result Edit, New File, thread Reply), derive
+  // it from the saved content. Otherwise the editor mounts empty and the seed
+  // arrives as an external sync — an undoable whole-doc insert, so the first
+  // Ctrl+Z blanks the file.
+  const editContent = item?.editContent ?? (isEditing && item?.content !== undefined ? removeTOC(item.content) : '');
 
   const setEditContent = (newContent: string) => setItemEditContent(path, newContent);
 

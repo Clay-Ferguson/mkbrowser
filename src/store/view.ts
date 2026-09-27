@@ -1,7 +1,8 @@
 import type { AppState, AppView, BrowseFileMode, FolderAnalysisState, FolderGraphState } from '../shared/types';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
-import { withSelectionsCleared } from './items';
+import { withItemExpanded, withSelectionsCleared } from './items';
+import { joinPath } from '../renderer/pathUtil';
 import { enterExpandedEditPatch, isExpandedEditing } from './expandedEdit';
 
 // ============================================================================
@@ -120,6 +121,10 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
      * expanded-edit case is entered by the routing in `setItemEditing`, not by
      * calling this. Writing it unconditionally is what keeps a leftover mode
      * from a previous single-file session from ever being read stale.
+     *
+     * The file is expanded in the same update when its item is already loaded
+     * (same folder, or one visited before); otherwise applyDirectoryListing
+     * expands it as the new folder's listing lands.
      */
     setBrowseFile: (folderPath, fileName, mode = 'browse') => {
       const newState: Partial<AppState> = {
@@ -133,6 +138,10 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
         if (clearedItems) {
           newState.items = clearedItems;
         }
+      }
+      const expandedItems = withItemExpanded(newState.items ?? get().items, joinPath(folderPath, fileName));
+      if (expandedItems) {
+        newState.items = expandedItems;
       }
       set(newState);
     },
