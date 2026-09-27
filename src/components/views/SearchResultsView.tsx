@@ -302,7 +302,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
               <div
                 key={result.path}
                 onClick={() => handleResultClick(result.path)}
-                className={`bg-slate-800 rounded-lg ${borderClass} px-2 py-1.5 transition-colors cursor-pointer`}
+                className={`bg-slate-800/50 hover:bg-slate-700/60 rounded-lg ${borderClass} px-2 py-1.5 transition-colors cursor-pointer`}
               >
                 <div className="flex items-center gap-2">
                   {/* Folder or file-type icon */}
