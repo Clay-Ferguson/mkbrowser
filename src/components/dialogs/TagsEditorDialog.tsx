@@ -36,7 +36,7 @@ interface TagsEditorDialogProps {
 function newId() { return crypto.randomUUID(); }
 
 // Convert loaded tag data into the editor's local model: assign stable row ids,
-// drop the leading '#' from tag names (the UI shows it separately), and flatten
+// and flatten
 // multi-line descriptions to single lines. Inverse of toTagCategories.
 function fromLoaded(categories: TagCategory[]): EditorCategory[] {
   return categories.map((cat) => ({
@@ -44,19 +44,19 @@ function fromLoaded(categories: TagCategory[]): EditorCategory[] {
     name: cat.name,
     tags: cat.tags.map((t: HashtagDefinition) => ({
       id: newId(),
-      name: t.tag.startsWith('#') ? t.tag.slice(1) : t.tag,
+      name: t.tag,
       description: t.description.replace(/\n/g, ' ').trim(),
     })),
   }));
 }
 
-// Convert the editor model back to the persisted shape: re-add the '#' prefix to
-// each tag name and drop the editor-only row ids. Inverse of fromLoaded.
+// Convert the editor model back to the persisted shape: trim each tag name and
+// drop the editor-only row ids. Inverse of fromLoaded.
 function toTagCategories(editor: EditorCategory[]): TagCategory[] {
   return editor.map((cat) => ({
     name: cat.name,
     tags: cat.tags.map((t) => ({
-      tag: `#${t.name.trim()}`,
+      tag: t.name.trim(),
       description: t.description,
     })),
   }));
@@ -351,7 +351,6 @@ export default function TagsEditorDialog({ onClose, initialCategory, addTagOnOpe
                       <div key={tag.id} className="flex gap-2 items-start group">
                         <div className="flex flex-col gap-1 flex-1 min-w-0">
                           <div className="flex items-center gap-1">
-                            <span className="text-slate-500 text-sm select-none">#</span>
                             <input
                               type="text"
                               value={tag.name}

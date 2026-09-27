@@ -39,7 +39,7 @@ export async function loadTags(configDir: string): Promise<TagCategory[]> {
   return Object.entries(hashtags).map(([groupName, groupTags]) => ({
     name: groupName,
     tags: Object.entries(groupTags ?? {}).map(([tagKey, tagVal]) => ({
-      tag: `#${tagKey}`,
+      tag: tagKey,
       description: (tagVal?.description ?? '').trim(),
     })).sort((a, b) => a.tag.localeCompare(b.tag, undefined, { sensitivity: 'base' })),
   }));

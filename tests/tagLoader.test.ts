@@ -54,8 +54,8 @@ describe('loadTags', () => {
       {
         name: 'food',
         tags: [
-          { tag: '#apple', description: 'Fruity' },
-          { tag: '#pizza', description: 'Cheesy' },
+          { tag: 'apple', description: 'Fruity' },
+          { tag: 'pizza', description: 'Cheesy' },
         ],
       },
     ]);

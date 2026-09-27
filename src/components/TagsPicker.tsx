@@ -4,7 +4,7 @@ import { useAS, getItemEditContent, setItemEditContent } from '../store';
 import { BUTTON_CLASS_LINK_MUTED, CHECKBOX_CLASS, MONO_FONT_STACK } from '../renderer/styles';
 import {
   type TagsLoadState, type TagCategory, type HashtagDefinition,
-  tagName, getTagsFromYaml, isYamlParseable,
+  getTagsFromYaml, isYamlParseable,
   removeTagFromText, insertTagIntoText,
 } from '../shared/tagUtil';
 import { fetchTags } from '../renderer/tagApi';
@@ -93,14 +93,14 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     // content, or a buffer change between render and click (debounce flush, calendar save)
     // would add/remove the wrong tags.
     const currentActiveTags = parts ? getTagsFromYaml(parts.yamlStr) : [];
-    const isChecked = currentActiveTags.includes(tagName(def.tag));
+    const isChecked = currentActiveTags.includes(def.tag);
 
     if (!isChecked) {
       // Radio-button behaviour within the category: remove other checked tags first.
       // Exception: "all" category allows multiple selections.
       if (category.name.toLowerCase() !== 'all') {
         for (const sibling of category.tags) {
-          if (sibling.tag !== def.tag && currentActiveTags.includes(tagName(sibling.tag))) {
+          if (sibling.tag !== def.tag && currentActiveTags.includes(sibling.tag)) {
             currentContent = removeTagFromText(currentContent, sibling.tag);
           }
         }
@@ -115,7 +115,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   // Renders a single tag as a styled checkbox pill; checked state reflects whether
   // the tag is present in the file's current front matter.
   const renderTag = (category: TagCategory, def: HashtagDefinition) => {
-    const checked = activeTags.includes(tagName(def.tag));
+    const checked = activeTags.includes(def.tag);
     return (
       <label
         key={def.tag}
@@ -132,7 +132,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
           checked={checked}
           onChange={() => handleToggle(category, def)}
           className={CHECKBOX_CLASS}
-          data-testid={`tags-picker-checkbox-${def.tag.replace('#', '')}`}
+          data-testid={`tags-picker-checkbox-${def.tag}`}
         />
         <span className="whitespace-nowrap">{def.tag}</span>
       </label>

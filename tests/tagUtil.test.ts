@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { load } from 'js-yaml';
 import {
-  tagName,
   getTagsFromYaml,
   isYamlParseable,
   setTagsInYaml,
@@ -10,32 +9,6 @@ import {
   serializeTagsToYaml,
   type TagCategory,
 } from '../src/shared/tagUtil';
-
-describe('tagName', () => {
-  it('strips a leading # from a hashtag', () => {
-    expect(tagName('#cooking')).toBe('cooking');
-  });
-
-  it('returns the input unchanged when there is no leading #', () => {
-    expect(tagName('cooking')).toBe('cooking');
-  });
-
-  it('only strips the first # (preserves later ones)', () => {
-    expect(tagName('##double')).toBe('#double');
-  });
-
-  it('returns an empty string for a bare #', () => {
-    expect(tagName('#')).toBe('');
-  });
-
-  it('returns an empty string for empty input', () => {
-    expect(tagName('')).toBe('');
-  });
-
-  it('does not strip a # that appears mid-string', () => {
-    expect(tagName('foo#bar')).toBe('foo#bar');
-  });
-});
 
 describe('getTagsFromYaml', () => {
   it('returns the list of string tags', () => {
@@ -153,64 +126,55 @@ describe('setTagsInYaml', () => {
 });
 
 describe('removeTagFromText', () => {
-  it('removes a tag from front matter, accepting a #-prefixed tag', () => {
+  it('removes a tag from front matter', () => {
     const text = '---\ntags:\n  - foo\n  - bar\n---\nbody';
-    const result = removeTagFromText(text, '#foo');
+    const result = removeTagFromText(text, 'foo');
     expect(result).toBe('---\ntags:\n  - bar\n---\nbody');
   });
 
-  it('removes a tag given without a # prefix', () => {
-    const text = '---\ntags:\n  - foo\n  - bar\n---\nbody';
-    const result = removeTagFromText(text, 'foo');
-    expect(result).toContain('- bar');
-    expect(result).not.toContain('- foo');
-  });
 
   it('drops the front matter entirely when removing the only tag', () => {
     const text = '---\ntags:\n  - foo\n---\nbody';
-    expect(removeTagFromText(text, '#foo')).toBe('body');
+    expect(removeTagFromText(text, 'foo')).toBe('body');
   });
 
   it('returns the text unchanged when there is no front matter', () => {
     const text = 'just a plain body with #foo in it';
-    expect(removeTagFromText(text, '#foo')).toBe(text);
+    expect(removeTagFromText(text, 'foo')).toBe(text);
   });
 
   it('leaves the tags list intact when the tag is absent', () => {
     const text = '---\ntags:\n  - foo\n---\nbody';
-    const result = removeTagFromText(text, '#missing');
+    const result = removeTagFromText(text, 'missing');
     expect(result).toBe(text);
   });
 
   it('preserves other front matter properties when removing a tag', () => {
     const text = '---\ntitle: Doc\ntags:\n  - foo\n---\nbody';
-    const result = removeTagFromText(text, '#foo');
+    const result = removeTagFromText(text, 'foo');
     expect(result).toContain('title: Doc');
     expect(result.endsWith('body')).toBe(true);
   });
 
   it('does not wipe front matter js-yaml cannot parse (duplicate keys)', () => {
     const text = '---\ndue: 1/1/25\ndue: 2/2/25\nimportant: stuff\n---\nbody\n';
-    expect(removeTagFromText(text, '#work')).toBe(text);
+    expect(removeTagFromText(text, 'work')).toBe(text);
   });
 });
 
 describe('insertTagIntoText', () => {
   it('adds front matter to a plain body', () => {
-    expect(insertTagIntoText('hello world', '#foo')).toBe('---\ntags:\n  - foo\n---\nhello world');
+    expect(insertTagIntoText('hello world', 'foo')).toBe('---\ntags:\n  - foo\n---\nhello world');
   });
 
-  it('strips the # prefix before inserting', () => {
-    expect(insertTagIntoText('body', '#cooking')).toBe('---\ntags:\n  - cooking\n---\nbody');
-  });
 
-  it('accepts a tag without a # prefix', () => {
+  it('inserts a tag name into a new front matter block', () => {
     expect(insertTagIntoText('body', 'cooking')).toBe('---\ntags:\n  - cooking\n---\nbody');
   });
 
   it('appends to an existing tags list and keeps it sorted', () => {
     const text = '---\ntags:\n  - bbb\n---\nbody';
-    const result = insertTagIntoText(text, '#aaa');
+    const result = insertTagIntoText(text, 'aaa');
     expect(getTagsFromYaml(result.replace(/^---\n([\s\S]*?)\n---[\s\S]*$/, '$1'))).toEqual([
       'aaa',
       'bbb',
@@ -219,17 +183,13 @@ describe('insertTagIntoText', () => {
 
   it('is a no-op when the tag already exists', () => {
     const text = '---\ntags:\n  - foo\n---\nbody';
-    expect(insertTagIntoText(text, '#foo')).toBe(text);
-  });
-
-  it('is a no-op for an existing tag given without a # prefix', () => {
-    const text = '---\ntags:\n  - foo\n---\nbody';
     expect(insertTagIntoText(text, 'foo')).toBe(text);
   });
 
+
   it('preserves other front matter properties', () => {
     const text = '---\ntitle: Doc\n---\nbody';
-    const result = insertTagIntoText(text, '#foo');
+    const result = insertTagIntoText(text, 'foo');
     expect(result).toContain('title: Doc');
     expect(result).toContain('- foo');
     expect(result.endsWith('body')).toBe(true);
@@ -237,20 +197,20 @@ describe('insertTagIntoText', () => {
 
   it('round-trips: a removed tag can be re-inserted to the original', () => {
     const original = '---\ntags:\n  - foo\n---\nbody';
-    const removed = removeTagFromText(original, '#foo');
-    expect(insertTagIntoText(removed, '#foo')).toBe(original);
+    const removed = removeTagFromText(original, 'foo');
+    expect(insertTagIntoText(removed, 'foo')).toBe(original);
   });
 
   it('does not wipe front matter js-yaml cannot parse (duplicate keys)', () => {
     const text = '---\ndue: 1/1/25\ndue: 2/2/25\nimportant: stuff\n---\nbody\n';
-    expect(insertTagIntoText(text, '#work')).toBe(text);
+    expect(insertTagIntoText(text, 'work')).toBe(text);
   });
 });
 
 describe('serializeTagsToYaml', () => {
   it('serializes a category with tags into the canonical hashtags structure', () => {
     const categories: TagCategory[] = [
-      { name: 'Food', tags: [{ tag: '#cooking', description: 'About food' }] },
+      { name: 'Food', tags: [{ tag: 'cooking', description: 'About food' }] },
     ];
     const yaml = serializeTagsToYaml(categories);
     expect(load(yaml)).toEqual({
@@ -258,19 +218,10 @@ describe('serializeTagsToYaml', () => {
     });
   });
 
-  it('strips the # prefix from tag names', () => {
-    const categories: TagCategory[] = [
-      { name: 'C', tags: [{ tag: '#x', description: 'd' }] },
-    ];
-    const parsed = load(serializeTagsToYaml(categories)) as {
-      hashtags: Record<string, Record<string, unknown>>;
-    };
-    expect(Object.keys(parsed.hashtags.C)).toEqual(['x']);
-  });
 
   it('uses a bare newline description for an empty description', () => {
     const categories: TagCategory[] = [
-      { name: 'C', tags: [{ tag: '#x', description: '' }] },
+      { name: 'C', tags: [{ tag: 'x', description: '' }] },
     ];
     expect(load(serializeTagsToYaml(categories))).toEqual({
       hashtags: { C: { x: { description: '\n' } } },
@@ -279,7 +230,7 @@ describe('serializeTagsToYaml', () => {
 
   it('trims surrounding whitespace from the description', () => {
     const categories: TagCategory[] = [
-      { name: 'C', tags: [{ tag: '#x', description: '  spaced  ' }] },
+      { name: 'C', tags: [{ tag: 'x', description: '  spaced  ' }] },
     ];
     expect(load(serializeTagsToYaml(categories))).toEqual({
       hashtags: { C: { x: { description: 'spaced\n' } } },
@@ -295,8 +246,8 @@ describe('serializeTagsToYaml', () => {
 
   it('serializes multiple categories', () => {
     const categories: TagCategory[] = [
-      { name: 'A', tags: [{ tag: '#a1', description: 'one' }] },
-      { name: 'B', tags: [{ tag: '#b1', description: 'two' }] },
+      { name: 'A', tags: [{ tag: 'a1', description: 'one' }] },
+      { name: 'B', tags: [{ tag: 'b1', description: 'two' }] },
     ];
     expect(load(serializeTagsToYaml(categories))).toEqual({
       hashtags: {

@@ -2,7 +2,7 @@ import { dump } from 'js-yaml';
 import { loadYaml } from './yamlUtil';
 import { splitFrontMatter, assembleFrontMatter } from './frontMatterUtil';
 
-/** A single hashtag definition. `tag` always includes the `#` prefix (e.g. `"#cooking"`). */
+/** A single hashtag definition. `tag` is the bare tag name as stored in front matter (e.g. `"cooking"`). */
 export interface HashtagDefinition {
   tag: string;
   description: string;
@@ -18,11 +18,6 @@ export interface TagCategory {
 export type TagsLoadState =
   | { status: 'loading' }
   | { status: 'loaded'; categories: TagCategory[] };
-
-/** Strips a leading `#` from a hashtag, returning the bare tag name. */
-export function tagName(tag: string): string {
-  return tag.startsWith('#') ? tag.slice(1) : tag;
-}
 
 /**
  * Reports whether a raw YAML string can be parsed by js-yaml. Empty/whitespace
@@ -40,7 +35,7 @@ export function isYamlParseable(yamlStr: string): boolean {
   }
 }
 
-/** Parses the `tags` array from a raw YAML string, returning bare tag names (no `#`). Returns `[]` on parse error or missing tags. */
+/** Parses the `tags` array from a raw YAML string, returning the tag names. Returns `[]` on parse error or missing tags. */
 export function getTagsFromYaml(yamlStr: string): string[] {
   try {
     const parsed = loadYaml(yamlStr) as Record<string, unknown> | null;
@@ -83,7 +78,7 @@ export function setTagsInYaml(yamlStr: string, tags: string[]): string {
 export function removeTagFromText(text: string, tag: string): string {
   const parts = splitFrontMatter(text);
   if (!parts) return text;
-  const updated = getTagsFromYaml(parts.yamlStr).filter(t => t !== tagName(tag));
+  const updated = getTagsFromYaml(parts.yamlStr).filter(t => t !== tag);
   return assembleFrontMatter(setTagsInYaml(parts.yamlStr, updated), parts.body);
 }
 
@@ -93,14 +88,13 @@ export function removeTagFromText(text: string, tag: string): string {
  * one is created containing only the tags list.
  */
 export function insertTagIntoText(text: string, tag: string): string {
-  const name = tagName(tag);
   const parts = splitFrontMatter(text);
   if (parts) {
     const current = getTagsFromYaml(parts.yamlStr);
-    if (current.includes(name)) return text;
-    return assembleFrontMatter(setTagsInYaml(parts.yamlStr, [...current, name]), parts.body);
+    if (current.includes(tag)) return text;
+    return assembleFrontMatter(setTagsInYaml(parts.yamlStr, [...current, tag]), parts.body);
   }
-  return assembleFrontMatter(`tags:\n  - ${name}`, text);
+  return assembleFrontMatter(`tags:\n  - ${tag}`, text);
 }
 
 /** Converts a TagCategory[] back to the canonical tags.yaml YAML string. */
@@ -110,9 +104,8 @@ export function serializeTagsToYaml(categories: TagCategory[]): string {
     const catMap: Record<string, { description: string }> = {};
     hashtags[cat.name] = catMap;
     for (const tag of cat.tags) {
-      const name = tagName(tag.tag);
       const desc = tag.description.trim();
-      catMap[name] = { description: desc ? desc + '\n' : '\n' };
+      catMap[tag.tag] = { description: desc ? desc + '\n' : '\n' };
     }
   }
   return dump({ hashtags }, { lineWidth: -1 });
