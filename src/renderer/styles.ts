@@ -28,6 +28,18 @@ export const CHECKBOX_CLASS = 'h-5 w-5 accent-blue-500 flex-shrink-0 cursor-poin
 // (PropsDisplay, TagsPicker) and CodeMirror editor themes (editorTheme, editorDateUtil).
 export const MONO_FONT_STACK = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
 
+// Hashtag pills, shared by the read-only pills atop markdown entries (PropsDisplay) and the
+// checkable pills in TagsPicker so the two can't drift apart. Compose TAG_PILL_BASE with
+// TAG_PILL_SELECTED (a tag the file has — always the case in PropsDisplay) or
+// TAG_PILL_UNSELECTED, plus TAG_PILL_HOVER when the pill is clickable. Pair with the
+// MONO_FONT_STACK font.
+export const TAG_PILL_BASE = 'px-2 py-0.5 shrink-0 rounded-md text-sm border select-none whitespace-nowrap';
+export const TAG_PILL_SELECTED = 'bg-blue-600/50 text-blue-100 border-slate-400/60';
+export const TAG_PILL_UNSELECTED = 'text-slate-300 hover:text-slate-100 border-transparent';
+// Draws (or, on a pill that already has one, brightens) the border on hover to signal the
+// pill is clickable. Also used by PropsDisplay's property pills.
+export const TAG_PILL_HOVER = 'hover:border-slate-200';
+
 // Checkbox/radio <input> styling for dialog form fields. DLG_CHECK_RADIO_BASE is
 // the shared sizing/border/focus styling; compose it with a `text-blue-*` accent
 // (and `rounded` for checkboxes). CHECKBOX_FIELD_CLASS / RADIO_FIELD_CLASS are the

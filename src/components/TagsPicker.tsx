@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { useAS, getItemEditContent, setItemEditContent } from '../store';
-import { BUTTON_CLASS_LINK_MUTED, CHECKBOX_CLASS, MONO_FONT_STACK } from '../renderer/styles';
+import { BUTTON_CLASS_LINK_AMBER, MONO_FONT_STACK, TAG_PILL_BASE, TAG_PILL_SELECTED, TAG_PILL_UNSELECTED, TAG_PILL_HOVER } from '../renderer/styles';
 import {
   type TagsLoadState, type TagCategory, type HashtagDefinition,
   getTagsFromYaml, isYamlParseable,
@@ -112,8 +112,10 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
     setItemEditContent(filePath, currentContent);
   };
 
-  // Renders a single tag as a styled checkbox pill; checked state reflects whether
-  // the tag is present in the file's current front matter.
+  // Renders a single tag as a toggleable pill; checked state reflects whether the tag
+  // is present in the file's current front matter. The real checkbox is kept (for
+  // label-click toggling, keyboard focus/Space, and screen readers) but visually hidden
+  // via sr-only — the pill's background/border alone shows the checked state.
   const renderTag = (category: TagCategory, def: HashtagDefinition) => {
     const checked = activeTags.includes(def.tag);
     return (
@@ -121,20 +123,21 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
         key={def.tag}
         title={def.description}
         className={clsx(
-          'flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer select-none text-sm transition-colors',
-          checked
-            ? 'bg-blue-600/50 text-blue-100 border border-slate-400/60'
-            : 'text-slate-300 hover:text-slate-100 border border-transparent',
+          TAG_PILL_BASE,
+          TAG_PILL_HOVER,
+          'relative flex items-center cursor-pointer transition-colors',
+          'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500',
+          checked ? TAG_PILL_SELECTED : TAG_PILL_UNSELECTED,
         )}
       >
         <input
           type="checkbox"
           checked={checked}
           onChange={() => handleToggle(category, def)}
-          className={CHECKBOX_CLASS}
+          className="sr-only"
           data-testid={`tags-picker-checkbox-${def.tag}`}
         />
-        <span className="whitespace-nowrap">{def.tag}</span>
+        <span>{def.tag}</span>
       </label>
     );
   };
@@ -142,7 +145,7 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
   return (
     <div className="pb-3" style={{ fontFamily: MONO_FONT_STACK }}>
       {/* Two-column grid: the name column is as wide as the longest category name, so the
-          first checkbox of every category lines up in one column. Each category contributes
+          first tag of every category lines up in one column. Each category contributes
           one cell to each column (a Fragment, not a wrapper row). */}
       <div className="grid grid-cols-[max-content_1fr] items-start gap-x-2 gap-y-2">
         {[...loadState.categories].sort((a, b) => a.name.localeCompare(b.name)).map((category) => (
@@ -151,12 +154,12 @@ export default function TagsPicker({ filePath }: TagsPickerProps) {
               type="button"
               title={`Add Tag to '${category.name}'`}
               onClick={() => setAddTagCategory(category.name)}
-              className={`${BUTTON_CLASS_LINK_MUTED} min-w-[4rem] text-left text-sm font-bold uppercase pt-1`}
+              className={`${BUTTON_CLASS_LINK_AMBER} min-w-[4rem] text-left text-sm font-bold uppercase pt-0.5`}
               data-testid={`tags-picker-category-button-${category.name}`}
             >
-              {category.name}
+              {category.name}:
             </button>
-            <div className="flex flex-wrap gap-x-2 gap-y-1">
+            <div className="flex flex-wrap gap-x-1.5 gap-y-1">
               {category.tags.map((def) => renderTag(category, def))}
             </div>
           </Fragment>

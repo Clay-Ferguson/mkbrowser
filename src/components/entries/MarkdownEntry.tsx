@@ -507,9 +507,13 @@ function MarkdownEntry(props: MarkdownEntryProps) {
   // above the editor alike. editedMeta overrides that while editing, so a calendar-dialog save is
   // reflected immediately even though the edit buffer hasn't been written to disk yet.
   const meta = (edit.isEditing && editedMeta) ? editedMeta : { tags: item?.tags ?? [], props: item?.props ?? {} };
-  const propsDisplay = (meta.tags.length > 0 || Object.keys(meta.props).filter(k => k !== 'id').length > 0) ? (
+  // While TagsPicker is showing it already displays the file's tags as selected pills, so the
+  // tag pills are dropped here to avoid showing them twice (property pills still show).
+  const pickerShowing = edit.isEditing && !reviewing && tagsVisible;
+  const pillTags = pickerShowing ? [] : meta.tags;
+  const propsDisplay = (pillTags.length > 0 || Object.keys(meta.props).filter(k => k !== 'id').length > 0) ? (
     <PropsDisplay
-      tags={meta.tags}
+      tags={pillTags}
       props={meta.props}
       onTagClick={clickOnTag}
       onPropClick={clickOnProp}
@@ -553,7 +557,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
           ) : edit.isEditing ? (
             <>
               {!reviewing && propsDisplay}
-              {!reviewing && tagsVisible && <TagsPicker filePath={entry.path} />}
+              {pickerShowing && <TagsPicker filePath={entry.path} />}
               <CodeMirrorEditor
                 ref={editorRef}
                 onReady={handleEditorReady}

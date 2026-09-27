@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 import { extractTimestamp, getDaysFromToday, formatDaysDisplay } from '../shared/timeUtil';
-import { MONO_FONT_STACK } from '../renderer/styles';
+import { MONO_FONT_STACK, TAG_PILL_BASE, TAG_PILL_SELECTED, TAG_PILL_HOVER } from '../renderer/styles';
 
 // Returns a human-readable relative-date tooltip ("N days ago", "today", etc.) for
 // date-like string values, or undefined if the string doesn't parse as a recognizable date.
@@ -60,7 +60,7 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick, onP
         onMouseUp={onPropClick ? (e) => e.stopPropagation() : undefined}
         className={clsx(
           'inline-flex shrink-0 items-stretch rounded-md text-sm border border-slate-400/60 select-none whitespace-nowrap overflow-hidden',
-          onPropClick && 'cursor-pointer hover:brightness-125',
+          onPropClick && ['cursor-pointer hover:brightness-125', TAG_PILL_HOVER],
         )}
         style={{ fontFamily: MONO_FONT_STACK }}
         title={dateTooltip}
@@ -87,12 +87,13 @@ export default function PropsDisplay({ tags, props, onTagClick, onPropClick, onP
       key={tag}
       onClick={onTagClick}
       className={clsx(
-        'px-2 py-0.5 shrink-0 rounded-md text-sm bg-blue-600/50 text-blue-100 border border-slate-400/60 select-none whitespace-nowrap',
-        onTagClick && 'cursor-pointer hover:brightness-125',
+        TAG_PILL_BASE,
+        TAG_PILL_SELECTED,
+        onTagClick && ['cursor-pointer hover:brightness-125', TAG_PILL_HOVER],
       )}
       style={{ fontFamily: MONO_FONT_STACK }}
     >
-      {tag.startsWith('#') ? tag : `#${tag}`}
+      {tag}
     </span>
   ));
 

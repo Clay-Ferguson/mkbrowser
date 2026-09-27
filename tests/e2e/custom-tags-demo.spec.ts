@@ -12,7 +12,7 @@ import { takeScreenshot, writeNarration, demoClick, insertText, logScreenshotSum
  *      then close it (no edits — it is self-explanatory).
  *   3. Return to the Browse view and create a new Markdown file.
  *   4. Reveal the tag picker in the editor and check a couple of tags
- *      (#p1 and #note), highlighting each as it is selected.
+ *      (p1 and note), highlighting each as it is selected.
  *   5. Save the file and show the resulting tag "pills" rendered on the file.
  *
  * Like the other demo specs, every step captures a screenshot plus a companion
@@ -218,8 +218,8 @@ test.describe('Custom Hashtags Demo', () => {
       Let's check a couple of them to attach them to this file.`
     );
 
-    // ── 11. Check the "#p1" priority tag ──────────────────────────────
-    const p1Tag = mainWindow.locator('label').filter({ hasText: '#p1' });
+    // ── 11. Check the "p1" priority tag ──────────────────────────────
+    const p1Tag = mainWindow.locator('label').filter({ has: mainWindow.getByTestId('tags-picker-checkbox-p1') });
     await expect(p1Tag).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, p1Tag, screenshotDir, step++, 'highlight-p1-tag');
     writeNarration(
@@ -231,8 +231,8 @@ test.describe('Custom Hashtags Demo', () => {
     await demoClick(p1Tag);
     await mainWindow.waitForTimeout(500);
 
-    // ── 12. Check the "#note" type tag ────────────────────────────────
-    const noteTag = mainWindow.locator('label').filter({ hasText: '#note' });
+    // ── 12. Check the "note" type tag ────────────────────────────────
+    const noteTag = mainWindow.locator('label').filter({ has: mainWindow.getByTestId('tags-picker-checkbox-note') });
     await expect(noteTag).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, noteTag, screenshotDir, step++, 'highlight-note-tag');
     writeNarration(
