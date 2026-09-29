@@ -104,6 +104,19 @@
   --color-btn-scrim-hover: rgb(0 0 0 / 0.7);
 }
 
+/* Base styling shared by EVERY <button> in the app (including ones that don't use a
+   BUTTON_CLASS_* constant). Button labels never word-wrap: the button always grows
+   wide enough for its full label ("Undo Cut" must not break onto two lines). Since
+   a nowrap label raises the button's min-content width, flex parents can't shrink
+   it narrower than its text either. It sits in the base layer so a one-off button
+   can still opt back in with the `whitespace-normal` utility.
+   (Font is already unified: Tailwind's preflight sets `font: inherit` on buttons.) */
+@layer base {
+  button {
+    white-space: nowrap;
+  }
+}
+
 /* Fat scrollbars - wider and easier to click */
 ::-webkit-scrollbar {
   width: 20px;

@@ -63,6 +63,10 @@ export const SETTINGS_CHECKBOX_CLASS = 'w-5 h-5 bg-slate-700 border border-slate
    Composition: every export is `${BTN} ${size} ${variant}` — `BTN` carries the
    behavior (transition, cursor, disabled treatment), the size pieces carry
    padding/rounding/type scale, and the variant pieces carry color only.
+
+   Styling that must apply to *every* <button>, even ones not built from these
+   constants (e.g. `white-space: nowrap` so labels never word-wrap), lives in
+   the `@layer base` `button` rule in `src/index.css`, not here.
    ========================================================================== */
 
 /** Behavior shared by every button, regardless of size or color. */
