@@ -1,3 +1,4 @@
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import { BUTTON_CLASS_DLG_CLOSE } from '../../../renderer/styles';
 
 interface DlgHeaderProps {
@@ -23,7 +24,9 @@ const DlgHeader = ({ title, onClose, titleId }: DlgHeaderProps) => (
       className={BUTTON_CLASS_DLG_CLOSE}
       aria-label="Close"
     >
-      ×
+      {/* An SVG rather than a "×" text glyph: a glyph sits wherever the font's
+          metrics put it (visibly low here), while the SVG is geometrically centered. */}
+      <XMarkIcon className="w-6 h-6" strokeWidth={2.5} aria-hidden="true" />
     </button>
   </div>
 );

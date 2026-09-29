@@ -204,8 +204,8 @@ export const BUTTON_CLASS_LINK_MUTED = `${BTN} text-btn-ghost hover:text-btn-gho
 export const BUTTON_CLASS_LINK_RED = `${BTN} text-btn-ghost hover:text-btn-accent-red`;
 export const BUTTON_CLASS_LINK_AMBER = `${BTN} text-btn-accent-amber hover:text-btn-accent-amber-hover`;
 
-/** Dialog title-bar close ("×") button. */
-export const BUTTON_CLASS_DLG_CLOSE = `${BTN} flex items-center justify-center w-7 h-7 text-2xl font-bold leading-none rounded-md border-2 text-btn-ghost hover:text-btn-ghost-hover border-btn-border hover:border-btn-border-hover`;
+/** Dialog title-bar close (XMarkIcon) button. */
+export const BUTTON_CLASS_DLG_CLOSE = `${BTN} flex items-center justify-center w-7 h-7 rounded-md border-2 text-btn-ghost hover:text-btn-ghost-hover border-btn-border hover:border-btn-border-hover`;
 
 /** Dropdown caret welded to the right edge of an EditableCombobox input
  *  (`rounded-l-none` squares off the base radius where it meets the input). */
