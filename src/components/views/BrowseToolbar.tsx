@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
-  MagnifyingGlassIcon, ClipboardIcon, ChevronDownIcon, ChevronUpIcon,
+  MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon,
   ArrowPathIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
   FolderPlusIcon, DocumentPlusIcon, CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
@@ -82,8 +82,8 @@ interface BrowseToolbarProps {
 
 /**
  * BrowseView's header: the breadcrumbs on the left, and on the right the
- * action buttons (cut/delete/paste, create, calendar, clipboard paste,
- * expand/collapse, refresh) plus the Edit, Tools, Sort and Search menus.
+ * action buttons (cut/delete/paste, create, calendar, expand/collapse,
+ * refresh) plus the Edit, Tools, Sort and Search menus.
  *
  * The menus' open state lives here, next to the buttons they anchor to. The
  * dialogs those menus open live in BrowseView and are opened through
@@ -325,17 +325,6 @@ function BrowseToolbar({ onOpenOverlay, onRefresh, onPasteIntoFolder }: BrowseTo
             <BarsArrowDownIcon className="w-6 h-6" />
           </button>)}
 
-          {/* Paste from clipboard button */}
-          <button
-            type="button"
-            onClick={handlePasteFromClipboard}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Paste from clipboard"
-            data-testid="paste-clipboard-button"
-          >
-            <ClipboardIcon className="w-6 h-6" />
-          </button>
-
           {/* Search button */}
           <button
             type="button"
@@ -412,6 +401,7 @@ function BrowseToolbar({ onOpenOverlay, onRefresh, onPasteIntoFolder }: BrowseTo
         <EditPopupMenu
           anchorRef={editButtonRef}
           onClose={() => closeMenu('edit')}
+          onPasteFromClipboard={handlePasteFromClipboard}
           onSelectAll={handleSelectAll}
           onUnselectAll={() => clearAllSelections()}
           onSplit={handleSplitFile}

@@ -23,13 +23,14 @@ import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 
 /**
  * Popup menu for the Edit toolbar button. Exposes file-level editing operations:
- * selection management, split/join, find-and-replace, and copy link.
+ * clipboard paste, selection management, split/join, find-and-replace, and copy link.
  * Each action callback is responsible for the actual operation; the menu only
  * wires up the items and closes itself after a selection.
  */
 interface EditPopupMenuProps {
   anchorRef: RefObject<HTMLElement | null>;
   onClose: () => void;
+  onPasteFromClipboard: () => void;
   onSelectAll: () => void;
   onUnselectAll: () => void;
   onSplit: () => void;
@@ -51,6 +52,7 @@ interface EditPopupMenuProps {
 export default function EditPopupMenu({
   anchorRef,
   onClose,
+  onPasteFromClipboard,
   onSelectAll,
   onUnselectAll,
   onSplit,
@@ -67,6 +69,12 @@ export default function EditPopupMenu({
 }: EditPopupMenuProps) {
   return (
     <PopupMenu anchorRef={anchorRef} onClose={onClose}>
+      <PopupMenuItem
+        label="Paste from Clipboard"
+        data-testid="menu-paste-clipboard"
+        onClick={() => { onPasteFromClipboard(); onClose(); }}
+      />
+      <PopupMenuDivider />
       <PopupMenuItem
         label="Select All"
         onClick={() => { onSelectAll(); onClose(); }}
