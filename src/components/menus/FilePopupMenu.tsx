@@ -48,7 +48,10 @@ export default function FilePopupMenu({
     .filter(({ label }) => label !== '/');
 
   return (
-    <PopupMenu anchorRef={anchorRef} onClose={onClose}>
+    // Recent-folder labels are full paths that can be very long. This menu always opens
+    // against the window's left edge, so let it grow to 90% of the viewport (overriding
+    // MENU_CONTAINER's max-w-xs) before falling back to a horizontal scrollbar.
+    <PopupMenu anchorRef={anchorRef} onClose={onClose} style={{ maxWidth: '90vw' }}>
       <PopupMenuItem
         label="Open Folder"
         onClick={() => { onSelectFolder(); onClose(); }}
