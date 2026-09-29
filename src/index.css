@@ -108,12 +108,18 @@
    BUTTON_CLASS_* constant). Button labels never word-wrap: the button always grows
    wide enough for its full label ("Undo Cut" must not break onto two lines). Since
    a nowrap label raises the button's min-content width, flex parents can't shrink
-   it narrower than its text either. It sits in the base layer so a one-off button
-   can still opt back in with the `whitespace-normal` utility.
+   it narrower than its text either.
+   Every button also gets Tailwind's `rounded` (4px) corners from here — this is the
+   ONE place button corner radius is defined, so the BUTTON_CLASS_* size pieces in
+   `src/renderer/styles.ts` deliberately carry no `rounded-*` class of their own.
+   Both rules sit in the base layer so a button with a genuinely different shape (a
+   tab's underline, a circular scrim, a caret welded to an input) can still override
+   them with a utility (`whitespace-normal`, `rounded-none`, `rounded-full`, …).
    (Font is already unified: Tailwind's preflight sets `font: inherit` on buttons.) */
 @layer base {
   button {
     white-space: nowrap;
+    @apply rounded;
   }
 }
 

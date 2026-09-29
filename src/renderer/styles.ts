@@ -62,24 +62,28 @@ export const SETTINGS_CHECKBOX_CLASS = 'w-5 h-5 bg-slate-700 border border-slate
 
    Composition: every export is `${BTN} ${size} ${variant}` — `BTN` carries the
    behavior (transition, cursor, disabled treatment), the size pieces carry
-   padding/rounding/type scale, and the variant pieces carry color only.
+   padding/type scale, and the variant pieces carry color only.
 
    Styling that must apply to *every* <button>, even ones not built from these
-   constants (e.g. `white-space: nowrap` so labels never word-wrap), lives in
-   the `@layer base` `button` rule in `src/index.css`, not here.
+   constants — `white-space: nowrap` so labels never word-wrap, and the 4px
+   `rounded` corner radius — lives in the `@layer base` `button` rule in
+   `src/index.css`, not here. Never put a `rounded-*` class on a labelled
+   button: one that differs from the base radius is exactly the inconsistency
+   that rule exists to prevent.
    ========================================================================== */
 
 /** Behavior shared by every button, regardless of size or color. */
 const BTN = 'transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
 
 // --- Sizes ---------------------------------------------------------------
-const SIZE_ICON = 'p-1.5 rounded';          // icon-only action-bar button
-const SIZE_ICON_TB = 'p-1 rounded';         // icon-only toolbar button (denser)
-const SIZE_ICON_XS = 'p-0.5 rounded';       // icon-only tree/panel header button
-const SIZE_SM = 'px-3 py-1 text-sm rounded';
-const SIZE_BAR = 'px-3 py-1.5 text-sm font-medium rounded-lg';
-const SIZE_DLG = 'px-4 py-2 text-sm rounded';
-const SIZE_LG = 'px-6 py-3 font-medium rounded-lg';
+// No `rounded-*` here: the corner radius comes from the base `button` rule.
+const SIZE_ICON = 'p-1.5';          // icon-only action-bar button
+const SIZE_ICON_TB = 'p-1';         // icon-only toolbar button (denser)
+const SIZE_ICON_XS = 'p-0.5';       // icon-only tree/panel header button
+const SIZE_SM = 'px-3 py-1 text-sm';
+const SIZE_BAR = 'px-3 py-1.5 text-sm font-medium';
+const SIZE_DLG = 'px-4 py-2 text-sm';
+const SIZE_LG = 'px-6 py-3 font-medium';
 
 // --- Color variants ------------------------------------------------------
 // Solid fills. `btn-fg` is the one foreground that sits on all of them.
@@ -144,7 +148,7 @@ export const BUTTON_CLASS_XS = `${BTN} ${SIZE_ICON_XS} text-btn-neutral-fg hover
 export const BUTTON_CLASS_ICON_NEUTRAL = `${BTN} ${SIZE_ICON} ${FILL_NEUTRAL} ${HOVER_NEUTRAL}`;
 
 /** Solid icon button (colored background, for primary icon actions). */
-export const BUTTON_CLASS_ICON_SOLID_BLUE = `${BTN} flex-shrink-0 p-1 rounded ${FILL_BLUE} ${HOVER_BLUE}`;
+export const BUTTON_CLASS_ICON_SOLID_BLUE = `${BTN} flex-shrink-0 ${SIZE_ICON_TB} ${FILL_BLUE} ${HOVER_BLUE}`;
 
 /** Icon button floated over image content — a black scrim, so it stays legible
  *  whatever the image underneath happens to be. */
@@ -180,7 +184,7 @@ export const BUTTON_CLASS_DLG_BLUE = `${BTN} ${SIZE_DLG} ${FILL_BLUE}`;
 export const BUTTON_CLASS_DLG_GREEN = `${BTN} ${SIZE_DLG} ${FILL_GREEN}`;
 export const BUTTON_CLASS_DLG_RED = `${BTN} ${SIZE_DLG} ${FILL_RED}`;
 /** Dialog-sized neutral button with a border, for standalone settings actions. */
-export const BUTTON_CLASS_DLG_OUTLINED = `${BTN} px-4 py-2 text-sm rounded-lg ${FILL_NEUTRAL_OUTLINED}`;
+export const BUTTON_CLASS_DLG_OUTLINED = `${BTN} ${SIZE_DLG} ${FILL_NEUTRAL_OUTLINED}`;
 
 /** Full-width primary call to action (the empty-state "Select Folder"). */
 export const BUTTON_CLASS_LG_BLUE = `${BTN} w-full ${SIZE_LG} ${FILL_BLUE}`;
@@ -203,14 +207,15 @@ export const BUTTON_CLASS_LINK_AMBER = `${BTN} text-btn-accent-amber hover:text-
 /** Dialog title-bar close ("×") button. */
 export const BUTTON_CLASS_DLG_CLOSE = `${BTN} flex items-center justify-center w-7 h-7 text-2xl font-bold leading-none rounded-md border-2 text-btn-ghost hover:text-btn-ghost-hover border-btn-border hover:border-btn-border-hover`;
 
-/** Dropdown caret welded to the right edge of an EditableCombobox input. */
-export const BUTTON_CLASS_COMBO_TOGGLE = `${BTN} px-2 rounded-r border bg-btn-input-bg border-btn-input-border hover:bg-btn-input-bg-hover focus:outline-none focus:border-btn-focus`;
+/** Dropdown caret welded to the right edge of an EditableCombobox input
+ *  (`rounded-l-none` squares off the base radius where it meets the input). */
+export const BUTTON_CLASS_COMBO_TOGGLE = `${BTN} px-2 rounded-l-none border bg-btn-input-bg border-btn-input-border hover:bg-btn-input-bg-hover focus:outline-none focus:border-btn-focus`;
 
 /** "Copy" button revealed on hover over a fenced code block. */
 export const BUTTON_CLASS_CODE_COPY = `${BTN} absolute top-2 right-2 p-1.5 rounded bg-btn-neutral/80 hover:bg-btn-neutral-hover text-btn-ghost hover:text-btn-ghost-hover opacity-0 group-hover:opacity-100`;
 
 /** Full-width clickable list row (folder analysis hashtag list). */
-export const BUTTON_CLASS_ROW = `${BTN} w-full flex items-center justify-between py-1.5 px-3 rounded-lg text-left hover:bg-btn-row-hover`;
+export const BUTTON_CLASS_ROW = `${BTN} w-full flex items-center justify-between py-1.5 px-3 text-left hover:bg-btn-row-hover`;
 
 /** Chip / pill button (thesaurus synonyms). */
 export const BUTTON_CLASS_CHIP = `${BTN} px-2 py-0.5 shrink-0 rounded-md text-sm leading-5 whitespace-nowrap select-none bg-btn-chip text-btn-label-hover border border-btn-border hover:border-btn-border-hover`;
@@ -228,7 +233,9 @@ export const BREADCRUMB_IDLE = 'text-btn-ghost hover:bg-btn-ghost-bg hover:borde
 export const BREADCRUMB_SEGMENT_IDLE = 'text-btn-neutral-fg hover:bg-btn-ghost-bg hover:border-btn-border';
 
 // --- App tab bar ---------------------------------------------------------
-const TAB_BASE = 'flex items-center text-base font-medium transition-colors cursor-pointer border-b-4';
+// `rounded-none`: a tab is marked by its bottom-border underline, which the base
+// button radius would otherwise curl up at the ends.
+const TAB_BASE = 'flex items-center text-base font-medium transition-colors cursor-pointer border-b-4 rounded-none';
 export const TAB_BUTTON_ACTIVE = `${TAB_BASE} text-btn-label-hover border-btn-accent-blue`;
 export const TAB_BUTTON_IDLE = `${TAB_BASE} text-btn-ghost hover:text-btn-neutral-fg border-transparent`;
 
