@@ -74,7 +74,7 @@ const BTN = 'transition-colors cursor-pointer disabled:opacity-50 disabled:curso
 
 // --- Sizes ---------------------------------------------------------------
 const SIZE_ICON = 'p-1.5 rounded';          // icon-only action-bar button
-const SIZE_ICON_TB = 'p-1 rounded-lg';      // icon-only toolbar button (denser)
+const SIZE_ICON_TB = 'p-1 rounded';         // icon-only toolbar button (denser)
 const SIZE_ICON_XS = 'p-0.5 rounded';       // icon-only tree/panel header button
 const SIZE_SM = 'px-3 py-1 text-sm rounded';
 const SIZE_BAR = 'px-3 py-1.5 text-sm font-medium rounded-lg';
@@ -102,14 +102,25 @@ const FILL_NEUTRAL_OUTLINED = `${FILL_NEUTRAL} border border-btn-neutral-border`
 const HOVER_BLUE = 'hover:bg-btn-blue-hover';
 const HOVER_NEUTRAL = 'hover:bg-btn-neutral-hover';
 
+// Hover frame shared by EVERY icon-only button: on hover the icon gets a border
+// drawn around it (alongside its hover fill). The border is always present —
+// transparent at rest — so drawing it in never shifts layout.
+const ICON_HOVER_FRAME = 'border border-transparent hover:border-btn-border';
+/** Gray hover fill + hover frame: the standard icon-button hover. */
+const ICON_HOVER = `hover:bg-btn-ghost-bg ${ICON_HOVER_FRAME}`;
+/** ICON_HOVER forced with `!important`, for icon buttons a third-party stylesheet
+ *  resets: react-day-picker's unlayered `.rdp-button_previous/_next { border: none;
+ *  background: none }` beats any (layered) Tailwind utility without it. */
+export const ICON_HOVER_IMPORTANT = 'hover:bg-btn-ghost-bg! border! border-transparent! hover:border-btn-border!';
+
 // Ghost: transparent until hovered. `GHOST` idles neutral and picks up the
 // accent on hover; `TINT_*` idles already colored (the icon's color carries
-// meaning at rest, e.g. amber = folder).
-const GHOST = 'text-btn-ghost hover:bg-btn-ghost-bg';
-const TINT_BLUE = 'text-btn-accent-blue hover:text-btn-accent-blue-hover hover:bg-btn-ghost-bg';
-const TINT_AMBER = 'text-btn-accent-amber hover:text-btn-accent-amber-hover hover:bg-btn-ghost-bg';
-const TINT_GREEN = 'text-btn-accent-green hover:text-btn-accent-green-hover hover:bg-btn-ghost-bg';
-const TINT_RED = 'text-btn-accent-red hover:text-btn-accent-red-hover hover:bg-btn-ghost-bg';
+// meaning at rest, e.g. amber = folder). Icon-only — both carry ICON_HOVER.
+const GHOST = `text-btn-ghost ${ICON_HOVER}`;
+const TINT_BLUE = `text-btn-accent-blue hover:text-btn-accent-blue-hover ${ICON_HOVER}`;
+const TINT_AMBER = `text-btn-accent-amber hover:text-btn-accent-amber-hover ${ICON_HOVER}`;
+const TINT_GREEN = `text-btn-accent-green hover:text-btn-accent-green-hover ${ICON_HOVER}`;
+const TINT_RED = `text-btn-accent-red hover:text-btn-accent-red-hover ${ICON_HOVER}`;
 
 // --- Icon buttons: neutral at rest, accent-colored on hover --------------
 export const BUTTON_CLASS_NORMAL = `${BTN} ${SIZE_ICON} ${GHOST} hover:text-btn-ghost-hover`;
@@ -126,7 +137,7 @@ export const BUTTON_CLASS_TB_GREEN = `${BTN} ${SIZE_ICON_TB} ${TINT_GREEN}`;
 export const BUTTON_CLASS_TB_RED = `${BTN} ${SIZE_ICON_TB} ${TINT_RED}`;
 
 /** Smallest icon button — tree/panel header controls. */
-export const BUTTON_CLASS_XS = `${BTN} ${SIZE_ICON_XS} text-btn-neutral-fg hover:text-btn-ghost-hover hover:bg-btn-ghost-bg disabled:hover:bg-transparent`;
+export const BUTTON_CLASS_XS = `${BTN} ${SIZE_ICON_XS} text-btn-neutral-fg hover:text-btn-ghost-hover ${ICON_HOVER} disabled:hover:bg-transparent disabled:hover:border-transparent`;
 
 /** Icon-sized button with the neutral fill (icon-only toolbar action that still
  *  needs a visible chip, e.g. the search-results Refresh). */
@@ -278,7 +289,13 @@ export const ENTRY_DROP_TARGET = 'relative z-10 bg-blue-600/60 outline outline-2
 export const ENTRY_HEADER_ROW_DROP = `${ENTRY_HEADER_ROW_LAYOUT} ${ENTRY_DROP_TARGET}`;
 export const ENTRY_CONTENT_AREA = 'px-6 py-4';
 export const ENTRY_LOADING = 'text-slate-400 text-sm';
-export const ENTRY_EDITOR_ICON_BTN = `${BTN} p-1 rounded text-btn-neutral-fg hover:text-btn-ghost-hover hover:bg-btn-ghost-bg`;
+// Editor-toolbar icon buttons. The "on" state of a toggle keeps a visible border at
+// rest instead of the hover frame, so a toggle never carries two competing
+// `border-*` color classes.
+const ENTRY_EDITOR_ICON_BTN_BASE = `${BTN} p-1 rounded text-btn-neutral-fg hover:text-btn-ghost-hover hover:bg-btn-ghost-bg`;
+export const ENTRY_EDITOR_ICON_BTN = `${ENTRY_EDITOR_ICON_BTN_BASE} ${ICON_HOVER_FRAME}`;
+/** A toggle icon button in its "on" state: keeps a visible border even when not hovered. */
+export const ENTRY_EDITOR_ICON_BTN_ACTIVE = `${ENTRY_EDITOR_ICON_BTN_BASE} border border-slate-400`;
 export const RENAME_INPUT_CLASS = 'flex-1 bg-slate-900 text-slate-200 px-2 py-1 rounded border border-slate-600 focus:border-blue-500 focus:outline-none text-sm';
 
 // Popup menu structural classes
@@ -291,7 +308,7 @@ export const MENU_ITEM_DISABLED = 'text-btn-label-off cursor-not-allowed';
 export const MENU_DIVIDER      = 'border-t border-slate-500 my-1';
 // Row with inline action buttons revealed on hover (e.g. bookmark rows)
 export const MENU_ROW          = 'flex items-center gap-1 px-2 py-2 rounded hover:bg-btn-menu-hover group';
-export const MENU_ICON_BTN     = 'p-1 rounded text-btn-ghost hover:bg-btn-menu-icon-hover cursor-pointer';
+export const MENU_ICON_BTN     = `p-1 rounded text-btn-ghost hover:bg-btn-menu-icon-hover cursor-pointer ${ICON_HOVER_FRAME}`;
 // Primary clickable label within a MENU_ROW (icon + truncated text)
 export const MENU_ROW_LABEL    = 'flex items-center gap-2 flex-1 text-left text-sm text-btn-neutral-fg cursor-pointer min-w-0';
 // Action button cluster revealed on row hover (sits beside MENU_ROW_LABEL)

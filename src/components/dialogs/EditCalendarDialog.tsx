@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { clsx } from 'clsx';
 import { DayPicker } from 'react-day-picker';
 import Dialog from './common/Dialog';
-import { BUTTON_CLASS_DLG_SAVE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_TOGGLE_OFF, BUTTON_CLASS_TOGGLE_ON, DLG_INPUT_CLASS_ALT_COMPACT } from '../../renderer/styles';
+import { BUTTON_CLASS_DLG_SAVE, BUTTON_CLASS_DLG_CANCEL, BUTTON_CLASS_TOGGLE_OFF, BUTTON_CLASS_TOGGLE_ON, DLG_INPUT_CLASS_ALT_COMPACT, ICON_HOVER_IMPORTANT } from '../../renderer/styles';
 import 'react-day-picker/style.css';
 import { getDueProperty, setDueProperty, getStartProperty, getDurationProperty, setStartProperty, setDurationProperty, getRRuleProperty, setRRuleProperty, parseDueStr, formatDueDate, RRuleProps } from '../../shared/calendarUtil';
 
@@ -97,8 +97,8 @@ function EditCalendarDialog({ content, onSave, onCancel }: EditCalendarDialogPro
               root: 'text-slate-200',
               month_caption: 'text-slate-200 font-semibold',
               nav: 'text-slate-200',
-              button_previous: 'text-slate-200 hover:text-white hover:bg-slate-700 rounded p-1 [&_svg]:stroke-slate-200 [&_svg]:fill-slate-200',
-              button_next: 'text-slate-200 hover:text-white hover:bg-slate-700 rounded p-1 [&_svg]:stroke-slate-200 [&_svg]:fill-slate-200',
+              button_previous: `text-slate-200 hover:text-white rounded p-1 [&_svg]:stroke-slate-200 [&_svg]:fill-slate-200 ${ICON_HOVER_IMPORTANT}`,
+              button_next: `text-slate-200 hover:text-white rounded p-1 [&_svg]:stroke-slate-200 [&_svg]:fill-slate-200 ${ICON_HOVER_IMPORTANT}`,
               weekdays: 'text-slate-500 text-xs',
               day: 'text-slate-300',
               day_button: 'w-9 h-9 rounded hover:bg-slate-600 transition-colors cursor-pointer',

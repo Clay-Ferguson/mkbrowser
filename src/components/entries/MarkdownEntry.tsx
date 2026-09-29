@@ -50,7 +50,7 @@ import {
   type BaseEntryProps,
   type AttachMenuProps,
 } from './common';
-import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN } from '../../renderer/styles';
+import { BUTTON_CLASS_BLUE, BUTTON_CLASS_SM_PURPLE, BUTTON_CLASS_ICON_SOLID_BLUE, ENTRY_CONTENT_AREA, ENTRY_LOADING, ENTRY_EDITOR_ICON_BTN, ENTRY_EDITOR_ICON_BTN_ACTIVE } from '../../renderer/styles';
 
 
 interface MarkdownEntryProps extends BaseEntryProps, AttachMenuProps {
@@ -347,7 +347,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             type="button"
             onClick={handleToggleShowProps}
             title={showPropsInEditor ? 'Hide properties' : 'Show properties'}
-            className={clsx(ENTRY_EDITOR_ICON_BTN, 'border', showPropsInEditor ? 'border-slate-400' : 'border-transparent')}
+            className={showPropsInEditor ? ENTRY_EDITOR_ICON_BTN_ACTIVE : ENTRY_EDITOR_ICON_BTN}
           >
             {showPropsInEditor
               ? <PropsIconSolid className="w-5 h-5" />
@@ -357,7 +357,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             type="button"
             onClick={handleToggleTagsVisible}
             title={tagsVisible ? 'Hide tags' : 'Show tags'}
-            className={clsx(ENTRY_EDITOR_ICON_BTN, 'border', tagsVisible ? 'border-slate-400' : 'border-transparent')}
+            className={tagsVisible ? ENTRY_EDITOR_ICON_BTN_ACTIVE : ENTRY_EDITOR_ICON_BTN}
           >
             {tagsVisible
               ? <TagIconSolid className="w-5 h-5" />
@@ -368,7 +368,7 @@ function MarkdownEntry(props: MarkdownEntryProps) {
             data-testid="edit-calendar-info"
             onClick={() => setShowCalendarDialog(true)}
             title="Calendar Info"
-            className={`${ENTRY_EDITOR_ICON_BTN} border border-transparent`}
+            className={ENTRY_EDITOR_ICON_BTN}
           >
             <CalendarIcon className="w-5 h-5" />
           </button>
