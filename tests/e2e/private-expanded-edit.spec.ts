@@ -10,6 +10,7 @@ import {
   cleanupScreenshots,
   cleanupTestDataFiles,
   resetSettings,
+  demoRefresh,
 } from './helpers/mediaUtils';
 
 /**
@@ -80,7 +81,7 @@ test.describe('Private: Expanded Editing', () => {
     const saveButton = mainWindow.getByTestId('entry-save-button');
 
     // The folders were created after the app read the directory, so refresh.
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
     await demoClick(listing.getByText(parentName, { exact: true }));
     await expect(listing.getByText(subName, { exact: true })).toBeVisible({ timeout: 10000 });
     await demoClick(listing.getByText(subName, { exact: true }));

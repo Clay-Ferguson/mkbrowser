@@ -4,12 +4,12 @@ import { test, expect } from './fixtures/electronApp';
 import {
   takeScreenshot,
   writeNarration,
-  demoClick,
   demoRightClick,
   logScreenshotSummary,
   cleanupScreenshots,
   cleanupTestDataFiles,
   resetSettings,
+  demoRefresh,
 } from './helpers/mediaUtils';
 
 /**
@@ -103,7 +103,7 @@ test.describe('Private: Rename', () => {
 
     // The files/folders were written after the app read the directory, so
     // refresh to make sure they all show up.
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
 
     const mainContent = mainWindow.getByTestId('browser-main-content');
     for (const name of [fileName, attachedFileName]) {

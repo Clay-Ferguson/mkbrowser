@@ -11,6 +11,7 @@ import {
   cleanupTestDataFiles,
   resetSettings,
   findActionBarByFileName,
+  demoRefresh,
 } from './helpers/mediaUtils';
 
 /**
@@ -65,7 +66,7 @@ test.describe('Private: Cut and Paste', () => {
 
     // The files were written to disk after the app started reading the folder,
     // so refresh to make sure they are all visible.
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
 
     const mainContent = mainWindow.getByTestId('browser-main-content');
     for (const file of [...cutFiles, stayFile]) {

@@ -200,7 +200,6 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
       {/* Combined header: breadcrumbs left, actions right, wraps responsively */}
       <BrowseToolbar
         onOpenOverlay={setOverlay}
-        onRefresh={handleRefresh}
         onPasteIntoFolder={doPasteIntoFolder}
       />
 

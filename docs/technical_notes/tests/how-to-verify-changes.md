@@ -36,7 +36,8 @@ replayable evidence in `screenshots/<spec-name>/`.
 ## Useful test ids
 
 `browser-main-content`, `create-file-button`, `create-file-dialog-input`,
-`create-file-dialog-create-button`, `entry-save-button`, `refresh-button`.
+`create-file-dialog-create-button`, `entry-save-button`. To refresh, call
+`demoRefresh(mainWindow)` (it clicks the current-folder breadcrumb).
 The inline editor is `.cm-editor`; `insertText(mainWindow, text, true)`
 types into the focused editor.
 

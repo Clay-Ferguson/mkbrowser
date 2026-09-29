@@ -10,6 +10,7 @@ import {
 } from '../renderer/dragAndDrop';
 import { BREADCRUMB_IDLE, BREADCRUMB_SEGMENT_IDLE, ENTRY_DROP_TARGET } from '../renderer/styles';
 import { joinPath, splitPathSegments, isPathInside } from '../renderer/pathUtil';
+import { reconcileAndRefresh } from '../renderer/indexOrderOp';
 import { logger } from '../shared/logUtil';
 
 export type PathBreadcrumbProps = {
@@ -22,13 +23,17 @@ export type PathBreadcrumbProps = {
  * Renders the current directory path as a row of clickable breadcrumb segments.
  *
  * Each ancestor segment is a clickable button that navigates to that directory.
- * The current (rightmost) segment is non-interactive. The root home icon is always
+ * The current folder's element (the rightmost segment, or the home icon at the
+ * root) is the app's Refresh control: clicking it reloads the listing and the
+ * index tree before handing the click to `onNavigate` as usual (which, in
+ * single-file mode, returns to the folder listing). The root home icon is always
  * shown and always clickable, even at the root itself. Every segment — including
  * that home icon — doubles as a drag-and-drop target that accepts file/folder moves.
  * A "reveal in tree" button appears at the end when the index tree panel is visible.
  */
 function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbProps) {
   const indexTreeHidden = useAS(s => s.settings.indexTreeWidth === 'hidden');
+  const hasIndexFile = useAS(s => s.hasIndexFile);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
   const normalizedRoot = rootPath.replace(/[/\\]+$/, '');
   const normalizedCurrent = currentPath.replace(/[/\\]+$/, '');
@@ -43,6 +48,16 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
     if (index < 0) return normalizedRoot;
     return joinPath(normalizedRoot, ...parts.slice(0, index + 1));
   };
+
+  // Clicking the current folder refreshes it (listing + index tree) first.
+  const handleClick = (path: string) => {
+    if (path === normalizedCurrent) {
+      reconcileAndRefresh(normalizedCurrent, hasIndexFile);
+    }
+    onNavigate(path);
+  };
+
+  const isAtRoot = parts.length === 0;
 
   // Produces drag-event handlers that make a breadcrumb segment a drop target for
   // ENTRY_DND_MIME payloads (dragged from BrowseView entry icons or the IndexTreeView).
@@ -72,11 +87,11 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
   return (
     <div data-testid="path-breadcrumb" className="flex flex-wrap items-center gap-1 text-base">
       {/* Always rendered and always clickable, including when already at the
-          root: navigating to the root you are already on is a harmless no-op,
-          and keeping the button live means it is still a drop target there. */}
+          root: there it is the current folder, so clicking it refreshes, and
+          keeping the button live means it is still a drop target there. */}
       <button
         type="button"
-        onClick={() => onNavigate(normalizedRoot)}
+        onClick={() => handleClick(normalizedRoot)}
         {...dropProps(normalizedRoot)}
         data-testid="breadcrumb-home-button"
         className={clsx(
@@ -85,28 +100,32 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
             ? `text-white ${ENTRY_DROP_TARGET}`
             : BREADCRUMB_IDLE,
         )}
-        aria-label="Go to root folder"
-        title="Go to root folder"
+        aria-label={isAtRoot ? 'Refresh root folder' : 'Go to root folder'}
+        aria-current={isAtRoot ? 'location' : undefined}
+        title={isAtRoot ? 'Refresh (root folder)' : 'Go to root folder'}
       >
         <HomeIcon className="w-5 h-5" />
       </button>
 
-      {parts.length === 0 && (
+      {isAtRoot && (
         <span className="text-slate-200 font-medium">/</span>
       )}
 
       {parts.map((part, index) => {
         const segmentPath = buildPathForIndex(index);
         const isDragOver = dragOverPath === segmentPath;
+        const isCurrent = index === parts.length - 1;
         return (
           <div key={segmentPath} className="flex items-center">
             <span className="text-slate-200 mx-1">/</span>
 
             <button
               type="button"
-              onClick={() => onNavigate(segmentPath)}
+              onClick={() => handleClick(segmentPath)}
               {...dropProps(segmentPath)}
               data-testid={`breadcrumb-segment-${part}`}
+              aria-current={isCurrent ? 'location' : undefined}
+              title={isCurrent ? 'Refresh' : undefined}
               className={clsx(
                 'px-2 py-1 border border-transparent rounded cursor-pointer no-underline break-all transition-colors',
                 isDragOver

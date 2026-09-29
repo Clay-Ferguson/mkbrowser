@@ -9,6 +9,7 @@ import {
   cleanupScreenshots,
   cleanupTestDataFiles,
   resetSettings,
+  demoRefresh,
 } from './helpers/mediaUtils';
 
 /**
@@ -92,7 +93,7 @@ test.describe('Private: saved content survives creating another file', () => {
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'both-files-saved-and-rendered');
 
     // --- 4. Refresh; both contents still render ------------------------------
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
     await expect(mainContent.getByText(contentOne)).toBeVisible({ timeout: 5000 });
     await expect(mainContent.getByText(contentTwo)).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'after-refresh-still-rendered');
@@ -111,7 +112,7 @@ test.describe('Private: saved content survives creating another file', () => {
     fs.utimesSync(tmpPath, mtime, mtime);
     fs.renameSync(tmpPath, filePath);
 
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
     await expect(mainContent.getByText(externalContent)).toBeVisible({ timeout: 5000 });
     await expect(mainContent.getByText(contentTwo)).toBeVisible({ timeout: 5000 });
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'external-replace-rerendered');

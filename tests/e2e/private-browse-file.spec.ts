@@ -10,6 +10,7 @@ import {
   cleanupScreenshots,
   cleanupTestDataFiles,
   resetSettings,
+  demoRefresh,
 } from './helpers/mediaUtils';
 
 /**
@@ -81,7 +82,7 @@ test.describe('Private: Browse File', () => {
     await mainWindow.waitForTimeout(2000);
 
     // The folder was created after the app read the directory, so refresh.
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
 
     const listing = mainWindow.getByTestId('browser-main-content');
     await demoClick(listing.getByText(folderName, { exact: true }));

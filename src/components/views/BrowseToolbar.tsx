@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
   MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon,
-  ArrowPathIcon, WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
+  WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
   FolderPlusIcon, DocumentPlusIcon, CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 import { runOp } from '../../renderer/runOp';
@@ -76,14 +76,14 @@ function summarizeSelection(items: Map<string, ItemData>) {
 interface BrowseToolbarProps {
   /** Opens one of BrowseView's dialogs. */
   onOpenOverlay: (overlay: BrowseOverlay) => void;
-  onRefresh: () => void;
   onPasteIntoFolder: (folderPath: string) => void;
 }
 
 /**
  * BrowseView's header: the breadcrumbs on the left, and on the right the
- * action buttons (cut/delete/paste, create, calendar, expand/collapse,
- * refresh) plus the Edit, Tools, Sort and Search menus.
+ * action buttons (cut/delete/paste, create, calendar, expand/collapse) plus
+ * the Edit, Tools, Sort and Search menus. Refreshing is done by clicking the
+ * current folder's breadcrumb (see PathBreadcrumb).
  *
  * The menus' open state lives here, next to the buttons they anchor to. The
  * dialogs those menus open live in BrowseView and are opened through
@@ -91,7 +91,7 @@ interface BrowseToolbarProps {
  * onClose, but since the two are separate state, closing the menu never
  * closes the dialog its action just opened.
  */
-function BrowseToolbar({ onOpenOverlay, onRefresh, onPasteIntoFolder }: BrowseToolbarProps) {
+function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps) {
   const rootPath = useAS(s => s.rootPath);
   const currentPath = useAS(s => s.currentPath);
   const hasIndexFile = useAS(s => s.hasIndexFile);
@@ -362,17 +362,6 @@ function BrowseToolbar({ onOpenOverlay, onRefresh, onPasteIntoFolder }: BrowseTo
               <ChevronUpIcon className="w-6 h-6" />
             </button>
           )}
-
-          {/* Refresh button */}
-          <button
-            type="button"
-            onClick={onRefresh}
-            className={BUTTON_CLASS_TB_NORMAL}
-            title="Refresh"
-            data-testid="refresh-button"
-          >
-            <ArrowPathIcon className="w-6 h-6" />
-          </button>
 
         </div>
       </header>

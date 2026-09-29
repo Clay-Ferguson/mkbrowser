@@ -9,6 +9,7 @@ import {
   cleanupScreenshots,
   cleanupTestDataFiles,
   resetSettings,
+  demoRefresh,
 } from './helpers/mediaUtils';
 
 /**
@@ -79,7 +80,7 @@ test.describe('Private: Replace in Files', () => {
 
     // The folder was written to disk after the app started reading the
     // directory, so refresh to make sure it shows up.
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
 
     const mainContent = mainWindow.getByTestId('browser-main-content');
     await expect(mainContent.getByText(demoFolderName, { exact: true })).toBeVisible({ timeout: 10000 });
@@ -182,7 +183,7 @@ We dismiss the dialog to continue.`
     // The rendered markdown of expanded files may not auto-refresh, so refresh
     // to pull in the updated content, then do a modest UI check. The
     // authoritative verification is against disk below.
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
 
     await expect(mainContent.getByText('Gadget').first()).toBeVisible({ timeout: 10000 });
     // A case-sensitive regex: no capital-W "Widget" survives anywhere on screen

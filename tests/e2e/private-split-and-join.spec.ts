@@ -10,6 +10,7 @@ import {
   cleanupScreenshots,
   cleanupTestDataFiles,
   resetSettings,
+  demoRefresh,
 } from './helpers/mediaUtils';
 
 /**
@@ -71,7 +72,7 @@ test.describe('Split and Join Demo', () => {
 
     // The folder was written to disk after the app started reading the
     // directory, so refresh to make sure it shows up.
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
 
     const mainContent = mainWindow.getByTestId('browser-main-content');
     await expect(mainContent.getByText(demoFolderName, { exact: true })).toBeVisible({ timeout: 10000 });

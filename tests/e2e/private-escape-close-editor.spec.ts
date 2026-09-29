@@ -8,6 +8,7 @@ import {
   cleanupScreenshots,
   cleanupTestDataFiles,
   resetSettings,
+  demoRefresh,
 } from './helpers/mediaUtils';
 
 /**
@@ -53,7 +54,7 @@ test.describe('Private: Escape closes editor', () => {
     const saveButton = mainWindow.getByTestId('entry-save-button');
     const openDialog = mainWindow.locator('dialog[open]');
 
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
     await demoClick(listing.getByText(folderName, { exact: true }));
     await expect(listing.getByText(tocFileName, { exact: true })).toBeVisible({ timeout: 10000 });
 

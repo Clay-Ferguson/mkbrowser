@@ -188,7 +188,7 @@ Most private tests seed their own files/folders in `testDataPath`, then refresh 
 
 - **Name every seeded markdown file `my-*.md`.** That exact glob is what `cleanupTestDataFiles()` deletes recursively, so `my-*.md` files clean themselves up on the next run. Use distinctive, greppable names/contents so assertions can't collide with anything else in the tree.
 - **Folders and non-`my-*.md` files are NOT auto-cleaned.** Anything else the test creates — subfolders, `.attach` folders, `.png`/`.txt` files — must be removed manually. For a clean slate at the start, `fs.rmSync(folder, { recursive: true, force: true })` then `fs.mkdirSync(folder)`. At the end, `fs.rmSync(..., { recursive: true, force: true })` the whole seeded tree. **Leave the test-data folder exactly as you found it.**
-- **After seeding, make the app notice:** `await mainWindow.waitForTimeout(2000)` then `await demoClick(mainWindow.getByTestId('refresh-button'))`.
+- **After seeding, make the app notice:** `await mainWindow.waitForTimeout(2000)` then `await demoRefresh(mainWindow)` (from `helpers/mediaUtils.ts`).
 - Seed a small binary (e.g. a tiny PNG) inline from base64 — no external fixture needed:
   ```typescript
   const tinyPng = Buffer.from(
@@ -215,7 +215,7 @@ Prefer `toContain` / substring matches over strict equality for written text (th
 ## Interacting with the UI
 
 ### The browse list and refresh
-The browse (file) list lives in `mainWindow.getByTestId('browser-main-content')` — scope entry lookups to it. The `refresh-button` re-reads the current folder from disk; the `navigate-up-button` goes up a level. Clicking a folder's name navigates into it; clicking a file's name expands it.
+The browse (file) list lives in `mainWindow.getByTestId('browser-main-content')` — scope entry lookups to it. There is no Refresh button: clicking the current folder's breadcrumb (the rightmost segment, or the home icon at the root — it carries `aria-current="location"`) re-reads the folder and the index tree from disk. Use the `demoRefresh(mainWindow)` helper for this; the `navigate-up-button` goes up a level. Clicking a folder's name navigates into it; clicking a file's name expands it.
 
 ### Hover-revealed entry action bars
 Each entry has an action bar (`entry-action-bar`) whose buttons are **revealed on hover**. To click one:
@@ -389,7 +389,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { test, expect } from './fixtures/electronApp';
 import {
-  takeScreenshot, writeNarration, demoClick, setCheckbox, logScreenshotSummary,
+  takeScreenshot, writeNarration, demoClick, demoRefresh, setCheckbox, logScreenshotSummary,
   cleanupScreenshots, cleanupTestDataFiles, resetSettings, findActionBarByFileName,
 } from './helpers/mediaUtils';
 
@@ -412,7 +412,7 @@ test.describe('Private: My Feature', () => {
 
     // Make the app see the seeded files.
     await mainWindow.waitForTimeout(2000);
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
 
     const mainContent = mainWindow.getByTestId('browser-main-content');
     await expect(mainContent.getByText('my-feature-demo')).toBeVisible({ timeout: 10000 });

@@ -11,6 +11,7 @@ import {
   resetSettings,
   findActionBarByFileName,
   openEntryMenu,
+  demoRefresh,
 } from './helpers/mediaUtils';
 
 /**
@@ -83,7 +84,7 @@ test.describe('Private: Attach: Clipboard', () => {
 
     // The folder was written to disk after the app started reading the
     // directory, so refresh to make sure it shows up.
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
 
     const mainContent = mainWindow.getByTestId('browser-main-content');
     await expect(mainContent.getByText(demoFolderName, { exact: true })).toBeVisible({
@@ -147,7 +148,7 @@ Now we'll paste it as an attachment under our file.`
 
     // The paste writes through the app which refreshes the directory; make sure
     // the new folder is shown (refresh to be safe) and visible in the list.
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
     await expect(mainContent.getByText(attachFolderName, { exact: true })).toBeVisible({
       timeout: 10000,
     });

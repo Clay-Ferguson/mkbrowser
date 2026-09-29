@@ -12,6 +12,7 @@ import {
   resetSettings,
   findActionBarByFileName,
   openEntryMenu,
+  demoRefresh,
 } from './helpers/mediaUtils';
 
 /**
@@ -76,7 +77,7 @@ test.describe('Private: Bookmarks', () => {
     await mainWindow.waitForTimeout(2000);
 
     // The files were written after the app read the folder, so refresh.
-    await demoClick(mainWindow.getByTestId('refresh-button'));
+    await demoRefresh(mainWindow);
 
     const mainContent = mainWindow.getByTestId('browser-main-content');
     await expect(mainContent.getByText(folderName, { exact: true })).toBeVisible({ timeout: 10000 });

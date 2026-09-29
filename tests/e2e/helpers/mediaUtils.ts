@@ -398,6 +398,21 @@ export async function demoRightClick(
 }
 
 /**
+ * Refreshes the browse view (listing + index tree) by clicking the current
+ * folder's breadcrumb — the rightmost segment, or the home icon at the root —
+ * which is the app's Refresh control. Scoped to BrowseView's header so the
+ * breadcrumbs of other views never match.
+ *
+ * @example
+ * await demoRefresh(mainWindow);
+ */
+export async function demoRefresh(mainWindow: Page): Promise<void> {
+  await demoClick(
+    mainWindow.getByTestId('browser-header-breadcrumbs').locator('[aria-current="location"]')
+  );
+}
+
+/**
  * Ensures a checkbox or radio button is in the specified checked state for demo recordings.
  * Highlights the element with a red border, then clicks it only if its current state
  * differs from the desired state. Works identically for both checkboxes and radio buttons.
