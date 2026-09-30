@@ -1,5 +1,5 @@
 import { clsx } from 'clsx';
-import { ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, TrashIcon } from '@heroicons/react/24/outline';
 import type { SearchDefinition } from '../../shared/types';
 import { BUTTON_CLASS_TB_GREEN, BUTTON_CLASS_TB_RED, BUTTON_CLASS_TOGGLE_OFF_GHOST, BUTTON_CLASS_TOGGLE_ON, DLG_INPUT_CLASS, DLG_LABEL_CLASS } from '../../renderer/styles';
 
@@ -50,7 +50,7 @@ function SearchDefinitionsPanel({
             title="Save search definition"
             className={BUTTON_CLASS_TB_GREEN}
           >
-            <ArrowDownTrayIcon className="w-4 h-4" />
+            <CheckIcon className="w-4 h-4" />
           </button>
           <button
             type="button"
