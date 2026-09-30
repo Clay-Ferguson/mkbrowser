@@ -248,59 +248,59 @@ function TreeFileRow({
   const isHighlighted = useAS(s => s.highlightItem === node.path);
   const relation = useAS(s => folderRelation(node, s.currentPath));
 
-  const isMd = isMarkdownFile(node);
   const isSh = isShellScript(node);
 
-  // The highlighted FILE gets a 2px purple border instead of the solid
-  // purple background the folders wear, so the tree reads at a glance:
-  // solid purple = the folders on the way to what is on screen, purple
-  // outline = the file itself. A highlighted *folder* keeps the solid
-  // background — it is still a folder.
-  const isHighlightedFile = isHighlighted && !node.isDirectory;
-  // The folder being browsed wears the same purple background as its
-  // ancestors plus a light gray border, so it stands out from them. (The
-  // drag-over highlight takes precedence and drops that border.)
-  const isCurrentFolder = relation === 'current' && !isDragOver;
+  // Two independent cues, so the tree reads at a glance: a solid purple
+  // background marks the folder being browsed and its ancestors, and a 2px
+  // purple border marks the highlighted item (file or folder) — the same
+  // border the browse view uses. The browsed folder also gets a gray border
+  // so it stands out from its ancestors, unless it is itself highlighted.
+  const isCurrentFolder = relation === 'current';
+  const isOnBrowsedPath = relation !== 'none';
 
-  // Those borders replace the row's vertical padding rather than adding to
-  // it (2px a side either way), so a bordered row is exactly as tall as
-  // every other row and the tree does not shift when the highlight or the
-  // current folder moves.
-  const hasFullBorder = isHighlightedFile || isCurrentFolder;
-  let className = `flex items-center gap-1 ${hasFullBorder ? 'py-0' : 'py-0.5'} whitespace-nowrap select-none`;
+  // The row carries text color, hover and the drop highlight; the name span
+  // carries the purple background / borders above. Keeping those on the
+  // name (not the full row width) leaves the indentation visible, so the
+  // purple path reads as a hierarchy rather than a stack of bars.
+  //
   // The drop highlight replaces the row's normal colors rather than being
   // appended to them: every branch below carries a `hover:bg-…`, and a variant
   // beats a plain `bg-…` of equal specificity, so an appended drop background
   // would always lose (the pointer is over the row it is dragging across).
-  // `border-l-2 border-transparent` is kept because it occupies layout space.
+  let className = 'flex items-center gap-1 py-0 border-l-2 border-transparent whitespace-nowrap select-none cursor-pointer';
   if (isDragOver) {
-    className += ` text-white border-l-2 border-transparent cursor-pointer ${ENTRY_DROP_TARGET}`;
+    className += ` text-white ${ENTRY_DROP_TARGET}`;
   } //
-  else if (isHighlightedFile) {
-    // `border-2` on all four sides, so no separate `border-l-2` here.
-    className += ' text-white border-2 border-purple-500 hover:bg-slate-700 cursor-pointer';
-  } //
-  else if (isCurrentFolder) {
-    // `border-2` on all four sides, so no separate `border-l-2` here.
-    className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-2 border-slate-400 cursor-pointer';
-  } //
-  else if (isHighlighted) {
-    className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
-  } //
-  else if (relation === 'ancestor') {
-    className += ' text-slate-200 bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
+  else if (isHighlighted || isCurrentFolder) {
+    className += ' text-white hover:bg-slate-700';
   } //
   else if (node.isDirectory) {
-    className += ' text-slate-200 hover:bg-slate-700 border-l-2 border-transparent cursor-pointer';
-  } //
-  else if (isMd) {
-    className += ' text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700';
+    className += ' text-slate-200 hover:bg-slate-700';
   } //
   else if (isSh) {
-    className += ' text-green-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-300/20';
+    className += ' text-green-400 hover:bg-slate-300/20';
   } //
   else {
-    className += ' text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700';
+    className += ' text-slate-400 hover:bg-slate-700';
+  }
+
+  // Every name span has a 2px border (transparent unless it marks something),
+  // standing in for the row's vertical padding, so all rows are the same
+  // height and nothing shifts when the highlight or the current folder moves.
+  // During a drag-over the row's drop highlight speaks for the row instead.
+  let nameClassName = 'px-1 border-2';
+  if (isOnBrowsedPath && !isDragOver) nameClassName += ' bg-purple-700/50';
+  if (isDragOver) {
+    nameClassName += ' border-transparent';
+  } //
+  else if (isHighlighted) {
+    nameClassName += ' border-purple-500';
+  } //
+  else if (isCurrentFolder) {
+    nameClassName += ' border-slate-400';
+  } //
+  else {
+    nameClassName += ' border-transparent';
   }
 
   const rowStyle: React.CSSProperties = {
@@ -334,7 +334,7 @@ function TreeFileRow({
           : <FileTypeIcon fileName={node.name} />
         }
       </span>
-      <span>{node.name}</span>
+      <span className={nameClassName}>{node.name}</span>
     </div>
   );
 }
