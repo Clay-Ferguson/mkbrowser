@@ -11,6 +11,7 @@ import {
   deleteSelectedItems,
   performSplitFile,
   performJoinFiles,
+  orderPastedNames,
 } from '../src/renderer/edit';
 import { joinFiles } from '../src/renderer/joinUtil';
 import type { ItemData } from '../src/shared/types';
@@ -988,5 +989,32 @@ describe('joinFiles (delete + error paths)', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/unknown error/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// orderPastedNames
+// ---------------------------------------------------------------------------
+
+describe('orderPastedNames', () => {
+  it('orders by position in the source index', () => {
+    expect(orderPastedNames(['c.md', 'a.md', 'b.md'], ['b.md', 'x.md', 'c.md', 'a.md'])).toEqual(['b.md', 'c.md', 'a.md']);
+  });
+
+  it('falls back to name order when the source has no index', () => {
+    expect(orderPastedNames(['c.md', 'a.md', 'b.md'], [])).toEqual(['a.md', 'b.md', 'c.md']);
+  });
+
+  it('puts names missing from the source index after the listed ones, by name', () => {
+    expect(orderPastedNames(['z.md', 'new2.md', 'new1.md'], ['z.md'])).toEqual(['z.md', 'new1.md', 'new2.md']);
+  });
+
+  it('keeps an attach folder directly behind its owner file', () => {
+    // By name alone, 'a.md-2.md' would sort between 'a.md' and 'a.md.attach'.
+    expect(orderPastedNames(['a.md.attach', 'a.md-2.md', 'a.md'], [])).toEqual(['a.md', 'a.md.attach', 'a.md-2.md']);
+  });
+
+  it('leaves an attach folder whose owner was not pasted in its sorted place', () => {
+    expect(orderPastedNames(['b.md', 'a.md.attach'], [])).toEqual(['a.md.attach', 'b.md']);
   });
 });

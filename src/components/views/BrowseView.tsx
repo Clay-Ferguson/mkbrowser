@@ -127,6 +127,14 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
     }, 'Failed to paste into folder: ');
   };
 
+  // An insert bar's paste button: paste the cut items at that document position.
+  const handlePasteAt = (insertIndex: number) => {
+    if (!currentPath) return;
+    runOp(async () => {
+      await pasteIntoFolder(currentPath, useAS.getState().items, insertIndex, getSortedEntries());
+    }, 'Failed to paste into folder: ');
+  };
+
   const performDelete = () => {
     runOp(async () => {
       await deleteSelected(getSelectedItems(useAS.getState().items), currentPath, hasIndexFile, () => closeOverlay('deleteConfirm'));
@@ -224,6 +232,7 @@ function BrowseView({ lastExportFolder, onSetLastExportFolder }: BrowseViewProps
             onMoveEntryToEdge={handleMoveEntryToEdge}
             onInsertFileAt={handleInsertFileAt}
             onInsertFolderAt={handleInsertFolderAt}
+            onPasteAt={handlePasteAt}
           />
         </div>
       </main>

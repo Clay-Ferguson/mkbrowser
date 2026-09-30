@@ -29,6 +29,8 @@ interface BrowseEntryRowProps {
   ownerPath: string | null;
   /** Show an IndexInsertBar below this row (Document Mode, next row is not an attach folder). */
   showInsertBarAfter: boolean;
+  /** Include the paste button in that IndexInsertBar (items are cut and can be pasted here). */
+  showPasteHere: boolean;
   allImages: FileEntry[];
   onNavigate: (path: string) => void;
   onRename: () => void;
@@ -42,6 +44,7 @@ interface BrowseEntryRowProps {
   onMoveEntryToEdge: (name: string, edge: 'top' | 'bottom') => void;
   onInsertFileAt: (insertIndex: number) => void;
   onInsertFolderAt: (insertIndex: number) => void;
+  onPasteAt: (insertIndex: number) => void;
 }
 
 /**
@@ -56,10 +59,10 @@ interface BrowseEntryRowProps {
  * props, and memo() (below) skips rows whose props didn't change.
  */
 function BrowseEntryRow({
-  entry, index, isFirst, isLast, hasIndexFile, ownerPath, showInsertBarAfter, allImages,
+  entry, index, isFirst, isLast, hasIndexFile, ownerPath, showInsertBarAfter, showPasteHere, allImages,
   onNavigate, onRename, onDelete, onPasteIntoFolder,
   onPasteAsAttachment, onPasteClipboardAsAttachment, onAttachFromFile, onCreateAttachment,
-  onMoveEntry, onMoveEntryToEdge, onInsertFileAt, onInsertFolderAt,
+  onMoveEntry, onMoveEntryToEdge, onInsertFileAt, onInsertFolderAt, onPasteAt,
 }: BrowseEntryRowProps) {
   // Selected here rather than passed down, so expanding or collapsing a file
   // re-renders only the attach-folder row beneath it, not the whole listing.
@@ -110,7 +113,11 @@ function BrowseEntryRow({
         )}
       </ErrorBoundary>
       {showInsertBarAfter && (
-        <IndexInsertBar onInsertFile={() => onInsertFileAt(index + 1)} onInsertFolder={() => onInsertFolderAt(index + 1)} />
+        <IndexInsertBar
+          onInsertFile={() => onInsertFileAt(index + 1)}
+          onInsertFolder={() => onInsertFolderAt(index + 1)}
+          onPaste={showPasteHere ? () => onPasteAt(index + 1) : undefined}
+        />
       )}
     </div>
   );

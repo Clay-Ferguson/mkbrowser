@@ -6,6 +6,7 @@ import { getParentPath, joinPath, isPathInside, isSamePath } from './pathUtil';
 import { toErrorMessage } from '../shared/logUtil';
 import { isTextFile, isMarkdownFile } from '../shared/fileTypes';
 import { mapWithConcurrency } from '../shared/asyncUtil';
+import { ATTACH_SUFFIX } from '../shared/specialFiles';
 
 /**
  * Bound on how many filesystem operations (rename/delete/existence checks) run
@@ -259,6 +260,36 @@ export async function pasteCutItems(
     pastedItemName: cutItems.length === 1 ? cutItems[0]!.name : undefined, 
     movedPaths,
   };
+}
+
+/**
+ * Orders the names of just-pasted items for splicing into a document as one
+ * contiguous block: by their position in the source folder's .INDEX.yaml when it
+ * lists them (so a run cut from another document keeps its order), otherwise by
+ * name — and with every `X.attach` folder pulled directly behind its owner `X`
+ * when both were pasted, since an attach folder must follow its file.
+ *
+ * @param names - Names of the pasted items, in any order.
+ * @param sourceIndexNames - Entry names of the source folder's index, in document
+ *   order (empty when the source is not a document).
+ */
+export function orderPastedNames(names: readonly string[], sourceIndexNames: readonly string[]): string[] {
+  const pos = new Map(sourceIndexNames.map((name, i) => [name, i]));
+  // Two unlisted names give Infinity - Infinity = NaN, which is falsy, so they fall through to name order.
+  const sorted = [...names].sort((a, b) => (pos.get(a) ?? Infinity) - (pos.get(b) ?? Infinity) || a.localeCompare(b));
+
+  const nameSet = new Set(sorted);
+  const isOwnedAttach = (name: string) =>
+    name.endsWith(ATTACH_SUFFIX) && nameSet.has(name.slice(0, -ATTACH_SUFFIX.length));
+  const ordered: string[] = [];
+  for (const name of sorted) {
+    if (isOwnedAttach(name)) continue; // emitted right behind its owner below
+    ordered.push(name);
+    for (let attach = `${name}${ATTACH_SUFFIX}`; nameSet.has(attach); attach += ATTACH_SUFFIX) {
+      ordered.push(attach);
+    }
+  }
+  return ordered;
 }
 
 /**

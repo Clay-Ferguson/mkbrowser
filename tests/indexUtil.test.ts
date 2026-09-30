@@ -415,6 +415,37 @@ describe('insertIntoIndexYaml', () => {
     await insertIntoIndexYaml(tmpDir, 'new.md', null);
     expect(readIndex().files[0].name).toBe('new.md');
   });
+
+  it('splices several names as one contiguous block, in order, after the named entry', async () => {
+    writeIndex({ files: [{ name: 'a.md' }, { name: 'd.md' }] });
+    await insertIntoIndexYaml(tmpDir, ['b.md', 'c.md'], 'a.md');
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['a.md', 'b.md', 'c.md', 'd.md']);
+  });
+
+  it('moves already-listed names to the new position instead of duplicating them', async () => {
+    writeIndex({ files: [{ name: 'a.md' }, { name: 'b.md' }, { name: 'c.md' }, { name: 'd.md' }] });
+    await insertIntoIndexYaml(tmpDir, ['a.md', 'b.md'], 'd.md');
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['c.md', 'd.md', 'a.md', 'b.md']);
+  });
+
+  it('re-inserting names at their own position leaves the order unchanged', async () => {
+    writeIndex({ files: [{ name: 'a.md' }, { name: 'b.md' }, { name: 'c.md' }] });
+    await insertIntoIndexYaml(tmpDir, ['a.md', 'b.md'], null);
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['a.md', 'b.md', 'c.md']);
+  });
+
+  it('keeps an attach folder behind its file when the file is moved without it', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'a.md.attach'));
+    writeIndex({ files: [{ name: 'a.md' }, { name: 'a.md.attach' }, { name: 'b.md' }] });
+    await insertIntoIndexYaml(tmpDir, ['a.md'], 'b.md');
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['b.md', 'a.md', 'a.md.attach']);
+  });
+
+  it('splices several names at position 0 when insertAfterName is null', async () => {
+    writeIndex({ files: [{ name: 'c.md' }] });
+    await insertIntoIndexYaml(tmpDir, ['a.md', 'b.md'], null);
+    expect(readIndex().files.map((f: IndexEntry) => f.name)).toEqual(['a.md', 'b.md', 'c.md']);
+  });
 });
 
 // ---------------------------------------------------------------------------

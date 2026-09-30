@@ -448,7 +448,7 @@ export interface ElectronAPI {
   onCalendarWatcherError: (callback: (message: string) => void) => () => void;
 
   runOcrInTerminal: (ocrToolsFolder: string, targets: OcrTarget[]) => Promise<{ success: boolean; error?: string }>;
-  insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
+  insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) => Promise<{ success: boolean; error?: string }>;
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') => Promise<{ success: boolean; error?: string }>;
   moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') => Promise<{ success: boolean; error?: string }>;
   reconcileIndexedFiles: (dirPath: string, createIfMissing?: boolean) => Promise<{ success: boolean; error?: string }>;

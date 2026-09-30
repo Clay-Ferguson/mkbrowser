@@ -566,9 +566,9 @@ function setupIpcHandlers(): void {
   });
 
 
-  // Insert a new entry into .INDEX.yaml at the specified position
-  ipcMain.handle('insert-into-index-yaml', async (_event, dirPath: string, newName: string, insertAfterName: string | null): Promise<{ success: boolean; error?: string }> => {
-    return alertIfCorruptIndex(dirPath, await insertIntoIndexYaml(dirPath, newName, insertAfterName));
+  // Insert one or more new entries into .INDEX.yaml at the specified position
+  ipcMain.handle('insert-into-index-yaml', async (_event, dirPath: string, newNames: string | string[], insertAfterName: string | null): Promise<{ success: boolean; error?: string }> => {
+    return alertIfCorruptIndex(dirPath, await insertIntoIndexYaml(dirPath, newNames, insertAfterName));
   });
 
   // Move an entry up or down one position in .INDEX.yaml

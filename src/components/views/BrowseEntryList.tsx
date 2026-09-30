@@ -27,6 +27,7 @@ interface BrowseEntryListProps {
   onMoveEntryToEdge: (name: string, edge: 'top' | 'bottom') => void;
   onInsertFileAt: (insertIndex: number) => void;
   onInsertFolderAt: (insertIndex: number) => void;
+  onPasteAt: (insertIndex: number) => void;
 }
 
 /**
@@ -38,7 +39,7 @@ interface BrowseEntryListProps {
 function BrowseEntryList({
   onNavigate, onRename, onDelete, onPasteIntoFolder,
   onPasteAsAttachment, onPasteClipboardAsAttachment, onAttachFromFile, onCreateAttachment,
-  onMoveEntry, onMoveEntryToEdge, onInsertFileAt, onInsertFolderAt,
+  onMoveEntry, onMoveEntryToEdge, onInsertFileAt, onInsertFolderAt, onPasteAt,
 }: BrowseEntryListProps) {
   // Deliberately no `useAS(s => s.items)`: the Map is replaced on every items
   // write (each debounced keystroke in an inline editor), and subscribing to it
@@ -53,6 +54,9 @@ function BrowseEntryList({
 
   const sortedEntries = sortListing(entries, times, cutPaths, hasIndexFile, sortOrder, foldersOnTop);
   const allImages = sortedEntries.filter((entry) => !entry.isDirectory && isImageFile(entry.name));
+  // Offered whenever anything is cut — including items cut from this same
+  // document, where the paste moves them to that position (a reorder).
+  const showPasteHere = hasIndexFile && cutPaths.size > 0;
 
   if (loading) {
     return (
@@ -77,9 +81,14 @@ function BrowseEntryList({
   // the whole entry list (the remount storm was tripping React's max-update-depth). Index-only bits (move handlers,
   // IndexInsertBars, attach-folder gating) are computed conditionally inside BrowseEntryRow.
   return (
-    <div className={hasIndexFile ? 'pr-12' : '[&>div+div]:-mt-px'}>
+    // The gutter widens while the insert bars carry a third (paste) button.
+    <div className={hasIndexFile ? (showPasteHere ? 'pr-20' : 'pr-12') : '[&>div+div]:-mt-px'}>
       {hasIndexFile && !sortedEntries[0]?.name.endsWith(ATTACH_SUFFIX) && (
-        <IndexInsertBar onInsertFile={() => onInsertFileAt(0)} onInsertFolder={() => onInsertFolderAt(0)} />
+        <IndexInsertBar
+          onInsertFile={() => onInsertFileAt(0)}
+          onInsertFolder={() => onInsertFolderAt(0)}
+          onPaste={showPasteHere ? () => onPasteAt(0) : undefined}
+        />
       )}
       {sortedEntries.map((entry, idx) => {
         const prevEntry = sortedEntries[idx - 1];
@@ -96,6 +105,7 @@ function BrowseEntryList({
             hasIndexFile={hasIndexFile}
             ownerPath={isOwnedAttach && prevEntry ? prevEntry.path : null}
             showInsertBarAfter={hasIndexFile && !sortedEntries[idx + 1]?.name.endsWith(ATTACH_SUFFIX)}
+            showPasteHere={showPasteHere}
             allImages={!entry.isDirectory && isImageFile(entry.name) ? allImages : NO_IMAGES}
             onNavigate={onNavigate}
             onRename={onRename}
@@ -109,6 +119,7 @@ function BrowseEntryList({
             onMoveEntryToEdge={onMoveEntryToEdge}
             onInsertFileAt={onInsertFileAt}
             onInsertFolderAt={onInsertFolderAt}
+            onPasteAt={onPasteAt}
           />
         );
       })}

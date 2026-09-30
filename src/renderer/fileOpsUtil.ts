@@ -15,7 +15,7 @@ import {
   getCurrentPath,
   getHasIndexFile,
 } from '../store';
-import { pasteCutItems, runCutPasteExclusive, deleteSelectedItems, performSplitFile, performJoinFiles } from './edit';
+import { pasteCutItems, runCutPasteExclusive, deleteSelectedItems, performSplitFile, performJoinFiles, orderPastedNames, findCutItemsFromDifferentFolders } from './edit';
 import { pasteFromClipboard } from './clipboard';
 import { refreshDirectory } from './directoryLoader';
 import { getFileName, getParentPath, joinPath, isSamePath } from './pathUtil';
@@ -96,28 +96,63 @@ export async function createAttachmentFileOp(
 }
 
 /**
+ * Resolves an insert position in the displayed listing to the name of the entry it
+ * follows in .INDEX.yaml — null for position 0 (the topmost insert bar).
+ */
+function insertAfterNameAt(insertAtIndex: number, sortedEntries: FileEntry[]): string | null {
+  return insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1]?.name ?? null : null;
+}
+
+/**
  * Moves all cut items in the store into the given folder, then reconciles the index
  * for both the source and destination folders. A no-op while another paste of the
  * cut items is still running (see {@link runCutPasteExclusive}).
  *
  * @param folderPath - Absolute path of the destination folder.
  * @param items - The current item map from the store (used to find cut items).
+ * @param insertAtIndex - Zero-based position in the destination document's listing
+ *   (an IndexInsertBar's paste button) at which the pasted items are spliced into its
+ *   .INDEX.yaml as one block. If null, the reconcile appends them at the end instead.
+ *   A positional paste is also the one paste allowed back into the items' own folder:
+ *   nothing moves on disk, and the items are just moved to that position in the
+ *   document (see {@link reorderCutItemsInIndex}).
+ * @param sortedEntries - The destination's current sorted listing, used to resolve
+ *   the "insert after" sibling name when insertAtIndex is set.
  */
 export async function pasteIntoFolder(
   folderPath: string,
-  items: ReadonlyMap<string, ItemData>
+  items: ReadonlyMap<string, ItemData>,
+  insertAtIndex: number | null = null,
+  sortedEntries: FileEntry[] = []
 ): Promise<void> {
-  await runCutPasteExclusive(() => pasteIntoFolderNow(folderPath, items));
+  await runCutPasteExclusive(() => pasteIntoFolderNow(folderPath, items, insertAtIndex, sortedEntries));
 }
 
 async function pasteIntoFolderNow(
   folderPath: string,
-  items: ReadonlyMap<string, ItemData>
+  items: ReadonlyMap<string, ItemData>,
+  insertAtIndex: number | null,
+  sortedEntries: FileEntry[]
 ): Promise<void> {
   const cutItems = Array.from(items.values()).filter((item) => item.isCut);
   if (cutItems.length === 0) return;
 
   setAppError(null);
+
+  if (
+    insertAtIndex !== null &&
+    findCutItemsFromDifferentFolders(cutItems).length === 0 &&
+    isSamePath(getParentPath(cutItems[0]!.path), folderPath)
+  ) {
+    await reorderCutItemsInIndex(folderPath, cutItems, insertAtIndex, sortedEntries);
+    return;
+  }
+
+  // A positional paste keeps the items in their source document's order, which
+  // must be read before the move: the source reconcile below drops their entries.
+  const sourceIndex = insertAtIndex !== null
+    ? await api.readIndexYaml(getParentPath(cutItems[0]!.path))
+    : null;
 
   // pasteCutItems is the single authority for the "all cut items share one
   // source folder" rule (and reports which items violate it), so we don't
@@ -138,10 +173,25 @@ async function pasteIntoFolderNow(
   if (moved) {
     const sourceFolder = getParentPath(cutItems[0]!.path); 
     deleteItems(result.movedPaths);
+    // Splice first, then reconcile: the reconcile alone would append the moved
+    // items at the end of the destination document.
+    const updateDestinationIndex = async () => {
+      if (insertAtIndex !== null) {
+        const names = orderPastedNames(
+          result.movedPaths.map((p) => getFileName(p)),
+          (sourceIndex?.files ?? []).map((f) => f.name)
+        );
+        const insertResult = await api.insertIntoIndexYaml(folderPath, names, insertAfterNameAt(insertAtIndex, sortedEntries));
+        if (!insertResult.success) {
+          throw new Error(insertResult.error || 'Failed to insert pasted items into the index');
+        }
+      }
+      await api.reconcileIndexedFiles(folderPath, false);
+    };
     try {
       await Promise.all([
         api.reconcileIndexedFiles(sourceFolder, false),
-        api.reconcileIndexedFiles(folderPath, false),
+        updateDestinationIndex(),
       ]);
     } catch (err: unknown) {
       setAppError('Failed to update index after paste: ' + toErrorMessage(err));
@@ -158,6 +208,36 @@ async function pasteIntoFolderNow(
     return;
   }
 
+  clearAllCutItems();
+  refreshDirectory();
+}
+
+/**
+ * The same-folder case of a positional paste: the cut items already live in the
+ * document, so instead of a move on disk (which pasteCutItems refuses) their
+ * .INDEX.yaml entries are moved, as one block in their current document order, to
+ * the insert position — insertIntoIndexYaml takes out an already-listed name's old
+ * entry before splicing. `sortedEntries` hides the cut items, so the resolved
+ * "insert after" name is never one of them. Pasting them right back where they were
+ * is allowed and simply rewrites the same order.
+ */
+async function reorderCutItemsInIndex(
+  folderPath: string,
+  cutItems: ItemData[],
+  insertAtIndex: number,
+  sortedEntries: FileEntry[]
+): Promise<void> {
+  const indexYaml = await api.readIndexYaml(folderPath);
+  const names = orderPastedNames(
+    cutItems.map((item) => item.name),
+    (indexYaml?.files ?? []).map((f) => f.name)
+  );
+  const result = await api.insertIntoIndexYaml(folderPath, names, insertAfterNameAt(insertAtIndex, sortedEntries));
+  if (!result.success) {
+    // Nothing changed; the items stay cut so the user can retry.
+    setAppError('Failed to move items in the index: ' + (result.error || 'Unknown error'));
+    return;
+  }
   clearAllCutItems();
   refreshDirectory();
 }
@@ -375,8 +455,7 @@ async function createItemOp(
 
   try {
     if (insertAtIndex !== null) {
-      const insertAfterName = insertAtIndex > 0 ? sortedEntries[insertAtIndex - 1]?.name ?? null : null;
-      const insertResult = await api.insertIntoIndexYaml(currentPath, itemName, insertAfterName);
+      const insertResult = await api.insertIntoIndexYaml(currentPath, itemName, insertAfterNameAt(insertAtIndex, sortedEntries));
       if (!insertResult.success) {
         throw new Error(insertResult.error || `Failed to insert "${itemName}" into the index`);
       }

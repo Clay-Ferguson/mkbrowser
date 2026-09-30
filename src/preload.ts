@@ -114,8 +114,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   runOcrInTerminal: (ocrToolsFolder: string, targets: OcrTarget[]) => ipcRenderer.invoke('run-ocr-in-terminal', ocrToolsFolder, targets),
-  insertIntoIndexYaml: (dirPath: string, newName: string, insertAfterName: string | null) =>
-    ipcRenderer.invoke('insert-into-index-yaml', dirPath, newName, insertAfterName),
+  insertIntoIndexYaml: (dirPath: string, newNames: string | string[], insertAfterName: string | null) =>
+    ipcRenderer.invoke('insert-into-index-yaml', dirPath, newNames, insertAfterName),
   moveInIndexYaml: (dirPath: string, name: string, direction: 'up' | 'down') =>
     ipcRenderer.invoke('move-in-index-yaml', dirPath, name, direction),
   moveToEdgeInIndexYaml: (dirPath: string, name: string, edge: 'top' | 'bottom') =>

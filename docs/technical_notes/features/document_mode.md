@@ -102,6 +102,16 @@ Clicking either button opens the standard create dialog. On confirmation, the ne
 
 The header-level create buttons (previously the only way to create files/folders) are hidden in indexed mode because the inline insert bars replace them.
 
+While items are cut, each insert bar also shows a third button:
+
+- **Paste items here** (green clipboard icon)
+
+It runs the same paste as the toolbar's **Paste** button (`pasteIntoFolder` in `src/renderer/fileOpsUtil.ts`), then splices every moved item into `.INDEX.yaml` as one contiguous block at that bar's position — `insertIntoIndexYaml` accepts an array of names for this, so every later entry shifts down by the number of items in a single locked write — before reconciling. The block keeps the items' order from the source folder's `.INDEX.yaml` when it has one (read before the move), otherwise name order, with any `X.attach` folder kept directly behind its file `X` (`orderPastedNames` in `src/renderer/edit.ts`). The toolbar Paste button still appends pasted items at the end of the document.
+
+**Pasting back into the same document is a reorder.** A positional paste is the one paste allowed into the folder the items were cut from (the toolbar Paste button still refuses that). Nothing moves on disk: `insertIntoIndexYaml` treats a name the index already lists as a *move* — it takes the old entry out before splicing — so the cut items' entries simply jump to the chosen position as one block, and no reconcile is needed. This complements the per-entry move up/down/top/bottom arrows as a way to move several items at once. Pasting items right back where they came from is allowed and just rewrites the same order. As with the other move operations, the result is passed through `reorderAttachFolders`, so a file moved without its `.attach` folder still takes that folder along.
+
+The insert-bar gutter widens (`pr-12` → `pr-20`) while the paste button is shown.
+
 The index tree's right-click **New File** item (`IndexTreeView.tsx`) is a shortcut into the same two behaviors, chosen by whether the right-clicked folder has an `.INDEX.yaml`: a document folder gets a timestamp-named file created immediately at ordinal 0 (exactly what the topmost insert bar does), any other folder gets the usual name prompt. Either way the file is created *before* the browse view is navigated to that folder, so the single directory load the navigation triggers already includes it.
 
 

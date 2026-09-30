@@ -1,6 +1,6 @@
 /**
  * Orchestration-layer tests for splitSelectedFile / joinSelectedFiles /
- * createAttachmentFileOp in fileOpsUtil.ts.
+ * createAttachmentFileOp / pasteIntoFolder in fileOpsUtil.ts.
  *
  * The underlying algorithms (splitUtil.ts, joinUtil.ts) and the index
  * primitives (indexUtil.ts) are tested elsewhere; what lives here is the glue
@@ -48,8 +48,9 @@ vi.mock('../src/renderer/api', () => ({
   },
 }));
 
-import { splitSelectedFile, joinSelectedFiles, createAttachmentFileOp } from '../src/renderer/fileOpsUtil';
-import { clearAllSelections, setPendingEditFile, setPendingScrollToFile, getCurrentPath, getHasIndexFile, setAppError } from '../src/store';
+import { splitSelectedFile, joinSelectedFiles, createAttachmentFileOp, pasteIntoFolder } from '../src/renderer/fileOpsUtil';
+import type { FileEntry } from '../src/global';
+import { clearAllSelections, clearAllCutItems, setPendingEditFile, setPendingScrollToFile, getCurrentPath, getHasIndexFile, setAppError } from '../src/store';
 import { refreshDirectory } from '../src/renderer/directoryLoader';
 import { api } from '../src/renderer/api';
 
@@ -329,5 +330,107 @@ describe('createAttachmentFileOp', () => {
     expect(setAppError).toHaveBeenCalledWith('disk full');
     expect(setPendingEditFile).not.toHaveBeenCalled();
     expect(refreshDirectory).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// pasteIntoFolder — positional paste into a document (insert bar paste button)
+// ---------------------------------------------------------------------------
+
+describe('pasteIntoFolder (positional paste into a document)', () => {
+  const cut = (path: string, name: string, isDirectory = false): [string, ItemData] =>
+    [path, { ...makeItem(path, name, isDirectory), isCut: true }];
+  const listing = (...names: string[]) => names.map((name) => ({ name, path: `/docs/${name}` }) as FileEntry);
+
+  beforeEach(() => {
+    seedFs({ '/src/b.md': 'B', '/src/a.md': 'A', '/src/a.md.attach': '' });
+  });
+
+  it('splices the moved items, in source document order, after the entry before the insert position', async () => {
+    vi.mocked(api.readIndexYaml).mockResolvedValue({
+      files: [{ name: 'a.md' }, { name: 'a.md.attach' }, { name: 'b.md' }],
+    });
+    const items = new Map([cut('/src/b.md', 'b.md'), cut('/src/a.md.attach', 'a.md.attach', true), cut('/src/a.md', 'a.md')]);
+
+    await pasteIntoFolder('/docs', items, 1, listing('intro.md', 'end.md'));
+
+    expect(api.readIndexYaml).toHaveBeenCalledWith('/src');
+    expect(vi.mocked(api.insertIntoIndexYaml).mock.calls).toEqual([
+      ['/docs', ['a.md', 'a.md.attach', 'b.md'], 'intro.md'],
+    ]);
+    // Destination reconcile runs only after the splice, or it would append the items at the end.
+    const destReconcile = vi.mocked(api.reconcileIndexedFiles).mock.calls.findIndex(([dir]) => dir === '/docs');
+    expect(vi.mocked(api.reconcileIndexedFiles).mock.invocationCallOrder[destReconcile]).toBeGreaterThan(
+      vi.mocked(api.insertIntoIndexYaml).mock.invocationCallOrder[0]!
+    );
+    expect(api.reconcileIndexedFiles).toHaveBeenCalledWith('/src', false);
+    expect(clearAllCutItems).toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
+  });
+
+  it('inserts at the top of the document for position 0', async () => {
+    const items = new Map([cut('/src/b.md', 'b.md')]);
+
+    await pasteIntoFolder('/docs', items, 0, listing('intro.md'));
+
+    expect(vi.mocked(api.insertIntoIndexYaml).mock.calls).toEqual([['/docs', ['b.md'], null]]);
+  });
+
+  it('leaves the index to the reconcile for a plain (non-positional) paste', async () => {
+    const items = new Map([cut('/src/b.md', 'b.md')]);
+
+    await pasteIntoFolder('/docs', items);
+
+    expect(api.readIndexYaml).not.toHaveBeenCalled();
+    expect(api.insertIntoIndexYaml).not.toHaveBeenCalled();
+    expect(api.reconcileIndexedFiles).toHaveBeenCalledWith('/docs', false);
+  });
+
+  it('reorders items cut from the same document instead of moving them on disk', async () => {
+    vi.mocked(api.readIndexYaml).mockResolvedValue({
+      files: [{ name: 'x.md' }, { name: 'y.md' }, { name: 'intro.md' }, { name: 'end.md' }],
+    });
+    const items = new Map([cut('/docs/y.md', 'y.md'), cut('/docs/x.md', 'x.md')]);
+
+    // The listing hides the cut items, so position 2 is after 'end.md'.
+    await pasteIntoFolder('/docs', items, 2, listing('intro.md', 'end.md'));
+
+    expect(api.renameFile).not.toHaveBeenCalled();
+    expect(api.reconcileIndexedFiles).not.toHaveBeenCalled();
+    expect(vi.mocked(api.insertIntoIndexYaml).mock.calls).toEqual([['/docs', ['x.md', 'y.md'], 'end.md']]);
+    expect(setAppError).not.toHaveBeenCalledWith(expect.stringMatching(/./));
+    expect(clearAllCutItems).toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
+  });
+
+  it('keeps same-document items cut when the reorder fails', async () => {
+    vi.mocked(api.insertIntoIndexYaml).mockResolvedValue({ success: false, error: 'disk full' });
+    const items = new Map([cut('/docs/x.md', 'x.md')]);
+
+    await pasteIntoFolder('/docs', items, 0, listing('intro.md'));
+
+    expect(setAppError).toHaveBeenCalledWith('Failed to move items in the index: disk full');
+    expect(clearAllCutItems).not.toHaveBeenCalled();
+    expect(refreshDirectory).not.toHaveBeenCalled();
+  });
+
+  it('still refuses a plain (toolbar) paste back into the same folder', async () => {
+    const items = new Map([cut('/docs/x.md', 'x.md')]);
+
+    await pasteIntoFolder('/docs', items);
+
+    expect(api.insertIntoIndexYaml).not.toHaveBeenCalled();
+    expect(setAppError).toHaveBeenCalledWith('Cannot paste. Cut items are already in this folder.');
+  });
+
+  it('reports an index splice failure and keeps the items cut', async () => {
+    vi.mocked(api.insertIntoIndexYaml).mockResolvedValue({ success: false, error: 'disk full' });
+    const items = new Map([cut('/src/b.md', 'b.md')]);
+
+    await pasteIntoFolder('/docs', items, 1, listing('intro.md'));
+
+    expect(setAppError).toHaveBeenCalledWith('Failed to update index after paste: disk full');
+    expect(clearAllCutItems).not.toHaveBeenCalled();
+    expect(refreshDirectory).toHaveBeenCalled();
   });
 });

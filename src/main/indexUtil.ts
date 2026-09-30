@@ -1352,11 +1352,19 @@ async function buildEntryForName(dirPath: string, name: string): Promise<IndexEn
 }
 
 /**
- * Inserts a new entry into the .INDEX.yaml files array at the position
- * immediately after insertAfterName (or at position 0 when null).
- * Existing entries and their id fields are preserved.
+ * Inserts one or more new entries into the .INDEX.yaml files array at the
+ * position immediately after insertAfterName (or at position 0 when null),
+ * keeping them contiguous and in the given order — so a multi-item paste lands
+ * as one block, shifting every later entry down by `newNames.length`, in a
+ * single locked write. Existing entries and their id fields are preserved.
  *
- * The new entry is seeded with identity up front (markdown id / non-markdown
+ * A name the index already lists is *moved* rather than duplicated: its old
+ * entry is taken out before the splice. That is what makes a cut-and-paste
+ * within one document a reorder (see `pasteIntoFolder`). Attach folders are
+ * then kept directly behind their files (reorderAttachFolders), as the other
+ * move operations do, so a file moved without its `.attach` folder takes it along.
+ *
+ * Each new entry is seeded with identity up front (markdown id / non-markdown
  * fingerprint) via buildEntryForName, so a rename of the just-inserted file is
  * tracked immediately rather than only after the next reconcile.
  *
@@ -1366,9 +1374,10 @@ async function buildEntryForName(dirPath: string, name: string): Promise<IndexEn
  */
 export async function insertIntoIndexYaml(
   dirPath: string,
-  newName: string,
+  newNames: string | readonly string[],
   insertAfterName: string | null,
 ): Promise<IndexMutationResult> {
+  const names = typeof newNames === 'string' ? [newNames] : newNames;
   // Serialized per-directory (withIndexLock) so a concurrent move/insert can't
   // read the pre-insert index and write it back, dropping this entry. See issue 013.
   return withIndexLock(dirPath, async () => {
@@ -1380,21 +1389,23 @@ export async function insertIntoIndexYaml(
         read.status === 'ok'
           ? read.data
           : { version: CURRENT_INDEX_VERSION, files: [], options: {} };
-      const files = indexYaml.files;
+      const moving = new Set(names);
+      const files = indexYaml.files.filter((f) => !moving.has(f.name));
 
-      const newEntry = await buildEntryForName(dirPath, newName);
+      const newEntries: IndexEntry[] = [];
+      for (const name of names) {
+        newEntries.push(await buildEntryForName(dirPath, name));
+      }
+      let at: number;
       if (insertAfterName === null) {
-        files.unshift(newEntry);
+        at = 0;
       } else {
         const idx = files.findIndex((f) => f.name === insertAfterName);
-        if (idx === -1) {
-          files.push(newEntry);
-        } else {
-          files.splice(idx + 1, 0, newEntry);
-        }
+        at = idx === -1 ? files.length : idx + 1;
       }
+      files.splice(at, 0, ...newEntries);
 
-      const newContent = dump({ ...indexYaml, files }, YAML_DUMP_OPTS);
+      const newContent = dump({ ...indexYaml, files: reorderAttachFolders(files) }, YAML_DUMP_OPTS);
       await writeFileAtomic(indexFilePath, newContent);
       return { success: true };
     } catch (err) {
