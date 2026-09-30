@@ -261,10 +261,6 @@ function App() {
     void api.quit();
   };
 
-  const handleNavigateToSearchResult = (folderPath: string, resultPath: string) => {
-    navigateToBrowserPath(folderPath, resultPath);
-  };
-
   const handleSearchHashtag = (hashtag: string, ctrlKey: boolean) => {
     if (!currentPath) return;
     // A plain click is a literal search: case-insensitive, substring (so #foo
@@ -358,7 +354,7 @@ function App() {
         {visitedViews.has('search-results') && (
           <div {...viewProps('search-results')}>
             <ErrorBoundary>
-              <SearchResultsView onNavigateToResult={handleNavigateToSearchResult} />
+              <SearchResultsView />
             </ErrorBoundary>
           </div>
         )}

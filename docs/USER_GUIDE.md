@@ -275,7 +275,7 @@ While you are writing, MkBrowser can show synonyms for the word your cursor is i
 
 The menu item appears only where the strip can actually be shown:
 
-- You must be editing a file that you opened **by itself** — either by clicking it in the **Index Tree** panel, or with **View File** in the file's menu. The strip is not shown for the inline editors in the normal folder listing.
+- You must be editing a file that you opened **by itself** — by clicking it in the **Index Tree** panel, by clicking it in the **Search Results** tab, or with **View File** in the file's menu. The strip is not shown for the inline editors in the normal folder listing.
 - The file must be prose (Markdown or text). Source-code files and read-only views don't offer it.
 
 **Using it.** Click a word, or just stop typing for a couple of seconds, and the synonyms for that word appear. Move the cursor to another word and the list follows along. There is nothing to press — the list refreshes on its own whenever you pause.
@@ -696,6 +696,7 @@ MkBrowser includes a powerful search feature to help you find content across you
         - **Wildcard**: Use `*` to match any characters (e.g., `intro*duction`); in file contents each `*` spans up to 25 characters. With the **File Names** target, the pattern must match the **whole** name, like a file glob: `*.md` finds names ending in `.md` (but not `notes.md.bak`), and `note-*` finds names starting with `note-`.
         - **Advanced**: Use custom predicate functions (see below). Note that Advanced expressions are evaluated against file **contents only** — they never match on file names.
     - **Recent Files**: Searches only the 500 most recently modified files. With **File Contents+Names**, those are the 500 newest `.md` and `.txt` files (plus images when **Search Image EXIF** is checked), and both the name and the contents matching happen within them — so other file types, like a `.pdf`, aren't matched by name while this option is on. With **File Names**, they are the 500 most recently modified files and folders of any type.
+4. Click **Search**. The matching files are listed in the **Search Results** tab. Click a file in the list to open it **by itself** in the Browse view (the same single-file view you get from clicking a file in the **Index Tree**), so you can step through the results one at a time. Clicking a folder result instead shows that folder in its parent's listing. The **Edit** button on a result opens the file by itself in the same way, with its editor already open.
 
 ## Advanced Search Predicates
 

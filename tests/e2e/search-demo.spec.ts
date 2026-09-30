@@ -139,13 +139,21 @@ Let's click on one of the results to jump directly to that file.`
 
     await demoClick(targetResult);
 
+    // A file result opens in single-file browsing, so BrowseView (and its
+    // 'browser-main-content') is swapped out for BrowseFile entirely — assert
+    // against the single-file pane, and that its sibling files are not shown.
+    const singleFile = mainWindow.getByTestId('browse-file-main-content');
+    await expect(singleFile.getByText('federalist-03-08.md').first()).toBeVisible({ timeout: 10000 });
+    await expect(singleFile.getByText('federalist-03-07.md')).toHaveCount(0);
+
     await mainWindow.waitForTimeout(500);
     await takeScreenshot(mainWindow, null, screenshotDir, step++, 'file-navigated');
     writeNarration(
       screenshotDir,
       step++,
       `MkBrowser has jumped directly to the federalist-03-08.md file.
-The file is now visible in the browser, highlighted so you can see exactly where it appears in its folder.
+The file is now displayed on its own in the browser, so you can read just that search result without the rest of its folder around it.
+Clicking a different search result shows that file on its own instead.
 This is how easy it is to search and navigate to specific content in MkBrowser.`
     );
 

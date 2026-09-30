@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { runOp } from '../../renderer/runOp';
 import { api } from '../../renderer/api';
 import MarkdownEntry from '../entries/MarkdownEntry';
@@ -10,8 +11,10 @@ import ThesaurusView from '../editor/ThesaurusView';
 import PathBreadcrumb from '../PathBreadcrumb';
 import AttachFolderContents from './AttachFolderContents';
 import {
+  clearPendingEditFile,
   navigateToBrowserPath,
   setCurrentPath,
+  setItemEditing,
   useAS,
 } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
@@ -119,6 +122,21 @@ function BrowseFile() {
   // stale the moment the user navigates elsewhere with a file still open for
   // editing.
   const editing = useAS(s => (entry ? (s.items.get(entry.path)?.editing ?? false) : false));
+
+  // Consume a pending edit aimed at this view's file (the search results' Edit
+  // button opens the file here and queues the edit). BrowseView's handler for
+  // the same request is unmounted while this view is showing, so it has to be
+  // handled here. It waits for the entry (not found yet while the file's folder
+  // is still loading), and only a request for this one file is consumed: any
+  // other (e.g. a new file in an .attach folder) is left for BrowseView, which
+  // decides whether to apply or drop it once the listing is back.
+  const entryPath = entry?.path ?? null;
+  const pendingEditFile = useAS(s => (s.pendingEditView === 'browser' ? s.pendingEditFile : null));
+  useEffect(() => {
+    if (!pendingEditFile || entryPath !== pendingEditFile) return;
+    setItemEditing(pendingEditFile, true);
+    clearPendingEditFile();
+  }, [pendingEditFile, entryPath]);
 
   // Is the editor currently maximized over the whole pane? This — not editing in
   // general — is what hides the header. Mirrors the entries' own `maximized`

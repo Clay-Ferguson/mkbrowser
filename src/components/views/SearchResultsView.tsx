@@ -8,6 +8,7 @@ import {
   setHighlightItem,
   setHighlightedSearchResult,
   navigateToBrowserPath,
+  setBrowseFile,
   setPendingEditFile,
   deleteItems,
   setFolderGraph,
@@ -29,14 +30,13 @@ import ConfirmDialog from '../dialogs/ConfirmDialog';
 import FileTypeIcon from '../FileTypeIcon';
 import { isMarkdownFile, isTextFile } from '../../shared/fileTypes';
 
-interface SearchResultsViewProps {
-  onNavigateToResult: (folderPath: string, resultPath: string) => void;
-}
-
 /**
  * Displays the results of the most recent folder search as a sorted list of
- * file cards. Each card shows the relative path and match count, and provides
- * Edit (navigate to browser and open the file for editing) and Delete buttons.
+ * file cards. Clicking a file card opens that file on its own in the Browse view
+ * (single-file mode, same as clicking a file in the index tree); clicking a
+ * folder card browses the folder's parent, scrolled to the folder. Each card
+ * shows the relative path and match count, and provides Edit (open the file
+ * on its own in the Browse view, for editing) and Delete buttons.
  * The results can also be rendered two other ways: as a folder graph via the
  * "Graph" button, and — for the subset of results that are calendar files —
  * on the Calendar tab via the "Calendar" button. The refresh button re-runs the
@@ -45,7 +45,7 @@ interface SearchResultsViewProps {
  * time, or modified time, and direction); when the result cap truncated them, the
  * header says "Showing N of M".
  */
-function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
+function SearchResultsView() {
   const searchResults = useAS(s => s.searchResults);
   const searchTotalMatches = useAS(s => s.searchTotalMatches);
   const searchQuery = useAS(s => s.searchQuery);
@@ -74,7 +74,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     xlarge: 'text-xl',
   }[fontSize];
 
-  const handleResultClick = (resultPath: string) => {
+  const handleResultClick = (resultPath: string, isDirectory: boolean) => {
     // Track this as the highlighted search result
     setHighlightedSearchResult({ path: resultPath });
 
@@ -84,7 +84,15 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     // Highlight the item in the browser view with purple border
     setHighlightItem(resultPath);
 
-    onNavigateToResult(folderPath, resultPath);
+    if (isDirectory) {
+      // A folder has no single-file view, so show it in its parent's listing.
+      navigateToBrowserPath(folderPath, resultPath);
+    } else {
+      // A file opens on its own (single-file mode, as from the index tree), so
+      // stepping through results shows just the one clicked each time — no
+      // scroll-to-file needed since it is the only thing on screen.
+      setBrowseFile(folderPath, getFileName(resultPath));
+    }
   };
 
   // A search has run (even one that found nothing, or a Recent Files search
@@ -115,11 +123,11 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
     // Extract the parent folder from the result path
     const folderPath = getParentPath(resultPath);
 
-    // Set highlight and navigate to browser view
+    // Set highlight and open the file on its own, as a plain click does
     setHighlightItem(resultPath);
-    navigateToBrowserPath(folderPath, resultPath);
+    setBrowseFile(folderPath, getFileName(resultPath));
 
-    // Set the pending edit so App.tsx will start editing after items load
+    // Queue the edit; BrowseFile starts it once the file's entry is loaded
     setPendingEditFile(resultPath);
   };
 
@@ -301,7 +309,7 @@ function SearchResultsView({ onNavigateToResult }: SearchResultsViewProps) {
               return (
               <div
                 key={result.path}
-                onClick={() => handleResultClick(result.path)}
+                onClick={() => handleResultClick(result.path, result.isDirectory === true)}
                 className={`bg-slate-800/50 hover:bg-slate-700/60 rounded-lg ${borderClass} px-2 py-1.5 transition-colors cursor-pointer`}
               >
                 <div className="flex items-center gap-2">
