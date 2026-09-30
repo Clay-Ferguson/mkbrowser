@@ -8,7 +8,7 @@ import {
   canDropInto,
   completeEntryDrop,
 } from '../renderer/dragAndDrop';
-import { BREADCRUMB_IDLE, BREADCRUMB_SEGMENT_IDLE, ENTRY_DROP_TARGET } from '../renderer/styles';
+import { BREADCRUMB_REVEAL_IDLE, BREADCRUMB_SEGMENT_IDLE, ENTRY_DROP_TARGET } from '../renderer/styles';
 import { joinPath, splitPathSegments, isPathInside } from '../renderer/pathUtil';
 import { reconcileAndRefresh } from '../renderer/indexOrderOp';
 import { logger } from '../shared/logUtil';
@@ -98,7 +98,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
           'p-2 border border-transparent rounded cursor-pointer flex-shrink-0 transition-colors',
           dragOverPath === normalizedRoot
             ? `text-white ${ENTRY_DROP_TARGET}`
-            : BREADCRUMB_IDLE,
+            : BREADCRUMB_SEGMENT_IDLE,
         )}
         aria-label={isAtRoot ? 'Refresh root folder' : 'Go to root folder'}
         aria-current={isAtRoot ? 'location' : undefined}
@@ -108,7 +108,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
       </button>
 
       {isAtRoot && (
-        <span className="text-slate-200 font-medium">/</span>
+        <span className="text-btn-accent-amber font-medium">/</span>
       )}
 
       {parts.map((part, index) => {
@@ -117,7 +117,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
         const isCurrent = index === parts.length - 1;
         return (
           <div key={segmentPath} className="flex items-center">
-            <span className="text-slate-200 mx-1">/</span>
+            <span className="text-btn-accent-amber mx-1">/</span>
 
             <button
               type="button"
@@ -147,7 +147,7 @@ function PathBreadcrumb({ rootPath, currentPath, onNavigate }: PathBreadcrumbPro
             setCurrentView('browser');
             setPendingIndexTreeReveal(currentPath);
           }}
-          className={`p-2 border border-transparent rounded cursor-pointer flex-shrink-0 transition-colors ${BREADCRUMB_IDLE}`}
+          className={`p-2 border border-transparent rounded cursor-pointer flex-shrink-0 transition-colors ${BREADCRUMB_REVEAL_IDLE}`}
           aria-label="Reveal in folder tree"
           title="Reveal in folder tree"
           data-testid="breadcrumb-reveal-tree-button"

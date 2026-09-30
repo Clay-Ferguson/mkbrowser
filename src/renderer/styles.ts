@@ -229,8 +229,8 @@ export const EDITOR_MENU_ITEM_DISABLED = `${EDITOR_MENU_ITEM_BASE} text-btn-labe
 // --- Path breadcrumb -----------------------------------------------------
 /** Resting colors for a breadcrumb button (the drag-over state swaps in
  *  ENTRY_DROP_TARGET instead, so these are the "not a drop target" half). */
-export const BREADCRUMB_IDLE = 'text-btn-ghost hover:bg-btn-ghost-bg hover:border-btn-border';
-export const BREADCRUMB_SEGMENT_IDLE = 'text-btn-neutral-fg hover:bg-btn-ghost-bg hover:border-btn-border';
+export const BREADCRUMB_REVEAL_IDLE = 'text-btn-accent-purple hover:bg-btn-ghost-bg hover:border-btn-border';
+export const BREADCRUMB_SEGMENT_IDLE = 'text-btn-accent-amber hover:bg-btn-ghost-bg hover:border-btn-border';
 
 // --- App tab bar ---------------------------------------------------------
 // `rounded-none`: a tab is marked by its bottom-border underline, which the base
