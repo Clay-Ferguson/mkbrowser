@@ -257,12 +257,17 @@ function TreeFileRow({
   // outline = the file itself. A highlighted *folder* keeps the solid
   // background — it is still a folder.
   const isHighlightedFile = isHighlighted && !node.isDirectory;
+  // The folder being browsed wears the same purple background as its
+  // ancestors plus a light gray border, so it stands out from them. (The
+  // drag-over highlight takes precedence and drops that border.)
+  const isCurrentFolder = relation === 'current' && !isDragOver;
 
-  // That border replaces the row's vertical padding rather than adding to
-  // it (2px a side either way), so the highlighted row is exactly as tall
-  // as every other row and the tree does not shift when the highlight
-  // moves.
-  let className = `flex items-center gap-1 ${isHighlightedFile ? 'py-0' : 'py-0.5'} whitespace-nowrap select-none`;
+  // Those borders replace the row's vertical padding rather than adding to
+  // it (2px a side either way), so a bordered row is exactly as tall as
+  // every other row and the tree does not shift when the highlight or the
+  // current folder moves.
+  const hasFullBorder = isHighlightedFile || isCurrentFolder;
+  let className = `flex items-center gap-1 ${hasFullBorder ? 'py-0' : 'py-0.5'} whitespace-nowrap select-none`;
   // The drop highlight replaces the row's normal colors rather than being
   // appended to them: every branch below carries a `hover:bg-…`, and a variant
   // beats a plain `bg-…` of equal specificity, so an appended drop background
@@ -275,10 +280,11 @@ function TreeFileRow({
     // `border-2` on all four sides, so no separate `border-l-2` here.
     className += ' text-white border-2 border-purple-500 hover:bg-slate-700 cursor-pointer';
   } //
-  else if (isHighlighted) {
-    className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
+  else if (isCurrentFolder) {
+    // `border-2` on all four sides, so no separate `border-l-2` here.
+    className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-2 border-slate-400 cursor-pointer';
   } //
-  else if (relation === 'current') {
+  else if (isHighlighted) {
     className += ' text-white bg-purple-700/50 hover:bg-purple-600/50 border-l-2 border-transparent cursor-pointer';
   } //
   else if (relation === 'ancestor') {
