@@ -4,7 +4,7 @@ import type { FileEntry } from "../global";
 import { logger } from '../shared/logUtil';
 import { readAiHint } from './ai/aiHint';
 import { readIndexYaml, compareByIndexOrder } from './indexUtil';
-import { ATTACH_SUFFIX } from '../shared/specialFiles';
+import { ATTACH_SUFFIX, INDEX_FILENAME } from '../shared/specialFiles';
 import { compareNames } from '../shared/fileTypes';
 import { mapWithConcurrency } from '../shared/asyncUtil';
 
@@ -153,3 +153,51 @@ export async function readDirectory(dirPath: string, aiEnabled: boolean): Promis
   return fileEntries;
 }
 
+
+/**
+ * What a folder holds on disk, read with none of {@link readDirectory}'s
+ * filtering — dotfiles and everything else the listing leaves out count.
+ * - `empty`: no entries at all
+ * - `indexOnly`: a regular file named .INDEX.yaml and nothing else — an empty
+ *   Document Mode folder
+ * - `hasContent`: anything else
+ */
+async function folderEmptiness(dirPath: string): Promise<'empty' | 'indexOnly' | 'hasContent'> {
+  const dir = await fs.promises.opendir(dirPath);
+  try {
+    const first = await dir.read();
+    if (first === null) return 'empty';
+    if (first.name !== INDEX_FILENAME || !first.isFile()) return 'hasContent';
+    return (await dir.read()) === null ? 'indexOnly' : 'hasContent';
+  } finally {
+    await dir.close();
+  }
+}
+
+/**
+ * True when the folder is empty on disk, or holds only its .INDEX.yaml (an
+ * empty Document Mode folder). Any other entry, hidden or not, makes it false.
+ */
+export async function isFolderEmpty(dirPath: string): Promise<boolean> {
+  return (await folderEmptiness(dirPath)) !== 'hasContent';
+}
+
+/**
+ * Permanently removes a folder, but only an empty one (see
+ * {@link isFolderEmpty}). A lone .INDEX.yaml is deleted first; the two steps
+ * are not atomic, so a failure of the second leaves the folder without its
+ * index. Two independent guards protect everything else: the unfiltered check
+ * here, and `rmdir` itself, which the OS rejects (ENOTEMPTY) for a folder that
+ * has content — so a file that appears between the check and the delete still
+ * cannot be lost. Never recursive.
+ */
+export async function deleteEmptyFolder(dirPath: string): Promise<void> {
+  const state = await folderEmptiness(dirPath);
+  if (state === 'hasContent') {
+    throw new Error('Folder is not empty');
+  }
+  if (state === 'indexOnly') {
+    await fs.promises.unlink(path.join(dirPath, INDEX_FILENAME));
+  }
+  await fs.promises.rmdir(dirPath);
+}

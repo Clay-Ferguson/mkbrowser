@@ -1,7 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
-import { FolderIcon } from '@heroicons/react/24/outline';
 import IndexInsertBar from '../IndexInsertBar';
 import BrowseEntryRow from './BrowseEntryRow';
+import EmptyFolderNotice from './EmptyFolderNotice';
 import { useAS, getCutPaths } from '../../store';
 import { isImageFile } from '../../shared/fileTypes';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
@@ -86,12 +86,7 @@ function BrowseEntryList({
   }
 
   if (sortedEntries.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <FolderIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
-        <p className="text-slate-400">This folder is empty</p>
-      </div>
-    );
+    return <EmptyFolderNotice />;
   }
 
   // Note: The 'div+div' stuff below is: Adjacent sibling divs overlap by 1px so neighboring borders collapse into a single line.

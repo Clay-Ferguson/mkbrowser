@@ -6,7 +6,7 @@ import { initConfig, getConfig, updateConfig, flushConfig } from './main/configM
 import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
-import { readDirectory } from './main/fileUtil';
+import { readDirectory, isFolderEmpty, deleteEmptyFolder } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
 import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml, withIndexLock, type IndexMutationResult } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
@@ -542,6 +542,37 @@ function setupIpcHandlers(): void {
     } catch (error) {
       logger.error('Error moving to trash:', error);
       return false;
+    }
+  });
+
+  // Whether a folder has nothing on disk beyond its own .INDEX.yaml
+  // (unfiltered — any other hidden file counts as content). False when the folder can't be read, so callers never treat an
+  // unreadable folder as safe to delete.
+  ipcMain.handle('is-folder-empty', async (_event, folderPath: string): Promise<boolean> => {
+    try {
+      return await isFolderEmpty(folderPath);
+    } catch (error) {
+      logger.error('Error checking whether folder is empty:', error);
+      return false;
+    }
+  });
+
+  // Permanently delete a folder that is empty on disk (a lone .INDEX.yaml is
+  // removed with it); fails for any folder that has content (see deleteEmptyFolder).
+  ipcMain.handle('delete-empty-folder', async (_event, folderPath: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await deleteEmptyFolder(folderPath);
+      return { success: true };
+    } catch (error) {
+      logger.error('Error deleting empty folder:', error);
+      const err = error as NodeJS.ErrnoException;
+      let errorMessage = err.message || 'Failed to delete folder';
+      if (err.code === 'ENOTEMPTY' || err.code === 'EEXIST') {
+        errorMessage = 'Folder is not empty';
+      } else if (err.code === 'EACCES' || err.code === 'EPERM') {
+        errorMessage = 'Permission denied';
+      }
+      return { success: false, error: errorMessage };
     }
   });
 

@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (filePath: string) => ipcRenderer.invoke('open-external', filePath),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   createFolder: (folderPath: string) => ipcRenderer.invoke('create-folder', folderPath),
+  isFolderEmpty: (folderPath: string) => ipcRenderer.invoke('is-folder-empty', folderPath),
+  deleteEmptyFolder: (folderPath: string) => ipcRenderer.invoke('delete-empty-folder', folderPath),
   searchFolder: (folderPath: string, definition: SearchDefinition) => ipcRenderer.invoke('search-folder', folderPath, definition),
   analyzeFolderHashtags: (folderPath: string) => ipcRenderer.invoke('analyze-folder-hashtags', folderPath),
   loadCalendarEvents: (folderPath: string) => ipcRenderer.invoke('load-calendar-events', folderPath),

@@ -419,6 +419,10 @@ export interface ElectronAPI {
   openExternal: (filePath: string) => Promise<boolean>;
   openExternalUrl: (url: string) => Promise<boolean>;
   createFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
+  /** True when the folder holds nothing on disk beyond its own .INDEX.yaml — unfiltered, so any other hidden file counts. False if it can't be read. */
+  isFolderEmpty: (folderPath: string) => Promise<boolean>;
+  /** Permanently removes a folder only if it is empty on disk (deleting a lone .INDEX.yaml first); fails (never recurses) otherwise. */
+  deleteEmptyFolder: (folderPath: string) => Promise<{ success: boolean; error?: string }>;
   searchFolder: (folderPath: string, definition: SearchDefinition) => Promise<SearchOutcome>;
   searchAndReplace: (folderPath: string, searchText: string, replaceText: string) => Promise<ReplaceResult[]>;
   analyzeFolderHashtags: (folderPath: string) => Promise<FolderAnalysisResult>;

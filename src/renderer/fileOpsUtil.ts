@@ -12,6 +12,7 @@ import {
   setPendingEditFile,
   setPendingExpandFile,
   setAppError,
+  setCurrentPath,
   getCurrentPath,
   getHasIndexFile,
 } from '../store';
@@ -287,6 +288,26 @@ export async function deleteSelected(
   }
 }
 
+
+/**
+ * Deletes the (empty) folder being browsed and navigates to its parent. The
+ * main process refuses any folder that has content on disk, hidden files
+ * included — a lone .INDEX.yaml is the one exception, removed along with the
+ * folder — so this can never remove user files the listing doesn't show.
+ */
+export async function deleteEmptyFolderOp(folderPath: string): Promise<void> {
+  const result = await api.deleteEmptyFolder(folderPath);
+  if (!result.success) {
+    setAppError(`Failed to delete folder: ${result.error ?? 'unknown error'}`);
+    return;
+  }
+  deleteItems([folderPath]);
+  // Only leave if the user is still in the folder that was deleted.
+  if (isSamePath(getCurrentPath(), folderPath)) {
+    setCurrentPath(getParentPath(folderPath));
+  }
+  refreshDirectory();
+}
 
 /**
  * Splices the files created by a split into the folder's .INDEX.yaml so they sit

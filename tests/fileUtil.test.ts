@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readDirectory } from '../src/main/fileUtil';
-import { ATTACH_SUFFIX } from '../src/shared/specialFiles';
+import { readDirectory, isFolderEmpty, deleteEmptyFolder } from '../src/main/fileUtil';
+import { ATTACH_SUFFIX, INDEX_FILENAME } from '../src/shared/specialFiles';
 
 let tmpDir: string;
 
@@ -85,4 +85,84 @@ describe('readDirectory I/O fan-out', () => {
     // in indexUtil.ts). Unbounded Promise.all would peak at ~fileCount here.
     expect(peak).toBeLessThanOrEqual(32);
   }, 15000);
+});
+
+describe('isFolderEmpty', () => {
+  it('is true for a folder with no entries', async () => {
+    expect(await isFolderEmpty(tmpDir)).toBe(true);
+  });
+
+  it('counts hidden files, which readDirectory leaves out of the listing', async () => {
+    fs.writeFileSync(path.join(tmpDir, '.secret'), '', 'utf8');
+    expect(await readDirectory(tmpDir, false)).toEqual([]);
+    expect(await isFolderEmpty(tmpDir)).toBe(false);
+  });
+
+  it('treats a folder holding only .INDEX.yaml as empty', async () => {
+    fs.writeFileSync(path.join(tmpDir, INDEX_FILENAME), 'files: []', 'utf8');
+    expect(await isFolderEmpty(tmpDir)).toBe(true);
+  });
+
+  it('is false when .INDEX.yaml sits beside any other entry', async () => {
+    fs.writeFileSync(path.join(tmpDir, INDEX_FILENAME), '', 'utf8');
+    fs.writeFileSync(path.join(tmpDir, '.secret'), '', 'utf8');
+    expect(await isFolderEmpty(tmpDir)).toBe(false);
+  });
+
+  it('is false when .INDEX.yaml is a directory rather than a file', async () => {
+    fs.mkdirSync(path.join(tmpDir, INDEX_FILENAME));
+    expect(await isFolderEmpty(tmpDir)).toBe(false);
+  });
+
+  it('counts an empty subfolder as content', async () => {
+    fs.mkdirSync(path.join(tmpDir, 'sub'));
+    expect(await isFolderEmpty(tmpDir)).toBe(false);
+  });
+
+  it('rejects for a missing folder', async () => {
+    await expect(isFolderEmpty(path.join(tmpDir, 'nope'))).rejects.toThrow();
+  });
+});
+
+describe('deleteEmptyFolder', () => {
+  it('removes an empty folder', async () => {
+    const target = path.join(tmpDir, 'empty');
+    fs.mkdirSync(target);
+    await deleteEmptyFolder(target);
+    expect(fs.existsSync(target)).toBe(false);
+  });
+
+  it('removes a folder holding only .INDEX.yaml', async () => {
+    const target = path.join(tmpDir, 'doc');
+    fs.mkdirSync(target);
+    fs.writeFileSync(path.join(target, INDEX_FILENAME), 'files: []', 'utf8');
+    await deleteEmptyFolder(target);
+    expect(fs.existsSync(target)).toBe(false);
+  });
+
+  it('refuses a folder with .INDEX.yaml plus another file, leaving both intact', async () => {
+    const target = path.join(tmpDir, 'doc');
+    fs.mkdirSync(target);
+    fs.writeFileSync(path.join(target, INDEX_FILENAME), 'files: []', 'utf8');
+    fs.writeFileSync(path.join(target, 'note.md'), 'keep me', 'utf8');
+    await expect(deleteEmptyFolder(target)).rejects.toThrow('Folder is not empty');
+    expect(fs.readdirSync(target).sort()).toEqual([INDEX_FILENAME, 'note.md']);
+  });
+
+  it('refuses a folder holding only a hidden file, and leaves it intact', async () => {
+    const target = path.join(tmpDir, 'hidden');
+    fs.mkdirSync(target);
+    fs.writeFileSync(path.join(target, '.secret'), 'keep me', 'utf8');
+    await expect(deleteEmptyFolder(target)).rejects.toThrow('Folder is not empty');
+    expect(fs.readFileSync(path.join(target, '.secret'), 'utf8')).toBe('keep me');
+  });
+
+  it('still fails at the OS level if the emptiness check is bypassed', async () => {
+    // The second guard on its own: rmdir never removes a folder with content.
+    const target = path.join(tmpDir, 'full');
+    fs.mkdirSync(target);
+    fs.writeFileSync(path.join(target, 'note.md'), 'keep me', 'utf8');
+    await expect(fs.promises.rmdir(target)).rejects.toMatchObject({ code: 'ENOTEMPTY' });
+    expect(fs.existsSync(path.join(target, 'note.md'))).toBe(true);
+  });
 });
