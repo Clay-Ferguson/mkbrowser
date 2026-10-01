@@ -112,14 +112,14 @@ function ImageEntry(props: ImageEntryProps) {
         }
       >
         {/* Expanded image content */}
-        <div className="px-4 pb-4">
-          <div className="bg-slate-900 rounded-lg p-4 flex items-center justify-center">
+        <div className="p-2">
+          <div className="bg-slate-900 rounded-lg flex items-center justify-center">
             <div className="relative inline-block">
               <img
                 src={imageUrl}
                 alt={entry.name}
                 className={clsx(
-                  'max-w-full object-contain rounded cursor-pointer hover:opacity-90 transition-opacity',
+                  'max-w-full object-contain border border-slate-300 cursor-pointer hover:opacity-90 transition-opacity',
                   IMAGE_SIZE_CLASSES[imageSize],
                 )}
                 loading="lazy"

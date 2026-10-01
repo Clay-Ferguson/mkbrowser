@@ -3,10 +3,10 @@ import type { ImageCols } from '../../shared/types';
 import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
 
 const IMAGE_COLS_OPTIONS: { value: ImageCols; label: string }[] = [
-  { value: 1, label: '1 Column' },
-  { value: 2, label: '2 Columns' },
-  { value: 3, label: '3 Columns' },
-  { value: 4, label: '4 Columns' },
+  { value: 1, label: '1 Img Column' },
+  { value: 2, label: '2 Img Columns' },
+  { value: 3, label: '3 Img Columns' },
+  { value: 4, label: '4 Img Columns' },
 ];
 
 interface ImageColsPopupMenuProps {

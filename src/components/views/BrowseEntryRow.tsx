@@ -127,7 +127,7 @@ function BrowseEntryRow({
         />
       )}
       {attachmentsHidden && (
-        <span className="absolute bottom-2 right-3 text-xs text-slate-500 pointer-events-none">
+        <span className="absolute bottom-2 right-2 px-1.5 rounded bg-slate-900/80 text-xs text-slate-400 pointer-events-none">
           Attachments Hidden
         </span>
       )}
