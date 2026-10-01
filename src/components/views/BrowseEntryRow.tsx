@@ -12,6 +12,7 @@ import AttachFolderContents from './AttachFolderContents';
 import { useAS } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
+import { BUTTON_CLASS_LINK_AMBER } from '../../renderer/styles';
 
 interface BrowseEntryRowProps {
   entry: FileEntry;
@@ -35,9 +36,10 @@ interface BrowseEntryRowProps {
   spanFull: boolean;
   /**
    * Image grid active and this image owns an attach folder, which the grid
-   * doesn't render: show an "Attachments Hidden" note in the cell's corner.
+   * doesn't render: that folder's path, for the "Attachments" link below
+   * the image that browses into it. Null for every other row.
    */
-  attachmentsHidden: boolean;
+  hiddenAttachPath: string | null;
   allImages: FileEntry[];
   onNavigate: (path: string) => void;
   onRename: () => void;
@@ -66,7 +68,7 @@ interface BrowseEntryRowProps {
  * props, and memo() (below) skips rows whose props didn't change.
  */
 function BrowseEntryRow({
-  entry, index, isFirst, isLast, hasIndexFile, ownerPath, showInsertBarAfter, showPasteHere, spanFull, attachmentsHidden, allImages,
+  entry, index, isFirst, isLast, hasIndexFile, ownerPath, showInsertBarAfter, showPasteHere, spanFull, hiddenAttachPath, allImages,
   onNavigate, onRename, onDelete, onPasteIntoFolder,
   onPasteAsAttachment, onPasteClipboardAsAttachment, onAttachFromFile, onCreateAttachment,
   onMoveEntry, onMoveEntryToEdge, onInsertFileAt, onInsertFolderAt, onPasteAt,
@@ -88,7 +90,7 @@ function BrowseEntryRow({
   const attachMenuHandlers = { onPasteClipboardAsAttachment, onAttachFromFile, onCreateAttachment };
 
   return (
-    <div className={spanFull ? 'col-span-full' : attachmentsHidden ? 'relative' : undefined}>
+    <div className={spanFull ? 'col-span-full' : undefined}>
       <ErrorBoundary label={entry.name} resetKeys={[entry.modifiedTime]}>
         {entry.isDirectory ? (
           <>
@@ -126,10 +128,17 @@ function BrowseEntryRow({
           onPaste={showPasteHere ? () => onPasteAt(index + 1) : undefined}
         />
       )}
-      {attachmentsHidden && (
-        <span className="absolute bottom-2 right-2 px-1.5 rounded bg-slate-900/80 text-xs text-slate-400 pointer-events-none">
-          Attachments Hidden
-        </span>
+      {hiddenAttachPath !== null && (
+        <div className="flex justify-end px-1">
+          <button
+            type="button"
+            onClick={() => onNavigate(hiddenAttachPath)}
+            className={`${BUTTON_CLASS_LINK_AMBER} text-xs`}
+            title="Browse into this image's attachments folder"
+          >
+            Attachments
+          </button>
+        </div>
       )}
     </div>
   );
@@ -137,7 +146,7 @@ function BrowseEntryRow({
 
 // memo() is justified under the DEVELOPER_GUIDE rule (one per row of a large
 // .map() list) because every prop is stable: `entry` keeps its identity until
-// the listing reloads, the flags (including `spanFull` and `attachmentsHidden`) are primitives, `allImages` is a shared
+// the listing reloads, the flags (including `spanFull` and `hiddenAttachPath`) are primitives, `allImages` is a shared
 // constant on every non-image row (see BrowseEntryList), and every handler is compiled in BrowseView/App on inputs that
 // change only on navigation or a listing change. So a BrowseView render for
 // anything else (selection summary, menus, dialogs) skips every row.

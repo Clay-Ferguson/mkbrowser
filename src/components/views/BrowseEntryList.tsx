@@ -117,12 +117,12 @@ function BrowseEntryList({
         const isImage = !entry.isDirectory && isImageFile(entry.name);
         // In the grid, an image's attach folder would be a full-width row that
         // breaks the image run (and, even collapsed, an empty wrapper that still
-        // takes a grid cell), so it isn't rendered; the image notes it instead.
+        // takes a grid cell), so it isn't rendered; the image links to it instead.
         if (gridActive && isOwnedAttach && prevEntry && !prevEntry.isDirectory && isImageFile(prevEntry.name)) {
           return null;
         }
         const nextEntry = sortedEntries[idx + 1];
-        const attachmentsHidden = gridActive && isImage && nextEntry?.name === `${entry.name}${ATTACH_SUFFIX}`;
+        const hiddenAttachPath = gridActive && isImage && nextEntry?.name === `${entry.name}${ATTACH_SUFFIX}` ? nextEntry.path : null;
         return (
           <BrowseEntryRow
             key={entry.path}
@@ -135,7 +135,7 @@ function BrowseEntryList({
             showInsertBarAfter={hasIndexFile && !nextEntry?.name.endsWith(ATTACH_SUFFIX)}
             showPasteHere={showPasteHere}
             spanFull={gridActive && !isImage}
-            attachmentsHidden={attachmentsHidden}
+            hiddenAttachPath={hiddenAttachPath}
             allImages={isImage ? allImages : NO_IMAGES}
             onNavigate={onNavigate}
             onRename={onRename}
