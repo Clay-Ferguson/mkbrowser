@@ -3,13 +3,14 @@ import { useShallow } from 'zustand/react/shallow';
 import {
   MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon,
   WrenchIcon, Squares2X2Icon, BarsArrowDownIcon,
-  FolderPlusIcon, DocumentPlusIcon, CalendarDaysIcon,
+  FolderPlusIcon, DocumentPlusIcon, CalendarDaysIcon, ViewColumnsIcon,
 } from '@heroicons/react/24/outline';
 import { runOp } from '../../renderer/runOp';
 import ToolsPopupMenu from '../menus/ToolsPopupMenu';
 import EditPopupMenu from '../menus/EditPopupMenu';
 import SearchPopupMenu from '../menus/SearchPopupMenu';
 import SortPopupMenu from '../menus/SortPopupMenu';
+import ImageColsPopupMenu from '../menus/ImageColsPopupMenu';
 import PathBreadcrumb from '../PathBreadcrumb';
 import {
   clearAllSelections,
@@ -21,6 +22,7 @@ import {
   setCurrentPath,
   setCurrentView,
   setSortOrder,
+  setImageCols,
   useExpansionCounts,
   setSelectedLinkItems,
   useAS,
@@ -39,7 +41,7 @@ import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 import type { BrowseOverlay } from './browseOverlay';
 import { getSelectedItems } from './browseListing';
 
-type MenuKind = 'tools' | 'edit' | 'search' | 'sort';
+type MenuKind = 'tools' | 'edit' | 'search' | 'sort' | 'imageCols';
 
 /**
  * Every selection/cut flag the toolbar renders, in a single pass over the item
@@ -82,7 +84,7 @@ interface BrowseToolbarProps {
 /**
  * BrowseView's header: the breadcrumbs on the left, and on the right the
  * action buttons (cut/delete/paste, create, calendar, expand/collapse) plus
- * the Edit, Tools, Sort and Search menus. Refreshing is done by clicking the
+ * the Edit, Tools, Sort, Image columns and Search menus. Refreshing is done by clicking the
  * current folder's breadcrumb (see PathBreadcrumb).
  *
  * The menus' open state lives here, next to the buttons they anchor to. The
@@ -96,6 +98,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
   const currentPath = useAS(s => s.currentPath);
   const hasIndexFile = useAS(s => s.hasIndexFile);
   const sortOrder = useAS(s => s.settings.sortOrder);
+  const imageCols = useAS(s => s.settings.imageCols);
   const searchDefinitions = useAS(s => s.settings.searchDefinitions);
   const expansionCounts = useExpansionCounts();
   const { selectedCount, selectedFileCount, hasSelectedFolders, hasCutItems } =
@@ -110,6 +113,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const sortButtonRef = useRef<HTMLButtonElement>(null);
+  const imageColsButtonRef = useRef<HTMLButtonElement>(null);
 
   // A second click on a menu's own button closes it (PopupMenu ignores
   // mousedowns on its anchor, so only this click sees it). Clicking another
@@ -176,6 +180,11 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
 
   const handleSelectSortOrder = (order: Parameters<typeof setSortOrder>[0]) => {
     setSortOrder(order);
+    saveSettings();
+  };
+
+  const handleSelectImageCols = (cols: Parameters<typeof setImageCols>[0]) => {
+    setImageCols(cols);
     saveSettings();
   };
 
@@ -325,6 +334,18 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
             <BarsArrowDownIcon className="w-6 h-6" />
           </button>)}
 
+          {/* Image columns menu button — always shown; its items are disabled in Document Mode */}
+          <button
+            type="button"
+            ref={imageColsButtonRef}
+            onClick={() => toggleMenu('imageCols')}
+            className={BUTTON_CLASS_TB_NORMAL}
+            title="Image columns"
+            data-testid="image-cols-menu-button"
+          >
+            <ViewColumnsIcon className="w-6 h-6" />
+          </button>
+
           {/* Search button */}
           <button
             type="button"
@@ -372,6 +393,16 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
           onClose={() => closeMenu('sort')}
           currentSortOrder={sortOrder}
           onSelectSortOrder={handleSelectSortOrder}
+        />
+      )}
+
+      {openMenu === 'imageCols' && (
+        <ImageColsPopupMenu
+          anchorRef={imageColsButtonRef}
+          onClose={() => closeMenu('imageCols')}
+          currentImageCols={imageCols}
+          onSelectImageCols={handleSelectImageCols}
+          disabled={hasIndexFile}
         />
       )}
 

@@ -42,6 +42,7 @@ export type StoreGet = () => StoreState;
 export const defaultSettings: AppSettings = {
   fontSize: 'medium',
   sortOrder: 'alphabetical',
+  imageCols: 1,
   foldersOnTop: true,
   showToc: true,
   ignoredPaths: '',

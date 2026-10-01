@@ -1,6 +1,7 @@
 import type {
   FontSize,
   SortOrder,
+  ImageCols,
   ContentWidth,
   IndexTreeWidth,
   SearchTarget,
@@ -222,6 +223,7 @@ export interface SearchResultItem {
 export type {
   FontSize,
   SortOrder,
+  ImageCols,
   ContentWidth,
   IndexTreeWidth,
   SearchTarget,

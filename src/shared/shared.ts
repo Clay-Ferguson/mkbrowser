@@ -7,6 +7,9 @@ export type ImageSize = 'small' | 'medium' | 'large';
 /** Default `AppSettings.imageSize`, also the fallback for an unrecognized persisted value. */
 export const DEFAULT_IMAGE_SIZE: ImageSize = 'medium';
 export type SortOrder = 'alphabetical' | 'created-chron' | 'created-reverse' | 'modified-chron' | 'modified-reverse';
+
+/** Number of grid columns image entries are laid out in, in the folder listing. */
+export type ImageCols = 1 | 2 | 3 | 4;
 export type ContentWidth = 'narrow' | 'medium' | 'wide' | 'full';
 /** Folder tree sidebar visibility and width options. */
 export type IndexTreeWidth = 'hidden' | 'narrow' | 'medium' | 'wide';
@@ -112,6 +115,12 @@ export interface Bookmark {
 export interface AppSettings {
   fontSize: FontSize;
   sortOrder: SortOrder;
+  /**
+   * Columns for image entries in the folder listing: consecutive images flow
+   * side by side, up to this many per row, while every other entry keeps its
+   * full-width row. 1 is the plain single-column listing. Ignored in Document Mode.
+   */
+  imageCols: ImageCols;
   foldersOnTop: boolean;
   showToc: boolean;
   /** Newline-separated list of folder/file names to ignore in search. */

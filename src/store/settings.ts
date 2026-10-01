@@ -1,4 +1,4 @@
-import type { AppSettings, FontSize, SortOrder, ContentWidth, IndexTreeWidth } from '../shared/types';
+import type { AppSettings, FontSize, SortOrder, ImageCols, ContentWidth, IndexTreeWidth } from '../shared/types';
 import type { ImageSize } from '../shared/shared';
 import { getState, defaultSettings } from './core';
 import type { StoreSet, StoreGet } from './core';
@@ -17,6 +17,7 @@ export interface SettingsSlice {
   setSettings: (settings: AppSettings) => void;
   setFontSize: (fontSize: FontSize) => void;
   setSortOrder: (sortOrder: SortOrder) => void;
+  setImageCols: (imageCols: ImageCols) => void;
   setFoldersOnTop: (foldersOnTop: boolean) => void;
   setShowToc: (showToc: boolean) => void;
   setShowPropsInEditor: (showPropsInEditor: boolean) => void;
@@ -56,6 +57,9 @@ export function createSettingsSlice(set: StoreSet, get: StoreGet): SettingsSlice
 
     /** Update the sort order setting. */
     setSortOrder: (sortOrder) => patchSettings('sortOrder', sortOrder),
+
+    /** Update the image grid column count. */
+    setImageCols: (imageCols) => patchSettings('imageCols', imageCols),
 
     /** Update the folders on top setting. */
     setFoldersOnTop: (foldersOnTop) => patchSettings('foldersOnTop', foldersOnTop),
@@ -183,6 +187,10 @@ export function setFontSize(fontSize: FontSize): void {
 
 export function setSortOrder(sortOrder: SortOrder): void {
   getState().setSortOrder(sortOrder);
+}
+
+export function setImageCols(imageCols: ImageCols): void {
+  getState().setImageCols(imageCols);
 }
 
 export function setFoldersOnTop(foldersOnTop: boolean): void {

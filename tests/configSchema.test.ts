@@ -376,3 +376,22 @@ describe('parseConfigYaml — showPropsInEditor default', () => {
     expect(cfg?.settings?.showPropsInEditor).toBe(defaultSettings.showPropsInEditor);
   });
 });
+
+describe('parseConfigYaml — imageCols', () => {
+  it('defaults to 1 when imageCols is absent', () => {
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: {} });
+    expect(cfg?.settings?.imageCols).toBe(1);
+  });
+
+  it('falls back to 1 for an out-of-range, non-integer, or non-numeric imageCols', () => {
+    for (const bad of [0, 5, 2.5, '3', null, true]) {
+      const cfg = parseConfigYaml({ browseFolder: '/x', settings: { imageCols: bad } });
+      expect(cfg?.settings?.imageCols).toBe(1);
+    }
+  });
+
+  it('preserves a valid imageCols', () => {
+    const cfg = parseConfigYaml({ browseFolder: '/x', settings: { imageCols: 3 } });
+    expect(cfg?.settings?.imageCols).toBe(3);
+  });
+});

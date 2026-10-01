@@ -31,6 +31,13 @@ interface BrowseEntryRowProps {
   showInsertBarAfter: boolean;
   /** Include the paste button in that IndexInsertBar (items are cut and can be pasted here). */
   showPasteHere: boolean;
+  /** Image grid active and this is not an image: the row spans every grid column. */
+  spanFull: boolean;
+  /**
+   * Image grid active and this image owns an attach folder, which the grid
+   * doesn't render: show an "Attachments Hidden" note in the cell's corner.
+   */
+  attachmentsHidden: boolean;
   allImages: FileEntry[];
   onNavigate: (path: string) => void;
   onRename: () => void;
@@ -59,7 +66,7 @@ interface BrowseEntryRowProps {
  * props, and memo() (below) skips rows whose props didn't change.
  */
 function BrowseEntryRow({
-  entry, index, isFirst, isLast, hasIndexFile, ownerPath, showInsertBarAfter, showPasteHere, allImages,
+  entry, index, isFirst, isLast, hasIndexFile, ownerPath, showInsertBarAfter, showPasteHere, spanFull, attachmentsHidden, allImages,
   onNavigate, onRename, onDelete, onPasteIntoFolder,
   onPasteAsAttachment, onPasteClipboardAsAttachment, onAttachFromFile, onCreateAttachment,
   onMoveEntry, onMoveEntryToEdge, onInsertFileAt, onInsertFolderAt, onPasteAt,
@@ -81,7 +88,7 @@ function BrowseEntryRow({
   const attachMenuHandlers = { onPasteClipboardAsAttachment, onAttachFromFile, onCreateAttachment };
 
   return (
-    <div>
+    <div className={spanFull ? 'col-span-full' : attachmentsHidden ? 'relative' : undefined}>
       <ErrorBoundary label={entry.name} resetKeys={[entry.modifiedTime]}>
         {entry.isDirectory ? (
           <>
@@ -119,13 +126,18 @@ function BrowseEntryRow({
           onPaste={showPasteHere ? () => onPasteAt(index + 1) : undefined}
         />
       )}
+      {attachmentsHidden && (
+        <span className="absolute bottom-2 right-3 text-xs text-slate-500 pointer-events-none">
+          Attachments Hidden
+        </span>
+      )}
     </div>
   );
 }
 
 // memo() is justified under the DEVELOPER_GUIDE rule (one per row of a large
 // .map() list) because every prop is stable: `entry` keeps its identity until
-// the listing reloads, the flags are primitives, `allImages` is a shared
+// the listing reloads, the flags (including `spanFull` and `attachmentsHidden`) are primitives, `allImages` is a shared
 // constant on every non-image row (see BrowseEntryList), and every handler is compiled in BrowseView/App on inputs that
 // change only on navigation or a listing change. So a BrowseView render for
 // anything else (selection summary, menus, dialogs) skips every row.

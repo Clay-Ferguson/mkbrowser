@@ -34,6 +34,7 @@ import type { AIModelConfig, AppConfig, AppSettings } from '../shared/shared';
 export const defaultSettings: AppSettings = {
   fontSize: 'medium',
   sortOrder: 'alphabetical',
+  imageCols: 1,
   foldersOnTop: true,
   showToc: true,
   ignoredPaths: '',
@@ -182,6 +183,9 @@ const AppSettingsSchema = z
     sortOrder: z
       .enum(['alphabetical', 'created-chron', 'created-reverse', 'modified-chron', 'modified-reverse'])
       .catch(defaultSettings.sortOrder),
+    imageCols: z
+      .union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
+      .catch(defaultSettings.imageCols),
     foldersOnTop: z.boolean().catch(defaultSettings.foldersOnTop),
     showToc: z.boolean().catch(defaultSettings.showToc),
     ignoredPaths: z.string().catch(defaultSettings.ignoredPaths),
