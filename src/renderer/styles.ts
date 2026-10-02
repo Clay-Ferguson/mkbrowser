@@ -233,11 +233,22 @@ export const BREADCRUMB_REVEAL_IDLE = 'text-btn-accent-purple hover:bg-btn-ghost
 export const BREADCRUMB_SEGMENT_IDLE = 'text-btn-accent-amber hover:bg-btn-ghost-bg hover:border-btn-border';
 
 // --- App tab bar ---------------------------------------------------------
-// `rounded-none`: a tab is marked by its bottom-border underline, which the base
-// button radius would otherwise curl up at the ends.
-const TAB_BASE = 'flex items-center text-base font-medium transition-colors cursor-pointer border-b-4 rounded-none';
-export const TAB_BUTTON_ACTIVE = `${TAB_BASE} text-btn-label-hover border-btn-accent-blue`;
-export const TAB_BUTTON_IDLE = `${TAB_BASE} text-btn-ghost hover:text-btn-neutral-fg border-transparent`;
+// The tab shape is drawn by the shell (the div holding a tab's label and close
+// buttons): rounded top corners and a `tab-line` outline. Every shell hangs 1px
+// below the bar (`-mb-px`) so its bottom border lies exactly on the bar's own
+// bottom line. An idle tab just redraws that line; the active tab paints it in
+// `tab-active` (the content-area color), which erases the line under the tab and
+// leaves it open into the content below. `mt-2` keeps the rounded corners clear of
+// the window frame. Colors: the `tab-*` theme colors in index.css.
+export const TAB_BAR = 'flex items-center gap-3 px-2 bg-slate-800 border-b border-tab-line';
+/** Row of tab shells: its own tight gap, so tabs sit closer than the bar's other items. */
+export const TAB_LIST = 'self-stretch flex items-stretch gap-0.5';
+const TAB_SHELL = 'flex items-stretch mt-2 -mb-px rounded-t-lg border border-tab-line transition-colors';
+export const TAB_SHELL_ACTIVE = `${TAB_SHELL} bg-tab-active border-b-tab-active`;
+export const TAB_SHELL_IDLE = `${TAB_SHELL} hover:bg-slate-700/60`;
+const TAB_BASE = 'flex items-center pl-4 text-base font-medium transition-colors cursor-pointer';
+export const TAB_BUTTON_ACTIVE = `${TAB_BASE} text-btn-label-hover`;
+export const TAB_BUTTON_IDLE = `${TAB_BASE} text-btn-ghost hover:text-btn-neutral-fg`;
 
 // Stacking level for modal/popup layers (dialogs, popup menus, fullscreen
 // overlays, context menus). Z_MODAL must stay above CodeMirror's internal

@@ -6,7 +6,7 @@ import { getParentPath, isPathInside } from '../renderer/pathUtil';
 import appLogo from '../../public/icon-256.png';
 import FilePopupMenu from './menus/FilePopupMenu';
 import SystemPopupMenu from './menus/SystemPopupMenu';
-import { BUTTON_CLASS_BAR_NEUTRAL, BUTTON_CLASS_LINK_MUTED, BUTTON_CLASS_TB_NORMAL, BUTTON_CLASS_XS, TAB_BUTTON_ACTIVE, TAB_BUTTON_IDLE } from '../renderer/styles';
+import { BUTTON_CLASS_BAR_NEUTRAL, BUTTON_CLASS_LINK_MUTED, BUTTON_CLASS_TB_NORMAL, BUTTON_CLASS_XS, TAB_BAR, TAB_BUTTON_ACTIVE, TAB_BUTTON_IDLE, TAB_LIST, TAB_SHELL_ACTIVE, TAB_SHELL_IDLE } from '../renderer/styles';
 
 interface TabConfig {
   id: AppView;
@@ -98,7 +98,7 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
   const tabs = allTabs.filter((tab) => visibleIds.has(tab.id));
 
   return (
-    <nav data-testid="app-tab-buttons" className="flex items-center gap-3 px-2 bg-slate-800 border-b border-slate-600">
+    <nav data-testid="app-tab-buttons" className={TAB_BAR}>
       <button
         ref={logoRef}
         type="button"
@@ -138,33 +138,36 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
           }}
         />
       )}
-      {tabs.map((tab) => {
-        const onClose = tab.hasCloseButton === false ? undefined : closeHandlers[tab.id];
-        return (
-          <div key={tab.id} className="self-stretch flex items-stretch gap-1 border-r border-slate-400 pr-4">
-            <button
-              data-testid={`tab-button-${tab.id}`}
-              type="button"
-              onClick={() => setCurrentView(tab.id)}
-              className={currentView === tab.id ? TAB_BUTTON_ACTIVE : TAB_BUTTON_IDLE}
-            >
-              {tab.label}
-            </button>
-            {onClose && (
+      <div className={TAB_LIST}>
+        {tabs.map((tab) => {
+          const onClose = tab.hasCloseButton === false ? undefined : closeHandlers[tab.id];
+          const isActive = currentView === tab.id;
+          return (
+            <div key={tab.id} className={isActive ? TAB_SHELL_ACTIVE : TAB_SHELL_IDLE}>
               <button
+                data-testid={`tab-button-${tab.id}`}
                 type="button"
-                data-testid={`tab-close-${tab.id}`}
-                onClick={(e) => { e.stopPropagation(); onClose(); }}
-                className={`${BUTTON_CLASS_LINK_MUTED} mb-1 ml-1 text-2xl leading-none`}
-                aria-label={`Close ${tab.label} tab`}
-                title={`Close ${tab.label} tab`}
+                onClick={() => setCurrentView(tab.id)}
+                className={`${isActive ? TAB_BUTTON_ACTIVE : TAB_BUTTON_IDLE} ${onClose ? 'pr-1' : 'pr-4'}`}
               >
-                ×
+                {tab.label}
               </button>
-            )}
-          </div>
-        );
-      })}
+              {onClose && (
+                <button
+                  type="button"
+                  data-testid={`tab-close-${tab.id}`}
+                  onClick={(e) => { e.stopPropagation(); onClose(); }}
+                  className={`${BUTTON_CLASS_LINK_MUTED} mb-1 ml-1 mr-3 text-2xl leading-none`}
+                  aria-label={`Close ${tab.label} tab`}
+                  title={`Close ${tab.label} tab`}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
       <div className="ml-auto flex items-center gap-2">
         <button
           ref={systemMenuRef}

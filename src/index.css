@@ -102,6 +102,10 @@
   /* -- Scrim buttons floated over image content -- */
   --color-btn-scrim: rgb(0 0 0 / 0.5);
   --color-btn-scrim-hover: rgb(0 0 0 / 0.7);
+
+  /* -- App tab bar (shell classes in styles.ts) -- */
+  --color-tab-line: #64748b;          /* slate-500: tab outline + the bar's bottom line */
+  --color-tab-active: #0f172a;        /* slate-900: must match the view content background */
 }
 
 /* Base styling shared by EVERY <button> in the app (including ones that don't use a
