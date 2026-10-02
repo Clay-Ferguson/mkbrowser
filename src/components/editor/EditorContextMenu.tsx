@@ -110,7 +110,7 @@ export function EditorContextMenu({
       aria-label="Editor context menu"
       tabIndex={-1}
       onKeyDown={handleKeyDown}
-      className={`fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-1 ${Z_MODAL} min-w-[140px] focus:outline-none [&_button:focus]:outline-none [&_button:focus-visible]:bg-slate-700`}
+      className={`fixed bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-1 ${Z_MODAL} min-w-[140px] focus:outline-none [&_button:focus]:outline-none [&_button:focus-visible]:bg-slate-700`}
       style={{ left: position.left, top: position.top }}
       onClick={(e) => e.stopPropagation()}
     >

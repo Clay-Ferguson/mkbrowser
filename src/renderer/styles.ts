@@ -221,7 +221,7 @@ export const BUTTON_CLASS_ROW = `${BTN} w-full flex items-center justify-between
 export const BUTTON_CLASS_CHIP = `${BTN} px-2 py-0.5 shrink-0 rounded-md text-sm leading-5 whitespace-nowrap select-none bg-btn-chip text-btn-label-hover border border-btn-border hover:border-btn-border-hover`;
 
 // --- Editor context menu items -------------------------------------------
-const EDITOR_MENU_ITEM_BASE = 'w-full px-4 py-2 text-left text-sm transition-colors';
+const EDITOR_MENU_ITEM_BASE = 'w-full px-4 py-2 rounded text-left text-sm transition-colors';
 export const EDITOR_MENU_ITEM = `${EDITOR_MENU_ITEM_BASE} cursor-pointer text-btn-neutral-fg hover:bg-btn-menu-hover`;
 export const EDITOR_MENU_ITEM_ACCENT = `${EDITOR_MENU_ITEM_BASE} cursor-pointer text-btn-accent-blue hover:bg-btn-menu-hover`;
 export const EDITOR_MENU_ITEM_DISABLED = `${EDITOR_MENU_ITEM_BASE} text-btn-label-off cursor-not-allowed`;
