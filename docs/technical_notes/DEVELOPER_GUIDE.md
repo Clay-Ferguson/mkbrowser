@@ -51,6 +51,12 @@
   * [Stale render closures — consumers read the buffer at call time](#stale-render-closures--consumers-read-the-buffer-at-call-time)
   * [Roads not taken](#roads-not-taken)
   * [Editor rules of thumb (the short list)](#editor-rules-of-thumb-the-short-list)
+* [Typed Object Blocks (YAML → custom rendering)](#typed-object-blocks-yaml--custom-rendering)
+  * [What makes a block an object](#what-makes-a-block-an-object)
+  * [How it is wired](#how-it-is-wired)
+  * [Adding an object type](#adding-an-object-type)
+  * [Fenced blocks are literal — the preprocessing rule](#fenced-blocks-are-literal--the-preprocessing-rule)
+  * [Deliberately not done (yet)](#deliberately-not-done-yet)
 <!-- /TOC -->
 
 ## Overview
@@ -628,3 +634,84 @@ Design alternatives we considered (or that a future refactor might be tempted by
 - **Never dispatch content into the view from outside except through the `value` prop** (or the documented imperative handle methods). The sync effect is the one door for store → editor content, and it's the only place with the suppress/cancel/echo logic.
 - **Don't remove the `suppressOnChangeRef` bracket, the `cancelPendingOnChange` call, or the `lastDelivered` skip in the sync effect** without re-reading this section — each one closes a distinct data-loss or stale-overwrite race, and all three failure modes are timing-dependent and invisible in casual testing.
 - **Manual smoke test for any change here:** type a few characters and hit Ctrl-S in the same instant (then re-open the file); type and immediately click Save; type and immediately press Escape; accept an AI rewrite mid-typing. In all cases the final characters must never be lost.
+
+## Typed Object Blocks (YAML → custom rendering)
+
+A fenced `yaml` block in a markdown file can describe an *object* — structured data with a `type` — and the renderer shows it as a purpose-built card instead of as source code:
+
+````markdown
+```yaml
+type: person
+first_name: Clay
+last_name: Ferguson
+cell_phone: 555-123-4567
+email: clay@example.com
+address: |
+  1 Main St
+  Dallas, TX 75001
+```
+````
+
+The file stays plain, portable markdown: any other tool just sees a YAML code block. `person` is the first (and so far only) type.
+
+### What makes a block an object
+
+All of these must hold, otherwise the block renders exactly as it always has:
+
+1. The fence language is `yaml` or `yml`.
+2. The YAML parses, and the document is a single mapping (not a list, a scalar, or several `---` documents).
+3. The mapping has a non-empty string `type`.
+4. That `type` is registered (matched exactly — `Person` is not `person`).
+
+A block that passes all four is then checked against its type's shape, which gives three possible outcomes:
+
+| Outcome | Rendered as |
+|---|---|
+| Not an object (any of 1–4 fails) | The ordinary highlighted code block + copy button. |
+| Registered type, fields fit | The type's card. No code, no copy button. |
+| Registered type, fields don't fit | The ordinary code block, plus a small amber hint underneath: `Invalid person: address must be text`. |
+
+Malformed YAML is silently "not an object" rather than an error — a code block that doesn't parse is still a perfectly good code block. The hint is reserved for the case where the user clearly *meant* an object (they named a registered type) and would otherwise be left guessing why the card vanished.
+
+### How it is wired
+
+| File | Role |
+|---|---|
+| `src/shared/objects/objectBlock.ts` | Pure, React-free. `parseObjectBlock(language, code)` does checks 1–3; `readTextFields(data, keys)` reads optional text fields off the parsed mapping. |
+| `src/shared/objects/<type>.ts` | One file per type: its field list, data type, and `parse` (e.g. `person.ts` → `parsePerson`). Also pure. |
+| `src/components/objects/objectRegistry.tsx` | The `OBJECT_TYPES` map (`type` → parse + component) and `resolveObjectBlock(language, code)`, which returns `{kind: 'object', element}`, `{kind: 'invalid', error}`, or `null`. |
+| `src/components/objects/ObjectBlock.tsx` | The shared card frame (border, type caption, `ErrorBoundary`), and `InvalidObjectHint`. |
+| `src/components/objects/<Type>Object.tsx` | The type's card body (e.g. `PersonObject.tsx`). |
+| `src/components/CustomPre.tsx` | The one call site: calls `resolveObjectBlock` and picks the card, the code block + hint, or the code block. |
+
+Points worth knowing before changing any of it:
+
+- **The dispatch lives in `CustomPre`, not `CustomCode`.** `<pre>` owns the whole block — the wrapper and the copy button — so deciding there means the YAML is parsed once and the copy button is suppressed in the same place. (Mermaid is dispatched in `CustomCode`, which is why `CustomPre` has to re-derive `isMermaid` just to hide the button.) When the block is an object, `CustomPre` never renders its children, so `CustomCode` doesn't run for it at all.
+- **The registry is a static `Map`, not a runtime `register()` call.** Components must be module-level for the React Compiler (see § React Compiler), and a static map has no import-order side effects. It is a `Map` rather than an object literal because the key comes from the user's file: `type: toString` must not find `Object.prototype.toString`.
+- **`defineObjectType` erases the data type.** Each type has its own data shape `T`; `defineObjectType<T>` pairs `parse` with `Component` while `T` is known and hands back a `mapping → element` function, so the map can hold differently-shaped types with no casts.
+- **Validation is hand-written, not zod.** `zod` is deliberately kept out of the renderer bundle (see the note in `src/main/configSchema.ts`). For flat objects `readTextFields` is all a type needs.
+- **Field values are untrusted text.** They come from arbitrary markdown files, so render them as React text children — never through `dangerouslySetInnerHTML`. `tests/customPreObjectBlock.test.ts` pins that markup in a value is escaped.
+- **Cards have no mouse handlers.** A click falls through to the entry's content area and opens the editor, exactly as a click on a code block does. What a click *should* do is undecided; if a card ever gains interactive elements they must stop `mouseup` (not just `click`) from reaching the entry, as the copy button in `CustomPre` does.
+
+### Adding an object type
+
+1. **Shape** — add `src/shared/objects/<type>.ts` exporting the `type` name, the field list, the data type, and a `parse(data): ObjectParseResult<T>`. Use `readTextFields` for text fields; return `{ ok: false, error }` where `error` completes the sentence "Invalid \<type\>: …".
+2. **Component** — add `src/components/objects/<Type>Object.tsx`, a module-level component taking `{ data: T }`. It renders only the card *body*; `ObjectBlock` supplies the frame.
+3. **Register** — add one `[TYPE, defineObjectType({ parse, Component })]` entry to `OBJECT_TYPES` in `objectRegistry.tsx`.
+4. **Test** — cover the shape in `tests/objectBlock.test.ts` (or a sibling file) and add a registry case to `tests/objectRegistry.test.ts`.
+5. **Check** — `node compiler-coverage.mjs src/components/objects/<Type>Object.tsx` must report all `OK`.
+
+Nothing else changes: `CustomPre`, `ObjectBlock`, and the detection code are type-agnostic.
+
+### Fenced blocks are literal — the preprocessing rule
+
+Before parsing, `MarkdownView` runs three text passes over the raw document (`stripHtmlComments`, `preprocessMathEscapes`, `preprocessWikiLinks` in `src/shared/mkUtil.ts`). All three go through `replaceOutsideFences`, which leaves fenced code blocks byte-for-byte intact. Without that, the wikilink pass turned a YAML nested list `[[1, 2]]` (or a bash `[[ -f foo ]]`) into a markdown link *before* the block was parsed.
+
+**Any new preprocessing pass must also go through `replaceOutsideFences`.** A pass that rewrites the whole string will corrupt object data, and nothing downstream can detect it — the object block just receives altered text. Inline code spans (single backticks) are *not* protected; only fences are.
+
+### Deliberately not done (yet)
+
+- **HTML export** (`src/shared/exportMDtoHTML.ts`) is a separate string pipeline in the main process and cannot run React components. Exported files show object blocks as plain YAML code.
+- **User-defined types.** The intended direction is a user-configured template (a named field list) rendered by a built-in generic component — users never write code. `readTextFields` is already field-list-driven, so a template-backed type would be a new entry source for the registry, not a new mechanism.
+- **Lists of objects.** One object per block.
+- **Editing.** Objects are edited as YAML in CodeMirror like any other text. A form-style editor is a separate, undesigned feature.
