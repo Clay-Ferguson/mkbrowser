@@ -8,7 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import type { PersonData } from '../../shared/objects/person';
 import { api } from '../../renderer/api';
-import { buildMapUrl } from '../../renderer/mapUrl';
+import { buildEmailUrl, buildMapUrl } from '../../renderer/objectUrls';
 import { BUTTON_CLASS_LINK_BLUE } from '../../renderer/styles';
 
 interface PersonRowProps {
@@ -51,8 +51,8 @@ function PersonRow({ Icon, label, value, href }: PersonRowProps) {
 }
 
 /**
- * Card body for a `type: person` object block. The address links to a map; everything else is
- * plain text, and a click elsewhere on the card opens the editor.
+ * Card body for a `type: person` object block. The email links to a webmail compose page and the
+ * address to a map; everything else is plain text, and a click elsewhere opens the editor.
  */
 export default function PersonObject({ data }: { data: PersonData }) {
   const name = [data.first_name, data.last_name].filter(Boolean).join(' ');
@@ -69,7 +69,12 @@ export default function PersonObject({ data }: { data: PersonData }) {
       </div>
       <PersonRow Icon={DevicePhoneMobileIcon} label="Cell phone" value={data.cell_phone} />
       <PersonRow Icon={PhoneIcon} label="Other phone" value={data.other_phone} />
-      <PersonRow Icon={EnvelopeIcon} label="Email" value={data.email} />
+      <PersonRow
+        Icon={EnvelopeIcon}
+        label="Email"
+        value={data.email}
+        href={data.email ? buildEmailUrl(data.email) : undefined}
+      />
       <PersonRow
         Icon={MapPinIcon}
         label="Address"

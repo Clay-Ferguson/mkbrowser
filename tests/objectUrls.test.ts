@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildMapUrl, MAP_URL_TEMPLATE } from '../src/renderer/mapUrl';
+import { buildEmailUrl, buildMapUrl, MAP_URL_TEMPLATE } from '../src/renderer/objectUrls';
 
 describe('buildMapUrl', () => {
   it('encodes the address into the default Google Maps template', () => {
@@ -17,5 +17,13 @@ describe('buildMapUrl', () => {
 
   it('encodes characters that would break the URL', () => {
     expect(buildMapUrl('Apt #4 & Co', 'x?q={address}')).toBe('x?q=Apt%20%234%20%26%20Co');
+  });
+});
+
+describe('buildEmailUrl', () => {
+  it('fills the default Gmail compose template', () => {
+    expect(buildEmailUrl(' jane+work@example.com ')).toBe(
+      'https://mail.google.com/mail/?view=cm&fs=1&to=jane%2Bwork%40example.com',
+    );
   });
 });
