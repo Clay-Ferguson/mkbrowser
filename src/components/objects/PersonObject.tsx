@@ -36,8 +36,7 @@ export default function PersonObject({ data }: { data: PersonData }) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      {/* pr-16 keeps a long name clear of the card's type caption in the top-right corner. */}
-      <div className="flex items-center gap-2 pr-16">
+      <div className="flex items-center gap-2">
         <UserIcon className="h-5 w-5 shrink-0 text-sky-400" aria-hidden="true" />
         {name ? (
           <span className="min-w-0 break-words text-base font-semibold text-slate-100">{name}</span>

@@ -12,7 +12,7 @@ interface ObjectBlockProps {
 
 /**
  * The card every typed object block is rendered in: a bordered frame with the type name as a
- * caption, around the type's own component. `not-prose` keeps the Typography plugin's article
+ * caption line across the top, above the type's own component. `not-prose` keeps the Typography plugin's article
  * styles (paragraph margins, link colours, …) out of the card, so each type styles itself.
  *
  * Deliberately has no mouse handlers: a click falls through to the entry's content area, which
@@ -23,9 +23,11 @@ export default function ObjectBlock({ type, source, children }: ObjectBlockProps
     <div
       data-testid="object-block"
       data-object-type={type}
-      className="not-prose relative mb-4 w-fit max-w-full min-w-64 rounded-md border border-slate-600 bg-slate-800/60 px-4 py-3 text-slate-200"
+      className="not-prose mb-4 w-fit max-w-full min-w-64 rounded-md border border-slate-600 bg-slate-700/50 px-4 pt-2 pb-3 text-slate-200"
     >
-      <span className="absolute top-2 right-3 text-xs uppercase tracking-wide text-slate-500 select-none">{type}</span>
+      {/* On a row of its own, right-aligned, so it takes vertical space rather than horizontal:
+          the type's content below gets the card's full width and can never run under it. */}
+      <div className="mb-1 text-right text-xs leading-none uppercase tracking-wide text-slate-400 select-none">{type}</div>
       <ErrorBoundary label={`${type} object`} resetKeys={[source]}>
         {children}
       </ErrorBoundary>
