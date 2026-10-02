@@ -8,12 +8,19 @@ import { buildMarkdownLinks } from '../../renderer/linkUtil';
 import { saveSettings } from '../../renderer/config';
 import { useAS, setEnableThesaurus } from '../../store';
 import { wordAt, type SpellingSuggestion } from './spellChecker';
+import { OBJECT_TYPE_OPTIONS, objectTemplate } from '../objects/objectRegistry';
+import { objectInsertion } from '../../renderer/editor/editorObjectUtil';
 
 export interface ContextMenuState {
   visible: boolean;
   x: number;
   y: number;
   spelling?: SpellingSuggestion;
+  /**
+   * Set once "Insert Object" has been clicked: the menu then shows the list of object types
+   * in place of its normal items. Cleared whenever the menu is opened afresh.
+   */
+  submenu?: 'insertObject';
 }
 
 interface UseEditorContextMenuProps {
@@ -37,7 +44,8 @@ interface UseEditorContextMenuProps {
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
  * top of the menu. Also exposes save-in-place, cut/copy/paste, select-all, timestamp/date
- * insertion, the thesaurus on/off switch, and — for Markdown files — "Paste Link".
+ * insertion, the thesaurus on/off switch, and — for Markdown files — "Paste Link" and
+ * "Insert Object" (which swaps the menu for a list of the registered object types).
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
@@ -260,6 +268,24 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
     view.focus();
   };
 
+  // "Insert Object" — swaps the open menu's items for the list of object types. The menu stays
+  // where it is; only its content changes.
+  const handleOpenInsertObject = () => {
+    setContextMenu(prev => ({ ...prev, submenu: 'insertObject' }));
+  };
+
+  // Inserts an empty block of the picked type at the cursor and leaves the cursor on its
+  // first field.
+  const handleInsertObject = (type: string) => {
+    const view = viewRef.current;
+    const template = objectTemplate(type);
+    if (!view || !template) return;
+
+    view.dispatch(objectInsertion(view.state, template));
+    closeContextMenu();
+    view.focus();
+  };
+
   // The thesaurus master switch (`settings.enableThesaurus`). It lives here rather than in
   // the strip itself so that "off" can mean the strip renders nothing at all — a checkbox
   // inside it would have to keep a row of chrome on screen to stay clickable.
@@ -319,6 +345,9 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
     handleSpellingSuggestion,
     handleInsertTimestamp,
     handleInsertDate,
+    handleOpenInsertObject,
+    handleInsertObject,
+    objectTypes: OBJECT_TYPE_OPTIONS,
     handleToggleThesaurus,
     canToggleThesaurus: thesaurusCapable && singleFileMode,
     thesaurusEnabled,

@@ -55,6 +55,7 @@
   * [What makes a block an object](#what-makes-a-block-an-object)
   * [How it is wired](#how-it-is-wired)
   * [Adding an object type](#adding-an-object-type)
+  * [Editing objects](#editing-objects)
   * [Fenced blocks are literal — the preprocessing rule](#fenced-blocks-are-literal--the-preprocessing-rule)
   * [Deliberately not done (yet)](#deliberately-not-done-yet)
 <!-- /TOC -->
@@ -677,9 +678,9 @@ Malformed YAML is silently "not an object" rather than an error — a code block
 
 | File | Role |
 |---|---|
-| `src/shared/objects/objectBlock.ts` | Pure, React-free. `parseObjectBlock(language, code)` does checks 1–3; `readTextFields(data, keys)` reads optional text fields off the parsed mapping. |
-| `src/shared/objects/<type>.ts` | One file per type: its field list, data type, and `parse` (e.g. `person.ts` → `parsePerson`). Also pure. |
-| `src/components/objects/objectRegistry.tsx` | The `OBJECT_TYPES` map (`type` → parse + component) and `resolveObjectBlock(language, code)`, which returns `{kind: 'object', element}`, `{kind: 'invalid', error}`, or `null`. |
+| `src/shared/objects/objectBlock.ts` | Pure, React-free. `parseObjectBlock(language, code)` does checks 1–3; `readTextFields(data, keys)` reads optional text fields off the parsed mapping; `buildObjectTemplate(type, fields)` builds an empty block. |
+| `src/shared/objects/<type>.ts` | One file per type: its name, label, field list, data type, and `parse` (e.g. `person.ts` → `parsePerson`). Also pure. |
+| `src/components/objects/objectRegistry.tsx` | The `OBJECT_TYPES` map (`type` → label, fields, parse, component) and `resolveObjectBlock(language, code)`, which returns `{kind: 'object', element}`, `{kind: 'invalid', error}`, or `null`. Also `OBJECT_TYPE_OPTIONS` and `objectTemplate(type)` for the editor's Insert Object menu. |
 | `src/components/objects/ObjectBlock.tsx` | The shared card frame (border, type caption, `ErrorBoundary`), and `InvalidObjectHint`. |
 | `src/components/objects/<Type>Object.tsx` | The type's card body (e.g. `PersonObject.tsx`). |
 | `src/components/CustomPre.tsx` | The one call site: calls `resolveObjectBlock` and picks the card, the code block + hint, or the code block. |
@@ -695,13 +696,22 @@ Points worth knowing before changing any of it:
 
 ### Adding an object type
 
-1. **Shape** — add `src/shared/objects/<type>.ts` exporting the `type` name, the field list, the data type, and a `parse(data): ObjectParseResult<T>`. Use `readTextFields` for text fields; return `{ ok: false, error }` where `error` completes the sentence "Invalid \<type\>: …".
+1. **Shape** — add `src/shared/objects/<type>.ts` exporting the `type` name, a display label, the field list, the data type, and a `parse(data): ObjectParseResult<T>`. Use `readTextFields` for text fields; return `{ ok: false, error }` where `error` completes the sentence "Invalid \<type\>: …".
 2. **Component** — add `src/components/objects/<Type>Object.tsx`, a module-level component taking `{ data: T }`. It renders only the card *body*; `ObjectBlock` supplies the frame.
-3. **Register** — add one `[TYPE, defineObjectType({ parse, Component })]` entry to `OBJECT_TYPES` in `objectRegistry.tsx`.
+3. **Register** — add one `[TYPE, defineObjectType({ label, fields, parse, Component })]` entry to `OBJECT_TYPES` in `objectRegistry.tsx`. That alone puts the type in the editor's Insert Object menu, with a template built from `fields`.
 4. **Test** — cover the shape in `tests/objectBlock.test.ts` (or a sibling file) and add a registry case to `tests/objectRegistry.test.ts`.
 5. **Check** — `node compiler-coverage.mjs src/components/objects/<Type>Object.tsx` must report all `OK`.
 
-Nothing else changes: `CustomPre`, `ObjectBlock`, and the detection code are type-agnostic.
+Nothing else changes: `CustomPre`, `ObjectBlock`, the detection code, and the editor's Insert Object menu are type-agnostic.
+
+### Editing objects
+
+Objects are edited as plain YAML in CodeMirror — there is no form editor (see below). Two things make that comfortable:
+
+- **YAML colours in fenced blocks.** `markdown({ codeLanguages: fencedCodeLanguage })` (`src/renderer/editor/editorCodeLanguages.ts`) parses `yaml`/`yml` fences as YAML, so keys and values are coloured apart. This applies to every YAML fence, not just object blocks.
+- **Insert Object.** The editor's context menu (Markdown files only) has an "Insert Object" item. Clicking it does not act directly: it sets `contextMenu.submenu`, and `EditorContextMenu` re-renders the same floating menu as the list of `OBJECT_TYPE_OPTIONS`. Picking a type dispatches `objectInsertion(state, template)` (`src/renderer/editor/editorObjectUtil.ts`), which inserts the type's empty block at the cursor — padded with line breaks so the fence stands on its own lines with a blank line either side — and leaves the cursor on the first field's value.
+
+A freshly inserted block has every value blank, so in the rendered view it shows as code with the "Invalid …" hint until at least one field is filled in.
 
 ### Fenced blocks are literal — the preprocessing rule
 
@@ -714,4 +724,4 @@ Before parsing, `MarkdownView` runs three text passes over the raw document (`st
 - **HTML export** (`src/shared/exportMDtoHTML.ts`) is a separate string pipeline in the main process and cannot run React components. Exported files show object blocks as plain YAML code.
 - **User-defined types.** The intended direction is a user-configured template (a named field list) rendered by a built-in generic component — users never write code. `readTextFields` is already field-list-driven, so a template-backed type would be a new entry source for the registry, not a new mechanism.
 - **Lists of objects.** One object per block.
-- **Editing.** Objects are edited as YAML in CodeMirror like any other text. A form-style editor is a separate, undesigned feature.
+- **A form editor.** Replacing the YAML with an inline form inside CodeMirror (block widgets) was considered and rejected as too complex for the gain: widget identity across keystrokes, focus and shortcut handling inside the widget, undo routing, and comment loss when rewriting the YAML. Locking the keys while leaving values editable was rejected too — it needs exception rules for every structural edit and still can't guarantee a valid object.

@@ -486,6 +486,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     handleSpellingSuggestion,
     handleInsertTimestamp,
     handleInsertDate,
+    handleOpenInsertObject,
+    handleInsertObject,
+    objectTypes,
     handleToggleThesaurus,
     canToggleThesaurus,
     thesaurusEnabled,
@@ -994,6 +997,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         onSpellingSuggestion={handleSpellingSuggestion}
         onInsertTimestamp={handleInsertTimestamp}
         onInsertDate={handleInsertDate}
+        onOpenInsertObject={handleOpenInsertObject}
+        onInsertObject={handleInsertObject}
+        objectTypes={objectTypes}
         onToggleThesaurus={handleToggleThesaurus}
         canToggleThesaurus={canToggleThesaurus}
         thesaurusEnabled={thesaurusEnabled}

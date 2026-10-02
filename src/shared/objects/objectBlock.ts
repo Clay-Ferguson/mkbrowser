@@ -81,3 +81,30 @@ export function readTextFields<K extends string>(
   }
   return { ok: true, value };
 }
+
+/** A new, empty object block ready to insert into a markdown document. */
+export interface ObjectTemplate {
+  /** The whole fenced block, opening and closing fence included, with no trailing newline. */
+  text: string;
+  /** Offset into `text` where the first field's value goes — where the cursor should land. */
+  cursorOffset: number;
+}
+
+/**
+ * Builds an empty fenced block for an object type: `type: <type>` followed by every field with
+ * a blank value. Each `key: ` keeps its trailing space so typing right after it yields valid
+ * YAML (`first_name:Clay`, with no space, is not a key/value pair).
+ *
+ * A freshly inserted block has no values yet, so it is not a valid object until at least one
+ * is filled in — until then it renders as code with the type's "Invalid …" hint.
+ */
+export function buildObjectTemplate(type: string, fields: readonly string[]): ObjectTemplate {
+  const head = `\`\`\`yaml\ntype: ${type}\n`;
+  const body = fields.map((field) => `${field}: \n`).join('');
+  const [first] = fields;
+  return {
+    text: `${head}${body}\`\`\``,
+    // End of the first field's line, or — for a type with no fields — of the `type:` line.
+    cursorOffset: first === undefined ? head.length - 1 : head.length + first.length + 2,
+  };
+}
