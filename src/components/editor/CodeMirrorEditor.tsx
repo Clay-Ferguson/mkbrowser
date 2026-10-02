@@ -20,6 +20,7 @@ import { datePlugin, dateTheme, dateTooltipExtension } from '../../renderer/edit
 import { frontMatterPlugin, frontMatterTheme, frontMatterHideField, frontMatterAtomicRanges, frontMatterCursorGuard, frontMatterHiddenEnd, hrLinePlugin } from '../../renderer/editor/editorFrontMatterUtil';
 import { headingSizeExtensions } from '../../renderer/editor/editorHeadingUtil';
 import { markdownHighlightStyle } from '../../renderer/editor/editorMarkdownHighlight';
+import { fencedCodeLanguage } from '../../renderer/editor/editorCodeLanguages';
 import { minimalDiff } from '../../renderer/editor/editorDiffUtil';
 import { createThesaurusPlugin } from '../../renderer/editor/editorThesaurusUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
@@ -676,8 +677,9 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // `base: markdownLanguage` parses GFM; markdown()'s default base is plain CommonMark, under
       // which ~~strikethrough~~, tables and task lists produce no tags at all — so they could never
       // be coloured, while MarkdownView renders them via remark-gfm. This keeps what the editor
-      // highlights honest about what the app actually renders.
-      extensions.push(markdown({ base: markdownLanguage }), ...headingSizeExtensions);
+      // highlights honest about what the app actually renders. `codeLanguages` gives fenced
+      // blocks in the listed languages (YAML) their own syntax colours.
+      extensions.push(markdown({ base: markdownLanguage, codeLanguages: fencedCodeLanguage }), ...headingSizeExtensions);
     } else if (cfg.language === 'javascript') {
       extensions.push(javascript());
     } else if (cfg.language === 'typescript') {
