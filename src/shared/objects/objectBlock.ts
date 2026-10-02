@@ -108,3 +108,43 @@ export function buildObjectTemplate(type: string, fields: readonly string[]): Ob
     cursorOffset: first === undefined ? head.length - 1 : head.length + first.length + 2,
   };
 }
+
+/** A top-level key of a YAML block, with where it sits in the block's text. */
+export interface KeyRange {
+  key: string;
+  /** Offsets into the block's text; a quoted key's range includes its quotes. */
+  from: number;
+  to: number;
+}
+
+// A key at the very start of a line, followed by `:` and then whitespace or the line end —
+// either quoted (group 2 is the text inside the quotes) or plain (group 3).
+const TOP_LEVEL_KEY = /^(?:(["'])(.*?)\1|([A-Za-z0-9_][^:]*?))[ \t]*:(?=[ \t]|$)/;
+
+/**
+ * Locates the top-level keys of a block-style YAML mapping by line: a key is a line that
+ * starts in column 0 with `key:`. Indented lines — nested values, list items, the body of a
+ * `|` block scalar — are never top-level keys, and are skipped.
+ *
+ * This is a *locator*, not a parser: it only says where a key's text is. Callers decide which
+ * keys exist by parsing the YAML properly and use this to find them (see
+ * `unknownObjectKeys`), so a line this misreads can at worst go unreported.
+ */
+export function findTopLevelKeys(code: string): KeyRange[] {
+  const keys: KeyRange[] = [];
+  let lineStart = 0;
+  for (const line of code.split('\n')) {
+    const match = TOP_LEVEL_KEY.exec(line);
+    if (match) {
+      const quoted = match[2];
+      const plain = match[3];
+      if (quoted !== undefined) {
+        keys.push({ key: quoted, from: lineStart, to: lineStart + quoted.length + 2 });
+      } else if (plain !== undefined) {
+        keys.push({ key: plain, from: lineStart, to: lineStart + plain.length });
+      }
+    }
+    lineStart += line.length + 1;
+  }
+  return keys;
+}

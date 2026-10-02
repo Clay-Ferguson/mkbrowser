@@ -1,6 +1,6 @@
 import type { ComponentType, ReactElement } from 'react';
-import { parseObjectBlock, buildObjectTemplate } from '../../shared/objects/objectBlock';
-import type { ObjectParseResult, ObjectTemplate } from '../../shared/objects/objectBlock';
+import { parseObjectBlock, buildObjectTemplate, findTopLevelKeys } from '../../shared/objects/objectBlock';
+import type { ObjectParseResult, ObjectTemplate, KeyRange } from '../../shared/objects/objectBlock';
 import { PERSON_TYPE, PERSON_LABEL, PERSON_FIELDS, parsePerson } from '../../shared/objects/person';
 import PersonObject from './PersonObject';
 
@@ -91,4 +91,29 @@ export function resolveObjectBlock(language: string, code: string): ResolvedObje
   return result.ok
     ? { kind: 'object', type: block.type, element: result.value }
     : { kind: 'invalid', type: block.type, error: result.error };
+}
+
+/** A property of an object block that its type does not have. */
+export interface UnknownObjectKey extends KeyRange {
+  /** The block's (registered) type, e.g. "person". */
+  type: string;
+}
+
+/**
+ * Finds the properties of an object block that its type doesn't define — most often a typo
+ * (`frist_name`), which the card would otherwise silently drop. Returns nothing for a block
+ * that isn't a registered object type, including one whose YAML doesn't currently parse.
+ *
+ * Which keys the block has comes from the real YAML parse; `findTopLevelKeys` only supplies
+ * their positions. `type` itself is never reported.
+ */
+export function unknownObjectKeys(language: string, code: string): UnknownObjectKey[] {
+  const block = parseObjectBlock(language, code);
+  if (!block) return [];
+  const objectType = OBJECT_TYPES.get(block.type);
+  if (!objectType) return [];
+
+  return findTopLevelKeys(code)
+    .filter(({ key }) => key !== 'type' && Object.hasOwn(block.data, key) && !objectType.fields.includes(key))
+    .map((range) => ({ ...range, type: block.type }));
 }

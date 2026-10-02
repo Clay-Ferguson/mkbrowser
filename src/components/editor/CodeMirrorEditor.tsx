@@ -24,6 +24,7 @@ import { fencedCodeLanguage } from '../../renderer/editor/editorCodeLanguages';
 import { minimalDiff } from '../../renderer/editor/editorDiffUtil';
 import { createThesaurusPlugin } from '../../renderer/editor/editorThesaurusUtil';
 import { loadSpellChecker, createSpellCheckPlugin, spellCheckTheme } from './spellChecker';
+import { objectKeyPlugin, objectKeyTheme } from './objectKeyChecker';
 import { useEditorContextMenu } from './useEditorContextMenu';
 import { EditorContextMenu } from './EditorContextMenu';
 import { createFontSizeTheme } from './editorTheme';
@@ -683,6 +684,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
       // highlights honest about what the app actually renders. `codeLanguages` gives fenced
       // blocks in the listed languages (YAML) their own syntax colours.
       extensions.push(markdown({ base: markdownLanguage, codeLanguages: fencedCodeLanguage }), ...headingSizeExtensions);
+      // Underlines properties an object block's type doesn't define (reads the Markdown tree).
+      extensions.push(objectKeyPlugin, objectKeyTheme);
     } else if (cfg.language === 'javascript') {
       extensions.push(javascript());
     } else if (cfg.language === 'typescript') {

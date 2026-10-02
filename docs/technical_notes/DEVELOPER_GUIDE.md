@@ -702,16 +702,20 @@ Points worth knowing before changing any of it:
 4. **Test** — cover the shape in `tests/objectBlock.test.ts` (or a sibling file) and add a registry case to `tests/objectRegistry.test.ts`.
 5. **Check** — `node compiler-coverage.mjs src/components/objects/<Type>Object.tsx` must report all `OK`.
 
-Nothing else changes: `CustomPre`, `ObjectBlock`, the detection code, and the editor's Insert Object menu are type-agnostic.
+Nothing else changes: `CustomPre`, `ObjectBlock`, the detection code, and the editor's Insert Object menu and unknown-property underlines are type-agnostic — the last two are driven by the type's `fields`.
 
 ### Editing objects
 
-Objects are edited as plain YAML in CodeMirror — there is no form editor (see below). Two things make that comfortable:
+Objects are edited as plain YAML in CodeMirror — there is no form editor (see below). Three things make that comfortable:
 
 - **YAML colours in fenced blocks.** `markdown({ codeLanguages: fencedCodeLanguage })` (`src/renderer/editor/editorCodeLanguages.ts`) parses `yaml`/`yml` fences as YAML, so keys and values are coloured apart. This applies to every YAML fence, not just object blocks.
 - **Insert Object.** The editor's context menu (Markdown files only) has an "Insert Object" item. Clicking it does not act directly: it sets `contextMenu.submenu`, and `EditorContextMenu` re-renders the same floating menu as the list of `OBJECT_TYPE_OPTIONS`. Picking a type dispatches `objectInsertion(state, template)` (`src/renderer/editor/editorObjectUtil.ts`), which inserts the type's empty block at the cursor — padded with line breaks so the fence stands on its own lines with a blank line either side — and leaves the cursor on the first field's value.
 
+- **Unknown-property underlines.** `objectKeyPlugin` (`src/components/editor/objectKeyChecker.ts`) puts an amber wavy underline, with a tooltip, under any key in a registered object block that the type's `fields` don't include — the typo case (`frist_name`), which the card would otherwise drop without a word. It walks the Markdown syntax tree for `FencedCode` nodes in the viewport and asks `unknownObjectKeys(language, code)` in the registry. Which keys a block *has* comes from the real YAML parse; `findTopLevelKeys` only locates them by line, so a line it misreads can at worst go unreported. A block whose YAML doesn't currently parse (mid-typing) is simply not flagged.
+
 A freshly inserted block has every value blank, so in the rendered view it shows as code with the "Invalid …" hint until at least one field is filled in.
+
+Unknown properties are an *editor-only* signal. The rendered card still ignores them silently, by design: a block may carry extra properties.
 
 ### Fenced blocks are literal — the preprocessing rule
 
