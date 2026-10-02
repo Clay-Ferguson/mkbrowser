@@ -95,6 +95,104 @@ describe('preprocessWikiLinks', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Fenced code blocks are literal: none of the preprocessing passes rewrite them
+// ---------------------------------------------------------------------------
+
+/** All three passes in the order MarkdownView applies them. */
+function preprocessAll(content: string): string {
+  return preprocessWikiLinks(preprocessMathEscapes(stripHtmlComments(content)));
+}
+
+describe('preprocessing leaves fenced code blocks untouched', () => {
+  it('keeps a nested YAML list from being read as a wikilink', () => {
+    const input = '```yaml\nmatrix: [[1, 2]]\n```';
+    expect(preprocessWikiLinks(input)).toBe(input);
+  });
+
+  it('keeps a bash [[ ]] conditional intact', () => {
+    const input = '```bash\nif [[ -f foo ]]; then echo hi; fi\n```';
+    expect(preprocessWikiLinks(input)).toBe(input);
+  });
+
+  it('keeps an escaped dollar sign inside a fence', () => {
+    const input = '```sh\necho \\$HOME\n```';
+    expect(preprocessMathEscapes(input)).toBe(input);
+  });
+
+  it('keeps an HTML comment inside a fence', () => {
+    const input = '```html\n<!-- note -->\n<p>hi</p>\n```';
+    expect(stripHtmlComments(input)).toBe(input);
+  });
+
+  it('still rewrites text before and after a fence', () => {
+    const input = '[[a]] \\$1 <!-- x -->\n```\n[[b]] \\$2 <!-- y -->\n```\n[[c]] \\$3 <!-- z -->';
+    expect(preprocessAll(input)).toBe(
+      '[a](a) &#36;1 \n```\n[[b]] \\$2 <!-- y -->\n```\n[c](c) &#36;3 ',
+    );
+  });
+
+  it('handles several fences in one document', () => {
+    const input = '```\n[[a]]\n```\n[[b]]\n```\n[[c]]\n```\n[[d]]';
+    expect(preprocessWikiLinks(input)).toBe('```\n[[a]]\n```\n[b](b)\n```\n[[c]]\n```\n[d](d)');
+  });
+
+  it('recognizes tilde fences', () => {
+    const input = '~~~\n[[a]]\n~~~\n[[b]]';
+    expect(preprocessWikiLinks(input)).toBe('~~~\n[[a]]\n~~~\n[b](b)');
+  });
+
+  it('does not close a backtick fence on a tilde line (or vice versa)', () => {
+    const input = '```\n~~~\n[[a]]\n```\n[[b]]';
+    expect(preprocessWikiLinks(input)).toBe('```\n~~~\n[[a]]\n```\n[b](b)');
+  });
+
+  it('needs a closing fence at least as long as the opening one', () => {
+    const input = '````\n```\n[[a]]\n````\n[[b]]';
+    expect(preprocessWikiLinks(input)).toBe('````\n```\n[[a]]\n````\n[b](b)');
+  });
+
+  it('does not close a fence on a line with trailing text', () => {
+    const input = '```\n[[a]]\n``` not a close\n[[b]]\n```\n[[c]]';
+    expect(preprocessWikiLinks(input)).toBe('```\n[[a]]\n``` not a close\n[[b]]\n```\n[c](c)');
+  });
+
+  it('treats an unclosed fence as running to the end of the document', () => {
+    const input = '[[a]]\n```\n[[b]]\n\n[[c]]';
+    expect(preprocessWikiLinks(input)).toBe('[a](a)\n```\n[[b]]\n\n[[c]]');
+  });
+
+  it('recognizes fences indented inside a list item', () => {
+    const input = '- item\n\n    ```\n    [[a]]\n    ```\n\n[[b]]';
+    expect(preprocessWikiLinks(input)).toBe('- item\n\n    ```\n    [[a]]\n    ```\n\n[b](b)');
+  });
+
+  it('recognizes fences inside a blockquote', () => {
+    const input = '> ```\n> [[a]]\n> ```\n\n[[b]]';
+    expect(preprocessWikiLinks(input)).toBe('> ```\n> [[a]]\n> ```\n\n[b](b)');
+  });
+
+  it('does not treat inline triple-backtick code as a fence opening', () => {
+    const input = '```x``` then [[a]]\n[[b]]';
+    expect(preprocessWikiLinks(input)).toBe('```x``` then [a](a)\n[b](b)');
+  });
+
+  it('does not treat mid-line backticks as a fence', () => {
+    const input = 'text ``` [[a]]\n[[b]]';
+    expect(preprocessWikiLinks(input)).toBe('text ``` [a](a)\n[b](b)');
+  });
+
+  it('strips a comment that contains a fence marker, without opening a fence', () => {
+    const input = 'before\n<!--\n```\n-->\n[[a]] <!-- b -->';
+    expect(preprocessAll(input)).toBe('before\n\n[a](a) ');
+  });
+
+  it('keeps Windows line endings intact around a fence', () => {
+    const input = '[[a]]\r\n```\r\n[[b]]\r\n```\r\n[[c]]';
+    expect(preprocessWikiLinks(input)).toBe('[a](a)\r\n```\r\n[[b]]\r\n```\r\n[c](c)');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // splitOnColumnBreaks
 // ---------------------------------------------------------------------------
 

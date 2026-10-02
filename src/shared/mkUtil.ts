@@ -1,7 +1,43 @@
+/**
+ * A whole fenced code block: the opening fence line (``` or ~~~, three or more), everything up
+ * to the matching closing fence, and that closing line — or the rest of the document when the
+ * fence is never closed, which is how markdown itself reads an unclosed fence.
+ *
+ * Leading whitespace and `>` markers are allowed before a fence so that blocks nested in list
+ * items and blockquotes/callouts count too. A backtick fence whose opening line contains
+ * another backtick is not a fence (it is inline code, e.g. "```x``` text"), hence the lookahead.
+ * The closing fence must use the same character and be at least as long as the opening one.
+ */
+const FENCED_BLOCK =
+  /^[ \t>]*(?<fence>(?<fenceChar>[`~])\k<fenceChar>{2,})(?:(?<=~)|(?![^\n]*`))[^\n]*(?:\n[\s\S]*?)?(?:\n[ \t>]*\k<fence>\k<fenceChar>*[ \t]*$|(?![\s\S]))/;
+
+/**
+ * Replaces every match of `pattern` that lies outside a fenced code block, leaving fenced
+ * blocks byte-for-byte intact. The text inside a fence is literal — source code, or data such
+ * as YAML where `[[1, 2]]` is a nested list rather than a wikilink — so the preprocessing
+ * passes below must not rewrite it.
+ *
+ * Fences and `pattern` are matched in a single left-to-right scan, so whichever starts first
+ * wins: a fence marker inside an HTML comment belongs to the comment, and a comment inside a
+ * fence belongs to the fence.
+ */
+function replaceOutsideFences(content: string, pattern: RegExp, replaceMatch: (match: string) => string): string {
+  const scanner = new RegExp(`${FENCED_BLOCK.source}|${pattern.source}`, 'gm');
+  let result = '';
+  let lastEnd = 0;
+  for (const match of content.matchAll(scanner)) {
+    const isFence = match.groups?.fence !== undefined;
+    result += content.slice(lastEnd, match.index) + (isFence ? match[0] : replaceMatch(match[0]));
+    lastEnd = match.index + match[0].length;
+  }
+  return result + content.slice(lastEnd);
+}
+
 /** Replaces escaped dollar signs (`\$`) with the HTML entity `&#36;` so KaTeX
- *  does not interpret them as the start of a math expression. */
+ *  does not interpret them as the start of a math expression. Fenced code blocks
+ *  are left untouched. */
 export function preprocessMathEscapes(content: string): string {
-  return content.replace(/\\\$/g, '&#36;');
+  return replaceOutsideFences(content, /\\\$/, () => '&#36;');
 }
 
 /** URL schemes we allow markdown links to use. `file`/`local-file` are needed
@@ -30,9 +66,10 @@ export function safeUrlTransform(url: string): string {
   return ALLOWED_URL_SCHEMES.has(scheme.toLowerCase()) ? url : '';
 }
 
-/** Removes all HTML comments (`<!-- … -->`) from content, including multi-line ones. */
+/** Removes all HTML comments (`<!-- … -->`) from content, including multi-line ones.
+ *  Comments inside fenced code blocks are left untouched. */
 export function stripHtmlComments(content: string): string {
-  return content.replace(/<!--[\s\S]*?-->/g, '');
+  return replaceOutsideFences(content, /<!--[\s\S]*?-->/, () => '');
 }
 
 /**
@@ -44,9 +81,12 @@ export function stripHtmlComments(content: string): string {
  *   [[file|description]]  → [description](file)
  *   [[file#section]]      → [file#section](file#section)
  *   [[file#section|desc]] → [desc](file#section)
+ *
+ * Fenced code blocks are left untouched.
  */
 export function preprocessWikiLinks(content: string): string {
-  return content.replace(/\[\[([^\]]+)\]\]/g, (_match, inner: string) => {
+  return replaceOutsideFences(content, /\[\[[^\]]+\]\]/, (match) => {
+    const inner = match.slice(2, -2);
     const pipeIndex = inner.indexOf('|');
     if (pipeIndex !== -1) {
       const target = inner.slice(0, pipeIndex).trim();
