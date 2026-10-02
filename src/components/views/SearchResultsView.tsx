@@ -221,11 +221,8 @@ function SearchResultsView() {
         <header className="flex-shrink-0">
           <div className="flex items-center gap-3 px-4 py-2">
             {/* Title */}
-            <div className="text-sm text-slate-300 truncate">
-              {searchName && (
-                <span className="text-purple-300 font-semibold mr-2">{searchName}:</span>
-              )}
-              Searched for <span className="text-slate-200 font-medium">&quot;{searchQuery}&quot;</span> in {folderName}
+            <div className="text-sm font-mono text-btn-accent-amber truncate" title={searchFolder}>
+              {folderName}
             </div>
             <div className="ml-auto flex-shrink-0 flex items-center gap-2">
               <button
@@ -269,6 +266,27 @@ function SearchResultsView() {
       {/* Main content */}
       <main className="flex-1 min-h-0 overflow-y-auto">
         <div className={`${getContentWidthClasses(contentWidth)} pt-2 pb-6`}>
+        {/* Search summary: what was searched, then the result count and sort order */}
+        {hasSearched && (
+          <div className="text-sm text-slate-300 mb-4">
+            {searchName && (
+              <span className="text-purple-300 font-semibold mr-2">{searchName}:</span>
+            )}
+            Searched for <span className="font-mono text-green-400">&quot;{searchQuery}&quot;</span>
+            {searchResults.length > 0 && (
+              <>
+                <span className="mx-2">•</span>
+                {truncated
+                  ? <>Showing {searchResults.length} of {searchTotalMatches.toLocaleString()} files found</>
+                  : <>{searchResults.length} file{searchResults.length !== 1 ? 's' : ''} found</>}
+                <span className="mx-2">•</span>
+                <span>
+                  Sorted by {searchSortBy === 'file-name' ? 'file name' : searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortBy === 'file-name' ? (searchSortDirection === 'asc' ? 'A–Z' : 'Z–A') : (searchSortDirection === 'asc' ? 'oldest first' : 'newest first')})
+                </span>
+              </>
+            )}
+          </div>
+        )}
         {!hasSearched ? (
           <div className="text-center py-12">
             <MagnifyingGlassIcon className="w-12 h-12 mx-auto text-slate-600 mb-4" />
@@ -286,16 +304,6 @@ function SearchResultsView() {
           </div>
         ) : (
           <div className="space-y-2">
-            {/* Results count */}
-            <div className="text-sm text-slate-300 mb-4">
-              {truncated
-                ? <>Showing {searchResults.length} of {searchTotalMatches.toLocaleString()} files found</>
-                : <>{searchResults.length} file{searchResults.length !== 1 ? 's' : ''} found</>}
-              <span className="ml-2 text-slate-300">
-                • Sorted by {searchSortBy === 'file-name' ? 'file name' : searchSortBy === 'created-time' ? 'creation time' : 'modification time'} ({searchSortBy === 'file-name' ? (searchSortDirection === 'asc' ? 'A–Z' : 'Z–A') : (searchSortDirection === 'asc' ? 'oldest first' : 'newest first')})
-              </span>
-            </div>
-
             {/* Results list */}
             {searchResults.map((result) => {
               const highlighted = isHighlighted(result.path);

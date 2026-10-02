@@ -54,7 +54,7 @@ interface PendingSlot {
  * to be calendar files, and navigates back to the result list.
  */
 function CalendarSourceHeader({ source, eventCount }: { source: CalendarSource; eventCount: number }) {
-  const bannerClass = 'w-full px-4 py-2 bg-slate-800 border-b border-slate-700 text-slate-300 text-sm truncate cursor-pointer hover:bg-slate-700';
+  const bannerClass = 'w-full px-4 py-2 text-slate-300 text-sm truncate cursor-pointer';
 
   if (source.kind === 'folder') {
     return (
@@ -64,7 +64,7 @@ function CalendarSourceHeader({ source, eventCount }: { source: CalendarSource; 
         title="Browse to this folder"
         data-testid="calendar-source-header"
       >
-        <span className="text-slate-500">Calendar folder:</span> {source.folder}
+        <span className="font-mono text-btn-accent-amber">{source.folder}</span>
       </div>
     );
   }
@@ -233,7 +233,7 @@ export default function CalendarView() {
         </div>
       )}
       {!loading && events && (
-        <div className="flex-1 min-h-0 p-4" style={{ '--rbc-bg': '#1e293b' } as React.CSSProperties}>
+        <div className={`flex-1 min-h-0 p-4 ${calendarSource ? 'pt-0' : ''}`} style={{ '--rbc-bg': '#1e293b' } as React.CSSProperties}>
           <style>{`
             .rbc-calendar { height: 100%; background: #1e293b; color: #e2e8f0; border-radius: 8px; }
             .rbc-header { background: #0f172a; border-color: #334155; padding: 8px; color: #94a3b8; }

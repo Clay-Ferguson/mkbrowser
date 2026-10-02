@@ -33,11 +33,14 @@ function FolderAnalysisView({ onSearchHashtag }: FolderAnalysisViewProps) {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <p className="text-sm text-slate-400">
-            Scanned <span className="text-slate-300 font-medium">{totalFiles}</span> file{totalFiles !== 1 ? 's' : ''} in{' '}
-            <span className="text-slate-300 font-mono text-xs">{folderPath}</span>
+          <p className="text-sm font-mono text-btn-accent-amber truncate" title={folderPath}>{folderPath}</p>
+          <p className="text-sm text-slate-400 mt-1">
+            Scanned <span className="text-slate-200 font-medium">{totalFiles}</span> file{totalFiles !== 1 ? 's' : ''}
+            <span className="mx-2">•</span>
+            Click to search for the text
+            <span className="mx-2">•</span>
+            Ctrl+Click to search for the exact tag
           </p>
-          <p className="text-xs text-slate-500 mt-1">Click to search for the text. Ctrl+Click to search for the exact tag.</p>
         </div>
 
         {/* Hashtags section */}

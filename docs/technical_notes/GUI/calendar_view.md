@@ -208,7 +208,7 @@ reads the state fields above via `useAS` selectors, and:
 
 - Renders a source-aware header banner (`data-testid="calendar-source-header"`) —
   `CalendarSourceHeader`, a module-level component with one branch per `CalendarSource`
-  kind. Folder: *"Calendar folder: /path"*, click navigates there. Search: the matched/total
+  kind. Folder: just the folder path (orange, monospace), click navigates there. Search: the matched/total
   counts plus the query, click returns to the search results tab.
 - Writes back to state (and, for the view type, to config) when the user changes the view
   type or navigates to a different date range.
