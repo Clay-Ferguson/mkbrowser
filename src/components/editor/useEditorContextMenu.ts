@@ -7,7 +7,7 @@ import { isMarkdownFile } from '../../shared/fileTypes';
 import { buildMarkdownLinks } from '../../renderer/linkUtil';
 import { saveSettings } from '../../renderer/config';
 import { useAS, setEnableThesaurus } from '../../store';
-import { wordAt, type SpellingSuggestion } from './spellChecker';
+import { wordAt, isSpellCheckExempt, type SpellingSuggestion } from './spellChecker';
 import { OBJECT_TYPE_OPTIONS, objectTemplate } from '../objects/objectRegistry';
 import { objectInsertion } from '../../renderer/editor/editorObjectUtil';
 
@@ -88,7 +88,7 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
         // Find the word at this position (same word definition as the underlines)
         const line = view.state.doc.lineAt(pos);
         const found = wordAt(line.text, pos - line.from);
-        if (found && found.word.length >= 2 && !typo.check(found.word)) {
+        if (found && found.word.length >= 2 && !typo.check(found.word) && !isSpellCheckExempt(view.state, line.from + found.from)) {
           spelling = {
             word: found.word,
             from: line.from + found.from,

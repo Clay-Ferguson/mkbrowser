@@ -203,6 +203,8 @@ export const BUTTON_CLASS_LINK = `${BTN} text-btn-label hover:text-btn-label-hov
 export const BUTTON_CLASS_LINK_MUTED = `${BTN} text-btn-ghost hover:text-btn-ghost-hover`;
 export const BUTTON_CLASS_LINK_RED = `${BTN} text-btn-ghost hover:text-btn-accent-red`;
 export const BUTTON_CLASS_LINK_AMBER = `${BTN} text-btn-accent-amber hover:text-btn-accent-amber-hover`;
+/** Inline value that opens something external (e.g. an address → map). */
+export const BUTTON_CLASS_LINK_BLUE = `${BTN} text-btn-accent-blue hover:text-btn-accent-blue-hover hover:underline`;
 
 /** Dialog title-bar close (XMarkIcon) button. */
 export const BUTTON_CLASS_DLG_CLOSE = `${BTN} flex items-center justify-center w-7 h-7 rounded-md border-2 text-btn-ghost hover:text-btn-ghost-hover border-btn-border hover:border-btn-border-hover`;

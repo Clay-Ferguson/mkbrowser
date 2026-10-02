@@ -1,5 +1,6 @@
 import { EditorView, Decoration, DecorationSet, ViewPlugin, ViewUpdate } from '@codemirror/view';
-import { RangeSetBuilder } from '@codemirror/state';
+import { RangeSetBuilder, type EditorState } from '@codemirror/state';
+import { syntaxTree } from '@codemirror/language';
 import { RefObject } from 'react';
 import Typo from 'typo-js';
 import { api } from '../../renderer/api';
@@ -70,6 +71,17 @@ export function wordAt(text: string, pos: number): { word: string; from: number;
 }
 
 /**
+ * Whether the word starting at document position `pos` is exempt from spell checking because
+ * of where it sits rather than what it says. That is a fenced code block's info string — the
+ * `yaml` in "```yaml" names a language, it isn't prose, and no dictionary could list every
+ * language a fence may name. Relies on the Markdown syntax tree, so a document in any other
+ * language exempts nothing. Shared by the underlines and the context menu so they agree.
+ */
+export function isSpellCheckExempt(state: EditorState, pos: number): boolean {
+  return syntaxTree(state).resolveInner(pos, 1).name === 'CodeInfo';
+}
+
+/**
  * Builds a `DecorationSet` that underlines every misspelled word visible in the current
  * viewport. Front-matter lines are skipped. Only the visible range is scanned so large
  * files don't incur unnecessary work on every keystroke or scroll event.
@@ -98,7 +110,9 @@ export function createSpellCheckDecorations(view: EditorView, typo: Typo | null)
         continue;
       }
 
-      if (!typo.check(word)) {
+      // The dictionary lookup goes first: it rejects nearly every word, so the syntax tree
+      // is only consulted for the few that fail it.
+      if (!typo.check(word) && !isSpellCheckExempt(view.state, line.from + wordFrom)) {
         builder.add(line.from + wordFrom, line.from + wordTo, misspelledMark);
       }
     }
@@ -109,7 +123,8 @@ export function createSpellCheckDecorations(view: EditorView, typo: Typo | null)
 
 /**
  * Creates a CodeMirror `ViewPlugin` that recomputes spell-check decorations whenever
- * the document or visible viewport changes. Receives `typoRef` rather than a `Typo`
+ * the document or visible viewport changes, and when the syntax tree does — parsing can
+ * finish after the edit that triggered it, and the exemptions are read from the tree. Receives `typoRef` rather than a `Typo`
  * instance directly so the plugin continues to work after the spell checker loads
  * asynchronously post-mount.
  */
@@ -123,7 +138,7 @@ export function createSpellCheckPlugin(typoRef: RefObject<Typo | null>) {
       }
 
       update(update: ViewUpdate) {
-        if (update.docChanged || update.viewportChanged) {
+        if (update.docChanged || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) {
           this.decorations = createSpellCheckDecorations(update.view, typoRef.current);
         }
       }
