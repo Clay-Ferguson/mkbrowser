@@ -579,14 +579,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                 fillHeight={maximized}
                 fileName={entry.name}
                 filePath={entry.path}
-                onMakeCalendarItem={() => {
-                  setShowPropsInEditor(true);
-                  saveSettings();
-                }}
-                onMakeRepeatingCalendarItem={() => {
-                  setShowPropsInEditor(true);
-                  saveSettings();
-                }}
                 {...chrome.reviewProps}
               />
             </>

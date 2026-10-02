@@ -13,7 +13,6 @@ import { python } from '@codemirror/lang-python';
 import { shell } from '@codemirror/legacy-modes/mode/shell';
 import Typo from 'typo-js';
 import { getGlobalHighlightText } from '../../renderer/globalHighlight';
-import AlertDialog from '../dialogs/AlertDialog';
 import { useAS, setThesaurusWord, getSettings } from '../../store';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { hashtagPlugin, hashtagTheme } from '../../renderer/editor/editorHashtagUtil';
@@ -204,10 +203,6 @@ interface CodeMirrorEditorProps {
   fileName?: string;
   /** The full path of the file being edited — used to compute relative "Paste Link" paths. */
   filePath?: string;
-  /** Called when the user chooses "Make Calendar Item" from the context menu. */
-  onMakeCalendarItem?: () => void;
-  /** Called when the user chooses "Make Calendar Item (Repeating)" from the context menu. */
-  onMakeRepeatingCalendarItem?: () => void;
   /**
    * Called once the editor view (and its imperative handle) is ready. Fired from the mount
    * effect, so the handle is guaranteed populated — use this instead of reading a ref in an
@@ -357,7 +352,7 @@ function applyPostMountFocus(
  * (value, fontSize, showPropsInEditor, reviewText) are applied through separate effects or
  * compartments so that undo history, cursor position, and the async spell checker are preserved.
  */
-function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSaveKeepEditing, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onMakeCalendarItem, onMakeRepeatingCalendarItem, onReady, fillHeight = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSaveKeepEditing, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onReady, fillHeight = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -493,19 +488,13 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     handleToggleThesaurus,
     canToggleThesaurus,
     thesaurusEnabled,
-    handleMakeCalendarItem,
-    handleMakeRepeatingCalendarItem,
     isMarkdown,
-    calendarAlreadyExists,
-    setCalendarAlreadyExists,
   } = useEditorContextMenu({
     viewRef,
     typoRef,
     fileName,
     filePath,
     onSave: onSaveKeepEditing !== undefined && !reviewing ? handleContextMenuSave : undefined,
-    onMakeCalendarItem,
-    onMakeRepeatingCalendarItem,
     // The same gate the extension list below applies: the menu offers the thesaurus switch
     // only on editors that actually have the plugin installed.
     thesaurusCapable: !readOnly && !isCodeLanguage(language),
@@ -1006,18 +995,8 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         onToggleThesaurus={handleToggleThesaurus}
         canToggleThesaurus={canToggleThesaurus}
         thesaurusEnabled={thesaurusEnabled}
-        onMakeCalendarItem={handleMakeCalendarItem}
-        onMakeRepeatingCalendarItem={handleMakeRepeatingCalendarItem}
         isMarkdown={isMarkdown}
       />
-      {calendarAlreadyExists && (
-        <AlertDialog
-          preserveWhitespace
-          title="Calendar Item Exists"
-          message="This file already contains calendar information (a 'due' property was found in the front matter)."
-          onClose={() => setCalendarAlreadyExists(false)}
-        />
-      )}
     </div>
   );
 }

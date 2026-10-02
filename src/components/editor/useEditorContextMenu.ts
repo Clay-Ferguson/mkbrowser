@@ -3,7 +3,6 @@ import { EditorView } from '@codemirror/view';
 import Typo from 'typo-js';
 import { logger } from '../../shared/logUtil';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
-import { hasDueProperty, injectCalendarFrontMatter } from '../../shared/calendarUtil';
 import { isMarkdownFile } from '../../shared/fileTypes';
 import { buildMarkdownLinks } from '../../renderer/linkUtil';
 import { saveSettings } from '../../renderer/config';
@@ -23,8 +22,6 @@ interface UseEditorContextMenuProps {
   fileName?: string;
   filePath?: string;
   onSave?: () => void;
-  onMakeCalendarItem?: () => void;
-  onMakeRepeatingCalendarItem?: () => void;
   /**
    * Whether this editor is one the thesaurus plugin was installed into — live prose only,
    * the same gate `CodeMirrorEditor` applies when building its extension list. False here
@@ -40,17 +37,14 @@ interface UseEditorContextMenuProps {
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
  * top of the menu. Also exposes save-in-place, cut/copy/paste, select-all, timestamp/date
- * insertion, the thesaurus on/off switch, and — for Markdown files — "Paste Link" and
- * calendar-item creation actions.
+ * insertion, the thesaurus on/off switch, and — for Markdown files — "Paste Link".
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
- * `canPasteLink`, `canSave`, `canToggleThesaurus`, `thesaurusEnabled`,
- * `calendarAlreadyExists`).
+ * `canPasteLink`, `canSave`, `canToggleThesaurus`, `thesaurusEnabled`).
  */
-export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onSave, onMakeCalendarItem, onMakeRepeatingCalendarItem, thesaurusCapable = false }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onSave, thesaurusCapable = false }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
-  const [calendarAlreadyExists, setCalendarAlreadyExists] = useState(false);
   const selectedLinkItems = useAS(s => s.selectedLinkItems);
   const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
   // Only `BrowseFile` (single-file mode) mounts the synonym strip, and that is what
@@ -281,37 +275,6 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
     saveSettings();
   };
 
-  // Shared implementation for both calendar-item variants. Aborts with an alert if a
-  // 'due' property already exists in the front matter; otherwise injects the calendar
-  // front matter and invokes the parent callback (used to trigger a save).
-  const makeCalendarItem = (repeating: boolean, callback?: () => void) => {
-    const view = viewRef.current;
-    if (!view) return;
-
-    const currentContent = view.state.doc.toString();
-    if (hasDueProperty(currentContent)) {
-      setCalendarAlreadyExists(true);
-      closeContextMenu();
-      return;
-    }
-
-    const newContent = injectCalendarFrontMatter(currentContent, repeating);
-    view.dispatch({
-      changes: { from: 0, to: view.state.doc.length, insert: newContent },
-    });
-    closeContextMenu();
-    view.focus();
-    callback?.();
-  };
-
-  const handleMakeCalendarItem = () => {
-    makeCalendarItem(false, onMakeCalendarItem);
-  };
-
-  const handleMakeRepeatingCalendarItem = () => {
-    makeCalendarItem(true, onMakeRepeatingCalendarItem);
-  };
-
   // Close context menu when clicking elsewhere
   useEffect(() => {
     if (!contextMenu.visible) return;
@@ -359,10 +322,6 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
     handleToggleThesaurus,
     canToggleThesaurus: thesaurusCapable && singleFileMode,
     thesaurusEnabled,
-    handleMakeCalendarItem,
-    handleMakeRepeatingCalendarItem,
     isMarkdown,
-    calendarAlreadyExists,
-    setCalendarAlreadyExists,
   };
 }

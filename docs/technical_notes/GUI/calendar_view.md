@@ -234,10 +234,9 @@ reads the state fields above via `useAS` selectors, and:
   week/work-week/day). Verified in month, week, day, and agenda — agenda is worth re-checking
   after any change here, since it puts the class on a table row rather than an event div.
 
-Other calendar-authoring entry points outside this view: the editor context menu's "Make
-Calendar Item" / "Make Repeating Calendar Item" (`injectCalendarFrontMatter`), and the
-calendar icon / clickable `due`,`start`,`duration`,`rrule` properties on a MarkdownEntry,
-which open `EditCalendarDialog`.
+Other calendar-authoring entry points outside this view: the calendar icon / clickable
+`due`,`start`,`duration`,`rrule` properties on a MarkdownEntry, which open
+`EditCalendarDialog`.
 
 The `due` pill is the one exception to "a pill click opens the dialog": `PropsDisplay` makes
 the value half of every pill separately clickable (`onPropValueClick`, which falls back to

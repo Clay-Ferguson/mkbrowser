@@ -22,8 +22,6 @@ interface EditorContextMenuProps {
   canToggleThesaurus: boolean;
   /** Current state of `settings.enableThesaurus`, which is what the item's wording flips on. */
   thesaurusEnabled: boolean;
-  onMakeCalendarItem?: () => void;
-  onMakeRepeatingCalendarItem?: () => void;
   isMarkdown?: boolean;
 }
 
@@ -35,8 +33,7 @@ const VIEWPORT_MARGIN = 8;
  * clamped so it stays fully within the viewport. Includes Save (writes the file without
  * leaving edit mode), standard edit actions (cut/copy/paste, select all), timestamp/date
  * insertion, optional spell-check suggestions, the thesaurus on/off switch, and
- * Markdown-only items (Paste Link, calendar item creation). Closes on outside click,
- * scroll, or Escape.
+ * the Markdown-only Paste Link item. Closes on outside click, scroll, or Escape.
  */
 export function EditorContextMenu({
   contextMenu,
@@ -54,8 +51,6 @@ export function EditorContextMenu({
   onToggleThesaurus,
   canToggleThesaurus,
   thesaurusEnabled,
-  onMakeCalendarItem,
-  onMakeRepeatingCalendarItem,
   isMarkdown,
 }: EditorContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -253,29 +248,6 @@ export function EditorContextMenu({
             data-testid="editor-toggle-thesaurus"
           >
             {thesaurusEnabled ? 'Hide Thesaurus' : 'Show Thesaurus'}
-          </button>
-        </>
-      )}
-      {isMarkdown && (
-        <>
-          <div className="border-t border-slate-600 my-1" />
-          <button
-            type="button"
-            role="menuitem"
-            tabIndex={-1}
-            onClick={onMakeRepeatingCalendarItem}
-            className={EDITOR_MENU_ITEM}
-          >
-            Calendar Item (Reps)
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            tabIndex={-1}
-            onClick={onMakeCalendarItem}
-            className={EDITOR_MENU_ITEM}
-          >
-            Calendar Item
           </button>
         </>
       )}
