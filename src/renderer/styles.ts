@@ -235,20 +235,25 @@ export const BREADCRUMB_SEGMENT_IDLE = 'text-btn-accent-amber hover:bg-btn-ghost
 // --- App tab bar ---------------------------------------------------------
 // The tab shape is drawn by the shell (the div holding a tab's label and close
 // buttons): rounded top corners and a `tab-line` outline. Every shell hangs 1px
-// below the bar (`-mb-px`) so its bottom border lies exactly on the bar's own
-// bottom line. An idle tab just redraws that line; the active tab paints it in
-// `tab-active` (the content-area color), which erases the line under the tab and
-// leaves it open into the content below. `mt-2` keeps the rounded corners clear of
-// the window frame. Colors: the `tab-*` theme colors in index.css.
+// below the bar (`-mb-px`) so its bottom edge lies exactly on the bar's own
+// bottom line. An idle tab just redraws that line with its bottom border; the
+// active tab has no bottom border (`pb-px` stands in for it, so both are the same
+// height) and its `tab-active` fill (the content-area color) covers the line,
+// leaving the tab open into the content below. Tabs touch: each one after the
+// first is pulled left 1px (`-ml-px`) so neighbors share a single border line.
+// `mt-2` keeps the rounded corners clear of the window frame. Colors: the `tab-*`
+// theme colors in index.css.
 export const TAB_BAR = 'flex items-center gap-3 px-2 bg-slate-800 border-b border-tab-line';
-/** Row of tab shells: its own tight gap, so tabs sit closer than the bar's other items. */
-export const TAB_LIST = 'self-stretch flex items-stretch gap-0.5';
-const TAB_SHELL = 'flex items-stretch mt-2 -mb-px rounded-t-lg border border-tab-line transition-colors';
-export const TAB_SHELL_ACTIVE = `${TAB_SHELL} bg-tab-active border-b-tab-active`;
-export const TAB_SHELL_IDLE = `${TAB_SHELL} hover:bg-slate-700/60`;
-const TAB_BASE = 'flex items-center pl-4 text-base font-medium transition-colors cursor-pointer';
+/** Row of tab shells, so tabs can sit flush while the bar's other items keep its gap. */
+export const TAB_LIST = 'self-stretch flex items-stretch';
+const TAB_SHELL = 'flex items-stretch mt-2 -mb-px -ml-px first:ml-0 rounded-t-xl border border-tab-line transition-colors';
+export const TAB_SHELL_ACTIVE = `${TAB_SHELL} bg-tab-active border-b-0 pb-px`;
+export const TAB_SHELL_IDLE = `${TAB_SHELL} bg-slate-700/60`;
+const TAB_BASE = 'flex items-center px-4 text-base font-medium transition-colors cursor-pointer';
 export const TAB_BUTTON_ACTIVE = `${TAB_BASE} text-btn-label-hover`;
-export const TAB_BUTTON_IDLE = `${TAB_BASE} text-btn-ghost hover:text-btn-neutral-fg`;
+export const TAB_BUTTON_IDLE = `${TAB_BASE} text-btn-ghost`;
+/** Tab close (XMarkIcon) button: a bordered square, so the click target is the whole box rather than the X itself. */
+export const BUTTON_CLASS_TAB_CLOSE = `${BTN} self-center flex items-center justify-center w-6 h-6 mr-2 border text-btn-ghost hover:text-btn-ghost-hover border-btn-border hover:border-btn-border-hover`;
 
 // Stacking level for modal/popup layers (dialogs, popup menus, fullscreen
 // overlays, context menus). Z_MODAL must stay above CodeMirror's internal

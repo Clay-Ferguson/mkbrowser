@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
-import { Bars3Icon } from '@heroicons/react/24/outline';
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { showTab, hideTab, setCurrentView, useAS, setCurrentPath, setHighlightItem, setPendingScrollToFile, setFolderGraph, setFolderAnalysis, clearSearchResults, type AppView } from '../store';
 import { isAiThreadByEntries } from '../shared/ai/aiPatterns';
 import { getParentPath, isPathInside } from '../renderer/pathUtil';
 import appLogo from '../../public/icon-256.png';
 import FilePopupMenu from './menus/FilePopupMenu';
 import SystemPopupMenu from './menus/SystemPopupMenu';
-import { BUTTON_CLASS_BAR_NEUTRAL, BUTTON_CLASS_LINK_MUTED, BUTTON_CLASS_TB_NORMAL, BUTTON_CLASS_XS, TAB_BAR, TAB_BUTTON_ACTIVE, TAB_BUTTON_IDLE, TAB_LIST, TAB_SHELL_ACTIVE, TAB_SHELL_IDLE } from '../renderer/styles';
+import { BUTTON_CLASS_BAR_NEUTRAL, BUTTON_CLASS_TAB_CLOSE, BUTTON_CLASS_TB_NORMAL, BUTTON_CLASS_XS, TAB_BAR, TAB_BUTTON_ACTIVE, TAB_BUTTON_IDLE, TAB_LIST, TAB_SHELL_ACTIVE, TAB_SHELL_IDLE } from '../renderer/styles';
 
 interface TabConfig {
   id: AppView;
@@ -148,7 +148,7 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
                 data-testid={`tab-button-${tab.id}`}
                 type="button"
                 onClick={() => setCurrentView(tab.id)}
-                className={`${isActive ? TAB_BUTTON_ACTIVE : TAB_BUTTON_IDLE} ${onClose ? 'pr-1' : 'pr-4'}`}
+                className={isActive ? TAB_BUTTON_ACTIVE : TAB_BUTTON_IDLE}
               >
                 {tab.label}
               </button>
@@ -157,11 +157,11 @@ function AppTabButtons({ onSelectFolder, onQuit, recentFolders, onOpenRecentFold
                   type="button"
                   data-testid={`tab-close-${tab.id}`}
                   onClick={(e) => { e.stopPropagation(); onClose(); }}
-                  className={`${BUTTON_CLASS_LINK_MUTED} mb-1 ml-1 mr-3 text-2xl leading-none`}
+                  className={BUTTON_CLASS_TAB_CLOSE}
                   aria-label={`Close ${tab.label} tab`}
                   title={`Close ${tab.label} tab`}
                 >
-                  ×
+                  <XMarkIcon className="w-4 h-4" strokeWidth={2.5} aria-hidden="true" />
                 </button>
               )}
             </div>
