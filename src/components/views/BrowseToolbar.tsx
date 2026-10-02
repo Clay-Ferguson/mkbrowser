@@ -38,6 +38,7 @@ import { showFolderAnalysis, showFolderGraph } from '../../renderer/folderToolsO
 import { enableCustomOrdering } from '../../renderer/indexOrderOp';
 import { startAiChat } from '../../renderer/aiChatOp';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
+import { isImageFile } from '../../shared/fileTypes';
 import type { BrowseOverlay } from './browseOverlay';
 import { getSelectedItems } from './browseListing';
 
@@ -100,6 +101,9 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
   const sortOrder = useAS(s => s.settings.sortOrder);
   const imageCols = useAS(s => s.settings.imageCols);
   const searchDefinitions = useAS(s => s.settings.searchDefinitions);
+  // The Image columns menu only lays out the folder's own images, so its button
+  // is hidden when the folder being browsed has none.
+  const hasImages = useAS(s => s.currentEntries.some((entry) => !entry.isDirectory && isImageFile(entry.name)));
   const expansionCounts = useExpansionCounts();
   const { selectedCount, selectedFileCount, hasSelectedFolders, hasCutItems } =
     useAS(useShallow(s => summarizeSelection(s.items)));
@@ -334,8 +338,8 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
             <BarsArrowDownIcon className="w-6 h-6" />
           </button>)}
 
-          {/* Image columns menu button — always shown; its items are disabled in Document Mode */}
-          <button
+          {/* Image columns menu button — shown only when this folder has images; its items are disabled in Document Mode */}
+          {hasImages && (<button
             type="button"
             ref={imageColsButtonRef}
             onClick={() => toggleMenu('imageCols')}
@@ -344,7 +348,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
             data-testid="image-cols-menu-button"
           >
             <ViewColumnsIcon className="w-6 h-6" />
-          </button>
+          </button>)}
 
           {/* Search button */}
           <button
@@ -396,7 +400,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
         />
       )}
 
-      {openMenu === 'imageCols' && (
+      {openMenu === 'imageCols' && hasImages && (
         <ImageColsPopupMenu
           anchorRef={imageColsButtonRef}
           onClose={() => closeMenu('imageCols')}
