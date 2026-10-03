@@ -86,11 +86,6 @@ export function getRelativePath(fromFilePath: string, toPath: string): string {
 }
 
 /**
- * Build markdown link text for a set of full paths, made relative to the file
- * being edited. Image files become inline image embeds (`![]()`), everything
- * else becomes a standard link (`[]()`). Items are separated by a blank line.
- */
-/**
  * Percent-encode one path segment for use inside a markdown link destination.
  * `encodeURIComponent` leaves parentheses literal, and an unbalanced `)` in a
  * file name would terminate the `(...)` destination early, so those are encoded
@@ -103,15 +98,51 @@ function encodePathSegment(segment: string): string {
   );
 }
 
+/** True when every `(` in `s` is closed by a later `)` and vice versa. */
+function hasBalancedParens(s: string): boolean {
+  let depth = 0;
+  for (const c of s) {
+    if (c === '(') depth++;
+    else if (c === ')' && --depth < 0) return false;
+  }
+  return depth === 0;
+}
+
+/**
+ * Format a relative (forward-slash) path as a CommonMark link destination,
+ * preferring the most readable form that standard Markdown renderers accept:
+ *
+ * 1. Bare — `path/to/file.md` — when the path has no whitespace or control
+ *    characters and its parentheses are balanced (CommonMark allows both).
+ * 2. Angle brackets — `<path/to my/file.md>` — when bare isn't allowed only
+ *    because of spaces or unbalanced parentheses; inside `<...>` both are literal.
+ * 3. Percent-encoded per segment — `path/to%20my/file.md` — as a last resort,
+ *    for characters that would be misread in either literal form: `<`/`>` and
+ *    line breaks (illegal inside `<...>`), `\` (starts a backslash escape), `%`
+ *    (would be decoded by `decodeMarkdownUrl`), a character-reference-like `&…;`
+ *    (decoded by the parser), or a leading `#` (read as an in-page anchor).
+ */
+export function formatLinkDestination(relPath: string): string {
+  // eslint-disable-next-line no-control-regex
+  if (/[<>\\%\u0000-\u001f\u007f]|&#?\w+;|^#/.test(relPath)) {
+    return relPath.split('/').map(encodePathSegment).join('/');
+  }
+  if (/\s/.test(relPath) || !hasBalancedParens(relPath)) return `<${relPath}>`;
+  return relPath;
+}
+
+/**
+ * Build markdown link text for a set of full paths, made relative to the file
+ * being edited. Image files become inline image embeds (`![]()`), everything
+ * else becomes a standard link (`[]()`). Items are separated by a blank line.
+ */
 export function buildMarkdownLinks(currentFilePath: string, linkPaths: string[]): string {
   const from = toFromDir(currentFilePath);
   return linkPaths
     .map((fullPath) => {
       const name = getFileName(fullPath);
       const relPath = relativePathFromParts(from, fullPath);
-      // Percent-encode each path segment so spaces and other special characters
-      // don't break the markdown link, while preserving the path separators.
-      const url = relPath.split('/').map(encodePathSegment).join('/');
+      const url = formatLinkDestination(relPath);
       return isImageFile(name) ? `![${name}](${url})` : `[${name}](${url})`;
     })
     .join('\n\n');

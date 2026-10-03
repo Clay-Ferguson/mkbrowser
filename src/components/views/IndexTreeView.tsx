@@ -59,6 +59,7 @@ import { generateTimestampFileName } from '../../shared/timeUtil';
 import { extractHeadingTree } from '../../shared/tocUtil';
 import { getVisibleElementById, scrollElementIntoView } from '../../renderer/entryDom';
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
+import { formatLinkDestination } from '../../renderer/linkUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
 import { parseFrontMatter } from '../../shared/frontMatterUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
@@ -161,7 +162,7 @@ function isParentOf(candidatePath: string, currentPath: string): boolean {
 
 /**
  * Whether any markdown file is currently open in edit mode, which is what gates
- * the "Paste Link" context-menu action. Read non-reactively at menu-open time
+ * the "Paste Link into Editor" context-menu action. Read non-reactively at menu-open time
  * rather than through a `useAS` selector: Zustand evaluates every subscriber's
  * selector on every store write, so subscribing would scan the whole item map
  * on each write (e.g. per debounced keystroke while editing inline) to feed a
@@ -349,8 +350,8 @@ const MemoTreeFileRow = memo(TreeFileRow);
  * expand), drag-and-drop reordering between folders, cut/paste, rename, delete,
  * bookmarks, and a right-click context menu. Markdown files expand to reveal
  * their heading tree. Clicking a heading or file navigates the browse view to
- * that item; a shell script's context menu has a "Run" item. The "Paste Link"
- * context-menu action inserts a relative Markdown link at the active editor's
+ * that item; a shell script's context menu has a "Run" item. The "Paste Link into
+ * Editor" context-menu action inserts a relative Markdown link at the active editor's
  * cursor.
  */
 function IndexTreeView() {
@@ -927,7 +928,7 @@ function IndexTreeView() {
    * Shows the context menu for a file or directory row. Available actions depend
    * on node type: directories get Browse/New File/New TODO/New Folder/Rename/Delete and (when cut
    * items exist) Paste; files get Browse/Rename/Delete and (when a markdown file
-   * is being edited) "Paste Link", which inserts a relative Markdown link at the
+   * is being edited; otherwise shown disabled) "Paste Link into Editor", which inserts a relative Markdown link at the
    * active editor's cursor — using the file's front-matter `id` field as a comment
    * suffix when present. Shell scripts (`.sh`) also get "Run". Both directories
    * and files also get "Copy Path" (absolute) and "Copy Relative Path" (relative
@@ -969,7 +970,7 @@ function IndexTreeView() {
       ...(activeEditor && !node.isDirectory ? {
         onPasteLink: () => {
           const editorDir = getParentPath(activeEditor.path);
-          const relPath = computeRelativePath(editorDir, node.path);
+          const relPath = formatLinkDestination(computeRelativePath(editorDir, node.path));
           const label = getFileName(node.path).replace(/\.md$/, '');
           if (node.path.endsWith('.md')) {
             api.readFile(node.path)

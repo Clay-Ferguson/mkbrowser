@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRelativePath, buildMarkdownLinks, decodeMarkdownUrl } from '../src/renderer/linkUtil';
+import { getRelativePath, buildMarkdownLinks, decodeMarkdownUrl, formatLinkDestination } from '../src/renderer/linkUtil';
 
 describe('getRelativePath', () => {
   it('returns just the file name when target is in the same directory', () => {
@@ -51,19 +51,19 @@ describe('buildMarkdownLinks', () => {
     expect(result).toBe('![pic.png](pic.png)\n\n[doc.md](doc.md)');
   });
 
-  it('percent-encodes spaces in the URL while keeping the readable display name', () => {
+  it('wraps a path with spaces in angle brackets instead of percent-encoding it', () => {
     const result = buildMarkdownLinks('/a/b/note.md', ['/a/b/my file.md']);
-    expect(result).toBe('[my file.md](my%20file.md)');
+    expect(result).toBe('[my file.md](<my file.md>)');
   });
 
-  it('percent-encodes spaces in directory segments without encoding separators', () => {
+  it('keeps spaces literal in directory segments too', () => {
     const result = buildMarkdownLinks('/a/b/note.md', ['/a/b/my sub/my pic.png']);
-    expect(result).toBe('![my pic.png](my%20sub/my%20pic.png)');
+    expect(result).toBe('![my pic.png](<my sub/my pic.png>)');
   });
 
-  it('percent-encodes parentheses so they cannot terminate the link destination', () => {
+  it('wraps an unbalanced parenthesis in angle brackets so it cannot end the destination', () => {
     const result = buildMarkdownLinks('/a/b/note.md', ['/a/b/screenshot 1).png']);
-    expect(result).toBe('![screenshot 1).png](screenshot%201%29.png)');
+    expect(result).toBe('![screenshot 1).png](<screenshot 1).png>)');
   });
 
   it('builds relative paths across directories', () => {
@@ -96,5 +96,49 @@ describe('decodeMarkdownUrl', () => {
 
   it('falls back to the original string when not validly encoded', () => {
     expect(decodeMarkdownUrl('100%done.png')).toBe('100%done.png');
+  });
+});
+
+describe('formatLinkDestination', () => {
+  it('leaves a path bare when nothing needs escaping', () => {
+    expect(formatLinkDestination('../c/img.jpg')).toBe('../c/img.jpg');
+  });
+
+  it('leaves balanced parentheses bare (CommonMark allows them)', () => {
+    expect(formatLinkDestination('notes(1).md')).toBe('notes(1).md');
+  });
+
+  it('uses angle brackets for spaces', () => {
+    expect(formatLinkDestination('../Job Interview Thread/HUMAN.md')).toBe(
+      '<../Job Interview Thread/HUMAN.md>'
+    );
+  });
+
+  it('uses angle brackets for unbalanced parentheses', () => {
+    expect(formatLinkDestination('a)b.md')).toBe('<a)b.md>');
+    expect(formatLinkDestination('a(b.md')).toBe('<a(b.md>');
+  });
+
+  it('percent-encodes when the path contains angle brackets', () => {
+    expect(formatLinkDestination('dir/a <b>.md')).toBe('dir/a%20%3Cb%3E.md');
+  });
+
+  it('percent-encodes a literal % so decodeMarkdownUrl round-trips it', () => {
+    const dest = formatLinkDestination('100% done.md');
+    expect(dest).toBe('100%25%20done.md');
+    expect(decodeMarkdownUrl(dest)).toBe('100% done.md');
+  });
+
+  it('percent-encodes a backslash, which would otherwise start an escape', () => {
+    expect(formatLinkDestination('a\\(b.md')).toBe('a%5C%28b.md');
+  });
+
+  it('percent-encodes a character-reference-like sequence but not a plain ampersand', () => {
+    expect(formatLinkDestination('Q&A.md')).toBe('Q&A.md');
+    expect(formatLinkDestination('a&amp;b.md')).toBe('a%26amp%3Bb.md');
+  });
+
+  it('percent-encodes a leading # so it is not read as an in-page anchor', () => {
+    expect(formatLinkDestination('#notes.md')).toBe('%23notes.md');
   });
 });

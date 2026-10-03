@@ -23,7 +23,11 @@ interface IndexTreeContextMenuProps {
   onCut?: () => void;
   /** When provided, a "Paste into Folder" item is shown. */
   onPaste?: () => void;
-  /** When provided, a "Paste Link" item is shown. */
+  /**
+   * Action for the "Paste Link into Editor" item. The item is always shown;
+   * it is disabled when this is absent (no markdown file being edited, or the
+   * node is a directory).
+   */
   onPasteLink?: () => void;
   /** When provided, a "Copy Path" item is shown. */
   onCopyPath?: () => void;
@@ -34,7 +38,8 @@ interface IndexTreeContextMenuProps {
 /**
  * Right-click context menu for nodes in the index tree panel. Appears at the
  * cursor position and renders only the action items whose callbacks are provided
- * by the caller (optional items are omitted when the callback is absent). The
+ * by the caller (optional items are omitted when the callback is absent), except
+ * "Paste Link into Editor", which is always shown and disabled instead. The
  * three create items are fenced off in their own divider section, since they add
  * to the folder's *contents* rather than acting on the clicked node itself.
  */
@@ -100,12 +105,14 @@ export default function IndexTreeContextMenu({ mousePosition, isDirectory: _isDi
           onClick={() => { onPaste(); onClose(); }}
         />
       )}
-      {onPasteLink && (
-        <PopupMenuItem
-          label="Paste Link"
-          onClick={() => { onPasteLink(); onClose(); }}
-        />
-      )}
+      {/* Always shown (disabled when inapplicable) so it stays discoverable
+          when no markdown file is being edited. */}
+      <PopupMenuItem
+        label="Paste Link into Editor"
+        onClick={() => { onPasteLink?.(); onClose(); }}
+        disabled={!onPasteLink}
+        data-testid="tree-paste-link"
+      />
       {(onCopyPath || onCopyRelativePath) && <PopupMenuDivider />}
       {onCopyPath && (
         <PopupMenuItem

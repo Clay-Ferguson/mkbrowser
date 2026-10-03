@@ -237,7 +237,7 @@ While editing a Markdown file you can quickly insert a link to any other file in
 1. Start editing a Markdown file (the code editor must be open).
 2. Position the cursor where you want the link to appear.
 3. In the **Index Tree** panel on the left, right-click the file you want to link to.
-4. Choose **Paste Link** from the context menu.
+4. Choose **Paste Link into Editor** from the context menu.
 
 MkBrowser inserts a relative Markdown link at the cursor position, for example:
 
@@ -253,7 +253,13 @@ If the target file is a Markdown file that contains a front matter `id` property
 
 This lets other tools (and future MkBrowser features) resolve the link by id even if the file is later renamed or moved.
 
-> **Note:** The **Paste Link** item only appears in the context menu when a Markdown file is currently open for editing.
+If the path contains spaces, the link target is wrapped in angle brackets (standard Markdown) so the spaces can stay as they are:
+
+```
+[HUMAN](<../Job Interview Thread/HUMAN.md>)
+```
+
+> **Note:** **Paste Link into Editor** is always listed in the Index Tree context menu, but it is disabled (greyed out) unless a Markdown file is currently open for editing and you right-clicked a file rather than a folder.
 
 > **Tip:** To link to files (or images) from anywhere in the browser — including other folders — select them with their checkboxes and use **Copy Link**, then **Paste Link** in the editor. See [Copy Link](#copy-link) for the full workflow.
 
