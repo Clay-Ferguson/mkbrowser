@@ -578,7 +578,6 @@ function MarkdownEntry(props: MarkdownEntryProps) {
                 showPropsInEditor={showPropsInEditor || reviewing}
                 fillHeight={maximized}
                 fileName={entry.name}
-                filePath={entry.path}
                 {...chrome.reviewProps}
               />
             </>

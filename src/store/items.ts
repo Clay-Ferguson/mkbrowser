@@ -637,13 +637,11 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * oldPath to newPath, preserving all state (isSelected, isCut, isExpanded,
      * content, etc.) to prevent phantom entries when a selected item is
      * renamed — and, atomically in the same update, remaps every other slice
-     * that holds file paths. Leaving any of those stale dangles bookmarks,
-     * points calendar events at files that no longer exist, and lets "Paste
-     * Link" write dead links into document content:
+     * that holds file paths. Leaving any of those stale dangles bookmarks and
+     * points calendar events at files that no longer exist:
      * - bookmarks (settings slice), including bookmarks to descendants of a
      *   renamed folder
      * - calendar events keyed by `filePath` (calendar slice)
-     * - "Copy Link" paths awaiting "Paste Link" (view slice)
      * - `currentPath` (so renaming the browsed folder or an ancestor follows
      *   it), `browseFileName`, `highlightItem`, and the `pending*` path fields
      *
@@ -739,17 +737,6 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
         }
       }
 
-      let linksChanged = false;
-      const selectedLinkItems = state.selectedLinkItems.map(p => {
-        const moved = remapMovedPath(p, oldRoot, newRoot);
-        if (moved === null) return p;
-        linksChanged = true;
-        return moved;
-      });
-      if (linksChanged) {
-        patch.selectedLinkItems = selectedLinkItems;
-      }
-
       // Navigation/view path fields. Renaming the folder being browsed (or an
       // ancestor of it) must move `currentPath` along with it — otherwise the
       // browse view reloads a path that no longer exists, and App persists the
@@ -787,9 +774,8 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
      * descendant of each path (a deleted folder takes its whole subtree with it,
      * so leaving descendants behind would strand their editing/isCut state).
      *
-     * Also drops, atomically in the same update, any `currentEntries` rows and
-     * "Copy Link" paths pointing at (or under) a deleted path — a later "Paste
-     * Link" would otherwise write dead links into document content.
+     * Also drops, atomically in the same update, any `currentEntries` rows
+     * pointing at (or under) a deleted path.
      */
     deleteItems: (paths) => {
       if (paths.length === 0) return;
@@ -819,13 +805,6 @@ export function createItemsSlice(set: StoreSet, get: StoreGet): ItemsSlice {
       );
       if (remainingEntries.length !== state.currentEntries.length) {
         patch.currentEntries = remainingEntries;
-      }
-
-      const remainingLinks = state.selectedLinkItems.filter(
-        p => !roots.some(root => isPathInside(root, p)),
-      );
-      if (remainingLinks.length !== state.selectedLinkItems.length) {
-        patch.selectedLinkItems = remainingLinks;
       }
 
       if (Object.keys(patch).length === 0) return;

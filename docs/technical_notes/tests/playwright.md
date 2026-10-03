@@ -241,13 +241,13 @@ Menus (`edit-menu-button`, `tools-menu-button`, `bookmarks-menu-button`, …) op
 
 - Take the "about to click this item" screenshot *after* opening the menu, while it is open.
 - To re-assert a menu's contents after it closed, reopen it.
-- Menu items are buttons; click by test ID (`menu-copy-link`, `menu-folder-analysis`) or by role: `getByRole('button', { name: 'Replace in Files', exact: true })`.
+- Menu items are buttons; click by test ID (`menu-paste-clipboard`, `menu-folder-analysis`) or by role: `getByRole('button', { name: 'Replace in Files', exact: true })`.
 - **Disabled items:** check `src/components/menus/EditPopupMenu.tsx` (and its base component under `menus/base/`) for whether "disabled" renders as a real `disabled` attribute, `aria-disabled`, or a click-swallowing style. `toBeDisabled()` only works for a real `disabled` attribute — assert accordingly.
 
 ### Edit mode and the CodeMirror editor
 - **Enter edit mode:** click a file's name to expand it, then click its rendered markdown body — `MarkdownEntry.tsx` opens the CodeMirror editor on mouse-up over the content when no text is selected. `entry-save-button` becoming visible confirms edit mode.
 - **Type:** use `insertText` (it selects-all and overwrites). To append, place the cursor at the end first (`End`/`Enter`).
-- **Editor context menu:** `demoRightClick` on the editor's `.cm-content` area (not the gutter/toolbar) opens `EditorContextMenu.tsx`; items have test IDs like `editor-paste-link`.
+- **Editor context menu:** `demoRightClick` on the editor's `.cm-content` area (not the gutter/toolbar) opens `EditorContextMenu.tsx`; items have test IDs like `editor-save` and `editor-insert-object`.
 - **Save:** click `entry-save-button`, then wait for it to disappear (edit mode ended), as `create-file-demo.spec.ts` does.
 - CodeMirror's DOM is virtualized; asserting on `.cm-content` text works for short documents, but the authoritative check is always the saved bytes on disk.
 

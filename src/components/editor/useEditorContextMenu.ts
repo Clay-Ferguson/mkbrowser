@@ -4,7 +4,6 @@ import Typo from 'typo-js';
 import { logger } from '../../shared/logUtil';
 import { formatDate, formatTimestamp } from '../../shared/timeUtil';
 import { isMarkdownFile } from '../../shared/fileTypes';
-import { buildMarkdownLinks } from '../../renderer/linkUtil';
 import { saveSettings } from '../../renderer/config';
 import { useAS, setEnableThesaurus } from '../../store';
 import { wordAt, isSpellCheckExempt, type SpellingSuggestion } from './spellChecker';
@@ -27,7 +26,6 @@ interface UseEditorContextMenuProps {
   viewRef: React.RefObject<EditorView | null>;
   typoRef: React.RefObject<Typo | null>;
   fileName?: string;
-  filePath?: string;
   onSave?: () => void;
   /**
    * Whether this editor is one the thesaurus plugin was installed into — live prose only,
@@ -44,16 +42,14 @@ interface UseEditorContextMenuProps {
  * On right-click, checks whether the cursor lands on a misspelled word (using the same
  * tokenisation as the spell-check decorations) and surfaces spelling suggestions at the
  * top of the menu. Also exposes save-in-place, cut/copy/paste, select-all, timestamp/date
- * insertion, the thesaurus on/off switch, and — for Markdown files — "Paste Link" and
- * "Insert Object" (which swaps the menu for a list of the registered object types).
+ * insertion, the thesaurus on/off switch, and — for Markdown files — "Insert Object" (which swaps the menu for a list of the registered object types).
  *
  * Returns everything `EditorContextMenu` and `CodeMirrorEditor` need: the menu's
  * visibility/position state, all action handlers, and derived flags (`isMarkdown`,
- * `canPasteLink`, `canSave`, `canToggleThesaurus`, `thesaurusEnabled`).
+ * `canSave`, `canToggleThesaurus`, `thesaurusEnabled`).
  */
-export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onSave, thesaurusCapable = false }: UseEditorContextMenuProps) {
+export function useEditorContextMenu({ viewRef, typoRef, fileName, onSave, thesaurusCapable = false }: UseEditorContextMenuProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ visible: false, x: 0, y: 0 });
-  const selectedLinkItems = useAS(s => s.selectedLinkItems);
   const thesaurusEnabled = useAS(s => s.settings.enableThesaurus);
   // Only `BrowseFile` (single-file mode) mounts the synonym strip, and that is what
   // `browseFileName` being set means. Offering the switch in a folder-listing inline editor
@@ -192,20 +188,6 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
     })();
   };
 
-  const handlePasteLink = () => {
-    const view = viewRef.current;
-    if (!view || !filePath || selectedLinkItems.length === 0) return;
-
-    const text = buildMarkdownLinks(filePath, selectedLinkItems);
-    const { from, to } = view.state.selection.main;
-    view.dispatch({
-      changes: { from, to, insert: text },
-      selection: { anchor: from + text.length },
-    });
-    closeContextMenu();
-    view.focus();
-  };
-
   // "Save" — unlike Ctrl+S (save and exit), this writes the file and leaves the user in the
   // editor. The menu is closed and focus handed back to the editor first, so the caller's save
   // (and its green saved-flash) runs against an already-focused editor the user can keep typing in.
@@ -339,8 +321,6 @@ export function useEditorContextMenu({ viewRef, typoRef, fileName, filePath, onS
     handleCut,
     handleCopy,
     handlePaste,
-    handlePasteLink,
-    canPasteLink: !!filePath && selectedLinkItems.length > 0,
     handleSelectAll,
     handleSpellingSuggestion,
     handleInsertTimestamp,

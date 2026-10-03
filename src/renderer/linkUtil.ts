@@ -1,5 +1,4 @@
-import { isImageFile } from '../shared/fileTypes';
-import { getFileName, getParentPath, splitPathSegments } from './pathUtil';
+import { getParentPath, splitPathSegments } from './pathUtil';
 
 /**
  * Decode a percent-encoded markdown URL back into a filesystem path.
@@ -129,21 +128,4 @@ export function formatLinkDestination(relPath: string): string {
   }
   if (/\s/.test(relPath) || !hasBalancedParens(relPath)) return `<${relPath}>`;
   return relPath;
-}
-
-/**
- * Build markdown link text for a set of full paths, made relative to the file
- * being edited. Image files become inline image embeds (`![]()`), everything
- * else becomes a standard link (`[]()`). Items are separated by a blank line.
- */
-export function buildMarkdownLinks(currentFilePath: string, linkPaths: string[]): string {
-  const from = toFromDir(currentFilePath);
-  return linkPaths
-    .map((fullPath) => {
-      const name = getFileName(fullPath);
-      const relPath = relativePathFromParts(from, fullPath);
-      const url = formatLinkDestination(relPath);
-      return isImageFile(name) ? `![${name}](${url})` : `[${name}](${url})`;
-    })
-    .join('\n\n');
 }

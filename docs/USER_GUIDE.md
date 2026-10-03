@@ -40,7 +40,6 @@ MkBrowser is a file explorer and Markdown editor that helps you manage Markdown 
   * [Split](#split)
   * [Join](#join)
   * [Replace in Files](#replace-in-files)
-  * [Copy Link](#copy-link)
   * [Cut and Paste](#cut-and-paste)
   * [Delete](#delete)
   * [Split and Join](#split-and-join)
@@ -239,7 +238,7 @@ While editing a Markdown file you can quickly insert a link to any other file in
 3. In the **Index Tree** panel on the left, right-click the file or folder you want to link to.
 4. Choose **Paste Link into Editor** from the context menu.
 
-MkBrowser inserts a relative Markdown link at the cursor position, for example:
+MkBrowser inserts a Markdown link at the cursor position, with the path computed **relative to the file you are editing** — so you can link to anything in the tree, including files in completely different folders. For example:
 
 ```
 [notes](../reference/notes.md)
@@ -252,6 +251,8 @@ If the target file is a Markdown file that contains a front matter `id` property
 ```
 
 This lets other tools (and future MkBrowser features) resolve the link by id even if the file is later renamed or moved.
+
+Image files are inserted as inline images (`![diagram](../images/diagram.png)`), so they display directly in the rendered document.
 
 You can also link to a **folder**. Clicking a folder link in the rendered Markdown opens that folder in the browser view:
 
@@ -266,8 +267,6 @@ If the path contains spaces, the link target is wrapped in angle brackets (stand
 ```
 
 > **Note:** **Paste Link into Editor** is always listed in the Index Tree context menu, but it is disabled (greyed out) unless a Markdown file is currently open for editing.
-
-> **Tip:** To link to files (or images) from anywhere in the browser — including other folders — select them with their checkboxes and use **Copy Link**, then **Paste Link** in the editor. See [Copy Link](#copy-link) for the full workflow.
 
 ### Editor Keyboard Shortcuts
 
@@ -463,30 +462,6 @@ See [Split and Join](#split-and-join) for full details. Combines two or more sel
 
 ## Replace in Files
 See [Replace in Files](#replace-in-files) for details. Opens a dialog to search and replace text across all `.md` and `.txt` files in the current folder and subfolders.
-
-## Copy Link
-
-**Copy Link** lets you capture one or more files (or folders) in the browser and later paste them as relative Markdown links into any Markdown file you are editing — even one in a completely different folder. Image files are pasted as inline images, so they display directly in the rendered document.
-
-To use it:
-
-1. In the browser, use the checkboxes to select the files and/or folders you want to link to. (These are the same checkboxes used by the Cut and Paste feature.)
-2. Open the **Edit** menu and choose **Copy Link**. The selected paths are remembered, and the checkboxes are cleared automatically.
-3. Start editing the Markdown file you want the links to appear in, and place the cursor where the links should go.
-4. Right-click in the editor and choose **Paste Link** from the context menu.
-
-MkBrowser inserts a Markdown link for each captured item, computing the correct path **relative to the file you are editing**. Each link appears on its own line, separated by a blank line. For example, after copying an image and a document and pasting them into a file in a sibling folder:
-
-```
-![diagram.png](../images/diagram.png)
-
-[notes.md](../reference/notes.md)
-```
-
-When rendered, the image is displayed inline and the document appears as a normal clickable link. File names that contain spaces or other special characters are handled automatically.
-
-> **Note:** **Copy Link** simply remembers the selected items; it does not move or modify any files. The captured items stay remembered until you run **Copy Link** again, so you can paste the same set of links into multiple files. The **Paste Link** context-menu item only appears while editing a Markdown file.
-
 
 ## Cut and Paste
 

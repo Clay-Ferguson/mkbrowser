@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { clsx } from 'clsx';
-import { EDITOR_MENU_ITEM, EDITOR_MENU_ITEM_ACCENT, EDITOR_MENU_ITEM_DISABLED, Z_MODAL } from '../../renderer/styles';
+import { EDITOR_MENU_ITEM, EDITOR_MENU_ITEM_ACCENT, Z_MODAL } from '../../renderer/styles';
 import type { ContextMenuState } from './useEditorContextMenu';
 import type { ObjectTypeOption } from '../objects/objectRegistry';
 
@@ -12,8 +11,6 @@ interface EditorContextMenuProps {
   onCut: () => void;
   onCopy: () => void;
   onPaste: () => void;
-  onPasteLink: () => void;
-  canPasteLink: boolean;
   onSelectAll: () => void;
   onSpellingSuggestion: (suggestion: string) => void;
   onInsertTimestamp: () => void;
@@ -40,7 +37,7 @@ const VIEWPORT_MARGIN = 8;
  * clamped so it stays fully within the viewport. Includes Save (writes the file without
  * leaving edit mode), standard edit actions (cut/copy/paste, select all), timestamp/date
  * insertion, optional spell-check suggestions, the thesaurus on/off switch, and
- * the Markdown-only Paste Link and Insert Object items. Closes on outside click, scroll, or
+ * the Markdown-only Insert Object item. Closes on outside click, scroll, or
  * Escape.
  *
  * Insert Object does not act directly: it replaces the menu's items, in place, with the list
@@ -53,8 +50,6 @@ export function EditorContextMenu({
   onCut,
   onCopy,
   onPaste,
-  onPasteLink,
-  canPasteLink,
   onSelectAll,
   onSpellingSuggestion,
   onInsertTimestamp,
@@ -240,19 +235,6 @@ export function EditorContextMenu({
         <span>Paste</span>
         <span className="text-slate-500 text-xs ml-4">Ctrl+V</span>
       </button>
-      {isMarkdown && (
-        <button
-          type="button"
-          role="menuitem"
-          tabIndex={-1}
-          onClick={onPasteLink}
-          disabled={!canPasteLink}
-          className={clsx('flex items-center justify-between', canPasteLink ? EDITOR_MENU_ITEM : EDITOR_MENU_ITEM_DISABLED)}
-          data-testid="editor-paste-link"
-        >
-          <span>Paste Link</span>
-        </button>
-      )}
       <div className="border-t border-slate-600 my-1" />
       <button
         type="button"

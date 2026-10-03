@@ -116,7 +116,6 @@ const initialState: AppState = {
   pendingIndexTreeReveal: null,
   hasIndexFile: false,
   indexYaml: null,
-  selectedLinkItems: [],
   calendarSource: null,
   calendarEvents: null,
   calendarLoading: false,

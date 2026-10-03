@@ -24,7 +24,6 @@ import {
   setSortOrder,
   setImageCols,
   useExpansionCounts,
-  setSelectedLinkItems,
   useAS,
   type ItemData,
   type SearchDefinition,
@@ -174,12 +173,6 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
   const handleRunOcr = () => {
     if (!currentPath) return;
     void runOcr(currentPath, useAS.getState().settings.ocrToolsFolder, useAS.getState().items);
-  };
-
-  const handleCopyLink = () => {
-    const paths = getSelectedItems(useAS.getState().items).map((item) => item.path);
-    setSelectedLinkItems(paths);
-    clearAllSelections();
   };
 
   const handleSelectSortOrder = (order: Parameters<typeof setSortOrder>[0]) => {
@@ -431,11 +424,9 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
           onSplit={handleSplitFile}
           onJoin={handleJoinFiles}
           onReplaceInFiles={() => onOpenOverlay({ kind: 'replace' })}
-          onCopyLink={handleCopyLink}
           unselectAllDisabled={selectedFileCount === 0 && !hasSelectedFolders}
           splitDisabled={selectedFileCount !== 1 || hasSelectedFolders}
           joinDisabled={selectedFileCount < 2 || hasSelectedFolders}
-          copyLinkDisabled={!hasSelectedItems}
           onEnableCustomOrdering={!hasIndexFile && currentPath ? () => enableCustomOrdering(currentPath) : undefined}
         />
       )}

@@ -39,7 +39,6 @@ export interface ViewSlice {
   openRootFolder: (folder: string) => void;
   showTab: (tab: AppView) => void;
   hideTab: (tab: AppView) => void;
-  setSelectedLinkItems: (paths: string[]) => void;
 }
 
 /**
@@ -300,9 +299,6 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       next.delete(tab);
       set({ visibleTabs: next });
     },
-
-    /** Store the full paths captured by "Copy Link" for later "Paste Link". */
-    setSelectedLinkItems: (paths) => set({ selectedLinkItems: paths }),
   };
 }
 
@@ -431,8 +427,4 @@ export function showTab(tab: AppView): void {
 
 export function hideTab(tab: AppView): void {
   getState().hideTab(tab);
-}
-
-export function setSelectedLinkItems(paths: string[]): void {
-  getState().setSelectedLinkItems(paths);
 }

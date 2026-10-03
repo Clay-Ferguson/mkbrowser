@@ -517,13 +517,6 @@ export interface AppState {
   indexYaml: { version?: number; files?: { name: string; id?: string }[]; options?: Record<string, unknown> } | null;
 
   /**
-   * Full paths of files/folders captured by the "Copy Link" action, used to
-   * later paste relative markdown links/images into the editor via "Paste Link".
-   * Not persisted — defaults to empty on restart.
-   */
-  selectedLinkItems: string[];
-
-  /**
    * Where the currently loaded calendarEvents came from (null = never loaded).
    * Tracked independently of the current browse path and the live search results
    * so the calendar stays stable while the user navigates elsewhere.

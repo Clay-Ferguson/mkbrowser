@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRelativePath, buildMarkdownLinks, decodeMarkdownUrl, formatLinkDestination } from '../src/renderer/linkUtil';
+import { getRelativePath, decodeMarkdownUrl, formatLinkDestination } from '../src/renderer/linkUtil';
 
 describe('getRelativePath', () => {
   it('returns just the file name when target is in the same directory', () => {
@@ -42,46 +42,6 @@ describe('getRelativePath', () => {
 
   it('keeps POSIX path segments case-sensitive', () => {
     expect(getRelativePath('/a/Notes/note.md', '/a/notes/pic.png')).toBe('../notes/pic.png');
-  });
-});
-
-describe('buildMarkdownLinks', () => {
-  it('renders images as inline embeds and other files as links, separated by a blank line', () => {
-    const result = buildMarkdownLinks('/a/b/note.md', ['/a/b/pic.png', '/a/b/doc.md']);
-    expect(result).toBe('![pic.png](pic.png)\n\n[doc.md](doc.md)');
-  });
-
-  it('wraps a path with spaces in angle brackets instead of percent-encoding it', () => {
-    const result = buildMarkdownLinks('/a/b/note.md', ['/a/b/my file.md']);
-    expect(result).toBe('[my file.md](<my file.md>)');
-  });
-
-  it('keeps spaces literal in directory segments too', () => {
-    const result = buildMarkdownLinks('/a/b/note.md', ['/a/b/my sub/my pic.png']);
-    expect(result).toBe('![my pic.png](<my sub/my pic.png>)');
-  });
-
-  it('wraps an unbalanced parenthesis in angle brackets so it cannot end the destination', () => {
-    const result = buildMarkdownLinks('/a/b/note.md', ['/a/b/screenshot 1).png']);
-    expect(result).toBe('![screenshot 1).png](<screenshot 1).png>)');
-  });
-
-  it('builds relative paths across directories', () => {
-    const result = buildMarkdownLinks('/a/b/note.md', ['/a/c/img.jpg']);
-    expect(result).toBe('![img.jpg](../c/img.jpg)');
-  });
-
-  it('resolves each path independently when a single call mixes different depths', () => {
-    // Guards the shared, precomputed source-directory segments: every entry must be
-    // resolved against the same origin regardless of its own depth or order.
-    const result = buildMarkdownLinks('/a/b/note.md', [
-      '/a/b/pic.png',        // same directory
-      '/a/b/sub/deep.png',   // subdirectory
-      '/a/c/img.jpg',        // sibling directory (needs ../)
-    ]);
-    expect(result).toBe(
-      '![pic.png](pic.png)\n\n![deep.png](sub/deep.png)\n\n![img.jpg](../c/img.jpg)'
-    );
   });
 });
 

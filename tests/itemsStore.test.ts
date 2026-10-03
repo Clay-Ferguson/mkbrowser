@@ -308,7 +308,6 @@ describe('renameItem / deleteItems — path-holding slices stay in sync', () => 
     useAS.setState({
       settings: { ...useAS.getState().settings, bookmarks: [] },
       calendarEvents: null,
-      selectedLinkItems: [],
     });
   });
 
@@ -385,16 +384,6 @@ describe('renameItem / deleteItems — path-holding slices stay in sync', () => 
     });
   });
 
-  describe('renameItem: copied link paths', () => {
-    it('remaps "Copy Link" paths under a renamed folder', () => {
-      useAS.setState({ selectedLinkItems: [NOTE, '/other/x.md'] });
-
-      renameItem(DIR, '/journal', 'journal');
-
-      expect(useAS.getState().selectedLinkItems).toEqual(['/journal/note.md', '/other/x.md']);
-    });
-  });
-
   describe('renameItem: items map', () => {
     it('still re-keys the entry and its cached descendants, preserving state', () => {
       syncDirectoryItems(DIR, [entry(NOTE)]);
@@ -410,11 +399,13 @@ describe('renameItem / deleteItems — path-holding slices stay in sync', () => 
     });
 
     it('remaps the other slices even when the renamed path is not cached', () => {
-      useAS.setState({ selectedLinkItems: ['/uncached/a.md'] });
+      useAS.setState({
+        settings: { ...useAS.getState().settings, bookmarks: [{ path: '/uncached/a.md', name: 'a' }] },
+      });
 
       renameItem('/uncached', '/moved', 'moved');
 
-      expect(useAS.getState().selectedLinkItems).toEqual(['/moved/a.md']);
+      expect(useAS.getState().settings.bookmarks).toEqual([{ path: '/moved/a.md', name: 'a' }]);
     });
   });
 
@@ -473,16 +464,6 @@ describe('renameItem / deleteItems — path-holding slices stay in sync', () => 
       expect(useAS.getState().browseFileName).toBe('renamed.md');
     });
   });
-
-  describe('deleteItems: copied link paths', () => {
-    it('drops "Copy Link" paths at or under a deleted path, keeping the rest', () => {
-      useAS.setState({ selectedLinkItems: [NOTE, '/notes/deep/a.md', '/other/x.md'] });
-
-      deleteItems([DIR]);
-
-      expect(useAS.getState().selectedLinkItems).toEqual(['/other/x.md']);
-    });
-  });
 });
 
 describe('currentEntries — the folder listing stays in step with the items Map', () => {
@@ -497,7 +478,7 @@ describe('currentEntries — the folder listing stays in step with the items Map
 
   beforeEach(() => {
     useAS.setState({ items: new Map() });
-    useAS.setState({ currentEntries: [], selectedLinkItems: [] });
+    useAS.setState({ currentEntries: [] });
   });
 
   it('applyDirectoryListing installs the listing and its items (attachments included) together', () => {

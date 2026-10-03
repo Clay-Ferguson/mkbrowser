@@ -203,8 +203,6 @@ interface CodeMirrorEditorProps {
   readOnly?: boolean;
   /** The file name — used to enable markdown-only context menu items. */
   fileName?: string;
-  /** The full path of the file being edited — used to compute relative "Paste Link" paths. */
-  filePath?: string;
   /**
    * Called once the editor view (and its imperative handle) is ready. Fired from the mount
    * effect, so the handle is guaranteed populated — use this instead of reading a ref in an
@@ -354,7 +352,7 @@ function applyPostMountFocus(
  * (value, fontSize, showPropsInEditor, reviewText) are applied through separate effects or
  * compartments so that undo history, cursor position, and the async spell checker are preserved.
  */
-function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSaveKeepEditing, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, filePath, onReady, fillHeight = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
+function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text', autoFocus = false, goToLine, onGoToLineComplete, goToPosition, onGoToPositionComplete, onEscape, onForceCancel, onSave, onSaveKeepEditing, onSelectionChange, showPropsInEditor = true, readOnly = false, fileName, onReady, fillHeight = false, onViewModeClick, reviewText = null, onReviewComplete, onReviewCancel }: CodeMirrorEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -481,8 +479,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     handleCut,
     handleCopy,
     handlePaste,
-    handlePasteLink,
-    canPasteLink,
     handleSelectAll,
     handleSpellingSuggestion,
     handleInsertTimestamp,
@@ -498,7 +494,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
     viewRef,
     typoRef,
     fileName,
-    filePath,
     onSave: onSaveKeepEditing !== undefined && !reviewing ? handleContextMenuSave : undefined,
     // The same gate the extension list below applies: the menu offers the thesaurus switch
     // only on editors that actually have the plugin installed.
@@ -994,8 +989,6 @@ function CodeMirrorEditor({ ref, value, onChange, placeholder, language = 'text'
         onCut={handleCut}
         onCopy={handleCopy}
         onPaste={handlePaste}
-        onPasteLink={handlePasteLink}
-        canPasteLink={canPasteLink}
         onSelectAll={handleSelectAll}
         onSpellingSuggestion={handleSpellingSuggestion}
         onInsertTimestamp={handleInsertTimestamp}

@@ -167,8 +167,6 @@ function renderMenu(contextMenu: ContextMenuState, isMarkdown: boolean): string 
     onCut: noop,
     onCopy: noop,
     onPaste: noop,
-    onPasteLink: noop,
-    canPasteLink: false,
     onSelectAll: noop,
     onSpellingSuggestion: noop,
     onInsertTimestamp: noop,
