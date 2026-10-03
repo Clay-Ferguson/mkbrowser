@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRelativePath, decodeMarkdownUrl, formatLinkDestination } from '../src/renderer/linkUtil';
+import { getRelativePath, decodeMarkdownUrl, formatLinkDestination, formatLinkTitle } from '../src/renderer/linkUtil';
 
 describe('getRelativePath', () => {
   it('returns just the file name when target is in the same directory', () => {
@@ -100,5 +100,15 @@ describe('formatLinkDestination', () => {
 
   it('percent-encodes a leading # so it is not read as an in-page anchor', () => {
     expect(formatLinkDestination('#notes.md')).toBe('%23notes.md');
+  });
+});
+
+describe('formatLinkTitle', () => {
+  it('wraps the text in double quotes', () => {
+    expect(formatLinkTitle('id:3D6B20DDF')).toBe('"id:3D6B20DDF"');
+  });
+
+  it('backslash-escapes double quotes and backslashes', () => {
+    expect(formatLinkTitle('id:a"b\\c')).toBe('"id:a\\"b\\\\c"');
   });
 });

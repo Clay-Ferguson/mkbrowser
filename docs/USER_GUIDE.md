@@ -244,13 +244,13 @@ MkBrowser inserts a Markdown link at the cursor position, with the path computed
 [notes](../reference/notes.md)
 ```
 
-If the target file is a Markdown file that contains a front matter `id` property, the id is embedded as an HTML comment immediately after the link:
+If the target file is a Markdown file that contains a front matter `id` property, the id is stored as the link's title (standard Markdown, shown as the link's hover tooltip):
 
 ```
-[notes](../reference/notes.md)<!-- id:abc123 -->
+[notes](../reference/notes.md "id:abc123")
 ```
 
-This lets other tools (and future MkBrowser features) resolve the link by id even if the file is later renamed or moved.
+Because the id is part of the link itself, other tools (and future MkBrowser features) can resolve the link by id even if the file is later renamed or moved.
 
 Image files are inserted as inline images (`![diagram](../images/diagram.png)`), so they display directly in the rendered document.
 

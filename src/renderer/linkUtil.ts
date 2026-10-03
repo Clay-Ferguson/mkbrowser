@@ -129,3 +129,12 @@ export function formatLinkDestination(relPath: string): string {
   if (/\s/.test(relPath) || !hasBalancedParens(relPath)) return `<${relPath}>`;
   return relPath;
 }
+
+/**
+ * Format `text` as a double-quoted CommonMark link title (`"..."`), the slot that
+ * carries a target file's front-matter id: `[label](<dest> "id:3D6B20DDF")`.
+ * Backslashes and double quotes are backslash-escaped so they can't end the title.
+ */
+export function formatLinkTitle(text: string): string {
+  return `"${text.replace(/["\\]/g, '\\$&')}"`;
+}
