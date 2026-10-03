@@ -928,7 +928,7 @@ function IndexTreeView() {
    * Shows the context menu for a file or directory row. Available actions depend
    * on node type: directories get Browse/New File/New TODO/New Folder/Rename/Delete and (when cut
    * items exist) Paste; files get Browse/Rename/Delete and (when a markdown file
-   * is being edited; otherwise shown disabled) "Paste Link into Editor", which inserts a relative Markdown link at the
+   * is being edited; otherwise shown disabled) "Paste Link into Editor", which inserts a relative Markdown link (to the file or folder) at the
    * active editor's cursor — using the file's front-matter `id` field as a comment
    * suffix when present. Shell scripts (`.sh`) also get "Run". Both directories
    * and files also get "Copy Path" (absolute) and "Copy Relative Path" (relative
@@ -967,12 +967,14 @@ function IndexTreeView() {
       } : {}),
       onCopyPath: () => void navigator.clipboard.writeText(node.path),
       onCopyRelativePath: () => void navigator.clipboard.writeText(computeRelativePath(currentPath, node.path)),
-      ...(activeEditor && !node.isDirectory ? {
+      // Folders link too: clicking a folder link browses into that folder (see CustomAnchor).
+      ...(activeEditor ? {
         onPasteLink: () => {
           const editorDir = getParentPath(activeEditor.path);
           const relPath = formatLinkDestination(computeRelativePath(editorDir, node.path));
-          const label = getFileName(node.path).replace(/\.md$/, '');
-          if (node.path.endsWith('.md')) {
+          const name = getFileName(node.path);
+          const label = node.isDirectory ? name : name.replace(/\.md$/, '');
+          if (!node.isDirectory && node.path.endsWith('.md')) {
             api.readFile(node.path)
               .then((result) => {
                 // On a failed read, fall back to a plain link (no id suffix),
@@ -987,7 +989,7 @@ function IndexTreeView() {
                 // Couldn't read the target file for its id — insert a plain link
                 activeEditor.handle.insertAtCursor(`[${label}](${relPath})`);
               });
-          } else if (isImageFile(node.name)) {
+          } else if (!node.isDirectory && isImageFile(node.name)) {
             activeEditor.handle.insertAtCursor(`![${label}](${relPath})`);
           } else {
             activeEditor.handle.insertAtCursor(`[${label}](${relPath})`);

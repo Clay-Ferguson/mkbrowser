@@ -25,8 +25,7 @@ interface IndexTreeContextMenuProps {
   onPaste?: () => void;
   /**
    * Action for the "Paste Link into Editor" item. The item is always shown;
-   * it is disabled when this is absent (no markdown file being edited, or the
-   * node is a directory).
+   * it is disabled when this is absent (no markdown file being edited).
    */
   onPasteLink?: () => void;
   /** When provided, a "Copy Path" item is shown. */

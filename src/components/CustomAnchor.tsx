@@ -12,12 +12,23 @@ interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement
 }
 
 /**
+ * Browse to the folder containing `targetPath`, scrolling to and highlighting it.
+ * `targetPath` is derived from `entryPath` (always rooted) or an absolute href, so
+ * it always has a parent; the `|| targetPath` fallback is defensive only.
+ */
+function revealFile(targetPath: string): void {
+  const folderPath = getParentPath(targetPath) || targetPath;
+  setHighlightItem(targetPath);
+  navigateToBrowserPath(folderPath, targetPath);
+}
+
+/**
  * Custom <a> renderer for react-markdown that intercepts three link types:
  *   - External URLs (http/https, file://) — opened via the system default handler.
  *   - In-page anchor links (#section) — scrolled inside the container since Electron
  *     SPAs don't use window-level scrolling.
  *   - Relative file paths — resolved against the markdown file's location and used
- *     to navigate the BrowseView.
+ *     to navigate the BrowseView (into the folder itself when the target is a folder).
  *
  * Also stops mouseup propagation so link clicks don't trigger the parent's edit-mode handler.
  */
@@ -79,14 +90,14 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
         targetPath = parts.join(pathSep());
       }
 
-      // Extract folder and filename from the resolved path. `targetPath` is
-      // derived from `entryPath` (always rooted) or an absolute href, so it
-      // always has a parent; the `|| targetPath` fallback is defensive only.
-      const folderPath = getParentPath(targetPath) || targetPath;
-
-      // Navigate to the folder and scroll to/highlight the file
-      setHighlightItem(targetPath);
-      navigateToBrowserPath(folderPath, targetPath);
+      // A folder link browses into that folder; anything else (including a
+      // failed stat) browses to the file's parent folder and highlights it.
+      void api.isDirectory(targetPath)
+        .catch(() => false)
+        .then((isDir) => {
+          if (isDir) navigateToBrowserPath(targetPath);
+          else revealFile(targetPath);
+        });
       return;
     }
   };
