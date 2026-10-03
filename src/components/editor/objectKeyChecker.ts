@@ -8,7 +8,7 @@ import { unknownObjectKeys, type UnknownObjectKey } from '../objects/objectRegis
  * Flags unknown properties in typed object blocks (DEVELOPER_GUIDE § "Typed Object Blocks"):
  * inside a fenced `yaml` block whose `type` is a registered object type, any key the type
  * doesn't define gets a wavy underline — the same idea as a spelling underline, for a typo
- * like `frist_name` that the rendered card would otherwise silently drop.
+ * like `nmae` that the rendered card would otherwise silently drop.
  */
 
 /**

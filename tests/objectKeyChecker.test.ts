@@ -20,9 +20,9 @@ describe('findTopLevelKeys', () => {
   const located = (code: string) => findTopLevelKeys(code).map(({ key, from, to }) => [key, code.slice(from, to)]);
 
   it('locates each key at the start of a line', () => {
-    expect(located('type: person\nfirst_name: Clay\nemail:')).toEqual([
+    expect(located('type: person\nname: Clay\nemail:')).toEqual([
       ['type', 'type'],
-      ['first_name', 'first_name'],
+      ['name', 'name'],
       ['email', 'email'],
     ]);
   });
@@ -60,18 +60,18 @@ describe('unknownObjectKeys', () => {
   const keys = (code: string, language = 'yaml') => unknownObjectKeys(language, code).map(({ key }) => key);
 
   it('reports nothing for a person with only known properties', () => {
-    expect(keys('type: person\nfirst_name: Clay\nlast_name: Ferguson\ncell_phone: 1\nother_phone: 2\nemail: a@b.c\naddress: x')).toEqual([]);
+    expect(keys('type: person\nname: Clay Ferguson\nbd: 1980-05-12\ncell_phone: 1\nother_phone: 2\nemail: a@b.c\naddress: x\nnotes: y')).toEqual([]);
   });
 
   it('reports a misspelled property with its position and type', () => {
-    const code = 'type: person\nfrist_name: Clay\nlast_name: Ferguson';
+    const code = 'type: person\nnmae: Clay Ferguson';
     const found = unknownObjectKeys('yaml', code);
-    expect(found).toEqual([{ key: 'frist_name', from: 13, to: 23, type: 'person' }]);
-    expect(code.slice(13, 23)).toBe('frist_name');
+    expect(found).toEqual([{ key: 'nmae', from: 13, to: 17, type: 'person' }]);
+    expect(code.slice(13, 17)).toBe('nmae');
   });
 
   it('reports every unknown property, in document order', () => {
-    expect(keys('nickname: C\ntype: person\nfirst_name: Clay\ntags: [a, b]\nzip: 75001')).toEqual(['nickname', 'tags', 'zip']);
+    expect(keys('nickname: C\ntype: person\nname: Clay\ntags: [a, b]\nzip: 75001')).toEqual(['nickname', 'tags', 'zip']);
   });
 
   it('never reports type itself', () => {
@@ -83,7 +83,7 @@ describe('unknownObjectKeys', () => {
   });
 
   it('reports an unknown property even when it has no value yet', () => {
-    expect(keys('type: person\nfirst_name: Clay\nnickname:')).toEqual(['nickname']);
+    expect(keys('type: person\nname: Clay\nnickname:')).toEqual(['nickname']);
   });
 
   it('does not report text inside a multi-line value', () => {
@@ -92,9 +92,9 @@ describe('unknownObjectKeys', () => {
 
   it.each([
     ['an unregistered type', 'type: gadget\nwhatever: 1', 'yaml'],
-    ['yaml with no type', 'frist_name: Clay', 'yaml'],
-    ['malformed yaml', 'type: person\nfrist_name: [x', 'yaml'],
-    ['a non-yaml block', 'type: person\nfrist_name: Clay', 'json'],
+    ['yaml with no type', 'nmae: Clay', 'yaml'],
+    ['malformed yaml', 'type: person\nnmae: [x', 'yaml'],
+    ['a non-yaml block', 'type: person\nnmae: Clay', 'json'],
   ])('reports nothing for %s', (_label, code, language) => {
     expect(keys(code, language)).toEqual([]);
   });
@@ -121,11 +121,11 @@ const block = (body: string, info = 'yaml') => `\`\`\`${info}\n${body}\n\`\`\``;
 
 describe('unknownObjectKeysInRange', () => {
   it('flags an unknown property inside a person block', () => {
-    expect(flagged(`# Title\n\n${block('type: person\nfrist_name: Clay\nemail: a@b.c')}\n\nafter`)).toEqual(['frist_name']);
+    expect(flagged(`# Title\n\n${block('type: person\nnmae: Clay\nemail: a@b.c')}\n\nafter`)).toEqual(['nmae']);
   });
 
   it('flags nothing in a correct person block', () => {
-    expect(flagged(block('type: person\nfirst_name: Clay'))).toEqual([]);
+    expect(flagged(block('type: person\nname: Clay'))).toEqual([]);
   });
 
   it('handles several blocks in one document', () => {
@@ -133,7 +133,7 @@ describe('unknownObjectKeysInRange', () => {
       block('type: person\nnick: C'),
       'text',
       block('type: gadget\nwhatever: 1'),
-      block('type: person\nfirst_name: Clay'),
+      block('type: person\nname: Clay'),
       block('type: person\nzip: 1\ntown: X', 'yml'),
     ].join('\n\n');
     expect(flagged(doc)).toEqual(['nick', 'zip', 'town']);

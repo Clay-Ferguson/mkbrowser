@@ -101,7 +101,7 @@ export interface UnknownObjectKey extends KeyRange {
 
 /**
  * Finds the properties of an object block that its type doesn't define — most often a typo
- * (`frist_name`), which the card would otherwise silently drop. Returns nothing for a block
+ * (`nmae`), which the card would otherwise silently drop. Returns nothing for a block
  * that isn't a registered object type, including one whose YAML doesn't currently parse.
  *
  * Which keys the block has comes from the real YAML parse; `findTopLevelKeys` only supplies

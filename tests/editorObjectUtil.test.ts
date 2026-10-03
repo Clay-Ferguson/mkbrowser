@@ -15,12 +15,13 @@ import type { ContextMenuState } from '../src/components/editor/useEditorContext
 const PERSON_BLOCK = [
   '```yaml',
   'type: person',
-  'first_name: ',
-  'last_name: ',
+  'name: ',
+  'bd: ',
   'cell_phone: ',
   'other_phone: ',
   'email: ',
   'address: ',
+  'notes: ',
   '```',
 ].join('\n');
 
@@ -70,7 +71,7 @@ describe('objectTemplate', () => {
   it('becomes a valid object as soon as one field is filled in', () => {
     // Untouched, every value is blank: recognized as a person, but with nothing to show yet.
     expect(resolveObjectBlock('yaml', bodyOf(PERSON_BLOCK))?.kind).toBe('invalid');
-    const filled = bodyOf(PERSON_BLOCK).replace('first_name: ', 'first_name: Clay');
+    const filled = bodyOf(PERSON_BLOCK).replace('name: ', 'name: Clay');
     expect(resolveObjectBlock('yaml', filled)?.kind).toBe('object');
   });
 });

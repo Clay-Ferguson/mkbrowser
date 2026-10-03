@@ -643,13 +643,16 @@ A fenced `yaml` block in a markdown file can describe an *object* — structured
 ````markdown
 ```yaml
 type: person
-first_name: Clay
-last_name: Ferguson
+name: Clay Ferguson
+bd: 1980-05-12
 cell_phone: 555-123-4567
 email: clay@example.com
 address: |
   1 Main St
   Dallas, TX 75001
+notes: |
+  Met at the 2024 conference.
+  Prefers email over phone.
 ```
 ````
 
@@ -711,7 +714,7 @@ Objects are edited as plain YAML in CodeMirror — there is no form editor (see 
 - **YAML colours in fenced blocks.** `markdown({ codeLanguages: fencedCodeLanguage })` (`src/renderer/editor/editorCodeLanguages.ts`) parses `yaml`/`yml` fences as YAML, so keys and values are coloured apart. This applies to every YAML fence, not just object blocks.
 - **Insert Object.** The editor's context menu (Markdown files only) has an "Insert Object" item. Clicking it does not act directly: it sets `contextMenu.submenu`, and `EditorContextMenu` re-renders the same floating menu as the list of `OBJECT_TYPE_OPTIONS`. Picking a type dispatches `objectInsertion(state, template)` (`src/renderer/editor/editorObjectUtil.ts`), which inserts the type's empty block at the cursor — padded with line breaks so the fence stands on its own lines with a blank line either side — and leaves the cursor on the first field's value.
 
-- **Unknown-property underlines.** `objectKeyPlugin` (`src/components/editor/objectKeyChecker.ts`) puts an amber wavy underline, with a tooltip, under any key in a registered object block that the type's `fields` don't include — the typo case (`frist_name`), which the card would otherwise drop without a word. It walks the Markdown syntax tree for `FencedCode` nodes in the viewport and asks `unknownObjectKeys(language, code)` in the registry. Which keys a block *has* comes from the real YAML parse; `findTopLevelKeys` only locates them by line, so a line it misreads can at worst go unreported. A block whose YAML doesn't currently parse (mid-typing) is simply not flagged.
+- **Unknown-property underlines.** `objectKeyPlugin` (`src/components/editor/objectKeyChecker.ts`) puts an amber wavy underline, with a tooltip, under any key in a registered object block that the type's `fields` don't include — the typo case (`nmae`), which the card would otherwise drop without a word. It walks the Markdown syntax tree for `FencedCode` nodes in the viewport and asks `unknownObjectKeys(language, code)` in the registry. Which keys a block *has* comes from the real YAML parse; `findTopLevelKeys` only locates them by line, so a line it misreads can at worst go unreported. A block whose YAML doesn't currently parse (mid-typing) is simply not flagged.
 
 A freshly inserted block has every value blank, so in the rendered view it shows as code with the "Invalid …" hint until at least one field is filled in.
 

@@ -1,10 +1,12 @@
 import type { ComponentType, SVGProps } from 'react';
 import {
   UserIcon,
+  CakeIcon,
   DevicePhoneMobileIcon,
   PhoneIcon,
   EnvelopeIcon,
   MapPinIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import type { PersonData } from '../../shared/objects/person';
 import { api } from '../../renderer/api';
@@ -23,7 +25,7 @@ interface PersonRowProps {
 /** One icon + value line of the card; renders nothing when the person has no such field. */
 function PersonRow({ Icon, label, value, href }: PersonRowProps) {
   if (!value) return null;
-  // pre-line keeps the line breaks of a multi-line (YAML `|`) address.
+  // pre-line keeps the line breaks of a multi-line (YAML `|`) address or notes.
   const valueClass = 'min-w-0 break-words whitespace-pre-line';
   return (
     <div className="flex items-start gap-2 text-sm text-slate-300" title={label}>
@@ -55,18 +57,17 @@ function PersonRow({ Icon, label, value, href }: PersonRowProps) {
  * address to a map; everything else is plain text, and a click elsewhere opens the editor.
  */
 export default function PersonObject({ data }: { data: PersonData }) {
-  const name = [data.first_name, data.last_name].filter(Boolean).join(' ');
-
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
         <UserIcon className="h-5 w-5 shrink-0 text-sky-400" aria-hidden="true" />
-        {name ? (
-          <span className="min-w-0 break-words text-base font-semibold text-slate-100">{name}</span>
+        {data.name ? (
+          <span className="min-w-0 break-words text-base font-semibold text-slate-100">{data.name}</span>
         ) : (
           <span className="text-base italic text-slate-400">Unnamed person</span>
         )}
       </div>
+      <PersonRow Icon={CakeIcon} label="Birthday" value={data.bd} />
       <PersonRow Icon={DevicePhoneMobileIcon} label="Cell phone" value={data.cell_phone} />
       <PersonRow Icon={PhoneIcon} label="Other phone" value={data.other_phone} />
       <PersonRow
@@ -81,6 +82,7 @@ export default function PersonObject({ data }: { data: PersonData }) {
         value={data.address}
         href={data.address ? buildMapUrl(data.address) : undefined}
       />
+      <PersonRow Icon={DocumentTextIcon} label="Notes" value={data.notes} />
     </div>
   );
 }

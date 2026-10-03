@@ -41,11 +41,11 @@ describe('fencedCodeLanguage', () => {
 });
 
 describe('YAML highlighting inside a Markdown fence', () => {
-  const body = 'type: person\nfirst_name: Clay\nemail: "clay@example.com"\ncell_phone: 5551234567\n# note';
+  const body = 'type: person\nname: Clay\nemail: "clay@example.com"\ncell_phone: 5551234567\n# note';
 
   it.each(['yaml', 'yml'])('colours keys differently from values in a %s block', (info) => {
     const doc = fence(info, body);
-    const key = classOf(doc, 'first_name');
+    const key = classOf(doc, 'name');
     expect(key).not.toBe('');
     expect(key).toBe(classOf(doc, 'email'));
     expect(key).not.toBe(classOf(doc, 'Clay'));
@@ -55,14 +55,14 @@ describe('YAML highlighting inside a Markdown fence', () => {
   });
 
   it('leaves an untagged block as uniformly coloured code', () => {
-    const doc = fence('', 'first_name: Clay');
-    expect(classOf(doc, 'first_name: Clay')).not.toBe('');
-    expect(classOf(doc, 'first_name')).toBe(classOf(doc, 'Clay'));
+    const doc = fence('', 'name: Clay');
+    expect(classOf(doc, 'name: Clay')).not.toBe('');
+    expect(classOf(doc, 'name')).toBe(classOf(doc, 'Clay'));
   });
 
   it('leaves a block in an unlisted language as uniformly coloured code', () => {
-    const doc = fence('json', '{"first_name": "Clay"}');
-    expect(classOf(doc, '"first_name"')).toBe(classOf(doc, '"Clay"'));
+    const doc = fence('json', '{"name": "Clay"}');
+    expect(classOf(doc, '"name"')).toBe(classOf(doc, '"Clay"'));
   });
 
   it('does not change highlighting outside the block', () => {
