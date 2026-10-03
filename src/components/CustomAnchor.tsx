@@ -1,9 +1,9 @@
 import React, { useContext } from 'react';
 import type { ExtraProps } from 'react-markdown';
 import { api } from '../renderer/api';
-import { setHighlightItem, navigateToBrowserPath } from '../store';
+import { setHighlightItem, navigateToBrowserPath, setBrowseFile } from '../store';
 import { decodeMarkdownUrl } from '../renderer/linkUtil';
-import { getParentPath, isAbsolutePath, pathSep, splitPath } from '../renderer/pathUtil';
+import { getFileName, getParentPath, isAbsolutePath, pathSep, splitPath } from '../renderer/pathUtil';
 import { MarkdownEntryContext } from './markdownEntryContext';
 import { getVisibleElementById } from '../renderer/entryDom';
 
@@ -12,23 +12,13 @@ interface CustomAnchorProps extends React.AnchorHTMLAttributes<HTMLAnchorElement
 }
 
 /**
- * Browse to the folder containing `targetPath`, scrolling to and highlighting it.
- * `targetPath` is derived from `entryPath` (always rooted) or an absolute href, so
- * it always has a parent; the `|| targetPath` fallback is defensive only.
- */
-function revealFile(targetPath: string): void {
-  const folderPath = getParentPath(targetPath) || targetPath;
-  setHighlightItem(targetPath);
-  navigateToBrowserPath(folderPath, targetPath);
-}
-
-/**
  * Custom <a> renderer for react-markdown that intercepts three link types:
  *   - External URLs (http/https, file://) — opened via the system default handler.
  *   - In-page anchor links (#section) — scrolled inside the container since Electron
  *     SPAs don't use window-level scrolling.
  *   - Relative file paths — resolved against the markdown file's location and used
- *     to navigate the BrowseView (into the folder itself when the target is a folder).
+ *     to navigate the BrowseView: into the folder itself when the target is a folder,
+ *     otherwise to the file on its own (single-file mode).
  *
  * Also stops mouseup propagation so link clicks don't trigger the parent's edit-mode handler.
  */
@@ -91,12 +81,16 @@ export default function CustomAnchor({ href, children, entryPath, node, ...props
       }
 
       // A folder link browses into that folder; anything else (including a
-      // failed stat) browses to the file's parent folder and highlights it.
+      // failed stat) opens the file in single-file mode, as from the index tree.
       void api.isDirectory(targetPath)
         .catch(() => false)
         .then((isDir) => {
-          if (isDir) navigateToBrowserPath(targetPath);
-          else revealFile(targetPath);
+          if (isDir) {
+            navigateToBrowserPath(targetPath);
+          } else {
+            setHighlightItem(targetPath);
+            setBrowseFile(getParentPath(targetPath), getFileName(targetPath));
+          }
         });
       return;
     }
