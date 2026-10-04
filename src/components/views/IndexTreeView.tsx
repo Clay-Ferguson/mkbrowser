@@ -1,5 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon } from '@heroicons/react/24/outline';
+import { MinusIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, ListBulletIcon, PaperClipIcon } from '@heroicons/react/24/outline';
 import { FolderIcon, FolderOpenIcon } from '@heroicons/react/24/solid';
 import { api } from '../../renderer/api';
 import { saveSettings } from '../../renderer/config';
@@ -286,6 +286,7 @@ function TreeFileRow({
   const relation = useAS(s => folderRelation(node, s.currentPath));
 
   const isSh = isShellScript(node);
+  const isAttach = isAttachFolderNode(node);
 
   // Two independent cues, so the tree reads at a glance: a solid purple
   // background marks the folder being browsed and its ancestors, and a 2px
@@ -339,6 +340,12 @@ function TreeFileRow({
   else {
     nameClassName += ' border-transparent';
   }
+  // An attachment folder reads as secondary to the file above it — italic and dimmed,
+  // like the `*.attach` row in the browse view — unless the row is marked white.
+  if (isAttach) {
+    nameClassName += ' italic';
+    if (!isDragOver && !isHighlighted && !isCurrentFolder) nameClassName += ' text-slate-400';
+  }
 
   const rowStyle: React.CSSProperties = {
     paddingLeft: `${8 + depth * INDENT_SIZE}px`,
@@ -371,7 +378,14 @@ function TreeFileRow({
           : <FileTypeIcon fileName={node.name} />
         }
       </span>
-      <span className={nameClassName}>{isAttachFolderNode(node) ? `*${ATTACH_SUFFIX}` : node.name}</span>
+      <span className={nameClassName}>{isAttach ? `*${ATTACH_SUFFIX}` : node.name}</span>
+      {/* Marks a file that owns attachments, which a click reveals as its `*.attach`
+          child. Amber like the folder icons, tying it to that folder row. */}
+      {node.hasAttachFolder && (
+        <span className="shrink-0 flex items-center" title="Has attachments" data-testid="tree-attach-indicator">
+          <PaperClipIcon className="w-3.5 h-3.5 text-amber-500/80" />
+        </span>
+      )}
     </div>
   );
 }
