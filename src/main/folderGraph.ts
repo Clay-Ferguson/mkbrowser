@@ -13,6 +13,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { buildExcludePredicate } from '../shared/pathPattern';
+import { isMarkdownFile } from '../shared/fileTypes';
 
 /** Hard cap on recursion depth from the root folder (root = 0). */
 export const MAX_DEPTH = 10;
@@ -64,15 +65,21 @@ export interface FolderGraphResult {
  *
  * The net effect: the user gets everything if it fits, otherwise a complete
  * folders-only graph if that fits, otherwise nothing.
+ *
+ * When `markdownOnly` is true, only `.md` files become file nodes, and folders
+ * with no Markdown file anywhere beneath them are pruned (the root is always
+ * kept), so the graph shows just the Markdown content and the folders that
+ * lead to it.
  */
 export async function scanFolderTree(
   folderPath: string,
   ignoredPaths: string[] = [],
+  markdownOnly = false,
 ): Promise<FolderGraphResult> {
-  const full = await scanFolderTreeInternal(folderPath, ignoredPaths, false);
+  const full = await scanFolderTreeInternal(folderPath, ignoredPaths, false, markdownOnly);
   if (!full.truncated) return full;
 
-  const foldersOnly = await scanFolderTreeInternal(folderPath, ignoredPaths, true);
+  const foldersOnly = await scanFolderTreeInternal(folderPath, ignoredPaths, true, markdownOnly);
   if (!foldersOnly.truncated) return foldersOnly;
 
   throw new Error(
@@ -85,6 +92,8 @@ export async function scanFolderTree(
  * for a D3 force-directed graph. Stops at MAX_DEPTH and MAX_NODES.
  *
  * When `foldersOnly` is true, files are skipped entirely (no nodes or links).
+ * When `markdownOnly` is true, non-Markdown files are skipped and folders
+ * holding no Markdown (at any depth) are pruned once the scan completes.
  *
  * Sorting (folders before files, alphabetical) is applied at each level so
  * the truncation point, when reached, is deterministic.
@@ -93,12 +102,22 @@ async function scanFolderTreeInternal(
   folderPath: string,
   ignoredPaths: string[],
   foldersOnly: boolean,
+  markdownOnly: boolean,
 ): Promise<FolderGraphResult> {
   const shouldExclude = buildExcludePredicate(ignoredPaths);
 
   const nodes: FolderGraphNodeData[] = [];
   const links: FolderGraphLinkData[] = [];
   let truncated = false;
+  // Folders with a Markdown file somewhere beneath them (markdownOnly mode).
+  const hasMarkdown = new Set<string>();
+  let markdownFileNodes = 0;
+  // Nodes the finished graph will hold. In markdownOnly mode folders without
+  // Markdown are pruned at the end, so they must not count toward MAX_NODES:
+  // only Markdown files, folders known to hold Markdown, and the root do.
+  const keptNodeCount = () => markdownOnly
+    ? markdownFileNodes + hasMarkdown.size + (hasMarkdown.has(folderPath) ? 0 : 1)
+    : nodes.length;
 
   const rootName = path.basename(folderPath) || folderPath;
   nodes.push({ id: folderPath, name: rootName, isDirectory: true, depth: 0 });
@@ -108,7 +127,7 @@ async function scanFolderTreeInternal(
   const queue: Array<{ dirPath: string; depth: number }> = [{ dirPath: folderPath, depth: 0 }];
 
   while (queue.length > 0) {
-    if (nodes.length >= MAX_NODES) {
+    if (keptNodeCount() >= MAX_NODES) {
       truncated = true;
       break;
     }
@@ -130,7 +149,7 @@ async function scanFolderTreeInternal(
     });
 
     for (const entry of entries) {
-      if (nodes.length >= MAX_NODES) {
+      if (keptNodeCount() >= MAX_NODES) {
         truncated = true;
         break;
       }
@@ -138,7 +157,12 @@ async function scanFolderTreeInternal(
       if (shouldExclude(entry.name, childPath)) continue;
 
       const isDirectory = entry.isDirectory();
+      if (markdownOnly && !isDirectory) {
+        if (!isMarkdownFile(entry.name)) continue;
+        markMarkdownAncestors(dirPath, folderPath, hasMarkdown);
+      }
       if (foldersOnly && !isDirectory) continue;
+      if (markdownOnly && !isDirectory) markdownFileNodes++;
       nodes.push({ id: childPath, name: entry.name, isDirectory, depth: depth + 1 });
       links.push({ source: dirPath, target: childPath });
 
@@ -148,5 +172,30 @@ async function scanFolderTreeInternal(
     }
   }
 
+  if (markdownOnly) {
+    const keep = (n: FolderGraphNodeData) => !n.isDirectory || n.depth === 0 || hasMarkdown.has(n.id);
+    const kept = nodes.filter(keep);
+    const keptIds = new Set(kept.map(n => n.id));
+    return {
+      folderPath,
+      nodes: kept,
+      links: links.filter(l => keptIds.has(l.target)),
+      truncated,
+      foldersOnly,
+    };
+  }
+
   return { folderPath, nodes, links, truncated, foldersOnly };
+}
+
+/** Marks `dirPath` and each ancestor up to `rootPath` as containing Markdown. */
+function markMarkdownAncestors(dirPath: string, rootPath: string, hasMarkdown: Set<string>): void {
+  let dir = dirPath;
+  while (!hasMarkdown.has(dir)) {
+    hasMarkdown.add(dir);
+    if (dir === rootPath) break;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
 }

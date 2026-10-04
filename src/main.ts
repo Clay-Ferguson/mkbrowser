@@ -761,10 +761,10 @@ function setupIpcHandlers(): void {
   });
 
   // Recursively scan folder structure for the FolderGraphView (D3 graph).
-  ipcMain.handle('scan-folder-tree', async (_event, folderPath: string): Promise<FolderGraphResult> => {
+  ipcMain.handle('scan-folder-tree', async (_event, folderPath: string, markdownOnly = false): Promise<FolderGraphResult> => {
     try {
       const ignoredPaths = parseIgnoredPaths(getConfig().settings?.ignoredPaths ?? '');
-      return await scanFolderTree(folderPath, ignoredPaths);
+      return await scanFolderTree(folderPath, ignoredPaths, markdownOnly);
     } catch (error) {
       logger.error('Error scanning folder tree:', error);
       // Propagate so the renderer can surface the reason (e.g. the graph

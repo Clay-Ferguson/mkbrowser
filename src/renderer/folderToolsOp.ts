@@ -38,11 +38,14 @@ export function showFolderAnalysis(folderPath: string): void {
   }, 'Failed to analyze folder: ');
 }
 
-/** Scans the tree under `folderPath` and shows it in the Folder Graph view. */
-export function showFolderGraph(folderPath: string): void {
+/**
+ * Scans the tree under `folderPath` and shows it in the Folder Graph view.
+ * With `markdownOnly`, only `.md` files (and the folders leading to them) are graphed.
+ */
+export function showFolderGraph(folderPath: string, markdownOnly = false): void {
   const id = ++latestGraphId;
   runOp(async () => {
-    const result = await api.scanFolderTree(folderPath);
+    const result = await api.scanFolderTree(folderPath, markdownOnly);
     if (id !== latestGraphId) return;
     setFolderGraph({
       folderPath: result.folderPath,

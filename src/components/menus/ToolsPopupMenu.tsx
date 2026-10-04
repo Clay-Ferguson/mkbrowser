@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import PopupMenu, { PopupMenuItem } from './base/PopupMenu';
+import PopupMenu, { PopupMenuItem, PopupMenuDivider } from './base/PopupMenu';
 import { useAS } from '../../store';
 
 interface ToolsPopupMenuProps {
@@ -7,6 +7,7 @@ interface ToolsPopupMenuProps {
   onClose: () => void;
   onFolderAnalysis: () => void;
   onFolderGraph: () => void;
+  onMarkdownGraph: () => void;
   onExport: () => void;
   onNewAiChat: () => void;
   onRunOcr: () => void;
@@ -14,13 +15,15 @@ interface ToolsPopupMenuProps {
 
 /**
  * Popup menu for the Tools toolbar button. Exposes advanced folder operations:
- * AI chat (when AI is enabled), folder analysis, folder graph, export, and OCR.
+ * AI chat (when AI is enabled), folder analysis, export, OCR, and (below a
+ * divider) the folder graph of all files or of Markdown files only.
  */
 export default function ToolsPopupMenu({
   anchorRef,
   onClose,
   onFolderAnalysis,
   onFolderGraph,
+  onMarkdownGraph,
   onExport,
   onNewAiChat,
   onRunOcr,
@@ -42,11 +45,6 @@ export default function ToolsPopupMenu({
         onClick={() => { onFolderAnalysis(); onClose(); }}
       />
       <PopupMenuItem
-        label="Display Graph"
-        data-testid="menu-folder-graph"
-        onClick={() => { onFolderGraph(); onClose(); }}
-      />
-      <PopupMenuItem
         label="Export..."
         data-testid="menu-export"
         onClick={() => { onExport(); onClose(); }}
@@ -55,6 +53,17 @@ export default function ToolsPopupMenu({
         label="Run OCR"
         data-testid="menu-run-ocr"
         onClick={() => { onRunOcr(); onClose(); }}
+      />
+      <PopupMenuDivider />
+      <PopupMenuItem
+        label="Graph All"
+        data-testid="menu-folder-graph"
+        onClick={() => { onFolderGraph(); onClose(); }}
+      />
+      <PopupMenuItem
+        label="Graph Markdown"
+        data-testid="menu-markdown-graph"
+        onClick={() => { onMarkdownGraph(); onClose(); }}
       />
     </PopupMenu>
   );

@@ -437,6 +437,7 @@ function BrowseToolbar({ onOpenOverlay, onPasteIntoFolder }: BrowseToolbarProps)
           onClose={() => closeMenu('tools')}
           onFolderAnalysis={() => { if (currentPath) showFolderAnalysis(currentPath); }}
           onFolderGraph={() => { if (currentPath) showFolderGraph(currentPath); }}
+          onMarkdownGraph={() => { if (currentPath) showFolderGraph(currentPath, true); }}
           onExport={() => onOpenOverlay({ kind: 'export' })}
           onRunOcr={handleRunOcr}
           onNewAiChat={() => { if (currentPath) startAiChat(currentPath); }}
