@@ -251,7 +251,7 @@ export const TAB_LIST = 'self-stretch flex items-stretch';
 const TAB_SHELL = 'flex items-stretch mt-2 -mb-px -ml-px first:ml-0 rounded-t-xl border border-tab-line transition-colors';
 export const TAB_SHELL_ACTIVE = `${TAB_SHELL} bg-tab-active border-b-0 pb-px`;
 export const TAB_SHELL_IDLE = `${TAB_SHELL} bg-slate-700/60`;
-const TAB_BASE = 'flex items-center px-4 text-base font-medium transition-colors cursor-pointer';
+const TAB_BASE = 'flex items-center px-3 text-base font-medium transition-colors cursor-pointer';
 export const TAB_BUTTON_ACTIVE = `${TAB_BASE} text-btn-label-hover`;
 export const TAB_BUTTON_IDLE = `${TAB_BASE} text-btn-ghost`;
 /** Tab close (XMarkIcon) button: a bordered square, so the click target is the whole box rather than the X itself. */
