@@ -230,24 +230,27 @@ interface TreeHeadingRowProps {
   onContextMenu: (node: MarkdownHeadingNode, e: React.MouseEvent) => void;
 }
 
+/** Heading rows (text, triangles and bullet) take the Markdown file icon's blue (FileTypeIcon). */
 function TreeHeadingRow({ node, depth, onClick, onContextMenu }: TreeHeadingRowProps) {
   const hasChildren = node.children && node.children.length > 0;
   return (
     <div
       data-tree-path={node.path}
       className="flex items-center gap-1 py-0.5 whitespace-nowrap select-none
-        text-slate-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700"
+        text-blue-400 border-l-2 border-transparent cursor-pointer hover:bg-slate-700"
       style={{ paddingLeft: `${8 + depth * INDENT_SIZE}px` }}
       onClick={() => onClick(node)}
       onContextMenu={e => onContextMenu(node, e)}
     >
-      <span className="shrink-0 w-3 text-center mr-1 text-slate-500">
+      <span className="shrink-0 w-3 text-center mr-1">
         {hasChildren
           ? (node.isExpanded ? '▼' : '▶')
-          : '·'
+          // A solid circle from the same Unicode block as the triangles, scaled to
+          // sit at their visual weight (the old middle dot was ~2px wide).
+          : <span className="text-[0.85em] align-middle">●</span>
         }
       </span>
-      <span className="text-slate-300 italic">{node.heading}</span>
+      <span className="italic">{node.heading}</span>
     </div>
   );
 }
