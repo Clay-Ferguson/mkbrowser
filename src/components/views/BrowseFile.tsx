@@ -12,6 +12,7 @@ import PathBreadcrumb from '../PathBreadcrumb';
 import AttachFolderContents from './AttachFolderContents';
 import {
   clearPendingEditFile,
+  clearPendingScrollToHeadingSlug,
   navigateToBrowserPath,
   setCurrentPath,
   setItemEditing,
@@ -19,7 +20,8 @@ import {
 } from '../../store';
 import { isImageFile, isTextFile, isPdfFile } from '../../shared/fileTypes';
 import { getContentWidthClasses } from '../../renderer/styles';
-import { getParentPath } from '../../renderer/pathUtil';
+import { getParentPath, joinPath } from '../../renderer/pathUtil';
+import { scrollElementIntoView } from '../../renderer/entryDom';
 import { refreshDirectory } from '../../renderer/directoryLoader';
 import { pasteIntoFolder } from '../../renderer/fileOpsUtil';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
@@ -137,6 +139,21 @@ function BrowseFile() {
     setItemEditing(pendingEditFile, true);
     clearPendingEditFile();
   }, [pendingEditFile, entryPath]);
+
+  // Consume a pending heading scroll (the index tree's heading click opens the
+  // heading's file here and queues its slug). BrowseView's handler for the same
+  // request is unmounted while this view is showing. Waits until the entry for
+  // the current folder's file is found — `entries` can briefly still hold the
+  // previous folder's listing — then fires and forgets: scrollElementIntoView
+  // itself polls for the heading to render and keeps it centered while the
+  // document's late content reflows.
+  const pendingHeadingSlug = useAS(s => s.pendingScrollToHeadingSlug);
+  const isCurrentEntry = !!entryPath && !!browseFileName && entryPath === joinPath(currentPath, browseFileName);
+  useEffect(() => {
+    if (!pendingHeadingSlug || !isCurrentEntry) return;
+    scrollElementIntoView(pendingHeadingSlug, true);
+    clearPendingScrollToHeadingSlug();
+  }, [pendingHeadingSlug, isCurrentEntry]);
 
   // Is the editor currently maximized over the whole pane? This — not editing in
   // general — is what hides the header. Mirrors the entries' own `maximized`

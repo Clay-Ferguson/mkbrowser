@@ -893,11 +893,14 @@ function IndexTreeView() {
   };
 
   /**
-   * Handles a click on a heading row: browses to the heading — scrolling the
-   * already-rendered heading into view when its document is on screen,
-   * otherwise navigating to the file and queueing a heading scroll via
-   * `pendingScrollToHeadingSlug` — and toggles the heading's child headings.
-   * (Headings have no context menu; this click is the whole interaction.)
+   * Handles a click on a heading row: browses to the heading in single-file
+   * mode — scrolling the already-rendered heading into view when its document
+   * is already the one file on screen, otherwise opening the file on its own
+   * (setBrowseFile) and queueing a heading scroll via
+   * `pendingScrollToHeadingSlug`, which BrowseFile consumes — and toggles the
+   * heading's child headings. (Headings have no context menu; this click is the
+   * whole interaction.) Single-file rather than the folder listing because a
+   * user jumping to a heading is interested in that one document.
    */
   const handleHeadingClick = (node: MarkdownHeadingNode) => {
     // Read at call time, not subscribed: this handler is passed to every
@@ -907,17 +910,17 @@ function IndexTreeView() {
     const filePath = node.path.substring(0, node.path.lastIndexOf('#'));
     const folderPath = getParentPath(filePath);
     setHighlightItem(filePath);
-    // Scrolling in place keeps single-file mode intact, so hopping between a
-    // document's headings never kicks the user back to the folder listing.
-    // browseFileName has to be checked as well as the slug: two documents can
-    // yield the same slug, and in single-file mode only the one open file is
-    // rendered, so a slug hit for any other file is a false positive.
-    const showingThisFile = browseFileName === null || joinPath(currentPath, browseFileName) === filePath;
+    // Scrolling in place only when this file is already open in single-file
+    // mode, so hopping between a document's headings doesn't remount it. From
+    // the folder listing (or another single file) we always switch to this one
+    // file, even if the heading is visible in the listing. browseFileName has
+    // to be checked as well as the slug: two documents can yield the same slug.
+    const showingThisFile = browseFileName !== null && joinPath(currentPath, browseFileName) === filePath;
     if (showingThisFile && getVisibleElementById(node.slug)) {
       scrollElementIntoView(node.slug, true);
     } else {
       setPendingScrollToHeadingSlug(node.slug);
-      navigateToBrowserPath(folderPath, filePath);
+      setBrowseFile(folderPath, getFileName(filePath));
     }
 
     const hasChildren = node.children && node.children.length > 0;
