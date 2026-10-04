@@ -1,5 +1,19 @@
-import { describe, it, expect } from 'vitest';
-import { replaceIdLinkDestinations } from '../src/renderer/linkRepair';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('../src/renderer/api', () => ({
+  api: {
+    pathExists: vi.fn(),
+    readFile: vi.fn(),
+    writeFile: vi.fn(),
+    findMarkdownById: vi.fn(),
+  },
+  // pathUtil reads the separator through getApi(); undefined selects its '/' fallback.
+  getApi: () => undefined,
+}));
+
+import { api } from '../src/renderer/api';
+import { useAS } from '../src/store';
+import { openIdLink, replaceIdLinkDestinations } from '../src/renderer/linkRepair';
 
 const SRC = '/notes/thread/index.md';
 const BROKEN = '/notes/Job Interview Thread/HUMAN.md';
@@ -65,5 +79,58 @@ describe('replaceIdLinkDestinations', () => {
     const content = '[x](old.md "id:A\\"B")';
     expect(replaceIdLinkDestinations(content, SRC, '/notes/thread/old.md', 'A"B', '/notes/thread/new.md'))
       .toBe('[x](new.md "id:A\\"B")');
+  });
+});
+
+describe('openIdLink when the link target exists', () => {
+  const TARGET = '/notes/a/HUMAN.md';
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    useAS.setState({ rootPath: '/notes', linkIdMismatch: null, highlightItem: null });
+    vi.mocked(api.pathExists).mockResolvedValue(true);
+  });
+
+  /** Lets the fire-and-forget promise chain inside openIdLink run to completion. */
+  const settle = () => new Promise((r) => { setTimeout(r, 0); });
+
+  it('opens the file without a warning when its front-matter id matches', async () => {
+    vi.mocked(api.readFile).mockResolvedValue({ ok: true, content: '---\nid: ABC\n---\nBody' });
+    openIdLink('/notes/index.md', TARGET, 'ABC');
+    await settle();
+    expect(useAS.getState().highlightItem).toBe(TARGET);
+    expect(useAS.getState().linkIdMismatch).toBeNull();
+    expect(api.findMarkdownById).not.toHaveBeenCalled();
+    expect(api.writeFile).not.toHaveBeenCalled();
+  });
+
+  it('warns and names the file carrying the id when the ids differ', async () => {
+    vi.mocked(api.readFile).mockResolvedValue({ ok: true, content: '---\nid: XYZ\n---\nBody' });
+    vi.mocked(api.findMarkdownById).mockResolvedValue('/notes/b/RENAMED.md');
+    openIdLink('/notes/index.md', TARGET, 'ABC');
+    await settle();
+    expect(useAS.getState().highlightItem).toBe(TARGET);
+    expect(api.findMarkdownById).toHaveBeenCalledWith('ABC', '/notes/a', '/notes');
+    expect(useAS.getState().linkIdMismatch).toEqual({
+      linkId: 'ABC', openedPath: TARGET, openedId: 'XYZ', otherPath: '/notes/b/RENAMED.md',
+    });
+    expect(api.writeFile).not.toHaveBeenCalled(); // never repairs on a mismatch
+  });
+
+  it('warns when the opened file has no id and no other file has it', async () => {
+    vi.mocked(api.readFile).mockResolvedValue({ ok: true, content: 'No front matter' });
+    vi.mocked(api.findMarkdownById).mockResolvedValue(null);
+    openIdLink('/notes/index.md', TARGET, 'ABC');
+    await settle();
+    expect(useAS.getState().linkIdMismatch).toEqual({
+      linkId: 'ABC', openedPath: TARGET, openedId: null, otherPath: null,
+    });
+  });
+
+  it('does not warn when the opened file cannot be read', async () => {
+    vi.mocked(api.readFile).mockResolvedValue({ ok: false, error: 'EACCES' });
+    openIdLink('/notes/index.md', TARGET, 'ABC');
+    await settle();
+    expect(useAS.getState().linkIdMismatch).toBeNull();
   });
 });

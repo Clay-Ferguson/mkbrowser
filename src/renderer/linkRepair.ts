@@ -8,7 +8,7 @@
 import { api } from './api';
 import { decodeMarkdownUrl, formatLinkDestination, getRelativePath, resolveLinkPath } from './linkUtil';
 import { getFileName, getParentPath } from './pathUtil';
-import { getItem, setBrowseFile, setHighlightItem, setItemContent, useAS } from '../store';
+import { getItem, setBrowseFile, setHighlightItem, setItemContent, setLinkIdMismatch, useAS } from '../store';
 import { logger } from '../shared/logUtil';
 import { parseFrontMatter } from '../shared/frontMatterUtil';
 
@@ -77,14 +77,7 @@ async function repairLinkInFile(sourcePath: string, brokenTarget: string, id: st
  * when there is no id; never rejects.
  */
 export function getOrAddLinkTargetId(path: string): Promise<string> {
-  if (getItem(path)?.editing) {
-    return api.readFile(path)
-      .then((result) => {
-        const idVal = result.ok ? parseFrontMatter(result.content).yaml?.id : undefined;
-        return idVal !== null && idVal !== undefined ? String(idVal) : '';
-      })
-      .catch(() => '');
-  }
+  if (getItem(path)?.editing) return readFrontMatterId(path).then((id) => id ?? '');
   return api.ensureFrontMatterId(path)
     .then(({ id, written }) => {
       // The file was rewritten with its new id: refresh the cached content, stamped
@@ -99,23 +92,63 @@ export function getOrAddLinkTargetId(path: string): Promise<string> {
 }
 
 /**
+ * Reads the front-matter id of the Markdown file at `path`: '' when it has none, or
+ * null when the file couldn't be read. Never rejects.
+ */
+function readFrontMatterId(path: string): Promise<string | null> {
+  return api.readFile(path)
+    .then((result) => {
+      if (!result.ok) return null;
+      const idVal = parseFrontMatter(result.content).yaml?.id;
+      return idVal !== null && idVal !== undefined ? String(idVal).trim() : '';
+    })
+    .catch(() => null);
+}
+
+/** Looks up the file carrying `id`: first in `likelyDir`, then across the root folder. */
+function findById(id: string, likelyDir: string): Promise<string | null> {
+  return api.findMarkdownById(id, likelyDir, useAS.getState().rootPath).catch(() => null);
+}
+
+/**
+ * Checks that the file a link titled `"id:<id>"` opened really carries that id. When
+ * its front-matter id differs (or it has none), the file carrying `id` is looked up
+ * and the user is warned — the file at the link's path may have been replaced by an
+ * unrelated one (e.g. the original was renamed and a new file took its name). An
+ * unreadable file is not reported. Never rejects.
+ */
+function checkOpenedFileId(openedPath: string, id: string): Promise<void> {
+  return readFrontMatterId(openedPath).then((openedId) => {
+    if (openedId === null || openedId === id) return;
+    return findById(id, getParentPath(openedPath)).then((otherPath) => {
+      setLinkIdMismatch({ linkId: id, openedPath, openedId: openedId || null, otherPath });
+    });
+  });
+}
+
+/**
  * Opens the target of a Markdown link titled `"id:<id>"`. If `targetPath` exists it
- * is opened as-is. Otherwise the file carrying that id is looked up — first in the
- * target's folder, then across the whole root folder — and, when found, opened while
- * the link in `sourcePath` is repaired in the background. When nothing is found,
- * `targetPath` is opened anyway so the usual not-found handling applies.
+ * is opened, and then checked to really carry that id (see checkOpenedFileId).
+ * Otherwise the file carrying that id is looked up — first in the target's folder,
+ * then across the whole root folder — and, when found, opened while the link in
+ * `sourcePath` is repaired in the background. When nothing is found, `targetPath` is
+ * opened anyway so the usual not-found handling applies.
  */
 export function openIdLink(sourcePath: string, targetPath: string, id: string): void {
   void api.pathExists(targetPath)
-    .then((exists) => exists ? targetPath
-      : api.findMarkdownById(id, getParentPath(targetPath), useAS.getState().rootPath))
-    .catch(() => null)
-    .then((found) => {
-      openFileSingle(found ?? targetPath);
-      if (found && found !== targetPath) {
-        repairLinkInFile(sourcePath, targetPath, id, found).catch((err: unknown) => {
-          logger.warn(`[linkRepair] Failed to repair link in ${sourcePath}:`, err);
-        });
+    .catch(() => false)
+    .then((exists) => {
+      if (exists) {
+        openFileSingle(targetPath);
+        return checkOpenedFileId(targetPath, id);
       }
+      return findById(id, getParentPath(targetPath)).then((found) => {
+        openFileSingle(found ?? targetPath);
+        if (found) {
+          repairLinkInFile(sourcePath, targetPath, id, found).catch((err: unknown) => {
+            logger.warn(`[linkRepair] Failed to repair link in ${sourcePath}:`, err);
+          });
+        }
+      });
     });
 }

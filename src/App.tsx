@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import { FolderIcon } from '@heroicons/react/24/outline';
 import { api } from './renderer/api';
 import AlertDialog from './components/dialogs/AlertDialog';
+import LinkIdMismatchDialog from './components/dialogs/LinkIdMismatchDialog';
 import SearchResultsView from './components/views/SearchResultsView';
 import SettingsView from './components/views/SettingsView';
 import FolderAnalysisView from './components/views/FolderAnalysisView';
@@ -28,6 +29,7 @@ import {
   updateCalendarEvent,
   deleteCalendarEventsUnderPath,
   setCalendarWatcherWarning,
+  setLinkIdMismatch,
   // Aliased at the import (rather than bound inside App) so it stays a module-scope
   // reference: a local `const setError = setAppError` would read as component state
   // to react-hooks/exhaustive-deps and be demanded in every effect's dep array.
@@ -38,6 +40,7 @@ import { newSearchDefinition } from './shared/searchHelpers';
 import type { CalendarEventResult, AppConfig } from './shared/shared';
 import { toCalendarEvents } from './shared/calendarUtil';
 import { loadConfig } from './renderer/config';
+import { openFileSingle } from './renderer/linkRepair';
 import { executeSearch } from './renderer/searchUtil';
 import { isPathInside } from './renderer/pathUtil';
 import { loadDirectoryContents } from './renderer/directoryLoader';
@@ -79,6 +82,7 @@ function App() {
   // and drag-and-drop code can report a failure without an error callback
   // threaded down to it; App remains the only place that renders it.
   const error = useAS(s => s.appError);
+  const linkIdMismatch = useAS(s => s.linkIdMismatch);
   const [lastExportFolder, setLastExportFolder] = useState<string>('');
   const [recentFolders, setRecentFolders] = useState<string[]>([]);
   // Views are mounted on first visit and then kept in the DOM (visibility
@@ -428,6 +432,16 @@ function App() {
       </div>
 
       {error && <AlertDialog scrollable title="Error" message={error} onClose={() => setError(null)} />}
+      {linkIdMismatch && (
+        <LinkIdMismatchDialog
+          mismatch={linkIdMismatch}
+          onOpenOther={() => {
+            if (linkIdMismatch.otherPath) openFileSingle(linkIdMismatch.otherPath);
+            setLinkIdMismatch(null);
+          }}
+          onClose={() => setLinkIdMismatch(null)}
+        />
+      )}
     </>
   );
 }

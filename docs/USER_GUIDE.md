@@ -252,6 +252,8 @@ If the target file is a Markdown file, its front matter `id` property is stored 
 
 Because the id is part of the link itself, the link can be resolved by id even if the file is later renamed or moved. MkBrowser repairs such links automatically: when you click a link whose target no longer exists, it looks for the Markdown file carrying that id, first in the folder the link pointed to and then across the whole root folder, skipping hidden folders and your Ignored Paths. If it finds the file, it opens it and quietly rewrites the link to the file's new location (relative to the document containing the link). If that document is open in the editor at the time, the link is left as-is and repaired on a later click.
 
+If the link's target *does* exist but its front matter `id` doesn't match the id in the link (for example, the original file was renamed and a different file later took its name), MkBrowser still opens it but shows a warning that you may be viewing a different file than the one originally linked. If the file carrying the link's id can be found, the warning names it and offers an **Open Linked File** button. The link is not changed in this case.
+
 Image files are inserted as inline images (`![diagram](../images/diagram.png)`), so they display directly in the rendered document.
 
 You can also link to a **folder**. Clicking a folder link in the rendered Markdown opens that folder in the browser view:

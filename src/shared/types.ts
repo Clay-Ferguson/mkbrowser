@@ -293,6 +293,19 @@ export interface MarkdownHeadingNode extends TreeNode {
 /**
  * Global application state
  */
+/**
+ * A clicked Markdown link titled `"id:<linkId>"` opened a file whose front-matter id
+ * is different (or missing), so it may not be the file the link was made for.
+ * `otherPath` is the file that does carry `linkId`, when one was found.
+ */
+export interface LinkIdMismatch {
+  linkId: string;
+  openedPath: string;
+  /** The opened file's front-matter id, or null when it has none. */
+  openedId: string | null;
+  otherPath: string | null;
+}
+
 export interface AppState {
   /**
    * Collection of all items (files/folders) encountered during browsing.
@@ -439,6 +452,9 @@ export interface AppState {
    * surface a failure without an error callback threaded down to it.
    */
   appError: string | null;
+
+  /** Warning shown by App when a clicked id link opened a file with another id (see LinkIdMismatch). */
+  linkIdMismatch: LinkIdMismatch | null;
 
   pendingEditFile: string | null;
 

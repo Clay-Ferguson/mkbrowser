@@ -1,4 +1,4 @@
-import type { AppState, AppView, BrowseFileMode, FolderAnalysisState, FolderGraphState } from '../shared/types';
+import type { AppState, AppView, BrowseFileMode, FolderAnalysisState, FolderGraphState, LinkIdMismatch } from '../shared/types';
 import { getState, useAS } from './core';
 import type { StoreSet, StoreGet } from './core';
 import { withItemExpanded, withSelectionsCleared } from './items';
@@ -31,6 +31,7 @@ export interface ViewSlice {
   clearPendingExpandFile: () => void;
   requestDirectoryRefresh: () => void;
   setAppError: (message: string | null) => void;
+  setLinkIdMismatch: (mismatch: LinkIdMismatch | null) => void;
   setPendingThreadScrollToBottom: () => void;
   clearPendingThreadScrollToBottom: () => void;
   setFolderAnalysis: (data: FolderAnalysisState | null) => void;
@@ -232,6 +233,9 @@ export function createViewSlice(set: StoreSet, get: StoreGet): ViewSlice {
       set({ appError: message });
     },
 
+    /** Show (or, with null, dismiss) the id-link mismatch warning. */
+    setLinkIdMismatch: (mismatch) => set({ linkIdMismatch: mismatch }),
+
     /** Request ThreadView to scroll to bottom after its next render. */
     setPendingThreadScrollToBottom: () => set({ pendingThreadScrollToBottom: true }),
 
@@ -380,6 +384,10 @@ export function requestDirectoryRefresh(): void {
 
 export function setAppError(message: string | null): void {
   getState().setAppError(message);
+}
+
+export function setLinkIdMismatch(mismatch: LinkIdMismatch | null): void {
+  getState().setLinkIdMismatch(mismatch);
 }
 
 /**

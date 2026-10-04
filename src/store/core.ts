@@ -106,6 +106,7 @@ const initialState: AppState = {
   pendingExpandFile: null,
   directoryRefreshNonce: 0,
   appError: null,
+  linkIdMismatch: null,
   highlightedSearchResult: null,
   folderAnalysis: null,
   folderGraph: null,
