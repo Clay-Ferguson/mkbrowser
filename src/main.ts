@@ -3,12 +3,12 @@ import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { initConfig, getConfig, updateConfig, flushConfig } from './main/configMgr';
-import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition } from './shared/shared';
+import type { AppConfig, OcrTarget, ReadFileResult, FileReadResult, FileWriteResult, FrontMatterIdResult, ExifWriteResult, ThesaurusLookup, SearchOutcome, SearchDefinition } from './shared/shared';
 import { TEST_HOOKS_ARG } from './shared/shared';
 
 import { readDirectory, isFolderEmpty, deleteEmptyFolder } from './main/fileUtil';
 import { parseFrontMatter } from './shared/frontMatterUtil';
-import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterIdIfIndexed, recordFrontMatterIdInIndex, renameInIndexYaml, withIndexLock, type IndexMutationResult } from './main/indexUtil';
+import { reconcileIndexedFiles, insertIntoIndexYaml, moveInIndexYaml, moveToEdgeInIndexYaml, readIndexYaml, ensureFrontMatterIdIfIndexed, ensureFrontMatterId, recordFrontMatterIdInIndex, renameInIndexYaml, withIndexLock, type IndexMutationResult } from './main/indexUtil';
 import { frontMatterFileSaved } from './main/frontMatterHandler';
 import { writeFileAtomic } from './main/atomicWrite';
 import { processTOC } from './shared/tocUtil';
@@ -631,6 +631,16 @@ function setupIpcHandlers(): void {
     } catch (error) {
       logger.error('Error in search and replace:', error);
       return [];
+    }
+  });
+
+  // Get a .md file's front-matter id, adding one if missing ("Paste Link into Editor")
+  ipcMain.handle('ensure-front-matter-id', async (_event, filePath: string): Promise<FrontMatterIdResult> => {
+    try {
+      return await ensureFrontMatterId(filePath);
+    } catch (error) {
+      logger.error('Error ensuring front-matter id:', error);
+      return { id: null };
     }
   });
 

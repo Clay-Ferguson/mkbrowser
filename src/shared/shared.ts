@@ -261,6 +261,16 @@ export interface FileReadResult {
   size: number;
 }
 
+/**
+ * Result of ensureFrontMatterId: the file's front-matter id (null when it has none and
+ * one couldn't be added), plus — only when the id was just added — the write result,
+ * so the renderer can stamp its content cache exactly as after a normal save.
+ */
+export interface FrontMatterIdResult {
+  id: string | null;
+  written?: FileWriteResult;
+}
+
 /** Result of writeFile: the content actually written plus its on-disk mtime/size. */
 export interface FileWriteResult {
   ok: boolean;
@@ -416,6 +426,12 @@ export interface ElectronAPI {
    */
   findMarkdownById: (id: string, likelyDir: string, rootDir: string) => Promise<string | null>;
   writeFile: (filePath: string, content: string) => Promise<FileWriteResult>;
+  /**
+   * Returns the front-matter id of a .md file, first adding a fresh one when it has
+   * none (in any folder, not only Document Mode ones). Used by "Paste Link into
+   * Editor" so every link to a Markdown file carries an id for auto-repair.
+   */
+  ensureFrontMatterId: (filePath: string) => Promise<FrontMatterIdResult>;
   getFileSize: (filePath: string) => Promise<number>;
   getFileMtime: (filePath: string) => Promise<number>;
   writeFileBinary: (filePath: string, base64Data: string) => Promise<boolean>;

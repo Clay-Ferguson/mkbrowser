@@ -15,6 +15,7 @@ import {
   renameInIndexYaml,
   getSortedDirEntries,
   ensureFrontMatterIdIfIndexed,
+  ensureFrontMatterId,
   recordFrontMatterIdInIndex,
   CURRENT_INDEX_VERSION,
 } from '../src/main/indexUtil';
@@ -1666,5 +1667,60 @@ describe('reconcile does not clobber a concurrent write (MAIN_ISSUES.md issue 1)
     const entry = readIndex().files.find((f: IndexEntry) => f.name === 'pasted.md');
     expect(entry).toBeDefined();
     expect(entry?.id).toBeUndefined();
+  });
+});
+
+describe('ensureFrontMatterId', () => {
+  const file = () => path.join(tmpDir, 'note.md');
+  const readFm = () => parseFrontMatter(fs.readFileSync(file(), 'utf8'));
+
+  it('returns an existing id without rewriting the file', async () => {
+    touchFile('note.md', '---\nid: ABC123DEF\ntitle: x\n---\nBody\n');
+    const before = fs.readFileSync(file(), 'utf8');
+    const result = await ensureFrontMatterId(file());
+    expect(result).toEqual({ id: 'ABC123DEF' });
+    expect(fs.readFileSync(file(), 'utf8')).toBe(before);
+  });
+
+  it('adds an id to a file with no front matter, outside Document Mode', async () => {
+    touchFile('note.md', 'Just a body.\n');
+    const result = await ensureFrontMatterId(file());
+    expect(result.id).toMatch(/^[0-9A-F]{9}$/);
+    const { yaml: fm, content } = readFm();
+    expect(String(fm?.id)).toBe(result.id);
+    expect(content).toBe('Just a body.\n');
+    expect(result.written?.ok).toBe(true);
+    expect(result.written?.content).toBe(fs.readFileSync(file(), 'utf8'));
+    expect(fs.existsSync(indexPath())).toBe(false); // never creates an index
+  });
+
+  it('adds an id to existing front matter, keeping its other fields', async () => {
+    touchFile('note.md', '---\ntitle: Hello\n---\nBody\n');
+    const result = await ensureFrontMatterId(file());
+    const { yaml: fm } = readFm();
+    expect(String(fm?.id)).toBe(result.id);
+    expect(fm?.title).toBe('Hello');
+  });
+
+  it('records the new id in .INDEX.yaml when the folder is in Document Mode', async () => {
+    touchFile('note.md', 'Body\n');
+    writeIndex({ version: CURRENT_INDEX_VERSION, files: [{ name: 'note.md' }], options: {} });
+    const result = await ensureFrontMatterId(file());
+    expect(readIndex().files.find((f) => f.name === 'note.md')?.id).toBe(result.id);
+  });
+
+  it('leaves malformed front matter untouched and returns a null id', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    // Unparseable YAML, and a block whose top level is a list rather than a mapping.
+    for (const content of ['---\ntitle: "unclosed\n---\nBody\n', '---\n- a\n- b\n---\nBody\n']) {
+      touchFile('note.md', content);
+      expect(await ensureFrontMatterId(file())).toEqual({ id: null });
+      expect(fs.readFileSync(file(), 'utf8')).toBe(content);
+    }
+    warn.mockRestore();
+  });
+
+  it('rejects for a missing file', async () => {
+    await expect(ensureFrontMatterId(file())).rejects.toThrow();
   });
 });

@@ -10,6 +10,7 @@ import { decodeMarkdownUrl, formatLinkDestination, getRelativePath, resolveLinkP
 import { getFileName, getParentPath } from './pathUtil';
 import { getItem, setBrowseFile, setHighlightItem, setItemContent, useAS } from '../store';
 import { logger } from '../shared/logUtil';
+import { parseFrontMatter } from '../shared/frontMatterUtil';
 
 /**
  * A link destination (`<...>` or bare) followed by a double-quoted title, ending the
@@ -66,6 +67,35 @@ async function repairLinkInFile(sourcePath: string, brokenTarget: string, id: st
   }
   // Same stamping as a normal save (see useEditMode.writeFileAndExitEditMode).
   setItemContent(sourcePath, result.content, result.mtime, result.size, result.createdTime);
+}
+
+/**
+ * Resolves to the front-matter id of the Markdown file at `path` for use as a link
+ * title, adding a fresh id to the file first when it has none — so every link made
+ * by "Paste Link into Editor" can later be auto-repaired. A file open in the editor
+ * is only read, never rewritten (that would fight the edit buffer). Resolves to ''
+ * when there is no id; never rejects.
+ */
+export function getOrAddLinkTargetId(path: string): Promise<string> {
+  if (getItem(path)?.editing) {
+    return api.readFile(path)
+      .then((result) => {
+        const idVal = result.ok ? parseFrontMatter(result.content).yaml?.id : undefined;
+        return idVal !== null && idVal !== undefined ? String(idVal) : '';
+      })
+      .catch(() => '');
+  }
+  return api.ensureFrontMatterId(path)
+    .then(({ id, written }) => {
+      // The file was rewritten with its new id: refresh the cached content, stamped
+      // exactly as after a normal save (see useEditMode.writeFileAndExitEditMode).
+      if (written) setItemContent(path, written.content, written.mtime, written.size, written.createdTime);
+      return id ?? '';
+    })
+    .catch((err: unknown) => {
+      logger.warn(`[linkRepair] Failed to get or add an id for ${path}:`, err);
+      return '';
+    });
 }
 
 /**

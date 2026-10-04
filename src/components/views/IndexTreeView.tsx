@@ -61,7 +61,7 @@ import { getVisibleElementById, scrollElementIntoView } from '../../renderer/ent
 import { getActiveMarkdownEditor } from '../../renderer/activeMarkdownEditor';
 import { formatLinkDestination, formatLinkTitle } from '../../renderer/linkUtil';
 import { ensureTrailingSep, getFileName, getParentPath, isPathInside, isSamePath, joinPath, splitPathSegments } from '../../renderer/pathUtil';
-import { parseFrontMatter } from '../../shared/frontMatterUtil';
+import { getOrAddLinkTargetId } from '../../renderer/linkRepair';
 import { ATTACH_SUFFIX } from '../../shared/specialFiles';
 
 const INDENT_SIZE = 20;
@@ -929,8 +929,8 @@ function IndexTreeView() {
    * on node type: directories get Browse/New File/New TODO/New Folder/Rename/Delete and (when cut
    * items exist) Paste; files get Browse/Rename/Delete and (when a markdown file
    * is being edited; otherwise shown disabled) "Paste Link into Editor", which inserts a relative Markdown link (to the file or folder) at the
-   * active editor's cursor — using the file's front-matter `id` field as the link
-   * title (`"id:…"`) when present. Shell scripts (`.sh`) also get "Run". Both directories
+   * active editor's cursor — using a Markdown target's front-matter `id` field as the
+   * link title (`"id:…"`), first adding an id to the target when it has none. Shell scripts (`.sh`) also get "Run". Both directories
    * and files also get "Copy Path" (absolute) and "Copy Relative Path" (relative
    * to the folder currently browsed in BrowseView).
    */
@@ -975,22 +975,14 @@ function IndexTreeView() {
           const name = getFileName(node.path);
           const label = node.isDirectory ? name : name.replace(/\.md$/, '');
           if (!node.isDirectory && node.path.endsWith('.md')) {
-            api.readFile(node.path)
-              .then((result) => {
-                // On a failed read, fall back to a plain link (no id title),
-                // matching the .catch() path below.
-                const raw = result.ok ? result.content : '';
-                const idVal = parseFrontMatter(raw).yaml?.id;
-                const id = idVal !== null && idVal !== undefined ? String(idVal) : '';
-                // The id rides in the link's title, so any Markdown parser returns it
-                // with the link (for future link verification/auto-repair).
-                const title = id ? ` ${formatLinkTitle(`id:${id}`)}` : '';
-                activeEditor.handle.insertAtCursor(`[${label}](${relPath}${title})`);
-              })
-              .catch(() => {
-                // Couldn't read the target file for its id — insert a plain link
-                activeEditor.handle.insertAtCursor(`[${label}](${relPath})`);
-              });
+            // A target without an id gets one first; with no id at all (unreadable or
+            // malformed front matter) this falls back to a plain link.
+            void getOrAddLinkTargetId(node.path).then((id) => {
+              // The id rides in the link's title, so any Markdown parser returns it
+              // with the link, and a broken link can be auto-repaired (linkRepair.ts).
+              const title = id ? ` ${formatLinkTitle(`id:${id}`)}` : '';
+              activeEditor.handle.insertAtCursor(`[${label}](${relPath}${title})`);
+            });
           } else if (!node.isDirectory && isImageFile(node.name)) {
             activeEditor.handle.insertAtCursor(`![${label}](${relPath})`);
           } else {

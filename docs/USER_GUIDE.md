@@ -244,7 +244,7 @@ MkBrowser inserts a Markdown link at the cursor position, with the path computed
 [notes](../reference/notes.md)
 ```
 
-If the target file is a Markdown file that contains a front matter `id` property, the id is stored as the link's title (standard Markdown, shown as the link's hover tooltip):
+If the target file is a Markdown file, its front matter `id` property is stored as the link's title (standard Markdown, shown as the link's hover tooltip). A target that has no `id` yet is given one first (adding a front matter block if it has none), in any folder — not only Document Mode folders:
 
 ```
 [notes](../reference/notes.md "id:abc123")

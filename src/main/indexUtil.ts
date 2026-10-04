@@ -3,7 +3,8 @@ import path from 'node:path';
 import { dump } from 'js-yaml';
 import { z } from 'zod';
 import { customAlphabet } from 'nanoid';
-import { parseFrontMatter } from '../shared/frontMatterUtil';
+import { parseFrontMatter, splitFrontMatter } from '../shared/frontMatterUtil';
+import type { FrontMatterIdResult } from '../shared/shared';
 import { loadYaml } from '../shared/yamlUtil';
 import { compareNames } from '../shared/fileTypes';
 import { ATTACH_SUFFIX, INDEX_FILENAME } from '../shared/specialFiles';
@@ -1234,6 +1235,47 @@ export async function recordFrontMatterIdInIndex(filePath: string, fileId: strin
       logger.warn(`recordFrontMatterIdInIndex: failed to record id for "${fileName}" in "${indexFilePath}": ${err}`);
     }
   });
+}
+
+/**
+ * Returns the front-matter id of the markdown file at `filePath`, first injecting
+ * a fresh one (via injectFrontMatterId) when it has none. Unlike
+ * {@link ensureFrontMatterIdIfIndexed} this applies in ANY folder, not only
+ * Document Mode ones: it backs "Paste Link into Editor", which stores the id in
+ * the link title so a broken link can later be repaired by id.
+ *
+ * The read → inject → write runs inside the per-directory index lock, so it
+ * can't interleave with a reconcile or save of the same folder. When the folder
+ * IS in Document Mode the new id is then recorded in .INDEX.yaml, after the file
+ * is on disk (same ordering as the write-file handler; issue 014) — a no-op
+ * otherwise.
+ *
+ * A file whose front matter is present but malformed (or not a mapping) is left
+ * untouched with `id: null`: injecting would wrap a second block around the
+ * unparseable one. `written` is set only when the file was rewritten.
+ */
+export async function ensureFrontMatterId(filePath: string): Promise<FrontMatterIdResult> {
+  const result = await withIndexLock(path.dirname(filePath), async (): Promise<FrontMatterIdResult> => {
+    const raw = await fs.promises.readFile(filePath, 'utf8');
+    const { yaml: fm, content: body } = parseFrontMatter(raw);
+    const existing = frontMatterId(fm);
+    if (existing !== undefined) return { id: existing };
+    if (splitFrontMatter(raw) !== null && fm === null && body === raw) {
+      logger.warn(`ensureFrontMatterId: malformed front matter in "${filePath}", not adding an id`);
+      return { id: null };
+    }
+
+    const { content, id } = injectFrontMatterId(raw);
+    await writeFileAtomic(filePath, content);
+    const stats = await fs.promises.stat(filePath).catch(() => null);
+    return {
+      id,
+      written: { ok: true, content, mtime: stats?.mtimeMs ?? Date.now(), size: stats?.size, createdTime: stats?.birthtimeMs },
+    };
+  });
+  // recordFrontMatterIdInIndex takes the (non-reentrant) lock itself.
+  if (result.written && result.id) await recordFrontMatterIdInIndex(filePath, result.id);
+  return result;
 }
 
 /**

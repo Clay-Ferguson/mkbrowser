@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getImageDimensions: (filePath: string) => ipcRenderer.invoke('get-image-dimensions', filePath),
   pathExists: (checkPath: string) => ipcRenderer.invoke('path-exists', checkPath),
   isDirectory: (checkPath: string) => ipcRenderer.invoke('is-directory', checkPath),
+  ensureFrontMatterId: (filePath: string) => ipcRenderer.invoke('ensure-front-matter-id', filePath),
   findMarkdownById: (id: string, likelyDir: string, rootDir: string) =>
     ipcRenderer.invoke('find-markdown-by-id', id, likelyDir, rootDir),
   writeFile: (filePath: string, content: string) => ipcRenderer.invoke('write-file', filePath, content),
