@@ -16,7 +16,7 @@ import {
   type BaseEntryProps,
   type AttachMenuProps,
 } from './common';
-import { BUTTON_CLASS_SCRIM, ENTRY_BODY_BORDER } from '../../renderer/styles';
+import { BUTTON_CLASS_SCRIM } from '../../renderer/styles';
 
 interface ImageEntryProps extends BaseEntryProps, AttachMenuProps {
   allImages: FileEntryType[];
@@ -112,14 +112,15 @@ function ImageEntry(props: ImageEntryProps) {
         }
       >
         {/* Expanded image content */}
-        <div className={`p-2 ${ENTRY_BODY_BORDER}`}>
-          <div className="bg-slate-900 rounded-lg flex items-center justify-center">
+        {/* No ENTRY_BODY_BORDER here, unlike the other entry types: the image carries its own border. */}
+        <div>
+          <div className="bg-slate-900 pb-1.5 flex items-center justify-center">
             <div className="relative inline-block">
               <img
                 src={imageUrl}
                 alt={entry.name}
                 className={clsx(
-                  'max-w-full object-contain border border-slate-300 cursor-pointer hover:opacity-90 transition-opacity',
+                  'block max-w-full object-contain border border-slate-500 cursor-pointer hover:opacity-90 transition-opacity',
                   IMAGE_SIZE_CLASSES[imageSize],
                 )}
                 loading="lazy"
