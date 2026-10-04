@@ -1,4 +1,7 @@
-import type { AppState, TreeNode, FileNode } from '../shared/types';
+import type { AppState, TreeNode, FileNode, MarkdownHeadingNode } from '../shared/types';
+import { ATTACH_SUFFIX } from '../shared/specialFiles';
+import { extractHeadingTree } from '../shared/tocUtil';
+import { ensureTrailingSep } from '../renderer/pathUtil';
 import { getState } from './core';
 import type { StoreSet, StoreGet } from './core';
 import { withHistoryPush } from './history';
@@ -29,6 +32,76 @@ function updateNodeByPath<T extends TreeNode>(
     return updated;
   });
   return changed ? { ...node, children: newChildren } : node;
+}
+
+/**
+ * Whether the file/folder at `target` can be `node` itself or lie somewhere beneath it.
+ * A file node's only file/folder descendants are inside its attachment folder, which
+ * the tree nests under the file; heading nodes never contain one.
+ */
+function mayContain(node: TreeNode, target: string): boolean {
+  if (node.path === target) return true;
+  if (!('isDirectory' in node)) return false;
+  const base = (node as FileNode).isDirectory ? node.path : `${node.path}${ATTACH_SUFFIX}`;
+  return target.startsWith(ensureTrailingSep(base));
+}
+
+/**
+ * Like updateNodeByPath, but for a file/folder `targetPath` only, descending just the
+ * one branch that can hold it rather than the whole loaded tree — cheap enough to run
+ * on every content update. Returns `node` itself when the target isn't loaded.
+ */
+function updateFileNodeByPath(node: FileNode, targetPath: string, updater: (n: FileNode) => FileNode): FileNode {
+  if (node.path === targetPath) return updater(node);
+  if (!node.children || !mayContain(node, targetPath)) return node;
+  const idx = node.children.findIndex(c => mayContain(c, targetPath));
+  if (idx < 0) return node;
+  const child = node.children[idx] as FileNode;
+  const updated = updateFileNodeByPath(child, targetPath, updater);
+  if (updated === child) return node;
+  const children = [...node.children];
+  children[idx] = updated;
+  return { ...node, children };
+}
+
+/**
+ * Merges freshly extracted headings into the previous ones: a heading still at the same
+ * position with the same text keeps its expansion state, and a whole subtree that is
+ * unchanged keeps its identity (so its memo()'d rows skip re-rendering). Returns `old`
+ * itself when nothing changed.
+ */
+function mergeHeadings(fresh: MarkdownHeadingNode[], old: MarkdownHeadingNode[]): MarkdownHeadingNode[] {
+  const oldByPath = new Map(old.map(h => [h.path, h]));
+  const merged = fresh.map(h => {
+    const prev = oldByPath.get(h.path);
+    if (!prev || prev.heading !== h.heading || prev.slug !== h.slug || prev.depth !== h.depth) return h;
+    const children = h.children && prev.children ? mergeHeadings(h.children, prev.children) : h.children;
+    if (children === prev.children) return prev;
+    return { ...h, isExpanded: prev.isExpanded, children };
+  });
+  return merged.length === old.length && merged.every((h, i) => h === old[i]) ? old : merged;
+}
+
+/**
+ * Returns `root` with the heading children of the markdown file at `filePath` rebuilt
+ * from `content` — the file's new text, so no disk read is needed. Applied by
+ * setItemContent, which every save and reload passes through, so an expanded file's
+ * headings in the tree always match what was last saved. The file's attachment-folder
+ * child, heading expansion states and unchanged subtrees are kept. A file whose
+ * children were never loaded is left alone (its first expand reads the file), and
+ * `root` itself is returned when nothing changed.
+ */
+export function withFileHeadings(root: FileNode | null, filePath: string, content: string): FileNode | null {
+  if (!root || !filePath.toLowerCase().endsWith('.md')) return root;
+  return updateFileNodeByPath(root, filePath, (node) => {
+    if (node.isDirectory || !node.children) return node;
+    const oldHeadings = node.children.filter((c): c is MarkdownHeadingNode => 'heading' in c);
+    const headings = mergeHeadings(extractHeadingTree(filePath, content), oldHeadings);
+    // Headings unchanged: keep the node (and skip the store write).
+    if (headings === oldHeadings) return node;
+    const others = node.children.filter(c => !('heading' in c));
+    return { ...node, children: [...others, ...headings] };
+  });
 }
 
 /**

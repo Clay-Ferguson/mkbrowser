@@ -233,6 +233,11 @@ Keeping it in sync:
   attach folder beneath them; heading children pass through.
 - **`findTreeNodeByPath`** already walks every `FileNode` child, so `reloadExpandedTreeFolder`
   on an attach folder path (e.g. from `completeEntryDrop`) finds it under its file.
+- **Headings follow saves.** `setItemContent` (`src/store/items.ts`), which every save and
+  reload passes through, folds in `withFileHeadings` (`src/store/indexTree.ts`): if the file's
+  tree children are loaded, its headings are rebuilt from the new content in the same store
+  write, keeping the attach child, heading expansion, and unchanged subtrees. The lookup
+  descends only the one branch that can hold the file, so it is cheap on every content update.
 - **Collapse All** collapses file nodes too, so attach folders under files fold away.
 - **Reveal in tree** (`expandToPath` in `IndexTreeView`) expands the owning file when the next
   path segment is an attach folder, so revealing an attachment reaches it.

@@ -14,6 +14,8 @@ import {
 import { makeTreeNodes, makeFileChildren, mergeTreeNodes, refreshExpandedNodes } from '../src/renderer/treeNodes';
 import { useAS } from '../src/store/core';
 import { collapseAllIndexTreeNodes } from '../src/store/indexTree';
+import { setItemContent } from '../src/store/items';
+import { extractHeadingTree } from '../src/shared/tocUtil';
 import { api } from '../src/renderer/api';
 import type { FileNode, MarkdownHeadingNode, TreeNode } from '../src/shared/types';
 
@@ -385,5 +387,63 @@ describe('collapseAllIndexTreeNodes', () => {
     expect(file.isExpanded).toBe(false);
     expect((file.children![0] as FileNode).isExpanded).toBe(false);
     expect(file.children![1]).toBe(h);
+  });
+});
+
+describe('setItemContent — keeps an expanded file\'s headings in the tree current', () => {
+  const FILE = '/r/a.md';
+  const NESTED = '/r/a.md.attach/b.md';
+
+  /** /r -> a.md (expanded: attach folder + headings of `content`) -> a.md.attach (expanded) -> b.md */
+  function seed(content: string, nestedChildren: TreeNode[] | null = null): void {
+    useAS.setState({
+      items: new Map(),
+      indexTreeRoot: node('/r', true, true, [
+        owner(FILE, true, [
+          node('/r/a.md.attach', true, true, [node(NESTED, false, nestedChildren !== null, nestedChildren)]),
+          ...extractHeadingTree(FILE, content),
+        ]),
+      ]),
+    });
+  }
+  const fileNode = () => useAS.getState().indexTreeRoot!.children![0] as FileNode;
+  const headingTexts = (children: TreeNode[]) => children.filter(c => 'heading' in c).map(c => (c as MarkdownHeadingNode).heading);
+
+  it('rebuilds the headings from the saved content, keeping the attach folder child', () => {
+    seed('# One\n');
+    const attach = fileNode().children![0];
+    setItemContent(FILE, '# One\n# Two\n', 1);
+    expect(fileNode().children![0]).toBe(attach);
+    expect(headingTexts(fileNode().children!)).toEqual(['One', 'Two']);
+  });
+
+  it('keeps heading expansion and skips the store write when the headings are unchanged', () => {
+    seed('# One\n## Sub\n');
+    const top = fileNode().children![1] as MarkdownHeadingNode;
+    const rootBefore = useAS.getState().indexTreeRoot;
+    setItemContent(FILE, '# One\n## Sub\nbody text\n', 1);
+    expect(useAS.getState().indexTreeRoot).toBe(rootBefore);
+    expect(fileNode().children![1]).toBe(top);
+
+    // An expanded heading stays expanded across an edit that adds a sibling.
+    const expanded = { ...top, isExpanded: true };
+    useAS.setState({ indexTreeRoot: node('/r', true, true, [{ ...fileNode(), children: [fileNode().children![0]!, expanded] }]) });
+    setItemContent(FILE, '# One\n## Sub\n# Two\n', 1);
+    expect((fileNode().children![1] as MarkdownHeadingNode).isExpanded).toBe(true);
+    expect(headingTexts(fileNode().children!)).toEqual(['One', 'Two']);
+  });
+
+  it('updates a loaded file inside an attach folder', () => {
+    seed('# One\n', []);
+    setItemContent(NESTED, '# Nested\n', 1);
+    const nested = (fileNode().children![0] as FileNode).children![0] as FileNode;
+    expect(headingTexts(nested.children!)).toEqual(['Nested']);
+  });
+
+  it('leaves a file whose children were never loaded alone', () => {
+    seed('# One\n');
+    const rootBefore = useAS.getState().indexTreeRoot;
+    setItemContent(NESTED, '# Nested\n', 1);
+    expect(useAS.getState().indexTreeRoot).toBe(rootBefore);
   });
 });
